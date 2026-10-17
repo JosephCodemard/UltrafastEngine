@@ -11,6 +11,7 @@ __pycache__/
 python/src/ultrafast/bin/
 python/third_party/
 site/
+.vscode/
 *.npz
 # example data and assets are part of the docs
 !docs/**/*.npz
