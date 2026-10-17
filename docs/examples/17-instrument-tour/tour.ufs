@@ -1,0 +1,25 @@
+{
+  // Example 17: a tour of every instrument. A 30 fs, 50 nJ pulse at 800 nm (pre-chirped with 300 fs^2)
+  // goes through a fused-silica plate on a radial grid (SPM and a weak Kerr lens), 30 cm of air,
+  // chirped mirrors, a quarter-wave plate and a polariser, and finally seeds a non-collinear OPA in BBO
+  // pumped by a 515 nm pulse. run.json puts every instrument kind somewhere along this line.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "instrument-tour",
+  "elements": [
+    { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 0.003,
+      "beam": { "kind": "gaussian", "w0M": 200e-6 },
+      "transverse": { "model": "radial", "points": 48 } },
+    { "id": "air", "type": "gap", "lengthM": 0.3, "transverse": { "model": "radial", "points": 64, "radiusM": 3e-3 } },
+    { "id": "cm", "type": "chirpedMirror", "gddS2": -80e-30, "bounces": 2, "reflectance": 0.998 },
+    { "id": "qwp", "type": "waveplate", "plate": "quarter", "axisDeg": 15 },
+    { "id": "pol", "type": "polarizer", "axisDeg": 0 },
+    { "id": "nopa", "type": "crystal", "crystal": "BBO", "lengthM": 1e-3,
+      "interaction": { "process": "opa", "type": "I", "noncollinearDeg": "magic" },
+      "beam": { "kind": "gaussian", "w0M": 0.3e-3 },
+      "aux": [ { "role": "pump", "pulse": { "shape": "gaussian", "centerWavelengthM": 515e-9, "durationFwhmS": 250e-15, "energyJ": 40e-6 },
+                 "beam": { "kind": "gaussian", "radiusM": 0.35e-3 }, "delayS": "auto" } ],
+      "output": "signal", "record": ["idler"] }
+  ]
+}

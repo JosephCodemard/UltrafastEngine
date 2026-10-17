@@ -1,0 +1,7 @@
+{
+  "format": "ultrafast-study",
+  "system": "chain.ufs", "run": "run.json",
+  "mode": "scan", "sampling": "grid", "parallel": 4,
+  "parameters": [ { "path": "pulse/energyJ", "min": 0.1e-3, "max": 10e-3, "scale": "log", "points": 9 } ],
+  "outputs": [ "record:rod/BIntegralRad", "instrument:xc/prePulseContrastDb", "instrument:xc/postPulseContrastDb", "pulse:end/fwhmS" ]
+}

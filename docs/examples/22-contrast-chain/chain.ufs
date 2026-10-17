@@ -1,0 +1,17 @@
+{
+  // Example 22: how a post-pulse becomes a pre-pulse in a CPA chain (tutorial 5).
+  // Stretcher -> uncoated window (its ghost is a post-pulse) -> Kerr medium (a YAG rod standing in for the
+  // amplifier) -> compressor. The Kerr medium turns the ghost into a pre-pulse after compression.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "contrast-chain",
+  "elements": [
+    { "id": "stretcher", "type": "dispersion", "gddFs2": 5.0e6 },
+    // 3 mm uncoated fused silica at normal incidence: ghost R^2 ~ 1.1e-3, 29 ps after the main pulse
+    { "id": "window", "type": "plate", "material": "FusedSilica", "thicknessM": 3e-3, "ghosts": { "orders": 1, "overlap": 1.0 } },
+    { "id": "rod", "type": "bulk", "material": "YAG", "lengthM": 0.02, "nonlinear": true,
+      "beam": { "kind": "constant", "radiusM": 0.5e-3 } },
+    { "id": "compressor", "type": "dispersion", "gddFs2": -5.0e6 }
+  ]
+}

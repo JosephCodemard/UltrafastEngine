@@ -1,0 +1,9 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "G. Ghosh. Opt. Commun. 163, 95-102 (1999)"
+COMMENTS: "Calcite, ordinary ray"
+DATA:
+  - type: formula 2
+    wavelength_range: 0.204 2.172
+    coefficients: 0.73358749 0.96464345 1.94325203e-2 1.82831454 120
+SPECS:
+    temperature: 20.0 °C

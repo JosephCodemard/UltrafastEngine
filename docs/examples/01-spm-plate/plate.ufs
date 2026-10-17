@@ -1,0 +1,22 @@
+{
+  // Example 01: self-phase modulation in a fused-silica plate (written by hand).
+  // A 6.35 mm plate at normal incidence with AR-coated faces, beam focused to its centre.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "spm-plate",
+  "description": "Fused-silica plate, AR coated, Gaussian focus at the plate centre",
+  "coatings": {
+    "AR1030": { "kind": "ar", "R": 0.002, "lidt": { "fluenceJPerCm2": 2.0, "pulseDurationS": 1e-12 } }
+  },
+  "elements": [
+    { "id": "front", "type": "interface", "before": "Air", "after": "FusedSilica", "coating": "AR1030",
+      "semiDiameterM": 12.7e-3, "beamRadiusM": 0.30e-3 },
+    { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 6.35e-3,
+      // waist 120 um at the centre of the plate (z measured from the element start); n is filled in from the material
+      "beam": { "kind": "gaussian", "w0M": 120e-6, "zWaistM": 3.175e-3, "m2": 1.1 } },
+    { "id": "back", "type": "interface", "before": "FusedSilica", "after": "Air", "coating": "AR1030",
+      "semiDiameterM": 12.7e-3, "beamRadiusM": 0.30e-3 },
+    { "id": "air", "type": "gap", "lengthM": 0.5 }
+  ]
+}

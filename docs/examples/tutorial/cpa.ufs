@@ -1,0 +1,30 @@
+{
+  // Tutorial 3: a more complex system. A Yb chirped-pulse amplifier with frequency doubling:
+  //   stretcher (grating pair) -> 8-pass Yb:YAG amplifier (diode pumped, 10 kHz) -> compressor -> SHG in LBO.
+  // Each element type has its own page in the docs (gain.md, crystals.md, system-file.md).
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "tutorial-cpa",
+  "elements": [
+    // stretch 250 fs to ~300 ps so the amplifier stays linear (negative separation = stretcher)
+    { "id": "stretcher", "type": "gratingPair", "linesPerMm": 1740, "aoiDeg": 60.0, "separationM": -0.25,
+      "order": -1, "passes": 2, "efficiency": 0.92 },
+    { "id": "stretched", "type": "probe" },                      // a named place for instruments
+    // gain: a library medium, a cw diode pump, 8 passes; iterated to steady state at the repetition rate
+    { "id": "amplifier", "type": "amplifier", "geometry": "multipass", "passes": 8,
+      "medium": "Yb:YAG", "lengthM": 0.006, "modeRadiusM": 0.45e-3,
+      "pump": { "kind": "cw", "powerW": 150, "wavelengthM": 940e-9, "radiusM": 0.5e-3, "profile": "superGaussian", "order": 4, "passes": 2 },
+      "betweenPasses": { "loss": 0.03 },
+      "thermalLens": { "rodRadiusM": 1.5e-3 } },
+    { "id": "amplified", "type": "probe" },
+    // recompress (positive separation = compressor)
+    { "id": "compressor", "type": "gratingPair", "linesPerMm": 1740, "aoiDeg": 60.0, "separationM": 0.25,
+      "order": -1, "passes": 2, "efficiency": 0.92 },
+    // SHG: type-I LBO, cut automatically for 1030 -> 515 nm; the main beam continues as the second harmonic
+    { "id": "shg", "type": "crystal", "crystal": "LBO", "lengthM": 1.5e-3,
+      "interaction": { "process": "shg", "type": "I" }, "cut": "auto",
+      "beam": { "kind": "gaussian", "w0M": 2.5e-3 },          // collimated 2.5 mm beam: ~20 GW/cm^2
+      "output": "sh", "record": ["fundamental"] }
+  ]
+}

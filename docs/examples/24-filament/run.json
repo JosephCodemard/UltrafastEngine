@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "air-focus",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 40e-15, "energyJ": 0.4e-3 },
+  "instruments": [
+    { "kind": "spectrometer", "at": "end" },
+    { "kind": "frog", "name": "frog", "type": "shg", "points": 128, "at": "end" },
+    { "kind": "pulseSummary", "at": "end" }
+  ]
+}

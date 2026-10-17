@@ -1,0 +1,20 @@
+{
+  // Example 14: a 1 kHz Ti:sapphire regenerative amplifier. A 30 fs, 2 nJ oscillator pulse is stretched
+  // (ideal stretcher: GDD + TOD), injected into a regen pumped by a frequency-doubled Q-switched laser
+  // (10 mJ at 532 nm, double pass) and ejected automatically at the energy maximum. The cavity adds a Pockels
+  // cell (KD*P stands in as fused silica here), a thin-film polariser and the round-trip loss.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "ti-sapphire-regen",
+  "elements": [
+    { "id": "stretcher", "type": "dispersion", "gddS2": 1.5e-24, "todS3": 1.0e-39 },
+    { "id": "regen", "type": "amplifier", "geometry": "regenerative", "roundTrips": "auto", "passesPerRoundTrip": 2,
+      "medium": "Ti:sapphire", "lengthM": 0.012, "slices": 16, "modeRadiusM": 0.45e-3,
+      "pump": { "kind": "pulsed", "energyJ": 10e-3, "wavelengthM": 532e-9, "radiusM": 0.5e-3, "passes": 2, "delayS": 200e-9 },
+      "cavity": { "lossPerRoundTrip": 0.06,
+                  "materials": [ { "name": "FusedSilica", "lengthM": 0.04 } ] } },
+    // compressor = -(stretcher + 11 round trips of sapphire and silica): tuned with the "compressor" instrument
+    { "id": "compressor", "type": "dispersion", "gddS2": -1.5303e-24, "todS3": -1.0057e-39 }
+  ]
+}

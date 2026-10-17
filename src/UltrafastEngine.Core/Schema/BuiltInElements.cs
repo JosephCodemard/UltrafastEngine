@@ -1,0 +1,243 @@
+using System;
+
+namespace UltrafastEngine.Schema
+{
+    public static partial class BuiltInOptions
+    {
+        private static void Elements(Action<ComponentSpec> add)
+        {
+            const string D = "reference/elements.md#";
+            add(new ComponentSpec("element", "dispersion", "Linear dispersion: sampled group delay, spectral phase or Taylor coefficients.").DocAt(D + "dispersion")
+                .Arr("groupDelayS", "s", "Per-wavelength absolute group delay (e.g. traced group path / c)")
+                .Arr("groupDelayYS", "s", "Group delay of the y polarisation (if different)")
+                .Arr("phaseRad", "rad", "Per-wavelength spectral phase (alternative)")
+                .Num("gddS2", "s^2", "GDD").Num("todS3", "s^3", "TOD").Num("fodS4", "s^4", "FOD")
+                .Num("gddFs2", "fs^2", "GDD in fs^2").Num("todFs3", "fs^3", "TOD in fs^3").Num("fodFs4", "fs^4", "FOD in fs^4")
+                .Num("groupDelayAtCarrierS", "s", "Absolute group delay at the carrier").Num("referenceWavelengthM", "m", "Expansion wavelength", "the carrier")
+                .Arr("transmission", "", "Per-wavelength power transmission").Str("lossMechanism", "Name of the transmission loss in the budget", "transmission")
+                .Num("airPathM", "m", "Length of air whose data are relative to air (absolute-index correction)")
+                .Num("lengthM", "m", "Geometric length (informational)"));
+
+            foreach (var t in new[] { "bulk", "gap" })
+                add(new ComponentSpec("element", t, t == "bulk" ? "Propagation in a material, nonlinear when it has a beam and n2." : "Free space (air by default); linear unless nonlinear: true.")
+                    .Alias(t == "bulk" ? new[] { "medium" } : new string[0]).DocAt(D + "bulk").Include("nonlinearMedium")
+                    .Str("material", "Material name (the file's materials or a built-in)", t == "gap" ? "Air" : null, required: t == "bulk")
+                    .Num("lengthM", "m", "Length", required: true)
+                    .Arr("groupDelayS", "s", "Traced group delay (used instead of the material index unless overridden)")
+                    .Arr("groupDelayYS", "s", "Traced group delay of y")
+                    .Arr("transmission", "", "Per-wavelength internal transmission (else the material's attenuation)")
+                    .Enum("dispersionSource", new[] { "data", "material" }, "Use traced data or the material index", "data")
+                    .Num("airPathM", "m", "Air path whose data are relative to air"));
+
+            foreach (var t in new[] { "interface", "mirror", "grating" })
+                add(new ComponentSpec("element", t, t == "interface" ? "A refracting surface: Fresnel or coating, clipping, polarisation basis." : t == "mirror" ? "A reflecting surface: coating, AOI, s/p phases, curvature." : "A diffracting surface (one grating).")
+                    .Alias(t == "interface" ? new[] { "surface" } : new string[0]).DocAt(D + "surfaces").Include("beamSize")
+                    .Enum("mode", new[] { "refract", "reflect", "diffract" }, "Surface action", t == "mirror" ? "reflect" : t == "grating" ? "diffract" : "refract")
+                    .Str("before", "Medium before the surface", "Air").Str("after", "Medium after (mirror: substrate/metal; omitted = ideal)")
+                    .Arr("aoiRad", "rad", "Angle of incidence (per wavelength or scalar)").Arr("aoiDeg", "deg", "Angle of incidence in degrees")
+                    .Model("coating", "coating", "Coating name (from coatings) or inline coating; none = bare Fresnel")
+                    .Arr("efficiency", "", "Diffraction efficiency (grating, no coating)").Arr("efficiencyS", "", "s efficiency").Arr("efficiencyP", "", "p efficiency")
+                    .Arr("kIn", "", "Incoming ray direction (global) for exact s/p basis transport").Arr("kOut", "", "Outgoing ray direction").Arr("normal", "", "Surface normal")
+                    .Num("planeOfIncidenceDeg", "deg", "s-direction angle from local x when no vectors are given", "90").Also("planeOfIncidence")
+                    .Num("semiDiameterM", "m", "Hard circular aperture").Num("clearApertureM", "m", "Clear aperture (alternative)")
+                    .Model("aperture", "aperture", "Aperture model")
+                    .Model("beam", "beam", "Beam at the surface (instead of beamRadiusM)")
+                    .Num("roughnessRmsM", "m", "Rms roughness -> total integrated scatter")
+                    .Obj("lidt", "Damage threshold (else the coating's, else the material's)", "lidt")
+                    .Num("radiusOfCurvatureM", "m", "Curved mirror: f = R/2 (off-axis: f_t = R cos(aoi)/2, f_s = R/(2 cos(aoi))) on the tracked beam and a carried profile")
+                    .Num("focalLengthM", "m", "Focal length (mirror, alternative to the radius)")
+                    .Obj("aberration", "Wavefront error / surface figure (Zernike, random figure)", "aberration"));
+
+            add(new ComponentSpec("element", "gratingPair", "Treacy grating pair (exact dispersion; negative separation = stretcher).").DocAt(D + "gratingpair")
+                .Num("linesPerMm", "1/mm", "Groove density").Num("linesPerM", "1/m", "Groove density (alternative)")
+                .Num("aoiDeg", "deg", "Angle of incidence", required: true).Num("aoiRad", "rad", "Angle of incidence")
+                .Num("separationM", "m", "Perpendicular separation (negative for a stretcher)", required: true)
+                .Int("order", "Diffraction order", "-1").Int("passes", "Passes through the pair", "2")
+                .Num("efficiency", "", "Efficiency per diffraction", "1"));
+            add(new ComponentSpec("element", "chirpedMirror", "Chirped (dispersive) mirror: GDD/TOD/FOD per bounce.").DocAt(D + "chirpedmirror")
+                .Num("gddS2", "s^2", "GDD per bounce").Num("todS3", "s^3", "TOD per bounce").Num("fodS4", "s^4", "FOD per bounce")
+                .Num("gddFs2", "fs^2", "GDD per bounce in fs^2").Num("todFs3", "fs^3", "TOD per bounce in fs^3").Num("fodFs4", "fs^4", "FOD per bounce in fs^4")
+                .Int("bounces", "Number of bounces", "1").Num("reflectance", "", "Reflectance per bounce", "1")
+                .Num("rippleGddFs2", "fs^2", "GDD ripple amplitude per bounce").Num("rippleGddS2", "s^2", "GDD ripple amplitude per bounce")
+                .Num("ripplePeriodNm", "nm", "Ripple period in wavelength at the carrier").Num("ripplePeriodThz", "THz", "Ripple period in frequency")
+                .Num("ripplePeriodRadPerS", "rad/s", "Ripple period in angular frequency").Num("ripplePhaseRad", "rad", "Ripple phase at the carrier", "0")
+                .Bool("complementaryPairs", "Bounces come in complementary pairs (ripples cancel per pair)", "false")
+                .Num("referenceWavelengthM", "m", "Expansion wavelength", "the carrier"));
+            add(new ComponentSpec("element", "aperture", "A hard or soft aperture (clips; acts on a carried transverse profile).").DocAt(D + "aperture").Include("beamSize")
+                .Num("radiusM", "m", "Circular radius").Num("halfWidthXM", "m", "Rectangular half-width x").Num("halfWidthYM", "m", "Rectangular half-width y")
+                .Num("softRadiusM", "m", "Soft (Gaussian / super-Gaussian) aperture radius").Int("order", "Super-Gaussian order of the soft aperture", "1")
+                .Model("aperture", "aperture", "Aperture model"));
+            foreach (var t in new[] { "filter", "custom" })
+                add(new ComponentSpec("element", t, "A spectral filter: any filter model (transmission and phase).").DocAt(D + "filter")
+                    .Model("filter", "filter", "Filter model").Model("model", "filter", "Filter model (alternative key)")
+                    .Str("mechanism", "Name of the loss in the budget", "filter"));
+            add(new ComponentSpec("element", "waveplate", "A waveplate: dispersionless design model, or a thick birefringent plate (multi-order, zero-order, compound) with \"material\".").DocAt("reference/components.md#waveplates")
+                .Enum("plate", new[] { "half", "quarter" }, "Plate type", "half").Num("retardanceWaves", "waves", "Retardance at the design wavelength")
+                .Num("axisDeg", "deg", "Fast-axis angle from x", "0").Num("axisRad", "rad", "Fast-axis angle")
+                .Num("designWavelengthM", "m", "Design wavelength", "the carrier")
+                .Str("material", "Birefringent crystal: Quartz, MgF2, Sapphire, Calcite, YVO4, aBBO (enables the thick-plate model)")
+                .Model("indexOrdinary", "index", "Ordinary index (user crystal)").Model("indexExtraordinary", "index", "Extraordinary index (user crystal)")
+                .Enum("construction", new[] { "single", "compound" }, "One plate, or a compound zero-order pair with crossed axes", "single")
+                .Num("thicknessM", "m", "Plate thickness (single)").Int("order", "Order m: retardance = m + retardanceWaves (single, when no thickness)", "0")
+                .Num("plateThicknessM", "m", "Thickness of the thicker plate (compound)", "1e-3"));
+            add(new ComponentSpec("aberration", "", "Wavefront error of a surface (docs/reference/components.md#aberrations).")
+                .Arr("zernikeNollWaves", "waves", "Zernike coefficients in Noll order from Z1, waves rms at referenceWavelengthM")
+                .Free("terms", ParamType.Object, "Zernike terms by name: {\"Z4\": 0.1, \"Z11\": -0.05}")
+                .Num("radiusM", "m", "Normalisation radius of the Zernike terms")
+                .Num("referenceWavelengthM", "m", "Wavelength of the coefficients", "the carrier")
+                .Bool("surface", "true: the numbers are surface height (x 2 cos(aoi) for a mirror, x (n2 - n1) refracting)", "false")
+                .Num("randomRmsM", "m", "Random figure rms (cartesian grids)").Num("correlationLengthM", "m", "Correlation length of the random figure", "0.1 x grid")
+                .Int("seed", "Random seed", "1"));
+            add(new ComponentSpec("ghosts", "", "Ghost replicas of a plate (docs/reference/components.md#ghost-reflections).")
+                .Int("orders", "Number of replicas (round trips)", "1")
+                .Num("overlap", "", "Field overlap with the main beam (default: from the offset, wedge and beam radius)")
+                .Num("beamRadiusM", "m", "Beam radius for the overlap", "tracked beam")
+                .Num("frontReflectance", "", "Internal reflectance of the front surface (default: its coating / Fresnel; 0.5 for a reflective ND)")
+                .Num("backReflectance", "", "Reflectance of the back surface (default: its coating / Fresnel)"));
+            foreach (var t in new[] { "plate", "ndFilter" })
+                add(new ComponentSpec("element", t, t == "plate" ? "A plane-parallel plate or window: two surfaces, bulk dispersion, absorption and nonlinearity, ghost replicas." : "A neutral-density filter (absorptive or reflective): OD or OD(lambda), substrate, ghosts.")
+                    .Alias(t == "plate" ? new[] { "window" } : new string[0]).DocAt("reference/components.md#" + t.ToLowerInvariant()).Include("nonlinearMedium", "beamSize")
+                    .Str("material", t == "plate" ? "Plate material" : "Substrate", t == "plate" ? null : "N-BK7 (absorptive) / FusedSilica (reflective)", required: t == "plate")
+                    .Num("thicknessM", "m", "Thickness", t == "plate" ? null : "2e-3 / 1e-3", required: t == "plate")
+                    .Num("aoiDeg", "deg", "Angle of incidence", "0").Num("aoiRad", "rad", "Angle of incidence")
+                    .Num("planeOfIncidenceDeg", "deg", "s-direction angle from x", "90").Str("medium", "Surrounding medium", "Air")
+                    .Model("coating", "coating", "Coating of both surfaces").Model("coatingFront", "coating", "Front coating").Model("coatingBack", "coating", "Back coating")
+                    .Num("wedgeDeg", "deg", "Wedge angle (tilts the ghosts)", "0")
+                    .P("ghosts", ParamType.Any, "", "true / false or a ghosts object", "false")
+                    .Arr("od", "", t == "ndFilter" ? "Optical density (number, or per wavelength)" : "(ndFilter only)")
+                    .Enum("kind", new[] { "absorptive", "reflective" }, "ND type (ndFilter)", "absorptive"));
+            add(new ComponentSpec("element", "thinFilmPolarizer", "Thin-film polariser at its design angle: physical quarter-wave stack (TMM) or ideal, transmitted (p) or reflected (s) port.").Alias("tfp")
+                .DocAt("reference/components.md#thin-film-polarisers").Include("nonlinearMedium", "beamSize")
+                .Enum("model", new[] { "stack", "ideal" }, "Coating model", "stack").Enum("output", new[] { "transmitted", "reflected" }, "Port that continues", "transmitted")
+                .Num("aoiDeg", "deg", "Angle of incidence", "56").Num("aoiRad", "rad", "Angle of incidence")
+                .Num("axisDeg", "deg", "Transmission (p) axis from x", "0").Num("axisRad", "rad", "Transmission axis")
+                .Str("substrate", "Substrate", "FusedSilica").Num("thicknessM", "m", "Substrate thickness", "3e-3").Str("medium", "Surrounding medium", "Air")
+                .Num("designWavelengthM", "m", "Stack design wavelength", "the carrier").Int("pairs", "HL pairs", "12")
+                .Str("high", "High-index film", "HfO2").Str("low", "Low-index film", "SiO2_film").Model("coatingBack", "coating", "Back-surface coating")
+                .Num("transmissionP", "", "ideal: Tp", "0.98").Num("transmissionS", "", "ideal: Ts", "1e-3").Num("reflectanceS", "", "ideal: Rs", "0.998").Num("reflectanceP", "", "ideal: Rp", "1 - Tp"));
+            add(new ComponentSpec("element", "faradayRotator", "Faraday rotator: non-reciprocal rotation with Verdet dispersion, optional crystal (dispersion, B-integral).").Alias("faraday")
+                .DocAt("reference/components.md#faraday-rotators").Include("nonlinearMedium")
+                .Num("rotationDeg", "deg", "Rotation at the design wavelength", "45").Num("designWavelengthM", "m", "Design wavelength", "the carrier")
+                .Num("verdetRadPerTM", "rad/(T m)", "Verdet constant (with fieldT and lengthM)").Num("fieldT", "T", "Magnetic field")
+                .Num("lengthM", "m", "Crystal length").Str("material", "Crystal (e.g. TGG)")
+                .Enum("verdetDispersion", new[] { "inverseSquare", "none" }, "V ~ 1/(lambda^2 - lambda0^2)", "inverseSquare").Num("verdetPoleWavelengthM", "m", "lambda0", "258e-9")
+                .Num("direction", "", "+1 forward, -1 backward (non-reciprocal)", "1").Num("transmission", "", "Power transmission", "1"));
+            add(new ComponentSpec("element", "wavefront", "A wavefront error (Zernike, random figure) and optional focal power at one plane.").Alias("aberration")
+                .DocAt("reference/components.md#aberrations")
+                .Obj("aberration", "The wavefront error", "aberration")
+                .Arr("zernikeNollWaves", "waves", "Zernike coefficients (flat form)").Num("radiusM", "m", "Normalisation radius (flat form)").Num("referenceWavelengthM", "m", "Wavelength of the coefficients")
+                .Free("terms", ParamType.Object, "Zernike terms by name").Num("randomRmsM", "m", "Random figure rms").Num("correlationLengthM", "m", "Correlation length").Int("seed", "Random seed")
+                .Num("focalLengthM", "m", "Focal power").Num("focalLengthXM", "m", "Focal length in x").Num("focalLengthYM", "m", "Focal length in y")
+                .Num("beamRadiusM", "m", "Beam radius for the 1-D Strehl estimate"));
+            add(new ComponentSpec("element", "polarizer", "A linear polariser.").DocAt(D + "polarizer")
+                .Num("axisDeg", "deg", "Transmission axis from x", "0").Num("axisRad", "rad", "Transmission axis")
+                .Num("extinctionRatio", "", "Extinction ratio", "1e5").Num("transmission", "", "Transmission along the axis", "1"));
+            add(new ComponentSpec("element", "rotator", "Rotates the polarisation (and the image).").DocAt(D + "rotator")
+                .Num("angleDeg", "deg", "Rotation angle", "0").Num("angleRad", "rad", "Rotation angle"));
+            add(new ComponentSpec("element", "probe", "A named place in the beam (does nothing; snapshots and instruments).").Alias("marker").DocAt(D + "probe"));
+            add(new ComponentSpec("element", "lens", "Thin lens on a carried transverse profile (chromatic with a material).").DocAt(D + "lens")
+                .Num("focalLengthM", "m", "Focal length at the carrier", required: true)
+                .Str("material", "Lens glass (chromatic focal length)").Str("medium", "Surrounding medium", "Air")
+                .Num("thicknessM", "m", "Glass thickness (adds its dispersion)", "0")
+                .Num("focalLengthXM", "m", "Focal length in x (cylindrical / astigmatic)").Num("focalLengthYM", "m", "Focal length in y")
+                .Obj("aberration", "Wavefront error", "aberration"));
+            add(new ComponentSpec("element", "user", "Your own function of the main beam's spectrum (Python, C#, C).").DocAt(D + "user")
+                .Model("callback", "callback", "\"@name\" of a registered element callback", required: true)
+                .Free("params", ParamType.Any, "Any JSON passed to the function").Num("lengthM", "m", "Length (informational)"));
+
+            add(new ComponentSpec("element", "crystal", "Chi(2) frequency conversion and parametric amplification (SHG, SFG, OPA, DFG).").DocAt("reference/crystals.md")
+                .Model("crystal", "crystal", "Built-in crystal name (BBO, LBO, KTP, KDP, LiNbO3, MgO:LiNbO3, BiBO, AgGaSe2), a materials entry, or an object", required: true)
+                .Num("lengthM", "m", "Length", required: true)
+                .Obj("interaction", "process, type, plane, polarizations, noncollinearDeg, qpm", "interaction", required: true)
+                .P("cut", ParamType.Any, "", "\"auto\" or {thetaDeg, phiDeg, detuneDeg}", "\"auto\"")
+                .Num("detuneDeg", "deg", "Tilt from the phase-matching angle")
+                .Model("beam", "beam", "Main beam model").ListOf("aux", "auxBeam", "Auxiliary beams (pump, signal, b)")
+                .Str("mainRole", "Role of the main beam (signal, idler, pump, a)").Str("output", "Field that continues as the main beam")
+                .P("record", ParamType.Array, "", "Names of fields kept as by-products")
+                .P("overlap", ParamType.Any, "", "\"gaussian\", \"planeWave\", {model, radiusM} or {areaM2}", "\"gaussian\"")
+                .Num("deffPmPerV", "pm/V", "Effective nonlinearity (overrides the tensor)").Num("temperatureC", "degC", "Crystal temperature")
+                .Bool("chi3", "Include the crystal's chi(3) (SPM/XPM)", "true").Num("n2", "m^2/W", "n2 of the crystal")
+                .Bool("seedNoise", "Seed generated fields with vacuum noise", "true").Int("noiseSeed", "Noise random seed")
+                .Num("spectralMargin", "", "Spectral span factor").Num("polarizationAxisDeg", "deg", "Angle of the crystal's slow axis in the lab x-y plane")
+                .Obj("transverse", "Spatial model", "transverse"));
+            add(new ComponentSpec("interaction", "", "The chi(2) process.")
+                .Enum("process", new[] { "shg", "sfg", "opa", "dfg" }, "Process", required: true)
+                .Str("type", "I, II (IIa), IIb or 0", "I (0 with qpm)").Enum("plane", new[] { "XY", "XZ", "YZ" }, "Biaxial plane", "auto")
+                .Free("polarizations", ParamType.Object, "Explicit polarisations per field, e.g. {signal: o, idler: o, pump: e}")
+                .P("noncollinearDeg", ParamType.Any, "deg", "Pump-signal angle inside the crystal, or \"magic\"")
+                .P("qpm", ParamType.Any, "", "true or {periodM, model: averaged|domains, phaseDeg, periodExpr}"));
+            add(new ComponentSpec("auxBeam", "", "An auxiliary beam entering an active element (docs/reference/active-elements.md#auxiliary-beams).")
+                .Str("role", "pump, signal, idler, b", "pump")
+                .Obj("pulse", "The aux pulse (same keys as the run's pulse)", "pulse")
+                .Str("from", "Results folder of a previous run (its output field)")
+                .Num("energyJ", "J", "Rescale a 'from' field to this energy")
+                .Obj("beam", "Transverse shape of the aux beam", "auxBeamShape")
+                .P("delayS", ParamType.Any, "s", "Delay relative to the main beam, or \"auto\" (centroids coincide)", "0"));
+            add(new ComponentSpec("auxBeamShape", "", "Transverse shape of an auxiliary beam.")
+                .Enum("kind", new[] { "gaussian", "superGaussian", "flatTop" }, "Shape", "gaussian")
+                .Num("radiusM", "m", "1/e^2 radius (edge radius for flatTop)", required: false).Num("radiusXM", "m", "x radius").Num("radiusYM", "m", "y radius")
+                .Num("w0M", "m", "Radius (alternative key)").Int("order", "superGaussian order", "6")
+                .Num("radiusOfCurvatureM", "m", "Wavefront radius of curvature").Num("decenterXM", "m", "Decentre x").Num("decenterYM", "m", "Decentre y"));
+
+            add(new ComponentSpec("element", "gain", "A pumped gain medium crossed once (1-D or spatial).").DocAt("reference/gain.md").Include("gainCommon"));
+            add(new ComponentSpec("element", "amplifier", "Multipass or regenerative amplifier around one gain medium (1-D).").DocAt("reference/gain.md#the-amplifier-element").Include("gainCommon")
+                .Enum("geometry", new[] { "multipass", "regenerative" }, "Amplifier type", "multipass")
+                .Int("passes", "Passes (multipass)", "4").Obj("betweenPasses", "loss, gddFs2, todFs3, materials", "betweenPasses")
+                .P("roundTrips", ParamType.Any, "", "Round trips (regenerative) or \"auto\" (eject at the maximum)", "\"auto\"")
+                .Int("passesPerRoundTrip", "Crystal passes per round trip", "2").Int("maxRoundTrips", "Limit for auto", "300")
+                .Obj("cavity", "lossPerRoundTrip, gddFs2, todFs3, materials", "betweenPasses"));
+            add(new ComponentSpec("group", "gainCommon", "Keys of gain and amplifier elements.")
+                .Model("medium", "gainMedium", "Yb:YAG, Ti:sapphire, Nd:YAG, a materials entry, or an object", required: true)
+                .Num("lengthM", "m", "Crystal length", required: true)
+                .Obj("pump", "kind, powerW / energyJ, wavelengthM, radiusM, profile, order, passes, delayS", "pump")
+                .Obj("inversion", "fraction or smallSignalGain (instead of / before a pump)", "inversion")
+                .Model("beam", "beam", "Signal beam").Num("modeRadiusM", "m", "Signal 1/e^2 radius (mode area pi w^2 / 2)")
+                .Obj("transverse", "Spatial gain", "transverse")
+                .P("thermalLens", ParamType.Any, "", "true / false or {rodRadiusM, heatFraction, apply}")
+                .Int("slices", "Slices along z", "24").Int("segments", "Time-ordered saturation groups", "auto")
+                .Bool("spm", "SPM of the host", "true").Str("host", "Host material (dispersion, n2)")
+                .Num("repRateHz", "Hz", "Repetition rate (overrides the pulse's)")
+                .P("steadyState", ParamType.Any, "", "true / false or {maxPulses, tolerance}", "true")
+                .Model("dopingProfile", "field", "Position-dependent doping factor")
+                .Bool("ase", "Seed amplified spontaneous emission (1-D)", "false").Int("aseSeed", "ASE random seed")
+                .Num("temperatureK", "K", "Crystal temperature").Num("dopingDensityM3", "1/m^3", "Doping density (overrides the medium's)"));
+            add(new ComponentSpec("pump", "", "A pump for gain media.")
+                .Enum("kind", new[] { "cw", "pulsed", "none" }, "Pump type", "cw")
+                .Num("powerW", "W", "cw power").Num("energyJ", "J", "Pump pulse energy").Num("pumpDurationS", "s", "Pump pulse duration")
+                .Num("wavelengthM", "m", "Pump wavelength").Num("radiusM", "m", "1/e^2 or edge radius")
+                .Enum("profile", new[] { "tophat", "gaussian", "superGaussian" }, "Pump profile", "tophat").Int("order", "superGaussian order")
+                .Int("passes", "1, or 2 (reflected back)", "1").Num("delayS", "s", "Pulsed pump: time before the seed"));
+            add(new ComponentSpec("inversion", "", "Initial inversion.").Num("fraction", "", "N2 / N_t").Num("smallSignalGain", "", "Single-pass small-signal gain").Num("wavelengthM", "m", "Wavelength of smallSignalGain"));
+            add(new ComponentSpec("betweenPasses", "", "Losses and dispersion between passes / per round trip.")
+                .Num("loss", "", "Power loss").Num("lossPerRoundTrip", "", "Power loss per round trip")
+                .Num("gddFs2", "fs^2", "GDD").Num("todFs3", "fs^3", "TOD").Num("gddS2", "s^2", "GDD").Num("todS3", "s^3", "TOD")
+                .ListOf("materials", "materialPath", "Material paths {name, lengthM}"));
+            add(new ComponentSpec("materialPath", "", "A length of material.").Str("name", "Material", required: true).Num("lengthM", "m", "Length", required: true));
+
+            foreach (var t in new[] { "saturableAbsorber" })
+                add(new ComponentSpec("element", t, "Saturable absorber: slow (SESAM), fast or Kerr-lens loss modulation.").Alias("sesam").DocAt("reference/oscillators.md#saturable-absorbers")
+                    .Model("absorber", "absorber", "Absorber model (kind slow / fast / kerrLens and its parameters), or the parameters directly on the element").Include("absorberParams"));
+            add(new ComponentSpec("group", "absorberParams", "Saturable-absorber parameters.")
+                .Enum("kind", new[] { "slow", "fast", "kerrLens" }, "Absorber type", "slow")
+                .Num("modulationDepth", "", "Saturable loss q0").Num("nonsaturableLoss", "", "Non-saturable loss")
+                .Num("recoveryTimeS", "s", "Recovery time (slow)").Num("saturationFluenceJPerM2", "J/m^2", "Saturation fluence (slow)")
+                .Num("saturationEnergyJ", "J", "Saturation energy (slow, alternative)").Num("saturationPowerW", "W", "Saturation power (fast)")
+                .Num("saturationIntensityWPerM2", "W/m^2", "Saturation intensity (fast)").Num("kappaPerW", "1/W", "Kerr-lens loss slope")
+                .Num("spotRadiusM", "m", "Spot radius on the absorber").Num("areaM2", "m^2", "Spot area").Model("beam", "beam", "Beam on the absorber"));
+            add(new ComponentSpec("element", "oscillator", "A mode-locked laser that replaces the incoming beam (parametric, Haus or cavity model).").DocAt("reference/oscillators.md")
+                .Enum("model", new[] { "parametric", "haus", "cavity" }, "Model", required: true)
+                .Num("repRateHz", "Hz", "Repetition rate").Num("cavityLengthM", "m", "Cavity length (alternative)").Bool("ring", "Ring cavity", "false")
+                .Num("outputCoupler", "", "Output-coupler transmission")
+                .Obj("output", "parametric: the output pulse (run-spec pulse keys)", "pulse")
+                .Free("gain", ParamType.Object, "haus: lumped gain {smallSignalGain|smallSignalLnGain, saturationEnergyJ|saturationPowerW, shape, centerWavelengthM, bandwidthM, fluenceSaturationEnergyJ}; cavity: a gain medium (gain-element keys)")
+                .Free("absorber", ParamType.Object, "haus: saturable absorber (absorber parameters)")
+                .Num("lossPerRoundTrip", "", "Lumped loss").Num("gddFs2", "fs^2", "Round-trip GDD").Num("todFs3", "fs^3", "Round-trip TOD")
+                .Num("gddS2", "s^2", "Round-trip GDD").Num("todS3", "s^3", "Round-trip TOD").Num("spmRadPerW", "rad/W", "Lumped SPM delta")
+                .ListOf("elements", "element", "cavity: elements run every round trip")
+                .Enum("start", new[] { "noise", "pulse" }, "Start from quantum noise or from the run's pulse").Int("seed", "Noise seed").Num("seedEnergyJ", "J", "Energy of the starting pulse")
+                .P("roundTrips", ParamType.Any, "", "Maximum round trips, or {max}").Int("checkEvery", "Convergence check interval", "25").Num("tolerance", "", "Convergence tolerance")
+                .Int("gridPoints", "Samples the oscillator iterates on", "4096").Num("relaxation", "", "cavity: inversion relaxation per round trip", "0.2")
+                .Int("passesPerRoundTrip", "cavity: crystal passes per round trip", "2").Int("snapshots", "Evolution snapshots kept"));
+        }
+    }
+}

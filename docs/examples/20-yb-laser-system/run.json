@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "yb-system",
+  // sets the grid (1030 nm; window sized from this spectrum through the stretcher) and seeds the oscillator
+  "pulse": { "shape": "sech2", "centerWavelengthM": 1.03e-6, "durationFwhmS": 600e-15, "energyJ": 1e-12 },
+  "probes": "all",
+  "instruments": [
+    { "kind": "powerMeter", "name": "P_oscillator", "at": "oscillator" },
+    { "kind": "spectrometer", "name": "spectrum_oscillator", "at": "oscillator" },
+    { "kind": "autocorrelator", "name": "ac_oscillator", "at": "oscillator" },
+    { "kind": "scope", "name": "photodiode_stretched", "at": "stretcher", "riseTimeS": 20e-12 },
+    { "kind": "powerMeter", "name": "P_amplified", "at": "amplifier" },
+    { "kind": "spectrometer", "name": "spectrum_amplified", "at": "amplifier" },
+    { "kind": "autocorrelator", "name": "ac_out", "at": "end" },
+    { "kind": "compressor", "name": "residual", "at": "end" },
+    { "kind": "energyMeter", "at": "end" }
+  ]
+}

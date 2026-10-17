@@ -1,0 +1,9 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "I. H. Malitson. Interspecimen comparison of the refractive index of fused silica, J. Opt. Soc. Am. 55, 1205-1208 (1965)"
+COMMENTS: "Fused silica, 20 °C"
+DATA:
+  - type: formula 1
+    wavelength_range: 0.21 6.7
+    coefficients: 0 0.6961663 0.0684043 0.4079426 0.1162414 0.8974794 9.896161
+SPECS:
+    temperature: 20.0 °C

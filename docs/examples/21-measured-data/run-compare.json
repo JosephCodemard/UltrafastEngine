@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "compare",
+  // our best guess before calibrating: 300 fs^2 of input chirp, 120 nJ, a -300 fs^2 compressor
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 25e-15,
+             "chirp": { "gddFs2": 300 }, "energyJ": 120e-9, "repRateHz": 1000, "polarization": "x" },
+  "grid": { "windowS": 3e-12 },
+  "probes": "all",
+  "instruments": [
+    // a fibre-coupled spectrometer in the far field of the plate (focused by f = 100 mm onto a 50 um core)
+    { "kind": "spectrometer", "name": "fibre_spectrum", "at": "plate", "resolutionM": 1e-9,
+      "sampling": { "plane": "far", "focalLengthM": 0.1, "aperture": { "kind": "fibre", "radiusM": 25e-6, "na": 0.22 } },
+      "measured": { "file": "data/fibre_spectrum.csv", "background": "auto", "sigma": 0.03 } },
+    // the same light, integrated over the whole beam (for comparison: no data)
+    { "kind": "spectrometer", "name": "integrated_spectrum", "at": "plate", "resolutionM": 1e-9 },
+    { "kind": "autocorrelator", "name": "ac_out", "at": "end",
+      "measured": { "file": "data/autocorrelation.csv", "sigma": 0.02 } },
+    { "kind": "dscan", "name": "dscan_out", "at": "end", "material": "FusedSilica", "insertionM": [-3e-3, 3e-3], "steps": 31,
+      "measured": { "file": "data/dscan.npz", "sigma": 0.03 } },
+    { "kind": "powerMeter", "name": "power_out", "at": "end",
+      "measured": { "file": "data/power_meter.json", "valueSigma": 0.03 } },
+    // places with no measurement: predicted
+    { "kind": "frog", "name": "frog_input", "at": "input", "points": 128 },
+    { "kind": "pulseSummary", "name": "after_plate", "at": "plate" },
+    { "kind": "compressor", "name": "residual", "at": "end" }
+  ]
+}

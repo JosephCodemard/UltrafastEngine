@@ -1,0 +1,25 @@
+bin/
+obj/
+artifacts/
+results/
+*.user
+.vs/
+*.suo
+.venv/
+__pycache__/
+*.egg-info/
+python/src/ultrafast/bin/
+python/third_party/
+site/
+*.npz
+# example data and assets are part of the docs
+!docs/**/*.npz
+plugins/zemax/src/UltrafastEngine.Zemax/lib/*.dll
+.DS_Store
+
+# ZOS-API assemblies are Ansys property: keep them locally, do not push them to a public repository.
+plugins/zemax/src/UltrafastEngine.Zemax/lib/*.dll
+
+# update leftovers
+_to_delete/
+_update/

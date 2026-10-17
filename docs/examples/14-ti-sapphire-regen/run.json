@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "regen",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 30e-15, "energyJ": 2e-9, "repRateHz": 1000 },
+  "probes": ["regen", "compressor"],
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum_seed", "at": "input" },
+    { "kind": "spectrometer", "name": "spectrum_out", "at": "regen" },
+    { "kind": "energyMeter", "name": "energy_regen", "at": "regen" },
+    { "kind": "compressor", "name": "residual", "at": "end" },
+    { "kind": "autocorrelator", "name": "ac_out", "at": "end" }
+  ]
+}

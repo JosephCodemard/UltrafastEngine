@@ -1,0 +1,50 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "tour",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 30e-15, "chirp": { "gddFs2": 300 },
+             "energyJ": 50e-9, "repRateHz": 1e3, "polarization": "x" },
+  "grid": { "windowS": 8e-12 },
+  "probes": "all",
+  "instruments": [
+    // ---- the input
+    { "kind": "energyMeter",  "name": "E_in",        "at": "input" },
+    { "kind": "spectrometer", "name": "spectrum_in", "at": "input", "resolutionM": 0.2e-9 },
+    { "kind": "autocorrelator", "name": "iac_in",    "at": "input", "type": "interferometric" },
+    // ---- beam diagnostics after the Kerr plate and after 30 cm of air
+    { "kind": "beamProfile",     "name": "profile_plate", "at": "plate" },
+    { "kind": "camera",        "name": "nf_plate",      "at": "plate", "pixels": 160 },
+    { "kind": "wavefrontSensor", "name": "wfs_plate",     "at": "plate" },
+    { "kind": "camera",  "name": "ff_plate",      "at": "plate", "imaging": { "plane": "far", "focalLengthM": 0.5 } },
+    { "kind": "spaceTime",       "name": "space_time",    "at": "plate" },
+    { "kind": "camera",          "name": "nf_air",        "at": "air", "pixels": 160, "bitDepth": 12 },
+    // ---- the same instruments looking through an aperture (docs/measurements.md, "Sampling")
+    { "kind": "spectrometer", "name": "spectrum_nf_pinhole", "at": "plate",
+      "sampling": { "plane": "near", "aperture": { "kind": "pinhole", "radiusM": 20e-6 } } },
+    { "kind": "spectrometer", "name": "spectrum_ff_fibre", "at": "air",
+      "sampling": { "plane": "far", "focalLengthM": 0.1, "aperture": { "kind": "fibre", "radiusM": 25e-6, "na": 0.22 } } },
+    { "kind": "autocorrelator", "name": "ac_nf_slit", "at": "plate",
+      "sampling": { "plane": "near", "aperture": { "kind": "slit", "widthM": 30e-6 } } },
+    // ---- temporal diagnostics after the chirped mirrors
+    { "kind": "spectrometer",   "name": "spectrum_cm", "at": "cm", "db": true },
+    { "kind": "autocorrelator", "name": "ac_cm",       "at": "cm" },
+    { "kind": "frog",           "name": "shg_frog",    "at": "cm", "points": 128 },
+    { "kind": "frog",           "name": "pg_frog",     "at": "cm", "type": "pg", "points": 128 },
+    { "kind": "dscan",          "name": "dscan_cm",    "at": "cm", "material": "FusedSilica", "insertionM": [-8e-3, 4e-3], "steps": 41 },
+    { "kind": "contrast",       "name": "contrast_cm", "at": "cm" },
+    { "kind": "scope",          "name": "photodiode",  "at": "cm", "riseTimeS": 1e-12 },
+    { "kind": "compressor",     "name": "ideal_compressor", "at": "cm" },
+    { "kind": "pulseSummary",   "name": "summary_cm",  "at": "cm" },
+    // ---- virtual instruments (no real device measures these)
+    { "kind": "wigner",     "name": "wigner_cm", "at": "cm", "points": 192 },
+    { "kind": "fieldProbe", "name": "field_cm",  "at": "cm" },
+    // ---- polarisation after the quarter-wave plate, and after the polariser
+    { "kind": "polarimeter", "name": "pol_qwp", "at": "qwp" },
+    { "kind": "powerMeter",  "name": "P_pol",   "at": "pol" },
+    // ---- the parametric amplifier
+    { "kind": "conversion",         "name": "conversion", "at": "nopa" },
+    { "kind": "phaseMatchingCurve", "name": "pm_curve",   "at": "nopa", "scan": "wavelength", "rangeM": 250e-9, "points": 201 },
+    { "kind": "delayScan",          "name": "delay_scan", "at": "nopa", "fromS": -400e-15, "toS": 400e-15, "points": 17 },
+    { "kind": "energyMeter",        "name": "E_out",      "at": "end" }
+  ]
+}

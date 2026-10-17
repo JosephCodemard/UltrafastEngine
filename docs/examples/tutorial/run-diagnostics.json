@@ -1,0 +1,37 @@
+{
+  // Tutorial 2: diagnostics. The same pulse and system as run.json, with instruments at several places and a
+  // spatial model so that what an instrument sees depends on where it looks.
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "diagnostics",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 40e-15,
+             "energyJ": 200e-9, "repRateHz": 1e3, "polarization": "x" },
+  // resolve the beam across its radius in every bulk/gap element (diffraction, the Kerr lens, SPM vs radius):
+  // 160 points over 1.2 mm (7.5 um spacing) hold both the 60 um focus and the beam diverging to ~0.2 mm in the air
+  "physics": { "transverse": { "model": "radial", "points": 160, "radiusM": 1.2e-3 } },
+  // keep snapshots of the pulse after every element (probes.png)
+  "probes": "all",
+  "instruments": [
+    // ---- the input: check what goes in
+    { "kind": "energyMeter",  "name": "E_in",    "at": "input" },
+    { "kind": "spectrometer", "name": "spec_in", "at": "input" },
+
+    // ---- right after the plate
+    { "kind": "spectrometer",   "name": "spec_plate",  "at": "plate" },
+    { "kind": "autocorrelator", "name": "ac_plate",    "at": "plate" },
+    { "kind": "frog",           "name": "frog_plate",  "at": "plate", "points": 128 },
+    { "kind": "camera",       "name": "nf_plate",    "at": "plate", "pixels": 128 },
+
+    // ---- the same spectrometer looking through apertures (sampling)
+    { "kind": "spectrometer", "name": "spec_pinhole", "at": "plate",
+      "sampling": { "plane": "near", "aperture": { "kind": "pinhole", "radiusM": 10e-6 } } },
+    { "kind": "spectrometer", "name": "spec_fibre_ff", "at": "plate",
+      "sampling": { "plane": "far", "focalLengthM": 0.1, "aperture": { "kind": "fibre", "radiusM": 25e-6, "na": 0.22 } } },
+
+    // ---- after the air: what would we need to compress the pulse?
+    { "kind": "camera", "name": "ff_end",     "at": "end", "imaging": { "plane": "far", "focalLengthM": 0.5 }, "pixels": 128 },
+    { "kind": "dscan",          "name": "dscan_end",  "at": "end", "material": "FusedSilica", "insertionM": [-12e-3, 2e-3], "steps": 36 },
+    { "kind": "compressor",     "name": "compressor", "at": "end" },
+    { "kind": "pulseSummary",   "name": "summary_end","at": "end" }
+  ]
+}

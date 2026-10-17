@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "grin",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 300e-15, "energyJ": 1e-9 },
+  "probes": "all",
+  "instruments": [
+    { "kind": "wavefrontSensor", "name": "wfs_rod", "at": "rod" },
+    { "kind": "camera",        "name": "nf_focus", "at": "to_focus" }
+  ]
+}

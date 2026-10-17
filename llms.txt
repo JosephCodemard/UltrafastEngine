@@ -1,0 +1,74 @@
+# UltrafastEngine
+
+> C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 2.1.8-beta.
+
+Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change the code). Every option with units and defaults: docs/reference/options.md.
+
+## Guides
+- [Home](docs/index.md)
+- [Getting started](docs/getting-started.md)
+
+## Tutorials
+- [Overview](docs/tutorials/index.md)
+- [1. Your first simulation](docs/tutorials/01-first-run.md)
+- [2. Diagnostics](docs/tutorials/02-diagnostics.md)
+- [3. Larger systems](docs/tutorials/03-larger-systems.md)
+- [4. Your own measured data](docs/tutorials/04-measured-data.md)
+- [5. Contrast of an amplifier chain](docs/tutorials/05-contrast.md)
+
+## Examples and concepts
+- [Examples](docs/examples/README.md)
+- [Assets (synthetic data with answer keys)](docs/assets/README.md)
+- [Concepts](docs/concepts.md)
+- [Model levels](docs/model-levels.md)
+
+## Reference
+- [System file](docs/reference/system-file.md)
+- [Run spec](docs/reference/run-spec.md)
+- [Models & overrides](docs/reference/models.md)
+- [Materials](docs/reference/materials.md)
+- [Gases (rotational Raman)](docs/reference/gases.md)
+- [Surfaces, losses, polarisation](docs/reference/coatings.md)
+- [Optical components](docs/reference/components.md)
+- [Nonlinear physics & solvers](docs/reference/nonlinear.md)
+- [Ionisation & plasma](docs/reference/ionization.md)
+- [Active elements & aux beams](docs/reference/active-elements.md)
+- [Crystals (χ(2))](docs/reference/crystals.md)
+- [Gain media & amplifiers](docs/reference/gain.md)
+- [Oscillators & saturable absorbers](docs/reference/oscillators.md)
+- [Position-dependent properties](docs/reference/spatial-properties.md)
+- [Spatial models](docs/reference/transverse.md)
+- [Instruments](docs/reference/instruments.md)
+- [Pulse retrieval](docs/reference/retrieval.md)
+- [Parameter studies](docs/reference/studies.md)
+- [Speed & compute back-ends](docs/reference/speed.md)
+- [Results](docs/reference/results.md)
+- [Option reference (generated)](docs/reference/options.md)
+- [Schemas, validation & migrations](docs/reference/schema.md)
+- [Plugin system](docs/reference/plugins.md)
+
+## Interfaces
+- [Python](docs/reference/python.md)
+- [Python API (generated)](docs/reference/python-api.md)
+- [C API (C/C++)](docs/reference/c-api.md)
+- [Extending](docs/reference/extending.md)
+
+## Plugins
+- [Overview](docs/plugins/index.md)
+- [Fitting (measured data, calibration)](docs/plugins/fitting.md)
+- [Zemax OpticStudio](docs/plugins/zemax.md)
+
+## Testing, roadmap, agents
+- [Testing & validation](docs/testing.md)
+- [Roadmap](docs/roadmap.md)
+- [For AI agents](docs/agents.md)
+
+## Design notes
+- [Phase 2 proposal (active media)](docs/design/phase2-active-media.md)
+
+
+## Optional
+- [System file schema](schemas/ufs.schema.json): JSON Schema; schemas/run.schema.json for run specs
+- [Python TypedDicts](python/src/ultrafast/types.py): generated from the schemas
+- [Changelog](CHANGELOG.md)
+- [Roadmap](ROADMAP.md)

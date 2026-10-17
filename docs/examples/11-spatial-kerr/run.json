@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "spatial-kerr",
+  // P_cr (fused silica, 1030 nm) ~ 4.3 MW; 4 uJ in 300 fs is ~12.5 MW peak
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 300e-15, "energyJ": 4e-6, "polarization": "x" },
+  "physics": { "selfSteepening": true, "raman": true },
+  "probes": "all",
+  "instruments": [
+    { "kind": "beamProfile", "name": "after_plate", "at": "plate" },
+    { "kind": "beamProfile", "name": "after_gap", "at": "free4" },
+    { "kind": "camera",        "name": "nf_plate", "at": "plate", "pixels": 200 },
+    { "kind": "wavefrontSensor", "name": "wfs_plate", "at": "plate" },
+    { "kind": "camera", "name": "ff_plate", "at": "plate", "imaging": { "plane": "far", "focalLengthM": 0.5 } },
+    { "kind": "spaceTime", "name": "space_time_plate", "at": "plate" },
+    { "kind": "camera",        "name": "nf_end", "at": "free4", "pixels": 200, "bitDepth": 12 },
+    { "kind": "spectrometer" },
+    { "kind": "pulseSummary" },
+    // ---- where the instrument looks (docs/measurements.md, "Sampling"): the whole beam, a pinhole on axis or in the
+    //      wings, a fibre in the focal plane of a lens. SPM is strongest on axis, so these spectra differ.
+    { "kind": "spectrometer",   "name": "spec_whole",     "at": "plate" },
+    { "kind": "spectrometer",   "name": "spec_nf_axis",   "at": "plate",
+      "sampling": { "plane": "near", "aperture": { "kind": "pinhole", "radiusM": 15e-6 } } },
+    { "kind": "spectrometer",   "name": "spec_nf_wing",   "at": "plate",
+      "sampling": { "plane": "near", "aperture": { "kind": "pinhole", "radiusM": 15e-6, "centerXM": 100e-6 } } },
+    { "kind": "spectrometer",   "name": "spec_ff_fibre",  "at": "plate",
+      "sampling": { "plane": "far", "focalLengthM": 0.2, "aperture": { "kind": "fibre", "radiusM": 25e-6, "na": 0.22 } } },
+    { "kind": "autocorrelator", "name": "ac_whole",       "at": "plate" },
+    { "kind": "autocorrelator", "name": "ac_nf_axis",     "at": "plate",
+      "sampling": { "plane": "near", "aperture": { "kind": "pinhole", "radiusM": 15e-6 } } },
+    { "kind": "autocorrelator", "name": "ac_nf_slit",     "at": "plate",
+      "sampling": { "plane": "near", "aperture": { "kind": "slit", "widthM": 20e-6 } } }
+  ]
+}

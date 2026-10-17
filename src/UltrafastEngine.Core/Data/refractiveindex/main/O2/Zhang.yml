@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "J. Zhang, Z. H. Lu, and L. J. Wang. Precision refractive index measurements of air, N2, O2, Ar, and CO2 with a frequency comb, Appl. Opt. 47, 3143-3151 (2008)"
+COMMENTS: "Oxygen, 20 °C, 1 atm"
+DATA:
+  - type: formula 6
+    wavelength_range: 0.4 1.8
+    coefficients: 1.181494e-4 9.708931e-3 75.4
+SPECS:
+    temperature: 20.0 °C
+    pressure: 101325 Pa

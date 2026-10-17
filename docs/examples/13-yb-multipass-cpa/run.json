@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "yb-cpa",
+  "pulse": { "shape": "sech2", "centerWavelengthM": 1.03e-6, "durationFwhmS": 250e-15, "energyJ": 1e-6, "repRateHz": 10e3 },
+  "probes": ["probe_stretched", "probe_amplified", "amplifier", "compressor"],
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum_seed", "at": "input", "resolutionM": 0.05e-9 },
+    { "kind": "scope", "name": "photodiode_stretched", "at": "probe_stretched", "riseTimeS": 20e-12 },
+    { "kind": "spectrometer", "name": "spectrum_amplified", "at": "probe_amplified", "resolutionM": 0.05e-9 },
+    { "kind": "powerMeter", "name": "power_amplified", "at": "probe_amplified" },
+    { "kind": "autocorrelator", "name": "ac_out", "at": "end" },
+    { "kind": "compressor", "name": "residual", "at": "end" },
+    { "kind": "energyMeter", "at": "end" }
+  ]
+}

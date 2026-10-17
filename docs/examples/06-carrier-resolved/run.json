@@ -1,0 +1,9 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "carrier-resolved",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 60e-15, "energyJ": 1e-7 },
+  "grid": { "minSpanFraction": 0.5 },
+  "physics": { "fieldMode": "auto", "fieldHarmonic": 3 },
+  "instruments": [ { "kind": "spectrometer", "resolutionM": 0.5e-9, "db": true } ]
+}

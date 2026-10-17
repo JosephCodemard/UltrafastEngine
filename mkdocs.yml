@@ -1,0 +1,62 @@
+site_name: UltrafastEngine 2.0
+site_description: Nonlinear ultrafast pulse propagation through open-air optical systems
+docs_dir: docs
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - 1. Your first simulation: tutorials/01-first-run.md
+      - 2. Diagnostics: tutorials/02-diagnostics.md
+      - 3. Larger systems: tutorials/03-larger-systems.md
+      - 4. Your own measured data: tutorials/04-measured-data.md
+      - 5. Contrast of an amplifier chain: tutorials/05-contrast.md
+  - Examples: examples/README.md
+  - Assets (synthetic data with answer keys): assets/README.md
+  - Concepts: concepts.md
+  - Model levels: model-levels.md
+  - Reference:
+      - System file: reference/system-file.md
+      - Run spec: reference/run-spec.md
+      - Models & overrides: reference/models.md
+      - Materials: reference/materials.md
+      - Gases (rotational Raman): reference/gases.md
+      - Surfaces, losses, polarisation: reference/coatings.md
+      - Optical components: reference/components.md
+      - Nonlinear physics & solvers: reference/nonlinear.md
+      - Ionisation & plasma: reference/ionization.md
+      - Active elements & aux beams: reference/active-elements.md
+      - Crystals (χ(2)): reference/crystals.md
+      - Gain media & amplifiers: reference/gain.md
+      - Oscillators & saturable absorbers: reference/oscillators.md
+      - Position-dependent properties: reference/spatial-properties.md
+      - Spatial models: reference/transverse.md
+      - Instruments: reference/instruments.md
+      - Pulse retrieval: reference/retrieval.md
+      - Parameter studies: reference/studies.md
+      - Speed & compute back-ends: reference/speed.md
+      - Results: reference/results.md
+      - Option reference (generated): reference/options.md
+      - Schemas, validation & migrations: reference/schema.md
+      - Plugin system: reference/plugins.md
+  - Interfaces:
+      - Python: reference/python.md
+      - Python API (generated): reference/python-api.md
+      - C API (C/C++): reference/c-api.md
+      - Extending: reference/extending.md
+  - Plugins:
+      - Overview: plugins/index.md
+      - Fitting (measured data, calibration): plugins/fitting.md
+      - Zemax OpticStudio: plugins/zemax.md
+  - Testing & validation: testing.md
+  - Roadmap: roadmap.md
+  - For AI agents: agents.md
+  - Design notes:
+      - Phase 2 proposal (active media): design/phase2-active-media.md
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true

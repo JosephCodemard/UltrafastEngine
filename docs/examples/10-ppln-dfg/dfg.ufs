@@ -1,0 +1,33 @@
+{
+  // Example 10: mid-IR difference-frequency generation in periodically poled MgO:LiNbO3.
+  // Main beam = the 1550 nm signal; aux = a 1064 nm pump; the idler (~3.39 um) is generated. Choosing
+  // "output": "idler" makes the mid-IR the main beam from here on (the signal and pump are kept as by-products).
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "ppln-dfg",
+  "description": "1064 nm pump + 1550 nm signal -> 3.39 um idler in 5 mm MgO:PPLN (type 0, d33)",
+  "elements": [
+    { "id": "ppln", "type": "crystal",
+      "crystal": "MgO:LiNbO3",
+      "temperatureC": 24.5,
+      "lengthM": 5e-3,
+      // first-order QPM; the period is solved for the nominal wavelengths (~30.6 um) unless given ("periodM").
+      // "model": "domains" resolves every domain (slower); "averaged" uses deff * 2/pi with the grating phase.
+      "interaction": { "process": "dfg", "qpm": { "model": "averaged" } },
+      // beams: Gaussian overlap of the three modes (default); "planeWave" reproduces textbook / pyNLO estimates
+      "beam": { "kind": "gaussian", "w0M": 100e-6 },
+      "aux": [
+        { "role": "pump",
+          "pulse": { "shape": "gaussian", "centerWavelengthM": 1.064e-6, "durationFwhmS": 1e-12, "energyJ": 1e-6 },
+          "beam": { "kind": "gaussian", "radiusM": 100e-6 },
+          "delayS": 0 }
+      ],
+      "mainRole": "signal",
+      "output": "idler",
+      "record": ["signal", "pump"],
+      // the pump is ~70 % depleted: back-conversion with group-velocity mismatch carves sharp features into the
+      // pulses and broadens all three spectra, so give the internal window more room than the default (2.5)
+      "spectralMargin": 5 }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  // Example 02: a chirped-pulse-amplification line written analytically (no Zemax):
+  // Martinez-type stretcher (modelled as a grating pair with negative separation), a gain-narrowing filter
+  // standing in for the amplifier, 40 mm of YAG, and a Treacy compressor matched to the stretcher.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "cpa-line",
+  "elements": [
+    { "id": "stretcher", "type": "gratingPair", "linesPerMm": 1500, "aoiDeg": 50.0, "separationM": -0.50,
+      "order": -1, "passes": 2, "efficiency": 0.95 },
+    { "id": "probe_stretched", "type": "probe" },
+    // amplifier stand-in: gain narrowing (super-Gaussian spectral filter) + the crystal's dispersion
+    { "id": "gain_narrowing", "type": "filter",
+      "filter": { "kind": "superGaussian", "centerWavelengthM": 1.030e-6, "fwhmM": 8e-9, "order": 1 } },
+    { "id": "crystal", "type": "bulk", "material": "YAG", "lengthM": 0.04, "nonlinear": false },
+    { "id": "compressor", "type": "gratingPair", "linesPerMm": 1500, "aoiDeg": 50.0, "separationM": 0.50,
+      "order": -1, "passes": 2, "efficiency": 0.95 },
+    // fine tuning of the residual (YAG) dispersion with chirped mirrors
+    { "id": "cm", "type": "chirpedMirror", "gddS2": -400e-30, "bounces": 4, "reflectance": 0.998 }
+  ]
+}

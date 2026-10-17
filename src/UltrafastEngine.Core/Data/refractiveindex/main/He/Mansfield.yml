@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "C. R. Mansfield and E. R. Peck. Dispersion of helium, J. Opt. Soc. Am. 59, 199-204 (1969)"
+COMMENTS: "Helium, 0 °C, 1 atm"
+DATA:
+  - type: formula 6
+    wavelength_range: 0.5084 2.0581
+    coefficients: 0 0.01470091 423.98
+SPECS:
+    temperature: 0.0 °C
+    pressure: 101325 Pa

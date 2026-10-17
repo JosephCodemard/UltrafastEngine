@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The C API (include/ultrafast.h) as [UnmanagedCallersOnly] exports.
+
+    Two ways to load it:
+      1. NativeAOT (release):  dotnet publish -c Release -r win-x64   (or linux-x64 / osx-arm64)
+         -> a self-contained native library ultrafast.dll / libultrafast.so / libultrafast.dylib
+            with plain C exports. No .NET runtime needed by the caller (C, C++, Python ctypes, MATLAB, LabVIEW...).
+      2. Hosted (development): dotnet build
+         -> UltrafastEngine.Native.dll (managed). The Python package loads it through the .NET host
+            (hostfxr, via clr_loader) and obtains the same entry points as function pointers.
+    NativeAOT needs the "Desktop development with C++" workload on Windows (VS 2022) or clang on Linux/macOS.
+    Set UF_NO_AOT=true to build without the AOT toolchain.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>UltrafastEngine.Native</AssemblyName>
+    <RootNamespace>UltrafastEngine.Native</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(UF_NO_AOT)' != 'true' AND '$(RuntimeIdentifier)' != ''">
+    <PublishAot>true</PublishAot>
+    <NativeLib>Shared</NativeLib>
+    <SelfContained>true</SelfContained>
+    <!-- the published library is called ultrafast(.dll/.so/.dylib) -->
+    <TargetName>ultrafast</TargetName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UltrafastEngine.Core\UltrafastEngine.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\ultrafast.h" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

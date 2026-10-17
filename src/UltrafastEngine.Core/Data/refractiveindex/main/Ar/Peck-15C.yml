@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "E. R. Peck and D. J. Fisher. Dispersion of argon, J. Opt. Soc. Am. 54, 1362-1364 (1964)"
+COMMENTS: "Argon, 15 °C, 1 atm"
+DATA:
+  - type: formula 6
+    wavelength_range: 0.4679 2.0587
+    coefficients: 6.432135e-5 2.8606e-2 144
+SPECS:
+    temperature: 15.0 °C
+    pressure: 101325 Pa

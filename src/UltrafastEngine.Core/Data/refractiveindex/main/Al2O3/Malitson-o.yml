@@ -1,0 +1,9 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "I. H. Malitson and M. J. Dodge. J. Opt. Soc. Am. 62, 1405 (1972)"
+COMMENTS: "Sapphire, ordinary ray"
+DATA:
+  - type: formula 1
+    wavelength_range: 0.2 5.0
+    coefficients: 0 1.4313493 0.0726631 0.65054713 0.1193242 5.3414021 18.028251
+SPECS:
+    temperature: 20.0 °C

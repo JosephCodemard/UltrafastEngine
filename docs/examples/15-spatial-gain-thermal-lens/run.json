@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "rod-60W",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 2e-12, "energyJ": 1e-4, "repRateHz": 10e3 },
+  "probes": ["rod", "free"],
+  "instruments": [
+    { "kind": "camera",        "name": "nf_rod", "at": "rod" },
+    { "kind": "wavefrontSensor", "name": "wfs_rod", "at": "rod" },
+    { "kind": "camera",        "name": "nf_400mm", "at": "free" },
+    { "kind": "camera", "name": "ff_rod", "at": "rod", "imaging": { "plane": "far", "focalLengthM": 0.5 } },
+    { "kind": "powerMeter", "at": "end" }
+  ]
+}

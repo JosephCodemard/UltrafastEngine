@@ -1,0 +1,17 @@
+{
+  // Example 21: a few-cycle line you have measured in the lab. A chirped 800 nm pulse broadens in a 5 mm
+  // fused-silica plate (focused to 40 um: SPM and a weak Kerr lens, on a radial grid) and is recompressed
+  // by a prism compressor. Three numbers are not known well: the chirp of the input pulse, its energy and the
+  // compressor's GDD. run-compare.json compares the model with the recorded data in data/;
+  // run-fit.json finds the three numbers from the data and predicts everything else with error bars.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "measured-line",
+  "elements": [
+    { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 0.005,
+      "beam": { "kind": "gaussian", "w0M": 40e-6, "zWaistM": 0.0025 },
+      "transverse": { "model": "radial", "points": 40 } },
+    { "id": "compressor", "type": "dispersion", "gddFs2": -300, "todFs3": 0 }
+  ]
+}

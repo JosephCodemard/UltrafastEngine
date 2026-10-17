@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "spatial-kerr-linear",
+  // P_cr (fused silica, 1030 nm) ~ 4.3 MW; 4 uJ in 300 fs is ~12.5 MW peak
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 300e-15, "energyJ": 1e-9, "polarization": "x" },
+  "physics": { "selfSteepening": true, "raman": true },
+  "probes": "all",
+  "instruments": [
+    { "kind": "beamProfile", "name": "after_plate", "at": "plate" },
+    { "kind": "beamProfile", "name": "after_gap", "at": "free4" },
+    { "kind": "camera",        "name": "nf_plate", "at": "plate", "pixels": 200 },
+    { "kind": "wavefrontSensor", "name": "wfs_plate", "at": "plate" },
+    { "kind": "camera", "name": "ff_plate", "at": "plate", "imaging": { "plane": "far", "focalLengthM": 0.5 } },
+    { "kind": "spaceTime", "name": "space_time_plate", "at": "plate" },
+    { "kind": "camera",        "name": "nf_end", "at": "free4", "pixels": 200, "bitDepth": 12 },
+    { "kind": "spectrometer" },
+    { "kind": "pulseSummary" }
+  ]
+}

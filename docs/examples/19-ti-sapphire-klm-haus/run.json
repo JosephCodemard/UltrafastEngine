@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "klm",
+  // the pulse only sets the grid (800 nm, a few-ps window); the oscillator starts from noise
+  "pulse": { "shape": "sech2", "centerWavelengthM": 800e-9, "durationFwhmS": 30e-15, "energyJ": 1e-12 },
+  "grid": { "auto": false, "n": 4096, "windowS": 8e-12 },
+  "probes": "all",
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum", "at": "laser" },
+    { "kind": "autocorrelator", "name": "ac", "at": "laser" },
+    { "kind": "powerMeter", "name": "power", "at": "laser" },
+    { "kind": "compressor", "name": "residual", "at": "end" }
+  ]
+}

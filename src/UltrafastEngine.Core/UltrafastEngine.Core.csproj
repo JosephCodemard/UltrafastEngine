@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The physics core. No Zemax, no UI, and deliberately ZERO NuGet dependencies (own JSON reader/writer,
+    own expression compiler, own FFT) so it builds offline, stays NativeAOT/trimming-safe, and loads into
+    the .NET Framework 4.8 Zemax binding unchanged.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <RootNamespace>UltrafastEngine</RootNamespace>
+    <AssemblyName>UltrafastEngine.Core</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- bundled refractiveindex.info pages (CC0): resource name = prefix + relative path with '/' -->
+    <EmbeddedResource Include="Data\refractiveindex\**\*.yml" LogicalName="UltrafastEngine.Data.refractiveindex.$([System.String]::Copy('%(RecursiveDir)').Replace('\','/'))%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="UltrafastEngine.Tests" />
+    <InternalsVisibleTo Include="UltrafastEngine.Zemax.Sampling" />
+  </ItemGroup>
+</Project>

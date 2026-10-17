@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "SCHOTT Zemax catalog"
+COMMENTS: "N-SF11 (SCHOTT)"
+DATA:
+  - type: formula 2
+    wavelength_range: 0.37 2.5
+    coefficients: 0 1.73759695 0.013188707 0.313747346 0.0623068142 1.89878101 155.23629
+SPECS:
+    temperature: 20.0 °C
+    n_absolute: false

@@ -1,0 +1,14 @@
+{
+  // Tutorial 1: the smallest useful system file. A 5 mm fused-silica plate with a focused beam, then 5 cm of air.
+  // Lengths are in metres, wavelengths in metres, times in seconds (the "M" / "S" suffixes say so).
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "tutorial-plate",
+  "elements": [
+    { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 5e-3,
+      // the beam inside the plate: a Gaussian focused to 60 um at its centre (zWaistM from the element's start)
+      "beam": { "kind": "gaussian", "w0M": 60e-6, "zWaistM": 2.5e-3 } },
+    { "id": "air", "type": "gap", "lengthM": 0.05 }
+  ]
+}

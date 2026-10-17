@@ -1,0 +1,37 @@
+{
+  // Export settings for UltrafastEngine.Zemax (docs/zemax.md). Comments and trailing commas are allowed.
+  "format": "ultrafast-zemax-export",
+  "name": "my-system",
+
+  // The pulse sets the carrier and (mode "auto") the sampled wavelength range: its spectrum above
+  // thresholdDb, widened by margin. Use "explicit" with min/max for full control, or "zemax" to trace
+  // exactly the wavelengths already in the Wavelength Data Editor.
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 200e-15, "energyJ": 1e-6 },
+  "sampling": { "mode": "auto", "count": 48, "batchSize": 24, "thresholdDb": -40, "margin": 2.0, "geometry": "operands" },
+
+  // Input Gaussian beam for GBPS/GBPW (needed for nonlinear media). OpticStudio treats the waist as the
+  // EMBEDDED Gaussian waist and scales by M: if 1 mm is your measured radius, enter 1e-3/sqrt(M2).
+  "beam": { "waistRadiusM": 1.0e-3, "waistToSurface1M": 0.0, "m2": 1.1 },
+
+  // Media: which LDE materials/comments are nonlinear, and what the engine should know about them.
+  // Matching is case-insensitive; comment rules are checked before material rules.
+  "media": [
+    { "matchMaterial": "ARGON", "material": "Ar@1.5bar", "nonlinear": true,
+      "definition": { "gas": { "species": "Ar", "pressureBar": 1.5, "temperatureK": 293 } } },
+    { "matchComment": "KERR_PLATE", "material": "FusedSilica", "nonlinear": true }
+  ],
+
+  // Coatings: by surface comment, OpticStudio coating name, material or surface type.
+  "coatingSource": "rules",
+  "coatings": [
+    { "matchComment": "MPC_MIRROR", "coating": { "kind": "gdd", "R": 0.999, "gddS2": -150e-30 },
+      "lidt": { "fluenceJPerCm2": 0.5, "pulseDurationS": 1e-12 } },
+    { "matchCoating": "AR1030", "coating": { "kind": "ar", "R": 0.002 } },
+    { "matchType": "Grating", "coating": { "kind": "efficiency", "s": 0.95, "p": 0.30 } }
+  ],
+
+  "apertures": true,     // export semi-diameters (the engine clips the Gaussian beam)
+  "vectors": true,       // export ray directions and surface normals (exact s/p basis tracking)
+  "mergeLinear": true,   // merge consecutive linear gaps into one dispersion element
+  "vignetting": true     // block wavelengths whose chief ray is vignetted
+}

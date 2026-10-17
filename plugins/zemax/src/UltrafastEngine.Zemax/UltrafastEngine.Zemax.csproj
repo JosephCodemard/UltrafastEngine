@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    OpticStudio binding (Windows, .NET Framework 4.8, x64): connects to OpticStudio through ZOS-API as an
+    Interactive Extension (or a standalone instance), samples the loaded system by ray tracing and merit-function
+    operands, writes a system file (.ufs), and can run the engine in-process.
+
+    ZOS-API location: set ZosApiDir to the folder holding ZOSAPI.dll, ZOSAPI_Interfaces.dll and ZOSAPI_NetHelper.dll
+    (default: plugins/zemax/src/UltrafastEngine.Zemax/lib, which ships with the ZOS-API assemblies; otherwise the OpticStudio
+    installation below). They are only compile-time references: at run time ZOSAPI_NetHelper loads ZOSAPI and
+    ZOSAPI_Interfaces from your OpticStudio installation, so the version in lib/ does not have to match it exactly.
+        dotnet build plugins/zemax/src/UltrafastEngine.Zemax -p:ZosApiDir="C:\Program Files\Ansys Zemax OpticStudio 2025 R1"
+    Type-check without OpticStudio (CI / macOS / Linux):  -p:UseZosApiStubs=true
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>UltrafastEngine.Zemax</AssemblyName>
+    <RootNamespace>UltrafastEngine.Zemax</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+      <ApplicationIcon>$(RepoRoot)assets\ultrafast.ico</ApplicationIcon>
+  </PropertyGroup>
+  <!-- single-target net48 project: make Mono's reference assemblies available on macOS/Linux (no effect on Windows) -->
+  <Import Project="$(RepoRoot)build\Net48OnMono.props" />
+  <PropertyGroup Condition="'$(ZosApiDir)' == '' AND Exists('$(MSBuildThisFileDirectory)lib\ZOSAPI.dll')">
+    <ZosApiDir>$(MSBuildThisFileDirectory)lib</ZosApiDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ZosApiDir)' == ''">
+    <ZosApiDir>C:\Program Files\Ansys Zemax OpticStudio 2025 R1</ZosApiDir>
+  </PropertyGroup>
+  <!-- No ZOS-API found: build against the compile-only stubs so the solution still builds (the exe will tell you). -->
+  <PropertyGroup Condition="'$(UseZosApiStubs)' == '' AND !Exists('$(ZosApiDir)\ZOSAPI.dll')">
+    <UseZosApiStubs>true</UseZosApiStubs>
+    <DefineConstants>$(DefineConstants);ZOSAPI_STUBS</DefineConstants>
+  </PropertyGroup>
+  <Target Name="WarnZosApiStubs" BeforeTargets="Build" Condition="'$(UseZosApiStubs)' == 'true'">
+    <Warning Text="ZOS-API not found in '$(ZosApiDir)': UltrafastEngine.Zemax is built against compile-only stubs and cannot talk to OpticStudio. Set ZosApiDir (see the project file)." />
+  </Target>
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)src\UltrafastEngine.Core\UltrafastEngine.Core.csproj" />
+    <ProjectReference Include="..\UltrafastEngine.Zemax.Sampling\UltrafastEngine.Zemax.Sampling.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseZosApiStubs)' == 'true'">
+    <ProjectReference Include="..\..\tools\ZosApiStubs\ZosApiStubs.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseZosApiStubs)' != 'true'">
+    <!-- ZOSAPI and ZOSAPI_Interfaces are resolved from the OpticStudio installation at run time by
+         ZOSAPI_NetHelper (so they are NOT copied); the NetHelper itself is copied next to the exe. -->
+    <Reference Include="ZOSAPI">
+      <HintPath>$(ZosApiDir)\ZOSAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ZOSAPI_Interfaces">
+      <HintPath>$(ZosApiDir)\ZOSAPI_Interfaces.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ZOSAPI_NetHelper">
+      <HintPath>$(ZosApiDir)\ZOS-API\Libraries\ZOSAPI_NetHelper.dll</HintPath>
+      <HintPath Condition="Exists('$(ZosApiDir)\ZOSAPI_NetHelper.dll')">$(ZosApiDir)\ZOSAPI_NetHelper.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="examples\export.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- the OpticStudio program ships inside the zemax plugin folder: artifacts/plugins/zemax/tools/net48/ -->
+  <Target Name="LayoutZemaxTool" AfterTargets="Build">
+    <ItemGroup>
+      <_ZemaxTool Include="$(TargetDir)**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ZemaxTool)" DestinationFiles="@(_ZemaxTool->'$(RepoRoot)artifacts/plugins/zemax/tools/net48/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

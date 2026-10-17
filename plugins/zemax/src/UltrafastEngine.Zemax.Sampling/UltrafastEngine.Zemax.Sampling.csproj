@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Everything Zemax-related that does NOT need ZOS-API: the IOpticStudio abstraction, the sampler (which
+    drives an IOpticStudio), the raw-sample format, the sample -> system-file builder, a fake OpticStudio for
+    tests and a record/replay layer. Builds and is tested on any OS; the Windows-only binding
+    (UltrafastEngine.Zemax) just implements IOpticStudio on top of ZOS-API.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <RootNamespace>UltrafastEngine.Zemax</RootNamespace>
+    <AssemblyName>UltrafastEngine.Zemax.Sampling</AssemblyName>
+    <PluginId>zemax</PluginId>
+    <PluginFolder>$(MSBuildThisFileDirectory)../../</PluginFolder>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)src/UltrafastEngine.Core/UltrafastEngine.Core.csproj" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="UltrafastEngine.Tests" />
+  </ItemGroup>
+  <Import Project="$(RepoRoot)build/Plugin.targets" />
+</Project>

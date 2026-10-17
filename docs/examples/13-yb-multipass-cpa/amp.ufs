@@ -1,0 +1,27 @@
+{
+  // Example 13: a Yb:YAG chirped-pulse amplifier. A 1 uJ seed (e.g. after a fibre pre-amplifier) is stretched
+  // by a grating pair, amplified in 8 passes through a diode-pumped Yb:YAG rod (cw, 940 nm, both ends) and
+  // recompressed. The amplifier element iterates the pulse train at the repetition rate to steady state
+  // (pumping between pulses with the rate equations), then runs the last pulse with the full model:
+  // spectrally resolved gain with time-ordered saturation, gain narrowing, YAG dispersion and SPM.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "yb-cpa",
+  "elements": [
+    { "id": "stretcher", "type": "gratingPair", "linesPerMm": 1740, "aoiDeg": 60.0, "separationM": -0.25,
+      "order": -1, "passes": 2, "efficiency": 0.92 },
+    { "id": "probe_stretched", "type": "probe" },
+    { "id": "amplifier", "type": "amplifier", "geometry": "multipass", "passes": 8,
+      "medium": "Yb:YAG",                       // library medium: 2 at.% Yb, tau = 0.95 ms, McCumber-linked cross sections
+      "lengthM": 0.006, "slices": 16,
+      "modeRadiusM": 0.45e-3,                   // signal 1/e^2 radius in the rod (sets the mode area pi w^2 / 2)
+      "pump": { "kind": "cw", "powerW": 150, "wavelengthM": 940e-9, "radiusM": 0.5e-3,
+                "profile": "superGaussian", "order": 4, "passes": 2 },
+      "betweenPasses": { "loss": 0.03, "materials": [ { "name": "FusedSilica", "lengthM": 0.003 } ] },
+      "thermalLens": { "rodRadiusM": 1.5e-3 } },
+    { "id": "probe_amplified", "type": "probe" },
+    { "id": "compressor", "type": "gratingPair", "linesPerMm": 1740, "aoiDeg": 60.0, "separationM": 0.25,
+      "order": -1, "passes": 2, "efficiency": 0.92 }
+  ]
+}

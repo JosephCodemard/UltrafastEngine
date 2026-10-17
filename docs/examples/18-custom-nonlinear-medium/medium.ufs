@@ -1,0 +1,28 @@
+{
+  // Example 18: a nonlinear medium whose index is a function you write, n(x, y, z, t, I, F).
+  // A 10 mm "doped glass" rod on a radial grid. The built-in Kerr effect is switched off ("replaceKerr") and
+  // replaced by the expression below, which uses every variable a time response can see:
+  //   n2 grows along the rod (z), only the doped core (r < ~0.4 mm) is nonlinear (r),
+  //   a slow, fluence-driven negative term (F = integral of I dt, e.g. free carriers or a fast thermal effect),
+  //   and a 1 THz index modulation in lab time (t_lab), e.g. from a co-propagating driver.
+  // The rod also has a weak static GRIN profile (indexProfile) and a lossy cladding (absorptionProfile).
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "custom-medium",
+  "elements": [
+    { "id": "rod", "type": "bulk", "material": "FusedSilica", "lengthM": 0.01,
+      "beam": { "kind": "gaussian", "w0M": 0.25e-3 },
+      "transverse": { "model": "radial", "points": 64, "radiusM": 1.2e-3 },
+      "replaceKerr": true,
+      "timeResponse": {
+        "kind": "expression",
+        "expr": "n2 * (1 + z / L) * exp(-(r / rc)^2) * I - kF * F + dn_mod * sin(2 * pi * f_mod * t_lab)",
+        "params": { "n2": 2.5e-20, "rc": 0.4e-3, "kF": 1e-7, "dn_mod": 1e-7, "f_mod": 1e12, "pi": 3.141592653589793 }
+      },
+      "indexProfile": "-2e-6 * (r / 1e-3)^2",
+      "absorptionProfile": "50 * (1 - exp(-2 * (r / 0.9e-3)^8))" },
+    { "id": "free", "type": "gap", "material": "Air", "lengthM": 0.2,
+      "transverse": { "model": "radial", "points": 96, "radiusM": 2.5e-3 } }
+  ]
+}

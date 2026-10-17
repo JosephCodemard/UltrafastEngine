@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "mpc",
+  "pulse": { "shape": "sech2", "centerWavelengthM": 1.03e-6, "durationFwhmS": 220e-15,
+             "energyJ": 200e-6, "repRateHz": 10e3, "polarization": "x" },
+  "physics": { "selfSteepening": true, "raman": false },
+  "stepper": { "method": "adaptive", "tolerance": 1e-6 },
+  "probes": ["pass01", "pass05", "pass10", "pass15", "pass20", "win_out_back"],
+  "instruments": [
+    { "kind": "spectrometer", "resolutionM": 0.2e-9, "db": true },
+    { "kind": "compressor", "name": "ideal_compressor" },
+    { "kind": "dscan", "gddRangeS2": [-2000e-30, 0], "steps": 101, "name": "gdd_scan" },
+    { "kind": "autocorrelator" },
+    { "kind": "contrast", "dynamicRangeDb": 80 }
+  ]
+}

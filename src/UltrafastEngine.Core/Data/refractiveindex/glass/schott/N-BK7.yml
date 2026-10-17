@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "SCHOTT Zemax catalog"
+COMMENTS: "N-BK7 (SCHOTT)"
+DATA:
+  - type: formula 2
+    wavelength_range: 0.3 2.5
+    coefficients: 0 1.03961212 0.00600069867 0.231792344 0.0200179144 1.01046945 103.560653
+SPECS:
+    temperature: 20.0 °C
+    n_absolute: false

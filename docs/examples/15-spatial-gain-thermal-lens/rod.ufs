@@ -1,0 +1,21 @@
+{
+  // Example 15: spatially resolved gain. A 2 ps, 100 uJ pulse at 10 kHz crosses an end-pumped Yb:YAG rod
+  // once, modelled on a radial (Hankel) grid: every transverse point has its own inversion (pumped by the
+  // super-Gaussian pump profile, depleted by the local fluence), the beam diffracts inside the rod, and the
+  // heat load (quantum defect x absorbed pump) builds a thermal lens that is applied as a position-dependent
+  // index change dn/dT x Delta T(r, z). Cameras and a wavefront sensor show what the rod did to the beam.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "yb-rod",
+  "elements": [
+    { "id": "rod", "type": "gain", "medium": "Yb:YAG", "lengthM": 0.004, "slices": 12,
+      "pump": { "kind": "cw", "powerW": 60, "wavelengthM": 940e-9, "radiusM": 0.6e-3,
+                "profile": "superGaussian", "order": 4, "passes": 2 },
+      "beam": { "kind": "gaussian", "w0M": 0.5e-3 },
+      "transverse": { "model": "radial", "points": 48 },
+      "thermalLens": { "rodRadiusM": 2e-3 } },
+    { "id": "free", "type": "gap", "lengthM": 0.4,
+      "transverse": { "model": "radial", "points": 96, "radiusM": 2.5e-3 } }
+  ]
+}

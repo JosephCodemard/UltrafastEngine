@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "ppln-dfg",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.55e-6, "durationFwhmS": 1e-12, "energyJ": 10e-9, "polarization": "x" },
+  "probes": "all",
+  "instruments": [
+    { "kind": "conversion", "at": "ppln" },
+    { "kind": "phaseMatchingCurve", "name": "period_tuning", "at": "ppln", "scan": "period", "rangeM": 0.4e-6 },
+    { "kind": "phaseMatchingCurve", "name": "temperature_tuning", "at": "ppln", "scan": "temperature", "rangeK": 200 },
+    { "kind": "spectrometer" },
+    { "kind": "pulseSummary" }
+  ]
+}

@@ -1,0 +1,3464 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ultrafastengine.dev/schemas/run-2.schema.json",
+  "title": "UltrafastEngine run spec (run.json)",
+  "description": "The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units.",
+  "type": "object",
+  "required": ["format", "pulse"],
+  "properties": {
+    "format": {
+      "const": "ultrafast-run",
+      "description": "Must be \"ultrafast-run\"."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2,
+      "description": "Format version (older versions are migrated on load)."
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the run"
+    },
+    "pulse": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.pulse"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "The input pulse"
+    },
+    "grid": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.grid"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Time/frequency grid"
+    },
+    "physics": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.physics"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Physics switches"
+    },
+    "stepper": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.stepper"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Nonlinear solver settings"
+    },
+    "probes": {
+      "description": "Snapshots of the pulse: \"all\", \"end\" or a list of element ids Default: \"end\"."
+    },
+    "instruments": {
+      "type": "array",
+      "description": "Instruments: what you measure, and where (docs/reference/instruments.md).",
+      "items": {
+        "$ref": "#/definitions/instrument"
+      }
+    },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/obj.override"
+      },
+      "description": "Overrides (highest priority)"
+    },
+    "inputBeam": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+            }
+          }
+        },
+        {
+          "type": "array"
+        }
+      ],
+      "description": "Default beam for nonlinear elements without one A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+    },
+    "outputs": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.outputs"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Which files to write"
+    },
+    "compute": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.compute"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Compute back-end and threads"
+    },
+    "fit": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.fitting:fit"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Calibrate parameters against every instrument with measured data (fitting plugin)."
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Path or URL of this schema (editor support)."
+    }
+  },
+  "definitions": {
+    "obj.pulse": {
+      "type": "object",
+      "description": "The input pulse (docs/reference/run-spec.md#pulse).",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": ["gaussian", "sech2", "superGaussian", "spectrum"],
+          "description": "Pulse shape Default: gaussian."
+        },
+        "centerWavelengthM": {
+          "type": "number",
+          "description": "Carrier wavelength (for spectrum: default = intensity-weighted mean) [m]"
+        },
+        "centerWavelengthNm": {
+          "type": "number",
+          "description": "Carrier wavelength in nm (alternative) [nm]"
+        },
+        "durationFwhmS": {
+          "type": "number",
+          "description": "Transform-limited intensity FWHM [s]"
+        },
+        "durationFwhmFs": {
+          "type": "number",
+          "description": "Transform-limited FWHM in fs (alternative) [fs]"
+        },
+        "bandwidthFwhmM": {
+          "type": "number",
+          "description": "Spectral FWHM (alternative to the duration) [m]"
+        },
+        "bandwidthFwhmNm": {
+          "type": "number",
+          "description": "Spectral FWHM in nm [nm]"
+        },
+        "order": {
+          "type": "integer",
+          "description": "superGaussian order Default: 2."
+        },
+        "energyJ": {
+          "type": "number",
+          "description": "Pulse energy [J]"
+        },
+        "averagePowerW": {
+          "type": "number",
+          "description": "Average power (with repRateHz) [W]"
+        },
+        "peakPowerW": {
+          "type": "number",
+          "description": "Peak power (alternative) [W]"
+        },
+        "repRateHz": {
+          "type": "number",
+          "description": "Repetition rate [Hz]"
+        },
+        "chirp": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.chirp"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Spectral phase about the carrier: gddS2/todS3/fodS4 or gddFs2/todFs3/fodFs4"
+        },
+        "polarization": {
+          "description": "\"x\", \"y\", \"45\", \"-45\", \"rcp\", \"lcp\", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm] Default: \"x\"."
+        },
+        "spectrum": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.pulseSpectrum"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Measured spectrum (shape: spectrum): wavelengthsM + intensity (+ phaseRad), or csv"
+        },
+        "delayS": {
+          "type": "number",
+          "description": "Time offset [s] Default: 0."
+        },
+        "pedestal": {
+          "description": "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.chirp": {
+      "type": "object",
+      "description": "Spectral phase coefficients about the carrier.",
+      "properties": {
+        "gddS2": {
+          "type": "number",
+          "description": "Group-delay dispersion [s^2]"
+        },
+        "todS3": {
+          "type": "number",
+          "description": "Third-order dispersion [s^3]"
+        },
+        "fodS4": {
+          "type": "number",
+          "description": "Fourth-order dispersion [s^4]"
+        },
+        "gddFs2": {
+          "type": "number",
+          "description": "GDD in fs^2 [fs^2]"
+        },
+        "todFs3": {
+          "type": "number",
+          "description": "TOD in fs^3 [fs^3]"
+        },
+        "fodFs4": {
+          "type": "number",
+          "description": "FOD in fs^4 [fs^4]"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "_any": {},
+    "obj.pulseSpectrum": {
+      "type": "object",
+      "description": "A measured input spectrum.",
+      "properties": {
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths [m]"
+        },
+        "wavelengthsNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths in nm [nm]"
+        },
+        "intensity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Intensity per unit wavelength"
+        },
+        "phaseRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Spectral phase (optional) [rad]"
+        },
+        "csv": {
+          "type": "string",
+          "description": "CSV file: wavelength, intensity, optional phase"
+        },
+        "wavelengthUnit": {
+          "type": "string",
+          "description": "Unit of the CSV wavelength column Default: m."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.grid": {
+      "type": "object",
+      "description": "The time/frequency grid (docs/reference/run-spec.md#grid).",
+      "properties": {
+        "auto": {
+          "type": "boolean",
+          "description": "Size the grid from pulse and system Default: true."
+        },
+        "n": {
+          "type": "integer",
+          "description": "Number of samples (with auto: a minimum) Default: 4096."
+        },
+        "windowS": {
+          "type": "number",
+          "description": "Time window [s] Default: 30 x the transform limit."
+        },
+        "windowPs": {
+          "type": "number",
+          "description": "Time window in ps [ps]"
+        },
+        "maxN": {
+          "type": "integer",
+          "description": "Largest allowed n Default: 4194304."
+        },
+        "snapCarrier": {
+          "type": "boolean",
+          "description": "Put the carrier on the frequency grid Default: true."
+        },
+        "spectralMargin": {
+          "type": "number",
+          "description": "Spectral span factor Default: auto."
+        },
+        "minSpanFraction": {
+          "type": "number",
+          "description": "Nonlinear runs: minimum half-span / carrier Default: 0.1."
+        },
+        "minPointsPerFwhm": {
+          "type": "number",
+          "description": "Samples across the transform-limited FWHM Default: 12."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.physics": {
+      "type": "object",
+      "description": "Physics switches (docs/reference/run-spec.md#physics).",
+      "properties": {
+        "nonlinear": {
+          "type": "boolean",
+          "description": "Master switch for nonlinear propagation Default: true."
+        },
+        "selfSteepening": {
+          "type": "boolean",
+          "description": "Self-steepening Default: true."
+        },
+        "raman": {
+          "type": "boolean",
+          "description": "Delayed (Raman) response of materials that have one Default: true."
+        },
+        "fieldMode": {
+          "type": "string",
+          "enum": ["auto", "envelope", "carrier"],
+          "description": "Envelope or carrier-resolved (real field) propagation Default: auto."
+        },
+        "fieldHarmonic": {
+          "type": "number",
+          "description": "Highest harmonic the carrier-resolved grid holds Default: 3."
+        },
+        "absoluteIndex": {
+          "type": "boolean",
+          "description": "Add air dispersion to air paths quoted relative to air Default: true."
+        },
+        "polarization": {
+          "type": "string",
+          "enum": ["jones", "scalar"],
+          "description": "Jones (two polarisations) or scalar Default: jones."
+        },
+        "losses": {
+          "type": "boolean",
+          "description": "false removes flat loss terms Default: true."
+        },
+        "beamTracking": {
+          "description": "Gaussian beam (q) tracking: \"auto\" (on with a Gaussian inputBeam), \"on\", \"off\" Default: \"auto\"."
+        },
+        "transverse": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.transverse"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Default spatial model for every bulk/gap/crystal without one"
+        },
+        "ionization": {
+          "description": "Photo-ionisation and plasma in every nonlinear bulk element: true or an ionization object Default: false."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.transverse": {
+      "type": "object",
+      "description": "Spatial model of an element (docs/reference/spatial-models.md).",
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": ["none", "radial", "cartesian"],
+          "description": "Representation Default: none."
+        },
+        "points": {
+          "type": "integer",
+          "description": "Radial samples (cartesian: nx = ny if omitted) Default: 64."
+        },
+        "nx": {
+          "type": "integer",
+          "description": "Cartesian samples in x"
+        },
+        "ny": {
+          "type": "integer",
+          "description": "Cartesian samples in y"
+        },
+        "radiusM": {
+          "type": "number",
+          "description": "Radial grid extent [m] Default: extentFactor x expected radius."
+        },
+        "halfWidthM": {
+          "type": "number",
+          "description": "Cartesian half-width [m]"
+        },
+        "halfWidthXM": {
+          "type": "number",
+          "description": "Cartesian half-width in x [m]"
+        },
+        "halfWidthYM": {
+          "type": "number",
+          "description": "Cartesian half-width in y [m]"
+        },
+        "extentFactor": {
+          "type": "number",
+          "description": "Grid extent / expected beam radius Default: 3.5."
+        },
+        "paraxial": {
+          "type": "boolean",
+          "description": "Paraxial diffraction operator instead of the exact one Default: false."
+        },
+        "transport": {
+          "type": "string",
+          "enum": ["auto", "exact", "rescale", "beam"],
+          "description": "How a profile from before is brought in Default: auto."
+        },
+        "initialProfile": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.initialProfile"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "The field at the first spatial element"
+        },
+        "polarization": {
+          "type": "string",
+          "enum": ["auto", "scalar", "vector"],
+          "description": "Jones (vector) fields on the grid: auto = when the beam carries a y component Default: auto."
+        },
+        "equation": {
+          "type": "string",
+          "enum": ["envelope", "uppe"],
+          "description": "Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) Default: envelope."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.initialProfile": {
+      "type": "object",
+      "description": "Initial transverse field.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["gaussian", "superGaussian", "flatTop"],
+          "description": "Shape Default: gaussian."
+        },
+        "order": {
+          "type": "integer",
+          "description": "superGaussian order Default: 4."
+        },
+        "decenterXM": {
+          "type": "number",
+          "description": "Decentre in x [m]"
+        },
+        "decenterYM": {
+          "type": "number",
+          "description": "Decentre in y [m]"
+        },
+        "tiltXRad": {
+          "type": "number",
+          "description": "Tilt about y [rad]"
+        },
+        "tiltYRad": {
+          "type": "number",
+          "description": "Tilt about x [rad]"
+        },
+        "radiusOfCurvatureM": {
+          "type": "number",
+          "description": "Wavefront radius of curvature (negative: converging) [m]"
+        },
+        "radiusM": {
+          "type": "number",
+          "description": "1/e^2 radius (default: from the element's beam) [m]"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.stepper": {
+      "type": "object",
+      "description": "Nonlinear solver (docs/reference/solvers.md).",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["adaptive", "rk4ip"],
+          "description": "Adaptive ERK4(3)-IP or fixed-step RK4IP Default: adaptive."
+        },
+        "tolerance": {
+          "type": "number",
+          "description": "Adaptive: local relative error per step Default: 1e-6."
+        },
+        "maxPhasePerStepRad": {
+          "type": "number",
+          "description": "Fixed: max nonlinear phase per step; adaptive: initial step [rad] Default: 0.01."
+        },
+        "maxAreaChangePerStep": {
+          "type": "number",
+          "description": "Limit on |d ln A_eff| per step (focusing beams) Default: 0.05."
+        },
+        "minStepM": {
+          "type": "number",
+          "description": "Smallest step [m]"
+        },
+        "maxStepM": {
+          "type": "number",
+          "description": "Largest step [m]"
+        },
+        "maxSteps": {
+          "type": "integer",
+          "description": "Step limit per element"
+        },
+        "steps": {
+          "type": "integer",
+          "description": "Fixed number of steps (rk4ip)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.override": {
+      "type": "object",
+      "description": "One override (docs/reference/models.md#overrides).",
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "material:NAME, element:ID (trailing * wildcard), element:*, type:TYPE or global"
+        },
+        "property": {
+          "type": "string",
+          "description": "Property to change (lengthM, n2, index, beam, coating, timeResponse, filter, enabled, ...)"
+        },
+        "value": {
+          "description": "New value (numbers may carry a unit string: \"2.2E-20 m^2/W\")"
+        },
+        "model": {
+          "description": "New model (an object with kind, an expression, or \"@callback\")"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["replace", "add"],
+          "description": "replace, or add (time responses and filters) Default: replace."
+        },
+        "source": {
+          "type": "string",
+          "description": "Provenance label"
+        },
+        "origin": {
+          "type": "string",
+          "description": "Provenance detail"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["target", "property"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.outputs": {
+      "type": "object",
+      "description": "Files written by the CLI / WriteAll.",
+      "properties": {
+        "json": {
+          "type": "boolean",
+          "description": "summary.json and provenance.json Default: true."
+        },
+        "npz": {
+          "type": "boolean",
+          "description": "result.npz Default: true."
+        },
+        "csv": {
+          "type": "boolean",
+          "description": "CSV files Default: true."
+        },
+        "maxPoints": {
+          "type": "integer",
+          "description": "Cap exported traces (0 = full grid incl. complex fields) Default: 0."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.compute": {
+      "type": "object",
+      "description": "Compute back-end (docs/reference/speed.md).",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "description": "Back-end name (cpu, or one a plugin registers) Default: cpu."
+        },
+        "threads": {
+          "type": "integer",
+          "description": "Worker threads (0 = all cores) Default: 0."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fitting:fit": {
+      "type": "object",
+      "description": "Calibration fit (fitting plugin). [plugin: fitting]",
+      "properties": {
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/obj.fitting:parameter"
+          },
+          "description": "The parameters to fit"
+        },
+        "maxIterations": {
+          "type": "integer",
+          "description": "Levenberg-Marquardt iterations Default: 20."
+        },
+        "tolerance": {
+          "type": "number",
+          "description": "Relative chi^2 change that ends the fit Default: 1e-4."
+        },
+        "freezeGrid": {
+          "type": "boolean",
+          "description": "Fix the time/frequency grid (2x the planned bandwidth) for all evaluations Default: true."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["parameters"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fitting:parameter": {
+      "type": "object",
+      "description": "One fit parameter. [plugin: fitting]",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "pulse/..., element:ID/..., material:NAME/prop, run/..., system/..."
+        },
+        "name": {
+          "type": "string",
+          "description": "Label Default: the path."
+        },
+        "initial": {
+          "type": "number",
+          "description": "Start value Default: the value in the files."
+        },
+        "min": {
+          "type": "number",
+          "description": "Lower bound"
+        },
+        "max": {
+          "type": "number",
+          "description": "Upper bound"
+        },
+        "scale": {
+          "type": "number",
+          "description": "Typical change Default: (max - min) / 4."
+        },
+        "step": {
+          "type": "number",
+          "description": "Finite-difference step Default: 1e-3 x scale."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit label for reports"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["path"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.sampling": {
+      "type": "object",
+      "description": "Near / far field and apertures for non-imaging instruments. (docs/reference/instruments.md#sampling)",
+      "properties": {
+        "plane": {
+          "type": "string",
+          "enum": ["near", "far"],
+          "description": "Near field, or the focal plane of a lens Default: near."
+        },
+        "focalLengthM": {
+          "type": "number",
+          "description": "Far field: focal length [m] Default: 0.2."
+        },
+        "propagateM": {
+          "type": "number",
+          "description": "Near field: free-space propagation before the aperture [m] Default: 0."
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.samplingAperture"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "The aperture"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.samplingAperture": {
+      "type": "object",
+      "description": "Sampling aperture.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["integrated", "pinhole", "iris", "fibre", "fiber", "slit", "point"],
+          "description": "Aperture type Default: pinhole."
+        },
+        "radiusM": {
+          "type": "number",
+          "description": "Radius (pinhole, iris, fibre core) [m] Default: 50e-6 (fibre 25e-6)."
+        },
+        "widthM": {
+          "type": "number",
+          "description": "Slit width [m] Default: 2 x radius."
+        },
+        "centerXM": {
+          "type": "number",
+          "description": "Aperture centre x [m] Default: 0."
+        },
+        "centerYM": {
+          "type": "number",
+          "description": "Aperture centre y [m] Default: 0."
+        },
+        "na": {
+          "type": "number",
+          "description": "Fibre numerical aperture Default: 0.22."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fitting:measured": {
+      "type": "object",
+      "description": "Recorded data for one instrument (fitting plugin). [plugin: fitting]",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "CSV, NPZ or JSON file, relative to the run file"
+        },
+        "columns": {
+          "type": "object",
+          "description": "Column / array names: x, y, sigma (curves); rows, cols, trace (traces)"
+        },
+        "normalize": {
+          "type": "string",
+          "enum": ["peak", "maximum", "area", "scale", "none"],
+          "description": "How data and simulation are normalised before comparing Default: peak."
+        },
+        "sigma": {
+          "type": "number",
+          "description": "Uncertainty of each point relative to the data peak Default: 0.02."
+        },
+        "background": {
+          "description": "A number to subtract, or \"auto\" (median at the axis edges)"
+        },
+        "rangeX": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Compare only this [min, max] of the measured axis [SI]"
+        },
+        "xUnit": {
+          "type": "string",
+          "description": "Unit of the x column (overrides the name suffix)"
+        },
+        "yUnit": {
+          "type": "string",
+          "description": "Unit of the y column"
+        },
+        "rowUnit": {
+          "type": "string",
+          "description": "Unit of the trace rows"
+        },
+        "colUnit": {
+          "type": "string",
+          "description": "Unit of the trace columns"
+        },
+        "values": {
+          "type": "object",
+          "description": "Scalar readings {name: value | [value, sigma]}"
+        },
+        "valueSigma": {
+          "type": "number",
+          "description": "Relative uncertainty of values given without one Default: 0.02."
+        },
+        "valueWeight": {
+          "type": "number",
+          "description": "Extra weight of the scalar residuals Default: 1."
+        },
+        "weight": {
+          "type": "number",
+          "description": "Weight of this instrument in the fit's chi^2 Default: 1."
+        },
+        "simulated": {
+          "type": "object",
+          "description": "Which arrays of the instrument to compare with: x, y | rows, cols, trace"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.autocorrelator": {
+      "type": "object",
+      "description": "Intensity or interferometric autocorrelation. (docs/reference/instruments.md#autocorrelator)",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["intensity", "interferometric"],
+          "description": "AC type Default: intensity."
+        },
+        "rangeS": {
+          "type": "number",
+          "description": "Delay range [s]"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Output points"
+        },
+        "maxN": {
+          "type": "integer",
+          "description": "Grid cap for the computation"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.beamProfile": {
+      "type": "object",
+      "description": "Fluence vs radius (or x/y cuts), radius, M^2, true peak fluence. (docs/reference/instruments.md#beamprofile)",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.imaging": {
+      "type": "object",
+      "description": "Camera imaging.",
+      "properties": {
+        "plane": {
+          "type": "string",
+          "enum": ["near", "far", "relay"],
+          "description": "near: the beam at the location (+ propagateM, relay); far: focal plane of focalLengthM Default: near."
+        },
+        "propagateM": {
+          "type": "number",
+          "description": "Free-space propagation before imaging (negative: back to a waist) [m] Default: 0."
+        },
+        "focalLengthM": {
+          "type": "number",
+          "description": "Far field: focal length [m] Default: 1."
+        },
+        "magnification": {
+          "type": "number",
+          "description": "Imaging magnification onto the sensor Default: 1."
+        },
+        "relay": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/obj.relayStep"
+          },
+          "description": "Thin lenses {focalLengthM} and gaps {gapM}, in order"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.relayStep": {
+      "type": "object",
+      "description": "A relay step: a thin lens or a free-space gap.",
+      "properties": {
+        "focalLengthM": {
+          "type": "number",
+          "description": "Thin lens [m]"
+        },
+        "gapM": {
+          "type": "number",
+          "description": "Free-space gap [m]"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.sensor": {
+      "type": "object",
+      "description": "A camera sensor.",
+      "properties": {
+        "pixels": {
+          "description": "n or [nx, ny] Default: 256."
+        },
+        "pixelSizeM": {
+          "type": "number",
+          "description": "Pixel pitch on the sensor [m] Default: auto: ~5 beam radii across."
+        },
+        "qe": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Quantum efficiency vs wavelength (a filter model: constant, table, gaussian, expression) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "bitDepth": {
+          "type": "integer",
+          "description": "ADC bits (0: ideal) Default: 0."
+        },
+        "fullScaleJPerM2": {
+          "type": "number",
+          "description": "Fluence at full scale [J/m^2] Default: 1.1 x peak."
+        },
+        "readNoiseCounts": {
+          "type": "number",
+          "description": "Read noise rms [counts] Default: 0."
+        },
+        "backgroundCounts": {
+          "type": "number",
+          "description": "Dark / background offset [counts] Default: 0."
+        },
+        "hotPixelFraction": {
+          "type": "number",
+          "description": "Fraction of stuck pixels Default: 0."
+        },
+        "noiseSeed": {
+          "type": "integer",
+          "description": "Random seed Default: 1."
+        },
+        "centerXM": {
+          "type": "number",
+          "description": "Sensor centre x [m] Default: 0."
+        },
+        "centerYM": {
+          "type": "number",
+          "description": "Sensor centre y [m] Default: 0."
+        },
+        "propagateM": {
+          "type": "number",
+          "description": "Free-space propagation before imaging (v1 key) [m]"
+        },
+        "magnification": {
+          "type": "number",
+          "description": "Magnification (v1 key)"
+        },
+        "focalLengthM": {
+          "type": "number",
+          "description": "Far-field focal length (v1 key) [m]"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.camera": {
+      "type": "object",
+      "description": "A camera: imaging plane (near / far / relay) + sensor. (docs/reference/instruments.md#camera)",
+      "properties": {
+        "imaging": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.imaging"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What the sensor sees"
+        },
+        "sensor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sensor"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "The detector"
+        },
+        "plane": {
+          "type": "string",
+          "description": "Shortcut for imaging.plane"
+        },
+        "bandM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[min, max] band-pass filter [m]"
+        },
+        "pixels": {
+          "description": "n or [nx, ny] Default: 256."
+        },
+        "pixelSizeM": {
+          "type": "number",
+          "description": "Pixel pitch on the sensor [m] Default: auto: ~5 beam radii across."
+        },
+        "qe": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Quantum efficiency vs wavelength (a filter model: constant, table, gaussian, expression) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "bitDepth": {
+          "type": "integer",
+          "description": "ADC bits (0: ideal) Default: 0."
+        },
+        "fullScaleJPerM2": {
+          "type": "number",
+          "description": "Fluence at full scale [J/m^2] Default: 1.1 x peak."
+        },
+        "readNoiseCounts": {
+          "type": "number",
+          "description": "Read noise rms [counts] Default: 0."
+        },
+        "backgroundCounts": {
+          "type": "number",
+          "description": "Dark / background offset [counts] Default: 0."
+        },
+        "hotPixelFraction": {
+          "type": "number",
+          "description": "Fraction of stuck pixels Default: 0."
+        },
+        "noiseSeed": {
+          "type": "integer",
+          "description": "Random seed Default: 1."
+        },
+        "centerXM": {
+          "type": "number",
+          "description": "Sensor centre x [m] Default: 0."
+        },
+        "centerYM": {
+          "type": "number",
+          "description": "Sensor centre y [m] Default: 0."
+        },
+        "propagateM": {
+          "type": "number",
+          "description": "Free-space propagation before imaging (v1 key) [m]"
+        },
+        "magnification": {
+          "type": "number",
+          "description": "Magnification (v1 key)"
+        },
+        "focalLengthM": {
+          "type": "number",
+          "description": "Far-field focal length (v1 key) [m]"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.compressor": {
+      "type": "object",
+      "description": "Ideal compressor: GDD/TOD that maximise peak power. (docs/reference/instruments.md#compressor)",
+      "properties": {
+        "optimizeTod": {
+          "type": "boolean",
+          "description": "Also optimise TOD Default: true."
+        },
+        "maxN": {
+          "type": "integer",
+          "description": "Grid cap"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Output points"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.contrast": {
+      "type": "object",
+      "description": "Intensity in dB, pre/post-pulse contrast, pedestal fraction (ideal). (docs/reference/instruments.md#contrast)",
+      "properties": {
+        "resolutionS": {
+          "type": "number",
+          "description": "Temporal resolution [s]"
+        },
+        "windowS": {
+          "type": "number",
+          "description": "Pre/post window [s] Default: 5 x FWHM."
+        },
+        "dynamicRangeDb": {
+          "type": "number",
+          "description": "Noise floor [dB] Default: 120."
+        },
+        "points": {
+          "type": "integer",
+          "description": "Output points Default: 8192."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.conversion": {
+      "type": "object",
+      "description": "Energies and photon numbers of every field leaving an active element. (docs/reference/instruments.md#conversion)",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.crossCorrelator": {
+      "type": "object",
+      "description": "Third-order (SHG-gated) cross-correlator: high-dynamic-range contrast with noise floor, resolution, scan grid, polarisation. (docs/reference/instruments.md#crosscorrelator)",
+      "properties": {
+        "rangeS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[min, max] delay scan (relative to the peak) [s] Default: the simulated window."
+        },
+        "stepS": {
+          "type": "number",
+          "description": "Coarse step [s]"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Coarse points (when no step) Default: 2001."
+        },
+        "fineStepS": {
+          "type": "number",
+          "description": "Fine step near zero delay [s]"
+        },
+        "fineRangeS": {
+          "type": "number",
+          "description": "Half-range of the fine steps [s]"
+        },
+        "dynamicRangeDb": {
+          "type": "number",
+          "description": "Noise floor below the peak [dB] Default: 110."
+        },
+        "noiseFloor": {
+          "type": "number",
+          "description": "Noise floor (relative; alternative)"
+        },
+        "noise": {
+          "type": "boolean",
+          "description": "Fluctuating detector background (else a flat floor) Default: true."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Noise seed Default: 1."
+        },
+        "resolutionS": {
+          "type": "number",
+          "description": "Extra temporal resolution (Gaussian FWHM) [s] Default: 0."
+        },
+        "shgAcceptanceFwhmM": {
+          "type": "number",
+          "description": "SHG crystal acceptance (SH wavelength FWHM) [m]"
+        },
+        "polarization": {
+          "description": "\"total\", \"x\", \"y\" or an analyser angle in degrees Default: \"total\"."
+        },
+        "probeDelaysS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Delays at which to report the contrast in dB [s]"
+        },
+        "windowS": {
+          "type": "number",
+          "description": "Pre/post window around the peak [s] Default: 5 x FWHM."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.delayScan": {
+      "type": "object",
+      "description": "Re-runs a crystal for aux delays: output energy vs delay. (docs/reference/instruments.md#delayscan)",
+      "properties": {
+        "fromS": {
+          "type": "number",
+          "description": "First delay [s]"
+        },
+        "toS": {
+          "type": "number",
+          "description": "Last delay [s]"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Points"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.dscan": {
+      "type": "object",
+      "description": "Dispersion scan: SHG spectrum vs glass insertion or GDD. (docs/reference/instruments.md#dscan)",
+      "properties": {
+        "material": {
+          "type": "string",
+          "description": "Wedge material (with insertionM)"
+        },
+        "insertionM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[min, max] insertion [m]"
+        },
+        "gddRangeS2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[min, max] GDD (alternative) [s^2]"
+        },
+        "steps": {
+          "type": "integer",
+          "description": "Scan steps Default: 41."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.energyMeter": {
+      "type": "object",
+      "description": "Pulse energy and average power (optionally behind a polariser / band). (docs/reference/instruments.md#energymeter)",
+      "properties": {
+        "rangeM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[min, max] wavelength band [m]"
+        },
+        "polarizerDeg": {
+          "type": "number",
+          "description": "Analyser angle [deg]"
+        },
+        "repRateHz": {
+          "type": "number",
+          "description": "Repetition rate for average power [Hz]"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.fieldProbe": {
+      "type": "object",
+      "description": "Temporal phase, instantaneous wavelength, group delay, CEP (virtual). (docs/reference/instruments.md#virtual-instruments)",
+      "properties": {
+        "threshold": {
+          "type": "number",
+          "description": "Relative intensity threshold Default: 1e-3."
+        },
+        "realField": {
+          "type": "boolean",
+          "description": "Also the real field on the optical cycle Default: false."
+        },
+        "maxN": {
+          "type": "integer",
+          "description": "Grid cap"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.frog": {
+      "type": "object",
+      "description": "SHG or PG FROG trace. (docs/reference/instruments.md#frog)",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["shg", "pg"],
+          "description": "FROG geometry Default: shg."
+        },
+        "points": {
+          "type": "integer",
+          "description": "Delay and frequency points Default: 256."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.phaseMatchingCurve": {
+      "type": "object",
+      "description": "Low-conversion phase-matching curve of a crystal vs angle, wavelength, temperature or period. (docs/reference/instruments.md#phasematchingcurve)",
+      "properties": {
+        "scan": {
+          "type": "string",
+          "enum": ["angle", "wavelength", "temperature", "period"],
+          "description": "Scan variable Default: angle."
+        },
+        "rangeDeg": {
+          "type": "number",
+          "description": "Angle range [deg] Default: 1."
+        },
+        "rangeM": {
+          "type": "number",
+          "description": "Wavelength or period range [m]"
+        },
+        "rangeK": {
+          "type": "number",
+          "description": "Temperature range [K] Default: 20."
+        },
+        "points": {
+          "type": "integer",
+          "description": "Points Default: 201."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.polarimeter": {
+      "type": "object",
+      "description": "Stokes parameters, integrated and vs wavelength. (docs/reference/instruments.md#polarimeter)",
+      "properties": {
+        "points": {
+          "type": "integer",
+          "description": "Output points"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.pulseSummary": {
+      "type": "object",
+      "description": "Every scalar pulse metric. (docs/reference/instruments.md#pulsesummary)",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.scope": {
+      "type": "object",
+      "description": "Detected power vs time with a rise time / bandwidth. (docs/reference/instruments.md#scope)",
+      "properties": {
+        "riseTimeS": {
+          "type": "number",
+          "description": "10-90 % rise time [s]"
+        },
+        "bandwidthHz": {
+          "type": "number",
+          "description": "Bandwidth (alternative) [Hz]"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Output points"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.spaceTime": {
+      "type": "object",
+      "description": "I(r, t) and S(r, lambda) across the beam (virtual). (docs/reference/instruments.md#virtual-instruments)",
+      "properties": {
+        "points": {
+          "type": "integer",
+          "description": "Time samples Default: 512."
+        },
+        "maxRadiusM": {
+          "type": "number",
+          "description": "Largest radius [m] Default: 2.5 w."
+        },
+        "axis": {
+          "type": "string",
+          "enum": ["x", "y"],
+          "description": "Cartesian cut axis Default: x."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.spectrometer": {
+      "type": "object",
+      "description": "Spectrum vs wavelength with resolution. (docs/reference/instruments.md#spectrometer)",
+      "properties": {
+        "resolutionM": {
+          "type": "number",
+          "description": "Gaussian resolution FWHM [m] Default: 0."
+        },
+        "rangeM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[min, max] wavelength range [m]"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Output points"
+        },
+        "polarizerDeg": {
+          "type": "number",
+          "description": "Analyser angle [deg]"
+        },
+        "normalize": {
+          "type": "string",
+          "enum": ["none", "peak", "area"],
+          "description": "Normalisation of the output Default: none."
+        },
+        "db": {
+          "type": "boolean",
+          "description": "Also report dB Default: false."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.wavefrontSensor": {
+      "type": "object",
+      "description": "Shack-Hartmann-like wavefront sensor: map, Zernike terms, curvature. (docs/reference/instruments.md#wavefrontsensor)",
+      "properties": {
+        "pixels": {
+          "description": "Lenslets Default: 64."
+        },
+        "wavelengthM": {
+          "type": "number",
+          "description": "Reconstruction wavelength [m] Default: spectral centroid."
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Fluence threshold relative to the peak Default: 0.01."
+        },
+        "apertureRadiusM": {
+          "type": "number",
+          "description": "Pupil radius [m] Default: 1/e^2 radius."
+        },
+        "halfWidthM": {
+          "type": "number",
+          "description": "Map half-width [m]"
+        },
+        "zernikeTerms": {
+          "type": "integer",
+          "description": "Zernike terms (max 36) Default: 15."
+        },
+        "propagateM": {
+          "type": "number",
+          "description": "Propagation before the sensor [m]"
+        },
+        "bandM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[min, max] band [m]"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument.wigner": {
+      "type": "object",
+      "description": "Wigner distribution or spectrogram (virtual). (docs/reference/instruments.md#virtual-instruments)",
+      "properties": {
+        "points": {
+          "type": "integer",
+          "description": "Time rows Default: 256."
+        },
+        "gateFwhmS": {
+          "type": "number",
+          "description": "> 0: spectrogram gate [s]"
+        },
+        "maxN": {
+          "type": "integer",
+          "description": "Grid cap"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "instrument": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["autocorrelator", "beamProfile", "camera", "compressor", "contrast", "conversion", "crossCorrelator", "delayScan", "dscan", "energyMeter", "farFieldCamera", "fieldProbe", "frog", "nearFieldCamera", "phaseMatchingCurve", "photodiode", "polarimeter", "powerMeter", "pulseSummary", "scope", "spaceTime", "spectrometer", "thirdOrderCorrelator", "wavefrontSensor", "wigner"],
+          "description": "Instrument kind."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["autocorrelator"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.autocorrelator"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["beamProfile"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.beamProfile"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["camera", "nearFieldCamera", "farFieldCamera"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.camera"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["compressor"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.compressor"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["contrast"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.contrast"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["conversion"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.conversion"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["crossCorrelator", "thirdOrderCorrelator"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.crossCorrelator"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["delayScan"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.delayScan"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["dscan"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.dscan"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["energyMeter", "powerMeter"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.energyMeter"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["fieldProbe"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.fieldProbe"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["frog"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.frog"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["phaseMatchingCurve"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.phaseMatchingCurve"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["polarimeter"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.polarimeter"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["pulseSummary"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.pulseSummary"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["scope", "photodiode"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.scope"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["spaceTime"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.spaceTime"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["spectrometer"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.spectrometer"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["wavefrontSensor"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.wavefrontSensor"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["wigner"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.wigner"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "cpa",
+  "pulse": { "shape": "sech2", "centerWavelengthM": 1.03e-6, "durationFwhmS": 150e-15, "energyJ": 1e-9, "repRateHz": 50e6 },
+  "probes": ["probe_stretched", "compressor"],
+  // diagnostics at the three places you would put them on the table: input, after the stretcher, output.
+  // ultrafast-plot numbers them on the system diagram (results/plots/system.png) and in every panel title.
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum_in", "at": "input", "resolutionM": 0.05e-9 },
+    { "kind": "autocorrelator", "name": "ac_in", "at": "input" },
+    { "kind": "scope", "at": "probe_stretched", "riseTimeS": 20e-12, "name": "photodiode_stretched" },
+    { "kind": "spectrometer", "name": "spectrum_stretched", "at": "probe_stretched", "resolutionM": 0.05e-9 },
+    { "kind": "wigner", "name": "wigner_stretched", "at": "probe_stretched", "points": 256 },
+    { "kind": "spectrometer", "name": "spectrum_out", "at": "end", "resolutionM": 0.05e-9 },
+    { "kind": "autocorrelator", "name": "ac_out", "at": "end" },
+    { "kind": "fieldProbe", "name": "phase_out", "at": "end" },
+    { "kind": "compressor", "at": "end", "name": "residual" },
+    { "kind": "energyMeter", "at": "end" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "polarization",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 100e-15, "energyJ": 1e-6,
+             "polarization": { "angleDeg": 30 } },
+  "physics": { "polarization": "jones" },
+  "instruments": [
+    { "kind": "polarimeter", "at": "hr_mirror", "name": "after_mirror" },
+    { "kind": "polarimeter", "at": "brewster_out", "name": "after_window" },
+    { "kind": "polarimeter", "at": "end", "name": "after_polarizer" },
+    { "kind": "energyMeter", "at": "end" }
+  ]
+}

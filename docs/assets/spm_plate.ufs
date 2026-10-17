@@ -1,0 +1,7 @@
+{
+  // The plate of spm_spectrum.csv / spm_autocorrelation.csv (docs/assets/README.md)
+  "$schema": "../../schemas/ufs.schema.json",
+  "format": "ultrafast-system", "version": 2, "name": "spm-asset",
+  "elements": [ { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 6.35e-3,
+                  "beam": { "kind": "gaussian", "w0M": 120e-6, "zWaistM": 3.175e-3 } } ]
+}

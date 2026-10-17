@@ -1,0 +1,25 @@
+{
+  // Example 19: a Kerr-lens mode-locked Ti:sapphire oscillator in the Haus (master-equation) model.
+  // Every round trip: saturated gain with a 100 nm (Gaussian) bandwidth, 2 % loss + 5 % output coupler,
+  // -500 fs^2 of net GDD, SPM of the crystal (delta = 1.5e-6 rad/W, from n2 L / A_eff) and the Kerr-lens
+  // loss modulation (an aperture-like fast absorber: q(P) = q0 - kappa P). Starts from quantum noise.
+  // The result is a soliton: its duration follows the area theorem tau = 3.53 |GDD| / (delta E).
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "ti-sapphire-klm",
+  "elements": [
+    { "id": "laser", "type": "oscillator", "model": "haus",
+      "repRateHz": 80e6, "outputCoupler": 0.05,
+      "gain": { "smallSignalGain": 1.5, "saturationEnergyJ": 5e-9, "bandwidthM": 100e-9, "shape": "gaussian" },
+      "lossPerRoundTrip": 0.02,
+      "gddFs2": -500,
+      "spmRadPerW": 1.5e-6,
+      "absorber": { "kind": "kerrLens", "modulationDepth": 0.03, "kappaPerW": 3e-8 },
+      "start": "noise",
+      "roundTrips": { "max": 8000 } },
+    // outside the laser: 3 mm of fused silica (a window) and a chirped mirror pair
+    { "id": "window", "type": "bulk", "material": "FusedSilica", "lengthM": 0.003, "nonlinear": false },
+    { "id": "cm", "type": "chirpedMirror", "gddS2": -50e-30, "bounces": 2 }
+  ]
+}

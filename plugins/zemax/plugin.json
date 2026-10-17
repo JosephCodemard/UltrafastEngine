@@ -1,0 +1,13 @@
+{
+  "id": "zemax",
+  "name": "Zemax OpticStudio",
+  "version": "2.1.8-beta",
+  "description": "Exports OpticStudio systems to .ufs files (sampler, system builder, fake OpticStudio, record/replay) and ships the OpticStudio extension program (Windows).",
+  "engine": "2.1.8-beta",
+  "entry": "UltrafastEngine.Zemax.ZemaxPlugin",
+  "assemblies": {
+    "net10.0": "lib/net10.0/UltrafastEngine.Zemax.Sampling.dll",
+    "net48": "lib/net48/UltrafastEngine.Zemax.Sampling.dll"
+  },
+  "commands": ["zemax-build", "zemax-replay", "zemax-demo"]
+}

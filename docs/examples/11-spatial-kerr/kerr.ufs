@@ -1,0 +1,27 @@
+{
+  // Example 11: self-focusing (Kerr lensing) in a fused-silica plate, with diffraction resolved.
+  // A "transverse" model turns a bulk element into an (r, omega) simulation: diffraction, the radially varying
+  // Kerr phase and the spatio-temporal coupling between them. The transverse profile then travels with the beam, so
+  // the free-space gap after the plate (also radial) shows where the Kerr lens focuses the beam.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "spatial-kerr",
+  "description": "1030 nm, 300 fs, ~3 P_cr through 10 mm fused silica, then 4 x 10 mm of free space",
+  "elements": [
+    { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 10e-3,
+      // collimated 100 um beam (z_R ~ 44 mm in silica)
+      "beam": { "kind": "gaussian", "w0M": 100e-6 },
+      // radial (Hankel) model: 96 points over 0.45 mm
+      "transverse": { "model": "radial", "points": 96, "radiusM": 0.45e-3 } },
+    // four 10 mm steps of free space (radial, wider grid with the same ~4.5 um sampling, so the converging Kerr-lensed beam is resolved): the per-element beam radius traces the Kerr focus
+    { "id": "free1", "type": "gap", "material": "Vacuum", "lengthM": 10e-3,
+      "transverse": { "model": "radial", "points": 224, "radiusM": 1.0e-3 } },
+    { "id": "free2", "type": "gap", "material": "Vacuum", "lengthM": 10e-3,
+      "transverse": { "model": "radial", "points": 224, "radiusM": 1.0e-3 } },
+    { "id": "free3", "type": "gap", "material": "Vacuum", "lengthM": 10e-3,
+      "transverse": { "model": "radial", "points": 224, "radiusM": 1.0e-3 } },
+    { "id": "free4", "type": "gap", "material": "Vacuum", "lengthM": 10e-3,
+      "transverse": { "model": "radial", "points": 224, "radiusM": 1.0e-3 } }
+  ]
+}

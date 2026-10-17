@@ -1,0 +1,18 @@
+{
+  // Example 16: position-dependent material properties. A 5 mm fused-silica rod with a parabolic index
+  // profile Delta n(r) = -1/2 n0 g^2 r^2 (a GRIN lens, f = 1 / (n0 g^2 L) = 0.2 m) focuses a 0.5 mm beam at the
+  // end of a 0.2 m gap. indexProfile / absorptionProfile / n2Scale accept a number, an expression in
+  // x, y, z, r, theta, a table, a Gaussian, or a callback ("@name") registered from Python, C# or C.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "grin-rod",
+  "elements": [
+    { "id": "rod", "type": "bulk", "material": "FusedSilica", "lengthM": 0.005, "nonlinear": false,
+      "beam": { "kind": "gaussian", "w0M": 0.5e-3 },
+      "transverse": { "model": "radial", "points": 96, "radiusM": 2e-3 },
+      "indexProfile": { "kind": "expression", "expr": "-0.5 * n0 * g2 * r^2", "params": { "n0": 1.45, "g2": 689.655 } } },
+    { "id": "to_focus", "type": "gap", "material": "Vacuum", "lengthM": 0.2,
+      "transverse": { "model": "radial", "points": 128, "radiusM": 2e-3 } }
+  ]
+}

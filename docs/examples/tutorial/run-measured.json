@@ -1,0 +1,21 @@
+{
+  // Tutorial 4, step 1: compare the model with recorded data (data/, written by make_data.py).
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "measured",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 40e-15,
+             "energyJ": 200e-9, "repRateHz": 1e3, "polarization": "x" },
+  "instruments": [
+    // a CSV with columns wavelength_nm,counts: the units come from the column names; subtract the dark counts
+    { "kind": "spectrometer", "name": "spectrum", "at": "end",
+      "measured": { "file": "data/spectrum_end.csv", "background": "auto", "sigma": 0.005 } },
+    // delay_ps,signal
+    { "kind": "autocorrelator", "name": "ac", "at": "end",
+      "measured": { "file": "data/autocorrelation_end.csv", "sigma": 0.01 } },
+    // a scalar reading from a JSON file, 3 % uncertainty
+    { "kind": "powerMeter", "name": "power", "at": "end",
+      "measured": { "file": "data/power_end.json", "valueSigma": 0.03 } },
+    // no data here: a prediction
+    { "kind": "pulseSummary", "name": "summary", "at": "end" }
+  ]
+}

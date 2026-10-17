@@ -1,0 +1,13 @@
+{
+  // Tutorial 1: what to send through the system and what to measure.
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "first-run",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 40e-15,
+             "energyJ": 200e-9, "repRateHz": 1e3, "polarization": "x" },
+  "instruments": [
+    { "kind": "spectrometer" },                       // at the end of the system by default
+    { "kind": "autocorrelator" },
+    { "kind": "pulseSummary" }
+  ]
+}

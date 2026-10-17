@@ -1,0 +1,13 @@
+<Project>
+  <!-- Hosts (CLI, test runner): build the first-party plugins first and copy artifacts/plugins into $(OutDir)plugins. -->
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)plugins/fitting/src/UltrafastEngine.Plugins.Fitting.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" Condition="'$(NoPluginBuild)' != 'true'" />
+    <ProjectReference Include="$(RepoRoot)plugins/zemax/src/UltrafastEngine.Zemax.Sampling/UltrafastEngine.Zemax.Sampling.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" Condition="'$(NoPluginBuild)' != 'true' AND Exists('$(RepoRoot)plugins/zemax/src/UltrafastEngine.Zemax.Sampling/UltrafastEngine.Zemax.Sampling.csproj')" />
+  </ItemGroup>
+  <Target Name="CopyPluginsToOutput" AfterTargets="Build" Condition="'$(TargetFramework)' != '' AND '$(OutDir)' != ''">
+    <ItemGroup>
+      <_HostPlugins Include="$(RepoRoot)artifacts/plugins/**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_HostPlugins)" DestinationFiles="@(_HostPlugins->'$(OutDir)plugins/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

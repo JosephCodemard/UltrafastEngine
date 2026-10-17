@@ -1,0 +1,30 @@
+{
+  // Example 09: non-collinear optical parametric chirped-pulse amplification (NOPCPA) in BBO.
+  // Main beam = the stretched 800 nm signal (followed through the system).
+  // Auxiliary beam = the 515 nm pump, taken from the saved results of example 08 (its output field, i.e. the SH).
+  // At the "magic" non-collinear angle the signal and idler group velocities match along the signal, which
+  // gives the very broad gain bandwidth that makes few-cycle OPCPA possible.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "nopcpa-bbo",
+  "description": "800 nm chirped seed amplified in 2 mm BBO pumped by the 515 nm SH of example 08",
+  "elements": [
+    { "id": "nopa", "type": "crystal",
+      "crystal": "BBO",
+      "lengthM": 2e-3,
+      "interaction": { "process": "opa", "type": "I", "noncollinearDeg": "magic" },
+      "cut": "auto",
+      "beam": { "kind": "gaussian", "w0M": 0.55e-3 },
+      "aux": [
+        { "role": "pump",
+          "from": "../08-shg-lbo/results",          // run example 08 first (or replace with a "pulse" spec)
+          "beam": { "kind": "gaussian", "radiusM": 0.6e-3 },
+          "delayS": "auto" }                        // centre the pump on the signal; try the delayScan below
+      ],
+      "output": "signal",
+      "record": ["idler", "pump"] },
+    // compress the amplified signal with an ideal prism/grating pair: see the "compressor" instrument
+    { "id": "air", "type": "gap", "lengthM": 0.2 }
+  ]
+}

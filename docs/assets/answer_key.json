@@ -1,0 +1,53 @@
+{
+  "format": "ultrafast-assets-answer-key",
+  "engine": "2.1.8-beta",
+  "assets": {
+    "frog_shg_1030nm.npz": {
+      "what": "SHG-FROG trace (rows: delay_s, columns: omega_rad_s of the SH signal), 1 % multiplicative + 1e-3 additive noise",
+      "truth": {
+        "centerWavelengthM": 1.03e-06,
+        "transformLimitFwhmS": 1.5e-13,
+        "gddFs2": 3000.0,
+        "todFs3": 20000.0,
+        "fwhmS": 1.6014700632218496e-13
+      },
+      "expect": "epie (300 iterations) or pcgpa (--iterations 1500 at this noise level): FROG error < 1e-3, FWHM within 5 %, |GDD| of the retrieved spectral phase within 5 % (its sign is ambiguous in SHG-FROG; the weak TOD is not recovered)"
+    },
+    "dscan_800nm.npz": {
+      "what": "SHG d-scan vs fused-silica insertion (+ dscan_800nm_fundamental.csv, the fundamental spectrum)",
+      "truth": {
+        "centerWavelengthM": 8e-07,
+        "transformLimitFwhmS": 2.5e-14,
+        "gddFs2": -150.0
+      },
+      "expect": "dscan: FWHM 30 fs (the chirped input), GDD of the retrieved phase -150 fs^2 within 10 %, with its sign"
+    },
+    "crosscorrelation_1030nm.csv": {
+      "what": "third-order cross-correlation (normalised signal vs delay), 100 dB dynamic range with detector noise",
+      "truth": {
+        "prePulse": {
+          "delayPs": -20,
+          "relativeIntensity": 3e-07
+        },
+        "postPulse": {
+          "delayPs": 35,
+          "relativeIntensity": 0.0001
+        },
+        "exponentialPedestal": {
+          "level": 1e-05,
+          "riseS": 1.5e-12,
+          "fallS": 2e-12
+        }
+      },
+      "expect": "pre-pulse near -65 dB at -20 ps, post-pulse near -40 dB at +35 ps, and the correlator's artefact of the post-pulse (~ -80 dB) at -35 ps; exponential wings of the pedestal"
+    },
+    "spm_spectrum.csv": {
+      "what": "spectrum after a 6.35 mm fused-silica plate (w0 = 120 um at its centre), 250 fs TL input at 1030 nm; with spm_autocorrelation.csv. The pulse energy is the unknown.",
+      "truth": {
+        "energyJ": 6e-06,
+        "BIntegralRad": 0.9733238001738798
+      },
+      "expect": "a fit of pulse/energyJ (fitting plugin, docs/plugins/fitting.md) finds 6 uJ within ~5 %"
+    }
+  }
+}

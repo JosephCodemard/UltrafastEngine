@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Command-line front end: `ultrafast run system.ufs run.json -o out`. Cross-platform (Windows, macOS, Linux). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>ultrafast</AssemblyName>
+    <RootNamespace>UltrafastEngine.Cli</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+      <ApplicationIcon>$(MSBuildThisFileDirectory)..\..\assets\ultrafast.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UltrafastEngine.Core\UltrafastEngine.Core.csproj" />
+  </ItemGroup>
+  <Import Project="$(RepoRoot)build/CopyPlugins.targets" />
+</Project>

@@ -1,0 +1,506 @@
+{
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "mpc-argon-2bar",
+  "description": "20-pass Herriott cell, 0.55 m, Ar 2 bar, w0 = 150 um (zR = 62.4 mm), -30 fs^2 per bounce",
+  "materials": {
+    "Ar2bar": {
+      "gas": {
+        "species": "Ar",
+        "pressureBar": 2.0,
+        "temperatureK": 293.15
+      }
+    }
+  },
+  "coatings": {
+    "mpc_mirror": {
+      "kind": "gdd",
+      "R": 0.999,
+      "gddS2": -3e-29,
+      "lidt": {
+        "fluenceJPerCm2": 0.3,
+        "pulseDurationS": 1e-12
+      }
+    },
+    "ar": {
+      "kind": "ar",
+      "R": 0.002
+    }
+  },
+  "elements": [
+    {
+      "id": "win_in_front",
+      "type": "interface",
+      "mode": "refract",
+      "before": "Air",
+      "after": "FusedSilica",
+      "aoiDeg": 0.0,
+      "coating": "ar"
+    },
+    {
+      "id": "win_in",
+      "type": "bulk",
+      "material": "FusedSilica",
+      "lengthM": 0.003,
+      "nonlinear": false
+    },
+    {
+      "id": "win_in_back",
+      "type": "interface",
+      "mode": "refract",
+      "before": "FusedSilica",
+      "after": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "ar"
+    },
+    {
+      "id": "to_cell",
+      "type": "gap",
+      "material": "Ar2bar",
+      "lengthM": 0.1
+    },
+    {
+      "id": "pass01",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m01",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass02",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m02",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass03",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m03",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass04",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m04",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass05",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m05",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass06",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m06",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass07",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m07",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass08",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m08",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass09",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m09",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass10",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m10",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass11",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m11",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass12",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m12",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass13",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m13",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass14",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m14",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass15",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m15",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass16",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m16",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass17",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m17",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass18",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m18",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass19",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "m19",
+      "type": "mirror",
+      "before": "Ar2bar",
+      "aoiDeg": 0.0,
+      "coating": "mpc_mirror",
+      "semiDiameterM": 0.0127,
+      "beamRadiusM": 0.0006779841762727892
+    },
+    {
+      "id": "pass20",
+      "type": "bulk",
+      "material": "Ar2bar",
+      "lengthM": 0.55,
+      "beam": {
+        "kind": "gaussian",
+        "w0M": 0.00015,
+        "zWaistM": 0.275,
+        "m2": 1.1
+      }
+    },
+    {
+      "id": "from_cell",
+      "type": "gap",
+      "material": "Ar2bar",
+      "lengthM": 0.1
+    },
+    {
+      "id": "win_out_front",
+      "type": "interface",
+      "mode": "refract",
+      "before": "Ar2bar",
+      "after": "FusedSilica",
+      "aoiDeg": 0.0,
+      "coating": "ar"
+    },
+    {
+      "id": "win_out",
+      "type": "bulk",
+      "material": "FusedSilica",
+      "lengthM": 0.003,
+      "nonlinear": false
+    },
+    {
+      "id": "win_out_back",
+      "type": "interface",
+      "mode": "refract",
+      "before": "FusedSilica",
+      "after": "Air",
+      "aoiDeg": 0.0,
+      "coating": "ar"
+    }
+  ]
+}

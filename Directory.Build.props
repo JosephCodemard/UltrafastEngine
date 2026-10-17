@@ -1,0 +1,31 @@
+<Project>
+  <!-- Shared settings for every project in the solution. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Version>2.1.8-beta</Version>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <Authors>UltrafastEngine contributors</Authors>
+    <Company>UltrafastEngine</Company>
+    <Product>UltrafastEngine</Product>
+    <Copyright>UltrafastEngine contributors (MIT licence)</Copyright>
+    <Deterministic>true</Deterministic>
+    <!-- Public API docs: XML comments are generated; missing ones are warnings for now (see CONTRIBUTING.md). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1572;CS1587;CS1574</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <!--
+    .NET Framework 4.8 targets on Linux/macOS: use Mono's reference assemblies when installed (no NuGet
+    needed). On Windows / Visual Studio the normal 4.8 targeting pack is used.
+  -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48' AND '$(OS)' != 'Windows_NT' AND Exists('/usr/lib/mono/4.8-api')">
+    <FrameworkPathOverride>/usr/lib/mono/4.8-api</FrameworkPathOverride>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48' AND '$(OS)' != 'Windows_NT' AND !Exists('/usr/lib/mono/4.8-api') AND Exists('/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.8-api')">
+    <FrameworkPathOverride>/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.8-api</FrameworkPathOverride>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+  </PropertyGroup>
+</Project>

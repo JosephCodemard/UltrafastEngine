@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "E. R. Peck and S. Huang. Refractivity and dispersion of hydrogen in the visible and near infrared, J. Opt. Soc. Am. 67, 1550-1554 (1977)"
+COMMENTS: "Hydrogen, 0 °C, 1 atm"
+DATA:
+  - type: formula 6
+    wavelength_range: 0.1680 1.6945
+    coefficients: 0 0.0148956 180.7 0.0049037 92
+SPECS:
+    temperature: 0.0 °C
+    pressure: 101325 Pa

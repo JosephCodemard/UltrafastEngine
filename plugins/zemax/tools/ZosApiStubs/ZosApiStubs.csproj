@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    COMPILE-ONLY stand-in for ZOSAPI.dll / ZOSAPI_Interfaces.dll / ZOSAPI_NetHelper.dll, so the Zemax binding can
+    be type-checked on machines without OpticStudio (CI, macOS, Linux):
+        dotnet build plugins/zemax/src/UltrafastEngine.Zemax -p:UseZosApiStubs=true
+    Every member mirrors the real ZOS-API signature used by the binding; every body throws. Never ship it.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>ZOSAPI</AssemblyName>
+    <RootNamespace>ZOSAPI</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS0067</NoWarn>
+  </PropertyGroup>
+  <!-- single-target net48 project: make Mono's reference assemblies available on macOS/Linux (no effect on Windows) -->
+  <Import Project="$(RepoRoot)build\Net48OnMono.props" />
+</Project>

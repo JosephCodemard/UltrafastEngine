@@ -1,0 +1,14 @@
+<Project>
+  <!--
+    .NET Framework 4.8 targets on Linux/macOS: use Mono's reference assemblies when installed (no NuGet
+    needed). On Windows / Visual Studio the normal 4.8 targeting pack is used.
+  -->
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT' AND Exists('/usr/lib/mono/4.8-api')">
+    <FrameworkPathOverride>/usr/lib/mono/4.8-api</FrameworkPathOverride>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT' AND !Exists('/usr/lib/mono/4.8-api') AND Exists('/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.8-api')">
+    <FrameworkPathOverride>/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.8-api</FrameworkPathOverride>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+  </PropertyGroup>
+</Project>

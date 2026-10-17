@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "custom-medium",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 200e-15, "energyJ": 5e-6, "polarization": "x" },
+  "probes": "all",
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum_out", "at": "rod" },
+    { "kind": "spaceTime", "name": "space_time", "at": "rod" },
+    { "kind": "camera",        "name": "nf_rod", "at": "rod" },
+    { "kind": "camera",        "name": "nf_200mm", "at": "free" },
+    { "kind": "wavefrontSensor", "name": "wfs_rod", "at": "rod" },
+    { "kind": "fieldProbe", "name": "field_out", "at": "rod" }
+  ]
+}

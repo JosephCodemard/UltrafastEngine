@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "E. R. Peck and B. N. Khanna. Dispersion of nitrogen, J. Opt. Soc. Am. 56, 1059-1063 (1966)"
+COMMENTS: "Nitrogen, 0 °C, 1 atm"
+DATA:
+  - type: formula 6
+    wavelength_range: 0.4679 2.0587
+    coefficients: 6.8552e-5 3.243157e-2 144
+SPECS:
+    temperature: 0.0 °C
+    pressure: 101325 Pa

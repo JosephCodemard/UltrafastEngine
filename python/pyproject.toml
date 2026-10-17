@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ultrafast-engine"
+version = "2.1.8b0"
+description = "Nonlinear ultrafast pulse propagation through open-air optical systems (Python bindings for UltrafastEngine)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "UltrafastEngine contributors" }]
+keywords = ["ultrafast", "nonlinear optics", "pulse propagation", "NLSE", "Zemax", "OpticStudio", "laser"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+]
+dependencies = ["numpy>=1.21"]
+
+[project.optional-dependencies]
+# Development mode: load the engine through the .NET host instead of the NativeAOT library.
+hosted = ["clr_loader>=0.2"]
+plot = ["matplotlib>=3.5"]
+test = ["pytest>=7"]
+
+[project.scripts]
+ultrafast-plot = "ultrafast.plot:main"
+
+[project.urls]
+Documentation = "https://github.com/your-org/UltrafastEngine/tree/main/docs"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ultrafast = ["bin/*", "bin/*/*", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

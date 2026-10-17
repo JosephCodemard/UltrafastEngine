@@ -1,0 +1,10 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "A. Bideau-Mehu, Y. Guern, R. Abjean and A. Johannin-Gilles. Interferometric determination of the refractive index of carbon dioxide in the ultraviolet region, Opt. Commun. 9, 432-434 (1973)"
+COMMENTS: "Carbon dioxide, 0 °C, 1 atm"
+DATA:
+  - type: formula 6
+    wavelength_range: 0.1807 1.6945
+    coefficients: 0 6.99100e-2 166.175 1.44720e-3 79.609 6.42941e-5 56.3064 5.21306e-5 46.0196 1.46847e-6 0.0584738
+SPECS:
+    temperature: 0.0 °C
+    pressure: 101325 Pa

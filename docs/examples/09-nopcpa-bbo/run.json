@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "nopcpa-bbo",
+  // 15 fs transform-limited seed, stretched to ~0.6 ps with +3000 fs^2 to match the pump duration
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 15e-15,
+             "chirp": { "gddFs2": 3000 }, "energyJ": 50e-9, "repRateHz": 1e3, "polarization": "x" },
+  "physics": { "selfSteepening": true },
+  "probes": "all",
+  "instruments": [
+    { "kind": "conversion", "at": "nopa" },
+    { "kind": "delayScan", "at": "nopa", "fromS": -1e-12, "toS": 1e-12, "points": 21 },
+    { "kind": "phaseMatchingCurve", "name": "gain_bandwidth", "at": "nopa", "scan": "wavelength", "rangeM": 300e-9, "points": 301 },
+    { "kind": "spectrometer" },
+    { "kind": "compressor", "name": "ideal_compressor" },
+    { "kind": "pulseSummary" }
+  ]
+}

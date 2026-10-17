@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "spm-plate",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 250e-15,
+             "energyJ": 4e-6, "repRateHz": 100e3, "polarization": "x" },
+  "physics": { "selfSteepening": true, "raman": true },
+  "stepper": { "method": "adaptive", "tolerance": 1e-6 },
+  "instruments": [
+    { "kind": "spectrometer", "resolutionM": 0.1e-9 },
+    { "kind": "autocorrelator" },
+    { "kind": "compressor", "name": "ideal_compressor" },
+    { "kind": "pulseSummary" }
+  ]
+}

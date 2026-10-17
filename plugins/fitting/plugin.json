@@ -1,0 +1,13 @@
+{
+  "id": "fitting",
+  "name": "Fitting: measured data and calibration",
+  "version": "2.1.8-beta",
+  "description": "Compares instruments with recorded data (\"measured\") and calibrates parameters with error bars (\"fit\").",
+  "engine": "2.1.8-beta",
+  "entry": "UltrafastEngine.Plugins.Fitting.FittingPlugin",
+  "assemblies": {
+    "net10.0": "lib/net10.0/UltrafastEngine.Plugins.Fitting.dll",
+    "net48": "lib/net48/UltrafastEngine.Plugins.Fitting.dll"
+  },
+  "python": { "module": "ultrafast_fitting" }
+}

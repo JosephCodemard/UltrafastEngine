@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "components",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 120e-15, "energyJ": 20e-6, "polarization": "x" },
+  "inputBeam": { "kind": "gaussian", "w0M": 1.0e-3, "zWaistM": 0.0 },
+  "instruments": [
+    { "kind": "polarimeter", "name": "pol_hwp", "at": "hwp" },
+    { "kind": "polarimeter", "name": "pol_fr", "at": "fr" },
+    { "kind": "energyMeter", "name": "energy_tfp", "at": "tfp" },
+    { "kind": "spectrometer", "at": "end" },
+    { "kind": "pulseSummary", "at": "end" }
+  ]
+}

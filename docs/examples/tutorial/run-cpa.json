@@ -1,0 +1,21 @@
+{
+  // Tutorial 3: running the CPA system. Shows probes, instruments at named places and an override.
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "cpa",
+  "pulse": { "shape": "sech2", "centerWavelengthM": 1.03e-6, "durationFwhmS": 250e-15, "energyJ": 1e-6,
+             "repRateHz": 10e3, "polarization": "x" },
+  "probes": ["stretched", "amplified", "compressor"],
+  // change values without editing the system file: a 2 mm LBO crystal instead of 1.5 mm
+  "overrides": [ { "target": "element:shg", "property": "lengthM", "value": 2e-3 } ],
+  "instruments": [
+    { "kind": "scope",        "name": "photodiode",  "at": "stretched", "riseTimeS": 20e-12 },
+    { "kind": "spectrometer", "name": "spec_amp",    "at": "amplified", "resolutionM": 0.05e-9 },
+    { "kind": "powerMeter",   "name": "P_amp",       "at": "amplified" },
+    { "kind": "autocorrelator","name": "ac_ir",      "at": "compressor" },
+    { "kind": "compressor",   "name": "residual_ir", "at": "compressor" },
+    { "kind": "conversion",   "name": "shg_eff",     "at": "shg" },
+    { "kind": "spectrometer", "name": "spec_green",  "at": "end" },
+    { "kind": "energyMeter",  "name": "E_green",     "at": "end" }
+  ]
+}

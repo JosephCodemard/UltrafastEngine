@@ -1,0 +1,21 @@
+{
+  // Example 05: polarisation and thin films. A pulse at 30 deg linear polarisation meets a 45-deg dielectric
+  // mirror (quarter-wave stack centred for 45 deg: s and p see different phase and reflectance), a fused-silica Brewster window,
+  // a zero-order half-wave plate and a thin-film polariser.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "polarization-beamline",
+  "coatings": {
+    "hr45": { "kind": "quarterWave", "design": "(HL)^12 H", "designWavelengthM": 1.13e-6, "H": "Ta2O5", "L": "SiO2_film" }
+  },
+  "elements": [
+    // fold in the x-z plane: s is y (planeOfIncidenceDeg = 90 is the default)
+    { "id": "hr_mirror", "type": "mirror", "before": "Air", "after": "FusedSilica", "aoiDeg": 45, "coating": "hr45" },
+    { "id": "brewster_in", "type": "interface", "before": "Air", "after": "FusedSilica", "aoiDeg": 55.4 },
+    { "id": "window", "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "nonlinear": false },
+    { "id": "brewster_out", "type": "interface", "before": "FusedSilica", "after": "Air", "aoiDeg": 34.6 },
+    { "id": "hwp", "type": "waveplate", "plate": "half", "axisDeg": 15, "designWavelengthM": 1.03e-6 },
+    { "id": "tfp", "type": "polarizer", "axisDeg": 0, "extinctionRatio": 1000, "transmission": 0.98 }
+  ]
+}

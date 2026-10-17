@@ -1,0 +1,30 @@
+<Project>
+  <!--
+    Shared build logic for plugins (imported by each plugin project; set PluginId and PluginFolder first).
+    After every build the plugin is laid out as an installable folder:
+        artifacts/plugins/<PluginId>/plugin.json
+        artifacts/plugins/<PluginId>/lib/<TargetFramework>/<assembly>.dll
+        artifacts/plugins/<PluginId>/python/...      (if the plugin has a python/ folder)
+        artifacts/plugins/<PluginId>/README.md
+    `ultrafast plugins install artifacts/plugins/<PluginId>` copies it to the user plugin folder; the CLI, the test
+    runner and the Python package's hosted engine pick up artifacts/plugins automatically (docs/reference/plugins.md).
+    The core assembly is referenced but never copied into the plugin folder (it is the host's).
+  -->
+  <PropertyGroup>
+    <PluginOut>$(RepoRoot)artifacts/plugins/$(PluginId)/</PluginOut>
+  </PropertyGroup>
+  <Target Name="LayoutPlugin" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
+    <ItemGroup>
+      <_PluginLib Include="$(TargetDir)$(TargetName).dll" />
+      <_PluginLib Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+      <_PluginLib Include="$(TargetDir)$(TargetName).xml" Condition="Exists('$(TargetDir)$(TargetName).xml')" />
+      <_PluginLib Include="@(PluginExtraLib)" />
+      <_PluginPy Include="$(PluginFolder)python/**/*.py" />
+      <_PluginRoot Include="$(PluginFolder)plugin.json" />
+      <_PluginRoot Include="$(PluginFolder)README.md" Condition="Exists('$(PluginFolder)README.md')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_PluginLib)" DestinationFolder="$(PluginOut)lib/$(TargetFramework)/" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PluginPy)" DestinationFiles="@(_PluginPy->'$(PluginOut)python/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PluginRoot)" DestinationFolder="$(PluginOut)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

@@ -1,0 +1,17 @@
+{
+  // Export settings used with the built-in FAKE argon MPC (no OpticStudio needed):
+  //   ultrafast zemax-demo mpc export.json -o mpc_from_zemax.ufs
+  // With OpticStudio (Windows), open your .zos, click Programming > Interactive Extension, then:
+  //   UltrafastEngine.Zemax.exe export export.json -o my_system.ufs --save-sample my_system.ufsample.json
+  "format": "ultrafast-zemax-export",
+  "name": "mpc-from-zemax",
+  "sampling": { "mode": "explicit", "minWavelengthM": 0.99e-6, "maxWavelengthM": 1.07e-6, "count": 24, "carrierWavelengthM": 1.03e-6 },
+  "beam": { "waistRadiusM": 0.2e-3, "waistToSurface1M": 0.0, "m2": 1.0 },
+  "media": [
+    { "matchMaterial": "ARGON", "material": "Ar1bar", "nonlinear": true, "definition": { "gas": { "species": "Ar", "pressureBar": 1.0 } } }
+  ],
+  "coatings": [
+    { "matchComment": "MPC_MIRROR", "coating": { "kind": "gdd", "R": 0.999, "gddS2": -150e-30 },
+      "lidt": { "fluenceJPerCm2": 0.5, "pulseDurationS": 1e-12 } }
+  ]
+}

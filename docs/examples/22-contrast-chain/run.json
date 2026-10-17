@@ -1,0 +1,13 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "contrast-chain",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 300e-15, "energyJ": 5e-3,
+             "pedestal": [ { "kind": "exponential", "level": 1e-6, "riseS": 2e-12, "fallS": 3e-12 } ] },
+  "instruments": [
+    { "kind": "crossCorrelator", "name": "xc", "at": "end", "rangeS": [-60e-12, 60e-12], "stepS": 0.1e-12,
+      "fineStepS": 20e-15, "fineRangeS": 2e-12, "dynamicRangeDb": 100, "probeDelaysS": [-29e-12, 29e-12] },
+    { "kind": "contrast", "at": "end" },
+    { "kind": "pulseSummary" }
+  ]
+}

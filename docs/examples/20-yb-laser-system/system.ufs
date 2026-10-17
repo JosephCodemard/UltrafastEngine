@@ -1,0 +1,33 @@
+{
+  // Example 20: a complete Yb laser system, from the oscillator to the compressed millijoule pulse.
+  //  1. a SESAM mode-locked Yb:YAG oscillator (cavity model): a real 2 mm Yb:YAG crystal pumped at 969 nm,
+  //     12 bounces on -1500 fs^2 chirped mirrors, a SESAM and a 5 % output coupler, 80 MHz;
+  //  2. a pulse picker down to 10 kHz (the amplifier's repRateHz) and a grating stretcher;
+  //  3. the 8-pass Yb:YAG amplifier of example 13 (pulse train iterated to steady state at 10 kHz);
+  //  4. the matching compressor.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "yb-laser-system",
+  "elements": [
+    { "id": "oscillator", "type": "oscillator", "model": "cavity", "repRateHz": 80e6, "outputCoupler": 0.05,
+      "gain": { "medium": "Yb:YAG", "lengthM": 0.002, "slices": 8, "modeRadiusM": 60e-6, "passesPerRoundTrip": 2,
+                "pump": { "kind": "cw", "powerW": 8, "wavelengthM": 969e-9, "radiusM": 70e-6, "passes": 2 } },
+      "elements": [
+        { "id": "cm", "type": "chirpedMirror", "gddS2": -1500e-30, "bounces": 12, "reflectance": 0.999 },
+        { "id": "sesam", "type": "saturableAbsorber", "kind": "slow", "modulationDepth": 0.01, "nonsaturableLoss": 0.003,
+          "saturationFluenceJPerM2": 0.5, "spotRadiusM": 80e-6, "recoveryTimeS": 1e-12 }
+      ],
+      "start": "pulse", "seedEnergyJ": 1e-9,
+      "roundTrips": { "max": 5000 } },
+    { "id": "stretcher", "type": "gratingPair", "linesPerMm": 1740, "aoiDeg": 60.0, "separationM": -0.25,
+      "order": -1, "passes": 2, "efficiency": 0.92 },
+    { "id": "amplifier", "type": "amplifier", "geometry": "multipass", "passes": 8, "repRateHz": 10e3,
+      "medium": "Yb:YAG", "lengthM": 0.006, "slices": 16, "modeRadiusM": 0.45e-3,
+      "pump": { "kind": "cw", "powerW": 150, "wavelengthM": 940e-9, "radiusM": 0.5e-3, "profile": "superGaussian", "order": 4, "passes": 2 },
+      "betweenPasses": { "loss": 0.03, "materials": [ { "name": "FusedSilica", "lengthM": 0.003 } ] },
+      "thermalLens": { "rodRadiusM": 1.5e-3 } },
+    { "id": "compressor", "type": "gratingPair", "linesPerMm": 1740, "aoiDeg": 60.0, "separationM": 0.25,
+      "order": -1, "passes": 2, "efficiency": 0.92 }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  // Example 06: a medium whose index is modulated on the femtosecond scale (60 THz, period ~17 fs), fixed in
+  // the LAB frame (a pump-driven phonon, a time-varying metamaterial...). The model asks for carrier-resolved
+  // propagation, so the engine switches this element to the real-field representation automatically.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "fast-index-modulation",
+  "materials": { "mod": { "base": "FusedSilica", "n2": 2.6e-20 } },
+  "elements": [
+    { "id": "modulated", "type": "bulk", "material": "mod", "lengthM": 0.2e-3,
+      "beam": { "kind": "constant", "radiusM": 200e-6 },
+      "timeResponse": { "kind": "expression", "expr": "dn * cos(2*pi*fm*t_lab) * exp(-(t_lab/tau)^2)",
+                        "params": { "dn": 2e-3, "fm": 60e12, "tau": 400e-15 }, "carrierResolved": true } }
+  ]
+}

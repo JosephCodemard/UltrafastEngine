@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Self-contained test runner (no xUnit/NUnit dependency, so it builds offline and on Mono).
+    All tests:      dotnet run (project tests/UltrafastEngine.Tests, framework net10.0)
+    Filtered:       pass a name fragment as argument, e.g. Fresnel; pass slow to include slow tests.
+    Visual Studio:  set as startup project and press Ctrl+F5. See docs/testing.md.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>UltrafastEngine.Tests</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UltrafastEngine.Core\UltrafastEngine.Core.csproj" />
+    <!-- the first-party plugins are referenced (their tests use their types) and registered in code by the runner;
+         their installable layouts are also copied to bin/plugins to test discovery -->
+    <ProjectReference Include="..\..\plugins\zemax\src\UltrafastEngine.Zemax.Sampling\UltrafastEngine.Zemax.Sampling.csproj" Private="true" />
+    <ProjectReference Include="..\..\plugins\fitting\src\UltrafastEngine.Plugins.Fitting.csproj" Private="true" />
+  </ItemGroup>
+  <PropertyGroup><NoPluginBuild>true</NoPluginBuild></PropertyGroup>
+  <Import Project="$(RepoRoot)build/CopyPlugins.targets" />
+</Project>

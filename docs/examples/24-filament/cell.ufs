@@ -1,0 +1,13 @@
+{
+  // Example 24: a focused 40 fs pulse in 1 m of air -- Kerr effect with the rotational Raman response of N2 and O2,
+  // photo-ionisation (PPT) and plasma. 1-D: the beam is a fixed Gaussian focus (see docs/reference/ionization.md for
+  // the radial filament model).
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "air-focus",
+  "elements": [
+    { "id": "air", "type": "bulk", "material": "Air", "lengthM": 1.0, "nonlinear": true, "ionization": true,
+      "beam": { "kind": "gaussian", "w0M": 100e-6, "zWaistM": 0.5 } }
+  ]
+}

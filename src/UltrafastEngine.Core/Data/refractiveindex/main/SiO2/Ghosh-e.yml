@@ -1,0 +1,9 @@
+# refractiveindex.info database format (public domain, CC0). Bundled with UltrafastEngine.
+REFERENCES: "G. Ghosh. Opt. Commun. 163, 95-102 (1999)"
+COMMENTS: "Crystalline quartz, extraordinary ray"
+DATA:
+  - type: formula 2
+    wavelength_range: 0.198 2.05
+    coefficients: 0.28851804 1.09509924 1.02101864e-2 1.15662475 100
+SPECS:
+    temperature: 20.0 °C

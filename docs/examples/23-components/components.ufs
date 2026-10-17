@@ -1,0 +1,32 @@
+{
+  // Example 23: the Stage 1.2 component models along one beam line, with Gaussian beam tracking.
+  // No element below has a "beam" of its own: the nonlinear plate at the end gets the tracked beam,
+  // focused by the lens after an astigmatic pair of off-axis mirrors.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "components",
+  "elements": [
+    // 1:1 telescope of two R = 2 m mirrors at 8 deg: each focuses 1 % differently in x and y (f_t = R cos/2, f_s = R/2cos)
+    { "id": "cm1", "type": "mirror", "radiusOfCurvatureM": 2.0, "aoiDeg": 8 },
+    { "id": "g1", "type": "gap", "lengthM": 2.0 },
+    { "id": "cm2", "type": "mirror", "radiusOfCurvatureM": 2.0, "aoiDeg": 8 },
+    { "id": "g2", "type": "gap", "lengthM": 0.3 },
+    // a 10th-order quartz half-wave plate at 22.5 deg: 45 deg rotation at the carrier, chromatic, two group delays
+    { "id": "hwp", "type": "waveplate", "material": "Quartz", "plate": "half", "order": 10, "axisDeg": 22.5 },
+    // thin-film polariser (HfO2/SiO2 stack at 56 deg): keeps p (x), reflects s
+    { "id": "tfp", "type": "thinFilmPolarizer", "output": "transmitted", "aoiDeg": 56, "axisDeg": 0 },
+    // TGG Faraday rotator, 45 deg at the carrier, with the crystal's dispersion
+    { "id": "fr", "type": "faradayRotator", "rotationDeg": 45, "material": "TGG", "lengthM": 0.02 },
+    { "id": "nd", "type": "ndFilter", "od": 0.3, "kind": "absorptive", "aoiDeg": 3 },
+    // 0.1 wave rms of astigmatism (Z6) over a 3 mm radius
+    { "id": "wfe", "type": "wavefront", "aberration": { "zernikeNollWaves": [0, 0, 0, 0, 0, 0.1], "radiusM": 3e-3 } },
+    // dispersive mirrors with GDD ripple, complementary pairs
+    { "id": "dm", "type": "chirpedMirror", "gddFs2": -200, "bounces": 4, "rippleGddFs2": 40, "ripplePeriodNm": 20,
+      "complementaryPairs": true },
+    { "id": "lens", "type": "lens", "focalLengthM": 0.5 },
+    { "id": "g3", "type": "gap", "lengthM": 0.48 },
+    // nonlinear plate near the focus: its beam comes from the tracking
+    { "id": "plate", "type": "plate", "material": "FusedSilica", "thicknessM": 3e-3, "nonlinear": true }
+  ]
+}

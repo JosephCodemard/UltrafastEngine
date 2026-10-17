@@ -1,0 +1,12 @@
+{
+  // Find the pulse energy from the spectrum and the autocorrelation (answer: answer_key.json)
+  "$schema": "../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2, "name": "spm-fit",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 250e-15, "energyJ": 3e-6 },
+  "fit": { "parameters": [ { "name": "energy", "path": "pulse/energyJ", "min": 0.5e-6, "max": 20e-6, "unit": "J" } ] },
+  "instruments": [
+    { "kind": "spectrometer", "name": "spec", "at": "end", "resolutionM": 0.1e-9,
+      "measured": { "file": "spm_spectrum.csv", "background": "auto", "sigma": 0.02 } },
+    { "kind": "autocorrelator", "name": "ac", "at": "end", "measured": { "file": "spm_autocorrelation.csv", "sigma": 0.01 } }
+  ]
+}
