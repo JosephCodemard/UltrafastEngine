@@ -31,6 +31,8 @@ namespace UltrafastEngine.Schema
         public bool Required;
         /// <summary>Allowed string values.</summary>
         public string[] Enum;
+        /// <summary>For enum parameters: true / false are accepted too (legacy boolean form; documented in the description).</summary>
+        public bool AllowBool;
         /// <summary>For Model parameters: the model category ("index", "beam", "filter", ...).</summary>
         public string ModelCategory;
         /// <summary>For Object parameters: the spec of the nested object (category/name), if it is a registered component.</summary>
@@ -110,6 +112,8 @@ namespace UltrafastEngine.Schema
             Params.Add(new ParamSpec { Name = name, Type = ParamType.Model, ModelCategory = category, Description = description, Default = def, Required = required });
             return this;
         }
+        /// <summary>The last parameter (an enum) also accepts true / false.</summary>
+        public ComponentSpec OrBool() { Params[Params.Count - 1].AllowBool = true; return this; }
         /// <summary>Mark the last added parameter as deprecated in favour of <paramref name="replacement"/>.</summary>
         public ComponentSpec Deprecated(string replacement) { Params[Params.Count - 1].DeprecatedBy = replacement; return this; }
         /// <summary>Alternative spellings of the last added parameter.</summary>

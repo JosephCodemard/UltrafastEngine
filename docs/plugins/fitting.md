@@ -2,8 +2,8 @@
 
 !!! note "Plugin"
     These features are provided by the **fitting plugin** (`plugins/fitting`), which ships with the engine and is
-    loaded automatically when installed (`ultrafast plugins list`). The core engine works without it. Stage 2 of
-    the [roadmap](../roadmap.md) rebuilds this plugin around `transform` elements. To model *where* an instrument
+    loaded automatically when installed (`ultrafast plugins list`). The core engine works without it. A next
+    version built around parameterised field transforms is on the [roadmap](../roadmap.md). To model *where* an instrument
     looks (fibre, pinhole, near / far field) see [Sampling](../reference/instruments.md#sampling-where-the-instrument-looks),
     a core feature.
 

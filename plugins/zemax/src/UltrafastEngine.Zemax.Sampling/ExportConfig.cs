@@ -56,7 +56,7 @@ namespace UltrafastEngine.Zemax
     }
 
     /// <summary>
-    /// Settings for exporting an OpticStudio system to a system file (<c>export.json</c>, docs/zemax.md):
+    /// Settings for exporting an OpticStudio system to a system file (<c>export.json</c>, docs/plugins/zemax.md):
     /// <code>
     /// { "format": "ultrafast-zemax-export", "name": "stretcher",
     ///   "pulse": { ...run-spec pulse... },                     // optional: sets carrier + auto sampling range

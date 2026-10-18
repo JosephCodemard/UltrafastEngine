@@ -81,11 +81,11 @@ spec = b.run_spec(b.pulse(1.03e-6, 220e-15, energy=200e-6),
 
 Helpers: `system, bulk, gap, interface, mirror, dispersion, grating_pair, chirped_mirror, aperture, waveplate,
 polarizer, filter_element, probe, gaussian_beam, constant_beam, sampled_beam, material, sellmeier, gas,
-coating_gdd, coating_quarter_wave, pulse, instrument, override, run_spec, save`, and for Phase 2:
+coating_gdd, coating_quarter_wave, pulse, instrument, override, run_spec, save`, and for active elements:
 `crystal` (χ(2) element: `process`, `type`, `cut`, `noncollinear`, `qpm`, `aux`, `output`, `main_role`, `record`,
 `overlap`, `chi3`, `deff_pm_per_v`, `temperature_c`, `transverse`, ...), `aux_beam(role, pulse | from_results=,
 radius_m=, delay_s="auto")`, `transverse(model, points=, radius_m=, ...)`, `lens(id, focal_length_m, material=)`,
-`user(id, callback, params=)`, and for Stage 1: `plate`, `nd_filter`, `thin_film_polarizer`, `faraday_rotator`,
+`user(id, callback, params=)`; components and fibres: `fiber`, `plate`, `nd_filter`, `thin_film_polarizer`, `faraday_rotator`,
 `wavefront`, `pedestal`, `waveplate(..., material=, order=, construction=)` ([Optical components](components.md)).
 
 **Types.** Every builder returns a TypedDict from `ultrafast.types` (`b.plate(...)` is a `PlateElement`), and

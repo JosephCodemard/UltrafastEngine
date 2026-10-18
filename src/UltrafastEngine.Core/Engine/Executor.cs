@@ -142,6 +142,7 @@ namespace UltrafastEngine.Engine
                     rec.OutsideDataFraction = double.IsNaN(rec.OutsideDataFraction) ? f : Math.Max(rec.OutsideDataFraction, f);
                 }
 
+                el.Prepare?.Invoke(pulse, rec);
                 foreach (var t in el.Pre) pulse = ApplyTerm(pulse, t, AxisOf(pulse.Grid), rec, ref own);
                 Action<double> prog = progress == null && !cancel.CanBeCanceled ? (Action<double>)null : f => { progress?.Invoke(el.Id, ei, count, f); cancel.ThrowIfCancellationRequested(); };
                 if (el.Active != null)
@@ -288,7 +289,10 @@ namespace UltrafastEngine.Engine
                         if (Instruments.Sampling.IsImaging(inst.Kind)) outp.Notes.Add("\"sampling\" is ignored by imaging instruments (they have their own plane: propagateM, focalLengthM)");
                         else ctx.Pulse = Instruments.Sampling.Apply(ctx, sampling, outp);
                     }
+                    ctx.Pulse = Instruments.InstrumentDevice.ApplyFilter(ctx, outp);
                     inst.Measure(ctx, outp);
+                    Instruments.InstrumentDevice.ApplyDetector(ispec, outp);
+                    outp.Settings = Instruments.InstrumentDevice.Settings(ispec, inst.Kind);
                     res.Instruments.Add(outp);
                     // plugins post-process the reading (e.g. compare it with recorded data)
                     var hooks = Plugins.PluginManager.Hooks;

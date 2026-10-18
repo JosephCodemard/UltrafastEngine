@@ -11,9 +11,9 @@ dictionaries).
 
 Top level: `import ultrafast as uf`.
 
-UltrafastEngine 2.0 -- nonlinear ultrafast pulse propagation through open-air optical systems.
+UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `build`, `capabilities`, `command`, `crystal`, `laser`, `load`, `materials`, `plot`, `plugins`, `retrieve`, `run`, `study`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `build`, `capabilities`, `coherence`, `command`, `crystal`, `laser`, `load`, `materials`, `plot`, `plugins`, `retrieve`, `run`, `study`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -47,9 +47,13 @@ Built-in model kinds, element types, materials and instruments.
 
 Run a JSON command of the engine (``uf_command``): ``{"command": "study" | "retrieve" | "materials.list" | "materials.show" | "materials.import", ...}``. The higher-level :func:`study`, :func:`retrieve` and :mod:`ultrafast.materials` wrap it.
 
-### `study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]], outputs: Sequence[str], mode: str = 'scan', output: Optional[PathLike] = None, **options) -> dict`
+### `study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = (), outputs: Sequence[str] = (), mode: str = 'scan', output: Optional[PathLike] = None, **options) -> dict`
 
-Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid | random | lhs | sobol, ``samples``), "optimize" (``objective={"output": ..., "goal": "min" | "max" | "target", "target": ...}``) or "sensitivity" (``sensitivity={"method": "local" | "sobol"}``). Parameters are ``{"path": "element:ID/key", "min", "max"}``; outputs are names like ``"pulse:end/fwhmS"``, ``"record:plate/BIntegralRad"``, ``"instrument:ac/fwhmS"``. Returns the study result (rows, analysis); ``output`` also writes study.json / study.csv.
+Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid | random | lhs | sobol, ``samples``), "optimize" (``objective={"output": ..., "goal": "min" | "max" | "target", "target": ...}``) or "sensitivity" (``sensitivity={"method": "local" | "sobol"}``) or "coherence" (``coherence={"trials": 10, "at": "end"}``: repeated runs with independent quantum noise, result in ``analysis["coherence"]``). Parameters are ``{"path": "element:ID/key", "min", "max"}``; outputs are names like ``"pulse:end/fwhmS"``, ``"record:plate/BIntegralRad"``, ``"instrument:ac/fwhmS"``. Returns the study result (rows, analysis); ``output`` also writes study.json / study.csv.
+
+### `coherence(system: Any, run_spec: Any, trials: int = 10, at: str = 'end', parallel: int = 4, seed: int = 1, output: Optional[PathLike] = None) -> dict`
+
+First-order spectral coherence |g12(lambda)| over ``trials`` runs with independent one-photon-per-mode noise (docs/reference/fibers.md#noise-and-coherence). Returns ``{"meanCoherence", "wavelength_m", "g12", "spectrum", ...}``.
 
 ### `retrieve(method: str, trace: Any, kind: Optional[str] = None, fundamental: Optional[PathLike] = None, material: Optional[str] = None, output: Optional[PathLike] = None, energy: float = 1e-09, instrument: Optional[str] = None, **options) -> dict`
 
@@ -84,7 +88,7 @@ A system + a run spec (+ callbacks). Call :meth:`execute` to propagate.
 * `__init__(system: System, spec: JsonLike)`
 * `time_response(name: str, fn: Callable[[ResponseContext], Any], carrier_resolved: bool = False) -> 'Run'` -- Register a Delta n(t) model under ``name``; reference it from the run spec / system file as ``{"kind": "callback", "name": name}`` (e.g. an override with ``"property": "timeResponse"``). ``fn(ctx)`` may write ``ctx.dn_re`` / ``ctx.dn_im`` in place, or return ``dn_re`` or ``(dn_re, dn_im)``.
 * `index(name: str, fn: Callable[[np.ndarray], np.ndarray]) -> 'Run'` -- Register n(omega) under ``name`` (use as a material ``"index": "@name"``).
-* `field(name: str, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]) -> 'Run'` -- Register a position-dependent property f(x, y, z) (arrays in m, x/y from the beam axis, z from the element start) -> values; use it as ``"indexProfile": "@name"``, ``"absorptionProfile": "@name"``, ``"n2Scale": "@name"`` or in gain media (docs/spatial-properties.md).
+* `field(name: str, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]) -> 'Run'` -- Register a position-dependent property f(x, y, z) (arrays in m, x/y from the beam axis, z from the element start) -> values; use it as ``"indexProfile": "@name"``, ``"absorptionProfile": "@name"``, ``"n2Scale": "@name"`` or in gain media (docs/reference/spatial-properties.md).
 * `filter(name: str, fn: Callable[[np.ndarray], Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]]) -> 'Run'` -- Register a spectral filter: ``fn(omega) -> T`` or ``(T, phase)`` (power transmission, rad).
 * `beam(name: str, fn: Callable[[np.ndarray], Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]]) -> 'Run'` -- Register a beam model: ``fn(z) -> radius`` or ``(radius_x, radius_y)`` (1/e^2 radii, m).
 * `array_function(name: str, fn: Callable[[np.ndarray], np.ndarray]) -> 'Run'` -- Register a generic y = f(x) (e.g. a Raman response h(t), or attenuation via ``name + '#index'``).
@@ -112,11 +116,15 @@ One-call simulation. ``callbacks``: {"name": function} time responses (take a Re
 
 Builders for system files and run specs (`from ultrafast import build as b`).
 
-Helpers to write system files and run specs from Python (plain dicts, so they can be inspected, edited, saved with :func:`save` and versioned). Every helper simply returns the JSON the engine reads; see docs/system-file.md and docs/run-spec.md for all fields.
+Helpers to write system files and run specs from Python (plain dicts, so they can be inspected, edited, saved with :func:`save` and versioned). Every helper simply returns the JSON the engine reads; see docs/reference/system-file.md and docs/reference/run-spec.md for all fields.
 
 ### `system(name: str, elements: Sequence[Mapping[str, Any]], materials: Optional[Mapping[str, Any]] = None, coatings: Optional[Mapping[str, Any]] = None, wavelengths_m: Optional[Sequence[float]] = None, overrides: Optional[list] = None, environment: Optional[Mapping[str, Any]] = None, description: Optional[str] = None) -> 'T.System'`
 
 ### `bulk(id: str, material: str, length_m: float, beam: Optional[Mapping[str, Any]] = None, nonlinear: Optional[bool] = None, **extra) -> 'T.BulkElement'`
+
+### `fiber(id: str, length_m: float, betas: Optional[Sequence[float]] = None, gamma: Any = None, *, betas_ps_km: Optional[Sequence[float]] = None, loss_db_per_km: Optional[float] = None, gain_db_per_m: Optional[float] = None, raman: Any = None, **extra) -> 'T.FiberElement'`
+
+Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (or ``betas_ps_km`` in ps^k/km), ``gamma`` in 1/(W m) (or an expression in z), loss, gain, ``raman`` = "silica" | "linAgrawal" | "hollenbeck" | "none". ``extra``: ``dispersion``, ``material``, ``n2``, ``effectiveAreaM2``, ``gain`` (spectrum), ...
 
 ### `gap(id: str, length_m: float, medium: str = 'Air', **extra) -> 'T.GapElement'`
 
@@ -186,7 +194,7 @@ Auxiliary beam for a crystal: a pulse spec (see :func:`pulse`) or ``from_results
 
 ### `crystal(id: str, crystal: Any, length_m: float, process: str = 'shg', type: Optional[str] = None, *, cut: Any = 'auto', noncollinear: Any = None, qpm: Any = None, aux: Optional[list] = None, output: Optional[str] = None, main_role: Optional[str] = None, record: Optional[list] = None, beam: Optional[Mapping[str, Any]] = None, transverse: Optional[Mapping[str, Any]] = None, deff_pm_per_v: Optional[float] = None, seed_noise: Optional[bool] = None, temperature_c: Optional[float] = None, overlap: Any = None, chi3: Optional[bool] = None, **extra) -> 'T.CrystalElement'`
 
-A chi(2) crystal element (docs/crystals.md).
+A chi(2) crystal element (docs/reference/crystals.md).
 
 ### `pump(kind: str = 'cw', wavelength_m: float = 9.4e-07, radius_m: float = 0.0005, power_w: Optional[float] = None, energy_j: Optional[float] = None, profile: str = 'tophat', order: Optional[int] = None, passes: int = 1, delay_s: Optional[float] = None) -> dict`
 
@@ -194,7 +202,7 @@ A pump for gain / amplifier elements: kind "cw" (power_w) or "pulsed" (energy_j,
 
 ### `gain(id: str, medium: Any, length_m: float, pump: Optional[Mapping[str, Any]] = None, inversion: Optional[Mapping[str, Any]] = None, beam: Optional[Mapping[str, Any]] = None, mode_radius_m: Optional[float] = None, transverse: Optional[Mapping[str, Any]] = None, thermal_lens: Any = None, slices: Optional[int] = None, steady_state: Any = None, **extra) -> 'T.GainElement'`
 
-A pumped gain medium crossed once (docs/gain.md). ``medium`` = "Yb:YAG" | "Ti:sapphire" | "Nd:YAG" or a gain-medium object ({"base": "Yb:YAG", "dopingDensityM3": ...} or a full definition); ``inversion`` = {"fraction": b} or {"smallSignalGain": G} instead of / on top of a pump; ``transverse`` for spatial gain.
+A pumped gain medium crossed once (docs/reference/gain.md). ``medium`` = "Yb:YAG" | "Ti:sapphire" | "Nd:YAG" or a gain-medium object ({"base": "Yb:YAG", "dopingDensityM3": ...} or a full definition); ``inversion`` = {"fraction": b} or {"smallSignalGain": G} instead of / on top of a pump; ``transverse`` for spatial gain.
 
 ### `multipass_amplifier(id: str, medium: Any, length_m: float, passes: int, pump: Optional[Mapping[str, Any]] = None, between_passes: Optional[Mapping[str, Any]] = None, mode_radius_m: Optional[float] = None, beam: Optional[Mapping[str, Any]] = None, inversion: Optional[Mapping[str, Any]] = None, **extra) -> dict`
 
@@ -240,7 +248,7 @@ A run spec. ``extra`` adds top-level keys provided by plugins, e.g. ``fit=`` (fi
 
 ### `sampling(plane: str = 'near', aperture: str = 'pinhole', radius_m: Optional[float] = None, width_m: Optional[float] = None, focal_length_m: Optional[float] = None, center_x_m: Optional[float] = None, center_y_m: Optional[float] = None, na: Optional[float] = None, propagate_m: Optional[float] = None) -> dict`
 
-Where an instrument looks (docs/measurements.md): ``plane`` "near" | "far" (focal plane of a lens of ``focal_length_m``), ``aperture`` "integrated" | "pinhole" | "iris" | "fibre" | "slit" | "point". Use as ``instrument("spectrometer", sampling=sampling("far", "fibre", radius_m=25e-6, focal_length_m=0.1))``.
+Where an instrument looks (docs/reference/instruments.md): ``plane`` "near" | "far" (focal plane of a lens of ``focal_length_m``), ``aperture`` "integrated" | "pinhole" | "iris" | "fibre" | "slit" | "point". Use as ``instrument("spectrometer", sampling=sampling("far", "fibre", radius_m=25e-6, focal_length_m=0.1))``.
 
 ### `save(obj: Mapping[str, Any], path: str) -> str`
 
@@ -270,7 +278,7 @@ An index model dict for a refractiveindex.info page (bundled, imported, a file, 
 
 Laser and amplifier helpers.
 
-Building mode-locked oscillators (docs/oscillators.md).
+Building mode-locked oscillators (docs/reference/oscillators.md).
 
 ### class `Oscillator`
 

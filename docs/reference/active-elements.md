@@ -1,8 +1,7 @@
 # Active elements, aux beams and by-products
 
-Most elements are *passive*: dispersion, loss and the Kerr effect act on the one beam the system follows. Phase 2
-adds **active elements**, which can bring in other beams, run their own internal loops and change what the main
-beam *is*. The system stays sequential: one main beam goes in, one comes out.
+Most elements are *passive*: dispersion, loss and the Kerr effect act on the one beam the system follows.
+**Active elements** can bring in other beams, run their own internal loops and change what the main beam *is*. The system stays sequential: one main beam goes in, one comes out.
 
 ```
                  aux beams (pump, seed, ...)
@@ -18,15 +17,16 @@ beam *is*. The system stays sequential: one main beam goes in, one comes out.
 | `bulk`/`gap` with `"transverse"` | spatially resolved propagation | [Spatial models](transverse.md) |
 | `lens`, `mirror` with `radiusOfCurvatureM` | thin lens on a carried transverse profile | [Spatial models](transverse.md) |
 | `user` | your own function of the main beam's spectrum | below |
-| gain media, amplifiers, oscillators | Phase 2.2 / 2.3 | [Roadmap](../roadmap.md) |
+| `gain`, `amplifier` | pumped gain media, multipass and regenerative amplifiers | [Gain media](gain.md) |
+| `oscillator`, `saturableAbsorber` | mode-locked lasers | [Oscillators](oscillators.md) |
 
 ## Why one main beam
 
 Following one beam keeps the system file, the results and the Zemax mapping simple: every element has one input
 and one output, the energy budget is a single ledger, and instruments sit anywhere along one line. Interactions
 that need more beams get them as **aux beams** declared on the element; fields the element produces but the
-system does not follow are kept as **by-products**. Branching systems (beam splitters that recombine later) are
-planned on top of this ([design note](../design/phase2-active-media.md)).
+system does not follow are kept as **by-products**. Branching systems (beam splitters that recombine later) are not
+modelled; they are on the [roadmap](../roadmap.md).
 
 ## Aux beams
 

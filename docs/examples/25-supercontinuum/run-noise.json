@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run",
+  "version": 2,
+  "name": "pcf-supercontinuum-noise",
+  "pulse": {
+    "shape": "sech2",
+    "centerWavelengthM": 8.35e-07,
+    "durationFwhmS": 5e-14,
+    "peakPowerW": 10000.0,
+    "noise": {
+      "kind": "onePhotonPerMode"
+    }
+  },
+  "grid": {
+    "n": 8192,
+    "windowS": 1.25e-11,
+    "auto": false
+  },
+  "stepper": {
+    "tolerance": 1e-06
+  },
+  "instruments": [
+    {
+      "kind": "spectrometer",
+      "name": "spectrum",
+      "rangeM": [
+        4e-07,
+        1.4e-06
+      ],
+      "points": 4000,
+      "db": true
+    },
+    {
+      "kind": "pulseSummary"
+    }
+  ]
+}

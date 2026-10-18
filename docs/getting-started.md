@@ -14,8 +14,9 @@ build/                               shared MSBuild logic (plugin layout, Mono r
 artifacts/plugins                    installable plugin folders, laid out by every build
 tests/UltrafastEngine.Tests          test runner (console app, no NuGet packages)
 python/                              the `ultrafast-engine` Python package (+ tests incl. pyNLO cross-check)
-docs/examples/                            runnable examples (system files, run specs, Python, C++)
 docs/                                this documentation (MkDocs: `mkdocs serve`)
+docs/examples/                       runnable examples (system files, run specs, Python, C++)
+docs/assets/                         synthetic measurements with an answer key
 ```
 
 ## Requirements
@@ -41,7 +42,7 @@ command line (`dotnet build UltrafastEngine.sln`), which works with any editor. 
 1. Open `UltrafastEngine.sln`. Build (Ctrl+Shift+B).
 2. Set **UltrafastEngine.Tests** as start-up project and run (Ctrl+F5): all tests should pass.
 3. Set **UltrafastEngine.Cli** as start-up project; in *Debug properties* use the arguments
-   `run ..\..\examples\01-spm-plate\plate.ufs ..\..\examples\01-spm-plate\run.json -o results`.
+   `run ..\..\docs\examples\01-spm-plate\plate.ufs ..\..\docs\examples\01-spm-plate\run.json -o results`.
 4. **Zemax binding**: the project compiles against the ZOS-API assemblies in `plugins/zemax/src/UltrafastEngine.Zemax/lib`
    (`ZOSAPI.dll`, `ZOSAPI_Interfaces.dll`, `ZOSAPI_NetHelper.dll`; git-ignored, as they are Ansys property) or in `C:\Program Files\Ansys Zemax OpticStudio 2025 R1`;
    set the MSBuild property `ZosApiDir` for another location. Without ZOS-API it builds against stubs (with a
@@ -50,6 +51,9 @@ command line (`dotnet build UltrafastEngine.sln`), which works with any editor. 
    `dotnet publish src\UltrafastEngine.Native -c Release -r win-x64 -o artifacts\native\win-x64`.
 
 ## macOS / Linux
+
+Works on Intel and Apple-silicon Macs and on x64 / ARM64 Linux: the core is managed code, and its SIMD kernels use
+SSE2 on x64 and NEON on ARM64.
 
 ```bash
 dotnet build UltrafastEngine.sln                      # everything (the Zemax binding against stubs)

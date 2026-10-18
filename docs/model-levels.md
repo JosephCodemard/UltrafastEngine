@@ -1,23 +1,24 @@
 # Model levels
 
-UltrafastEngine is built so that more physics can be added without changing system files or run specs:
-the same `.ufs` can be propagated at different levels of fidelity.
+The same system file can be propagated at different levels of spatial fidelity. Each element chooses its level;
+nothing in the file has to change to move between them.
 
-| Level | Field description | Spatial physics | Status |
+| Level | Field | Spatial physics | Use for |
 |---|---|---|---|
-| **L0** temporal | A(omega) (or the real field e(t)), beam size from a model | effective area A_eff(z) only | **implemented (2.0)** |
-| L1 Gaussian | + q-parameter / Kostenbauder matrices per element | Kerr lensing on a Gaussian beam, spatial chirp, pulse-front tilt | planned |
-| L2 full field | E(r, omega) or E(x, y, omega) on a transverse grid per element (`"transverse"`) | diffraction, self-focusing, spatial depletion in crystals, walk-off, M² | **implemented (2.1)** for bulk/gap/crystal elements, lenses and curved mirrors ([Spatial models](reference/transverse.md)); Zernike aberrations and apertures as masks: planned |
-| L3 UPPE | 3D unidirectional pulse propagation | self-focusing, filamentation, ionisation | planned (Phase 3, GPU) |
+| **Temporal** (default) | A(ω) in both polarisations, or the real field e(t); the beam enters through its effective area A_eff(z) | the beam size follows the element's beam model or the tracked Gaussian beam | most systems: stretchers, compressors, plates, multipass cells, fibres, amplifiers |
+| **Gaussian tracking** | the complex beam parameters q_x, q_y followed through every element | focusing by lenses and curved (off-axis, astigmatic) mirrors sets the intensity in later nonlinear elements, crystals, cameras and fluence checks | free-space systems where the beam stays Gaussian ([Components](reference/components.md#gaussian-beam-tracking)) |
+| **Full field** | E(r, ω) or E(x, y, ω) on a radial or cartesian grid, per element (`"transverse"`) | diffraction, self-focusing and Kerr lensing, spatial depletion and walk-off in crystals, spatial gain and thermal lensing, aberrations, vector fields, M² | where the transverse profile changes ([Spatial models](reference/transverse.md)) |
+| **UPPE** | full field with the unidirectional coupling n ω / (c k_z) per plane wave (`"equation": "uppe"`) | non-paraxial focusing, filamentation with ionisation and plasma | tight focusing and collapse ([Ionisation](reference/ionization.md)) |
 
-### What L0 does and does not include
+## What the temporal level does and does not include
 
-Included: dispersion to all orders (from data or models), losses of every kind with exact energy accounting,
-polarisation (Jones), Kerr + Raman + self-steepening with full vector coupling, user time responses, beam-size
-variation along each element (focusing in multipass cells), carrier-resolved field propagation, LIDT/fluence
-checks, instruments.
+Included: dispersion to all orders, losses with exact energy accounting, Jones polarisation, Kerr + Raman +
+self-steepening with full vector coupling, user time responses, ionisation, beam-size variation along each element
+(focusing inside a multipass-cell pass), carrier-resolved propagation, fluence and LIDT checks, every instrument.
 
-Not included at L0 (use a transverse model, L2, where it matters): anything that changes the transverse profile -- Kerr lensing/self-focusing, spatial chirp,
-diffraction, aberration effects on the focus. The engine reports `criticalPowerRatio` (peak power / critical
-power for self-focusing) for every nonlinear element and warns above 0.3. Wavefront aberrations (Zernike
-terms from OpticStudio) have an extension point (`IAberrationModel`) but are exported and applied from L2 on.
+Not included: anything that changes the transverse profile -- self-focusing, Kerr lensing, spatial chirp,
+diffraction, the effect of aberrations on the focus. The engine reports `criticalPowerRatio` (peak power / critical
+power for self-focusing) for every nonlinear element and warns above 0.3; give the element a `"transverse"` model
+where it matters. Wavefront errors on a 1-D beam are reported as an rms and a Strehl estimate.
+
+Pulse-front tilt and spatial chirp from angular dispersion (Kostenbauder matrices) are not modelled.

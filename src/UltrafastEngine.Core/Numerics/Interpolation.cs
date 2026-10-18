@@ -2,6 +2,20 @@ using System;
 
 namespace UltrafastEngine.Numerics
 {
+    /// <summary>One-off interpolation helpers.</summary>
+    public static class Interpolation
+    {
+        /// <summary>Linear interpolation in ascending <paramref name="x"/>, clamped at the ends.</summary>
+        public static double Linear(double[] x, double[] y, double v)
+        {
+            int n = x.Length;
+            if (n == 1 || v <= x[0]) return y[0];
+            if (v >= x[n - 1]) return y[n - 1];
+            int i = Array.BinarySearch(x, v); if (i >= 0) return y[i]; i = ~i;
+            return y[i - 1] + (v - x[i - 1]) / (x[i] - x[i - 1]) * (y[i] - y[i - 1]);
+        }
+    }
+
     public interface IInterpolator
     {
         double Evaluate(double x);

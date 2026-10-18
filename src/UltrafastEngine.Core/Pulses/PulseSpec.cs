@@ -48,6 +48,8 @@ namespace UltrafastEngine.Pulses
         public string PolarizationText { get; set; } = "x";
         /// <summary>Pedestal / contrast components added to the pulse (docs/reference/run-spec.md#pedestal).</summary>
         public List<JsonObject> Pedestal { get; } = new List<JsonObject>();
+        /// <summary>Quantum noise added to the input: {"kind": "onePhotonPerMode" | "none", "seed": n, "polarization": "same" | "both"}.</summary>
+        public JsonObject Noise { get; set; }
 
         public static PulseSpec FromJson(JsonObject o, string baseDirectory, string origin = "pulse")
         {
@@ -68,6 +70,12 @@ namespace UltrafastEngine.Pulses
             var ch = o.GetObject("chirp");
             if (ch != null) { p.Gdd = ch.GetDouble("gddS2", ch.GetDouble("gddFs2", 0) * 1e-30); p.Tod = ch.GetDouble("todS3", ch.GetDouble("todFs3", 0) * 1e-45); p.Fod = ch.GetDouble("fodS4", ch.GetDouble("fodFs4", 0) * 1e-60); }
             if (o.Has("polarization")) { p.Polarization = ParsePolarization(o["polarization"], origin); p.PolarizationText = o["polarization"].ToJson(false); }
+            if (o.TryGet("noise", out var nv) && !nv.IsNull)
+            {
+                p.Noise = nv.Kind == JsonKind.Object ? nv.AsObject() : nv.Kind == JsonKind.String ? new JsonObject().Set("kind", nv.AsString()) : null;
+                string nk = p.Noise?.GetString("kind", "onePhotonPerMode").ToLowerInvariant();
+                if (p.Noise != null && nk != "onephotonpermode" && nk != "none") throw new JsonException(origin + ".noise: unknown kind (onePhotonPerMode, none).");
+            }
             if (o.TryGet("pedestal", out var pv) && !pv.IsNull)
             {
                 if (pv.Kind == JsonKind.Array) foreach (var x in pv.AsArray()) p.Pedestal.Add(x.AsObject());
@@ -187,7 +195,10 @@ namespace UltrafastEngine.Pulses
         }
 
         /// <summary>Build the pulse on <paramref name="grid"/>.</summary>
-        public PulseField Build(FrequencyGrid grid)
+        public PulseField Build(FrequencyGrid grid) => Build(grid, true);
+
+        /// <summary>The pulse on a grid; <paramref name="withNoise"/> false leaves out the quantum noise (grid planning).</summary>
+        public PulseField Build(FrequencyGrid grid, bool withNoise)
         {
             var pol = Polarization.Normalized();
             int n = grid.N;
@@ -257,7 +268,8 @@ namespace UltrafastEngine.Pulses
             double sc = Math.Sqrt(target / e0);
             for (int i = 0; i < n; i++) { ax[i] *= sc; ay[i] *= sc; }
             var built = new PulseField(grid, ax, ay, RepRateHz);
-            return Pedestal.Count > 0 ? Pedestals.Apply(built, Pedestal, pol) : built;
+            if (Pedestal.Count > 0) built = Pedestals.Apply(built, Pedestal, pol);
+            return Noise != null && withNoise ? Pedestals.QuantumNoise(built, Noise) : built;
         }
 
         /// <summary>Half-window the pulse's satellites need (largest replica delay, a few decay times of an exponential pedestal).</summary>

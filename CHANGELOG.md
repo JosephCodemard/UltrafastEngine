@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **`fiber` element** (`fibre`, `waveguide`): Taylor betas (SI or ps^k/km), dispersion curves D(lambda), or a material;
+  gamma (constant or an expression in z) or n2 + effective area; loss (flat or vs wavelength); flat gain and gain
+  spectra scaled to a target output; reports soliton number, dispersion / nonlinear / fission lengths and the
+  dispersive-wave wavelength for the pulse that enters it. Python `b.fiber`. Docs: reference/fibers.md.
+- **Raman models** `linAgrawal` (Lin & Agrawal 2006, fR 0.245) and `hollenbeck` (Hollenbeck & Cantrell 2002, 13 modes);
+  `blowWood` alias of `silica`.
+- **Quantum noise** on the input (`pulse.noise`: one photon per mode) and a **coherence study**
+  (`"mode": "coherence"`, `uf.coherence`): |g12(lambda)| over independent noise realisations.
+- **Instrument device model**: every instrument accepts a spectral `filter` and a `detector` (calibration, noise,
+  noise floor / dynamic range, bit depth, seed); autocorrelator `resolutionS` and `shgAcceptanceFwhmM`; FROG and
+  d-scan `spectralResolutionM` and `shgAcceptanceFwhmM`; spectrometer `wavelengthOffsetM`; polarimeter
+  `extinctionRatio`. Every instrument output carries a `settings` block with each parameter's value in effect.
+- **Ghosts** of the end faces of `bulk`, `crystal`, `gain`, `amplifier` and thick `lens` elements.
+- Example 25 (PCF supercontinuum benchmark with coherence); docs: capabilities and limitations page, rewritten
+  README and overview, forward-looking roadmap (history in docs/design/history.md).
+
+### Fixed
+- Spectrometer `normalize`: the schema declared "none" | "peak" | "area" while the instrument read a boolean. The
+  instrument now implements all three ("none" = spectral energy density in J/m), keeps true / false as legacy forms
+  (declared in the schema), and defaults to "peak" as before.
+- Declared defaults now match the code: d-scan `steps` (101), and the defaults of points, grid caps and delay-scan
+  ranges that were undocumented.
+- The Raman kernel is normalised on the time grid (the delayed fraction is exactly fR at any step); fibre results now
+  agree with pyNLO to better than 0.3 %.
+- The grid planner ignores the input's quantum noise.
+- `ultrafast study` prints long analysis arrays as their length (they are in the results folder).
+- Source comments and docs point to the current documentation paths; `pip install` instructions reflect the
+  from-source installation.
+
 ## 2.1.8-beta (2026-10) -- Stage 1 complete: the stable core
 
 Version jump: 2.1.8 marks Stage 1 sub-stages 1.2-1.8 on top of 2.0.0-alpha.2. File formats are unchanged (version 2);

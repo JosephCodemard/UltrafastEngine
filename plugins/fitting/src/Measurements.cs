@@ -105,7 +105,7 @@ namespace UltrafastEngine.Plugins.Fitting
 
     /// <summary>
     /// Compares an instrument's simulated reading with recorded data ("measured" in the instrument spec,
-    /// docs/measurements.md). Curves (spectrometer, autocorrelator, scope, beam profile, delay scan, phase-matching
+    /// docs/plugins/fitting.md). Curves (spectrometer, autocorrelator, scope, beam profile, delay scan, phase-matching
     /// curve) and traces (FROG, d-scan, cameras) are interpolated onto the measured axes, normalised (peak, area,
     /// a free scale, or absolute) and compared point by point; scalar values are compared directly.
     /// </summary>

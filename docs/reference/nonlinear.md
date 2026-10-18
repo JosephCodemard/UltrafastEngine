@@ -17,6 +17,24 @@ self-steepening, and any user responses dn_user(t, t_lab, z, I, ...). With gamma
 the generalised NLSE of Agrawal / Dudley; A_eff(z) follows the beam model, so focusing inside a multipass-cell
 pass is integrated exactly. A purely x-polarised pulse in an isotropic medium propagates only Ax (half the cost).
 
+### Raman models
+
+The delayed response h_R(t) is a material property (`"raman"` in a material, or on a `bulk` / `fiber` element), with
+the Raman fraction `fR`:
+
+| kind | model | default fR |
+|---|---|---|
+| `silica` (`blowWood`) | damped oscillator, tau1 = 12.2 fs, tau2 = 32 fs (Blow & Wood 1989) | 0.18 |
+| `linAgrawal` | damped oscillator + boson peak, h = (fa + fc) ha + fb hb, tau_b = 96 fs (Lin & Agrawal, Opt. Lett. 31, 3086 (2006)); `fa`, `fb`, `fc`, `taub` adjustable | 0.245 |
+| `hollenbeck` | 13 vibrational modes with Lorentzian and Gaussian broadening (Hollenbeck & Cantrell, JOSA B 19, 2886 (2002)); reproduces the measured gain spectrum, peak 13.2 THz | 0.18 |
+| `dampedOscillator` | your `tau1`, `tau2` | `fR` |
+| `expression`, `callback` | any h(t) | `fR` |
+
+Molecular gases have their rotational Raman response as an anisotropic tensor response instead
+([Gases](gases.md)). Every kernel is sampled on the time grid and normalised there to unit sum, so the delayed
+fraction is exactly fR whatever the step (an analytic normalisation is off by a few % when the step is not much smaller
+than the 12 fs oscillation; with the grid normalisation the engine and pyNLO agree to 0.05 %).
+
 ## Carrier-resolved field model
 
 When a time response declares `carrierResolved: true` (or `physics.fieldMode: "carrier"`), the element is

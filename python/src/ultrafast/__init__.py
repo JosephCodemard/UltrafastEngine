@@ -1,4 +1,4 @@
-"""UltrafastEngine 2.0 -- nonlinear ultrafast pulse propagation through open-air optical systems.
+"""UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
 Quick start::
 
@@ -11,10 +11,10 @@ Quick start::
     result = uf.run(system, b.run_spec(b.pulse(1.03e-6, 200e-15, energy=20e-6)))
     print(result.summary["output"]["fwhmS"], result["output_spectrum"].shape)
 
-Docs: docs/python.md. The engine itself is the C# UltrafastEngine.Core, reached through its C API
+Docs: docs/reference/python.md. The engine itself is the C# UltrafastEngine.Core, reached through its C API
 (``include/ultrafast.h``) -- see :mod:`ultrafast._native` for how the library is found.
 """
-from .core import (ElementContext, Result, ResponseContext, Run, System, UltrafastError, capabilities, command, retrieve, run,
+from .core import (ElementContext, Result, ResponseContext, Run, System, UltrafastError, capabilities, coherence, command, retrieve, run,
                    study, version)
 from . import build
 from . import crystal
@@ -25,7 +25,7 @@ from . import types
 
 __version__ = "2.1.8b0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
-           "command", "study", "retrieve", "build", "crystal", "laser", "plugins", "materials", "types", "plot", "load"]
+           "command", "study", "coherence", "retrieve", "build", "crystal", "laser", "plugins", "materials", "types", "plot", "load"]
 
 
 def plot(result, what: str = "overview", ax=None):

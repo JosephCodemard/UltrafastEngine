@@ -1,45 +1,101 @@
-# UltrafastEngine 2.1.8-beta
+# UltrafastEngine
 
-Nonlinear ultrafast pulse propagation through open-air optical systems -- stretchers, compressors, multipass
-cells, plates, gas cells, mirrors and coatings -- as a Zemax-free C# engine with C, C++, Python and command-line
-interfaces, plus an OpticStudio binding that exports your sequential system for it.
+**Nonlinear ultrafast pulse propagation through complete optical systems** — stretchers and compressors,
+amplifiers, multipass cells, fibres, crystals, plates, gas cells, mirrors and coatings — simulated end to end and
+measured the way your lab instruments would measure it.
+
+`2.1.8-beta` · C# core with **no dependencies** (.NET 10 and .NET Framework 4.8) · command line · C API ·
+Python package · plugins · MIT licence
 
 ```bash
-dotnet build UltrafastEngine.sln
-dotnet run --project src/UltrafastEngine.Cli -- run docs/examples/03-mpc-argon/mpc.ufs docs/examples/03-mpc-argon/run.json -o results
-python python/src/ultrafast/plot.py results/     # figures + report.pdf in results/plots (or: ultrafast-plot results/)
+dotnet build UltrafastEngine.sln -c Release
+dotnet run --project src/UltrafastEngine.Cli -c Release -- run docs/examples/01-spm-plate/plate.ufs docs/examples/01-spm-plate/run.json -o results
 ```
 
 ```python
 import ultrafast as uf
 from ultrafast import build as b
-res = uf.run(b.system("plate", [b.bulk("plate", "FusedSilica", 5e-3, beam=b.gaussian_beam(100e-6, 2.5e-3))]),
-             b.run_spec(b.pulse(1.03e-6, 200e-15, energy=5e-6), instruments=[b.instrument("compressor")]))
-print(res.summary["output"]["transformLimitFwhmS"], res.instrument("compressor")["compressedFwhmS"])
+
+system = b.system("plate", [b.bulk("plate", "FusedSilica", 5e-3, beam=b.gaussian_beam(100e-6, 2.5e-3))])
+spec = b.run_spec(b.pulse(1.03e-6, 200e-15, energy=5e-6), instruments=[b.instrument("spectrometer"), b.instrument("compressor")])
+result = uf.run(system, spec)
+print(result.summary["output"]["fwhmS"], result.instrument("compressor")["compressedFwhmS"])
 ```
 
-**Highlights:** exact ray-traced group-delay dispersion (correct through gratings) - absolute indices - thin-film
-coatings, Fresnel, clipping, scatter, absorption with an exact loss budget - Jones polarisation with 3D basis
-transport - Kerr + Raman + self-steepening with vector coupling - adaptive interaction-picture solver -
-carrier-resolved field mode - your own n(t, I), index, filter and beam models as data, expressions or
-Python/C/C# functions - provenance of every value - virtual instruments (spectrometer, AC/IAC, FROG, d-scan,
-photodiode, contrast, polarimeter, ideal compressor) - χ(2) crystals, gain media, amplifiers and oscillators -
-spatial (radial / cartesian) models - instruments that look through a fibre or pinhole in the near or far field,
-compare themselves with your recorded data (CSV / NPZ) and calibrate the model with error bars - Gaussian beam
-tracking through lenses and off-axis mirrors - plates with ghosts, ND filters, thin-film polarisers, Faraday
-rotators, thick waveplates, aberrations - pulse pedestals and a third-order cross-correlator - rotational Raman of
-molecular gases, ionisation and plasma, UPPE - the refractiveindex.info database - parameter scans, optimisation
-and sensitivity studies - FROG and d-scan retrieval - cross-checked against pyNLO.
+## What it does
+
+You describe an optical system in a **system file** (`.ufs`, JSON) and a run in a **run spec** (input pulse, physics
+options, instruments). The engine sizes its own time–frequency grid, propagates the pulse element by element, and
+writes a self-describing results folder: scalar summaries (`summary.json`), arrays (`result.npz`, CSV), per-element
+records, a loss budget, and the provenance of every model value. Instruments report what a real device would show,
+with its resolution, sampling and detector.
+
+| Area | What is modelled |
+|---|---|
+| **Linear optics** | dispersion to all orders from Sellmeier / tabulated / [refractiveindex.info](https://refractiveindex.info) materials or ray-traced group delay; grating pairs, prism pairs from ray-traced data, chirped mirrors with GDD ripple; absolute (vacuum-referenced) indices and air |
+| **Surfaces and losses** | Fresnel, thin-film coatings (transfer matrix), clipping, scatter, absorption, ND filters, thin-film polarisers — with an exact per-mechanism loss budget, peak fluence and LIDT margins |
+| **Polarisation** | Jones calculus with s/p basis transport; waveplates (thick, zero-order, compound, with birefringent dispersion), polarisers, Faraday rotators |
+| **Kerr nonlinearity** | self- and cross-phase modulation with the full isotropic χ(3) tensor, Raman (Blow–Wood, Lin–Agrawal, Hollenbeck–Cantrell), self-steepening, user time-domain responses n(t, I) |
+| **Fibres** | single-mode fibres and waveguides from Taylor coefficients or a dispersion curve, γ or γ(z), loss and gain, soliton and dispersive-wave diagnostics, quantum noise and supercontinuum coherence |
+| **Gases** | rotational Raman of N₂, O₂, CO₂, H₂ and air; pressure and temperature scaling; photo-ionisation (PPT, ADK, Keldysh, MPI) and plasma |
+| **χ(2) crystals** | SHG, SFG, DFG, OPA / OPCPA, birefringent and quasi-phase-matched (including chirped gratings), non-collinear; phase-matching calculator |
+| **Active media** | Yb, Ti:sapphire, Nd and user gain media with rate equations, pumping, thermal lens, multipass and regenerative amplifiers; mode-locked oscillators (Kerr-lens, SESAM) |
+| **Beams and space** | Gaussian beam tracking (astigmatic) through lenses and off-axis mirrors; radial and cartesian full-field models with diffraction, self-focusing, Zernike aberrations, vector fields and a UPPE coupling |
+| **Contrast** | input pedestals (pre/post-pulses, ASE, phase noise), ghost reflections of plates, crystals and rods, a third-order cross-correlator with 100+ dB dynamic range |
+| **Instruments** | energy meter, spectrometer, photodiode/scope, intensity and interferometric autocorrelator, FROG, d-scan, cross-correlator, polarimeter, cameras, wavefront sensor, ideal compressor, and virtual probes (Wigner, field, space–time) — each with resolution, filters and a detector model |
+| **Analysis** | parameter scans (grid, random, Latin hypercube, Sobol), optimisation, local and global sensitivities, FROG / d-scan pulse retrieval |
+
+The physics is validated against analytic results and against [pyNLO](https://github.com/pyNLO/PyNLO): fibre
+propagation with Raman and gain agrees to better than 0.5 % (temporal and spectral profiles), difference-frequency
+generation in PPLN to better than 1 % in the converted energies. See [Capabilities and limitations](docs/capabilities.md).
+
+## Built to be changed
+
+* **Every ingredient is a model.** Refractive index, n², Raman response, beam size, coatings, filters, gain media,
+  time-domain responses — each can be given as data, an expression or a function (C#, Python, C), per material,
+  per element or globally, without editing the system file (overrides in the run spec). A provenance report records
+  where every value came from.
+* **Plugins.** Element types, instruments, models, run modes, retrieval algorithms, compute back-ends and CLI
+  commands can be added as plugins that the engine discovers at start-up. Two ship with the engine:
+  **fitting** (compare instruments with recorded data and calibrate the model with error bars) and **zemax**
+  (export a sequential OpticStudio system to a system file). See [Plugins](docs/plugins/index.md).
+* **Schemas everywhere.** Every option is declared once with its type, unit and default. From that declaration come
+  the JSON Schemas (editor completion for `.ufs` and run specs), unknown-key warnings with suggestions, the
+  [option reference](docs/reference/options.md), and Python TypedDicts for autocompletion and type checking.
+* **One engine, every interface.** The same core runs from the CLI, from Python (in-process), from C/C++ through a
+  C API (NativeAOT library), and from any .NET language.
+
+## Documentation
 
 | | |
 |---|---|
-| Documentation | [`docs/`](docs/index.md) (`mkdocs serve`); start with the [tutorials](docs/tutorials/index.md) |
-| Examples | [`docs/examples/`](docs/examples) -- 24 worked systems: SPM plate, CPA line, argon MPC, OPCPA, amplifiers, oscillators, every instrument, measured data and calibration, contrast, components, gas ionisation, Zemax workflow, C++ |
-| Synthetic data with answers | [`docs/assets/`](docs/assets/README.md) |
-| For AI agents | [`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt), [`docs/agents.md`](docs/agents.md) |
-| Status | [`PROJECT_STATUS.md`](PROJECT_STATUS.md) |
-| Roadmap | [`ROADMAP.md`](ROADMAP.md) |
-| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
-| Contributing | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| [Getting started](docs/getting-started.md) | build on Windows, macOS (including Apple silicon) and Linux; Python setup |
+| [Tutorials](docs/tutorials/index.md) | five step-by-step tutorials: first run, diagnostics, a CPA chain, measured data, contrast |
+| [Examples](docs/examples/README.md) | 25 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier and OPCPA |
+| [Reference](docs/reference/system-file.md) | system file, run spec, every element and instrument, models, results |
+| [Capabilities and limitations](docs/capabilities.md) | what is modelled, how it is validated, and what is not modelled |
+| [For AI agents](docs/agents.md) | how to drive and extend the engine programmatically ([`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt)) |
 
-Licence: MIT.
+The documentation is a [MkDocs](https://www.mkdocs.org) site: `pip install mkdocs-material && mkdocs serve`.
+
+## Repository layout
+
+```
+src/UltrafastEngine.Core     the engine (C#, net10.0 + net48, no NuGet dependencies)
+src/UltrafastEngine.Cli      the `ultrafast` command
+src/UltrafastEngine.Native   C API (include/ultrafast.h)
+python/                      the `ultrafast` Python package
+plugins/fitting, plugins/zemax
+schemas/                     JSON Schemas of system files and run specs
+docs/                        documentation, tutorials, examples, synthetic test data
+tests/                       C# test suite (no external framework)
+```
+
+## Status
+
+UltrafastEngine is in beta: the file formats are versioned (older files are migrated on load), the core is
+feature-complete for its scope, and the test suite pins the physics to analytic results and reference codes. What
+is planned next — a fitting plugin built on parameterised field transforms, and deeper OpticStudio integration — is
+on the [roadmap](docs/roadmap.md); changes are listed in the [changelog](CHANGELOG.md).
+
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under the [MIT licence](LICENSE).

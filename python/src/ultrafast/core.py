@@ -92,11 +92,12 @@ def _as_source(x: Any) -> Any:
     return x
 
 
-def study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]], outputs: Sequence[str], mode: str = "scan",
+def study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = (), outputs: Sequence[str] = (), mode: str = "scan",
           output: Optional[PathLike] = None, **options: Any) -> dict:
     """Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid | random | lhs | sobol,
     ``samples``), "optimize" (``objective={"output": ..., "goal": "min" | "max" | "target", "target": ...}``) or
-    "sensitivity" (``sensitivity={"method": "local" | "sobol"}``). Parameters are ``{"path": "element:ID/key", "min",
+    "sensitivity" (``sensitivity={"method": "local" | "sobol"}``) or "coherence" (``coherence={"trials": 10, "at": "end"}``:
+    repeated runs with independent quantum noise, result in ``analysis["coherence"]``). Parameters are ``{"path": "element:ID/key", "min",
     "max"}``; outputs are names like ``"pulse:end/fwhmS"``, ``"record:plate/BIntegralRad"``, ``"instrument:ac/fwhmS"``.
     Returns the study result (rows, analysis); ``output`` also writes study.json / study.csv."""
     req: Dict[str, Any] = {"command": "study", "system": _as_source(system), "run": _as_source(run_spec),
@@ -105,6 +106,14 @@ def study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]], o
     if output is not None:
         req["output"] = os.path.abspath(os.fspath(output))
     return command(req)
+
+
+def coherence(system: Any, run_spec: Any, trials: int = 10, at: str = "end", parallel: int = 4, seed: int = 1,
+              output: Optional[PathLike] = None) -> dict:
+    """First-order spectral coherence |g12(lambda)| over ``trials`` runs with independent one-photon-per-mode noise
+    (docs/reference/fibers.md#noise-and-coherence). Returns ``{"meanCoherence", "wavelength_m", "g12", "spectrum", ...}``."""
+    r = study(system, run_spec, mode="coherence", coherence={"trials": trials, "at": at}, parallel=parallel, seed=seed, output=output)
+    return r["analysis"]["coherence"]
 
 
 def retrieve(method: str, trace: Any, kind: Optional[str] = None, fundamental: Optional[PathLike] = None,
@@ -293,7 +302,7 @@ class Run(_Handle):
     def field(self, name: str, fn: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]) -> "Run":
         """Register a position-dependent property f(x, y, z) (arrays in m, x/y from the beam axis, z from the
         element start) -> values; use it as ``"indexProfile": "@name"``, ``"absorptionProfile": "@name"``,
-        ``"n2Scale": "@name"`` or in gain media (docs/spatial-properties.md)."""
+        ``"n2Scale": "@name"`` or in gain media (docs/reference/spatial-properties.md)."""
         def cb(user, n, x, y, z, out):
             a = lambda p: np.ctypeslib.as_array(p, (n,))
             np.ctypeslib.as_array(out, (n,))[:] = np.broadcast_to(np.asarray(fn(a(x), a(y), a(z)), dtype=float), (n,))

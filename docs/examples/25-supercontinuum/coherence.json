@@ -1,0 +1,6 @@
+{
+  "format": "ultrafast-study",
+  "system": "pcf.ufs", "run": "run-noise.json",
+  "mode": "coherence", "coherence": { "trials": 6, "at": "end" }, "parallel": 6,
+  "outputs": [ "pulse:end/spectralRmsWidthM" ]
+}

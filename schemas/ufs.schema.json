@@ -578,6 +578,9 @@
       "type": "object",
       "description": "Multipass or regenerative amplifier around one gain medium (1-D). (docs/reference/gain.md#the-amplifier-element)",
       "properties": {
+        "ghosts": {
+          "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
+        },
         "geometry": {
           "type": "string",
           "enum": ["multipass", "regenerative"],
@@ -1192,6 +1195,9 @@
           "type": "number",
           "description": "Air path whose data are relative to air [m]"
         },
+        "ghosts": {
+          "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
+        },
         "beam": {
           "anyOf": [
             {
@@ -1789,6 +1795,17 @@
         "pedestal": {
           "description": "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"
         },
+        "noise": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.pulseNoise"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding)"
+        },
         "comment": {
           "description": "Free text."
         },
@@ -1930,6 +1947,39 @@
       },
       "additionalProperties": false
     },
+    "obj.pulseNoise": {
+      "type": "object",
+      "description": "Quantum noise added to the input pulse (docs/reference/fibers.md#noise-and-coherence).",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["onePhotonPerMode", "none"],
+          "description": "Noise model Default: onePhotonPerMode."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Random seed (a coherence study varies it) Default: 1."
+        },
+        "polarization": {
+          "type": "string",
+          "enum": ["same", "both"],
+          "description": "Noise in the pulse's polarisation only, or one photon in each of x and y Default: same."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "obj.auxBeamShape": {
       "type": "object",
       "description": "Transverse shape of an auxiliary beam.",
@@ -1990,6 +2040,9 @@
       "type": "object",
       "description": "Chi(2) frequency conversion and parametric amplification (SHG, SFG, OPA, DFG). (docs/reference/crystals.md)",
       "properties": {
+        "ghosts": {
+          "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
+        },
         "crystal": {
           "anyOf": [
             {
@@ -2929,6 +2982,491 @@
       },
       "additionalProperties": false
     },
+    "obj.fiberDispersion": {
+      "type": "object",
+      "description": "Tabulated fibre dispersion.",
+      "properties": {
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths [m]"
+        },
+        "wavelengthsNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths in nm [nm]"
+        },
+        "dPsNmKm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Dispersion parameter D [ps/(nm km)]"
+        },
+        "beta2S2PerM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "beta2 (alternative) [s^2/m]"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fiberLossTable": {
+      "type": "object",
+      "description": "Fibre loss vs wavelength.",
+      "properties": {
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths [m]"
+        },
+        "wavelengthsNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths in nm [nm]"
+        },
+        "dbPerKm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Loss [dB/km]"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fiberGain": {
+      "type": "object",
+      "description": "Fibre gain spectrum, optionally scaled at run time to reach an output.",
+      "properties": {
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths [m]"
+        },
+        "wavelengthsNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths in nm [nm]"
+        },
+        "dbPerM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Gain (or a relative shape when an output target is given) [dB/m]"
+        },
+        "outputEnergyJ": {
+          "type": "number",
+          "description": "Scale the gain so the output has this energy [J]"
+        },
+        "outputPowerW": {
+          "type": "number",
+          "description": "... or this average power (needs repRateHz) [W]"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.fiber": {
+      "type": "object",
+      "description": "A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material; gamma or n2 + effective area; loss; gain; Raman; soliton and dispersive-wave diagnostics. (docs/reference/fibers.md)",
+      "properties": {
+        "lengthM": {
+          "type": "number",
+          "description": "Fibre length [m]"
+        },
+        "betas": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) [s^k/m]"
+        },
+        "betasPsKm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units) [ps^k/km]"
+        },
+        "referenceWavelengthM": {
+          "type": "number",
+          "description": "Wavelength of the Taylor expansion [m] Default: the carrier."
+        },
+        "dispersion": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fiberDispersion"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Dispersion curve {wavelengthsM, dPsNmKm | beta2S2PerM} (alternative to betas)"
+        },
+        "material": {
+          "type": "string",
+          "description": "Bulk material for the dispersion (alternative to betas)"
+        },
+        "effectiveIndex": {
+          "type": "number",
+          "description": "Mode index at the reference (sets only the absolute phase / group delay) Default: 1.45."
+        },
+        "gamma": {
+          "description": "Nonlinear coefficient: a number, or an expression in z (m) for a tapered fibre [1/(W m)]"
+        },
+        "n2": {
+          "type": "number",
+          "description": "Nonlinear index (with effectiveAreaM2 or modeFieldDiameterM, instead of gamma) [m^2/W] Default: 2.6e-20."
+        },
+        "effectiveAreaM2": {
+          "type": "number",
+          "description": "Effective mode area [m^2] Default: 1e-11 with gamma."
+        },
+        "modeFieldDiameterM": {
+          "type": "number",
+          "description": "Mode-field diameter (A_eff = pi MFD^2 / 4) [m]"
+        },
+        "lossDbPerKm": {
+          "type": "number",
+          "description": "Propagation loss [dB/km] Default: 0."
+        },
+        "loss": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fiberLossTable"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Loss vs wavelength {wavelengthsM, dbPerKm} (alternative)"
+        },
+        "gainDbPerM": {
+          "type": "number",
+          "description": "Flat (small-signal) gain [dB/m] Default: 0."
+        },
+        "gain": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fiberGain"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Gain spectrum {wavelengthsM, dbPerM, outputEnergyJ | outputPowerW}"
+        },
+        "raman": {
+          "description": "Raman model: \"silica\" (Blow-Wood), \"linAgrawal\", \"hollenbeck\", \"none\" / false, or a delayed-response model Default: \"silica\"."
+        },
+        "ramanFraction": {
+          "type": "number",
+          "description": "Raman fraction Default: the model's (0.18; Lin-Agrawal 0.245)."
+        },
+        "nonlinear": {
+          "type": "boolean",
+          "description": "false forces linear propagation Default: true."
+        },
+        "selfSteepening": {
+          "type": "boolean",
+          "description": "Self-steepening (optical shock) Default: run setting."
+        },
+        "timeResponse": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "chi2", "expression", "kerr", "twoPhotonAbsorption"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "An extra time-domain response n(t, I) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, chi2, expression, kerr, twoPhotonAbsorption)."
+        },
+        "replaceKerr": {
+          "type": "boolean",
+          "description": "true switches off the built-in Kerr/Raman Default: false."
+        },
+        "ionization": {
+          "description": "Photo-ionisation (hollow-core gas fibres): true or an ionization object Default: false."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["lengthM"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.filter": {
       "type": "object",
       "description": "A spectral filter: any filter model (transmission and phase). (docs/reference/elements.md#filter)",
@@ -3117,6 +3655,9 @@
       "type": "object",
       "description": "A pumped gain medium crossed once (1-D or spatial). (docs/reference/gain.md)",
       "properties": {
+        "ghosts": {
+          "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
+        },
         "medium": {
           "anyOf": [
             {
@@ -3461,6 +4002,9 @@
         "airPathM": {
           "type": "number",
           "description": "Air path whose data are relative to air [m]"
+        },
+        "ghosts": {
+          "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
         },
         "beam": {
           "anyOf": [
@@ -4798,6 +5342,9 @@
       "type": "object",
       "description": "Thin lens on a carried transverse profile (chromatic with a material). (docs/reference/elements.md#lens)",
       "properties": {
+        "ghosts": {
+          "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
+        },
         "focalLengthM": {
           "type": "number",
           "description": "Focal length at the carrier [m]"
@@ -8002,7 +8549,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "probe", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "user", "wavefront", "waveplate", "window"],
+          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "probe", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "user", "wavefront", "waveguide", "waveplate", "window"],
           "description": "Element type."
         }
       },
@@ -8109,6 +8656,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.faradayRotator"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["fiber", "fibre", "waveguide"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.fiber"
           }
         },
         {

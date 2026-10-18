@@ -121,7 +121,8 @@ namespace UltrafastEngine.Schema
                 case ParamType.Integer: return v.Kind == JsonKind.Number && Math.Abs(v.AsDouble() - Math.Round(v.AsDouble())) < 1e-9 ? null : "an integer";
                 case ParamType.Boolean: return v.Kind == JsonKind.Bool ? null : "true or false";
                 case ParamType.String:
-                    if (v.Kind != JsonKind.String) return "a string";
+                    if (p.AllowBool && v.Kind == JsonKind.Bool) return null;
+                    if (v.Kind != JsonKind.String) return p.Enum != null ? "one of " + string.Join(", ", p.Enum.Select(x => "\"" + x + "\"")) + (p.AllowBool ? " (or true / false)" : "") : "a string";
                     if (p.Enum != null && !p.Enum.Contains(v.AsString(), StringComparer.OrdinalIgnoreCase)) return "one of " + string.Join(", ", p.Enum.Select(x => "\"" + x + "\""));
                     return null;
                 case ParamType.Object: return v.Kind == JsonKind.Object || (p.ObjectRef != null && v.Kind == JsonKind.String) ? null : "an object";

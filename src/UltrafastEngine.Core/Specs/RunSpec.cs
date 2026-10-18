@@ -113,7 +113,7 @@ namespace UltrafastEngine.Specs
 
     /// <summary>
     /// The run specification (<c>run.json</c>): the pulse, grid, physics switches, solver, probes, instruments,
-    /// overrides and outputs. Format: docs/run-spec.md.
+    /// overrides and outputs. Format: docs/reference/run-spec.md.
     /// </summary>
     public sealed class RunSpec
     {

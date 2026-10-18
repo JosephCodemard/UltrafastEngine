@@ -1,6 +1,6 @@
 # 23 -- Optical components and beam tracking
 
-One beam line with the component models of Stage 1.2 ([Optical components](../../reference/components.md)). No
+One beam line with the optical-component models ([Optical components](../../reference/components.md)). No
 element has a `beam` of its own: the run's `inputBeam` (w0 = 1 mm at the input) is tracked through every element.
 
 ```bash

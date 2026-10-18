@@ -25,7 +25,7 @@ namespace UltrafastEngine.Systems
     /// <summary>
     /// The system file (<c>.ufs</c>, JSON): everything the engine needs to know about an optical system,
     /// independent of the tool that produced it. Produced by the Zemax binding (sampled from OpticStudio by
-    /// ray tracing), written by hand, or generated from Python. Format: docs/system-file.md.
+    /// ray tracing), written by hand, or generated from Python. Format: docs/reference/system-file.md.
     /// <code>
     /// { "format": "ultrafast-system", "version": 1, "name": "...",
     ///   "source": {...}, "sampling": {"wavelengthsM": [...]},

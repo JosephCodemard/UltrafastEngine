@@ -48,6 +48,9 @@ namespace UltrafastEngine.Engine
         public List<LinearTerm> Pre { get; } = new List<LinearTerm>();
         public NonlinearSegment Nonlinear { get; set; }
         public List<LinearTerm> Post { get; } = new List<LinearTerm>();
+        /// <summary>Optional: called with the pulse entering the element just before it is executed (run-time
+        /// adjustments such as a gain scaled to a target output, and reports that need the actual pulse).</summary>
+        public Action<Pulses.PulseField, ElementRecord> Prepare { get; set; }
         public SurfaceInfo Surface { get; set; }
         /// <summary>Elements that are more than linear terms + a nonlinear segment (spatial, crystal, user, lens...).</summary>
         public IActiveElement Active { get; set; }
@@ -94,7 +97,7 @@ namespace UltrafastEngine.Engine
     public static partial class Compiler
     {
         public static readonly string[] ElementTypes =
-            { "dispersion", "bulk", "gap", "interface", "mirror", "grating", "gratingPair", "chirpedMirror", "aperture", "filter", "waveplate", "polarizer", "rotator", "probe", "custom", "lens", "user", "crystal", "gain", "amplifier", "saturableAbsorber", "sesam", "oscillator",
+            { "dispersion", "bulk", "gap", "fiber", "interface", "mirror", "grating", "gratingPair", "chirpedMirror", "aperture", "filter", "waveplate", "polarizer", "rotator", "probe", "custom", "lens", "user", "crystal", "gain", "amplifier", "saturableAbsorber", "sesam", "oscillator",
               "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront" };
 
         private sealed class Ctx
@@ -351,6 +354,9 @@ namespace UltrafastEngine.Engine
                 case "rotator":
                     ce.Post.Add(new RotatorTerm(Angle(c, e, "angle", 0)));
                     break;
+                case "fiber": case "fibre": case "waveguide":
+                    CompileFiber(c, e, ce);
+                    break;
                 case "plate": case "window": case "ndfilter":
                     CompilePlate(c, e, ce, type == "window" ? "plate" : type);
                     break;
@@ -410,6 +416,8 @@ namespace UltrafastEngine.Engine
                     if (Plugins.PluginManager.TryGetElementCompiler(e.Type, out var pc)) { pc(Services(c), e, ce); break; }
                     throw new JsonException("unknown element type \"" + e.Type + "\". Known types: " + string.Join(", ", ElementTypes.Concat(Plugins.PluginManager.ElementTypes)) + ".");
             }
+            if ((type == "bulk" || type == "crystal" || type == "gain" || type == "amplifier" || type == "lens") && e.Json.Has("ghosts"))
+                AddElementGhosts(c, e, ce, type);
             // additive filters on any element ("property": "filter", "mode": "add")
             foreach (var r in c.Ov.FindAdditive("element", e.Id, e.Type, "filter"))
             {
@@ -614,7 +622,7 @@ namespace UltrafastEngine.Engine
             if (rr != null)
             {
                 med.Raman = c.Reg.Create<IDelayedResponse>("delayedResponse", rr.Model);
-                med.RamanFraction = rr.Model.Json.GetDouble("fR", rr.Model.Kind == "silica" ? 0.18 : med.RamanFraction);
+                med.RamanFraction = rr.Model.Json.GetDouble("fR", !double.IsNaN(MaterialLibrary.DefaultRamanFraction(rr.Model.Kind)) ? MaterialLibrary.DefaultRamanFraction(rr.Model.Kind) : med.RamanFraction);
                 if (med.Raman == null) med.RamanFraction = 0;
             }
             var ssr = Find(c, e, "selfSteepening"); if (ssr != null) med.EnableSelfSteepening = ssr.RawValue.AsBool();
@@ -715,7 +723,7 @@ namespace UltrafastEngine.Engine
             else ce.Pre.AddRange(background);
         }
 
-        /// <summary>indexProfile / absorptionProfile / n2Scale of an element (docs/spatial-properties.md).</summary>
+        /// <summary>indexProfile / absorptionProfile / n2Scale of an element (docs/reference/spatial-properties.md).</summary>
         private static SpatialProperties ReadSpatialProperties(Ctx c, SystemElement e)
         {
             ISpatialField F(string key)
@@ -1040,7 +1048,7 @@ namespace UltrafastEngine.Engine
             int n0 = GridPlanner.NextPow2((long)Math.Ceiling(window0 / dt0));
             n0 = Math.Max(64, Math.Min(n0, run.Grid.MaxN));
             var g0 = GridPlanner.Create(n0, window0, c.Omega0, false, out _);
-            var p0 = ps.Build(g0);
+            var p0 = ps.Build(g0, false);
             // a chirped (or long, structured) input may not fit 30 transform limits: widen the provisional window
             // (same dt) until the pulse no longer reaches its edges, so the planner measures its true extent
             if (double.IsNaN(run.Grid.WindowS))
@@ -1049,7 +1057,7 @@ namespace UltrafastEngine.Engine
                 {
                     window0 *= 2; n0 *= 2;
                     g0 = GridPlanner.Create(n0, window0, c.Omega0, false, out _);
-                    p0 = ps.Build(g0);
+                    p0 = ps.Build(g0, false);
                 }
             }
 

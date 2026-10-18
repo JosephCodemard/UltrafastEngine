@@ -156,8 +156,13 @@ namespace UltrafastEngine.Schema
                 case ParamType.Integer: o.Set("type", "integer"); break;
                 case ParamType.Boolean: o.Set("type", "boolean"); break;
                 case ParamType.String:
-                    o.Set("type", "string");
-                    if (p.Enum != null) o.Set("enum", JsonValue.FromArray(p.Enum));
+                    if (p.AllowBool && p.Enum != null)
+                        o.Set("anyOf", new JsonArray(new JsonValue[] { new JsonObject().Set("type", "string").Set("enum", JsonValue.FromArray(p.Enum)), new JsonObject().Set("type", "boolean") }));
+                    else
+                    {
+                        o.Set("type", "string");
+                        if (p.Enum != null) o.Set("enum", JsonValue.FromArray(p.Enum));
+                    }
                     break;
                 case ParamType.NumberOrArray:
                     o.Set("anyOf", new JsonArray(new JsonValue[] { new JsonObject().Set("type", "number"), new JsonObject().Set("type", "array").Set("items", new JsonObject().Set("type", "number")) }));

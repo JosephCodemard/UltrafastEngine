@@ -77,7 +77,7 @@ namespace UltrafastEngine.Transverse
             }
             if (medium != null && medium.IsActive && medium.EffectiveRamanFraction > 0)
             {
-                var h = medium.Raman.Evaluate(grid.Time);
+                var h = Physics.EnvelopeProblem.NormalizedKernel(medium.Raman.Evaluate(grid.Time), grid.DTime);
                 var hc = new Complex[n];
                 for (int i = 0; i < n; i++) hc[i] = h[i];
                 _ramanKernelFreq = SpectralTransform.TimeToFreq(hc);
@@ -290,7 +290,7 @@ namespace UltrafastEngine.Transverse
     }
 
     /// <summary>Building the transverse field an element starts from, following the transport rules
-    /// (docs/transverse.md): exact carried profile, rescaled carried profile, or the element's beam model.</summary>
+    /// (docs/reference/transverse.md): exact carried profile, rescaled carried profile, or the element's beam model.</summary>
     public static class TransverseStart
     {
         public static TransverseProfile Initial(TransverseSpec spec, ITransverseBasis basis, PulseField p, IBeamModel beam, Func<double, double> indexAt, string elementId, List<string> notes)

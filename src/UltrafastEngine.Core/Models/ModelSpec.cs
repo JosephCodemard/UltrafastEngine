@@ -133,7 +133,7 @@ namespace UltrafastEngine.Models
     /// <summary>
     /// An override rule: <c>{"target": "element:plate1", "property": "timeResponse", "model": {...}}</c>.
     /// Targets: <c>material:NAME</c>, <c>element:ID</c>, <c>element:*</c> (all elements), <c>type:bulk</c> (all
-    /// elements of a type), or <c>global</c>. Properties are listed in docs/overrides.md.
+    /// elements of a type), or <c>global</c>. Properties are listed in docs/reference/models.md.
     /// <c>"mode": "replace"</c> (default) or <c>"add"</c> (for additive properties such as timeResponse and
     /// filter: the model is applied in addition to the existing ones).
     /// </summary>

@@ -26,6 +26,7 @@
 | [22-contrast-chain](22-contrast-chain/README.md) | a window's ghost becomes a pre-pulse through the Kerr effect; pedestal, third-order cross-correlator, energy scan with a parameter study | `ultrafast run chain.ufs run.json`, `ultrafast study study.json` |
 | [23-components](23-components/README.md) | Gaussian beam tracking through curved mirrors and a lens; thick waveplate, TFP, Faraday rotator, ND filter, wavefront error, GDD ripple | `ultrafast run components.ufs run.json` |
 | [24-filament](24-filament/README.md) | a gas cell with rotational Raman and ionisation: blue shift, plasma density, retrieval of the output pulse from a simulated FROG | `ultrafast run cell.ufs run.json`, `ultrafast retrieve pcgpa results/result.npz` |
+| [25-supercontinuum](25-supercontinuum/README.md) | the PCF supercontinuum benchmark (Dudley 2006): `fiber` element with beta2..beta10, soliton fission, dispersive waves, coherence over quantum-noise realisations | `ultrafast run pcf.ufs run.json`, `ultrafast study coherence.json` |
 | [tutorial](tutorial/README.md) | the files of the step-by-step tutorials (docs/tutorials): first run, diagnostics, a CPA + SHG chain, measured data and fitting | see README |
 | [python/quickstart.py](python/quickstart.py) | build, run, scan, plot from Python | `python quickstart.py` |
 | [cpp](cpp/README.md) | the C API from C++ (CMake / Visual Studio) | see README |

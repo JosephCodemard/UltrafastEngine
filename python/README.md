@@ -1,6 +1,6 @@
 # ultrafast-engine (Python)
 
-Python bindings for **UltrafastEngine 2.0** -- nonlinear ultrafast pulse propagation through open-air optical
+Python bindings for **UltrafastEngine** -- nonlinear ultrafast pulse propagation through complete optical
 systems (stretchers, compressors, multipass cells, plates, gas cells), with optional OpticStudio export.
 
 ```bash

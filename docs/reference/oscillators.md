@@ -1,6 +1,6 @@
 # Oscillators and saturable absorbers
 
-Phase 2.3 adds mode-locked lasers. An `oscillator` element produces the steady-state output of a laser and replaces
+Mode-locked lasers are modelled by the `oscillator` element. It produces the steady-state output of a laser and replaces
 the incoming beam with it, so place it first in the system. The run's `pulse` sets the grid (centre wavelength,
 window). With `"start": "pulse"` it also seeds the laser.
 

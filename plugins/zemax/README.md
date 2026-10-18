@@ -10,4 +10,4 @@ The OpticStudio (Zemax) integration:
 * `tools/ZosApiStubs`: compile-only ZOS-API stand-in (build without OpticStudio).
 
 Documentation: [docs/plugins/zemax.md](../../docs/plugins/zemax.md). Example: `docs/examples/07-zemax-workflow`.
-Stage 3 of the roadmap deepens this plugin.
+Planned extensions are on the roadmap (ROADMAP.md).

@@ -6,7 +6,7 @@ JSON type, SI unit, default and meaning. From that single source the engine prod
 * the **JSON Schemas** `schemas/ufs.schema.json` and `schemas/run.schema.json`, for editor completion and checking;
 * the **unknown-key warnings** of every run (typos no longer go unnoticed);
 * the **[option reference](options.md)** (generated Markdown);
-* the Python type hints (Stage 1.8).
+* the Python TypedDicts (`ultrafast.types`).
 
 Plugins declare their options the same way, so their keys appear everywhere too.
 

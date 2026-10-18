@@ -10,7 +10,7 @@ Compares instruments with recorded data and calibrates parameters with error bar
   figures of `ultrafast-plot`.
 
 Documentation: [docs/plugins/fitting.md](../../docs/plugins/fitting.md). Worked example: `docs/examples/21-measured-data`,
-tutorial 4. Stage 2 of the roadmap rebuilds this plugin around `transform` elements.
+tutorial 4. A next version built on parameterised field transforms is on the roadmap (ROADMAP.md).
 
 Build: `dotnet build plugins/fitting/src -c Release` lays out the installable folder in `artifacts/plugins/fitting`
 (it is also built and copied with the CLI, the test runner and `python python/tools/build_engine.py`).

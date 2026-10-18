@@ -19,7 +19,7 @@ def measured(file: Optional[str] = None, *, values: Optional[dict] = None, sigma
              normalize: Optional[str] = None, background: Any = None, columns: Optional[dict] = None,
              range_x: Optional[Sequence[float]] = None, value_sigma: Optional[float] = None, weight: Optional[float] = None,
              **extra) -> dict:
-    """Recorded data for an instrument (docs/measurements.md): a CSV / NPZ / JSON ``file`` and/or scalar ``values``
+    """Recorded data for an instrument (docs/plugins/fitting.md): a CSV / NPZ / JSON ``file`` and/or scalar ``values``
     ({name: value | [value, sigma]}). Use as ``instrument("autocorrelator", measured=measured("ac.csv", sigma=0.02))``.
     Relative file names are resolved against the run file's folder (or the working directory for dict specs)."""
     return _clean({"file": file, "values": values, "sigma": sigma, "normalize": normalize, "background": background,
@@ -31,7 +31,7 @@ def fit_parameter(path: str, min: Optional[float] = None, max: Optional[float] =
                   initial: Optional[float] = None, unit: Optional[str] = None, scale: Optional[float] = None,
                   step: Optional[float] = None) -> dict:
     """One free parameter of a calibration fit: ``path`` like "pulse/energyJ", "element:comp/gddFs2",
-    "material:FusedSilica/n2" (docs/measurements.md#calibration-fit)."""
+    "material:FusedSilica/n2" (docs/plugins/fitting.md#calibration-fit)."""
     return _clean({"path": path, "min": min, "max": max, "name": name, "initial": initial, "unit": unit, "scale": scale, "step": step})
 
 

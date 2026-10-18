@@ -25,7 +25,7 @@ index, id, type, label, lengthM, cumulativeLengthM, energyInJ/OutJ, lossJ by mec
 carrier delay so far), own and cumulative system dispersion (GD, GDD, TOD at the carrier), bIntegralRad and
 cumulative, peakIntensityWPerM2, peakFluenceJPerM2, lidtFluenceJPerM2, lidtMargin, outsideDataFraction,
 criticalPowerRatio, solver statistics (method, representation, accepted/rejected steps, min/max step), the
-list of linear terms applied, and notes. Phase 2 adds:
+list of linear terms applied, and notes. Active elements add:
 
 * `carrierWavelengthM` -- the main beam's carrier after the element (changes at crystals with another `output`);
 * `representation` -- "1-D coupled waves, 3 fields x 1024 samples", "radial Hankel 96 points x 512 samples", ...;

@@ -18,7 +18,7 @@ using UltrafastEngine.Transverse;
 namespace UltrafastEngine.Crystals
 {
     /// <summary>
-    /// A chi(2) crystal acting on the main beam (docs/crystals.md):
+    /// A chi(2) crystal acting on the main beam (docs/reference/crystals.md):
     /// <code>
     /// { "id": "nopa", "type": "crystal", "crystal": "BBO", "lengthM": 3e-3, "temperatureC": 20,
     ///   "cut": {"thetaDeg": 22.0, "phiDeg": 90} | "auto",

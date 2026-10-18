@@ -5,7 +5,7 @@
     and record/replay (cross-platform, `UltrafastEngine.Zemax.Sampling`), the CLI commands `zemax-build`,
     `zemax-replay` and `zemax-demo`, and the OpticStudio program itself in the plugin's `tools/net48` folder
     (`artifacts/plugins/zemax/tools/net48/UltrafastEngine.Zemax.exe` after a build). The core engine does not depend
-    on it. Stage 3 of the [roadmap](../roadmap.md) deepens it.
+    on it.
 
 `UltrafastEngine.Zemax.exe` (Windows, .NET Framework 4.8, x64) connects to OpticStudio through ZOS-API, samples
 the loaded sequential system by ray tracing and merit-function operands, and writes a **system file**. All
@@ -116,10 +116,10 @@ ZOS-API `ISurfaceGradient1` (DeltaT, n0, Nr2, Nr1), checked against the supplied
 Gradient 1 surface takes n0 at the primary wavelength and the glass dispersion from the catalogue. The change is
 not saved; save the lens file yourself.
 
-## Phase 2 elements
+## Active elements
 
 The binding exports passive optics (surfaces, gaps, gratings, coatings, beam sizes). Nonlinear crystals, lenses
 acting on transverse profiles and user elements are not recognised from OpticStudio yet: add them to the exported
 system file -- e.g. replace an exported crystal slab `bulk`
-element by a `crystal` element with the same `id` and length. Automatic mapping of crystal surfaces is planned
-for Phase 3 ([Roadmap](../roadmap.md)).
+element by a `crystal` element with the same `id` and length. Automatic mapping of crystal surfaces is on the
+[roadmap](../roadmap.md).

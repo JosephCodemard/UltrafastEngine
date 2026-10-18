@@ -97,7 +97,7 @@ with constant GDD and losses hold their end values (the results report the spect
 * `rotator`: `angleDeg` (rotation of the polarisation / image).
 * `probe`: does nothing; a named place to record snapshots or put instruments.
 
-### Active elements (Phase 2)
+### Active elements
 See [Active elements](active-elements.md) for aux beams, by-products and carrier changes.
 
 * `crystal`: χ(2) frequency conversion and parametric amplification -- `crystal`, `lengthM`, `interaction`

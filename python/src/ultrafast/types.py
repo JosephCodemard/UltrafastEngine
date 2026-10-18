@@ -17,6 +17,8 @@ class AmplifierElement(TypedDict, total=False):
     id: str
     """Unique id"""
     type: str
+    ghosts: Any
+    """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     geometry: Literal["multipass", "regenerative"]
     """Amplifier type Default: multipass."""
     passes: int
@@ -163,6 +165,8 @@ class BulkElement(TypedDict, total=False):
     """Use traced data or the material index Default: data."""
     airPathM: float
     """Air path whose data are relative to air [m]"""
+    ghosts: Any
+    """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model along the element (z from the element start); needed for nonlinear propagation A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     nonlinear: bool
@@ -273,6 +277,8 @@ class CrystalElement(TypedDict, total=False):
     id: str
     """Unique id"""
     type: str
+    ghosts: Any
+    """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     crystal: Union[float, str, Dict[str, Any], List[Any]]
     """Built-in crystal name (BBO, LBO, KTP, KDP, LiNbO3, MgO:LiNbO3, BiBO, AgGaSe2), a materials entry, or an object A model: a number, a name / "@callback" / expression string, or an object with "kind"."""
     lengthM: float
@@ -500,6 +506,79 @@ class FaradayRotatorElement(TypedDict, total=False):
     """Free text."""
 
 
+class FiberElement(TypedDict, total=False):
+    """A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material; gamma or n2 + effective area; loss; gain; Raman; soliton and dispersive-wave diagnostics. (docs/reference/fibers.md)"""
+    id: str
+    """Unique id"""
+    type: str
+    lengthM: float
+    """Fibre length [m]"""
+    betas: Union[float, List[float]]
+    """Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) [s^k/m]"""
+    betasPsKm: Union[float, List[float]]
+    """Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units) [ps^k/km]"""
+    referenceWavelengthM: float
+    """Wavelength of the Taylor expansion [m] Default: the carrier."""
+    dispersion: Union["FiberDispersion", str]
+    """Dispersion curve {wavelengthsM, dPsNmKm | beta2S2PerM} (alternative to betas)"""
+    material: str
+    """Bulk material for the dispersion (alternative to betas)"""
+    effectiveIndex: float
+    """Mode index at the reference (sets only the absolute phase / group delay) Default: 1.45."""
+    gamma: Any
+    """Nonlinear coefficient: a number, or an expression in z (m) for a tapered fibre [1/(W m)]"""
+    n2: float
+    """Nonlinear index (with effectiveAreaM2 or modeFieldDiameterM, instead of gamma) [m^2/W] Default: 2.6e-20."""
+    effectiveAreaM2: float
+    """Effective mode area [m^2] Default: 1e-11 with gamma."""
+    modeFieldDiameterM: float
+    """Mode-field diameter (A_eff = pi MFD^2 / 4) [m]"""
+    lossDbPerKm: float
+    """Propagation loss [dB/km] Default: 0."""
+    loss: Union["FiberLossTable", str]
+    """Loss vs wavelength {wavelengthsM, dbPerKm} (alternative)"""
+    gainDbPerM: float
+    """Flat (small-signal) gain [dB/m] Default: 0."""
+    gain: Union["FiberGain", str]
+    """Gain spectrum {wavelengthsM, dbPerM, outputEnergyJ | outputPowerW}"""
+    raman: Any
+    """Raman model: "silica" (Blow-Wood), "linAgrawal", "hollenbeck", "none" / false, or a delayed-response model Default: "silica"."""
+    ramanFraction: float
+    """Raman fraction Default: the model's (0.18; Lin-Agrawal 0.245)."""
+    nonlinear: bool
+    """false forces linear propagation Default: true."""
+    selfSteepening: bool
+    """Self-steepening (optical shock) Default: run setting."""
+    timeResponse: Union[float, str, Dict[str, Any], List[Any]]
+    """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
+    replaceKerr: bool
+    """true switches off the built-in Kerr/Raman Default: false."""
+    ionization: Any
+    """Photo-ionisation (hollow-core gas fibres): true or an ionization object Default: false."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class FilterElement(TypedDict, total=False):
     """A spectral filter: any filter model (transmission and phase). (docs/reference/elements.md#filter)"""
     id: str
@@ -540,6 +619,8 @@ class GainElement(TypedDict, total=False):
     id: str
     """Unique id"""
     type: str
+    ghosts: Any
+    """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     medium: Union[float, str, Dict[str, Any], List[Any]]
     """Yb:YAG, Ti:sapphire, Nd:YAG, a materials entry, or an object A model: a number, a name / "@callback" / expression string, or an object with "kind"."""
     lengthM: float
@@ -621,6 +702,8 @@ class GapElement(TypedDict, total=False):
     """Use traced data or the material index Default: data."""
     airPathM: float
     """Air path whose data are relative to air [m]"""
+    ghosts: Any
+    """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model along the element (z from the element start); needed for nonlinear propagation A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     nonlinear: bool
@@ -885,6 +968,8 @@ class LensElement(TypedDict, total=False):
     id: str
     """Unique id"""
     type: str
+    ghosts: Any
+    """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     focalLengthM: float
     """Focal length at the carrier [m]"""
     material: str
@@ -1655,11 +1740,17 @@ class AutocorrelatorInstrument(TypedDict, total=False):
     type: Literal["intensity", "interferometric"]
     """AC type Default: intensity."""
     rangeS: float
-    """Delay range [s]"""
+    """Delay range (interferometric) [s] Default: 3 x FWHM."""
     points: int
-    """Output points"""
+    """Output points (interferometric) Default: 4001."""
+    resolutionS: float
+    """Delay resolution of the scan (Gaussian FWHM, intensity AC) [s] Default: 0."""
+    shgAcceptanceFwhmM: float
+    """Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited [m] Default: 0."""
+    acceptancePoints: int
+    """Grid of the finite-acceptance computation Default: 512."""
     maxN: int
-    """Grid cap for the computation"""
+    """Grid cap for the computation Default: 65536."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -1669,6 +1760,10 @@ class AutocorrelatorInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1690,6 +1785,10 @@ class BeamProfileInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1747,6 +1846,10 @@ class CameraInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1762,9 +1865,9 @@ class CompressorInstrument(TypedDict, total=False):
     optimizeTod: bool
     """Also optimise TOD Default: true."""
     maxN: int
-    """Grid cap"""
+    """Grid cap Default: 131072."""
     points: int
-    """Output points"""
+    """Output points Default: 4096."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -1774,6 +1877,10 @@ class CompressorInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1803,6 +1910,10 @@ class ContrastInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1824,6 +1935,10 @@ class ConversionInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1849,7 +1964,7 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
     dynamicRangeDb: float
     """Noise floor below the peak [dB] Default: 110."""
     noiseFloor: float
-    """Noise floor (relative; alternative)"""
+    """Noise floor (relative to the peak; alternative to dynamicRangeDb)"""
     noise: bool
     """Fluctuating detector background (else a flat floor) Default: true."""
     seed: int
@@ -1873,6 +1988,10 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1886,11 +2005,11 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
 class DelayScanInstrument(TypedDict, total=False):
     """Re-runs a crystal for aux delays: output energy vs delay. (docs/reference/instruments.md#delayscan)"""
     fromS: float
-    """First delay [s]"""
+    """First delay [s] Default: -1e-12."""
     toS: float
-    """Last delay [s]"""
+    """Last delay [s] Default: 1e-12."""
     points: int
-    """Points"""
+    """Points Default: 21."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -1900,6 +2019,10 @@ class DelayScanInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1919,7 +2042,11 @@ class DscanInstrument(TypedDict, total=False):
     gddRangeS2: Union[float, List[float]]
     """[min, max] GDD (alternative) [s^2]"""
     steps: int
-    """Scan steps Default: 41."""
+    """Scan steps Default: 101."""
+    spectralResolutionM: float
+    """Spectrometer resolution (Gaussian FWHM at the SH wavelength) [m] Default: 0."""
+    shgAcceptanceFwhmM: float
+    """Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited [m] Default: 0."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -1929,6 +2056,10 @@ class DscanInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1946,7 +2077,7 @@ class EnergyMeterInstrument(TypedDict, total=False):
     polarizerDeg: float
     """Analyser angle [deg]"""
     repRateHz: float
-    """Repetition rate for average power [Hz]"""
+    """Repetition rate for average power [Hz] Default: the pulse's repetition rate."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -1956,6 +2087,10 @@ class EnergyMeterInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1973,7 +2108,7 @@ class FieldProbeInstrument(TypedDict, total=False):
     realField: bool
     """Also the real field on the optical cycle Default: false."""
     maxN: int
-    """Grid cap"""
+    """Grid cap Default: 8192."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -1983,6 +2118,10 @@ class FieldProbeInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -1999,6 +2138,10 @@ class FrogInstrument(TypedDict, total=False):
     """FROG geometry Default: shg."""
     points: int
     """Delay and frequency points Default: 256."""
+    spectralResolutionM: float
+    """Spectrometer resolution (Gaussian FWHM at the signal wavelength) [m] Default: 0."""
+    shgAcceptanceFwhmM: float
+    """Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited [m] Default: 0."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -2008,6 +2151,10 @@ class FrogInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2039,6 +2186,10 @@ class PhaseMatchingCurveInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2052,7 +2203,9 @@ class PhaseMatchingCurveInstrument(TypedDict, total=False):
 class PolarimeterInstrument(TypedDict, total=False):
     """Stokes parameters, integrated and vs wavelength. (docs/reference/instruments.md#polarimeter)"""
     points: int
-    """Output points"""
+    """Output points Default: 1024."""
+    extinctionRatio: float
+    """Power extinction ratio of the analysers (0: perfect); Stokes readings scale by (1 - e) / (1 + e) Default: 0."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -2062,6 +2215,10 @@ class PolarimeterInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2083,6 +2240,10 @@ class PulseSummaryInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2096,11 +2257,11 @@ class PulseSummaryInstrument(TypedDict, total=False):
 class ScopeInstrument(TypedDict, total=False):
     """Detected power vs time with a rise time / bandwidth. (docs/reference/instruments.md#scope)"""
     riseTimeS: float
-    """10-90 % rise time [s]"""
+    """10-90 % rise time of the detection [s] Default: 0."""
     bandwidthHz: float
-    """Bandwidth (alternative) [Hz]"""
+    """Bandwidth (alternative: rise time = 0.35 / bandwidth) [Hz]"""
     points: int
-    """Output points"""
+    """Output points Default: 4096."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -2110,6 +2271,10 @@ class ScopeInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2137,6 +2302,10 @@ class SpaceTimeInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2152,15 +2321,17 @@ class SpectrometerInstrument(TypedDict, total=False):
     resolutionM: float
     """Gaussian resolution FWHM [m] Default: 0."""
     rangeM: Union[float, List[float]]
-    """[min, max] wavelength range [m]"""
+    """[min, max] wavelength range [m] Default: the spectrum's support."""
     points: int
-    """Output points"""
+    """Output points Default: 2048."""
+    wavelengthOffsetM: float
+    """Wavelength calibration error: added to the reported axis [m] Default: 0."""
     polarizerDeg: float
     """Analyser angle [deg]"""
-    normalize: Literal["none", "peak", "area"]
-    """Normalisation of the output Default: none."""
+    normalize: Union[Literal["peak", "area", "none"], bool]
+    """Normalisation of the output spectrum: peak = 1, area = 1 (per metre), none = spectral energy density in J/m; true = peak, false = none Default: peak."""
     db: bool
-    """Also report dB Default: false."""
+    """Also report the spectrum in dB (relative to its peak) Default: false."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -2170,6 +2341,10 @@ class SpectrometerInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2207,6 +2382,10 @@ class WavefrontSensorInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2222,9 +2401,9 @@ class WignerInstrument(TypedDict, total=False):
     points: int
     """Time rows Default: 256."""
     gateFwhmS: float
-    """> 0: spectrogram gate [s]"""
+    """> 0: spectrogram gate [s] Default: 0."""
     maxN: int
-    """Grid cap"""
+    """Grid cap Default: 65536."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -2234,6 +2413,10 @@ class WignerInstrument(TypedDict, total=False):
     """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Union["Detector", str]
+    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
     """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
     comment: Any
@@ -2392,12 +2575,88 @@ class Compute(TypedDict, total=False):
     """Free text."""
 
 
+class Detector(TypedDict, total=False):
+    """Detector read-out applied to an instrument's recorded arrays and readings (spectrometer, scope, autocorrelator, FROG, d-scan, energy meter); width and peak readings are re-evaluated on the detected trace. (docs/reference/instruments.md#detector-model)"""
+    calibration: float
+    """Calibration factor (reading / true value) Default: 1."""
+    noise: float
+    """Multiplicative noise, relative rms Default: 0."""
+    noiseFloor: float
+    """Additive noise rms relative to the trace peak Default: 0."""
+    dynamicRangeDb: float
+    """Noise floor as a dynamic range (alternative to noiseFloor) [dB]"""
+    bitDepth: int
+    """ADC bits, full scale at the trace maximum (0: ideal) Default: 0."""
+    seed: int
+    """Random seed Default: 1."""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class Environment(TypedDict, total=False):
     """Laboratory air."""
     indexReference: Literal["air", "vacuum"]
     """Quoted data are relative to air (OpticStudio) or vacuum Default: vacuum (air for zemax exports)."""
     air: Union["Air", str]
     """Air: temperatureC, pressurePa, humidity, co2ppm, or an index model with kind"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class FiberDispersion(TypedDict, total=False):
+    """Tabulated fibre dispersion."""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths [m]"""
+    wavelengthsNm: Union[float, List[float]]
+    """Wavelengths in nm [nm]"""
+    dPsNmKm: Union[float, List[float]]
+    """Dispersion parameter D [ps/(nm km)]"""
+    beta2S2PerM: Union[float, List[float]]
+    """beta2 (alternative) [s^2/m]"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class FiberGain(TypedDict, total=False):
+    """Fibre gain spectrum, optionally scaled at run time to reach an output."""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths [m]"""
+    wavelengthsNm: Union[float, List[float]]
+    """Wavelengths in nm [nm]"""
+    dbPerM: Union[float, List[float]]
+    """Gain (or a relative shape when an output target is given) [dB/m]"""
+    outputEnergyJ: float
+    """Scale the gain so the output has this energy [J]"""
+    outputPowerW: float
+    """... or this average power (needs repRateHz) [W]"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class FiberLossTable(TypedDict, total=False):
+    """Fibre loss vs wavelength."""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths [m]"""
+    wavelengthsNm: Union[float, List[float]]
+    """Wavelengths in nm [nm]"""
+    dbPerKm: Union[float, List[float]]
+    """Loss [dB/km]"""
     comment: Any
     """Free text."""
     description: Any
@@ -2744,6 +3003,24 @@ class Pulse(TypedDict, total=False):
     """Time offset [s] Default: 0."""
     pedestal: Any
     """Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"""
+    noise: Union["PulseNoise", str]
+    """Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class PulseNoise(TypedDict, total=False):
+    """Quantum noise added to the input pulse (docs/reference/fibers.md#noise-and-coherence)."""
+    kind: Literal["onePhotonPerMode", "none"]
+    """Noise model Default: onePhotonPerMode."""
+    seed: int
+    """Random seed (a coherence study varies it) Default: 1."""
+    polarization: Literal["same", "both"]
+    """Noise in the pulse's polarisation only, or one photon in each of x and y Default: same."""
     comment: Any
     """Free text."""
     description: Any
@@ -2974,7 +3251,7 @@ class Transverse(TypedDict, total=False):
     """Free text."""
 
 
-Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "ProbeElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
+Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "ProbeElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
 """Any element dictionary (the typed forms first; a plain dict for plugin elements)."""
 
 
@@ -3016,4 +3293,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FieldProbeInstrument', 'FilterElement', 'Fitting_fit', 'Fitting_measured', 'Fitting_parameter', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'Detector', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_fit', 'Fitting_measured', 'Fitting_parameter', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']

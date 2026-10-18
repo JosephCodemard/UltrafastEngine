@@ -9,8 +9,8 @@
  *     human-readable message (thread-local, valid until the next API call on the same thread).
  *   - Handles (uf_system*, uf_run*, uf_result*) are released with uf_release(). Strings returned through
  *     char** out-parameters are UTF-8, NUL-terminated and freed with uf_free().
- *   - All input strings are UTF-8. JSON formats are documented in docs/system-file.md, docs/run-spec.md and
- *     docs/results.md. All physical quantities are SI (m, s, rad/s, W, J).
+ *   - All input strings are UTF-8. JSON formats are documented in docs/reference/system-file.md, docs/reference/run-spec.md and
+ *     docs/reference/results.md. All physical quantities are SI (m, s, rad/s, W, J).
  *   - Callbacks are vectorised: one call per solver stage with whole arrays. Return 0 on success; a non-zero
  *     return aborts the run with UF_E_CALLBACK. Callbacks are invoked on the thread that called uf_run_execute.
  *   - Thread safety: different handles may be used from different threads concurrently; a single handle
@@ -50,7 +50,7 @@ typedef struct uf_result uf_result;   /* everything a run produced            */
 
 /* ---------------------------------------------------------------- callbacks */
 
-/* Everything a time-domain response sees (see docs/models.md#time-response). Arrays have length n. */
+/* Everything a time-domain response sees (see docs/reference/models.md#time-response). Arrays have length n. */
 typedef struct uf_response_ctx {
     int32_t       n;
     const double* t;                 /* co-moving time (s)                                  */
@@ -79,7 +79,7 @@ typedef int (UF_CALL *uf_index_fn)(void* user, int32_t n, const double* omega, d
 typedef int (UF_CALL *uf_filter_fn)(void* user, int32_t n, const double* omega, double* transmission, double* phase);
 /* beam radii (1/e^2, m) at positions z (m from the element start) */
 typedef int (UF_CALL *uf_beam_fn)(void* user, int32_t n, const double* z, double* radius_x, double* radius_y);
-/* position-dependent property f(x, y, z) (m), e.g. "indexProfile": "@name" (docs/spatial-properties.md) */
+/* position-dependent property f(x, y, z) (m), e.g. "indexProfile": "@name" (docs/reference/spatial-properties.md) */
 typedef int (UF_CALL *uf_field_fn)(void* user, int32_t n, const double* x, const double* y, const double* z, double* out);
 /* generic y = f(x), e.g. attenuation alpha(omega) or a Raman response h(t) */
 typedef int (UF_CALL *uf_array_fn)(void* user, int32_t n, const double* x, double* y);
@@ -115,7 +115,7 @@ UF_API int         UF_CALL uf_capabilities(char** json_out);
    request: {"command": "study" | "retrieve" | "materials.list" | "materials.show" | "materials.import", ...}
    (docs/reference/c-api.md). The reply (free with uf_free) is a JSON object. */
 UF_API int         UF_CALL uf_command(const char* request_json, char** result_json_out);
-/* phase-matching calculator (docs/crystals.md): JSON request in, JSON result out */
+/* phase-matching calculator (docs/reference/crystals.md): JSON request in, JSON result out */
 UF_API int         UF_CALL uf_crystal_phase_match(const char* request_json, char** result_json_out);
 
 /* ---------------------------------------------------------------- systems */

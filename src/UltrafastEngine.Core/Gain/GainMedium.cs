@@ -135,7 +135,7 @@ namespace UltrafastEngine.Gain
                     };
                     break;
                 default:
-                    throw new JsonException("unknown gain medium \"" + name + "\" (built-in: " + string.Join(", ", Names) + "); define your own with an object (docs/gain.md)");
+                    throw new JsonException("unknown gain medium \"" + name + "\" (built-in: " + string.Join(", ", Names) + "); define your own with an object (docs/reference/gain.md)");
             }
             if (!double.IsNaN(temperatureK)) g.TemperatureK = temperatureK;
             return g;

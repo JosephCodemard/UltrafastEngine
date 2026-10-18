@@ -11,7 +11,7 @@ using UltrafastEngine.Transverse;
 namespace UltrafastEngine.Instruments
 {
     /// <summary>
-    /// Where an instrument looks at the beam (docs/instruments.md, "Near field, far field and apertures"):
+    /// Where an instrument looks at the beam (docs/reference/instruments.md, "Near field, far field and apertures"):
     /// <code>
     /// "sampling": { "plane": "near" | "far",          // far = the focal plane of a lens of focalLengthM
     ///               "focalLengthM": 0.2, "propagateM": 0.0,

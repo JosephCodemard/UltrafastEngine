@@ -39,7 +39,7 @@ ultrafast run system.ufs run.json -o results      # exit 0 on success; warnings 
 * `output`: the final pulse (`energyJ`, `fwhmS`, `peakPowerW`, `transformLimitFwhmS`, `spectralFwhmM`, `pulseGddS2`, ...);
 * `elements[]`: per element `id`, `bIntegralRad`, `energyOutJ`, `peakFluenceJPerM2`, `lidtMargin`,
   `criticalPowerRatio`, `notes`, `values` (e.g. `trackedBeamRadiusXM`, `peakElectronDensityM3`);
-* `instruments[]`: `name`, `kind`, `values` (scalars); arrays are in `result.npz` as `<name>_<array>`;
+* `instruments[]`: `name`, `kind`, `values` (scalars), `settings` (every device parameter with the value used); arrays are in `result.npz` as `<name>_<array>`;
 * `lossBudget`, `energyBudget`, `totals`, `warnings`, `notes`, `grid`.
 
 Python: `res = uf.run(system, spec)`; `res.summary`, `res["name_array"]`, `res.instrument("name")`;
@@ -60,7 +60,7 @@ runs in parallel ([Parameter studies](reference/studies.md)). Parameter paths: `
   Gaussian `inputBeam` the beam is tracked through lenses and curved mirrors; elements with their own `beam` use it.
 * 1-D runs warn above the critical power for self-focusing; that is a warning about the model, not an error. Use a
   `transverse` model when spatial effects matter.
-* Gases: `n2` of N2 and air is the electronic part; the rotational Raman response is separate (since 2.1.8).
+* Gases: `n2` of N2 and air is the electronic part; the rotational Raman response is separate.
 * SHG-FROG retrieval cannot determine the sign of the chirp.
 * The grid planner sizes the time window for stretched pulses and satellites (ghosts, pedestals). Override `grid`
   only with a reason; check `edgeEnergyFraction` in `output` (should be < 1e-6).

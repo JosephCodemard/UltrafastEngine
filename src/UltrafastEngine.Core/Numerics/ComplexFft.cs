@@ -251,7 +251,7 @@ namespace UltrafastEngine.Numerics
     /// Pluggable FFT backend. The engine only ever needs one primitive -- an in-place power-of-two complex
     /// transform with a chosen exponent sign and optional 1/N normalisation -- so swapping in FFTW, MKL,
     /// cuFFT or a vendor library is a matter of implementing this interface and assigning
-    /// <see cref="Fft.Provider"/> once at start-up (see docs/extending.md).
+    /// <see cref="Fft.Provider"/> once at start-up (see docs/reference/extending.md).
     /// </summary>
     public interface IFft
     {

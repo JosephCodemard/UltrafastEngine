@@ -40,7 +40,7 @@ namespace UltrafastEngine.Materials
     /// <summary>
     /// An optical material: linear index (absolute, i.e. vacuum-referenced, after any air-reference
     /// conversion), optional attenuation, and the nonlinear properties Zemax cannot supply (n2, delayed/Raman
-    /// response). Every property is individually overridable (see docs/overrides.md).
+    /// response). Every property is individually overridable (see docs/reference/models.md).
     /// </summary>
     public sealed class Material
     {

@@ -1,6 +1,6 @@
 # Optical components
 
-Stage 1.2 adds models of what common components do to the beam, without ray tracing. Each one is made from the
+The engine has models of what common optical components do to the beam, without ray tracing. Each one is made from the
 same parts as the rest of the engine: interface terms (Fresnel or coatings, s/p in the Jones basis), a bulk element
 (dispersion, absorption, and nonlinearity or a spatial model when there is a beam), and Jones terms. So overrides,
 provenance, the loss budget and the transverse models all work for them too. Every key is listed in the
@@ -47,7 +47,7 @@ Each element reports `trackedBeamRadiusXM`, `trackedBeamRadiusYM` and the wavefr
 tracking carries on unchanged.
 
 Simple astigmatism only: the principal axes are x and y. A fold plane at an arbitrary angle is snapped to the nearer
-axis (with a note). Thermal lenses of gain media are not yet included in the tracking.
+axis (with a note). Thermal lenses of gain media are not included in the tracking.
 
 ## Curved and off-axis mirrors
 
@@ -105,6 +105,13 @@ the tilt of a wedge (2 k n α) reduce it, η = exp(-s²/2w²) exp(-(π w δ/λ)�
 `ghosts.beamRadiusM` or `beamRadiusM` (full overlap and a note when none is known). `ghosts.overlap` sets it
 directly; `frontReflectance` / `backReflectance` replace the coatings' values. The grid planner widens the time
 window for the replicas.
+
+**Ghosts of other elements.** `bulk`, `crystal`, `gain`, `amplifier` and thick `lens` elements accept `ghosts` too:
+the double reflection at their two end faces at normal incidence, with the delay 2 n_g L / c and the level
+R_front R_back (Fresnel against air by default; give your AR coatings as `frontReflectance` / `backReflectance`, e.g.
+0.002 each for -54 dB). `ghosts.material` names the index when the element does not (crystals defined inline),
+`wedgeDeg` tilts the replicas off the beam. Mirrors and single surfaces have no ghosts of their own: a
+back-reflection between two separate surfaces is a cavity -- model the pair as a `plate` of the gap's medium.
 
 Because the replica is part of the field, everything downstream sees it: a later nonlinear element converts a
 post-pulse that overlaps a stretched pulse into a pre-pulse after compression (intensity ∝ B²; the test

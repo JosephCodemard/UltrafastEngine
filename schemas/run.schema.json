@@ -228,6 +228,17 @@
         "pedestal": {
           "description": "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"
         },
+        "noise": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.pulseNoise"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding)"
+        },
         "comment": {
           "description": "Free text."
         },
@@ -354,6 +365,39 @@
         "wavelengthUnit": {
           "type": "string",
           "description": "Unit of the CSV wavelength column Default: m."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.pulseNoise": {
+      "type": "object",
+      "description": "Quantum noise added to the input pulse (docs/reference/fibers.md#noise-and-coherence).",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["onePhotonPerMode", "none"],
+          "description": "Noise model Default: onePhotonPerMode."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Random seed (a coherence study varies it) Default: 1."
+        },
+        "polarization": {
+          "type": "string",
+          "enum": ["same", "both"],
+          "description": "Noise in the pulse's polarisation only, or one photon in each of x and y Default: same."
         },
         "comment": {
           "description": "Free text."
@@ -972,6 +1016,49 @@
       },
       "additionalProperties": false
     },
+    "obj.detector": {
+      "type": "object",
+      "description": "Detector read-out applied to an instrument's recorded arrays and readings (spectrometer, scope, autocorrelator, FROG, d-scan, energy meter); width and peak readings are re-evaluated on the detected trace. (docs/reference/instruments.md#detector-model)",
+      "properties": {
+        "calibration": {
+          "type": "number",
+          "description": "Calibration factor (reading / true value) Default: 1."
+        },
+        "noise": {
+          "type": "number",
+          "description": "Multiplicative noise, relative rms Default: 0."
+        },
+        "noiseFloor": {
+          "type": "number",
+          "description": "Additive noise rms relative to the trace peak Default: 0."
+        },
+        "dynamicRangeDb": {
+          "type": "number",
+          "description": "Noise floor as a dynamic range (alternative to noiseFloor) [dB]"
+        },
+        "bitDepth": {
+          "type": "integer",
+          "description": "ADC bits, full scale at the trace maximum (0: ideal) Default: 0."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Random seed Default: 1."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "obj.fitting:measured": {
       "type": "object",
       "description": "Recorded data for one instrument (fitting plugin). [plugin: fitting]",
@@ -1072,15 +1159,27 @@
         },
         "rangeS": {
           "type": "number",
-          "description": "Delay range [s]"
+          "description": "Delay range (interferometric) [s] Default: 3 x FWHM."
         },
         "points": {
           "type": "integer",
-          "description": "Output points"
+          "description": "Output points (interferometric) Default: 4001."
+        },
+        "resolutionS": {
+          "type": "number",
+          "description": "Delay resolution of the scan (Gaussian FWHM, intensity AC) [s] Default: 0."
+        },
+        "shgAcceptanceFwhmM": {
+          "type": "number",
+          "description": "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited [m] Default: 0."
+        },
+        "acceptancePoints": {
+          "type": "integer",
+          "description": "Grid of the finite-acceptance computation Default: 512."
         },
         "maxN": {
           "type": "integer",
-          "description": "Grid cap for the computation"
+          "description": "Grid cap for the computation Default: 65536."
         },
         "kind": {
           "type": "string"
@@ -1126,6 +1225,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -1201,6 +1334,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -1554,6 +1721,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1590,11 +1791,11 @@
         },
         "maxN": {
           "type": "integer",
-          "description": "Grid cap"
+          "description": "Grid cap Default: 131072."
         },
         "points": {
           "type": "integer",
-          "description": "Output points"
+          "description": "Output points Default: 4096."
         },
         "kind": {
           "type": "string"
@@ -1640,6 +1841,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -1732,6 +1967,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1807,6 +2076,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1873,7 +2176,7 @@
         },
         "noiseFloor": {
           "type": "number",
-          "description": "Noise floor (relative; alternative)"
+          "description": "Noise floor (relative to the peak; alternative to dynamicRangeDb)"
         },
         "noise": {
           "type": "boolean",
@@ -1957,6 +2260,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1989,15 +2326,15 @@
       "properties": {
         "fromS": {
           "type": "number",
-          "description": "First delay [s]"
+          "description": "First delay [s] Default: -1e-12."
         },
         "toS": {
           "type": "number",
-          "description": "Last delay [s]"
+          "description": "Last delay [s] Default: 1e-12."
         },
         "points": {
           "type": "integer",
-          "description": "Points"
+          "description": "Points Default: 21."
         },
         "kind": {
           "type": "string"
@@ -2043,6 +2380,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -2108,7 +2479,15 @@
         },
         "steps": {
           "type": "integer",
-          "description": "Scan steps Default: 41."
+          "description": "Scan steps Default: 101."
+        },
+        "spectralResolutionM": {
+          "type": "number",
+          "description": "Spectrometer resolution (Gaussian FWHM at the SH wavelength) [m] Default: 0."
+        },
+        "shgAcceptanceFwhmM": {
+          "type": "number",
+          "description": "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited [m] Default: 0."
         },
         "kind": {
           "type": "string"
@@ -2154,6 +2533,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -2205,7 +2618,7 @@
         },
         "repRateHz": {
           "type": "number",
-          "description": "Repetition rate for average power [Hz]"
+          "description": "Repetition rate for average power [Hz] Default: the pulse's repetition rate."
         },
         "kind": {
           "type": "string"
@@ -2251,6 +2664,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -2292,7 +2739,7 @@
         },
         "maxN": {
           "type": "integer",
-          "description": "Grid cap"
+          "description": "Grid cap Default: 8192."
         },
         "kind": {
           "type": "string"
@@ -2338,6 +2785,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -2378,6 +2859,14 @@
           "type": "integer",
           "description": "Delay and frequency points Default: 256."
         },
+        "spectralResolutionM": {
+          "type": "number",
+          "description": "Spectrometer resolution (Gaussian FWHM at the signal wavelength) [m] Default: 0."
+        },
+        "shgAcceptanceFwhmM": {
+          "type": "number",
+          "description": "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited [m] Default: 0."
+        },
         "kind": {
           "type": "string"
         },
@@ -2422,6 +2911,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -2519,6 +3042,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2551,7 +3108,11 @@
       "properties": {
         "points": {
           "type": "integer",
-          "description": "Output points"
+          "description": "Output points Default: 1024."
+        },
+        "extinctionRatio": {
+          "type": "number",
+          "description": "Power extinction ratio of the analysers (0: perfect); Stokes readings scale by (1 - e) / (1 + e) Default: 0."
         },
         "kind": {
           "type": "string"
@@ -2597,6 +3158,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -2673,6 +3268,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2705,15 +3334,15 @@
       "properties": {
         "riseTimeS": {
           "type": "number",
-          "description": "10-90 % rise time [s]"
+          "description": "10-90 % rise time of the detection [s] Default: 0."
         },
         "bandwidthHz": {
           "type": "number",
-          "description": "Bandwidth (alternative) [Hz]"
+          "description": "Bandwidth (alternative: rise time = 0.35 / bandwidth) [Hz]"
         },
         "points": {
           "type": "integer",
-          "description": "Output points"
+          "description": "Output points Default: 4096."
         },
         "kind": {
           "type": "string"
@@ -2759,6 +3388,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -2848,6 +3511,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2894,24 +3591,35 @@
               }
             }
           ],
-          "description": "[min, max] wavelength range [m]"
+          "description": "[min, max] wavelength range [m] Default: the spectrum's support."
         },
         "points": {
           "type": "integer",
-          "description": "Output points"
+          "description": "Output points Default: 2048."
+        },
+        "wavelengthOffsetM": {
+          "type": "number",
+          "description": "Wavelength calibration error: added to the reported axis [m] Default: 0."
         },
         "polarizerDeg": {
           "type": "number",
           "description": "Analyser angle [deg]"
         },
         "normalize": {
-          "type": "string",
-          "enum": ["none", "peak", "area"],
-          "description": "Normalisation of the output Default: none."
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": ["peak", "area", "none"]
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "description": "Normalisation of the output spectrum: peak = 1, area = 1 (per metre), none = spectral energy density in J/m; true = peak, false = none Default: peak."
         },
         "db": {
           "type": "boolean",
-          "description": "Also report dB Default: false."
+          "description": "Also report the spectrum in dB (relative to its peak) Default: false."
         },
         "kind": {
           "type": "string"
@@ -2957,6 +3665,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [
@@ -3074,6 +3816,40 @@
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
         },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3110,11 +3886,11 @@
         },
         "gateFwhmS": {
           "type": "number",
-          "description": "> 0: spectrogram gate [s]"
+          "description": "> 0: spectrogram gate [s] Default: 0."
         },
         "maxN": {
           "type": "integer",
-          "description": "Grid cap"
+          "description": "Grid cap Default: 65536."
         },
         "kind": {
           "type": "string"
@@ -3160,6 +3936,40 @@
             }
           ],
           "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.detector"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
         "measured": {
           "anyOf": [

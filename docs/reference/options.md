@@ -74,6 +74,7 @@ The input pulse (docs/reference/run-spec.md#pulse).
 | `spectrum` | object (`pulseSpectrum`) |  |  | Measured spectrum (shape: spectrum): wavelengthsM + intensity (+ phaseRad), or csv |
 | `delayS` | number | s | 0 | Time offset |
 | `pedestal` | any |  |  | Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential) |
+| `noise` | object (`pulseNoise`) |  |  | Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding) |
 
 ## Grid
 
@@ -155,6 +156,7 @@ Also accepts: `gainCommon` (see *Common key groups*).
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
+| `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 | `geometry` | `"multipass"` \| `"regenerative"` |  | multipass | Amplifier type |
 | `passes` | integer |  | 4 | Passes (multipass) |
 | `betweenPasses` | object (`betweenPasses`) |  |  | loss, gddFs2, todFs3, materials |
@@ -193,6 +195,7 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 | `transmission` | number or array |  |  | Per-wavelength internal transmission (else the material's attenuation) |
 | `dispersionSource` | `"data"` \| `"material"` |  | data | Use traced data or the material index |
 | `airPathM` | number | m |  | Air path whose data are relative to air |
+| `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 
 ### `chirpedMirror`
 
@@ -223,6 +226,7 @@ Chi(2) frequency conversion and parametric amplification (SHG, SFG, OPA, DFG). M
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
+| `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 | `crystal` | model (crystal) |  |  | Built-in crystal name (BBO, LBO, KTP, KDP, LiNbO3, MgO:LiNbO3, BiBO, AgGaSe2), a materials entry, or an object **Required.** |
 | `lengthM` | number | m |  | Length **Required.** |
 | `interaction` | object (`interaction`) |  |  | process, type, plane, polarizations, noncollinearDeg, qpm **Required.** |
@@ -295,6 +299,35 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 | `direction` | number |  | 1 | +1 forward, -1 backward (non-reciprocal) |
 | `transmission` | number |  | 1 | Power transmission |
 
+### `fiber` (also `fibre`, `waveguide`)
+
+A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material; gamma or n2 + effective area; loss; gain; Raman; soliton and dispersive-wave diagnostics. More: [fibers.md](fibers.md)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `lengthM` | number | m |  | Fibre length **Required.** |
+| `betas` | number or array | s^k/m |  | Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) |
+| `betasPsKm` | number or array | ps^k/km |  | Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units) |
+| `referenceWavelengthM` | number | m | the carrier | Wavelength of the Taylor expansion |
+| `dispersion` | object (`fiberDispersion`) |  |  | Dispersion curve {wavelengthsM, dPsNmKm \| beta2S2PerM} (alternative to betas) |
+| `material` | string |  |  | Bulk material for the dispersion (alternative to betas) |
+| `effectiveIndex` | number |  | 1.45 | Mode index at the reference (sets only the absolute phase / group delay) |
+| `gamma` | any | 1/(W m) |  | Nonlinear coefficient: a number, or an expression in z (m) for a tapered fibre |
+| `n2` | number | m^2/W | 2.6e-20 | Nonlinear index (with effectiveAreaM2 or modeFieldDiameterM, instead of gamma) |
+| `effectiveAreaM2` | number | m^2 | 1e-11 with gamma | Effective mode area |
+| `modeFieldDiameterM` | number | m |  | Mode-field diameter (A_eff = pi MFD^2 / 4) |
+| `lossDbPerKm` | number | dB/km | 0 | Propagation loss |
+| `loss` | object (`fiberLossTable`) |  |  | Loss vs wavelength {wavelengthsM, dbPerKm} (alternative) |
+| `gainDbPerM` | number | dB/m | 0 | Flat (small-signal) gain |
+| `gain` | object (`fiberGain`) |  |  | Gain spectrum {wavelengthsM, dbPerM, outputEnergyJ \| outputPowerW} |
+| `raman` | any |  | "silica" | Raman model: "silica" (Blow-Wood), "linAgrawal", "hollenbeck", "none" / false, or a delayed-response model |
+| `ramanFraction` | number |  | the model's (0.18; Lin-Agrawal 0.245) | Raman fraction |
+| `nonlinear` | boolean |  | true | false forces linear propagation |
+| `selfSteepening` | boolean |  | run setting | Self-steepening (optical shock) |
+| `timeResponse` | model (timeResponse) |  |  | An extra time-domain response n(t, I) |
+| `replaceKerr` | boolean |  | false | true switches off the built-in Kerr/Raman |
+| `ionization` | any |  | false | Photo-ionisation (hollow-core gas fibres): true or an ionization object |
+
 ### `filter`
 
 A spectral filter: any filter model (transmission and phase). More: [elements.md#filter](system-file.md)
@@ -311,7 +344,9 @@ A pumped gain medium crossed once (1-D or spatial). More: [gain.md](gain.md)
 
 Also accepts: `gainCommon` (see *Common key groups*).
 
-No parameters of its own.
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 
 ### `gap`
 
@@ -328,6 +363,7 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 | `transmission` | number or array |  |  | Per-wavelength internal transmission (else the material's attenuation) |
 | `dispersionSource` | `"data"` \| `"material"` |  | data | Use traced data or the material index |
 | `airPathM` | number | m |  | Air path whose data are relative to air |
+| `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 
 ### `grating`
 
@@ -412,6 +448,7 @@ Thin lens on a carried transverse profile (chromatic with a material). More: [el
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
+| `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 | `focalLengthM` | number | m |  | Focal length at the carrier **Required.** |
 | `material` | string |  |  | Lens glass (chromatic focal length) |
 | `medium` | string |  | Air | Surrounding medium |
@@ -649,9 +686,12 @@ Intensity or interferometric autocorrelation. More: [instruments.md#autocorrelat
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `type` | `"intensity"` \| `"interferometric"` |  | intensity | AC type |
-| `rangeS` | number | s |  | Delay range |
-| `points` | integer |  |  | Output points |
-| `maxN` | integer |  |  | Grid cap for the computation |
+| `rangeS` | number | s | 3 x FWHM | Delay range (interferometric) |
+| `points` | integer |  | 4001 | Output points (interferometric) |
+| `resolutionS` | number | s | 0 | Delay resolution of the scan (Gaussian FWHM, intensity AC) |
+| `shgAcceptanceFwhmM` | number | m | 0 | Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited |
+| `acceptancePoints` | integer |  | 512 | Grid of the finite-acceptance computation |
+| `maxN` | integer |  | 65536 | Grid cap for the computation |
 
 ### `beamProfile`
 
@@ -679,8 +719,8 @@ Ideal compressor: GDD/TOD that maximise peak power. More: [instruments.md#compre
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `optimizeTod` | boolean |  | true | Also optimise TOD |
-| `maxN` | integer |  |  | Grid cap |
-| `points` | integer |  |  | Output points |
+| `maxN` | integer |  | 131072 | Grid cap |
+| `points` | integer |  | 4096 | Output points |
 
 ### `contrast`
 
@@ -711,7 +751,7 @@ Third-order (SHG-gated) cross-correlator: high-dynamic-range contrast with noise
 | `fineStepS` | number | s |  | Fine step near zero delay |
 | `fineRangeS` | number | s |  | Half-range of the fine steps |
 | `dynamicRangeDb` | number | dB | 110 | Noise floor below the peak |
-| `noiseFloor` | number |  |  | Noise floor (relative; alternative) |
+| `noiseFloor` | number |  |  | Noise floor (relative to the peak; alternative to dynamicRangeDb) |
 | `noise` | boolean |  | true | Fluctuating detector background (else a flat floor) |
 | `seed` | integer |  | 1 | Noise seed |
 | `resolutionS` | number | s | 0 | Extra temporal resolution (Gaussian FWHM) |
@@ -726,9 +766,9 @@ Re-runs a crystal for aux delays: output energy vs delay. More: [instruments.md#
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `fromS` | number | s |  | First delay |
-| `toS` | number | s |  | Last delay |
-| `points` | integer |  |  | Points |
+| `fromS` | number | s | -1e-12 | First delay |
+| `toS` | number | s | 1e-12 | Last delay |
+| `points` | integer |  | 21 | Points |
 
 ### `dscan`
 
@@ -739,7 +779,9 @@ Dispersion scan: SHG spectrum vs glass insertion or GDD. More: [instruments.md#d
 | `material` | string |  |  | Wedge material (with insertionM) |
 | `insertionM` | number or array | m |  | [min, max] insertion |
 | `gddRangeS2` | number or array | s^2 |  | [min, max] GDD (alternative) |
-| `steps` | integer |  | 41 | Scan steps |
+| `steps` | integer |  | 101 | Scan steps |
+| `spectralResolutionM` | number | m | 0 | Spectrometer resolution (Gaussian FWHM at the SH wavelength) |
+| `shgAcceptanceFwhmM` | number | m | 0 | Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited |
 
 ### `energyMeter` (also `powerMeter`)
 
@@ -749,7 +791,7 @@ Pulse energy and average power (optionally behind a polariser / band). More: [in
 |---|---|---|---|---|
 | `rangeM` | number or array | m |  | [min, max] wavelength band |
 | `polarizerDeg` | number | deg |  | Analyser angle |
-| `repRateHz` | number | Hz |  | Repetition rate for average power |
+| `repRateHz` | number | Hz | the pulse's repetition rate | Repetition rate for average power |
 
 ### `fieldProbe`
 
@@ -759,7 +801,7 @@ Temporal phase, instantaneous wavelength, group delay, CEP (virtual). More: [ins
 |---|---|---|---|---|
 | `threshold` | number |  | 1e-3 | Relative intensity threshold |
 | `realField` | boolean |  | false | Also the real field on the optical cycle |
-| `maxN` | integer |  |  | Grid cap |
+| `maxN` | integer |  | 8192 | Grid cap |
 
 ### `frog`
 
@@ -769,6 +811,8 @@ SHG or PG FROG trace. More: [instruments.md#frog](instruments.md#frog)
 |---|---|---|---|---|
 | `type` | `"shg"` \| `"pg"` |  | shg | FROG geometry |
 | `points` | integer |  | 256 | Delay and frequency points |
+| `spectralResolutionM` | number | m | 0 | Spectrometer resolution (Gaussian FWHM at the signal wavelength) |
+| `shgAcceptanceFwhmM` | number | m | 0 | Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited |
 
 ### `phaseMatchingCurve`
 
@@ -788,7 +832,8 @@ Stokes parameters, integrated and vs wavelength. More: [instruments.md#polarimet
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `points` | integer |  |  | Output points |
+| `points` | integer |  | 1024 | Output points |
+| `extinctionRatio` | number |  | 0 | Power extinction ratio of the analysers (0: perfect); Stokes readings scale by (1 - e) / (1 + e) |
 
 ### `pulseSummary`
 
@@ -802,9 +847,9 @@ Detected power vs time with a rise time / bandwidth. More: [instruments.md#scope
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `riseTimeS` | number | s |  | 10-90 % rise time |
-| `bandwidthHz` | number | Hz |  | Bandwidth (alternative) |
-| `points` | integer |  |  | Output points |
+| `riseTimeS` | number | s | 0 | 10-90 % rise time of the detection |
+| `bandwidthHz` | number | Hz |  | Bandwidth (alternative: rise time = 0.35 / bandwidth) |
+| `points` | integer |  | 4096 | Output points |
 
 ### `spaceTime`
 
@@ -823,11 +868,12 @@ Spectrum vs wavelength with resolution. More: [instruments.md#spectrometer](inst
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `resolutionM` | number | m | 0 | Gaussian resolution FWHM |
-| `rangeM` | number or array | m |  | [min, max] wavelength range |
-| `points` | integer |  |  | Output points |
+| `rangeM` | number or array | m | the spectrum's support | [min, max] wavelength range |
+| `points` | integer |  | 2048 | Output points |
+| `wavelengthOffsetM` | number | m | 0 | Wavelength calibration error: added to the reported axis |
 | `polarizerDeg` | number | deg |  | Analyser angle |
-| `normalize` | `"none"` \| `"peak"` \| `"area"` |  | none | Normalisation of the output |
-| `db` | boolean |  | false | Also report dB |
+| `normalize` | `"peak"` \| `"area"` \| `"none"` \| `true` \| `false` |  | peak | Normalisation of the output spectrum: peak = 1, area = 1 (per metre), none = spectral energy density in J/m; true = peak, false = none |
+| `db` | boolean |  | false | Also report the spectrum in dB (relative to its peak) |
 
 ### `wavefrontSensor`
 
@@ -851,8 +897,8 @@ Wigner distribution or spectrogram (virtual). More: [instruments.md#virtual-inst
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `points` | integer |  | 256 | Time rows |
-| `gateFwhmS` | number | s |  | > 0: spectrogram gate |
-| `maxN` | integer |  |  | Grid cap |
+| `gateFwhmS` | number | s | 0 | > 0: spectrogram gate |
+| `maxN` | integer |  | 65536 | Grid cap |
 
 ## Common key groups
 
@@ -985,6 +1031,8 @@ Keys every instrument accepts.
 | `at` | string |  | "end" | "input", an element id (after that element) or "end" |
 | `sampling` | object (`sampling`) |  |  | What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments) |
 | `beam` | model (beam) |  |  | Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian |
+| `filter` | model (filter) |  |  | Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured |
+| `detector` | object (`detector`) |  |  | Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth |
 
 ### `fitting` — plugin: fitting
 
@@ -1096,6 +1144,19 @@ Compute back-end (docs/reference/speed.md).
 | `backend` | string |  | cpu | Back-end name (cpu, or one a plugin registers) |
 | `threads` | integer |  | 0 | Worker threads (0 = all cores) |
 
+### `detector`
+
+Detector read-out applied to an instrument's recorded arrays and readings (spectrometer, scope, autocorrelator, FROG, d-scan, energy meter); width and peak readings are re-evaluated on the detected trace. More: [instruments.md#detector-model](instruments.md#detector-model)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `calibration` | number |  | 1 | Calibration factor (reading / true value) |
+| `noise` | number |  | 0 | Multiplicative noise, relative rms |
+| `noiseFloor` | number |  | 0 | Additive noise rms relative to the trace peak |
+| `dynamicRangeDb` | number | dB |  | Noise floor as a dynamic range (alternative to noiseFloor) |
+| `bitDepth` | integer |  | 0 | ADC bits, full scale at the trace maximum (0: ideal) |
+| `seed` | integer |  | 1 | Random seed |
+
 ### `environment`
 
 Laboratory air.
@@ -1104,6 +1165,39 @@ Laboratory air.
 |---|---|---|---|---|
 | `indexReference` | `"air"` \| `"vacuum"` |  | vacuum (air for zemax exports) | Quoted data are relative to air (OpticStudio) or vacuum |
 | `air` | object (`air`) |  |  | Air: temperatureC, pressurePa, humidity, co2ppm, or an index model with kind |
+
+### `fiberDispersion`
+
+Tabulated fibre dispersion.
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `wavelengthsM` | number or array | m |  | Wavelengths |
+| `wavelengthsNm` | number or array | nm |  | Wavelengths in nm |
+| `dPsNmKm` | number or array | ps/(nm km) |  | Dispersion parameter D |
+| `beta2S2PerM` | number or array | s^2/m |  | beta2 (alternative) |
+
+### `fiberGain`
+
+Fibre gain spectrum, optionally scaled at run time to reach an output.
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `wavelengthsM` | number or array | m |  | Wavelengths |
+| `wavelengthsNm` | number or array | nm |  | Wavelengths in nm |
+| `dbPerM` | number or array | dB/m |  | Gain (or a relative shape when an output target is given) |
+| `outputEnergyJ` | number | J |  | Scale the gain so the output has this energy |
+| `outputPowerW` | number | W |  | ... or this average power (needs repRateHz) |
+
+### `fiberLossTable`
+
+Fibre loss vs wavelength.
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `wavelengthsM` | number or array | m |  | Wavelengths |
+| `wavelengthsNm` | number or array | nm |  | Wavelengths in nm |
+| `dbPerKm` | number or array | dB/km |  | Loss |
 
 ### `fitting:fit`
 
@@ -1175,6 +1269,8 @@ Ghost replicas of a plate (docs/reference/components.md#ghost-reflections).
 | `beamRadiusM` | number | m | tracked beam | Beam radius for the overlap |
 | `frontReflectance` | number |  |  | Internal reflectance of the front surface (default: its coating / Fresnel; 0.5 for a reflective ND) |
 | `backReflectance` | number |  |  | Reflectance of the back surface (default: its coating / Fresnel) |
+| `material` | string |  |  | Material of the inside, when the element does not say (crystals defined inline) |
+| `wedgeDeg` | number | deg | 0 | Wedge between the end faces (bulk, crystal, gain, lens) |
 
 ### `imaging`
 
@@ -1328,6 +1424,16 @@ A pedestal / contrast component of the input pulse (docs/reference/run-spec.md#p
 | `riseS` | number | s |  | Exponential rise (before the peak) |
 | `fallS` | number | s |  | Exponential fall (after the peak) |
 | `seed` | integer |  | 1 | Random seed |
+
+### `pulseNoise`
+
+Quantum noise added to the input pulse (docs/reference/fibers.md#noise-and-coherence).
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `kind` | `"onePhotonPerMode"` \| `"none"` |  | onePhotonPerMode | Noise model |
+| `seed` | integer |  | 1 | Random seed (a coherence study varies it) |
+| `polarization` | `"same"` \| `"both"` |  | same | Noise in the pulse's polarisation only, or one photon in each of x and y |
 
 ### `pulseSpectrum`
 
@@ -1487,6 +1593,46 @@ Beam radii sampled along z (e.g. from OpticStudio).
 | `radiusM` | number or array | m |  | Radii |
 | `radiusXM` | number or array | m |  | x radii |
 | `radiusYM` | number or array | m |  | y radii |
+
+### delayedResponse / `dampedOscillator`
+
+Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1). More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `tau1` | number | s |  | Period parameter |
+| `tau2` | number | s |  | Damping time |
+| `fR` | number |  |  | Raman fraction |
+
+### delayedResponse / `hollenbeck`
+
+Hollenbeck & Cantrell 2002 silica Raman: 13 vibrational modes with intermediate broadening, fR = 0.18. More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `fR` | number |  | 0.18 | Raman fraction |
+
+### delayedResponse / `linAgrawal`
+
+Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full model), fR = 0.245. More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `fR` | number |  | 0.245 | Raman fraction |
+| `tau1` | number | s | 12.2e-15 | Oscillator period parameter |
+| `tau2` | number | s | 32e-15 | Oscillator damping time |
+| `taub` | number | s | 96e-15 | Boson-peak time |
+| `fa` | number |  | 0.75 | Weight a |
+| `fb` | number |  | 0.21 | Weight b (boson peak) |
+| `fc` | number |  | 0.04 | Weight c |
+
+### delayedResponse / `silica`
+
+Fused-silica Raman response: Blow-Wood damped oscillator (12.2 / 32 fs), fR = 0.18. More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `fR` | number |  | 0.18 | Raman fraction |
 
 ### filter / `constant`
 

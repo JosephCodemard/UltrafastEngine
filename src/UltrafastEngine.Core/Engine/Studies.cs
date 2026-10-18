@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Numerics;
+using UltrafastEngine.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -63,6 +65,8 @@ namespace UltrafastEngine.Engine
         public string Objective; public string Goal = "min"; public double Target = double.NaN; public int MaxEvaluations = 200; public double Tolerance = 1e-4;
         // sensitivity
         public string SensitivityMethod = "local"; public double StepFraction = 0.01;
+        // coherence (repeated runs with independent quantum noise)
+        public int Trials = 10; public string CoherenceAt = "end";
 
         public static StudySpec FromJson(JsonObject o)
         {
@@ -73,7 +77,13 @@ namespace UltrafastEngine.Engine
                 Samples = o.GetInt("samples", 64), Seed = o.GetInt("seed", 1), Parallel = Math.Max(1, o.GetInt("parallel", 1)),
                 FreezeGrid = o.GetBool("freezeGrid", true), PrefixCache = o.GetBool("prefixCache", true),
             };
-            foreach (var p in o.GetArray("parameters") ?? throw new JsonException("study needs \"parameters\"")) s.Parameters.Add(StudyParameter.FromJson(p.AsObject()));
+            if (s.Mode == "coherence")
+            {
+                var co = o.GetObject("coherence") ?? new JsonObject();
+                s.Trials = Math.Max(2, co.GetInt("trials", o.GetInt("trials", 10)));
+                s.CoherenceAt = co.GetString("at", o.GetString("at", "end"));
+            }
+            foreach (var p in o.GetArray("parameters") ?? (s.Mode == "coherence" ? new JsonArray() : throw new JsonException("study needs \"parameters\""))) s.Parameters.Add(StudyParameter.FromJson(p.AsObject()));
             foreach (var x in o.GetArray("outputs") ?? new JsonArray()) s.Outputs.Add(x.AsString());
             var ob = o.GetObject("objective");
             if (ob != null)
@@ -84,7 +94,7 @@ namespace UltrafastEngine.Engine
             }
             var se = o.GetObject("sensitivity");
             if (se != null) { s.SensitivityMethod = se.GetString("method", "local").ToLowerInvariant(); s.StepFraction = se.GetDouble("stepFraction", 0.01); if (se.Has("samples")) s.Samples = se.GetInt("samples", s.Samples); }
-            if (s.Outputs.Count == 0) throw new JsonException("study needs \"outputs\" (e.g. \"pulse:end/fwhmS\").");
+            if (s.Outputs.Count == 0 && s.Mode != "coherence") throw new JsonException("study needs \"outputs\" (e.g. \"pulse:end/fwhmS\").");
             if (s.Mode == "optimize" && s.Objective == null) throw new JsonException("an optimize study needs \"objective\": {\"output\": ..., \"goal\": \"min\" | \"max\" | \"target\"}.");
             return s;
         }
@@ -125,6 +135,14 @@ namespace UltrafastEngine.Engine
             for (int i = 0; i < Parameters.Count; i++)
                 sb.Append(string.Join(",", Parameters[i].Concat(Outputs[i]).Select(v => double.IsNaN(v) ? "" : v.ToString("G9", CultureInfo.InvariantCulture)))).Append(',').Append((Errors[i] ?? "").Replace(",", ";").Replace("\n", " ")).Append('\n');
             File.WriteAllText(Path.Combine(dir, "study.csv"), sb.ToString());
+            var co = Analysis.GetObject("coherence");
+            if (co != null)
+            {
+                var wl = co.GetDoubleArray("wavelength_m"); var g = co.GetDoubleArray("g12"); var sp = co.GetDoubleArray("spectrum");
+                var cb = new StringBuilder("wavelength_nm,g12,mean_spectrum\n");
+                for (int i = 0; i < wl.Length; i++) cb.Append((wl[i] * 1e9).ToString("G9", CultureInfo.InvariantCulture)).Append(',').Append(g[i].ToString("G6", CultureInfo.InvariantCulture)).Append(',').Append(sp[i].ToString("G6", CultureInfo.InvariantCulture)).Append('\n');
+                File.WriteAllText(Path.Combine(dir, "coherence.csv"), cb.ToString());
+            }
         }
     }
 
@@ -141,6 +159,7 @@ namespace UltrafastEngine.Engine
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
             registry = registry ?? ModelRegistry.CreateDefault();
+            if (spec.Mode == "coherence") return Coherence(system, run, spec, registry, progress, cancel, sw);
             var res = new StudyResult();
             res.ParameterNames.AddRange(spec.Parameters.Select(p => p.Name));
             res.OutputNames.AddRange(spec.Outputs);
@@ -237,6 +256,88 @@ namespace UltrafastEngine.Engine
         // ------------------------------------------------------------------------------------------ building points
 
         /// <summary>System and run with the parameter values applied (element / material via overrides, others by editing the JSON).</summary>
+        /// <summary>
+        /// First-order spectral coherence (Dudley, Genty &amp; Coen, Rev. Mod. Phys. 78, 1135 (2006)): the system is run
+        /// <c>trials</c> times with independent one-photon-per-mode noise on the input (pulse.noise, seed = seed + trial),
+        /// and |g12(lambda)| = |&lt;E_i*(lambda) E_j(lambda)&gt;_{i != j}| / &lt;|E(lambda)|^2&gt; is evaluated at
+        /// <c>at</c>; its spectrally weighted mean is the single-number coherence.
+        /// </summary>
+        private static StudyResult Coherence(SystemDescription system, RunSpec run, StudySpec spec, ModelRegistry registry, Action<int, int> progress, CancellationToken cancel, System.Diagnostics.Stopwatch sw)
+        {
+            var res = new StudyResult();
+            res.ParameterNames.Add("trial");
+            res.OutputNames.AddRange(spec.Outputs);
+            var sysJson = (JsonObject)JsonValue.Parse(system.ToJson().ToJson(false));
+            var runJson = (JsonObject)JsonValue.Parse(run.Raw.ToJson(false));
+            var pulseJ = runJson.GetObject("pulse") ?? throw new JsonException("coherence study: the run spec needs a pulse");
+            var noise = pulseJ.GetObject("noise") ?? new JsonObject().Set("kind", "onePhotonPerMode");
+            if (noise.GetString("kind", "onePhotonPerMode").Equals("none", StringComparison.OrdinalIgnoreCase)) noise.Set("kind", "onePhotonPerMode");
+            pulseJ.Set("noise", noise);
+            // freeze the grid at the plan of the first trial
+            noise.Set("seed", spec.Seed);
+            var (s0, r0) = Build(sysJson, runJson, new List<StudyParameter>(), new double[0], system.BaseDirectory, run.BaseDirectory);
+            var first = Simulation.Run(s0, r0, registry, null, cancel);
+            var gridObj = runJson.GetObject("grid") ?? new JsonObject();
+            gridObj.Set("auto", false).Set("n", first.Compiled.Grid.N).Set("windowS", first.Compiled.Grid.N * first.Compiled.Grid.DTime);
+            runJson.Set("grid", gridObj);
+            var fields = new Pulses.PulseField[spec.Trials];
+            var outs = new double[spec.Trials][]; var errs = new string[spec.Trials];
+            int done = 0; var lk = new object();
+            var po = new ParallelOptions { MaxDegreeOfParallelism = spec.Parallel, CancellationToken = cancel };
+            System.Threading.Tasks.Parallel.For(0, spec.Trials, po, t =>
+            {
+                var rj = (JsonObject)JsonValue.Parse(runJson.ToJson(false));
+                rj.GetObject("pulse").GetObject("noise").Set("seed", spec.Seed + t);
+                try
+                {
+                    var (s, r) = Build(sysJson, rj, new List<StudyParameter>(), new double[0], system.BaseDirectory, run.BaseDirectory);
+                    var rr = Simulation.Run(s, r, registry, null, cancel);
+                    if (!rr.At.TryGetValue(spec.CoherenceAt, out var p)) throw new JsonException("coherence: no pulse recorded at \"" + spec.CoherenceAt + "\"");
+                    fields[t] = p;
+                    outs[t] = spec.Outputs.Select(o => Extract(rr, o)).ToArray();
+                }
+                catch (Exception ex) when (!(ex is OperationCanceledException)) { errs[t] = ex.Message; outs[t] = spec.Outputs.Select(_ => double.NaN).ToArray(); }
+                lock (lk) progress?.Invoke(++done, spec.Trials);
+            });
+            for (int t = 0; t < spec.Trials; t++) { res.Parameters.Add(new double[] { t }); res.Outputs.Add(outs[t]); res.Errors.Add(errs[t]); }
+            var ok = fields.Where(f => f != null).ToArray();
+            if (ok.Length >= 2)
+            {
+                var g = ok[0].Grid; int n = g.N;
+                var num = new Complex[n]; var den = new double[n]; int pairs = 0;
+                for (int i = 0; i < ok.Length; i++)
+                {
+                    for (int k = 0; k < n; k++) den[k] += ok[i].Ax[k].Magnitude * ok[i].Ax[k].Magnitude + ok[i].Ay[k].Magnitude * ok[i].Ay[k].Magnitude;
+                    for (int j = i + 1; j < ok.Length; j++)
+                    {
+                        pairs++;
+                        for (int k = 0; k < n; k++) num[k] += Complex.Conjugate(ok[i].Ax[k]) * ok[j].Ax[k] + Complex.Conjugate(ok[i].Ay[k]) * ok[j].Ay[k];
+                    }
+                }
+                var g12 = new double[n]; var meanS = new double[n]; double wsum = 0, gsum = 0;
+                for (int k = 0; k < n; k++)
+                {
+                    meanS[k] = den[k] / ok.Length;
+                    g12[k] = meanS[k] > 0 ? (num[k] / pairs).Magnitude / meanS[k] : 0;
+                    wsum += meanS[k]; gsum += meanS[k] * g12[k];
+                }
+                // export on the part of the spectrum above -40 dB, ascending in wavelength
+                double smax = meanS.Max();
+                var idx = Enumerable.Range(0, n).Where(k => meanS[k] > 1e-4 * smax && g.OmegaAbsolute[k] > 0).OrderByDescending(k => g.OmegaAbsolute[k]).ToArray();
+                var co = new JsonObject()
+                    .Set("trials", ok.Length).Set("at", spec.CoherenceAt).Set("meanCoherence", wsum > 0 ? gsum / wsum : double.NaN)
+                    .Set("wavelength_m", JsonValue.FromArray(idx.Select(k => 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / g.OmegaAbsolute[k])))
+                    .Set("g12", JsonValue.FromArray(idx.Select(k => g12[k])))
+                    .Set("spectrum", JsonValue.FromArray(idx.Select(k => meanS[k] / smax)));
+                res.Analysis.Set("coherence", co);
+                res.Notes.Add(string.Format(CultureInfo.InvariantCulture, "spectral coherence at {0}: mean |g12| = {1:G3} over {2} trials ({3} pairs)", spec.CoherenceAt, wsum > 0 ? gsum / wsum : double.NaN, ok.Length, pairs));
+            }
+            else res.Notes.Add("coherence: fewer than two successful trials");
+            res.Notes.Add(string.Format(CultureInfo.InvariantCulture, "grid frozen at N = {0}", first.Compiled.Grid.N));
+            res.ElapsedS = sw.Elapsed.TotalSeconds;
+            return res;
+        }
+
         public static (SystemDescription, RunSpec) Build(JsonObject sysJson, JsonObject runJson, IList<StudyParameter> ps, double[] values, string sysBase, string runBase)
         {
             var sj = (JsonObject)JsonValue.Parse(sysJson.ToJson(false));

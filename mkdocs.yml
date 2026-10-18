@@ -1,11 +1,12 @@
-site_name: UltrafastEngine 2.0
-site_description: Nonlinear ultrafast pulse propagation through open-air optical systems
+site_name: UltrafastEngine
+site_description: Nonlinear ultrafast pulse propagation through complete optical systems
 docs_dir: docs
 theme:
   name: readthedocs
 nav:
   - Home: index.md
   - Getting started: getting-started.md
+  - Capabilities & limitations: capabilities.md
   - Tutorials:
       - Overview: tutorials/index.md
       - 1. Your first simulation: tutorials/01-first-run.md
@@ -26,6 +27,7 @@ nav:
       - Surfaces, losses, polarisation: reference/coatings.md
       - Optical components: reference/components.md
       - Nonlinear physics & solvers: reference/nonlinear.md
+      - Fibres & waveguides: reference/fibers.md
       - Ionisation & plasma: reference/ionization.md
       - Active elements & aux beams: reference/active-elements.md
       - Crystals (χ(2)): reference/crystals.md
@@ -54,6 +56,7 @@ nav:
   - Roadmap: roadmap.md
   - For AI agents: agents.md
   - Design notes:
+      - Development history: design/history.md
       - Phase 2 proposal (active media): design/phase2-active-media.md
 markdown_extensions:
   - admonition

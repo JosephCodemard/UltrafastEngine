@@ -27,7 +27,8 @@ namespace UltrafastEngine.Schema
                     .Arr("groupDelayYS", "s", "Traced group delay of y")
                     .Arr("transmission", "", "Per-wavelength internal transmission (else the material's attenuation)")
                     .Enum("dispersionSource", new[] { "data", "material" }, "Use traced data or the material index", "data")
-                    .Num("airPathM", "m", "Air path whose data are relative to air"));
+                    .Num("airPathM", "m", "Air path whose data are relative to air")
+                    .P("ghosts", ParamType.Any, "", "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections)", "false"));
 
             foreach (var t in new[] { "interface", "mirror", "grating" })
                 add(new ComponentSpec("element", t, t == "interface" ? "A refracting surface: Fresnel or coating, clipping, polarisation basis." : t == "mirror" ? "A reflecting surface: coating, AOI, s/p phases, curvature." : "A diffracting surface (one grating).")
@@ -93,7 +94,9 @@ namespace UltrafastEngine.Schema
                 .Num("overlap", "", "Field overlap with the main beam (default: from the offset, wedge and beam radius)")
                 .Num("beamRadiusM", "m", "Beam radius for the overlap", "tracked beam")
                 .Num("frontReflectance", "", "Internal reflectance of the front surface (default: its coating / Fresnel; 0.5 for a reflective ND)")
-                .Num("backReflectance", "", "Reflectance of the back surface (default: its coating / Fresnel)"));
+                .Num("backReflectance", "", "Reflectance of the back surface (default: its coating / Fresnel)")
+                .Str("material", "Material of the inside, when the element does not say (crystals defined inline)")
+                .Num("wedgeDeg", "deg", "Wedge between the end faces (bulk, crystal, gain, lens)", "0"));
             foreach (var t in new[] { "plate", "ndFilter" })
                 add(new ComponentSpec("element", t, t == "plate" ? "A plane-parallel plate or window: two surfaces, bulk dispersion, absorption and nonlinearity, ghost replicas." : "A neutral-density filter (absorptive or reflective): OD or OD(lambda), substrate, ghosts.")
                     .Alias(t == "plate" ? new[] { "window" } : new string[0]).DocAt("reference/components.md#" + t.ToLowerInvariant()).Include("nonlinearMedium", "beamSize")
@@ -106,6 +109,38 @@ namespace UltrafastEngine.Schema
                     .P("ghosts", ParamType.Any, "", "true / false or a ghosts object", "false")
                     .Arr("od", "", t == "ndFilter" ? "Optical density (number, or per wavelength)" : "(ndFilter only)")
                     .Enum("kind", new[] { "absorptive", "reflective" }, "ND type (ndFilter)", "absorptive"));
+            add(new ComponentSpec("element", "fiber", "A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material; gamma or n2 + effective area; loss; gain; Raman; soliton and dispersive-wave diagnostics.")
+                .Alias("fibre", "waveguide").DocAt("reference/fibers.md")
+                .Num("lengthM", "m", "Fibre length", required: true)
+                .Arr("betas", "s^k/m", "Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI)")
+                .Arr("betasPsKm", "ps^k/km", "Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units)")
+                .Num("referenceWavelengthM", "m", "Wavelength of the Taylor expansion", "the carrier")
+                .Obj("dispersion", "Dispersion curve {wavelengthsM, dPsNmKm | beta2S2PerM} (alternative to betas)", "fiberDispersion")
+                .Str("material", "Bulk material for the dispersion (alternative to betas)")
+                .Num("effectiveIndex", "", "Mode index at the reference (sets only the absolute phase / group delay)", "1.45")
+                .P("gamma", ParamType.Any, "1/(W m)", "Nonlinear coefficient: a number, or an expression in z (m) for a tapered fibre")
+                .Num("n2", "m^2/W", "Nonlinear index (with effectiveAreaM2 or modeFieldDiameterM, instead of gamma)", "2.6e-20")
+                .Num("effectiveAreaM2", "m^2", "Effective mode area", "1e-11 with gamma")
+                .Num("modeFieldDiameterM", "m", "Mode-field diameter (A_eff = pi MFD^2 / 4)")
+                .Num("lossDbPerKm", "dB/km", "Propagation loss", "0")
+                .Obj("loss", "Loss vs wavelength {wavelengthsM, dbPerKm} (alternative)", "fiberLossTable")
+                .Num("gainDbPerM", "dB/m", "Flat (small-signal) gain", "0")
+                .Obj("gain", "Gain spectrum {wavelengthsM, dbPerM, outputEnergyJ | outputPowerW}", "fiberGain")
+                .P("raman", ParamType.Any, "", "Raman model: \"silica\" (Blow-Wood), \"linAgrawal\", \"hollenbeck\", \"none\" / false, or a delayed-response model", "\"silica\"")
+                .Num("ramanFraction", "", "Raman fraction", "the model's (0.18; Lin-Agrawal 0.245)")
+                .Bool("nonlinear", "false forces linear propagation", "true")
+                .Bool("selfSteepening", "Self-steepening (optical shock)", "run setting")
+                .Model("timeResponse", "timeResponse", "An extra time-domain response n(t, I)")
+                .Bool("replaceKerr", "true switches off the built-in Kerr/Raman", "false")
+                .P("ionization", ParamType.Any, "", "Photo-ionisation (hollow-core gas fibres): true or an ionization object", "false"));
+            add(new ComponentSpec("fiberDispersion", "", "Tabulated fibre dispersion.")
+                .Arr("wavelengthsM", "m", "Wavelengths").Arr("wavelengthsNm", "nm", "Wavelengths in nm")
+                .Arr("dPsNmKm", "ps/(nm km)", "Dispersion parameter D").Arr("beta2S2PerM", "s^2/m", "beta2 (alternative)"));
+            add(new ComponentSpec("fiberLossTable", "", "Fibre loss vs wavelength.")
+                .Arr("wavelengthsM", "m", "Wavelengths").Arr("wavelengthsNm", "nm", "Wavelengths in nm").Arr("dbPerKm", "dB/km", "Loss"));
+            add(new ComponentSpec("fiberGain", "", "Fibre gain spectrum, optionally scaled at run time to reach an output.")
+                .Arr("wavelengthsM", "m", "Wavelengths").Arr("wavelengthsNm", "nm", "Wavelengths in nm").Arr("dbPerM", "dB/m", "Gain (or a relative shape when an output target is given)")
+                .Num("outputEnergyJ", "J", "Scale the gain so the output has this energy").Num("outputPowerW", "W", "... or this average power (needs repRateHz)"));
             add(new ComponentSpec("element", "thinFilmPolarizer", "Thin-film polariser at its design angle: physical quarter-wave stack (TMM) or ideal, transmitted (p) or reflected (s) port.").Alias("tfp")
                 .DocAt("reference/components.md#thin-film-polarisers").Include("nonlinearMedium", "beamSize")
                 .Enum("model", new[] { "stack", "ideal" }, "Coating model", "stack").Enum("output", new[] { "transmitted", "reflected" }, "Port that continues", "transmitted")
@@ -136,6 +171,7 @@ namespace UltrafastEngine.Schema
                 .Num("angleDeg", "deg", "Rotation angle", "0").Num("angleRad", "rad", "Rotation angle"));
             add(new ComponentSpec("element", "probe", "A named place in the beam (does nothing; snapshots and instruments).").Alias("marker").DocAt(D + "probe"));
             add(new ComponentSpec("element", "lens", "Thin lens on a carried transverse profile (chromatic with a material).").DocAt(D + "lens")
+                .P("ghosts", ParamType.Any, "", "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections)", "false")
                 .Num("focalLengthM", "m", "Focal length at the carrier", required: true)
                 .Str("material", "Lens glass (chromatic focal length)").Str("medium", "Surrounding medium", "Air")
                 .Num("thicknessM", "m", "Glass thickness (adds its dispersion)", "0")
@@ -146,6 +182,7 @@ namespace UltrafastEngine.Schema
                 .Free("params", ParamType.Any, "Any JSON passed to the function").Num("lengthM", "m", "Length (informational)"));
 
             add(new ComponentSpec("element", "crystal", "Chi(2) frequency conversion and parametric amplification (SHG, SFG, OPA, DFG).").DocAt("reference/crystals.md")
+                .P("ghosts", ParamType.Any, "", "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections)", "false")
                 .Model("crystal", "crystal", "Built-in crystal name (BBO, LBO, KTP, KDP, LiNbO3, MgO:LiNbO3, BiBO, AgGaSe2), a materials entry, or an object", required: true)
                 .Num("lengthM", "m", "Length", required: true)
                 .Obj("interaction", "process, type, plane, polarizations, noncollinearDeg, qpm", "interaction", required: true)
@@ -179,8 +216,10 @@ namespace UltrafastEngine.Schema
                 .Num("w0M", "m", "Radius (alternative key)").Int("order", "superGaussian order", "6")
                 .Num("radiusOfCurvatureM", "m", "Wavefront radius of curvature").Num("decenterXM", "m", "Decentre x").Num("decenterYM", "m", "Decentre y"));
 
-            add(new ComponentSpec("element", "gain", "A pumped gain medium crossed once (1-D or spatial).").DocAt("reference/gain.md").Include("gainCommon"));
+            add(new ComponentSpec("element", "gain", "A pumped gain medium crossed once (1-D or spatial).").DocAt("reference/gain.md").Include("gainCommon")
+                .P("ghosts", ParamType.Any, "", "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections)", "false"));
             add(new ComponentSpec("element", "amplifier", "Multipass or regenerative amplifier around one gain medium (1-D).").DocAt("reference/gain.md#the-amplifier-element").Include("gainCommon")
+                .P("ghosts", ParamType.Any, "", "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections)", "false")
                 .Enum("geometry", new[] { "multipass", "regenerative" }, "Amplifier type", "multipass")
                 .Int("passes", "Passes (multipass)", "4").Obj("betweenPasses", "loss, gddFs2, todFs3, materials", "betweenPasses")
                 .P("roundTrips", ParamType.Any, "", "Round trips (regenerative) or \"auto\" (eject at the maximum)", "\"auto\"")

@@ -405,5 +405,29 @@ namespace UltrafastEngine.Tests
             double rr = prof.Basis.Radius[mh];
             Assert.Close(Math.Exp(-2 * rr * rr / (w * w)), Rot(mh) / Rot(m0), 0.04, 0, "rotation follows the local intensity");
         }
+
+        [Test]
+        public void Ghosts_OfBulkCrystalAndLensEndFaces()
+        {
+            // a 20 mm YAG rod (Fresnel ghost), an AR-coated BBO crystal and a thick lens: delay 2 n_g L / c, level R^2
+            var sys = SysWith(null,
+                O("id", "rod", "type", "bulk", "material", "YAG", "lengthM", 0.02, "ghosts", true),
+                O("id", "bbo", "type", "crystal", "crystal", "BBO", "lengthM", 2e-3, "interaction", O("process", "shg", "type", "I"), "beam", O("kind", "constant", "radiusM", 1e-3),
+                  "ghosts", O("frontReflectance", 0.002, "backReflectance", 0.002)),
+                O("id", "lens", "type", "lens", "focalLengthM", 0.5, "material", "FusedSilica", "thicknessM", 5e-3, "ghosts", true));
+            var r = GoJ(sys, Run(Gauss(Lam, 200e-15, 1e-9)));
+            var rod = r.Records.First(x => x.Id == "rod").Notes.First(n => n.StartsWith("ghost of the end faces"));
+            var yag = Materials.MaterialLibrary.BuiltIn("YAG"); double w0 = 2 * Math.PI * 299792458.0 / Lam, n0 = yag.IndexAt(w0);
+            double R = Math.Pow((n0 - 1) / (n0 + 1), 2), ng = yag.GroupIndexAt(w0);
+            Assert.True(rod.Contains((R * R).ToString("G3", System.Globalization.CultureInfo.InvariantCulture)), "rod ghost level R^2 in the note: " + rod);
+            Assert.True(rod.Contains((2 * ng * 0.02 / 299792458.0 * 1e12).ToString("G4", System.Globalization.CultureInfo.InvariantCulture)), "rod ghost delay 2 n_g L / c: " + rod);
+            var bbo = r.Records.First(x => x.Id == "bbo").Notes.First(n => n.StartsWith("ghost of the end faces"));
+            Assert.True(bbo.Contains("4E-06") || bbo.Contains("4e-06"), "AR-coated crystal: 0.002^2: " + bbo);
+            Assert.True(r.Records.First(x => x.Id == "lens").Notes.Any(n => n.StartsWith("ghost of the end faces")), "lens ghost");
+            // the ghost is in the field: a contrast measurement sees the rod's post-pulse at its delay
+            var r2 = GoJ(SysWith(null, O("id", "rod", "type", "bulk", "material", "YAG", "lengthM", 0.02, "ghosts", true)),
+                Run(Gauss(Lam, 200e-15, 1e-9), O("instruments", A(O("kind", "contrast", "name", "c")))));
+            Assert.Close(10 * Math.Log10(R * R), r2.Instruments[0].Values["postPulseContrastDb"].AsDouble(), 0.02, 0, "post-pulse level");
+        }
     }
 }

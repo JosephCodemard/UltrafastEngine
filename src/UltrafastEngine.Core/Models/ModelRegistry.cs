@@ -179,6 +179,9 @@ namespace UltrafastEngine.Models
             // ---- delayed (Raman) response
             r.Register<IDelayedResponse>("delayedResponse", "none", (s, _) => null);
             r.Register<IDelayedResponse>("delayedResponse", "silica", (s, _) => new DampedOscillatorResponse(12.2e-15, 32e-15));
+            r.Register<IDelayedResponse>("delayedResponse", "blowWood", (s, _) => new DampedOscillatorResponse(12.2e-15, 32e-15));
+            r.Register<IDelayedResponse>("delayedResponse", "linAgrawal", (s, _) => new LinAgrawalRamanResponse(s.GetDouble("tau1", 12.2e-15), s.GetDouble("tau2", 32e-15), s.GetDouble("taub", 96e-15), s.GetDouble("fa", 0.75), s.GetDouble("fb", 0.21), s.GetDouble("fc", 0.04)));
+            r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => new HollenbeckCantrellRamanResponse());
             r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")));
             r.Register<IDelayedResponse>("delayedResponse", "expression", (s, _) =>
             {

@@ -34,7 +34,7 @@ namespace UltrafastEngine.Zemax
                --opticstudio <install dir>      if the installation is not found automatically
 
 The system file can then be run anywhere (Windows/macOS/Linux):  ultrafast run system.ufs run.json -o out
-Docs: docs/zemax.md";
+Docs: docs/plugins/zemax.md";
 
         private static int Main(string[] args)
         {

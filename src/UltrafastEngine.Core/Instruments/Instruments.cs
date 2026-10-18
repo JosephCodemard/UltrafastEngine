@@ -33,6 +33,8 @@ namespace UltrafastEngine.Instruments
         public JsonObject Values { get; } = new JsonObject();
         public List<NdArray> Arrays { get; } = new List<NdArray>();
         public List<string> Notes { get; } = new List<string>();
+        /// <summary>The device parameters in effect (given or default): written as "settings" in summary.json.</summary>
+        public JsonObject Settings { get; set; }
 
         public void Add(string suffix, double[] data, string unit, string description, params int[] shape)
         {
@@ -43,6 +45,7 @@ namespace UltrafastEngine.Instruments
         {
             var o = new JsonObject().Set("name", Name).Set("kind", Kind).Set("at", Location).Set("values", Values)
                 .Set("arrays", JsonValue.FromArray(Arrays.Select(a => a.Name)));
+            if (Settings != null) o.Set("settings", Settings);
             if (Notes.Count > 0) o.Set("notes", JsonValue.FromArray(Notes));
             return o;
         }
@@ -222,6 +225,19 @@ namespace UltrafastEngine.Instruments
             return y[i - 1] + (v - x[i - 1]) / (x[i] - x[i - 1]) * (y[i] - y[i - 1]);
         }
 
+        /// <summary>"normalize": "peak" | "area" | "none", or the legacy true (peak) / false (none).</summary>
+        public static string NormalizeMode(JsonObject s, string fallback)
+        {
+            if (!s.TryGet("normalize", out var v)) return fallback;
+            if (v.Kind == JsonKind.Bool) return v.AsBool() ? "peak" : "none";
+            string m = v.AsString().Trim().ToLowerInvariant();
+            if (m == "max" || m == "true") return "peak";
+            if (m == "integral" || m == "sum") return "area";
+            if (m == "false" || m == "off" || m == "raw") return "none";
+            if (m != "peak" && m != "area" && m != "none") throw new JsonException("spectrometer \"normalize\": \"" + m + "\" (use \"peak\", \"area\" or \"none\")");
+            return m;
+        }
+
         public static void Put(InstrumentOutput o, string key, double v) => o.Values.Set(key, double.IsNaN(v) || double.IsInfinity(v) ? JsonValue.Null : (JsonValue)v);
     }
 
@@ -297,11 +313,20 @@ namespace UltrafastEngine.Instruments
             double dl = lam[1] - lam[0];
             y = Tools.GaussianSmooth(y, dl, Math.Max(res, 0));
             double mx = y.Max();
-            bool norm = s.GetBool("normalize", true);
-            var yn = norm && mx > 0 ? y.Select(v => v / mx).ToArray() : y;
+            // wavelength calibration error of the instrument (the reported axis is shifted)
+            double lamOffset = s.GetDouble("wavelengthOffsetM", 0);
+            if (lamOffset != 0) for (int i = 0; i < pts; i++) lam[i] += lamOffset;
+            string norm = Tools.NormalizeMode(s, "peak");
+            double area = 0; for (int i = 1; i < pts; i++) area += 0.5 * (y[i] + y[i - 1]) * (lam[i] - lam[i - 1]);
+            double energy = 0; for (int i = 0; i < g.N; i++) energy += sp[i]; energy *= g.DTime / g.N;
+            double scale = norm == "peak" ? (mx > 0 ? 1 / mx : 1) : norm == "area" ? (area > 0 ? 1 / area : 1) : (area > 0 ? energy / area : 1);
+            var yn = y.Select(v => v * scale).ToArray();
             o.Add("wavelength_m", lam, "m", "wavelength axis");
-            o.Add("spectrum", yn, norm ? "norm." : "arb.", "measured spectrum per unit wavelength");
-            if (s.GetBool("db", false)) o.Add("spectrum_db", yn.Select(v => 10 * Math.Log10(Math.Max(v / (norm ? 1 : mx), 1e-30))).ToArray(), "dB", "measured spectrum, dB");
+            o.Add("spectrum", yn, norm == "peak" ? "norm." : norm == "area" ? "1/m" : "J/m",
+                "measured spectrum per unit wavelength (" + (norm == "peak" ? "peak = 1" : norm == "area" ? "area = 1" : "spectral energy density") + ")");
+            if (s.GetBool("db", false)) o.Add("spectrum_db", y.Select(v => 10 * Math.Log10(Math.Max(v / Math.Max(mx, 1e-300), 1e-30))).ToArray(), "dB", "measured spectrum relative to its peak, dB");
+            o.Values.Set("normalize", norm);
+            Tools.Put(o, "energyJ", energy);
             Tools.Put(o, "peakWavelengthM", lam[Array.IndexOf(y, mx)]);
             var (m, rms) = PulseMetrics.Moments(lam, y);
             Tools.Put(o, "centroidWavelengthM", m);
@@ -349,13 +374,39 @@ namespace UltrafastEngine.Instruments
             if (note != null) o.Notes.Add(note);
             var g = p.Grid; int n = g.N;
             var pt = PulseMetrics.TemporalPower(p);
-            if (!type.StartsWith("interf") && type != "iac" && type != "frac")
+            double accM = s.GetDouble("shgAcceptanceFwhmM", 0), resS = s.GetDouble("resolutionS", 0);
+            if (!type.StartsWith("interf") && type != "iac" && type != "frac" && accM > 0)
+            {
+                // finite SHG bandwidth: integrate the SHG-FROG signal over the crystal's acceptance window
+                int m = Math.Min(Tools.GridPow2(Math.Max(64, s.GetInt("acceptancePoints", 512))), 1024);
+                var ax = p.TemporalAx();
+                double win = g.N * g.DTime, dtm = win / m;
+                var gm = FrequencyGrid.Create(m, dtm, g.OmegaCenter);
+                var e = new Complex[m];
+                for (int i = 0; i < m; i++) { double f = (gm.Time[i] - g.Time[0]) / g.DTime; int k = (int)Math.Floor(f); double u = f - k; if (k >= 0 && k < n - 1) e[i] = ax[k] * (1 - u) + ax[k + 1] * u; }
+                var tr = Frog.Trace(e, "shg", m);
+                var omg = gm.OmegaOffset.Select(x => x + 2 * g.OmegaCenter).ToArray();
+                Frog.ApplySpectralResponse(tr, m, m, omg, s, true, o, "spectralResolutionM");
+                var ac = new double[m];
+                for (int d = 0; d < m; d++) for (int k = 0; k < m; k++) ac[d] += tr[d * m + k];
+                ac = Tools.GaussianSmooth(ac, dtm, resS);
+                double mx = ac.Max(); for (int i = 0; i < m; i++) ac[i] /= Math.Max(mx, 1e-300);
+                var tau = gm.Time.ToArray();
+                o.Add("delay_s", tau, "s", "delay"); o.Add("signal", ac, "norm.", "intensity autocorrelation (finite SHG acceptance)");
+                double fw = PulseMetrics.Fwhm(tau, ac);
+                Tools.Put(o, "acFwhmS", fw);
+                Tools.Put(o, "pulseFwhmGaussianS", fw / Math.Sqrt(2));
+                Tools.Put(o, "pulseFwhmSech2S", fw / 1.5427);
+                if (resS > 0) Tools.Put(o, "resolutionS", resS);
+            }
+            else if (!type.StartsWith("interf") && type != "iac" && type != "frac")
             {
                 // G2(tau) = int I(t) I(t - tau) dt via FFT (circular; the compact grid is padded)
                 var c = new Complex[n]; for (int i = 0; i < n; i++) c[i] = pt[i];
                 var f = SpectralTransform.TimeToFreq(c);
                 for (int i = 0; i < n; i++) f[i] = f[i] * Complex.Conjugate(f[i]);
                 var ac = SpectralTransform.FreqToTime(f).Select(z => z.Real).ToArray();
+                if (resS > 0) { ac = Tools.GaussianSmooth(ac, g.DTime, resS); Tools.Put(o, "resolutionS", resS); }   // delay resolution of the scan
                 double mx = ac.Max(); for (int i = 0; i < n; i++) ac[i] /= mx;
                 var (lo, hi) = PulseMetrics.SupportRange(ac, 1e-6, 8);
                 var tau = Engine.Executor.Crop(g.Time, lo, hi, 0); var y = Engine.Executor.Crop(ac, lo, hi, 0);
@@ -423,6 +474,27 @@ namespace UltrafastEngine.Instruments
                 if (k < 0 || k >= g0.N - 1) continue;
                 e[i] = (a0[k] * (1 - u) + a0[k + 1] * u) + (b0[k] * (1 - u) + b0[k + 1] * u) * 0; // x polarisation (FROG uses one polarisation)
             }
+            var trace = Trace(e, type, m);
+            var delays = g.Time.ToArray();
+            double wc = type == "shg" ? 2 * g.OmegaCenter : g.OmegaCenter;
+            var omg = g.OmegaOffset.Select(x => x + wc).ToArray();
+            ApplySpectralResponse(trace, m, m, omg, s, type == "shg", o, "spectralResolutionM");
+            double mx = trace.Max(); if (mx > 0) for (int i = 0; i < trace.Length; i++) trace[i] /= mx;
+            o.Add("delay_s", delays, "s", "delay axis (rows)");
+            o.Add("omega_rad_s", omg, "rad/s", "signal angular frequency (columns)");
+            o.Add("wavelength_m", omg.Select(x => x > 0 ? 2 * Math.PI * Tools.C / x : double.NaN).ToArray(), "m", "signal wavelength (columns)");
+            o.Add("trace", trace, "norm.", (type == "shg" ? "SHG" : "PG") + "-FROG trace [delay, frequency]", m, m);
+            // marginals
+            var dm = new double[m]; var fm = new double[m];
+            for (int d = 0; d < m; d++) for (int k = 0; k < m; k++) { dm[d] += trace[d * m + k]; fm[k] += trace[d * m + k]; }
+            o.Add("delay_marginal", dm, "arb.", "delay marginal"); o.Add("frequency_marginal", fm, "arb.", "frequency marginal");
+            Tools.Put(o, "delayMarginalFwhmS", PulseMetrics.Fwhm(delays, dm));
+            Tools.Put(o, "delayStepS", dt);
+        }
+
+        /// <summary>The FROG signal |FT[E(t) G(t - tau)]|^2 on an m x m grid (rows: delay, columns: frequency offset).</summary>
+        internal static double[] Trace(Complex[] e, string type, int m)
+        {
             var trace = new double[m * m];
             var row = new Complex[m];
             for (int d = 0; d < m; d++)
@@ -437,20 +509,43 @@ namespace UltrafastEngine.Instruments
                 var f = SpectralTransform.TimeToFreq(row);
                 for (int k = 0; k < m; k++) trace[d * m + k] = f[k].Real * f[k].Real + f[k].Imaginary * f[k].Imaginary;
             }
-            double mx = trace.Max(); if (mx > 0) for (int i = 0; i < trace.Length; i++) trace[i] /= mx;
-            var delays = g.Time.ToArray();
-            double wc = type == "shg" ? 2 * g.OmegaCenter : g.OmegaCenter;
-            var omg = g.OmegaOffset.Select(x => x + wc).ToArray();
-            o.Add("delay_s", delays, "s", "delay axis (rows)");
-            o.Add("omega_rad_s", omg, "rad/s", "signal angular frequency (columns)");
-            o.Add("wavelength_m", omg.Select(x => x > 0 ? 2 * Math.PI * Tools.C / x : double.NaN).ToArray(), "m", "signal wavelength (columns)");
-            o.Add("trace", trace, "norm.", (type == "shg" ? "SHG" : "PG") + "-FROG trace [delay, frequency]", m, m);
-            // marginals
-            var dm = new double[m]; var fm = new double[m];
-            for (int d = 0; d < m; d++) for (int k = 0; k < m; k++) { dm[d] += trace[d * m + k]; fm[k] += trace[d * m + k]; }
-            o.Add("delay_marginal", dm, "arb.", "delay marginal"); o.Add("frequency_marginal", fm, "arb.", "frequency marginal");
-            Tools.Put(o, "delayMarginalFwhmS", PulseMetrics.Fwhm(delays, dm));
-            Tools.Put(o, "delayStepS", dt);
+            return trace;
+        }
+
+        /// <summary>Phase-matching acceptance of the SHG crystal ("shgAcceptanceFwhmM": FWHM of the SH wavelength
+        /// window) and the resolution of the spectrometer (<paramref name="resolutionKey"/>: Gaussian FWHM in
+        /// wavelength at the signal) applied to a [rows x cols] trace whose columns are at absolute frequencies
+        /// <paramref name="omega"/> (ascending, uniform).</summary>
+        internal static void ApplySpectralResponse(double[] trace, int rows, int cols, double[] omega, JsonObject s, bool shg, InstrumentOutput o, string resolutionKey)
+        {
+            double acc = s.GetDouble("shgAcceptanceFwhmM", 0), res = s.GetDouble(resolutionKey, 0);
+            int kc = cols / 2; double wc = omega[kc]; double lc = 2 * Math.PI * Tools.C / wc;
+            if (acc > 0)
+            {
+                if (!shg) o.Notes.Add("shgAcceptanceFwhmM ignored: no SHG crystal in this geometry");
+                else
+                {
+                    double dwAcc = 2 * Math.PI * Tools.C * acc / (lc * lc);
+                    for (int k = 0; k < cols; k++)
+                    {
+                        double x = (omega[k] - wc) / dwAcc, h = Math.Exp(-4 * Math.Log(2) * x * x);
+                        for (int r = 0; r < rows; r++) trace[r * cols + k] *= h;
+                    }
+                    Tools.Put(o, "shgAcceptanceFwhmM", acc);
+                }
+            }
+            if (res > 0 && cols > 1)
+            {
+                double dw = omega[1] - omega[0], fwW = 2 * Math.PI * Tools.C * res / (lc * lc);
+                var row = new double[cols];
+                for (int r = 0; r < rows; r++)
+                {
+                    Array.Copy(trace, r * cols, row, 0, cols);
+                    var sm = Tools.GaussianSmooth(row, dw, fwW);
+                    Array.Copy(sm, 0, trace, r * cols, cols);
+                }
+                Tools.Put(o, resolutionKey, res);
+            }
         }
     }
 
@@ -509,6 +604,7 @@ namespace UltrafastEngine.Instruments
                 }
                 peak[k] = tot;
             }
+            ApplyResponse(trace, steps, cols, shgOmega, s, o, peak);
             double mx = trace.Max(); if (mx > 0) for (int i = 0; i < trace.Length; i++) trace[i] /= mx;
             o.Add(glass ? "insertion_m" : "gdd_s2", x, glass ? "m" : "s^2", "scan axis (rows)");
             o.Add("shg_wavelength_m", shgOmega.Select(w => 2 * Math.PI * Tools.C / w).ToArray(), "m", "SHG wavelength (columns)");
@@ -521,6 +617,13 @@ namespace UltrafastEngine.Instruments
             int bestT = Enumerable.Range(0, steps).Where(i => !double.IsNaN(fwhm[i])).OrderBy(i => fwhm[i]).FirstOrDefault();
             Tools.Put(o, "shortestFwhmS", fwhm[bestT]);
             if (glass) o.Values.Set("material", mat.Name);
+        }
+
+        private static void ApplyResponse(double[] trace, int steps, int cols, double[] shgOmega, JsonObject s, InstrumentOutput o, double[] total)
+        {
+            if (!(s.GetDouble("shgAcceptanceFwhmM", 0) > 0) && !(s.GetDouble("spectralResolutionM", 0) > 0)) return;
+            Frog.ApplySpectralResponse(trace, steps, cols, shgOmega, s, true, o, "spectralResolutionM");
+            for (int k = 0; k < steps; k++) { double t = 0; for (int c = 0; c < cols; c++) t += trace[k * cols + c]; total[k] = t; }
         }
     }
 
@@ -568,8 +671,10 @@ namespace UltrafastEngine.Instruments
         {
             var p = ctx.Pulse; var g = p.Grid;
             var sum = PulseMetrics.Summarize(p);
-            Tools.Put(o, "s1", sum.S1); Tools.Put(o, "s2", sum.S2); Tools.Put(o, "s3", sum.S3);
-            Tools.Put(o, "degreeOfPolarization", sum.PolarizationDegree);
+            // finite extinction ratio of the analysers: every measured Stokes component is scaled by (1 - e) / (1 + e)
+            double ext = ctx.Spec.GetDouble("extinctionRatio", 0), kext = (1 - ext) / (1 + ext);
+            Tools.Put(o, "s1", kext * sum.S1); Tools.Put(o, "s2", kext * sum.S2); Tools.Put(o, "s3", kext * sum.S3);
+            Tools.Put(o, "degreeOfPolarization", kext * sum.PolarizationDegree);
             Tools.Put(o, "azimuthDeg", 0.5 * Math.Atan2(sum.S2, sum.S1) * 180 / Math.PI);
             double chi = 0.5 * Math.Asin(Math.Max(-1, Math.Min(1, sum.S3 / Math.Max(1e-300, sum.PolarizationDegree))));
             Tools.Put(o, "ellipticityAngleDeg", chi * 180 / Math.PI);

@@ -6,6 +6,15 @@ instruments[]`, arrays to `result.npz` (prefixed with the instrument's `name`) a
 Example 17 (`docs/examples/17-instrument-tour`) uses every kind once. Every option of every instrument is listed in the
 [option reference](options.md#instruments).
 
+**Every instrument is a device model.** Its parameters (resolution, range, sampling, acceptance, detector) are
+declared with units and defaults, and every output carries a `settings` block with the value of each parameter that
+was used -- given or default -- so a results file says exactly which instrument it describes:
+
+```jsonc
+"instruments": [ { "name": "spec", "kind": "spectrometer", "values": { "fwhmM": 1.1e-8, ... },
+                   "settings": { "resolutionM": 2e-10, "points": 2048, "normalize": "peak", "rangeM": "default: the spectrum's support", ... } } ]
+```
+
 **Several of the same.** Instruments can be repeated anywhere, also several of the same kind at one place. Give
 each a `name`; a repeated or missing name is made unique (`spectrometer_plate`, `spectrometer_plate_2`, ...), with a
 warning when a name you gave is used twice.
@@ -13,13 +22,13 @@ warning when a name you gave is used twice.
 | kind | parameters | reports |
 |---|---|---|
 | `energyMeter` (`powerMeter`) | `rangeM` [min, max], `polarizerDeg`, `repRateHz` | energyJ, averagePowerW, transmissionFromInput |
-| `spectrometer` | `resolutionM` (Gaussian FWHM), `rangeM`, `points`, `polarizerDeg`, `normalize`, `db` | spectrum vs wavelength; peak, centroid, FWHM, RMS and -10 dB widths |
+| `spectrometer` | `resolutionM` (Gaussian FWHM), `rangeM`, `points`, `polarizerDeg`, `normalize` (`peak` / `area` / `none` = J/m), `db`, `wavelengthOffsetM` | spectrum vs wavelength; peak, centroid, FWHM, RMS and -10 dB widths |
 | `scope` (`photodiode`) | `riseTimeS` or `bandwidthHz`, `points` | detected power vs time (impulse-response limited), FWHM, peak |
-| `autocorrelator` | `type`: `intensity` (default) or `interferometric`; `rangeS`, `points` | trace; AC FWHM and deconvolved FWHM (Gaussian sqrt2, sech^2 1.543); IAC peak-to-background (8:1) |
-| `frog` | `type`: `shg` (default) or `pg`; `points` (default 256) | trace [delay, frequency], axes, marginals |
-| `dscan` | `material` + `insertionM` [min, max], or `gddRangeS2` [min, max]; `steps` | SHG trace vs insertion/GDD, integrated SHG, FWHM vs scan, optimum |
+| `autocorrelator` | `type`: `intensity` (default) or `interferometric`; `rangeS`, `points`, `resolutionS` (delay resolution), `shgAcceptanceFwhmM` (crystal bandwidth) | trace; AC FWHM and deconvolved FWHM (Gaussian sqrt2, sech^2 1.543); IAC peak-to-background (8:1) |
+| `frog` | `type`: `shg` (default) or `pg`; `points` (default 256), `spectralResolutionM`, `shgAcceptanceFwhmM` | trace [delay, frequency], axes, marginals |
+| `dscan` | `material` + `insertionM` [min, max], or `gddRangeS2` [min, max]; `steps`, `spectralResolutionM`, `shgAcceptanceFwhmM` | SHG trace vs insertion/GDD, integrated SHG, FWHM vs scan, optimum |
 | `contrast` | `resolutionS`, `windowS`, `dynamicRangeDb` | intensity in dB; pre/post-pulse contrast; pedestal energy fraction |
-| `polarimeter` | `points` | Stokes s1, s2, s3 (integrated and vs wavelength), degree of polarisation, azimuth, ellipticity |
+| `polarimeter` | `points`, `extinctionRatio` | Stokes s1, s2, s3 (integrated and vs wavelength), degree of polarisation, azimuth, ellipticity |
 | `pulseSummary` | | every scalar pulse metric (see results.md) |
 | `compressor` | `optimizeTod` (true), `maxN` | ideal compressor: the GDD/TOD that maximises peak power, compressed FWHM, Strehl |
 | `conversion` | `at`: an active element (crystal) | energy and photon number of the main output and every by-product, aux energy in, efficiencies (vs input, vs all energy in), by-product centroids |
@@ -30,6 +39,49 @@ warning when a name you gave is used twice.
 
 <!-- anchors for links from the generated option reference -->
 <span id="autocorrelator"></span><span id="beamprofile"></span><span id="compressor"></span><span id="contrast"></span><span id="conversion"></span><span id="delayscan"></span><span id="dscan"></span><span id="energymeter"></span><span id="frog"></span><span id="phasematchingcurve"></span><span id="polarimeter"></span><span id="pulsesummary"></span><span id="scope"></span><span id="spectrometer"></span><span id="wavefrontsensor"></span>
+
+## Parameters every instrument shares
+
+| key | what it does |
+|---|---|
+| `at`, `name` | where the instrument sits, and its name in the results |
+| `sampling` | what part of the beam it sees: near / far field, pinhole, fibre, slit ([below](#sampling-where-the-instrument-looks)) |
+| `filter` | a spectral filter model in front of it -- optics, a band-pass, the detector's spectral response; applied to the field before it is measured (any [filter model](models.md#kinds-per-category): `constant`, `table`, `gaussian`, `expression`, `callback`) |
+| `detector` | the read-out of the recorded trace ([below](#detector-model)) |
+| `measured` | your recording, for comparison and calibration (fitting plugin) |
+
+### Detector model
+
+```jsonc
+{ "kind": "spectrometer", "resolutionM": 0.2e-9,
+  "filter": { "kind": "table", "wavelengthsM": [900e-9, 1100e-9], "transmission": [0.6, 0.9] },      // grating + detector response
+  "detector": { "calibration": 1.0, "noise": 0.01, "dynamicRangeDb": 40, "bitDepth": 12, "seed": 1 } }
+```
+
+| `detector` key | meaning |
+|---|---|
+| `calibration` | reading / true value (e.g. 1.03 for a power meter reading 3 % high) |
+| `noise` | multiplicative noise, relative rms |
+| `noiseFloor` or `dynamicRangeDb` | additive noise rms relative to the trace peak |
+| `bitDepth` | ADC quantisation, full scale at the trace maximum |
+| `seed` | random seed: the same seed gives the same noise |
+
+It acts on the recorded arrays and readings of the spectrometer, scope, autocorrelator, FROG, d-scan and energy
+meter, and the width and peak readings (FWHM, centroid, peak) are then re-evaluated on the detected trace. Cameras
+(`sensor`) and the cross-correlator have detector models of their own. Leave the detector out when you fit a model to
+measured data: the recording has the noise, the model should not.
+
+### Resolution and acceptance
+
+* **Spectrometers** (`resolutionM`, FROG and d-scan `spectralResolutionM`): Gaussian instrument function of the given
+  FWHM in wavelength.
+* **SHG crystals** (`shgAcceptanceFwhmM` on autocorrelator, FROG, d-scan, cross-correlator): the phase-matching window
+  of the doubling crystal, as a Gaussian of the given FWHM in SH wavelength, applied to the sum-frequency signal. In a
+  FROG it narrows the frequency marginal; an intensity autocorrelation of a Gaussian pulse with linear chirp keeps its
+  shape (only the signal drops) -- check the FROG or d-scan when the crystal may be too thick.
+* **Delay** (`resolutionS` on autocorrelator, contrast, cross-correlator): Gaussian smoothing along delay.
+* **Detection bandwidth** (scope `riseTimeS` / `bandwidthHz`).
+* **Polarisers** (polarimeter `extinctionRatio`, analyser `polarizerDeg` on spectrometers and energy meters).
 
 ## crossCorrelator
 

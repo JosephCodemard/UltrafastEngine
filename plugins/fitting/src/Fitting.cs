@@ -83,7 +83,7 @@ namespace UltrafastEngine.Plugins.Fitting
     }
 
     /// <summary>
-    /// Calibration ("fit" in the run spec, docs/measurements.md): finds the parameter values that make the simulated
+    /// Calibration ("fit" in the run spec, docs/plugins/fitting.md): finds the parameter values that make the simulated
     /// instruments agree with the recorded ones (weighted least squares, Levenberg-Marquardt with bounds and
     /// finite-difference derivatives), then reports uncertainties, correlations and identifiability, and predicts
     /// every instrument and element -- measured or not, upstream or downstream -- with 1-sigma error bars.

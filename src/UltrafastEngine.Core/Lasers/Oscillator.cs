@@ -140,7 +140,7 @@ namespace UltrafastEngine.Lasers
         public double FluenceSaturationEnergy(double omega) => S.Medium.SaturationFluence(omega) * ModeAreaM2 / Passes;
     }
 
-    /// <summary>Everything an oscillator was configured with (docs/oscillators.md).</summary>
+    /// <summary>Everything an oscillator was configured with (docs/reference/oscillators.md).</summary>
     public sealed class OscillatorSetup
     {
         public string Id, Model = "haus", Start = "noise";

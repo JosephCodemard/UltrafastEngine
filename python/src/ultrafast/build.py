@@ -1,7 +1,7 @@
 # mypy: disable-error-code="return-value"
 """Helpers to write system files and run specs from Python (plain dicts, so they can be inspected,
 edited, saved with :func:`save` and versioned). Every helper simply returns the JSON the engine reads;
-see docs/system-file.md and docs/run-spec.md for all fields.
+see docs/reference/system-file.md and docs/reference/run-spec.md for all fields.
 
 >>> from ultrafast import build as b
 >>> sysd = b.system("plate", [b.bulk("plate", "FusedSilica", 5e-3, beam=b.gaussian_beam(100e-6, 2.5e-3))])
@@ -48,6 +48,17 @@ def bulk(id: str, material: str, length_m: float, beam: Optional[Mapping[str, An
     return _clean({"id": id, "type": "bulk", "material": material, "lengthM": length_m, "beam": beam, "nonlinear": nonlinear, **extra})
 
 
+def fiber(id: str, length_m: float, betas: Optional[Sequence[float]] = None, gamma: Any = None, *,
+          betas_ps_km: Optional[Sequence[float]] = None, loss_db_per_km: Optional[float] = None, gain_db_per_m: Optional[float] = None,
+          raman: Any = None, **extra) -> "T.FiberElement":
+    """Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (or ``betas_ps_km``
+    in ps^k/km), ``gamma`` in 1/(W m) (or an expression in z), loss, gain, ``raman`` = "silica" | "linAgrawal" |
+    "hollenbeck" | "none". ``extra``: ``dispersion``, ``material``, ``n2``, ``effectiveAreaM2``, ``gain`` (spectrum), ..."""
+    return _clean({"id": id, "type": "fiber", "lengthM": length_m, "betas": list(betas) if betas is not None else None,
+                   "betasPsKm": list(betas_ps_km) if betas_ps_km is not None else None, "gamma": gamma,
+                   "lossDbPerKm": loss_db_per_km, "gainDbPerM": gain_db_per_m, "raman": raman, **extra})
+
+
 def gap(id: str, length_m: float, medium: str = "Air", **extra) -> "T.GapElement":
     return _clean({"id": id, "type": "gap", "material": medium, "lengthM": length_m, **extra})
 
@@ -72,7 +83,7 @@ def grating_pair(id: str, lines_per_mm: float, aoi_deg: float, separation_m: flo
 
 def chirped_mirror(id: str, gdd_s2: float, bounces: int = 1, reflectance: float = 0.999, tod_s3: float = 0.0, **extra) -> "T.ChirpedMirrorElement":
     """Dispersive mirror (GDD/TOD per bounce). ``extra``: e.g. ``rippleGddFs2=30, ripplePeriodNm=25, complementaryPairs=True``."""
-    return {"id": id, "type": "chirpedMirror", "gddS2": gdd_s2, "todS3": tod_s3, "bounces": bounces, "reflectance": reflectance, **extra}
+    return _clean({"id": id, "type": "chirpedMirror", "gddS2": gdd_s2, "todS3": tod_s3, "bounces": bounces, "reflectance": reflectance, **extra})
 
 
 def aperture(id: str, radius_m: float, beam_radius_m: float) -> "T.ApertureElement":
@@ -181,7 +192,7 @@ def crystal(id: str, crystal: Any, length_m: float, process: str = "shg", type: 
             main_role: Optional[str] = None, record: Optional[list] = None, beam: Optional[Mapping[str, Any]] = None,
             transverse: Optional[Mapping[str, Any]] = None, deff_pm_per_v: Optional[float] = None, seed_noise: Optional[bool] = None,
             temperature_c: Optional[float] = None, overlap: Any = None, chi3: Optional[bool] = None, **extra) -> "T.CrystalElement":
-    """A chi(2) crystal element (docs/crystals.md).
+    """A chi(2) crystal element (docs/reference/crystals.md).
 
     ``cut`` = "auto" (phase matched at the nominal wavelengths) or {"thetaDeg": .., "phiDeg": ..}; ``noncollinear`` in
     degrees or "magic"; ``qpm`` = True / a period in m / {"periodM": .., "model": "averaged"|"domains", "phaseDeg": ..};
@@ -195,7 +206,7 @@ def crystal(id: str, crystal: Any, length_m: float, process: str = "shg", type: 
                    "temperatureC": temperature_c, "overlap": overlap, "chi3": chi3, **extra})
 
 
-# gain media (docs/gain.md)
+# gain media (docs/reference/gain.md)
 def pump(kind: str = "cw", wavelength_m: float = 940e-9, radius_m: float = 0.5e-3, power_w: Optional[float] = None,
          energy_j: Optional[float] = None, profile: str = "tophat", order: Optional[int] = None, passes: int = 1,
          delay_s: Optional[float] = None) -> dict:
@@ -208,7 +219,7 @@ def pump(kind: str = "cw", wavelength_m: float = 940e-9, radius_m: float = 0.5e-
 def gain(id: str, medium: Any, length_m: float, pump: Optional[Mapping[str, Any]] = None, inversion: Optional[Mapping[str, Any]] = None,
          beam: Optional[Mapping[str, Any]] = None, mode_radius_m: Optional[float] = None, transverse: Optional[Mapping[str, Any]] = None,
          thermal_lens: Any = None, slices: Optional[int] = None, steady_state: Any = None, **extra) -> "T.GainElement":
-    """A pumped gain medium crossed once (docs/gain.md). ``medium`` = "Yb:YAG" | "Ti:sapphire" | "Nd:YAG" or a
+    """A pumped gain medium crossed once (docs/reference/gain.md). ``medium`` = "Yb:YAG" | "Ti:sapphire" | "Nd:YAG" or a
     gain-medium object ({"base": "Yb:YAG", "dopingDensityM3": ...} or a full definition); ``inversion`` =
     {"fraction": b} or {"smallSignalGain": G} instead of / on top of a pump; ``transverse`` for spatial gain."""
     return _clean({"id": id, "type": "gain", "medium": medium, "lengthM": length_m, "pump": pump, "inversion": inversion,
@@ -235,7 +246,7 @@ def regenerative_amplifier(id: str, medium: Any, length_m: float, round_trips: A
                    "inversion": inversion, "passesPerRoundTrip": passes_per_round_trip, **extra})
 
 
-# lasers (docs/oscillators.md; ultrafast.laser.Oscillator builds whole oscillators)
+# lasers (docs/reference/oscillators.md; ultrafast.laser.Oscillator builds whole oscillators)
 def saturable_absorber(id: str, kind: str = "slow", modulation_depth: float = 0.02, nonsaturable_loss: float = 0.0,
                        recovery_time_s: Optional[float] = None, saturation_fluence_j_per_m2: Optional[float] = None,
                        spot_radius_m: Optional[float] = None, saturation_energy_j: Optional[float] = None,
@@ -327,7 +338,7 @@ def run_spec(pulse: Mapping[str, Any], name: str = "run", grid: Optional[Mapping
 def sampling(plane: str = "near", aperture: str = "pinhole", radius_m: Optional[float] = None,
              width_m: Optional[float] = None, focal_length_m: Optional[float] = None, center_x_m: Optional[float] = None,
              center_y_m: Optional[float] = None, na: Optional[float] = None, propagate_m: Optional[float] = None) -> dict:
-    """Where an instrument looks (docs/measurements.md): ``plane`` "near" | "far" (focal plane of a lens of
+    """Where an instrument looks (docs/reference/instruments.md): ``plane`` "near" | "far" (focal plane of a lens of
     ``focal_length_m``), ``aperture`` "integrated" | "pinhole" | "iris" | "fibre" | "slit" | "point".
     Use as ``instrument("spectrometer", sampling=sampling("far", "fibre", radius_m=25e-6, focal_length_m=0.1))``."""
     ap = _clean({"kind": aperture, "radiusM": radius_m, "widthM": width_m, "centerXM": center_x_m, "centerYM": center_y_m, "na": na})

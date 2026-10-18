@@ -58,7 +58,7 @@ def _l1(x_ref, y_ref, x, y):
     return np.abs(yi / yi.max() - y / y.max()).sum() / (y / y.max()).sum()
 
 
-@pytest.mark.parametrize("raman,tol", [(False, 0.005), (True, 0.02)])
+@pytest.mark.parametrize("raman,tol", [(False, 0.003), (True, 0.003)])
 def test_higher_order_soliton_matches_pynlo(raman, tol):
     pout, res = _run_both(raman)
     t, p = res["output_time_s"], res["output_power_w"]
@@ -66,3 +66,46 @@ def test_higher_order_soliton_matches_pynlo(raman, tol):
     assert _l1(pout.F_THz * 1e12, np.abs(pout.AW) ** 2, res["output_omega_rad_s"] / (2 * math.pi), res["output_spectrum"]) < tol, "spectrum"
     assert res.summary["output"]["energyJ"] == pytest.approx(pout.calc_epp(), rel=tol / 5)
     assert p.max() == pytest.approx((np.abs(pout.AT) ** 2).max(), rel=tol)
+
+
+def _run_fiber_both(raman: str, gain_per_m: float = 0.0):
+    """The same fibre through pyNLO's SSFM and through the engine's ``fiber`` element (Taylor betas in ps^n/km,
+    gamma, Raman model, flat gain)."""
+    pynlo = _import_pynlo()
+    pulse = pynlo.light.DerivedPulses.SechPulse(power=1, T0_ps=T0 * 1e12, center_wavelength_nm=LAM * 1e9, time_window_ps=10,
+                                                GDD=0, TOD=0, NPTS=2 ** 12, frep_MHz=100, power_is_avg=False)
+    pulse.set_epp(E)
+    fiber = pynlo.media.fibers.fiber.FiberInstance()
+    betas_ps_km = (B2 * 1e27, B3 * 1e39)
+    fiber.generate_fiber(L, center_wl_nm=LAM * 1e9, betas=betas_ps_km, gamma_W_m=GAMMA, gvd_units="ps^n/km", gain=gain_per_m)
+    evol = pynlo.interactions.FourWaveMixing.SSFM.SSFM(local_error=0.0005, USE_SIMPLE_RAMAN=(raman == "silica"), disable_Raman=(raman == "none"),
+                                                       disable_self_steepening=False, suppress_iteration=True)
+    _, _, _, pout = evol.propagate(pulse_in=pulse, fiber=fiber, n_steps=10)
+    el = {"id": "f", "type": "fiber", "lengthM": L, "betasPsKm": list(betas_ps_km), "gamma": GAMMA, "raman": raman}
+    if raman == "linAgrawal":
+        # pyNLO (this commit) writes the oscillator part as tau1/(tau1^2+tau2^2) exp(-t/tau2) sin(t/tau1), with t in ps,
+        # instead of Lin & Agrawal's tau1 (tau1^-2 + tau2^-2) ...: after its final renormalisation the oscillator gets a
+        # unit-dependent weight k = tau1^2 tau2^2 / (tau1^2 + tau2^2)^2 (~0.11 in ps). Reproduce those weights here; the
+        # engine's default "linAgrawal" follows the paper.
+        t1, t2 = 0.0122, 0.032
+        k = t1 ** 2 * t2 ** 2 / (t1 ** 2 + t2 ** 2) ** 2
+        wa, wb = 0.79 * k, 0.21
+        el["raman"] = {"kind": "linAgrawal", "fa": wa / (wa + wb), "fb": wb / (wa + wb), "fc": 0.0, "fR": 0.245}
+    if gain_per_m:
+        el["gainDbPerM"] = gain_per_m * 10 / math.log(10)
+    spec = b.run_spec(b.pulse(LAM, 1.7627 * T0, energy=E, shape="sech2"),
+                      grid={"n": 4096, "windowS": 10e-12, "auto": False, "snapCarrier": False},
+                      physics={"selfSteepening": True, "raman": raman != "none"}, stepper={"tolerance": 1e-8})
+    return pout, uf.run(b.system("fiber", [el]), spec)
+
+
+@pytest.mark.parametrize("raman,gain,tol", [("linAgrawal", 0.0, 0.003), ("silica", 0.0, 0.003), ("none", 30.0, 0.005)])
+def test_fiber_element_matches_pynlo(raman, gain, tol):
+    """fiber element vs pyNLO: Lin-Agrawal ("full") Raman, Blow-Wood Raman, and flat gain (30 /m over 8 mm)."""
+    pout, res = _run_fiber_both(raman, gain)
+    t, p = res["output_time_s"], res["output_power_w"]
+    assert _l1(pout.T_ps * 1e-12, np.abs(pout.AT) ** 2, t, p) < tol, "temporal profile"
+    assert _l1(pout.F_THz * 1e12, np.abs(pout.AW) ** 2, res["output_omega_rad_s"] / (2 * math.pi), res["output_spectrum"]) < tol, "spectrum"
+    assert res.summary["output"]["energyJ"] == pytest.approx(pout.calc_epp(), rel=max(tol / 5, 2e-3))
+    rec = res.summary["elements"][0]["values"]
+    assert rec["solitonNumber"] == pytest.approx(math.sqrt(GAMMA * (E / (2 * T0)) * T0 ** 2 / abs(B2)), rel=0.02)

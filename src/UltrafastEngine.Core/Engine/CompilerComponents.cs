@@ -217,6 +217,71 @@ namespace UltrafastEngine.Engine
             }
         }
 
+        /// <summary>
+        /// Ghost replicas of the two end faces of a bulk element, crystal, gain medium or thick lens (normal incidence):
+        /// the double reflection (back face, then front face) follows the main pulse by 2 n_g L / c with relative field
+        /// r_back r_front exp(i 2 n(w) w L / c). Reflectances default to Fresnel against air; give the coatings' values
+        /// as ghosts.frontReflectance / backReflectance (an AR coating of 0.2 % gives 4e-6 = -54 dB per round trip).
+        /// </summary>
+        private static void AddElementGhosts(Ctx c, SystemElement e, CompiledElement ce, string type)
+        {
+            var gj = e.Json["ghosts"];
+            bool on = gj.Kind == JsonKind.Object || (gj.Kind == JsonKind.Bool && gj.AsBool());
+            var gr = Find(c, e, "ghosts"); if (gr != null) on = gr.RawValue.Kind == JsonKind.Object || gr.RawValue.AsBool();
+            if (!on) return;
+            var go = gj.Kind == JsonKind.Object ? gj.AsObject() : new JsonObject();
+            int orders = Math.Max(1, go.GetInt("orders", 1));
+            // the index of the inside
+            Func<double, double> n;
+            string what;
+            if (go.Has("material")) { var m = GetMaterial(c, go.GetString("material")); n = m.IndexAt; what = m.Name; }
+            else if (type == "bulk" || type == "lens")
+            {
+                string mn = Str(c, e, "material", null) ?? throw new JsonException("ghosts on a " + type + " need its material (or ghosts.material)");
+                var m = GetMaterial(c, mn); n = m.IndexAt; what = m.Name;
+            }
+            else if (type == "crystal")
+            {
+                var cv = e.Json["crystal"];
+                if (cv == null || cv.Kind != JsonKind.String) throw new JsonException("ghosts on a crystal defined inline need ghosts.material");
+                var cm = Crystals.CrystalLibrary.Get(cv.AsString(), e.Json.GetDouble("temperatureC", double.NaN));
+                n = w => { var o = new double[1]; cm.Nx.Evaluate(new[] { w }, o); return o[0]; }; what = cm.Name + " (x / ordinary index)";
+            }
+            else
+            {
+                string host = e.Json.GetString("host");
+                if (host == null && e.Json.Has("medium")) { var gm = Gain.GainMedium.FromJson(e.Json["medium"], c.Reg, "element " + e.Id + ".medium"); host = gm.Host; }
+                var m = GetMaterial(c, host ?? throw new JsonException("ghosts on a gain element need its host (or ghosts.material)")); n = m.IndexAt; what = m.Name;
+            }
+            double L = type == "lens" ? Num(c, e, "thicknessM", 0) : ce.LengthM > 0 ? ce.LengthM : Num(c, e, "lengthM", 0);
+            if (!(L > 0)) throw new JsonException("ghosts on a " + type + " need its length (thicknessM for a lens)");
+            double n0 = n(c.Omega0);
+            double Rf(double nn) => Math.Pow((nn - 1) / (nn + 1), 2);
+            double rFront = go.GetDouble("frontReflectance", double.NaN), rBack = go.GetDouble("backReflectance", double.NaN);
+            Func<double, (Complex, Complex)> rt = w =>
+            {
+                double nw = n(w);
+                if (double.IsNaN(nw)) return (Complex.Zero, Complex.Zero);
+                double rf = Math.Sqrt(double.IsNaN(rFront) ? Rf(nw) : rFront), rb = Math.Sqrt(double.IsNaN(rBack) ? Rf(nw) : rBack);
+                var g = Complex.FromPolarCoordinates(rf * rb, 2 * nw * w * L / Cl);
+                return (g, g);
+            };
+            double h = c.Omega0 * 1e-4;
+            double ng = n0 + c.Omega0 * (n(c.Omega0 + h) - n(c.Omega0 - h)) / (2 * h);
+            double delay = 2 * ng * L / Cl;
+            double wedge = go.GetDouble("wedgeDeg", 0) * Math.PI / 180, lam0 = 2 * Math.PI * Cl / c.Omega0;
+            double wBeam = go.GetDouble("beamRadiusM", c.Track != null ? Math.Max(c.Track.RadiusX, c.Track.RadiusY) : double.NaN);
+            var ov = new double[orders];
+            for (int k = 1; k <= orders; k++) ov[k - 1] = go.Has("overlap") ? go.GetDouble("overlap", 1) : GhostTerm.Overlap(0, 2 * k * n0 * wedge, wBeam, lam0);
+            var gt = new GhostTerm(rt, ov, new double[] { 1, 0, 0, 1 }, delay);
+            ce.Post.Add(gt);
+            ce.SatelliteDelayS = Math.Max(ce.SatelliteDelayS, orders * delay);
+            var (g0, _) = rt(c.Omega0);
+            ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "ghost of the end faces ({0}): +{1:G4} ps per round trip, relative intensity {2:G3} x overlap {3:G3}",
+                what, delay * 1e12, g0.Magnitude * g0.Magnitude, ov[0] * ov[0]));
+            c.Out.Provenance.Record("element:" + e.Id, "ghosts", gt.Description, gr?.Source ?? ModelSource.SystemData, gr?.Origin ?? "system file");
+        }
+
         // ================================================================================== thin-film polariser
 
         /// <summary>

@@ -1,4 +1,4 @@
-"""Building mode-locked oscillators (docs/oscillators.md).
+"""Building mode-locked oscillators (docs/reference/oscillators.md).
 
 >>> from ultrafast.laser import Oscillator
 >>> osc = (Oscillator("laser", model="haus", rep_rate_hz=80e6, output_coupler=0.05)

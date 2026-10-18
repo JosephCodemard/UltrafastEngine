@@ -12,7 +12,16 @@ namespace UltrafastEngine.Schema
                 .Str("name", "Name in the results (unique; repeated names get _2, _3)", "kind_at")
                 .Str("at", "\"input\", an element id (after that element) or \"end\"", "\"end\"")
                 .Obj("sampling", "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)", "sampling")
-                .Model("beam", "beam", "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian"));
+                .Model("beam", "beam", "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian")
+                .Model("filter", "filter", "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured")
+                .Obj("detector", "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth", "detector"));
+            add(new ComponentSpec("detector", "", "Detector read-out applied to an instrument's recorded arrays and readings (spectrometer, scope, autocorrelator, FROG, d-scan, energy meter); width and peak readings are re-evaluated on the detected trace.").DocAt(D + "detector-model")
+                .Num("calibration", "", "Calibration factor (reading / true value)", "1")
+                .Num("noise", "", "Multiplicative noise, relative rms", "0")
+                .Num("noiseFloor", "", "Additive noise rms relative to the trace peak", "0")
+                .Num("dynamicRangeDb", "dB", "Noise floor as a dynamic range (alternative to noiseFloor)")
+                .Int("bitDepth", "ADC bits, full scale at the trace maximum (0: ideal)", "0")
+                .Int("seed", "Random seed", "1"));
             add(new ComponentSpec("sampling", "", "Near / far field and apertures for non-imaging instruments.").DocAt(D + "sampling")
                 .Enum("plane", new[] { "near", "far" }, "Near field, or the focal plane of a lens", "near")
                 .Num("focalLengthM", "m", "Far field: focal length", "0.2")
@@ -24,40 +33,51 @@ namespace UltrafastEngine.Schema
                 .Num("centerXM", "m", "Aperture centre x", "0").Num("centerYM", "m", "Aperture centre y", "0").Num("na", "", "Fibre numerical aperture", "0.22"));
 
             add(new ComponentSpec("instrument", "energyMeter", "Pulse energy and average power (optionally behind a polariser / band).").Alias("powerMeter").DocAt(D + "energymeter")
-                .Arr("rangeM", "m", "[min, max] wavelength band").Num("polarizerDeg", "deg", "Analyser angle").Num("repRateHz", "Hz", "Repetition rate for average power"));
+                .Arr("rangeM", "m", "[min, max] wavelength band").Num("polarizerDeg", "deg", "Analyser angle").Num("repRateHz", "Hz", "Repetition rate for average power", "the pulse's repetition rate"));
             add(new ComponentSpec("instrument", "spectrometer", "Spectrum vs wavelength with resolution.").DocAt(D + "spectrometer")
-                .Num("resolutionM", "m", "Gaussian resolution FWHM", "0").Arr("rangeM", "m", "[min, max] wavelength range").Int("points", "Output points")
-                .Num("polarizerDeg", "deg", "Analyser angle").Enum("normalize", new[] { "none", "peak", "area" }, "Normalisation of the output", "none").Bool("db", "Also report dB", "false"));
+                .Num("resolutionM", "m", "Gaussian resolution FWHM", "0").Arr("rangeM", "m", "[min, max] wavelength range", "the spectrum's support").Int("points", "Output points", "2048")
+                .Num("wavelengthOffsetM", "m", "Wavelength calibration error: added to the reported axis", "0")
+                .Num("polarizerDeg", "deg", "Analyser angle").Enum("normalize", new[] { "peak", "area", "none" }, "Normalisation of the output spectrum: peak = 1, area = 1 (per metre), none = spectral energy density in J/m; true = peak, false = none", "peak").OrBool()
+                .Bool("db", "Also report the spectrum in dB (relative to its peak)", "false"));
             add(new ComponentSpec("instrument", "scope", "Detected power vs time with a rise time / bandwidth.").Alias("photodiode").DocAt(D + "scope")
-                .Num("riseTimeS", "s", "10-90 % rise time").Num("bandwidthHz", "Hz", "Bandwidth (alternative)").Int("points", "Output points"));
+                .Num("riseTimeS", "s", "10-90 % rise time of the detection", "0").Num("bandwidthHz", "Hz", "Bandwidth (alternative: rise time = 0.35 / bandwidth)").Int("points", "Output points", "4096"));
             add(new ComponentSpec("instrument", "autocorrelator", "Intensity or interferometric autocorrelation.").DocAt(D + "autocorrelator")
-                .Enum("type", new[] { "intensity", "interferometric" }, "AC type", "intensity").Num("rangeS", "s", "Delay range").Int("points", "Output points").Int("maxN", "Grid cap for the computation"));
+                .Enum("type", new[] { "intensity", "interferometric" }, "AC type", "intensity").Num("rangeS", "s", "Delay range (interferometric)", "3 x FWHM").Int("points", "Output points (interferometric)", "4001")
+                .Num("resolutionS", "s", "Delay resolution of the scan (Gaussian FWHM, intensity AC)", "0")
+                .Num("shgAcceptanceFwhmM", "m", "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited", "0")
+                .Int("acceptancePoints", "Grid of the finite-acceptance computation", "512")
+                .Int("maxN", "Grid cap for the computation", "65536"));
             add(new ComponentSpec("instrument", "frog", "SHG or PG FROG trace.").DocAt(D + "frog")
-                .Enum("type", new[] { "shg", "pg" }, "FROG geometry", "shg").Int("points", "Delay and frequency points", "256"));
+                .Enum("type", new[] { "shg", "pg" }, "FROG geometry", "shg").Int("points", "Delay and frequency points", "256")
+                .Num("spectralResolutionM", "m", "Spectrometer resolution (Gaussian FWHM at the signal wavelength)", "0")
+                .Num("shgAcceptanceFwhmM", "m", "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited", "0"));
             add(new ComponentSpec("instrument", "dscan", "Dispersion scan: SHG spectrum vs glass insertion or GDD.").DocAt(D + "dscan")
                 .Str("material", "Wedge material (with insertionM)").Arr("insertionM", "m", "[min, max] insertion").Arr("gddRangeS2", "s^2", "[min, max] GDD (alternative)")
-                .Int("steps", "Scan steps", "41"));
+                .Int("steps", "Scan steps", "101")
+                .Num("spectralResolutionM", "m", "Spectrometer resolution (Gaussian FWHM at the SH wavelength)", "0")
+                .Num("shgAcceptanceFwhmM", "m", "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited", "0"));
             add(new ComponentSpec("instrument", "contrast", "Intensity in dB, pre/post-pulse contrast, pedestal fraction (ideal).").DocAt(D + "contrast")
                 .Num("resolutionS", "s", "Temporal resolution").Num("windowS", "s", "Pre/post window", "5 x FWHM")
                 .Num("dynamicRangeDb", "dB", "Noise floor", "120").Int("points", "Output points", "8192"));
             add(new ComponentSpec("instrument", "crossCorrelator", "Third-order (SHG-gated) cross-correlator: high-dynamic-range contrast with noise floor, resolution, scan grid, polarisation.").Alias("thirdOrderCorrelator").DocAt(D + "crosscorrelator")
                 .Arr("rangeS", "s", "[min, max] delay scan (relative to the peak)", "the simulated window").Num("stepS", "s", "Coarse step").Int("points", "Coarse points (when no step)", "2001")
                 .Num("fineStepS", "s", "Fine step near zero delay").Num("fineRangeS", "s", "Half-range of the fine steps")
-                .Num("dynamicRangeDb", "dB", "Noise floor below the peak", "110").Num("noiseFloor", "", "Noise floor (relative; alternative)")
+                .Num("dynamicRangeDb", "dB", "Noise floor below the peak", "110").Num("noiseFloor", "", "Noise floor (relative to the peak; alternative to dynamicRangeDb)")
                 .Bool("noise", "Fluctuating detector background (else a flat floor)", "true").Int("seed", "Noise seed", "1")
                 .Num("resolutionS", "s", "Extra temporal resolution (Gaussian FWHM)", "0").Num("shgAcceptanceFwhmM", "m", "SHG crystal acceptance (SH wavelength FWHM)")
                 .P("polarization", ParamType.Any, "", "\"total\", \"x\", \"y\" or an analyser angle in degrees", "\"total\"")
                 .Arr("probeDelaysS", "s", "Delays at which to report the contrast in dB").Num("windowS", "s", "Pre/post window around the peak", "5 x FWHM"));
-            add(new ComponentSpec("instrument", "polarimeter", "Stokes parameters, integrated and vs wavelength.").DocAt(D + "polarimeter").Int("points", "Output points"));
+            add(new ComponentSpec("instrument", "polarimeter", "Stokes parameters, integrated and vs wavelength.").DocAt(D + "polarimeter").Int("points", "Output points", "1024")
+                .Num("extinctionRatio", "", "Power extinction ratio of the analysers (0: perfect); Stokes readings scale by (1 - e) / (1 + e)", "0"));
             add(new ComponentSpec("instrument", "pulseSummary", "Every scalar pulse metric.").DocAt(D + "pulsesummary"));
             add(new ComponentSpec("instrument", "compressor", "Ideal compressor: GDD/TOD that maximise peak power.").DocAt(D + "compressor")
-                .Bool("optimizeTod", "Also optimise TOD", "true").Int("maxN", "Grid cap").Int("points", "Output points"));
+                .Bool("optimizeTod", "Also optimise TOD", "true").Int("maxN", "Grid cap", "131072").Int("points", "Output points", "4096"));
             add(new ComponentSpec("instrument", "conversion", "Energies and photon numbers of every field leaving an active element.").DocAt(D + "conversion"));
             add(new ComponentSpec("instrument", "phaseMatchingCurve", "Low-conversion phase-matching curve of a crystal vs angle, wavelength, temperature or period.").DocAt(D + "phasematchingcurve")
                 .Enum("scan", new[] { "angle", "wavelength", "temperature", "period" }, "Scan variable", "angle")
                 .Num("rangeDeg", "deg", "Angle range", "1").Num("rangeM", "m", "Wavelength or period range").Num("rangeK", "K", "Temperature range", "20").Int("points", "Points", "201"));
             add(new ComponentSpec("instrument", "delayScan", "Re-runs a crystal for aux delays: output energy vs delay.").DocAt(D + "delayscan")
-                .Num("fromS", "s", "First delay").Num("toS", "s", "Last delay").Int("points", "Points"));
+                .Num("fromS", "s", "First delay", "-1e-12").Num("toS", "s", "Last delay", "1e-12").Int("points", "Points", "21"));
             add(new ComponentSpec("instrument", "beamProfile", "Fluence vs radius (or x/y cuts), radius, M^2, true peak fluence.").DocAt(D + "beamprofile"));
             add(new ComponentSpec("instrument", "camera", "A camera: imaging plane (near / far / relay) + sensor.").Alias("nearFieldCamera", "farFieldCamera").DocAt(D + "camera")
                 .Obj("imaging", "What the sensor sees", "imaging").Obj("sensor", "The detector", "sensor")
@@ -86,9 +106,9 @@ namespace UltrafastEngine.Schema
                 .Num("halfWidthM", "m", "Map half-width").Int("zernikeTerms", "Zernike terms (max 36)", "15")
                 .Num("propagateM", "m", "Propagation before the sensor").Arr("bandM", "m", "[min, max] band"));
             add(new ComponentSpec("instrument", "wigner", "Wigner distribution or spectrogram (virtual).").DocAt(D + "virtual-instruments")
-                .Int("points", "Time rows", "256").Num("gateFwhmS", "s", "> 0: spectrogram gate").Int("maxN", "Grid cap"));
+                .Int("points", "Time rows", "256").Num("gateFwhmS", "s", "> 0: spectrogram gate", "0").Int("maxN", "Grid cap", "65536"));
             add(new ComponentSpec("instrument", "fieldProbe", "Temporal phase, instantaneous wavelength, group delay, CEP (virtual).").DocAt(D + "virtual-instruments")
-                .Num("threshold", "", "Relative intensity threshold", "1e-3").Bool("realField", "Also the real field on the optical cycle", "false").Int("maxN", "Grid cap"));
+                .Num("threshold", "", "Relative intensity threshold", "1e-3").Bool("realField", "Also the real field on the optical cycle", "false").Int("maxN", "Grid cap", "8192"));
             add(new ComponentSpec("instrument", "spaceTime", "I(r, t) and S(r, lambda) across the beam (virtual).").DocAt(D + "virtual-instruments")
                 .Int("points", "Time samples", "512").Num("maxRadiusM", "m", "Largest radius", "2.5 w").Enum("axis", new[] { "x", "y" }, "Cartesian cut axis", "x"));
         }
@@ -121,6 +141,14 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("model:filter", "table", "Tabulated transmission / phase vs wavelength.")
                 .Arr("wavelengthsM", "m", "Wavelengths").Arr("wavelengthsNm", "nm", "Wavelengths in nm").Arr("wavelengthsUm", "um", "Wavelengths in um")
                 .Arr("transmission", "", "Power transmission").Arr("phaseRad", "rad", "Phase").Arr("groupDelayS", "s", "Group delay (alternative to the phase)"));
+            const string R = "reference/nonlinear.md#raman-models";
+            add(new ComponentSpec("model:delayedResponse", "silica", "Fused-silica Raman response: Blow-Wood damped oscillator (12.2 / 32 fs), fR = 0.18.").Alias("blowWood").DocAt(R).Num("fR", "", "Raman fraction", "0.18"));
+            add(new ComponentSpec("model:delayedResponse", "linAgrawal", "Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full model), fR = 0.245.").DocAt(R)
+                .Num("fR", "", "Raman fraction", "0.245").Num("tau1", "s", "Oscillator period parameter", "12.2e-15").Num("tau2", "s", "Oscillator damping time", "32e-15")
+                .Num("taub", "s", "Boson-peak time", "96e-15").Num("fa", "", "Weight a", "0.75").Num("fb", "", "Weight b (boson peak)", "0.21").Num("fc", "", "Weight c", "0.04"));
+            add(new ComponentSpec("model:delayedResponse", "hollenbeck", "Hollenbeck & Cantrell 2002 silica Raman: 13 vibrational modes with intermediate broadening, fR = 0.18.").DocAt(R).Num("fR", "", "Raman fraction", "0.18"));
+            add(new ComponentSpec("model:delayedResponse", "dampedOscillator", "Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1).").DocAt(R)
+                .Num("tau1", "s", "Period parameter").Num("tau2", "s", "Damping time").Num("fR", "", "Raman fraction"));
         }
     }
 }

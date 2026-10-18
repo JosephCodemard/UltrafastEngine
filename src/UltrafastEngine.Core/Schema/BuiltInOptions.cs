@@ -80,7 +80,12 @@ namespace UltrafastEngine.Schema
                 .P("polarization", ParamType.Any, "", "\"x\", \"y\", \"45\", \"-45\", \"rcp\", \"lcp\", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm]", "\"x\"")
                 .Obj("spectrum", "Measured spectrum (shape: spectrum): wavelengthsM + intensity (+ phaseRad), or csv", "pulseSpectrum")
                 .Num("delayS", "s", "Time offset", "0")
-                .P("pedestal", ParamType.Any, "", "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"));
+                .P("pedestal", ParamType.Any, "", "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)")
+                .Obj("noise", "Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding)", "pulseNoise"));
+            add(new ComponentSpec("pulseNoise", "", "Quantum noise added to the input pulse (docs/reference/fibers.md#noise-and-coherence).")
+                .Enum("kind", new[] { "onePhotonPerMode", "none" }, "Noise model", "onePhotonPerMode")
+                .Int("seed", "Random seed (a coherence study varies it)", "1")
+                .Enum("polarization", new[] { "same", "both" }, "Noise in the pulse's polarisation only, or one photon in each of x and y", "same"));
             add(new ComponentSpec("chirp", "", "Spectral phase coefficients about the carrier.")
                 .Num("gddS2", "s^2", "Group-delay dispersion").Num("todS3", "s^3", "Third-order dispersion").Num("fodS4", "s^4", "Fourth-order dispersion")
                 .Num("gddFs2", "fs^2", "GDD in fs^2").Num("todFs3", "fs^3", "TOD in fs^3").Num("fodFs4", "fs^4", "FOD in fs^4"));

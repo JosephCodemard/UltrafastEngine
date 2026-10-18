@@ -107,7 +107,7 @@ namespace UltrafastEngine.Schema
         private static readonly HashSet<string> InReference = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "plugins", "schema", "options", "system-file", "run-spec", "models", "materials", "coatings", "nonlinear", "active-elements", "crystals", "gain",
-            "oscillators", "spatial-properties", "transverse", "instruments", "results", "c-api", "python", "extending", "components", "gases", "ionization",
+            "oscillators", "spatial-properties", "transverse", "instruments", "results", "c-api", "python", "extending", "components", "gases", "ionization", "fibers",
             "retrieval", "studies", "speed", "python-api"
         };
 
@@ -126,7 +126,7 @@ namespace UltrafastEngine.Schema
         {
             switch (p.Type)
             {
-                case ParamType.String: return p.Enum != null ? string.Join(" \\| ", p.Enum.Select(e => "`\"" + e + "\"`")) : "string";
+                case ParamType.String: return p.Enum != null ? string.Join(" \\| ", p.Enum.Select(e => "`\"" + e + "\"`")) + (p.AllowBool ? " \\| `true` \\| `false`" : "") : "string";
                 case ParamType.NumberOrArray: return "number or array";
                 case ParamType.Model: return "model" + (p.ModelCategory != null ? " (" + p.ModelCategory + ")" : "");
                 case ParamType.Object: return p.ObjectRef != null && !p.FreeForm ? "object (`" + p.ObjectRef + "`)" : "object";

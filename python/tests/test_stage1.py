@@ -55,3 +55,18 @@ def test_retrieve_simulated_frog():
     assert out["error"] < 5e-3
     assert out["fwhmS"] == pytest.approx(res.summary["output"]["fwhmS"], rel=0.05)
     assert out["pulse"]["shape"] == "spectrum"
+
+
+def test_fiber_builder_coherence_and_instrument_settings():
+    """b.fiber, uf.coherence and the settings block of instruments, through the Python API."""
+    import ultrafast as uf
+    from ultrafast import build as b
+    sysd = b.system("f", [b.fiber("smf", 0.05, betas=[-20e-27], gamma=2e-3, raman="hollenbeck")])
+    pulse = b.pulse(1.55e-6, 300e-15, energy=100e-12, shape="sech2")
+    res = uf.run(sysd, b.run_spec(pulse, instruments=[b.instrument("spectrometer", name="s", normalize="area", resolutionM=0.1e-9)]))
+    v = res.summary["elements"][0]["values"]
+    assert 0.5 < v["solitonNumber"] < 2
+    ins = next(i for i in res.summary["instruments"] if i["name"] == "s")
+    assert ins["settings"]["normalize"] == "area" and ins["settings"]["points"] == 2048
+    co = uf.coherence(sysd, b.run_spec(pulse, stepper={"tolerance": 1e-5}), trials=3, parallel=3)
+    assert co["meanCoherence"] > 0.99 and len(co["g12"]) == len(co["wavelength_m"])

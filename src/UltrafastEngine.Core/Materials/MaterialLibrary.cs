@@ -11,7 +11,7 @@ namespace UltrafastEngine.Materials
     /// overrides) into <see cref="Material"/>s.
     ///
     /// Built-in nonlinear coefficients are typical literature values near 800 nm - 1 um and are meant as
-    /// sensible defaults, not reference data: override n2 / Raman for quantitative work (docs/materials.md
+    /// sensible defaults, not reference data: override n2 / Raman for quantitative work (docs/reference/materials.md
     /// lists the sources and their spread).
     /// </summary>
     public static class MaterialLibrary
@@ -143,6 +143,18 @@ namespace UltrafastEngine.Materials
             return m;
         }
 
+        /// <summary>The Raman fraction that belongs to a built-in Raman model kind (NaN: none implied).</summary>
+        public static double DefaultRamanFraction(string kind)
+        {
+            switch ((kind ?? "").ToLowerInvariant())
+            {
+                case "silica": case "blowwood": return 0.18;
+                case "hollenbeck": return HollenbeckCantrellRamanResponse.DefaultFraction;
+                case "linagrawal": return LinAgrawalRamanResponse.DefaultFraction;
+                default: return double.NaN;
+            }
+        }
+
         private static Material Glass(string name, IRefractiveIndex relIndex, IRefractiveIndex air, double n2, double fR, IDelayedResponse raman) =>
             new Material { Name = name, Index = new AirReferencedIndex(relIndex, air), IndexReference = "air", N2 = n2, RamanFraction = fR, Raman = raman };
 
@@ -243,7 +255,7 @@ namespace UltrafastEngine.Materials
                 var rs = ModelSpec.FromJson(o["raman"], source, origin + ".raman");
                 m.Raman = reg.Create<IDelayedResponse>("delayedResponse", rs);
                 if (rs.Json.Has("fR")) m.RamanFraction = rs.Json.GetDouble("fR", m.RamanFraction);
-                if (rs.Kind == "silica" && !o.Has("ramanFraction") && !rs.Json.Has("fR")) m.RamanFraction = 0.18;
+                if (!o.Has("ramanFraction") && !rs.Json.Has("fR") && !double.IsNaN(DefaultRamanFraction(rs.Kind))) m.RamanFraction = DefaultRamanFraction(rs.Kind);
                 if (m.Raman == null) m.RamanFraction = 0;
                 m.Provenance["raman"] = ((m.Raman?.Description ?? "none") + ", fR = " + m.RamanFraction.ToString("G3", System.Globalization.CultureInfo.InvariantCulture), source, origin);
             }

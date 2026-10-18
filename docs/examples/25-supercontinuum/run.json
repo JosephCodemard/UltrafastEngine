@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "pcf-supercontinuum",
+  "pulse": { "shape": "sech2", "centerWavelengthM": 835e-9, "durationFwhmS": 50e-15, "peakPowerW": 10e3 },
+  "grid": { "n": 8192, "windowS": 12.5e-12, "auto": false },
+  "stepper": { "tolerance": 1e-6 },
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum", "rangeM": [400e-9, 1400e-9], "points": 4000, "db": true },
+    { "kind": "pulseSummary" }
+  ]
+}

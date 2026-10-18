@@ -1,6 +1,6 @@
 # Gain media and amplifiers
 
-Phase 2.2 adds laser gain: a library of gain media, pumping with rate equations, the thermal lens, and two
+Laser gain is modelled with a library of gain media, pumping with rate equations, the thermal lens, and two
 elements: `gain` (one pass through a pumped crystal, 1-D or spatial) and `amplifier` (multipass or regenerative,
 1-D). Both iterate the pulse train at the repetition rate until it reaches steady state.
 

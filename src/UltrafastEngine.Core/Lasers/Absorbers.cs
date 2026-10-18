@@ -15,7 +15,7 @@ using UltrafastEngine.Transverse;
 namespace UltrafastEngine.Lasers
 {
     /// <summary>
-    /// A saturable absorber acting on the main beam in the time domain (docs/oscillators.md):
+    /// A saturable absorber acting on the main beam in the time domain (docs/reference/oscillators.md):
     /// <list type="bullet">
     /// <item>"slow" (SESAM, default): power loss q(t) with dq/dt = -(q - q0)/tau_A - q P(t)/E_sat,A (recovery time,
     /// saturation fluence x spot area), plus a non-saturable loss;</item>

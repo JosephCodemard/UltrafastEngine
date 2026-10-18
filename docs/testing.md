@@ -32,14 +32,22 @@ Framework 4.8/Mono). In Visual Studio set it as start-up project and press Ctrl+
 | spatial | Hankel quadrature, Gaussian w(z) radial and cartesian, M² = 1, lens focus, thin Kerr lens, energy of a carried profile after spectral broadening, beamProfile instrument | 1e-12 ... 2 % |
 | sampling, measured data, fit | near/far-field pinhole and slit transmissions vs Gaussian analytics, off-axis pinhole, far-field fibre colour shift on a 1-D beam; CSV/NPZ loading and units; zero residual when data = simulation (curve, d-scan trace, values); normalisations and background; missing files become warnings; pseudo-inverse null space; fit paths (lists, overrides); fit recovers energy and chirp from a spectrum and autocorrelation; unidentifiable parameter flagged; Python comparison, fit and figures | 2 % / 1 % / exact |
 | grids | exact resampling round trip between derived grids; carrier change SHG → glass; chirped input fits the auto window | 1e-9 |
-| cross-code | N ~ 2.4 higher-order soliton with TOD and self-steepening vs **pyNLO** | 0.05 % (0.8 % with Raman) |
+| components | Gaussian beam tracking (lens, off-axis mirrors), Zernike / Strehl, plate and end-face ghosts (delay, level, Kerr pre-pulse), ND OD(λ), thick and compound waveplates, TFP Tp / Ts, Faraday rotation and dispersion, GDD ripple, pedestals | 10⁻⁴ ... 2 % |
+| gases, ionisation | rotational impulse response and revivals, molecular gas data, electronic + rotational n2, PPT / ADK / Keldysh rates and limits, Dawson and elliptic functions, electron density, plasma blue shift, filament clamping (UPPE vs envelope) | 10⁻⁹ ... 5 % |
+| fibres | fundamental soliton over 5 L_D, D(λ) = Taylor, loss / gain / gain goal, tapered γ(z) B-integral, Raman kernels (unit integral, causality, Hollenbeck peak 13.2 THz), dispersive-wave phase matching, quantum-noise energy, coherence of a soliton and of a long-pulse supercontinuum | 10⁻³ ... 3 % |
+| instruments (device) | spectrometer normalisation modes, settings echo, FROG acceptance (product) and resolution (convolution), AC resolution and acceptance, detector calibration / noise / bits reproducibility, filter in front, polarimeter extinction, every enum value accepted | 10⁻¹² ... 5 % |
+| speed, studies, retrieval | mixed-radix / Bluestein FFT vs DFT, SIMD = scalar, scans with and without the prefix cache, optimisation, elasticities, Sobol indices; PCGPA, ePIE and d-scan retrieval of chirped pulses | 10⁻¹² ... 5 % |
+| cross-code | N ~ 2.4 higher-order soliton with TOD and self-steepening vs **pyNLO**: bulk medium and `fiber` element, no Raman, Blow-Wood Raman, Lin-Agrawal Raman (pyNLO's weights), flat gain | < 0.3 % (gain 0.5 %) |
 | cross-code | DFG 1064 + 1550 → 3.39 µm in MgO:PPLN vs **pyNLO** three-wave mixing (energies, idler spectrum) | 0.1-0.7 % small signal, 0.5 % at gain 50 |
 
 ## pyNLO
 
-`python/tests/test_pynlo.py` runs the same fibre-like problem in pyNLO and UltrafastEngine (identical grid,
-dispersion, gamma, self-steepening, optional Blow-Wood Raman) and compares temporal profiles, spectra, energy and
-peak power. pyNLO is optional: set `PYNLO_SRC` to a checkout's `src` (fetch the pinned commit with
+`python/tests/test_pynlo.py` runs the same fibre in pyNLO and UltrafastEngine (identical grid, dispersion, gamma,
+self-steepening, Raman model, gain) and compares temporal profiles, spectra, energy and peak power -- once as a bulk
+medium with a constant beam, and once through the `fiber` element. Agreement is better than 0.3 % (L1 distance of the
+profiles) with and without Raman. Two details matter at that level: the engine normalises the sampled Raman kernel on
+the time grid (as pyNLO does), and pyNLO's "full" (Lin-Agrawal) model carries a unit-dependent normalisation of its
+oscillator part, which the test reproduces with explicit weights ([Fibres](reference/fibers.md#compared-with-pynlo)). pyNLO is optional: set `PYNLO_SRC` to a checkout's `src` (fetch the pinned commit with
 `python python/tools/get_pynlo.py`); the test applies small shims for current NumPy/SciPy.
 
 `python/tests/test_pynlo_dfg.py` compares the crystal element with pyNLO's `dfg_problem` (Boyd's coupled-amplitude

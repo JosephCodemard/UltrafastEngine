@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace UltrafastEngine.Zemax
 {
-    /// <summary>Which merit-function data codes give the coating coefficients (see docs/zemax.md: verify against
+    /// <summary>Which merit-function data codes give the coating coefficients (see docs/plugins/zemax.md: verify against
     /// your OpticStudio's operand help before enabling coatingSource "zemaxOperand").</summary>
     public sealed class CoatingOperandSpec
     {

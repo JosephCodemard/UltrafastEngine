@@ -27,6 +27,29 @@ namespace UltrafastEngine.Pulses
     /// </summary>
     public static class Pedestals
     {
+        /// <summary>One photon per frequency mode with a random phase (the quantum-noise seed of supercontinuum and
+        /// parametric generation; pyNLO's "one_photon_freq"): |A_k|^2 dt / N = hbar omega_k in each bin.</summary>
+        public static PulseField QuantumNoise(PulseField p, JsonObject spec)
+        {
+            if (spec.GetString("kind", "onePhotonPerMode").Equals("none", StringComparison.OrdinalIgnoreCase)) return p;
+            var g = p.Grid; int n = g.N;
+            var rnd = new Random(spec.GetInt("seed", 1));
+            bool both = spec.GetString("polarization", "same").Equals("both", StringComparison.OrdinalIgnoreCase);
+            var ax = (Complex[])p.Ax.Clone(); var ay = (Complex[])p.Ay.Clone();
+            double ex = ax.Sum(c => c.Magnitude * c.Magnitude), ey = ay.Sum(c => c.Magnitude * c.Magnitude);
+            double fx = both ? 1 : ex / Math.Max(ex + ey, 1e-300), fy = both ? 1 : ey / Math.Max(ex + ey, 1e-300);
+            const double hbar = 1.054571817e-34;
+            for (int i = 0; i < n; i++)
+            {
+                double w = g.OmegaAbsolute[i];
+                if (w <= 0) continue;
+                double a = Math.Sqrt(hbar * w * n / g.DTime);
+                if (fx > 0) ax[i] += Complex.FromPolarCoordinates(a * Math.Sqrt(fx), 2 * Math.PI * rnd.NextDouble());
+                if (fy > 0) ay[i] += Complex.FromPolarCoordinates(a * Math.Sqrt(fy), 2 * Math.PI * rnd.NextDouble());
+            }
+            return new PulseField(g, ax, ay, p.RepRateHz) { Profile = p.Profile };
+        }
+
         public static PulseField Apply(PulseField p, IEnumerable<JsonObject> components, JonesVector pol)
         {
             var g = p.Grid; int n = g.N;

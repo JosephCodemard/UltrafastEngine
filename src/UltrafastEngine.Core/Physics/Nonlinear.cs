@@ -122,12 +122,22 @@ namespace UltrafastEngine.Physics
             }
             if (medium.EffectiveRamanFraction > 0)
             {
-                var h = medium.Raman.Evaluate(grid.Time);
+                var h = NormalizedKernel(medium.Raman.Evaluate(grid.Time), grid.DTime);
                 var hc = new Complex[n];
                 for (int i = 0; i < n; i++) hc[i] = h[i];
                 _ramanKernelFreq = SpectralTransform.TimeToFreq(hc);
             }
             _tLab = new double[n];
+        }
+
+        /// <summary>The sampled Raman kernel scaled to unit sum on the grid, so the delayed fraction is exactly fR
+        /// whatever the time step (an analytic normalisation is off by a few % when dt is not much smaller than the oscillation period).</summary>
+        internal static double[] NormalizedKernel(double[] h, double dt)
+        {
+            double s = 0; for (int i = 0; i < h.Length; i++) s += h[i];
+            s *= dt;
+            if (s > 0 && Math.Abs(s - 1) > 1e-12) for (int i = 0; i < h.Length; i++) h[i] /= s;
+            return h;
         }
 
         internal static Complex Rate(double phase, double amp, double lengthM)
@@ -362,7 +372,7 @@ namespace UltrafastEngine.Physics
             }
             if (medium.EffectiveRamanFraction > 0)
             {
-                var h = medium.Raman.Evaluate(g.Time);
+                var h = EnvelopeProblem.NormalizedKernel(medium.Raman.Evaluate(g.Time), g.DTime);
                 var hc = new Complex[nf];
                 for (int i = 0; i < nf; i++) hc[i] = h[i];
                 _ramanKernelFreq = SpectralTransform.TimeToFreq(hc);

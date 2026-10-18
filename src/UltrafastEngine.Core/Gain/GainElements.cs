@@ -15,7 +15,7 @@ using UltrafastEngine.Transverse;
 
 namespace UltrafastEngine.Gain
 {
-    /// <summary>Everything a gain or amplifier element was configured with (docs/gain.md).</summary>
+    /// <summary>Everything a gain or amplifier element was configured with (docs/reference/gain.md).</summary>
     public sealed class GainSetup
     {
         public string Id;
@@ -271,7 +271,7 @@ namespace UltrafastEngine.Gain
     // ============================================================================================ gain element
 
     /// <summary>
-    /// A pumped gain medium crossed once (docs/gain.md): spectrally resolved gain with time-ordered saturation,
+    /// A pumped gain medium crossed once (docs/reference/gain.md): spectrally resolved gain with time-ordered saturation,
     /// host dispersion and SPM, pumping between pulses and the steady state of the pulse train, thermal lens; 1-D
     /// (mode-area cell) or spatial (radial / cartesian, with diffraction, per-point inversion and the thermal lens
     /// as a position-dependent index).

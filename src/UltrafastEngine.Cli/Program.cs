@@ -213,8 +213,21 @@ Docs: docs/index.md   Examples: docs/examples/";
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0} evaluations in {1:F1} s -> {2}", res.GetInt("evaluations", 0), sw.Elapsed.TotalSeconds, req.GetString("output")));
             foreach (var n in res.GetArray("notes") ?? new JsonArray()) Console.WriteLine("  " + n.AsString());
             var an = res.GetObject("analysis");
-            if (an != null && an.Count > 0) Console.WriteLine(an.ToJson(true));
+            if (an != null && an.Count > 0) Console.WriteLine(Brief(an).ToJson(true));
             return 0;
+        }
+
+        /// <summary>The analysis without long arrays (they are in the results folder).</summary>
+        private static JsonObject Brief(JsonObject o)
+        {
+            var r = new JsonObject();
+            foreach (var kv in o)
+            {
+                if (kv.Value.Kind == JsonKind.Array && kv.Value.AsArray().Count > 12) r.Set(kv.Key, "[" + kv.Value.AsArray().Count + " values]");
+                else if (kv.Value.Kind == JsonKind.Object) r.Set(kv.Key, Brief(kv.Value.AsObject()));
+                else r.Set(kv.Key, kv.Value);
+            }
+            return r;
         }
 
         private static int RetrieveCommand(string[] a)
@@ -368,7 +381,7 @@ Docs: docs/index.md   Examples: docs/examples/";
         }
 
         private const string Template = @"{
-  // UltrafastEngine run spec (comments and trailing commas are allowed). Full reference: docs/run-spec.md
+  // UltrafastEngine run spec (comments and trailing commas are allowed). Full reference: docs/reference/run-spec.md
   ""format"": ""ultrafast-run"",
   ""name"": ""my-run"",
   ""pulse"": {

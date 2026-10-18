@@ -146,7 +146,7 @@ namespace UltrafastEngine.Physics
         }
     }
 
-    /// <summary>Builds coatings from JSON (see docs/coatings.md).</summary>
+    /// <summary>Builds coatings from JSON (see docs/reference/coatings.md).</summary>
     public static class CoatingFactory
     {
         /// <summary>kinds: none | stack | quarterWave | ideal | ar | gdd | table | efficiency.</summary>

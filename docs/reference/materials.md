@@ -31,9 +31,9 @@ Gases: `{"gas": {"species": "Ar", "pressureBar": 2, "temperatureK": 293}}` scale
 with density. Molecular gases (N2, O2, CO2, H2, air) include their rotational Raman response, with the pressure and
 temperature of the material ([Gases](gases.md)); `"rotationalRaman": false` switches it off.
 
-**Changed in 2.1.8:** the n2 of N2 and air is now the *electronic* part only (8.0e-24 and 8.5e-24 per bar); the
-rotational part, which used to be lumped into n2 (1.1e-23 for N2), is the delayed response. For pulses much longer
-than ~100 fs the total is about the same; for short pulses the delayed part is smaller and the results change.
+For N2 and air, `n2` is the *electronic* (instantaneous) part only (8.0e-24 and 8.5e-24 per bar); the rotational
+part is the delayed response. Their sum approaches the long-pulse n2 of the literature (~1.1e-23 per bar for N2) for
+pulses much longer than ~100 fs; shorter pulses see less of the rotational part.
 
 ## Defining materials
 
