@@ -311,8 +311,31 @@ def pulse(center_wavelength_m: float, duration_fwhm_s: Optional[float] = None, e
     return d
 
 
+def measured_spectrum(wavelengths_m: Sequence[float], intensity: Sequence[float], energy: Optional[float] = None,
+                      phase_rad: Optional[Sequence[float]] = None, *, resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None,
+                      extrapolate: Optional[str] = None, center_wavelength_m: Optional[float] = None, **extra) -> "T.Pulse":
+    """An input pulse from a measured spectrum (intensity per unit wavelength, optional phase). ``resolution_m`` is the
+    recording spectrometer's resolution (FWHM); ``deconvolve=True`` removes it (Richardson-Lucy); ``extrapolate``
+    "zero" (no light outside the data, default) or "gaussian" (Gaussian tails fitted to the data)."""
+    sp = _clean({"wavelengthsM": list(wavelengths_m), "intensity": list(intensity), "phaseRad": list(phase_rad) if phase_rad is not None else None,
+                 "resolutionM": resolution_m, "deconvolve": deconvolve, "extrapolate": extrapolate})
+    return _clean({"shape": "spectrum", "energyJ": energy, "centerWavelengthM": center_wavelength_m, "spectrum": sp, **extra})
+
+
 def instrument(kind: str, at: str = "end", name: Optional[str] = None, **params) -> dict:
+    """An instrument (docs/reference/instruments.md). Keyword arguments are its parameters in the engine's names
+    (``resolutionM=...``, ``axis=axis(...)``, ``detector={...}``, ``measured=...`` with the fitting plugin)."""
     return _clean({"kind": kind, "at": at, "name": name, **params})
+
+
+def axis(values: Optional[Sequence[float]] = None, *, start: Optional[float] = None, stop: Optional[float] = None,
+         step: Optional[float] = None, points: Optional[int] = None, bin_width: Any = None, resolution: Optional[float] = None) -> dict:
+    """Where a curve instrument takes its readings (docs/reference/instruments.md#axis-where-readings-are-taken):
+    explicit ``values`` (e.g. your spectrometer's pixel wavelengths) or ``start``/``stop`` with ``step`` or ``points``,
+    each reading integrating over ``bin_width`` (a number or "pixel") and blurred by a Gaussian ``resolution`` (FWHM).
+    SI units of the axis (m for wavelengths, s for delays). Use as ``instrument("spectrometer", axis=axis(...))``."""
+    return _clean({"values": list(values) if values is not None else None, "from": start, "to": stop, "step": step,
+                   "points": points, "binWidth": bin_width, "resolution": resolution})
 
 
 def override(target: str, prop: str, model: Any = None, value: Any = None, mode: str = "replace") -> dict:

@@ -3,6 +3,44 @@
 ## Unreleased
 
 ### Added
+- **Fitting plugin, stage 2: `transform` elements.** Fittable physical changes to the beam, inserted where they
+  happen. Operators: `spectralPhase` (Taylor and not-a-knot spline knots), `spectralAmplitude` (Gaussian /
+  super-Gaussian, tilt in dB/nm, spline, any filter model; passive; `causal` minimum phase from the Kramers-Kronig /
+  Bode relation), `energy`, `delay`, `jones`, `replica`, `phaseNoise`, incoherent `pedestal` (ASE / exponential) and
+  `wavefront` (Zernike and pointing on the transverse profile). Consecutive linear operators compile into engine
+  linear terms (grid planner, loss budget). Any number can be a fit object `{value, fit, min, max, prior, scale}` or be
+  named in the operator's `fit` list with `bounds`, `priors` and `smoothness`. Other plugins add operator kinds
+  with `TransformOperators.Register`.
+- **Fits** (`"fit"`): marked transform numbers are collected automatically, and numbers can also be given by path,
+  including `instrument:NAME/...` (instrument-response parameters such as resolution or calibration). Replaceable
+  estimators: `levenbergMarquardt`, `cmaes` (global, polished by LM), `mcmc` (affine-invariant ensemble; credible
+  intervals) and plugin estimators via `Estimators.Register`. Fits support Gaussian priors, knot smoothness and
+  parallel evaluations. `fit.json` gains `layers` (simulated → inferred → believed), `influence` (Fisher-information
+  share per instrument and per prior), `provenance` (versions, options, SHA-256 of every data file, parameter
+  origins) and `dataChi2Final`. New output files: `fitted-system.ufs` (fit objects replaced by the fitted numbers,
+  ready for new inputs) and `fitted-run.json`. New arrays: `<name>_nominal_on_measured`.
+- **Backward propagation** (`"backward"`): the pulse is the field measured at `from`, and the run finds the field at
+  every plane up to `to`. Linear terms use a Tikhonov-regularised Jones inverse; nonlinear segments are integrated
+  with z reversed; transforms are inverted; active elements are refused, linearised from a forward reference run, or
+  passed through. Instruments work at every plane, and the field is written to `reconstructed-pulse.json` as a
+  pulse object.
+- **Measured data**: `"scale": "log"` compares in dB (`sigmaDb`, `floorDb`) for contrast and cross-correlator data;
+  data columns in dB are read; the cross-correlator can be compared; `resolutionM` / `resolutionS` state the
+  recording's resolution and are checked against the simulated instrument.
+- **Instrument `axis`** (every curve instrument): readings at explicit points or on a from / to / step grid, pixel or
+  bin integration and a Gaussian resolution; dB curves follow their linear counterparts. Settings echo the axis.
+- **Measured input spectra**: `resolutionM` (recording resolution), `deconvolve` (Richardson-Lucy),
+  `extrapolate: "gaussian"` (tails fitted to the data), and a description of the measured range in the run notes.
+- Schema: numbers may be declared `Fittable` (number or fit object). The run spec keys `fit` and `backward`, and the
+  `transform` element, give a clear message when the fitting plugin is missing.
+- `Executor.MeasureInstruments` (public): run the instruments on recorded pulses (used by run modes).
+- Python: `ultrafast_fitting.transform` with every operator builder, `fit_value`, `fit(estimator=..., **options)`,
+  `backward`, `measured(scale=..., resolution_m=...)`, `fitted_system`, `reconstructed_pulse`; `b.axis`,
+  `b.measured_spectrum`. Figures: the fit figure shows credible intervals and the influence map; measurement figures
+  show the simulated layer.
+- Example 26 (transforms fitted to a CPA line, reused on a new seed, backward propagation to the seed); docs:
+  rewritten fitting-plugin guide, new [Installing plugins](docs/plugins/installing.md) page, instrument `axis`
+  section; README note on AI assistance.
 - **`fiber` element** (`fibre`, `waveguide`): Taylor betas (SI or ps^k/km), dispersion curves D(lambda), or a material;
   gamma (constant or an expression in z) or n2 + effective area; loss (flat or vs wavelength); flat gain and gain
   spectra scaled to a target output; reports soliton number, dispersion / nonlinear / fission lengths and the
@@ -20,6 +58,10 @@
   README and overview, forward-looking roadmap (history in docs/design/history.md).
 
 ### Fixed
+- Plots no longer cut off data: dB axes (spectra, contrast, cross-correlator, probes, comparisons) follow the data's
+  own floor (instead of fixed -50 / -70 / -100 dB). The contrast panel shows the whole window, the cross-correlator
+  has its own dB panel, and contrast comparisons use a log scale with a dB residual.
+- Fit figure: values in nm, fs², dB and dimensionless units are no longer given SI prefixes ("1.03 knm").
 - Spectrometer `normalize`: the schema declared "none" | "peak" | "area" while the instrument read a boolean. The
   instrument now implements all three ("none" = spectral energy density in J/m), keeps true / false as legacy forms
   (declared in the schema), and defaults to "peak" as before.

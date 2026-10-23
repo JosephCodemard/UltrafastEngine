@@ -124,6 +124,7 @@ namespace UltrafastEngine.Schema
 
         private static string TypeName(ParamSpec p)
         {
+            if (p.Fittable) return (p.Type == ParamType.NumberOrArray ? "number or array" : "number") + " or fit object";
             switch (p.Type)
             {
                 case ParamType.String: return p.Enum != null ? string.Join(" \\| ", p.Enum.Select(e => "`\"" + e + "\"`")) + (p.AllowBool ? " \\| `true` \\| `false`" : "") : "string";

@@ -5,9 +5,10 @@
     operands, writes a system file (.ufs), and can run the engine in-process.
 
     ZOS-API location: set ZosApiDir to the folder holding ZOSAPI.dll, ZOSAPI_Interfaces.dll and ZOSAPI_NetHelper.dll
-    (default: plugins/zemax/src/UltrafastEngine.Zemax/lib, which ships with the ZOS-API assemblies; otherwise the OpticStudio
-    installation below). They are only compile-time references: at run time ZOSAPI_NetHelper loads ZOSAPI and
-    ZOSAPI_Interfaces from your OpticStudio installation, so the version in lib/ does not have to match it exactly.
+    (default: plugins/zemax/src/UltrafastEngine.Zemax/lib if you copied your own there (git-ignored: the assemblies are
+    Ansys property and never part of the repository), otherwise the OpticStudio installation below. They are only
+    compile-time references: at run time ZOSAPI_NetHelper loads ZOSAPI and ZOSAPI_Interfaces from your OpticStudio
+    installation, so a copy in lib/ does not have to match it exactly.
         dotnet build plugins/zemax/src/UltrafastEngine.Zemax -p:ZosApiDir="C:\Program Files\Ansys Zemax OpticStudio 2025 R1"
     Type-check without OpticStudio (CI / macOS / Linux):  -p:UseZosApiStubs=true
   -->

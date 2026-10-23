@@ -27,6 +27,7 @@
 | [23-components](23-components/README.md) | Gaussian beam tracking through curved mirrors and a lens; thick waveplate, TFP, Faraday rotator, ND filter, wavefront error, GDD ripple | `ultrafast run components.ufs run.json` |
 | [24-filament](24-filament/README.md) | a gas cell with rotational Raman and ionisation: blue shift, plasma density, retrieval of the output pulse from a simulated FROG | `ultrafast run cell.ufs run.json`, `ultrafast retrieve pcgpa results/result.npz` |
 | [25-supercontinuum](25-supercontinuum/README.md) | the PCF supercontinuum benchmark (Dudley 2006): `fiber` element with beta2..beta10, soliton fission, dispersive waves, coherence over quantum-noise realisations | `ultrafast run pcf.ufs run.json`, `ultrafast study coherence.json` |
+| [26-transforms](26-transforms/README.md) | fitting plugin: a `transform` (residual dispersion, gain narrowing, post-pulse, ASE pedestal) fitted to a spectrum, d-scan, cross-correlator and power meter; the fitted line on a new seed; backward propagation of the measured output to the seed | `ultrafast run line.ufs run-fit.json -o results-fit` |
 | [tutorial](tutorial/README.md) | the files of the step-by-step tutorials (docs/tutorials): first run, diagnostics, a CPA + SHG chain, measured data and fitting | see README |
 | [python/quickstart.py](python/quickstart.py) | build, run, scan, plot from Python | `python quickstart.py` |
 | [cpp](cpp/README.md) | the C API from C++ (CMake / Visual Studio) | see README |

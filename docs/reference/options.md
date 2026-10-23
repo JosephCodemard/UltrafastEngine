@@ -627,6 +627,15 @@ Also accepts: `nonlinearMedium`, `beamSize` (see *Common key groups*).
 | `reflectanceS` | number |  | 0.998 | ideal: Rs |
 | `reflectanceP` | number |  | 1 - Tp | ideal: Rp |
 
+### `transform` — plugin: fitting
+
+Fittable physical changes to the beam: spectral phase / amplitude, energy, polarisation, contrast (replicas, phase noise, pedestals), wavefront. More: [plugins/fitting.md#transform-elements](../plugins/fitting.md#transform-elements)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `operators` | array of `fitting:operator` |  |  | The operators, applied in order **Required.** |
+| `regularization` | number |  | the run's backward.regularization | Backward propagation: relative Tikhonov level for inverting this element |
+
 ### `user`
 
 Your own function of the main beam's spectrum (Python, C#, C). More: [elements.md#user](system-file.md)
@@ -1033,12 +1042,13 @@ Keys every instrument accepts.
 | `beam` | model (beam) |  |  | Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian |
 | `filter` | model (filter) |  |  | Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured |
 | `detector` | object (`detector`) |  |  | Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth |
+| `axis` | object (`instrumentAxis`) |  |  | Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution |
 
 ### `fitting` — plugin: fitting
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `measured` | object (`fitting:measured`) |  |  | Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin. |
+| `measured` | object (`fitting:measured`) |  |  | Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin. |
 
 ## Plugin keys (run spec)
 
@@ -1048,7 +1058,8 @@ Top-level run-spec keys provided by plugins.
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `fit` | object (`fitting:fit`) |  |  | Calibrate parameters against every instrument with measured data (fitting plugin). |
+| `fit` | object (`fitting:fit`) |  |  | Fit transform parameters (and any listed number) to every instrument with measured data (fitting plugin). |
+| `backward` | object (`fitting:backward`) |  |  | Backward propagation: the pulse is the field measured downstream; find the field at every plane upstream (fitting plugin). |
 
 ## Nested objects
 
@@ -1199,16 +1210,52 @@ Fibre loss vs wavelength.
 | `wavelengthsNm` | number or array | nm |  | Wavelengths in nm |
 | `dbPerKm` | number or array | dB/km |  | Loss |
 
-### `fitting:fit`
+### `fitting:backward`
 
-Calibration fit (fitting plugin).
+Backward propagation (fitting plugin). More: [plugins/fitting.md#backward-propagation](../plugins/fitting.md#backward-propagation)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `parameters` | array of `fitting:parameter` |  |  | The parameters to fit **Required.** |
-| `maxIterations` | integer |  | 20 | Levenberg-Marquardt iterations |
-| `tolerance` | number |  | 1e-4 | Relative chi^2 change that ends the fit |
+| `from` | string |  | "end" | Plane where the run's pulse was measured: an element id (after it) or "end" |
+| `to` | string |  | "input" | Plane to propagate back to: an element id (after it) or "input" |
+| `regularization` | number |  | 1e-3 | Relative Tikhonov level for inverting linear terms (transmission below this x the peak is not recovered) |
+| `active` | `"error"` \| `"linearized"` \| `"identity"` |  | error | Amplifiers, crystals and spatial elements: refuse, undo as the filter they were in a forward reference run, or pass through |
+| `referencePulse` | object (`pulse`) |  |  | active = linearized: the input pulse of the forward reference run |
+
+### `fitting:fit`
+
+Fit (fitting plugin). More: [plugins/fitting.md#fitting](../plugins/fitting.md#fitting)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `parameters` | array of `fitting:parameter` |  |  | Numbers to fit by path (in addition to the transform parameters marked for fitting) |
+| `estimator` | `"levenbergMarquardt"` \| `"cmaes"` \| `"mcmc"` |  | levenbergMarquardt | Fitting algorithm (plugins may register more) |
+| `maxIterations` | integer |  | 20 (LM), 60 (CMA-ES) | Iterations (LM) / generations (CMA-ES) |
+| `tolerance` | number |  | 1e-4 (LM), 1e-6 (CMA-ES) | Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit |
 | `freezeGrid` | boolean |  | true | Fix the time/frequency grid (2x the planned bandwidth) for all evaluations |
+| `parallel` | integer |  | 1 | Simulations run at the same time (Jacobian columns, CMA-ES population, MCMC walkers) |
+| `population` | integer |  | 4 + 3 ln n | CMA-ES population |
+| `sigma0` | number |  | 0.3 | CMA-ES initial step (in units of each parameter's scale) |
+| `polish` | boolean |  | true | CMA-ES: finish with Levenberg-Marquardt |
+| `walkers` | integer |  | max(2n + 2, 8) | MCMC walkers |
+| `steps` | integer |  | 200 | MCMC steps |
+| `burnIn` | number |  | 0.5 | MCMC burn-in fraction |
+| `thin` | integer |  | 1 | MCMC thinning |
+| `start` | `"optimum"` \| `"initial"` |  | optimum | MCMC start: a Levenberg-Marquardt optimum or the initial values |
+| `spread` | number |  | 0.1 | MCMC starting ball (in units of each scale) |
+| `seed` | integer |  | 1 | Random seed (CMA-ES, MCMC) |
+
+### `fitting:knots`
+
+Spline knots of a transform operator.
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `wavelengthsM` | number or array | m |  | Knot wavelengths |
+| `wavelengthsNm` | number or array | nm |  | Knot wavelengths in nm |
+| `phaseRad` | array |  |  | spectralPhase: phase at the knots (numbers or fit objects) |
+| `transmission` | array |  |  | spectralAmplitude: power transmission at the knots |
+| `transmissionDb` | array |  |  | spectralAmplitude: transmission in dB at the knots |
 
 ### `fitting:measured`
 
@@ -1231,6 +1278,77 @@ Recorded data for one instrument (fitting plugin).
 | `valueWeight` | number |  | 1 | Extra weight of the scalar residuals |
 | `weight` | number |  | 1 | Weight of this instrument in the fit's chi^2 |
 | `simulated` | object |  |  | Which arrays of the instrument to compare with: x, y \| rows, cols, trace |
+| `scale` | `"linear"` \| `"log"` |  | linear | Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators) |
+| `sigmaDb` | number | dB | 1 | scale log: uncertainty of each point in dB |
+| `floorDb` | number | dB | the data's minimum | scale log: floor relative to the peak (values below are clipped to it) |
+| `resolutionM` | number | m |  | Spectral resolution of the recording instrument (checked against the simulated instrument) |
+| `resolutionS` | number | s |  | Temporal / delay resolution of the recording instrument (checked against the simulated instrument) |
+
+### `fitting:operator`
+
+One transform operator (kind + parameters; numbers may be fit objects). More: [plugins/fitting.md#operators](../plugins/fitting.md#operators)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `kind` | `"spectralPhase"` \| `"spectralAmplitude"` \| `"energy"` \| `"delay"` \| `"jones"` \| `"replica"` \| `"phaseNoise"` \| `"pedestal"` \| `"wavefront"` |  |  | Operator kind (plugins may add more) **Required.** |
+| `enabled` | boolean |  | true | false skips the operator |
+| `fit` | array |  |  | Names of parameters to fit (dotted for nested: "knots.phaseRad" fits every knot), alternative to fit objects |
+| `bounds` | object |  |  | Bounds for the names in "fit": {name: [min, max]} |
+| `priors` | object |  |  | Gaussian priors for the names in "fit": {name: sigma \| {mean, sigma}} |
+| `smoothness` | number |  | 0 | Regularisation weight on the second differences of fitted knots |
+| `gddFs2` | number or fit object | fs^2 |  | spectralPhase: GDD |
+| `todFs3` | number or fit object | fs^3 |  | spectralPhase: TOD |
+| `fodFs4` | number or fit object | fs^4 |  | spectralPhase: FOD |
+| `fifthFs5` | number or fit object | fs^5 |  | spectralPhase: fifth order |
+| `gddS2` | number or fit object | s^2 |  | spectralPhase: GDD in s^2 |
+| `todS3` | number or fit object | s^3 |  | spectralPhase: TOD in s^3 |
+| `fodS4` | number or fit object | s^4 |  | spectralPhase: FOD in s^4 |
+| `centerWavelengthM` | number or fit object | m | the element's carrier | Reference / centre wavelength |
+| `centerWavelengthNm` | number or fit object | nm |  | Reference / centre wavelength in nm |
+| `knots` | object (`fitting:knots`) |  |  | Spline knots: wavelengthsM \| wavelengthsNm with phaseRad (spectralPhase) or transmission \| transmissionDb (spectralAmplitude) |
+| `shape` | `"gaussian"` \| `"superGaussian"` \| `"tilt"` \| `"spline"` \| `"model"` |  | from the keys given | spectralAmplitude: shape |
+| `fwhmM` | number or fit object | m |  | spectralAmplitude: band FWHM |
+| `fwhmNm` | number or fit object | nm |  | spectralAmplitude: band FWHM in nm |
+| `order` | number or fit object |  | 2 | superGaussian order |
+| `peak` | number or fit object |  | 1 | Peak power transmission |
+| `tiltDbPerNm` | number or fit object | dB/nm |  | spectralAmplitude: transmission slope |
+| `curvatureDbPerNm2` | number or fit object | dB/nm^2 |  | spectralAmplitude: curvature |
+| `model` | model (filter) |  |  | spectralAmplitude: any filter model (shape: model) |
+| `passive` | boolean |  | true | spectralAmplitude: clip the transmission to <= 1 |
+| `causal` | boolean |  | false | spectralAmplitude: add the minimum phase (Kramers-Kronig) |
+| `floor` | number |  | 1e-8 | causal: smallest relative transmission used in the logarithm |
+| `transmission` | number or fit object |  | 1 | energy: power transmission |
+| `gainDb` | number or fit object | dB |  | energy: gain (alternative) |
+| `delayS` | number or fit object | s |  | delay / replica: delay |
+| `delayFs` | number or fit object | fs |  | delay / replica: delay in fs |
+| `delayPs` | number or fit object | ps |  | replica: delay in ps |
+| `retardanceRad` | number or fit object | rad |  | jones: retardance |
+| `axisDeg` | number or fit object | deg |  | jones: retarder fast axis |
+| `diattenuation` | number or fit object |  |  | jones: power loss of the weak axis (0..1) |
+| `diattenuationAxisDeg` | number or fit object | deg | axisDeg | jones: weak axis |
+| `rotationDeg` | number or fit object | deg |  | jones: rotation of the polarisation |
+| `relativeIntensity` | number or fit object |  |  | replica / pedestal: intensity relative to the main peak |
+| `relativeIntensityDb` | number or fit object | dB |  | replica / pedestal: the same in dB (better for fitting levels spanning decades) |
+| `phaseRad` | number or fit object | rad |  | replica: relative phase |
+| `rmsRad` | number or fit object | rad |  | phaseNoise: phase noise rms |
+| `amplitudeRms` | number or fit object |  |  | phaseNoise: amplitude noise rms |
+| `correlationNm` | number or fit object | nm |  | phaseNoise: correlation width |
+| `correlationRadPerS` | number or fit object | rad/s |  | phaseNoise: correlation width |
+| `seed` | integer |  | 1 | phaseNoise / pedestal: random seed |
+| `type` | `"ase"` \| `"exponential"` |  | ase | pedestal: incoherent background type |
+| `durationS` | number or fit object | s | 10e-9 | pedestal (ase): duration |
+| `energyFraction` | number or fit object |  |  | pedestal (ase): energy / main energy |
+| `level` | number or fit object |  |  | pedestal (exponential): level at the peak |
+| `levelDb` | number or fit object | dB |  | pedestal (exponential): level in dB |
+| `riseS` | number or fit object | s |  | pedestal (exponential): rise |
+| `fallS` | number or fit object | s |  | pedestal (exponential): fall |
+| `bandwidthFwhmNm` | number or fit object | nm |  | pedestal: spectral FWHM (default: the pulse's spectrum) |
+| `zernike` | object |  |  | wavefront: Noll index -> waves rms, e.g. {"4": 0.1, "11": 0.02}; values may be fit objects |
+| `radiusM` | number or fit object | m | the beam's 1/e^2 radius | wavefront: normalisation radius |
+| `wavelengthM` | number or fit object | m | the carrier | wavefront: wavelength of the waves |
+| `tiltXRad` | number or fit object | rad |  | wavefront: pointing x |
+| `tiltYRad` | number or fit object | rad |  | wavefront: pointing y |
+| `params` | object |  |  | Parameters of operator kinds added by other plugins (free-form; numbers may be fit objects) |
 
 ### `fitting:parameter`
 
@@ -1238,7 +1356,7 @@ One fit parameter.
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `path` | string |  |  | pulse/..., element:ID/..., material:NAME/prop, run/..., system/... **Required.** |
+| `path` | string |  |  | pulse/..., element:ID/..., instrument:NAME/..., material:NAME/prop, run/..., system/... **Required.** |
 | `name` | string |  | the path | Label |
 | `initial` | number |  | the value in the files | Start value |
 | `min` | number |  |  | Lower bound |
@@ -1246,6 +1364,23 @@ One fit parameter.
 | `scale` | number |  | (max - min) / 4 | Typical change |
 | `step` | number |  | 1e-3 x scale | Finite-difference step |
 | `unit` | string |  |  | Unit label for reports |
+| `prior` | any |  |  | Gaussian prior: sigma (mean = initial) or {mean, sigma} |
+
+### `fitting:value`
+
+A fit parameter in place of a number: its value, and how to fit it. More: [plugins/fitting.md#marking-parameters-for-fitting](../plugins/fitting.md#marking-parameters-for-fitting)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `value` | number |  |  | The value (used by plain runs; the start value of a fit) **Required.** |
+| `fit` | boolean |  | false | Fit this number |
+| `min` | number |  |  | Lower bound |
+| `max` | number |  |  | Upper bound |
+| `scale` | number |  | (max - min) / 4, else a per-quantity default | Typical size of a change |
+| `step` | number |  | 1e-3 x scale | Finite-difference step |
+| `prior` | any |  |  | Gaussian prior: sigma (mean = value) or {mean, sigma} |
+| `name` | string |  | element.operator.key | Label in reports |
+| `unit` | string |  | from the key | Unit label |
 
 ### `gas`
 
@@ -1298,6 +1433,20 @@ Initial transverse field.
 | `tiltYRad` | number | rad |  | Tilt about x |
 | `radiusOfCurvatureM` | number | m |  | Wavefront radius of curvature (negative: converging) |
 | `radiusM` | number | m |  | 1/e^2 radius (default: from the element's beam) |
+
+### `instrumentAxis`
+
+Sampling of a curve instrument's axis (spectrometer wavelengths, scope times, autocorrelator / cross-correlator delays, polarimeter wavelengths, delay scan, contrast, beam profile, phase-matching curve). Units: those of the axis (m, s). More: [instruments.md#axis-where-readings-are-taken](instruments.md#axis-where-readings-are-taken)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `values` | number or array | SI |  | Explicit reading positions (e.g. the pixel wavelengths of your spectrometer) |
+| `from` | number | SI | the start of the simulated axis | First reading |
+| `to` | number | SI | the end of the simulated axis | Last reading |
+| `step` | number | SI |  | Spacing of the readings |
+| `points` | integer |  | as simulated | Number of readings (with from / to, when no step) |
+| `binWidth` | any | SI | 0 (point readings) | Width each reading integrates over: a number, or "pixel" (the spacing between readings) |
+| `resolution` | number | SI | 0 | Gaussian blur (FWHM) applied before binning |
 
 ### `interaction`
 
@@ -1446,7 +1595,12 @@ A measured input spectrum.
 | `intensity` | number or array |  |  | Intensity per unit wavelength |
 | `phaseRad` | number or array | rad |  | Spectral phase (optional) |
 | `csv` | string |  |  | CSV file: wavelength, intensity, optional phase |
-| `wavelengthUnit` | string |  | m | Unit of the CSV wavelength column |
+| `wavelengthUnit` | string |  | nm | Unit of the CSV wavelength column |
+| `resolutionM` | number | m | 0 (unknown) | Resolution (Gaussian FWHM) of the spectrometer that recorded it |
+| `resolutionNm` | number | nm |  | Resolution in nm |
+| `deconvolve` | boolean |  | false | Remove the recording resolution (Richardson-Lucy) before use |
+| `deconvolveIterations` | integer |  | 30 | Richardson-Lucy iterations |
+| `extrapolate` | `"zero"` \| `"gaussian"` |  | zero | Outside the measured wavelengths: no light, or Gaussian tails fitted to the data |
 
 ### `pump`
 

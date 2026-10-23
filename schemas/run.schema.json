@@ -135,7 +135,18 @@
           "type": "string"
         }
       ],
-      "description": "Calibrate parameters against every instrument with measured data (fitting plugin)."
+      "description": "Fit transform parameters (and any listed number) to every instrument with measured data (fitting plugin)."
+    },
+    "backward": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.fitting:backward"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Backward propagation: the pulse is the field measured downstream; find the field at every plane upstream (fitting plugin)."
     },
     "$schema": {
       "type": "string",
@@ -364,7 +375,28 @@
         },
         "wavelengthUnit": {
           "type": "string",
-          "description": "Unit of the CSV wavelength column Default: m."
+          "description": "Unit of the CSV wavelength column Default: nm."
+        },
+        "resolutionM": {
+          "type": "number",
+          "description": "Resolution (Gaussian FWHM) of the spectrometer that recorded it [m] Default: 0 (unknown)."
+        },
+        "resolutionNm": {
+          "type": "number",
+          "description": "Resolution in nm [nm]"
+        },
+        "deconvolve": {
+          "type": "boolean",
+          "description": "Remove the recording resolution (Richardson-Lucy) before use Default: false."
+        },
+        "deconvolveIterations": {
+          "type": "integer",
+          "description": "Richardson-Lucy iterations Default: 30."
+        },
+        "extrapolate": {
+          "type": "string",
+          "enum": ["zero", "gaussian"],
+          "description": "Outside the measured wavelengths: no light, or Gaussian tails fitted to the data Default: zero."
         },
         "comment": {
           "description": "Free text."
@@ -840,26 +872,76 @@
     },
     "obj.fitting:fit": {
       "type": "object",
-      "description": "Calibration fit (fitting plugin). [plugin: fitting]",
+      "description": "Fit (fitting plugin). (docs/plugins/fitting.md#fitting) [plugin: fitting]",
       "properties": {
         "parameters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/obj.fitting:parameter"
           },
-          "description": "The parameters to fit"
+          "description": "Numbers to fit by path (in addition to the transform parameters marked for fitting)"
+        },
+        "estimator": {
+          "type": "string",
+          "enum": ["levenbergMarquardt", "cmaes", "mcmc"],
+          "description": "Fitting algorithm (plugins may register more) Default: levenbergMarquardt."
         },
         "maxIterations": {
           "type": "integer",
-          "description": "Levenberg-Marquardt iterations Default: 20."
+          "description": "Iterations (LM) / generations (CMA-ES) Default: 20 (LM), 60 (CMA-ES)."
         },
         "tolerance": {
           "type": "number",
-          "description": "Relative chi^2 change that ends the fit Default: 1e-4."
+          "description": "Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit Default: 1e-4 (LM), 1e-6 (CMA-ES)."
         },
         "freezeGrid": {
           "type": "boolean",
           "description": "Fix the time/frequency grid (2x the planned bandwidth) for all evaluations Default: true."
+        },
+        "parallel": {
+          "type": "integer",
+          "description": "Simulations run at the same time (Jacobian columns, CMA-ES population, MCMC walkers) Default: 1."
+        },
+        "population": {
+          "type": "integer",
+          "description": "CMA-ES population Default: 4 + 3 ln n."
+        },
+        "sigma0": {
+          "type": "number",
+          "description": "CMA-ES initial step (in units of each parameter's scale) Default: 0.3."
+        },
+        "polish": {
+          "type": "boolean",
+          "description": "CMA-ES: finish with Levenberg-Marquardt Default: true."
+        },
+        "walkers": {
+          "type": "integer",
+          "description": "MCMC walkers Default: max(2n + 2, 8)."
+        },
+        "steps": {
+          "type": "integer",
+          "description": "MCMC steps Default: 200."
+        },
+        "burnIn": {
+          "type": "number",
+          "description": "MCMC burn-in fraction Default: 0.5."
+        },
+        "thin": {
+          "type": "integer",
+          "description": "MCMC thinning Default: 1."
+        },
+        "start": {
+          "type": "string",
+          "enum": ["optimum", "initial"],
+          "description": "MCMC start: a Levenberg-Marquardt optimum or the initial values Default: optimum."
+        },
+        "spread": {
+          "type": "number",
+          "description": "MCMC starting ball (in units of each scale) Default: 0.1."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Random seed (CMA-ES, MCMC) Default: 1."
         },
         "comment": {
           "description": "Free text."
@@ -871,7 +953,6 @@
           "description": "Free text."
         }
       },
-      "required": ["parameters"],
       "patternProperties": {
         "^_": {}
       },
@@ -883,7 +964,7 @@
       "properties": {
         "path": {
           "type": "string",
-          "description": "pulse/..., element:ID/..., material:NAME/prop, run/..., system/..."
+          "description": "pulse/..., element:ID/..., instrument:NAME/..., material:NAME/prop, run/..., system/..."
         },
         "name": {
           "type": "string",
@@ -913,6 +994,9 @@
           "type": "string",
           "description": "Unit label for reports"
         },
+        "prior": {
+          "description": "Gaussian prior: sigma (mean = initial) or {mean, sigma}"
+        },
         "comment": {
           "description": "Free text."
         },
@@ -924,6 +1008,53 @@
         }
       },
       "required": ["path"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fitting:backward": {
+      "type": "object",
+      "description": "Backward propagation (fitting plugin). (docs/plugins/fitting.md#backward-propagation) [plugin: fitting]",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Plane where the run's pulse was measured: an element id (after it) or \"end\" Default: \"end\"."
+        },
+        "to": {
+          "type": "string",
+          "description": "Plane to propagate back to: an element id (after it) or \"input\" Default: \"input\"."
+        },
+        "regularization": {
+          "type": "number",
+          "description": "Relative Tikhonov level for inverting linear terms (transmission below this x the peak is not recovered) Default: 1e-3."
+        },
+        "active": {
+          "type": "string",
+          "enum": ["error", "linearized", "identity"],
+          "description": "Amplifiers, crystals and spatial elements: refuse, undo as the filter they were in a forward reference run, or pass through Default: error."
+        },
+        "referencePulse": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.pulse"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "active = linearized: the input pulse of the forward reference run"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
       "patternProperties": {
         "^_": {}
       },
@@ -1059,6 +1190,62 @@
       },
       "additionalProperties": false
     },
+    "obj.instrumentAxis": {
+      "type": "object",
+      "description": "Sampling of a curve instrument's axis (spectrometer wavelengths, scope times, autocorrelator / cross-correlator delays, polarimeter wavelengths, delay scan, contrast, beam profile, phase-matching curve). Units: those of the axis (m, s). (docs/reference/instruments.md#axis-where-readings-are-taken)",
+      "properties": {
+        "values": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Explicit reading positions (e.g. the pixel wavelengths of your spectrometer) [SI]"
+        },
+        "from": {
+          "type": "number",
+          "description": "First reading [SI] Default: the start of the simulated axis."
+        },
+        "to": {
+          "type": "number",
+          "description": "Last reading [SI] Default: the end of the simulated axis."
+        },
+        "step": {
+          "type": "number",
+          "description": "Spacing of the readings [SI]"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Number of readings (with from / to, when no step) Default: as simulated."
+        },
+        "binWidth": {
+          "description": "Width each reading integrates over: a number, or \"pixel\" (the spacing between readings) [SI] Default: 0 (point readings)."
+        },
+        "resolution": {
+          "type": "number",
+          "description": "Gaussian blur (FWHM) applied before binning [SI] Default: 0."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "obj.fitting:measured": {
       "type": "object",
       "description": "Recorded data for one instrument (fitting plugin). [plugin: fitting]",
@@ -1132,6 +1319,27 @@
         "simulated": {
           "type": "object",
           "description": "Which arrays of the instrument to compare with: x, y | rows, cols, trace"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["linear", "log"],
+          "description": "Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators) Default: linear."
+        },
+        "sigmaDb": {
+          "type": "number",
+          "description": "scale log: uncertainty of each point in dB [dB] Default: 1."
+        },
+        "floorDb": {
+          "type": "number",
+          "description": "scale log: floor relative to the peak (values below are clipped to it) [dB] Default: the data's minimum."
+        },
+        "resolutionM": {
+          "type": "number",
+          "description": "Spectral resolution of the recording instrument (checked against the simulated instrument) [m]"
+        },
+        "resolutionS": {
+          "type": "number",
+          "description": "Temporal / delay resolution of the recording instrument (checked against the simulated instrument) [s]"
         },
         "comment": {
           "description": "Free text."
@@ -1260,6 +1468,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1269,7 +1488,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -1369,6 +1588,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1378,7 +1608,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -1755,6 +1985,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1764,7 +2005,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -1876,6 +2117,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -1885,7 +2137,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2001,6 +2253,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2010,7 +2273,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2110,6 +2373,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2119,7 +2393,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2294,6 +2568,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2303,7 +2588,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2415,6 +2700,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2424,7 +2720,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2568,6 +2864,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2577,7 +2884,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2699,6 +3006,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2708,7 +3026,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2820,6 +3138,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2829,7 +3158,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -2946,6 +3275,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -2955,7 +3295,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3076,6 +3416,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3085,7 +3436,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3193,6 +3544,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3202,7 +3564,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3302,6 +3664,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3311,7 +3684,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3423,6 +3796,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3432,7 +3816,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3554,7 +3938,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3700,6 +4084,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3709,7 +4104,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3850,6 +4245,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3859,7 +4265,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."
@@ -3971,6 +4377,17 @@
           ],
           "description": "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"
         },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
         "measured": {
           "anyOf": [
             {
@@ -3980,7 +4397,7 @@
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
         },
         "comment": {
           "description": "Free text."

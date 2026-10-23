@@ -1,8 +1,8 @@
 {
   "id": "fitting",
-  "name": "Fitting: measured data and calibration",
+  "name": "Fitting: transforms, measured data, fitting and backward propagation",
   "version": "2.1.8-beta",
-  "description": "Compares instruments with recorded data (\"measured\") and calibrates parameters with error bars (\"fit\").",
+  "description": "Fittable \"transform\" elements, comparison with recorded data (\"measured\"), fits with replaceable estimators (\"fit\") and backward propagation (\"backward\").",
   "engine": "2.1.8-beta",
   "entry": "UltrafastEngine.Plugins.Fitting.FittingPlugin",
   "assemblies": {

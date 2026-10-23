@@ -1930,7 +1930,28 @@
         },
         "wavelengthUnit": {
           "type": "string",
-          "description": "Unit of the CSV wavelength column Default: m."
+          "description": "Unit of the CSV wavelength column Default: nm."
+        },
+        "resolutionM": {
+          "type": "number",
+          "description": "Resolution (Gaussian FWHM) of the spectrometer that recorded it [m] Default: 0 (unknown)."
+        },
+        "resolutionNm": {
+          "type": "number",
+          "description": "Resolution in nm [nm]"
+        },
+        "deconvolve": {
+          "type": "boolean",
+          "description": "Remove the recording resolution (Richardson-Lucy) before use Default: false."
+        },
+        "deconvolveIterations": {
+          "type": "integer",
+          "description": "Richardson-Lucy iterations Default: 30."
+        },
+        "extrapolate": {
+          "type": "string",
+          "enum": ["zero", "gaussian"],
+          "description": "Outside the measured wavelengths: no light, or Gaussian tails fitted to the data Default: zero."
         },
         "comment": {
           "description": "Free text."
@@ -7957,6 +7978,852 @@
       },
       "additionalProperties": false
     },
+    "obj.fitting:operator": {
+      "type": "object",
+      "description": "One transform operator (kind + parameters; numbers may be fit objects). (docs/plugins/fitting.md#operators) [plugin: fitting]",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront"],
+          "description": "Operator kind (plugins may add more)"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the operator Default: true."
+        },
+        "fit": {
+          "type": "array",
+          "description": "Names of parameters to fit (dotted for nested: \"knots.phaseRad\" fits every knot), alternative to fit objects"
+        },
+        "bounds": {
+          "type": "object",
+          "description": "Bounds for the names in \"fit\": {name: [min, max]}"
+        },
+        "priors": {
+          "type": "object",
+          "description": "Gaussian priors for the names in \"fit\": {name: sigma | {mean, sigma}}"
+        },
+        "smoothness": {
+          "type": "number",
+          "description": "Regularisation weight on the second differences of fitted knots Default: 0."
+        },
+        "gddFs2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralPhase: GDD [fs^2] May be a fit object {value, fit, min, max, prior}."
+        },
+        "todFs3": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralPhase: TOD [fs^3] May be a fit object {value, fit, min, max, prior}."
+        },
+        "fodFs4": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralPhase: FOD [fs^4] May be a fit object {value, fit, min, max, prior}."
+        },
+        "fifthFs5": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralPhase: fifth order [fs^5] May be a fit object {value, fit, min, max, prior}."
+        },
+        "gddS2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralPhase: GDD in s^2 [s^2] May be a fit object {value, fit, min, max, prior}."
+        },
+        "todS3": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralPhase: TOD in s^3 [s^3] May be a fit object {value, fit, min, max, prior}."
+        },
+        "fodS4": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralPhase: FOD in s^4 [s^4] May be a fit object {value, fit, min, max, prior}."
+        },
+        "centerWavelengthM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "Reference / centre wavelength [m] Default: the element's carrier. May be a fit object {value, fit, min, max, prior}."
+        },
+        "centerWavelengthNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "Reference / centre wavelength in nm [nm] May be a fit object {value, fit, min, max, prior}."
+        },
+        "knots": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.fitting:knots"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Spline knots: wavelengthsM | wavelengthsNm with phaseRad (spectralPhase) or transmission | transmissionDb (spectralAmplitude)"
+        },
+        "shape": {
+          "type": "string",
+          "enum": ["gaussian", "superGaussian", "tilt", "spline", "model"],
+          "description": "spectralAmplitude: shape Default: from the keys given."
+        },
+        "fwhmM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralAmplitude: band FWHM [m] May be a fit object {value, fit, min, max, prior}."
+        },
+        "fwhmNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralAmplitude: band FWHM in nm [nm] May be a fit object {value, fit, min, max, prior}."
+        },
+        "order": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "superGaussian order Default: 2. May be a fit object {value, fit, min, max, prior}."
+        },
+        "peak": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "Peak power transmission Default: 1. May be a fit object {value, fit, min, max, prior}."
+        },
+        "tiltDbPerNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralAmplitude: transmission slope [dB/nm] May be a fit object {value, fit, min, max, prior}."
+        },
+        "curvatureDbPerNm2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "spectralAmplitude: curvature [dB/nm^2] May be a fit object {value, fit, min, max, prior}."
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "spectralAmplitude: any filter model (shape: model) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "passive": {
+          "type": "boolean",
+          "description": "spectralAmplitude: clip the transmission to <= 1 Default: true."
+        },
+        "causal": {
+          "type": "boolean",
+          "description": "spectralAmplitude: add the minimum phase (Kramers-Kronig) Default: false."
+        },
+        "floor": {
+          "type": "number",
+          "description": "causal: smallest relative transmission used in the logarithm Default: 1e-8."
+        },
+        "transmission": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "energy: power transmission Default: 1. May be a fit object {value, fit, min, max, prior}."
+        },
+        "gainDb": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "energy: gain (alternative) [dB] May be a fit object {value, fit, min, max, prior}."
+        },
+        "delayS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "delay / replica: delay [s] May be a fit object {value, fit, min, max, prior}."
+        },
+        "delayFs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "delay / replica: delay in fs [fs] May be a fit object {value, fit, min, max, prior}."
+        },
+        "delayPs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "replica: delay in ps [ps] May be a fit object {value, fit, min, max, prior}."
+        },
+        "retardanceRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "jones: retardance [rad] May be a fit object {value, fit, min, max, prior}."
+        },
+        "axisDeg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "jones: retarder fast axis [deg] May be a fit object {value, fit, min, max, prior}."
+        },
+        "diattenuation": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "jones: power loss of the weak axis (0..1) May be a fit object {value, fit, min, max, prior}."
+        },
+        "diattenuationAxisDeg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "jones: weak axis [deg] Default: axisDeg. May be a fit object {value, fit, min, max, prior}."
+        },
+        "rotationDeg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "jones: rotation of the polarisation [deg] May be a fit object {value, fit, min, max, prior}."
+        },
+        "relativeIntensity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "replica / pedestal: intensity relative to the main peak May be a fit object {value, fit, min, max, prior}."
+        },
+        "relativeIntensityDb": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "replica / pedestal: the same in dB (better for fitting levels spanning decades) [dB] May be a fit object {value, fit, min, max, prior}."
+        },
+        "phaseRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "replica: relative phase [rad] May be a fit object {value, fit, min, max, prior}."
+        },
+        "rmsRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "phaseNoise: phase noise rms [rad] May be a fit object {value, fit, min, max, prior}."
+        },
+        "amplitudeRms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "phaseNoise: amplitude noise rms May be a fit object {value, fit, min, max, prior}."
+        },
+        "correlationNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "phaseNoise: correlation width [nm] May be a fit object {value, fit, min, max, prior}."
+        },
+        "correlationRadPerS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "phaseNoise: correlation width [rad/s] May be a fit object {value, fit, min, max, prior}."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "phaseNoise / pedestal: random seed Default: 1."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["ase", "exponential"],
+          "description": "pedestal: incoherent background type Default: ase."
+        },
+        "durationS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "pedestal (ase): duration [s] Default: 10e-9. May be a fit object {value, fit, min, max, prior}."
+        },
+        "energyFraction": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "pedestal (ase): energy / main energy May be a fit object {value, fit, min, max, prior}."
+        },
+        "level": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "pedestal (exponential): level at the peak May be a fit object {value, fit, min, max, prior}."
+        },
+        "levelDb": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "pedestal (exponential): level in dB [dB] May be a fit object {value, fit, min, max, prior}."
+        },
+        "riseS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "pedestal (exponential): rise [s] May be a fit object {value, fit, min, max, prior}."
+        },
+        "fallS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "pedestal (exponential): fall [s] May be a fit object {value, fit, min, max, prior}."
+        },
+        "bandwidthFwhmNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "pedestal: spectral FWHM (default: the pulse's spectrum) [nm] May be a fit object {value, fit, min, max, prior}."
+        },
+        "zernike": {
+          "type": "object",
+          "description": "wavefront: Noll index -> waves rms, e.g. {\"4\": 0.1, \"11\": 0.02}; values may be fit objects"
+        },
+        "radiusM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "wavefront: normalisation radius [m] Default: the beam's 1/e^2 radius. May be a fit object {value, fit, min, max, prior}."
+        },
+        "wavelengthM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "wavefront: wavelength of the waves [m] Default: the carrier. May be a fit object {value, fit, min, max, prior}."
+        },
+        "tiltXRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "wavefront: pointing x [rad] May be a fit object {value, fit, min, max, prior}."
+        },
+        "tiltYRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "wavefront: pointing y [rad] May be a fit object {value, fit, min, max, prior}."
+        },
+        "params": {
+          "type": "object",
+          "description": "Parameters of operator kinds added by other plugins (free-form; numbers may be fit objects)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["kind"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fitting:value": {
+      "type": "object",
+      "description": "A fit parameter in place of a number: its value, and how to fit it. (docs/plugins/fitting.md#marking-parameters-for-fitting) [plugin: fitting]",
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value (used by plain runs; the start value of a fit)"
+        },
+        "fit": {
+          "type": "boolean",
+          "description": "Fit this number Default: false."
+        },
+        "min": {
+          "type": "number",
+          "description": "Lower bound"
+        },
+        "max": {
+          "type": "number",
+          "description": "Upper bound"
+        },
+        "scale": {
+          "type": "number",
+          "description": "Typical size of a change Default: (max - min) / 4, else a per-quantity default."
+        },
+        "step": {
+          "type": "number",
+          "description": "Finite-difference step Default: 1e-3 x scale."
+        },
+        "prior": {
+          "description": "Gaussian prior: sigma (mean = value) or {mean, sigma}"
+        },
+        "name": {
+          "type": "string",
+          "description": "Label in reports Default: element.operator.key."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit label Default: from the key."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["value"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.fitting:knots": {
+      "type": "object",
+      "description": "Spline knots of a transform operator. [plugin: fitting]",
+      "properties": {
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Knot wavelengths [m]"
+        },
+        "wavelengthsNm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Knot wavelengths in nm [nm]"
+        },
+        "phaseRad": {
+          "type": "array",
+          "description": "spectralPhase: phase at the knots (numbers or fit objects)"
+        },
+        "transmission": {
+          "type": "array",
+          "description": "spectralAmplitude: power transmission at the knots"
+        },
+        "transmissionDb": {
+          "type": "array",
+          "description": "spectralAmplitude: transmission in dB at the knots"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.transform": {
+      "type": "object",
+      "description": "Fittable physical changes to the beam: spectral phase / amplitude, energy, polarisation, contrast (replicas, phase noise, pedestals), wavefront. (docs/plugins/fitting.md#transform-elements) [plugin: fitting]",
+      "properties": {
+        "operators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/obj.fitting:operator"
+          },
+          "description": "The operators, applied in order"
+        },
+        "regularization": {
+          "type": "number",
+          "description": "Backward propagation: relative Tikhonov level for inverting this element Default: the run's backward.regularization."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["operators"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.user": {
       "type": "object",
       "description": "Your own function of the main beam's spectrum (Python, C#, C). (docs/reference/elements.md#user)",
@@ -8549,7 +9416,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "probe", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "user", "wavefront", "waveguide", "waveplate", "window"],
+          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "probe", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
           "description": "Element type."
         }
       },
@@ -8877,6 +9744,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.thinFilmPolarizer"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["transform"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.transform"
           }
         },
         {

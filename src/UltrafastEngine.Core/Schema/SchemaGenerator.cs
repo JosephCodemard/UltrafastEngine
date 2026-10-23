@@ -150,6 +150,22 @@ namespace UltrafastEngine.Schema
         {
             var o = new JsonObject();
             string desc = p.Description + (p.Unit != "" ? " [" + p.Unit + "]" : "") + (p.Default != null ? " Default: " + p.Default + "." : "") + (p.DeprecatedBy != null ? " DEPRECATED: use " + p.DeprecatedBy + "." : "");
+            if (p.Fittable && (p.Type == ParamType.Number || p.Type == ParamType.NumberOrArray))
+            {
+                var alts = new List<JsonValue> { new JsonObject().Set("type", "number") };
+                if (p.Type == ParamType.NumberOrArray) alts.Add(new JsonObject().Set("type", "array").Set("items", new JsonObject().Set("type", "number")));
+                var sub = p.ObjectRef != null ? Validator.Resolve(p.ObjectRef) : null;
+                if (sub != null)
+                {
+                    string dn = "obj." + p.ObjectRef;
+                    if (!defs.Has(dn)) { defs.Set(dn, new JsonObject()); defs.Set(dn, Component(sub, defs, new string[0], "_", "")); ((JsonObject)defs[dn]).AsObject().GetObject("properties")?.Remove("_"); }
+                    alts.Add(new JsonObject().Set("$ref", "#/definitions/" + dn));
+                }
+                else alts.Add(new JsonObject().Set("type", "object").Set("required", JsonValue.FromArray(new[] { "value" })));
+                o.Set("anyOf", new JsonArray(alts));
+                o.Set("description", desc + " May be a fit object {value, fit, min, max, prior}.");
+                return o;
+            }
             switch (p.Type)
             {
                 case ParamType.Number: o.Set("type", "number"); break;

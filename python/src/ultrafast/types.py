@@ -1591,6 +1591,39 @@ class ThinFilmPolarizerElement(TypedDict, total=False):
     """Free text."""
 
 
+class TransformElement(TypedDict, total=False):
+    """Fittable physical changes to the beam: spectral phase / amplitude, energy, polarisation, contrast (replicas, phase noise, pedestals), wavefront. (docs/plugins/fitting.md#transform-elements) [plugin: fitting]"""
+    id: str
+    """Unique id"""
+    type: str
+    operators: List["Fitting_operator"]
+    """The operators, applied in order"""
+    regularization: float
+    """Backward propagation: relative Tikhonov level for inverting this element Default: the run's backward.regularization."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class UserElement(TypedDict, total=False):
     """Your own function of the main beam's spectrum (Python, C#, C). (docs/reference/elements.md#user)"""
     id: str
@@ -1764,8 +1797,10 @@ class AutocorrelatorInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -1789,8 +1824,10 @@ class BeamProfileInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -1850,8 +1887,10 @@ class CameraInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -1881,8 +1920,10 @@ class CompressorInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -1914,8 +1955,10 @@ class ContrastInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -1939,8 +1982,10 @@ class ConversionInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -1992,8 +2037,10 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2023,8 +2070,10 @@ class DelayScanInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2060,8 +2109,10 @@ class DscanInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2091,8 +2142,10 @@ class EnergyMeterInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2122,8 +2175,10 @@ class FieldProbeInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2155,8 +2210,10 @@ class FrogInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2190,8 +2247,10 @@ class PhaseMatchingCurveInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2219,8 +2278,10 @@ class PolarimeterInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2244,8 +2305,10 @@ class PulseSummaryInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2275,8 +2338,10 @@ class ScopeInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2307,7 +2372,7 @@ class SpaceTimeInstrument(TypedDict, total=False):
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2345,8 +2410,10 @@ class SpectrometerInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2386,8 +2453,10 @@ class WavefrontSensorInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2417,8 +2486,10 @@ class WignerInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight). Fitting plugin."""
+    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
     comment: Any
     """Free text."""
     description: Any
@@ -2665,16 +2736,73 @@ class FiberLossTable(TypedDict, total=False):
     """Free text."""
 
 
+Fitting_backward = TypedDict('Fitting_backward', {
+    'from': str,  # Plane where the run's pulse was measured: an element id (after it) or "end" Default: "end".
+    'to': str,  # Plane to propagate back to: an element id (after it) or "input" Default: "input".
+    'regularization': float,  # Relative Tikhonov level for inverting linear terms (transmission below this x the peak is not recove
+    'active': Literal["error", "linearized", "identity"],  # Amplifiers, crystals and spatial elements: refuse, undo as the filter they were in a forward referen
+    'referencePulse': Union["Pulse", str],  # active = linearized: the input pulse of the forward reference run
+    'comment': Any,  # Free text.
+    'description': Any,  # Free text.
+    'notes': Any,  # Free text.
+}, total=False)
+"""Backward propagation (fitting plugin). (docs/plugins/fitting.md#backward-propagation) [plugin: fitting]"""
+
+
 class Fitting_fit(TypedDict, total=False):
-    """Calibration fit (fitting plugin). [plugin: fitting]"""
+    """Fit (fitting plugin). (docs/plugins/fitting.md#fitting) [plugin: fitting]"""
     parameters: List["Fitting_parameter"]
-    """The parameters to fit"""
+    """Numbers to fit by path (in addition to the transform parameters marked for fitting)"""
+    estimator: Literal["levenbergMarquardt", "cmaes", "mcmc"]
+    """Fitting algorithm (plugins may register more) Default: levenbergMarquardt."""
     maxIterations: int
-    """Levenberg-Marquardt iterations Default: 20."""
+    """Iterations (LM) / generations (CMA-ES) Default: 20 (LM), 60 (CMA-ES)."""
     tolerance: float
-    """Relative chi^2 change that ends the fit Default: 1e-4."""
+    """Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit Default: 1e-4 (LM), 1e-6 (CMA-ES)."""
     freezeGrid: bool
     """Fix the time/frequency grid (2x the planned bandwidth) for all evaluations Default: true."""
+    parallel: int
+    """Simulations run at the same time (Jacobian columns, CMA-ES population, MCMC walkers) Default: 1."""
+    population: int
+    """CMA-ES population Default: 4 + 3 ln n."""
+    sigma0: float
+    """CMA-ES initial step (in units of each parameter's scale) Default: 0.3."""
+    polish: bool
+    """CMA-ES: finish with Levenberg-Marquardt Default: true."""
+    walkers: int
+    """MCMC walkers Default: max(2n + 2, 8)."""
+    steps: int
+    """MCMC steps Default: 200."""
+    burnIn: float
+    """MCMC burn-in fraction Default: 0.5."""
+    thin: int
+    """MCMC thinning Default: 1."""
+    start: Literal["optimum", "initial"]
+    """MCMC start: a Levenberg-Marquardt optimum or the initial values Default: optimum."""
+    spread: float
+    """MCMC starting ball (in units of each scale) Default: 0.1."""
+    seed: int
+    """Random seed (CMA-ES, MCMC) Default: 1."""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Fitting_knots(TypedDict, total=False):
+    """Spline knots of a transform operator. [plugin: fitting]"""
+    wavelengthsM: Union[float, List[float]]
+    """Knot wavelengths [m]"""
+    wavelengthsNm: Union[float, List[float]]
+    """Knot wavelengths in nm [nm]"""
+    phaseRad: List[Any]
+    """spectralPhase: phase at the knots (numbers or fit objects)"""
+    transmission: List[Any]
+    """spectralAmplitude: power transmission at the knots"""
+    transmissionDb: List[Any]
+    """spectralAmplitude: transmission in dB at the knots"""
     comment: Any
     """Free text."""
     description: Any
@@ -2715,6 +2843,144 @@ class Fitting_measured(TypedDict, total=False):
     """Weight of this instrument in the fit's chi^2 Default: 1."""
     simulated: Dict[str, Any]
     """Which arrays of the instrument to compare with: x, y | rows, cols, trace"""
+    scale: Literal["linear", "log"]
+    """Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators) Default: linear."""
+    sigmaDb: float
+    """scale log: uncertainty of each point in dB [dB] Default: 1."""
+    floorDb: float
+    """scale log: floor relative to the peak (values below are clipped to it) [dB] Default: the data's minimum."""
+    resolutionM: float
+    """Spectral resolution of the recording instrument (checked against the simulated instrument) [m]"""
+    resolutionS: float
+    """Temporal / delay resolution of the recording instrument (checked against the simulated instrument) [s]"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Fitting_operator(TypedDict, total=False):
+    """One transform operator (kind + parameters; numbers may be fit objects). (docs/plugins/fitting.md#operators) [plugin: fitting]"""
+    kind: Literal["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront"]
+    """Operator kind (plugins may add more)"""
+    enabled: bool
+    """false skips the operator Default: true."""
+    fit: List[Any]
+    """Names of parameters to fit (dotted for nested: "knots.phaseRad" fits every knot), alternative to fit objects"""
+    bounds: Dict[str, Any]
+    """Bounds for the names in "fit": {name: [min, max]}"""
+    priors: Dict[str, Any]
+    """Gaussian priors for the names in "fit": {name: sigma | {mean, sigma}}"""
+    smoothness: float
+    """Regularisation weight on the second differences of fitted knots Default: 0."""
+    gddFs2: Union[float, "Fitting_value"]
+    """spectralPhase: GDD [fs^2] May be a fit object {value, fit, min, max, prior}."""
+    todFs3: Union[float, "Fitting_value"]
+    """spectralPhase: TOD [fs^3] May be a fit object {value, fit, min, max, prior}."""
+    fodFs4: Union[float, "Fitting_value"]
+    """spectralPhase: FOD [fs^4] May be a fit object {value, fit, min, max, prior}."""
+    fifthFs5: Union[float, "Fitting_value"]
+    """spectralPhase: fifth order [fs^5] May be a fit object {value, fit, min, max, prior}."""
+    gddS2: Union[float, "Fitting_value"]
+    """spectralPhase: GDD in s^2 [s^2] May be a fit object {value, fit, min, max, prior}."""
+    todS3: Union[float, "Fitting_value"]
+    """spectralPhase: TOD in s^3 [s^3] May be a fit object {value, fit, min, max, prior}."""
+    fodS4: Union[float, "Fitting_value"]
+    """spectralPhase: FOD in s^4 [s^4] May be a fit object {value, fit, min, max, prior}."""
+    centerWavelengthM: Union[float, "Fitting_value"]
+    """Reference / centre wavelength [m] Default: the element's carrier. May be a fit object {value, fit, min, max, prior}."""
+    centerWavelengthNm: Union[float, "Fitting_value"]
+    """Reference / centre wavelength in nm [nm] May be a fit object {value, fit, min, max, prior}."""
+    knots: Union["Fitting_knots", str]
+    """Spline knots: wavelengthsM | wavelengthsNm with phaseRad (spectralPhase) or transmission | transmissionDb (spectralAmplitude)"""
+    shape: Literal["gaussian", "superGaussian", "tilt", "spline", "model"]
+    """spectralAmplitude: shape Default: from the keys given."""
+    fwhmM: Union[float, "Fitting_value"]
+    """spectralAmplitude: band FWHM [m] May be a fit object {value, fit, min, max, prior}."""
+    fwhmNm: Union[float, "Fitting_value"]
+    """spectralAmplitude: band FWHM in nm [nm] May be a fit object {value, fit, min, max, prior}."""
+    order: Union[float, "Fitting_value"]
+    """superGaussian order Default: 2. May be a fit object {value, fit, min, max, prior}."""
+    peak: Union[float, "Fitting_value"]
+    """Peak power transmission Default: 1. May be a fit object {value, fit, min, max, prior}."""
+    tiltDbPerNm: Union[float, "Fitting_value"]
+    """spectralAmplitude: transmission slope [dB/nm] May be a fit object {value, fit, min, max, prior}."""
+    curvatureDbPerNm2: Union[float, "Fitting_value"]
+    """spectralAmplitude: curvature [dB/nm^2] May be a fit object {value, fit, min, max, prior}."""
+    model: Union[float, str, Dict[str, Any], List[Any]]
+    """spectralAmplitude: any filter model (shape: model) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    passive: bool
+    """spectralAmplitude: clip the transmission to <= 1 Default: true."""
+    causal: bool
+    """spectralAmplitude: add the minimum phase (Kramers-Kronig) Default: false."""
+    floor: float
+    """causal: smallest relative transmission used in the logarithm Default: 1e-8."""
+    transmission: Union[float, "Fitting_value"]
+    """energy: power transmission Default: 1. May be a fit object {value, fit, min, max, prior}."""
+    gainDb: Union[float, "Fitting_value"]
+    """energy: gain (alternative) [dB] May be a fit object {value, fit, min, max, prior}."""
+    delayS: Union[float, "Fitting_value"]
+    """delay / replica: delay [s] May be a fit object {value, fit, min, max, prior}."""
+    delayFs: Union[float, "Fitting_value"]
+    """delay / replica: delay in fs [fs] May be a fit object {value, fit, min, max, prior}."""
+    delayPs: Union[float, "Fitting_value"]
+    """replica: delay in ps [ps] May be a fit object {value, fit, min, max, prior}."""
+    retardanceRad: Union[float, "Fitting_value"]
+    """jones: retardance [rad] May be a fit object {value, fit, min, max, prior}."""
+    axisDeg: Union[float, "Fitting_value"]
+    """jones: retarder fast axis [deg] May be a fit object {value, fit, min, max, prior}."""
+    diattenuation: Union[float, "Fitting_value"]
+    """jones: power loss of the weak axis (0..1) May be a fit object {value, fit, min, max, prior}."""
+    diattenuationAxisDeg: Union[float, "Fitting_value"]
+    """jones: weak axis [deg] Default: axisDeg. May be a fit object {value, fit, min, max, prior}."""
+    rotationDeg: Union[float, "Fitting_value"]
+    """jones: rotation of the polarisation [deg] May be a fit object {value, fit, min, max, prior}."""
+    relativeIntensity: Union[float, "Fitting_value"]
+    """replica / pedestal: intensity relative to the main peak May be a fit object {value, fit, min, max, prior}."""
+    relativeIntensityDb: Union[float, "Fitting_value"]
+    """replica / pedestal: the same in dB (better for fitting levels spanning decades) [dB] May be a fit object {value, fit, min, max, prior}."""
+    phaseRad: Union[float, "Fitting_value"]
+    """replica: relative phase [rad] May be a fit object {value, fit, min, max, prior}."""
+    rmsRad: Union[float, "Fitting_value"]
+    """phaseNoise: phase noise rms [rad] May be a fit object {value, fit, min, max, prior}."""
+    amplitudeRms: Union[float, "Fitting_value"]
+    """phaseNoise: amplitude noise rms May be a fit object {value, fit, min, max, prior}."""
+    correlationNm: Union[float, "Fitting_value"]
+    """phaseNoise: correlation width [nm] May be a fit object {value, fit, min, max, prior}."""
+    correlationRadPerS: Union[float, "Fitting_value"]
+    """phaseNoise: correlation width [rad/s] May be a fit object {value, fit, min, max, prior}."""
+    seed: int
+    """phaseNoise / pedestal: random seed Default: 1."""
+    type: Literal["ase", "exponential"]
+    """pedestal: incoherent background type Default: ase."""
+    durationS: Union[float, "Fitting_value"]
+    """pedestal (ase): duration [s] Default: 10e-9. May be a fit object {value, fit, min, max, prior}."""
+    energyFraction: Union[float, "Fitting_value"]
+    """pedestal (ase): energy / main energy May be a fit object {value, fit, min, max, prior}."""
+    level: Union[float, "Fitting_value"]
+    """pedestal (exponential): level at the peak May be a fit object {value, fit, min, max, prior}."""
+    levelDb: Union[float, "Fitting_value"]
+    """pedestal (exponential): level in dB [dB] May be a fit object {value, fit, min, max, prior}."""
+    riseS: Union[float, "Fitting_value"]
+    """pedestal (exponential): rise [s] May be a fit object {value, fit, min, max, prior}."""
+    fallS: Union[float, "Fitting_value"]
+    """pedestal (exponential): fall [s] May be a fit object {value, fit, min, max, prior}."""
+    bandwidthFwhmNm: Union[float, "Fitting_value"]
+    """pedestal: spectral FWHM (default: the pulse's spectrum) [nm] May be a fit object {value, fit, min, max, prior}."""
+    zernike: Dict[str, Any]
+    """wavefront: Noll index -> waves rms, e.g. {"4": 0.1, "11": 0.02}; values may be fit objects"""
+    radiusM: Union[float, "Fitting_value"]
+    """wavefront: normalisation radius [m] Default: the beam's 1/e^2 radius. May be a fit object {value, fit, min, max, prior}."""
+    wavelengthM: Union[float, "Fitting_value"]
+    """wavefront: wavelength of the waves [m] Default: the carrier. May be a fit object {value, fit, min, max, prior}."""
+    tiltXRad: Union[float, "Fitting_value"]
+    """wavefront: pointing x [rad] May be a fit object {value, fit, min, max, prior}."""
+    tiltYRad: Union[float, "Fitting_value"]
+    """wavefront: pointing y [rad] May be a fit object {value, fit, min, max, prior}."""
+    params: Dict[str, Any]
+    """Parameters of operator kinds added by other plugins (free-form; numbers may be fit objects)"""
     comment: Any
     """Free text."""
     description: Any
@@ -2726,7 +2992,7 @@ class Fitting_measured(TypedDict, total=False):
 class Fitting_parameter(TypedDict, total=False):
     """One fit parameter. [plugin: fitting]"""
     path: str
-    """pulse/..., element:ID/..., material:NAME/prop, run/..., system/..."""
+    """pulse/..., element:ID/..., instrument:NAME/..., material:NAME/prop, run/..., system/..."""
     name: str
     """Label Default: the path."""
     initial: float
@@ -2741,6 +3007,36 @@ class Fitting_parameter(TypedDict, total=False):
     """Finite-difference step Default: 1e-3 x scale."""
     unit: str
     """Unit label for reports"""
+    prior: Any
+    """Gaussian prior: sigma (mean = initial) or {mean, sigma}"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Fitting_value(TypedDict, total=False):
+    """A fit parameter in place of a number: its value, and how to fit it. (docs/plugins/fitting.md#marking-parameters-for-fitting) [plugin: fitting]"""
+    value: float
+    """The value (used by plain runs; the start value of a fit)"""
+    fit: bool
+    """Fit this number Default: false."""
+    min: float
+    """Lower bound"""
+    max: float
+    """Upper bound"""
+    scale: float
+    """Typical size of a change Default: (max - min) / 4, else a per-quantity default."""
+    step: float
+    """Finite-difference step Default: 1e-3 x scale."""
+    prior: Any
+    """Gaussian prior: sigma (mean = value) or {mean, sigma}"""
+    name: str
+    """Label in reports Default: element.operator.key."""
+    unit: str
+    """Unit label Default: from the key."""
     comment: Any
     """Free text."""
     description: Any
@@ -2821,6 +3117,21 @@ class InitialProfile(TypedDict, total=False):
     """Free text."""
     notes: Any
     """Free text."""
+
+
+InstrumentAxis = TypedDict('InstrumentAxis', {
+    'values': Union[float, List[float]],  # Explicit reading positions (e.g. the pixel wavelengths of your spectrometer) [SI]
+    'from': float,  # First reading [SI] Default: the start of the simulated axis.
+    'to': float,  # Last reading [SI] Default: the end of the simulated axis.
+    'step': float,  # Spacing of the readings [SI]
+    'points': int,  # Number of readings (with from / to, when no step) Default: as simulated.
+    'binWidth': Any,  # Width each reading integrates over: a number, or "pixel" (the spacing between readings) [SI] Default
+    'resolution': float,  # Gaussian blur (FWHM) applied before binning [SI] Default: 0.
+    'comment': Any,  # Free text.
+    'description': Any,  # Free text.
+    'notes': Any,  # Free text.
+}, total=False)
+"""Sampling of a curve instrument's axis (spectrometer wavelengths, scope times, autocorrelator / cross-correlator delays, polarimeter wavelengths, delay scan, contrast, beam profile, phase-matching curve). Units: those of the axis (m, s). (docs/reference/instruments.md#axis-where-readings-are-taken)"""
 
 
 class Interaction(TypedDict, total=False):
@@ -3042,7 +3353,17 @@ class PulseSpectrum(TypedDict, total=False):
     csv: str
     """CSV file: wavelength, intensity, optional phase"""
     wavelengthUnit: str
-    """Unit of the CSV wavelength column Default: m."""
+    """Unit of the CSV wavelength column Default: nm."""
+    resolutionM: float
+    """Resolution (Gaussian FWHM) of the spectrometer that recorded it [m] Default: 0 (unknown)."""
+    resolutionNm: float
+    """Resolution in nm [nm]"""
+    deconvolve: bool
+    """Remove the recording resolution (Richardson-Lucy) before use Default: false."""
+    deconvolveIterations: int
+    """Richardson-Lucy iterations Default: 30."""
+    extrapolate: Literal["zero", "gaussian"]
+    """Outside the measured wavelengths: no light, or Gaussian tails fitted to the data Default: zero."""
     comment: Any
     """Free text."""
     description: Any
@@ -3251,7 +3572,7 @@ class Transverse(TypedDict, total=False):
     """Free text."""
 
 
-Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "ProbeElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
+Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "ProbeElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
 """Any element dictionary (the typed forms first; a plain dict for plugin elements)."""
 
 
@@ -3287,10 +3608,11 @@ RunSpec = TypedDict('RunSpec', {
     'inputBeam': Union[float, str, Dict[str, Any], List[Any]],  # Default beam for nonlinear elements without one A model: a number, a name / "@callback" / expression
     'outputs': Union["Outputs", str],  # Which files to write
     'compute': Union["Compute", str],  # Compute back-end and threads
-    'fit': Union["Fitting_fit", str],  # Calibrate parameters against every instrument with measured data (fitting plugin).
+    'fit': Union["Fitting_fit", str],  # Fit transform parameters (and any listed number) to every instrument with measured data (fitting plu
+    'backward': Union["Fitting_backward", str],  # Backward propagation: the pulse is the field measured downstream; find the field at every plane upst
     '$schema': str,  # Path or URL of this schema (editor support).
 }, total=False)
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'Detector', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_fit', 'Fitting_measured', 'Fitting_parameter', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'Detector', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_measured', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']

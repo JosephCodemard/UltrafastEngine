@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "back-to-the-seed",
+  // the field measured at the output (spectrum and retrieved phase, e.g. from the d-scan), propagated back through
+  // the fitted line: what did the seed look like? The result is written to reconstructed-pulse.json.
+  "pulse": { "shape": "spectrum", "energyJ": 2.647e-4, "spectrum": { "csv": "data/output_field.csv", "wavelengthUnit": "nm" } },
+  "grid": { "auto": false, "n": 16384, "windowS": 40e-12 },
+  "backward": { "from": "end", "to": "input", "regularization": 1e-3 },
+  "instruments": [
+    { "kind": "pulseSummary", "name": "seed", "at": "input" },
+    { "kind": "spectrometer", "name": "seed_spectrum", "at": "input" }
+  ]
+}

@@ -2,6 +2,7 @@ bin/
 obj/
 artifacts/
 results/
+results-*/
 # ... but not the engine's Results source folder (macOS/Windows match ignore rules case-insensitively)
 !src/UltrafastEngine.Core/Results/
 *.user

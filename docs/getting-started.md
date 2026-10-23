@@ -43,9 +43,9 @@ command line (`dotnet build UltrafastEngine.sln`), which works with any editor. 
 2. Set **UltrafastEngine.Tests** as start-up project and run (Ctrl+F5): all tests should pass.
 3. Set **UltrafastEngine.Cli** as start-up project; in *Debug properties* use the arguments
    `run ..\..\docs\examples\01-spm-plate\plate.ufs ..\..\docs\examples\01-spm-plate\run.json -o results`.
-4. **Zemax binding**: the project compiles against the ZOS-API assemblies in `plugins/zemax/src/UltrafastEngine.Zemax/lib`
-   (`ZOSAPI.dll`, `ZOSAPI_Interfaces.dll`, `ZOSAPI_NetHelper.dll`; git-ignored, as they are Ansys property) or in `C:\Program Files\Ansys Zemax OpticStudio 2025 R1`;
-   set the MSBuild property `ZosApiDir` for another location. Without ZOS-API it builds against stubs (with a
+4. **Zemax binding**: the project compiles against the ZOS-API assemblies of your OpticStudio installation
+   (`ZOSAPI.dll`, `ZOSAPI_Interfaces.dll`, `ZOSAPI_NetHelper.dll`, Ansys property and never part of this repository),
+   by default in `C:\Program Files\Ansys Zemax OpticStudio 2025 R1`; set the MSBuild property `ZosApiDir` for another location. Without ZOS-API it builds against stubs (with a
    warning) so the rest of the solution still builds. See [Zemax plugin](plugins/zemax.md).
 5. **Native library** (C/C++/Python without .NET):
    `dotnet publish src\UltrafastEngine.Native -c Release -r win-x64 -o artifacts\native\win-x64`.

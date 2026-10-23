@@ -7,23 +7,23 @@ described in [docs/capabilities.md](docs/capabilities.md).
 
 | | result |
 |---|---|
-| `dotnet build UltrafastEngine.sln -c Release` (Zemax binding against the real ZOS-API assemblies in `plugins/zemax/src/UltrafastEngine.Zemax/lib`) | builds, 0 warnings |
-| C# tests, .NET 10, incl. slow (`-- --slow`) | **166/166 pass** |
-| C# tests, .NET Framework 4.8 build under Mono, incl. slow | **166/166 pass** |
-| Python tests (hosted engine), `ULTRAFAST_SLOW=1`, with pyNLO | **46/46 pass**, including the pyNLO cross-checks (fibre, Raman models, gain, DFG) |
-| Every CLI example (27 run specs) with `ULTRAFAST_STRICT_OPTIONS=1` | run (09 after 08, as its README says) |
+| `dotnet build UltrafastEngine.sln -c Release` | builds; one expected warning when no ZOS-API is present (the Zemax binding then builds against stubs) |
+| C# tests, .NET 10, incl. slow (`-- --slow`) | **193/193 pass** |
+| C# tests, .NET Framework 4.8 build under Mono, incl. slow | **193/193 pass** |
+| Python tests (hosted engine), `ULTRAFAST_SLOW=1`, with pyNLO | **50/50 pass**, including the pyNLO cross-checks (fibre, Raman models, gain, DFG) and the transform / fit / backward tests |
+| Every CLI example (30 run specs) with `ULTRAFAST_STRICT_OPTIONS=1` | run (09 after 08, and 26's new-input and backward runs after its fit, as the READMEs say) |
 | Python examples (quickstart, 03, 04, 12, 16, 18) | run |
 | `ultrafast study` (examples 22, 25 incl. coherence), `ultrafast retrieve` (example 24, `docs/assets`), `ultrafast materials` | run; results quoted in the READMEs |
 | `mkdocs build --strict` | 0 warnings, no broken links or anchors |
 | Generated files (schemas, options.md, `ultrafast.types`, python-api.md) | current (checked by tests) |
-| `mypy` on `ultrafast.build` + `ultrafast.types` | no issues; a misspelt element key is reported |
+| `mypy` on `ultrafast.build` + `ultrafast.types` and `ultrafast_fitting.build` | no issues; a misspelt element key is reported |
 | C header | `gcc -fsyntax-only` passes |
 
 ## Not verifiable here -- please check on your machines
 
 1. **Apple silicon (arm64)**: the SIMD kernels use `Vector128` (NEON on ARM64) on .NET 10 and fall back to scalar
    code elsewhere; tests compare both paths, but they ran on x64 here. Run the C# tests once on the Mac.
-2. **OpticStudio**: the binding compiles against the real ZOS-API but has not talked to a running OpticStudio. First
+2. **OpticStudio**: the binding compiled against the real ZOS-API (2025 R1) earlier but has not talked to a running OpticStudio. First
    test: `UltrafastEngine.Zemax.exe info`, then `export` on the stretcher and the MPC (docs/plugins/zemax.md).
 3. **NativeAOT library** (`dotnet publish src/UltrafastEngine.Native -r osx-arm64` / `win-x64`): needs nuget.org runtime
    packs; the same exports were exercised through the hosted route.

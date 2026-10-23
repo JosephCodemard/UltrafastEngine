@@ -81,6 +81,12 @@ namespace UltrafastEngine.Schema
                 string bad = TypeProblem(p, kv.Value);
                 if (bad != null) { warnings.Add(where + ": \"" + kv.Key + "\" should be " + bad + "."); continue; }
                 if (p.FreeForm) continue;
+                if (p.Fittable && kv.Value.Kind == JsonKind.Object)
+                {
+                    var fs = p.ObjectRef != null ? Resolve(p.ObjectRef) : null;
+                    if (fs != null) CheckObject(kv.Value.AsObject(), fs, where + "." + kv.Key, warnings);
+                    continue;
+                }
                 if (p.Type == ParamType.Object && p.ObjectRef != null && kv.Value.Kind == JsonKind.Object)
                 {
                     var sub = Resolve(p.ObjectRef);
@@ -115,6 +121,7 @@ namespace UltrafastEngine.Schema
 
         private static string TypeProblem(ParamSpec p, JsonValue v)
         {
+            if (p.Fittable && v.Kind == JsonKind.Object) return v.AsObject().Has("value") ? null : "a number, or a fit object with \"value\"";
             switch (p.Type)
             {
                 case ParamType.Number: return v.Kind == JsonKind.Number ? null : "a number" + (p.Unit != "" ? " (" + p.Unit + ")" : "");

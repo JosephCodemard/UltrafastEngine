@@ -29,8 +29,10 @@ polarimeter, camera, each with its own resolution and detector.
 * **Everything is a replaceable model.** Indices, n², Raman responses, beam sizes, coatings, filters, gain media and
   time-domain responses can be data, expressions or your own functions, set per material, per element or globally
   from the run spec ([Models and overrides](reference/models.md)).
-* **Instruments, not just fields.** Every result can be read through a modelled device; recorded data can be compared
-  and the model calibrated against it (fitting plugin).
+* **Instruments, not just fields.** Every result can be read through a modelled device, with its resolution,
+  sampling and detector.
+* **From the design to your lab** (fitting plugin): `transform` elements fitted to your recordings make the model
+  reproduce the real system and carry that to new inputs; a measured output field can be propagated back to the input.
 * **Plugins.** Element types, instruments, models, run modes, retrieval algorithms, compute back-ends and commands
   can be added without touching the core ([Plugin system](reference/plugins.md)).
 * **Self-describing options.** Every key has a declared type, unit and default: JSON Schemas give editor completion,
@@ -51,6 +53,8 @@ polarimeter, camera, each with its own resolution and detector.
 | amplifiers and lasers | [Gain media](reference/gain.md), [Oscillators](reference/oscillators.md) |
 | diffraction, self-focusing, filaments | [Spatial models](reference/transverse.md), [Ionisation](reference/ionization.md) |
 | model my instruments, compare with measurements | [Instruments](reference/instruments.md), [Fitting plugin](plugins/fitting.md) |
+| fit the model to my lab, reuse it on new inputs, propagate backward | [Fitting plugin](plugins/fitting.md), [example 26](examples/26-transforms/README.md) |
+| install or check plugins | [Installing plugins](plugins/installing.md) |
 | scan, optimise, retrieve a pulse | [Studies](reference/studies.md), [Pulse retrieval](reference/retrieval.md) |
 | plug in my own function or element | [Extending](reference/extending.md), [Python](reference/python.md), [C API](reference/c-api.md) |
 | export from OpticStudio | [Zemax plugin](plugins/zemax.md) |

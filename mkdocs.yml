@@ -50,7 +50,8 @@ nav:
       - Extending: reference/extending.md
   - Plugins:
       - Overview: plugins/index.md
-      - Fitting (measured data, calibration): plugins/fitting.md
+      - Installing plugins: plugins/installing.md
+      - Fitting (transforms, measured data, backward): plugins/fitting.md
       - Zemax OpticStudio: plugins/zemax.md
   - Testing & validation: testing.md
   - Roadmap: roadmap.md

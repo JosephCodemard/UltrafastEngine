@@ -414,6 +414,8 @@ namespace UltrafastEngine.Engine
                     break;
                 default:
                     if (Plugins.PluginManager.TryGetElementCompiler(e.Type, out var pc)) { pc(Services(c), e, ce); break; }
+                    if (string.Equals(e.Type, "transform", StringComparison.OrdinalIgnoreCase))
+                        throw new JsonException("element '" + e.Id + "' is a \"transform\", which needs the fitting plugin (not installed: see `ultrafast plugins list` and docs/plugins/installing.md).");
                     throw new JsonException("unknown element type \"" + e.Type + "\". Known types: " + string.Join(", ", ElementTypes.Concat(Plugins.PluginManager.ElementTypes)) + ".");
             }
             if ((type == "bulk" || type == "crystal" || type == "gain" || type == "amplifier" || type == "lens") && e.Json.Has("ghosts"))

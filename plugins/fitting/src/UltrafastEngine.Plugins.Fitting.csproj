@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The fitting plugin: compares instruments with recorded data ("measured") and calibrates parameters ("fit").
-    Stage 2 of the roadmap rebuilds it around "transform" elements. Laid out as an installable plugin folder in
+    The fitting plugin: "transform" elements, comparison with recorded data ("measured"), fits with replaceable
+    estimators ("fit") and backward propagation ("backward"). Laid out as an installable plugin folder in
     artifacts/plugins/fitting (see build/Plugin.targets).
   -->
   <PropertyGroup>

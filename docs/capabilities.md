@@ -28,7 +28,7 @@ carrier-resolved field.
 | **Spatial models** | radial (Hankel) and cartesian grids per element: diffraction (exact or paraxial), self-focusing, Kerr lensing, Zernike and random wavefront errors, vector (Jones) fields, UPPE coupling, ionisation, spatial gain; profiles carried between elements | Gaussian w(z), M² = 1, lens focus, thin Kerr lens, UPPE = envelope for paraxial beams |
 | **Contrast** | pedestal models of the input (replicas, pre/post-pulses, ASE, spectral phase noise, exponential); third-order cross-correlator with noise floor, resolution, SHG acceptance | correlator artefacts, pedestal levels |
 | **Instruments** | energy meter, spectrometer, scope, intensity / interferometric autocorrelator, FROG, d-scan, contrast, cross-correlator, polarimeter, cameras (imaging + sensor), wavefront sensor, ideal compressor, conversion, phase-matching curve, delay scan; virtual Wigner, field and space–time probes. Every instrument has its resolution / range parameters, a spectral `filter`, a `detector` (calibration, noise, floor, bit depth) and near / far-field `sampling` through pinholes, fibres or slits, and reports the settings it used | AC deconvolution, IAC 8:1, FROG marginals with acceptance and resolution, detector reproducibility, pinhole / slit transmissions |
-| **Analysis** | scans (grid, random, Latin hypercube, Sobol), Nelder–Mead optimisation, local and Sobol sensitivities with a frozen grid and prefix caching; FROG (PCGPA, ePIE) and d-scan retrieval; calibration against measured data (fitting plugin) | B ∝ L scans, elasticities, Sobol indices; retrieval of chirped pulses (duration, GDD) |
+| **Analysis** | scans (grid, random, Latin hypercube, Sobol), Nelder–Mead optimisation, local and Sobol sensitivities with a frozen grid and prefix caching; FROG (PCGPA, ePIE) and d-scan retrieval; fits of transforms and parameters to measured data, backward propagation (fitting plugin) | B ∝ L scans, elasticities, Sobol indices; retrieval of chirped pulses (duration, GDD) |
 
 Test details: [Testing and validation](testing.md). Synthetic measurements with known answers to try the analysis
 tools: [Assets](assets/README.md).
@@ -37,8 +37,12 @@ tools: [Assets](assets/README.md).
 
 Capabilities that depend on outside software or are not needed by everyone are plugins, discovered at start-up:
 
-* **fitting** — instruments compare themselves with recorded data (CSV / NPZ / JSON, units from column names),
-  and a calibration fit finds uncertain parameters with error bars and predicts every other instrument.
+* **fitting** — `transform` elements (fittable spectral phase and amplitude, energy, polarisation, replicas, phase
+  noise, ASE pedestals, wavefront errors, with passivity, causality and smoothness constraints); comparison of any
+  instrument with recorded data (CSV / NPZ / JSON, linear or in dB, at the recording's resolution); fits with
+  Levenberg–Marquardt, CMA-ES or MCMC (or your own estimator), priors, instrument-response parameters, three result
+  layers (simulated, inferred, believed), an influence map and provenance; a fitted system file for new inputs; and
+  backward propagation of a measured field to the input.
 * **zemax** — exports a sequential OpticStudio system (group delay along the real ray, angles of incidence, coatings,
   beam sizes) to a system file. Runs on Windows with OpticStudio.
 

@@ -14,7 +14,14 @@ namespace UltrafastEngine.Schema
                 .Obj("sampling", "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)", "sampling")
                 .Model("beam", "beam", "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian")
                 .Model("filter", "filter", "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured")
-                .Obj("detector", "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth", "detector"));
+                .Obj("detector", "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth", "detector")
+                .Obj("axis", "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution", "instrumentAxis"));
+            add(new ComponentSpec("instrumentAxis", "", "Sampling of a curve instrument's axis (spectrometer wavelengths, scope times, autocorrelator / cross-correlator delays, polarimeter wavelengths, delay scan, contrast, beam profile, phase-matching curve). Units: those of the axis (m, s).").DocAt(D + "axis-where-readings-are-taken")
+                .Arr("values", "SI", "Explicit reading positions (e.g. the pixel wavelengths of your spectrometer)")
+                .Num("from", "SI", "First reading", "the start of the simulated axis").Num("to", "SI", "Last reading", "the end of the simulated axis")
+                .Num("step", "SI", "Spacing of the readings").Int("points", "Number of readings (with from / to, when no step)", "as simulated")
+                .P("binWidth", ParamType.Any, "SI", "Width each reading integrates over: a number, or \"pixel\" (the spacing between readings)", "0 (point readings)")
+                .Num("resolution", "SI", "Gaussian blur (FWHM) applied before binning", "0"));
             add(new ComponentSpec("detector", "", "Detector read-out applied to an instrument's recorded arrays and readings (spectrometer, scope, autocorrelator, FROG, d-scan, energy meter); width and peak readings are re-evaluated on the detected trace.").DocAt(D + "detector-model")
                 .Num("calibration", "", "Calibration factor (reading / true value)", "1")
                 .Num("noise", "", "Multiplicative noise, relative rms", "0")

@@ -44,6 +44,13 @@ namespace UltrafastEngine.Pulses
         public double[] SpectrumWavelengthsM { get; set; }
         public double[] SpectrumIntensity { get; set; }
         public double[] SpectrumPhaseRad { get; set; }
+        /// <summary>Resolution (Gaussian FWHM, m) of the spectrometer that recorded the measured spectrum; 0 = unknown / ideal.</summary>
+        public double SpectrumResolutionM { get; set; }
+        /// <summary>Remove the recording resolution by Richardson-Lucy deconvolution before use.</summary>
+        public bool SpectrumDeconvolve { get; set; }
+        public int SpectrumDeconvolveIterations { get; set; } = 30;
+        /// <summary>Outside the measured wavelengths: "zero" (no light there) or "gaussian" (Gaussian tails fitted to the data).</summary>
+        public string SpectrumExtrapolate { get; set; } = "zero";
         public double DelayS { get; set; }
         public string PolarizationText { get; set; } = "x";
         /// <summary>Pedestal / contrast components added to the pulse (docs/reference/run-spec.md#pedestal).</summary>
@@ -104,6 +111,13 @@ namespace UltrafastEngine.Pulses
                     p.SpectrumPhaseRad = sp.GetDoubleArray("phaseRad");
                 }
                 if (p.SpectrumWavelengthsM == null || p.SpectrumIntensity == null) throw new JsonException(origin + ".spectrum needs wavelengths and intensity (or a csv).");
+                if (p.SpectrumWavelengthsM.Length != p.SpectrumIntensity.Length) throw new JsonException(origin + ".spectrum: wavelengths and intensity differ in length.");
+                p.SpectrumResolutionM = sp.GetDouble("resolutionM", sp.Has("resolutionNm") ? sp.GetDouble("resolutionNm", 0) * 1e-9 : 0);
+                p.SpectrumDeconvolve = sp.GetBool("deconvolve", false);
+                p.SpectrumDeconvolveIterations = sp.GetInt("deconvolveIterations", 30);
+                p.SpectrumExtrapolate = sp.GetString("extrapolate", "zero").ToLowerInvariant();
+                if (p.SpectrumExtrapolate != "zero" && p.SpectrumExtrapolate != "gaussian") throw new JsonException(origin + ".spectrum.extrapolate must be \"zero\" or \"gaussian\".");
+                if (p.SpectrumDeconvolve && !(p.SpectrumResolutionM > 0)) throw new JsonException(origin + ".spectrum.deconvolve needs resolutionM (the recording spectrometer's resolution).");
                 if (!o.Has("shape")) p.Shape = "spectrum";
             }
             return p;
@@ -206,18 +220,44 @@ namespace UltrafastEngine.Pulses
             string shape = Shape.ToLowerInvariant();
             if (shape == "spectrum")
             {
-                var order = Enumerable.Range(0, SpectrumWavelengthsM.Length).OrderBy(i => -SpectrumWavelengthsM[i]).ToArray();
+                var (lamM, intenM, phM) = MeasuredSpectrum();
+                var order = Enumerable.Range(0, lamM.Length).OrderBy(i => -lamM[i]).ToArray();
                 double c = PhysicalConstants.SpeedOfLightMPerS;
-                var w = order.Select(i => 2 * Math.PI * c / SpectrumWavelengthsM[i]).ToArray();
+                var w = order.Select(i => 2 * Math.PI * c / lamM[i]).ToArray();
                 // convert per-wavelength spectral density to per-frequency: S(w) = S(l) l^2 / (2 pi c)
-                var s = order.Select(i => Math.Max(0, SpectrumIntensity[i]) * SpectrumWavelengthsM[i] * SpectrumWavelengthsM[i]).ToArray();
-                var ph = SpectrumPhaseRad != null ? order.Select(i => SpectrumPhaseRad[i]).ToArray() : new double[w.Length];
+                var s = order.Select(i => Math.Max(0, intenM[i]) * lamM[i] * lamM[i]).ToArray();
+                var ph = phM != null ? order.Select(i => phM[i]).ToArray() : new double[w.Length];
                 var li = new LinearInterpolator(w, s);
                 IInterpolator pi = w.Length >= 4 ? (IInterpolator)new NaturalCubicSpline(w, ph) : new LinearInterpolator(w, ph);
+                // Gaussian tails outside the measured range (extrapolate: gaussian): a parabola fitted to ln S(w) over the
+                // part of the data above 1 % of the peak (exact for a truncated Gaussian), continued from each edge
+                double qa = 0, qb = 0, qc = 0, gmRef = 0; bool tails = false;
+                if (SpectrumExtrapolate == "gaussian")
+                {
+                    double smax = s.Max(), wm = w.Average(), ws = Math.Max(1e-300, (w[w.Length - 1] - w[0]) / 2);
+                    var A = new double[3, 3]; var bb = new double[3];
+                    for (int k = 0; k < w.Length; k++)
+                    {
+                        if (!(s[k] > 0.01 * smax)) continue;
+                        double u = (w[k] - wm) / ws, wt = s[k] / smax, y = Math.Log(s[k] / smax);
+                        double[] f = { 1, u, u * u };
+                        for (int r = 0; r < 3; r++) { bb[r] += wt * f[r] * y; for (int q = 0; q < 3; q++) A[r, q] += wt * f[r] * f[q]; }
+                    }
+                    var sol = Solve3(A, bb);
+                    if (sol != null && sol[2] < 0) { qa = sol[0]; qb = sol[1] / ws; qc = sol[2] / (ws * ws); tails = true; gmRef = wm; }
+                }
+                double Q(double x) => qb * (x - gmRef) + qc * (x - gmRef) * (x - gmRef);
+                double Tail(double x, int edge) => s[edge] * Math.Exp(Q(x) - Q(w[edge]));
                 for (int i = 0; i < n; i++)
                 {
                     double x = grid.OmegaAbsolute[i];
-                    if (x < w[0] || x > w[w.Length - 1]) continue;
+                    if (x < w[0] || x > w[w.Length - 1])
+                    {
+                        if (!tails) continue;
+                        int e = x < w[0] ? 0 : w.Length - 1;
+                        a[i] = Complex.FromPolarCoordinates(Math.Sqrt(Math.Max(0, Tail(x, e))), ph[e]);
+                        continue;
+                    }
                     a[i] = Complex.FromPolarCoordinates(Math.Sqrt(Math.Max(0, li.Evaluate(x))), pi.Evaluate(x));
                 }
             }
@@ -292,11 +332,70 @@ namespace UltrafastEngine.Pulses
             return h;
         }
 
+        private static double[] Solve3(double[,] A, double[] b)
+        {
+            int n = 3; var M = (double[,])A.Clone(); var x = (double[])b.Clone();
+            for (int c = 0; c < n; c++)
+            {
+                int piv = c; for (int r = c + 1; r < n; r++) if (Math.Abs(M[r, c]) > Math.Abs(M[piv, c])) piv = r;
+                if (Math.Abs(M[piv, c]) < 1e-300) return null;
+                if (piv != c) { for (int k = 0; k < n; k++) { var t = M[c, k]; M[c, k] = M[piv, k]; M[piv, k] = t; } var tb = x[c]; x[c] = x[piv]; x[piv] = tb; }
+                for (int r = c + 1; r < n; r++) { double f = M[r, c] / M[c, c]; for (int k = c; k < n; k++) M[r, k] -= f * M[c, k]; x[r] -= f * x[c]; }
+            }
+            for (int r = n - 1; r >= 0; r--) { double s = x[r]; for (int k = r + 1; k < n; k++) s -= M[r, k] * x[k]; x[r] = s / M[r, r]; }
+            return x;
+        }
+
+        /// <summary>The measured spectrum as used: deconvolved from the recording resolution when asked
+        /// (Richardson-Lucy on a uniform wavelength grid), else as given.</summary>
+        public (double[] WavelengthsM, double[] Intensity, double[] PhaseRad) MeasuredSpectrum()
+        {
+            if (!SpectrumDeconvolve || !(SpectrumResolutionM > 0)) return (SpectrumWavelengthsM, SpectrumIntensity, SpectrumPhaseRad);
+            var o = Enumerable.Range(0, SpectrumWavelengthsM.Length).OrderBy(i => SpectrumWavelengthsM[i]).ToArray();
+            var lx = o.Select(i => SpectrumWavelengthsM[i]).ToArray(); var ly = o.Select(i => Math.Max(0, SpectrumIntensity[i])).ToArray();
+            double lo = lx[0], hi = lx[lx.Length - 1];
+            double minStep = Enumerable.Range(1, lx.Length - 1).Select(i => lx[i] - lx[i - 1]).Where(d => d > 0).DefaultIfEmpty(SpectrumResolutionM / 5).Min();
+            double step = Math.Min(minStep, SpectrumResolutionM / 5);
+            int m = Math.Min(20000, (int)Math.Ceiling((hi - lo) / step) + 1); step = (hi - lo) / (m - 1);
+            var x = Enumerable.Range(0, m).Select(i => lo + i * step).ToArray();
+            var interp = new LinearInterpolator(lx, ly);
+            var d0 = x.Select(v => Math.Max(0, interp.Evaluate(v))).ToArray();
+            double sig = SpectrumResolutionM / (2 * Math.Sqrt(2 * Math.Log(2))) / step;
+            int half = (int)Math.Ceiling(4 * sig);
+            var k = Enumerable.Range(-half, 2 * half + 1).Select(j => Math.Exp(-0.5 * j * j / (sig * sig))).ToArray();
+            double ks = k.Sum(); for (int j = 0; j < k.Length; j++) k[j] /= ks;
+            double[] Conv(double[] a)
+            {
+                var r = new double[m];
+                for (int i = 0; i < m; i++) { double v = 0, wsum = 0; for (int j = -half; j <= half; j++) { int q = i + j; if (q < 0 || q >= m) continue; v += k[j + half] * a[q]; wsum += k[j + half]; } r[i] = wsum > 0 ? v / wsum : 0; }
+                return r;
+            }
+            var est = (double[])d0.Clone();
+            double floor = 1e-12 * d0.Max();
+            for (int it = 0; it < SpectrumDeconvolveIterations; it++)
+            {
+                var blur = Conv(est);
+                var ratio = new double[m]; for (int i = 0; i < m; i++) ratio[i] = d0[i] / Math.Max(blur[i], floor);
+                var corr = Conv(ratio);
+                for (int i = 0; i < m; i++) est[i] *= corr[i];
+            }
+            double[] phase = null;
+            if (SpectrumPhaseRad != null) { var pl = new LinearInterpolator(lx, o.Select(i => SpectrumPhaseRad[i]).ToArray()); phase = x.Select(pl.Evaluate).ToArray(); }
+            return (x, est, phase);
+        }
+
         public string Describe()
         {
             var ci = CultureInfo.InvariantCulture;
             string d = Shape + " @ " + (ResolveCenterWavelengthM() * 1e9).ToString("F2", ci) + " nm";
             if (Shape.ToLowerInvariant() != "spectrum") d += ", " + (ResolveDurationS() * 1e15).ToString("G4", ci) + " fs TL";
+            else if (SpectrumWavelengthsM != null && SpectrumWavelengthsM.Length > 1)
+            {
+                d += string.Format(ci, ", measured {0:F1}-{1:F1} nm ({2} points", SpectrumWavelengthsM.Min() * 1e9, SpectrumWavelengthsM.Max() * 1e9, SpectrumWavelengthsM.Length);
+                if (SpectrumResolutionM > 0) d += string.Format(ci, ", resolution {0:G3} nm{1}", SpectrumResolutionM * 1e9, SpectrumDeconvolve ? ", deconvolved" : "");
+                d += SpectrumPhaseRad != null ? ", with phase" : ", flat phase";
+                d += SpectrumExtrapolate == "gaussian" ? ", Gaussian tails outside)" : ", no light outside)";
+            }
             if (Gdd != 0) d += ", GDD " + (Gdd * 1e30).ToString("G4", ci) + " fs^2";
             if (Tod != 0) d += ", TOD " + (Tod * 1e45).ToString("G4", ci) + " fs^3";
             d += ", pol " + PolarizationText;

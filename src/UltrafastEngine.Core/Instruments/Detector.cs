@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using UltrafastEngine.Models;
+using UltrafastEngine.Numerics;
 using UltrafastEngine.Pulses;
 using UltrafastEngine.Results;
 using UltrafastEngine.Schema;
@@ -89,6 +90,121 @@ namespace UltrafastEngine.Instruments
             return new PulseField(g, ax, ay, ctx.Pulse.RepRateHz) { Profile = ctx.Pulse.Profile };
         }
 
+        /// <summary>The axis array of each curve instrument that "axis" resamples (every 1-D array of the same length is
+        /// resampled with it; "_db" arrays are recomputed from their linear counterpart or binned in linear units).</summary>
+        private static readonly Dictionary<string, string[]> AxisArrays = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "spectrometer", new[] { "wavelength_m" } }, { "scope", new[] { "time_s" } }, { "photodiode", new[] { "time_s" } },
+            { "autocorrelator", new[] { "delay_s" } }, { "crossCorrelator", new[] { "delay_s" } }, { "thirdOrderCorrelator", new[] { "delay_s" } },
+            { "polarimeter", new[] { "wavelength_m" } }, { "delayScan", new[] { "delay_s" } }, { "contrast", new[] { "time_s" } },
+            { "beamProfile", new[] { "radius_m", "x_m" } }, { "phaseMatchingCurve", new[] { "detuning_deg", "temperature_c", "period_m", "wavelength_m" } },
+        };
+
+        /// <summary>
+        /// The instrument's sampling of its axis ("axis": where it actually takes readings): explicit points
+        /// (<c>values</c>) or <c>from</c> / <c>to</c> with <c>step</c> or <c>points</c>, each reading integrating over
+        /// <c>binWidth</c> (a number, or "pixel" = the local spacing) and blurred by a Gaussian <c>resolution</c> (FWHM).
+        /// Units are those of the axis (m for wavelengths, s for delays and time). Readings outside the simulated range
+        /// are zero (no light there), with a note.
+        /// </summary>
+        public static void ApplyAxis(JsonObject ispec, InstrumentOutput o)
+        {
+            var ax = ispec.GetObject("axis");
+            if (ax == null) return;
+            if (!AxisArrays.TryGetValue(o.Kind, out var names)) { o.Notes.Add("\"axis\" is not used by a " + o.Kind + " (no single curve axis; it has its own sampling keys)"); return; }
+            var xa = names.Select(nm => o.Arrays.FirstOrDefault(a => a.Name.EndsWith("_" + nm, StringComparison.Ordinal) && (a.Shape == null || a.Shape.Length <= 1))).FirstOrDefault(a => a != null);
+            if (xa == null || xa.Data.Length < 2) return;
+            int n = xa.Data.Length;
+            var ord = Enumerable.Range(0, n).OrderBy(i => xa.Data[i]).ToArray();
+            var fx = ord.Select(i => xa.Data[i]).ToArray();
+            double[] target;
+            if (ax.Has("values")) target = ax.GetDoubleArray("values");
+            else
+            {
+                double from = ax.GetDouble("from", fx[0]), to = ax.GetDouble("to", fx[n - 1]);
+                if (ax.Has("step")) { double st = Math.Abs(ax.GetDouble("step", 0)); if (!(st > 0)) throw new JsonException("instrument " + o.Name + ": axis.step must be > 0"); int m = Math.Min(1000000, (int)Math.Floor((to - from) / st + 1e-9) + 1); target = Enumerable.Range(0, m).Select(i => from + i * st).ToArray(); }
+                else { int m = ax.GetInt("points", n); target = Enumerable.Range(0, m).Select(i => m == 1 ? from : from + (to - from) * i / (m - 1)).ToArray(); }
+            }
+            if (target == null || target.Length == 0) throw new JsonException("instrument " + o.Name + ": axis gives no points");
+            double res = ax.GetDouble("resolution", 0), sig = res / (2 * Math.Sqrt(2 * Math.Log(2)));
+            var bw = ax.TryGet("binWidth", out var bv) ? bv : null;
+            bool pixel = bw != null && bw.Kind == JsonKind.String && bw.AsString() == "pixel";
+            double binFixed = bw != null && bw.Kind == JsonKind.Number ? Math.Abs(bw.AsDouble()) : 0;
+            var tsort = target.OrderBy(v => v).ToArray();
+            double Bin(int k)
+            {
+                if (!pixel) return binFixed;
+                int j = Array.BinarySearch(tsort, target[k]); if (j < 0) j = ~j;
+                double lo = j > 0 ? tsort[j] - tsort[j - 1] : double.NaN, hi = j < tsort.Length - 1 ? tsort[j + 1] - tsort[j] : double.NaN;
+                return double.IsNaN(lo) ? (double.IsNaN(hi) ? 0 : hi) : double.IsNaN(hi) ? lo : 0.5 * (lo + hi);
+            }
+            // trapezoid weights of the simulated axis
+            var dx = new double[n];
+            for (int i = 0; i < n; i++) dx[i] = 0.5 * ((i < n - 1 ? fx[i + 1] - fx[i] : 0) + (i > 0 ? fx[i] - fx[i - 1] : 0));
+            int outside = target.Count(t => t < fx[0] || t > fx[n - 1]);
+            double[] Resample(double[] yraw)
+            {
+                var y = ord.Select(i => yraw[i]).ToArray();
+                var r = new double[target.Length];
+                for (int k = 0; k < target.Length; k++)
+                {
+                    double t = target[k], b = Bin(k);
+                    if (t < fx[0] - b / 2 - 3 * sig || t > fx[n - 1] + b / 2 + 3 * sig) { r[k] = 0; continue; }
+                    double reach = b / 2 + 4 * sig, num = 0, den = 0;
+                    if (reach > 0)
+                    {
+                        int i0 = Array.BinarySearch(fx, t - reach); if (i0 < 0) i0 = ~i0; i0 = Math.Max(0, i0 - 1);
+                        for (int i = i0; i < n && fx[i] <= t + reach; i++)
+                        {
+                            double u = fx[i] - t, w;
+                            if (sig > 0 && b > 0) w = 0.5 * (Erf((u + b / 2) / (Math.Sqrt(2) * sig)) - Erf((u - b / 2) / (Math.Sqrt(2) * sig)));
+                            else if (sig > 0) w = Math.Exp(-0.5 * u * u / (sig * sig));
+                            else w = Math.Abs(u) <= b / 2 ? 1 : 0;
+                            num += w * dx[i] * y[i]; den += w * dx[i];
+                        }
+                    }
+                    r[k] = den > 0 ? num / den : Interpolation.Linear(fx, y, t);
+                    if (t < fx[0] || t > fx[n - 1]) r[k] = den > 0 ? r[k] : 0;
+                }
+                return r;
+            }
+            var same = o.Arrays.Where(a => a != xa && a.Data.Length == n && (a.Shape == null || a.Shape.Length <= 1)).ToList();
+            foreach (var a in same.Where(a => !a.Name.EndsWith("_db", StringComparison.Ordinal)))
+            {
+                var nd = Resample(a.Data);
+                Replace(o, a, nd);
+            }
+            foreach (var a in same.Where(a => a.Name.EndsWith("_db", StringComparison.Ordinal)))
+            {
+                var lin = o.Arrays.FirstOrDefault(b => b.Name == a.Name.Substring(0, a.Name.Length - 3) && b.Data.Length == target.Length);
+                double[] nd;
+                if (lin != null) { double mx = Math.Max(lin.Data.Max(), 1e-300); nd = lin.Data.Select(v => 10 * Math.Log10(Math.Max(v / mx, 1e-30))).ToArray(); }
+                else { var l = Resample(a.Data.Select(v => Math.Pow(10, v / 10)).ToArray()); double mx = Math.Max(l.Max(), 1e-300); double floor = a.Data.Min(); nd = l.Select(v => Math.Max(floor, 10 * Math.Log10(Math.Max(v / mx, 1e-30)))).ToArray(); }
+                Replace(o, a, nd);
+            }
+            Replace(o, xa, (double[])target.Clone());
+            var ci = CultureInfo.InvariantCulture;
+            string desc = target.Length + " readings" + (ax.Has("values") ? " at the given points" : string.Format(ci, " from {0:G4} to {1:G4}", target.Min(), target.Max()));
+            if (pixel) desc += ", each integrated over its pixel"; else if (binFixed > 0) desc += string.Format(ci, ", each integrated over {0:G3}", binFixed);
+            if (res > 0) desc += string.Format(ci, ", resolution {0:G3} (FWHM)", res);
+            o.Notes.Add("axis: " + desc + (outside > 0 ? " (" + outside + " outside the simulated range read zero)" : ""));
+            if (Readouts.TryGetValue(o.Kind, out var ro)) ro.Remeasure?.Invoke(o);
+        }
+
+        private static void Replace(InstrumentOutput o, Serialization.NdArray a, double[] data)
+        {
+            int i = o.Arrays.IndexOf(a);
+            o.Arrays[i] = new Serialization.NdArray(a.Name, data, data.Length) { Unit = a.Unit, Description = a.Description };
+        }
+
+        private static double Erf(double x)
+        {
+            // Abramowitz-Stegun 7.1.26 (|error| < 1.5e-7)
+            double t = 1 / (1 + 0.3275911 * Math.Abs(x));
+            double y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.Exp(-x * x);
+            return x >= 0 ? y : -y;
+        }
+
         /// <summary>Apply the "detector" read-out model to the recorded arrays and readings.</summary>
         public static void ApplyDetector(JsonObject ispec, InstrumentOutput o)
         {
@@ -150,7 +266,7 @@ namespace UltrafastEngine.Instruments
                 if (p.Default == null) continue;
                 o.Set(p.Name, p.Enum != null && p.Enum.Contains(p.Default.Trim('"')) ? (JsonValue)p.Default.Trim('"') : ParseDefault(p.Default));
             }
-            foreach (var key in new[] { "sampling", "filter", "detector", "beam" })
+            foreach (var key in new[] { "sampling", "filter", "detector", "beam", "axis" })
                 if (ispec.TryGet(key, out var v)) o.Set(key, v);
             return o;
         }

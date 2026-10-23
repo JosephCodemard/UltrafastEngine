@@ -77,6 +77,8 @@ namespace UltrafastEngine.Plugins.Fitting
     public sealed class Comparison
     {
         public string Instrument, Kind, Location, Mode, File, Normalization, RowAxis, ColAxis, XAxis;
+        /// <summary>Resolved path of the data file (for provenance hashes), or null.</summary>
+        public string FullPath;
         public double[] Residuals = new double[0];      // (simulated - measured) / sigma
         public double Chi2, RmsError = double.NaN;      // RmsError: rms(sim - meas) / peak(meas) on the compared curve or trace
         public int Points;
@@ -119,6 +121,7 @@ namespace UltrafastEngine.Plugins.Fitting
             switch (kind)
             {
                 case "spectrometer": return new Layout { X = "wavelength_m", Y = "spectrum", MX = new[] { "wavelength", "lambda", "wl", "x" }, MY = new[] { "spectrum", "intensity", "counts", "signal", "y" } };
+                case "crossCorrelator": case "thirdOrderCorrelator": return new Layout { X = "delay_s", Y = "signal", MX = new[] { "delay", "tau", "x" }, MY = new[] { "signal", "intensity", "y" } };
                 case "autocorrelator": return new Layout { X = "delay_s", Y = "signal", MX = new[] { "delay", "tau", "x" }, MY = new[] { "signal", "ac", "intensity", "y" } };
                 case "scope": return new Layout { X = "time_s", Y = "signal_w", MX = new[] { "time", "t", "x" }, MY = new[] { "signal", "power", "voltage", "y" } };
                 case "beamProfile": return has("radius_m") ? new Layout { X = "radius_m", Y = "fluence_j_m2", MX = new[] { "radius", "r", "x" }, MY = new[] { "fluence", "intensity", "signal", "y" } }
@@ -146,6 +149,27 @@ namespace UltrafastEngine.Plugins.Fitting
             return a?.Data;
         }
 
+        /// <summary>The recording's stated resolution ("resolutionM" / "resolutionS" in measured) against the simulated
+        /// instrument's: a mismatch biases every fit, so it is reported.</summary>
+        private static void CheckResolution(InstrumentOutput o, JsonObject s, Comparison c)
+        {
+            string key = s.Has("resolutionM") ? "resolutionM" : s.Has("resolutionS") ? "resolutionS" : null;
+            if (key == null) return;
+            double rec = s.GetDouble(key, 0);
+            var st = o.Settings ?? new JsonObject();
+            string[] candidates = key == "resolutionM" ? new[] { "resolutionM", "spectralResolutionM" } : new[] { "resolutionS", "riseTimeS" };
+            double sim = double.NaN; string simKey = null;
+            foreach (var k in candidates) if (st.TryGet(k, out var v) && v.Kind == JsonKind.Number) { sim = v.AsDouble(); simKey = k; break; }
+            var ax = st.GetObject("axis");
+            if (ax != null && ax.Has("resolution")) { double a = ax.GetDouble("resolution", 0); sim = double.IsNaN(sim) ? a : Math.Sqrt(sim * sim + a * a); simKey = (simKey ?? "") + "+axis.resolution"; }
+            if (double.IsNaN(sim)) sim = 0;
+            bool mismatch = rec > 0 ? Math.Abs(sim - rec) > 0.1 * rec : sim > 0;
+            var ci = CultureInfo.InvariantCulture;
+            if (mismatch)
+                c.Notes.Add(string.Format(ci, "the recording's resolution is {0:G3} but the simulated instrument uses {1:G3} ({2}): set the instrument's {3} to the recording's (or fit it: instrument:{4}/{3})", rec, sim, simKey ?? "ideal", candidates[0], o.Name));
+            else c.Notes.Add(string.Format(ci, "resolution {0:G3} matches the recording", rec));
+        }
+
         public static Comparison Compare(InstrumentOutput o, JsonValue spec, string baseDir)
         {
             var c = new Comparison { Instrument = o.Name, Kind = o.Kind, Location = o.Location };
@@ -162,13 +186,14 @@ namespace UltrafastEngine.Plugins.Fitting
                 // a JSON file of scalar readings: {"energyJ": 1.2e-6, "fwhmS": [35e-15, 2e-15]}
                 string jp = System.IO.Path.IsPathRooted(file) ? file : System.IO.Path.Combine(baseDir ?? ".", file);
                 var fv = JsonValue.ParseFile(jp).AsObject();
+                c.FullPath = jp;
                 if (vals == null) vals = fv; else foreach (var kv in fv) if (!vals.Has(kv.Key)) vals.Set(kv.Key, kv.Value);
                 c.File = file; file = null;
             }
             if (file != null)
             {
                 string path = System.IO.Path.IsPathRooted(file) ? file : System.IO.Path.Combine(baseDir ?? ".", file);
-                c.File = file;
+                c.File = file; c.FullPath = path;
                 var md = MeasuredData.Load(path);
                 var L = For(kind, o);
                 var sel = s.GetObject("columns") ?? new JsonObject();
@@ -190,6 +215,7 @@ namespace UltrafastEngine.Plugins.Fitting
                     res.Add((sv - mv) / sg * Math.Sqrt(s.GetDouble("valueWeight", 1.0)));
                     o.Values.Set("measured." + kv.Key, mv);
                 }
+            CheckResolution(o, s, c);
             double w = Math.Sqrt(Math.Max(0, s.GetDouble("weight", 1.0)));
             c.Residuals = res.Select(r => r * w).ToArray();
             c.Points = c.Residuals.Length;
@@ -211,8 +237,10 @@ namespace UltrafastEngine.Plugins.Fitting
             { xu = 1e-9; c.Notes.Add("wavelength column without unit: taken as nm"); }
             var mx = md.Columns[xn].Select(v => v * xu).ToArray();
             var my = (double[])md.Columns[yn].Clone();
-            double yu = s.Has("yUnit") ? MeasuredData.Unit(s.GetString("yUnit")) : 1;
-            for (int i = 0; i < my.Length; i++) my[i] *= yu;
+            bool yDb = string.Equals(s.GetString("yUnit", ""), "dB", StringComparison.OrdinalIgnoreCase) || yn.EndsWith("_db", StringComparison.OrdinalIgnoreCase);
+            double yu = s.Has("yUnit") && !yDb ? MeasuredData.Unit(s.GetString("yUnit")) : 1;
+            if (yDb) { for (int i = 0; i < my.Length; i++) my[i] = Math.Pow(10, my[i] / 10); c.Notes.Add("data given in dB: converted to linear"); }
+            else for (int i = 0; i < my.Length; i++) my[i] *= yu;
             string sn = sel.GetString("sigma") ?? md.Find("sigma", "err", "error", "std");
             double[] msig = sn != null ? md.Columns[sn].Select(v => v * yu).ToArray() : null;
             // order, range, background
@@ -231,13 +259,31 @@ namespace UltrafastEngine.Plugins.Fitting
             double scale = Normalise(sim, my, mx, norm, c, msig);
             double peak = my.Max(Math.Abs);
             double se = 0;
-            for (int i = 0; i < mx.Length; i++)
+            string sc = s.GetString("scale", "linear").ToLowerInvariant();
+            if (sc == "log" || sc == "db")
             {
-                double sig = msig != null ? msig[i] : relSigma * peak;
-                if (!(sig > 0)) sig = relSigma * Math.Max(1e-300, peak);
-                res.Add((sim[i] - my[i]) / sig);
-                se += (sim[i] - my[i]) * (sim[i] - my[i]);
+                // high-dynamic-range data (contrast, cross-correlators, spectral wings): compare in dB, so a -90 dB
+                // pedestal weighs as much as the peak; values below the floor are clipped to it on both sides
+                var pos = my.Where(v => v > 0).ToArray();
+                double floorDb = s.GetDouble("floorDb", pos.Length > 0 ? 10 * Math.Log10(pos.Min() / Math.Max(1e-300, peak)) : -100);
+                double floor = peak * Math.Pow(10, floorDb / 10), sdb = s.GetDouble("sigmaDb", 1.0), sedb = 0;
+                for (int i = 0; i < mx.Length; i++)
+                {
+                    double d = 10 * Math.Log10(Math.Max(sim[i], floor) / Math.Max(my[i], floor));
+                    res.Add(d / sdb); sedb += d * d;
+                    se += (sim[i] - my[i]) * (sim[i] - my[i]);
+                }
+                o.Values.Set("measuredRmsErrorDb", Math.Sqrt(sedb / mx.Length));
+                c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "compared in dB (sigma {0:G3} dB, floor {1:G3} dB)", sdb, floorDb));
             }
+            else
+                for (int i = 0; i < mx.Length; i++)
+                {
+                    double sig = msig != null ? msig[i] : relSigma * peak;
+                    if (!(sig > 0)) sig = relSigma * Math.Max(1e-300, peak);
+                    res.Add((sim[i] - my[i]) / sig);
+                    se += (sim[i] - my[i]) * (sim[i] - my[i]);
+                }
             c.RmsError = Math.Sqrt(se / mx.Length) / Math.Max(1e-300, peak);
             o.Add("measured_x", mx, "", "measured axis (SI)");
             o.Add("measured_y", my, "", "measured data (" + norm + ")");

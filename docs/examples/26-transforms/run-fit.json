@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "fit-the-lab-transform",
+  "pulse": { "shape": "gaussian", "centerWavelengthNm": 1030, "durationFwhmFs": 100, "energyJ": 1e-3 },
+  "grid": { "auto": false, "n": 16384, "windowS": 40e-12 },
+  "fit": { "maxIterations": 30, "freezeGrid": false },
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum", "resolutionM": 0.2e-9,
+      "measured": { "file": "data/spectrum.csv", "background": "auto", "sigma": 0.01, "resolutionM": 0.2e-9 } },
+    { "kind": "dscan", "name": "dscan", "gddRangeS2": [-20000e-30, 20000e-30], "steps": 41,
+      "measured": { "file": "data/dscan.npz", "sigma": 0.02 } },
+    { "kind": "crossCorrelator", "name": "contrast", "rangeS": [-15e-12, 15e-12], "stepS": 50e-15, "dynamicRangeDb": 110, "noise": false,
+      "measured": { "file": "data/cross_correlation.csv", "scale": "log", "sigmaDb": 1.5, "floorDb": -105 } },
+    { "kind": "powerMeter", "name": "power",
+      "measured": { "file": "data/power.json", "valueSigma": 0.02 } },
+    { "kind": "pulseSummary", "name": "output" }
+  ]
+}

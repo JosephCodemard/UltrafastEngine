@@ -1,0 +1,27 @@
+{
+  // Example 26: a CPA line whose real behaviour differs from its design. Stretcher and compressor are matched on paper;
+  // the "lab" transform holds what the design does not know -- residual dispersion, gain narrowing, a post-pulse from
+  // an etalon and an ASE pedestal. Its numbers marked "fit": true are found from the recorded data (run-fit.json);
+  // results-fit/fitted-system.ufs is this file with the fitted values, ready for new inputs (run-new-input.json).
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "cpa-with-transforms",
+  "elements": [
+    { "id": "stretcher", "type": "dispersion", "gddFs2": 100000, "todFs3": -300000 },
+    { "id": "lab", "type": "transform", "operators": [
+        { "kind": "spectralPhase",
+          "gddFs2": { "value": 0, "fit": true, "min": -3000, "max": 3000 },
+          "todFs3": { "value": 0, "fit": true, "min": -60000, "max": 60000 },
+          "fodFs4": { "value": 0, "fit": true, "min": -2e6, "max": 2e6, "prior": 1e6 } },
+        { "kind": "spectralAmplitude", "shape": "gaussian",
+          "fwhmNm": { "value": 20, "fit": true, "min": 5, "max": 60 },
+          "centerWavelengthNm": { "value": 1030, "fit": true, "min": 1020, "max": 1040 } },
+        { "kind": "energy", "transmission": { "value": 0.5, "fit": true, "min": 0.05, "max": 1 } },
+        { "kind": "replica", "delayPs": 6.0, "relativeIntensityDb": { "value": -50, "fit": true, "min": -90, "max": -20 } },
+        { "kind": "pedestal", "type": "ase", "durationS": 20e-12, "seed": 7,
+          "relativeIntensityDb": { "value": -100, "fit": true, "min": -130, "max": -60 } }
+    ] },
+    { "id": "compressor", "type": "dispersion", "gddFs2": -100000, "todFs3": 300000 }
+  ]
+}

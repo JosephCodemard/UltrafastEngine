@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "fitted-line-new-input",
+  // a different seed pulse: shorter and stronger. Run it through results-fit/fitted-system.ufs (the fitted line)
+  // and through line.ufs (the design) to see what the fitted transform changes.
+  "pulse": { "shape": "sech2", "centerWavelengthNm": 1028, "durationFwhmFs": 70, "energyJ": 2e-3 },
+  "grid": { "auto": false, "n": 32768, "windowS": 80e-12 },
+  "instruments": [
+    { "kind": "spectrometer", "name": "spectrum", "resolutionM": 0.2e-9 },
+    { "kind": "crossCorrelator", "name": "contrast", "rangeS": [-15e-12, 15e-12], "stepS": 50e-15, "dynamicRangeDb": 110 },
+    { "kind": "pulseSummary", "name": "output" }
+  ]
+}

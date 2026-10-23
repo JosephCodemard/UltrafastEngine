@@ -92,7 +92,10 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("pulseSpectrum", "", "A measured input spectrum.")
                 .Arr("wavelengthsM", "m", "Wavelengths").Arr("wavelengthsNm", "nm", "Wavelengths in nm")
                 .Arr("intensity", "", "Intensity per unit wavelength").Arr("phaseRad", "rad", "Spectral phase (optional)")
-                .Str("csv", "CSV file: wavelength, intensity, optional phase").Str("wavelengthUnit", "Unit of the CSV wavelength column", "m"));
+                .Str("csv", "CSV file: wavelength, intensity, optional phase").Str("wavelengthUnit", "Unit of the CSV wavelength column", "nm")
+                .Num("resolutionM", "m", "Resolution (Gaussian FWHM) of the spectrometer that recorded it", "0 (unknown)").Num("resolutionNm", "nm", "Resolution in nm")
+                .Bool("deconvolve", "Remove the recording resolution (Richardson-Lucy) before use", "false").Int("deconvolveIterations", "Richardson-Lucy iterations", "30")
+                .Enum("extrapolate", new[] { "zero", "gaussian" }, "Outside the measured wavelengths: no light, or Gaussian tails fitted to the data", "zero"));
             add(new ComponentSpec("grid", "", "The time/frequency grid (docs/reference/run-spec.md#grid).")
                 .Bool("auto", "Size the grid from pulse and system", "true")
                 .Int("n", "Number of samples (with auto: a minimum)", "4096")

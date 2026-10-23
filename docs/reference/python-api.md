@@ -238,7 +238,17 @@ A soft (Gaussian, or super-Gaussian of ``order``) aperture acting on a carried t
 
 ### `pulse(center_wavelength_m: float, duration_fwhm_s: Optional[float] = None, energy: Optional[float] = None, shape: str = 'gaussian', rep_rate_hz: Optional[float] = None, average_power_w: Optional[float] = None, peak_power_w: Optional[float] = None, gdd_s2: float = 0.0, tod_s3: float = 0.0, polarization = 'x', **extra) -> 'T.Pulse'`
 
+### `measured_spectrum(wavelengths_m: Sequence[float], intensity: Sequence[float], energy: Optional[float] = None, phase_rad: Optional[Sequence[float]] = None, *, resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None, extrapolate: Optional[str] = None, center_wavelength_m: Optional[float] = None, **extra) -> 'T.Pulse'`
+
+An input pulse from a measured spectrum (intensity per unit wavelength, optional phase). ``resolution_m`` is the recording spectrometer's resolution (FWHM); ``deconvolve=True`` removes it (Richardson-Lucy); ``extrapolate`` "zero" (no light outside the data, default) or "gaussian" (Gaussian tails fitted to the data).
+
 ### `instrument(kind: str, at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+An instrument (docs/reference/instruments.md). Keyword arguments are its parameters in the engine's names (``resolutionM=...``, ``axis=axis(...)``, ``detector={...}``, ``measured=...`` with the fitting plugin).
+
+### `axis(values: Optional[Sequence[float]] = None, *, start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, points: Optional[int] = None, bin_width: Any = None, resolution: Optional[float] = None) -> dict`
+
+Where a curve instrument takes its readings (docs/reference/instruments.md#axis-where-readings-are-taken): explicit ``values`` (e.g. your spectrometer's pixel wavelengths) or ``start``/``stop`` with ``step`` or ``points``, each reading integrating over ``bin_width`` (a number or "pixel") and blurred by a Gaussian ``resolution`` (FWHM). SI units of the axis (m for wavelengths, s for delays). Use as ``instrument("spectrometer", axis=axis(...))``.
 
 ### `override(target: str, prop: str, model: Any = None, value: Any = None, mode: str = 'replace') -> dict`
 
@@ -383,9 +393,9 @@ Engineering formatting: fmt(2.2e-13, 's') -> '220 fs'.
 
 Input and output power vs time (plus the ideally compressed output, if an ideal compressor ran).
 
-### `spectrum(res, ax = None, db: bool = False, floor_db: float = -50.0)`
+### `spectrum(res, ax = None, db: bool = False, floor_db: Optional[float] = None)`
 
-Input and output spectral density vs wavelength (linear, normalised; or dB).
+Input and output spectral density vs wavelength (linear, normalised; or dB). With ``db``, the floor follows the data (down to -120 dB) unless ``floor_db`` is given, and the wavelength range covers everything above it.
 
 ### `spectral_phase(res, ax = None, xlim = None)`
 
@@ -419,9 +429,9 @@ Stand-alone system schematic with a numbered list of the instruments and where t
 
 One panel per instrument (d-scan / FROG traces as images). Returns None if no instrument has data.
 
-### `probes(res, db: bool = True, floor_db: float = -40.0)`
+### `probes(res, db: bool = True, floor_db: Optional[float] = None)`
 
-Spectral and temporal evolution through the probes (heat maps, one row per probe, input at the bottom). Returns None if the run recorded fewer than two probes.
+Spectral and temporal evolution through the probes (heat maps, one row per probe, input at the bottom). The dB floor follows the data (down to -60 dB) unless ``floor_db`` is given. Returns None if the run recorded fewer than two probes.
 
 ### `elements(res)`
 

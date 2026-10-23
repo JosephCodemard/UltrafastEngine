@@ -5,8 +5,9 @@ ship as **plugins**: installed separately, loaded through public interfaces, nev
 
 | plugin | what it adds | page |
 |---|---|---|
-| `fitting` | `"measured"` on any instrument (compare with CSV / NPZ / JSON recordings), the `"fit"` run mode (calibration with error bars and predictions), the `measurements` and `fit` figures | [Fitting](fitting.md) |
+| `fitting` | `transform` elements (fittable physical changes to the beam), `"measured"` on any instrument, the `"fit"` run mode (replaceable estimators, priors, three result layers, influence map, fitted system for new inputs), the `"backward"` run mode (propagate a measured field back to the input), the `measurements` and `fit` figures | [Fitting](fitting.md) |
 | `zemax` | `ultrafast zemax-build`, `zemax-replay`, `zemax-demo`; the OpticStudio extension program (Windows) | [Zemax](zemax.md) |
 
-Both ship with the engine and are installed in the CLI's and the Python package's `plugins/` folders. How plugins
-are found, installed and written: [Plugin system](../reference/plugins.md).
+Both ship with the engine and are installed in the CLI's and the Python package's `plugins/` folders by every build.
+How to install plugins elsewhere, check them and fix loading problems: [Installing plugins](installing.md). How
+plugins are written: [Plugin system](../reference/plugins.md).

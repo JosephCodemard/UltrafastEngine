@@ -263,9 +263,21 @@ namespace UltrafastEngine.Engine
             res.At["end"] = pulse;
             res.FinalArrivalS = arrival; res.FinalSystem = system;
 
+            if (measure) MeasureInstruments(cr, res, cancel);
+            res.ElapsedS = sw.Elapsed.TotalSeconds;
+            return res;
+        }
+
+        /// <summary>
+        /// Run the run spec's instruments on the pulses recorded in <paramref name="res"/> (<c>res.At</c>: "input", element
+        /// ids, "end"), apply each instrument's sampling, filter and detector, and let plugins post-process the readings.
+        /// Used after a forward run and by run modes that produce the pulses differently (e.g. backward propagation).
+        /// </summary>
+        public static void MeasureInstruments(CompiledRun cr, RunResult res, CancellationToken cancel = default)
+        {
             // instruments (names are unique: a repeated name gets _2, _3, ...)
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var ispec in measure ? cr.Run.Instruments : new List<Serialization.JsonObject>())
+            foreach (var ispec in cr.Run.Instruments)
             {
                 cancel.ThrowIfCancellationRequested();
                 string at = ispec.GetString("at", "end");
@@ -291,6 +303,7 @@ namespace UltrafastEngine.Engine
                     }
                     ctx.Pulse = Instruments.InstrumentDevice.ApplyFilter(ctx, outp);
                     inst.Measure(ctx, outp);
+                    Instruments.InstrumentDevice.ApplyAxis(ispec, outp);
                     Instruments.InstrumentDevice.ApplyDetector(ispec, outp);
                     outp.Settings = Instruments.InstrumentDevice.Settings(ispec, inst.Kind);
                     res.Instruments.Add(outp);
@@ -310,8 +323,6 @@ namespace UltrafastEngine.Engine
                     res.Warnings.Add("Instrument " + ispec.GetString("kind", "?") + " at " + at + " failed: " + ex.Message);
                 }
             }
-            res.ElapsedS = sw.Elapsed.TotalSeconds;
-            return res;
         }
 
         /// <summary>Instrument keys provided by first-party plugins: used only to name the missing plugin.</summary>

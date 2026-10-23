@@ -229,6 +229,14 @@ def _wl_range(pairs, level=1e-3, margin=0.15):
     return lo - margin * span, hi + margin * span
 
 
+def _auto_floor(*dbs, lowest=-120.0, pad=3.0):
+    """A dB axis floor that shows every value of the data down to its own floor (an instrument's dynamic range),
+    but not the numerical noise below ``lowest``: the minimum of the data, padded, rounded down to 10 dB."""
+    vals = [np.nanmin(np.asarray(d, float)[np.isfinite(d)]) for d in dbs if np.size(d) and np.any(np.isfinite(d))]
+    m = max(min(vals) if vals else -60.0, lowest)
+    return float(10 * np.floor((m - pad) / 10))
+
+
 def _db(y, floor=-80.0):
     y = np.asarray(y, float)
     m = y.max() if y.size and y.max() > 0 else 1.0
@@ -311,8 +319,9 @@ def temporal(res, ax=None, compressed: bool = True, normalize: bool = False):
     return ax
 
 
-def spectrum(res, ax=None, db: bool = False, floor_db: float = -50.0):
-    """Input and output spectral density vs wavelength (linear, normalised; or dB)."""
+def spectrum(res, ax=None, db: bool = False, floor_db: Optional[float] = None):
+    """Input and output spectral density vs wavelength (linear, normalised; or dB). With ``db``, the floor follows
+    the data (down to -120 dB) unless ``floor_db`` is given, and the wavelength range covers everything above it."""
     _, plt = _plt()
     res = load(res)
     with _Style():
@@ -321,6 +330,8 @@ def spectrum(res, ax=None, db: bool = False, floor_db: float = -50.0):
         for k, c, ls in (("input", _theme["ref"], "--"), ("output", _theme["series"][0], "-")):
             lam, s = _sorted_spectrum(res[k + "_wavelength_m"], res[k + "_spectrum"])
             data.append((k, lam, s, c, ls))
+        if db and floor_db is None:
+            floor_db = _auto_floor(*[_db(d[2], -300) for d in data])
         r = _wl_range([(d[1], d[2]) for d in data], level=10 ** (floor_db / 10) if db else 1e-3)
         for k, lam, s, c, ls in data:
             ax.plot(lam * 1e9, _db(s, floor_db - 5) if db else s / s.max(), color=c, ls=ls, label=k)
@@ -576,12 +587,13 @@ def _instrument_panel(res, ins, ax, loc=None):
     c0 = _theme["series"][0]
     if kind == "spectrometer":
         lam = arr["wavelength_m"]
-        y = arr["spectrum_db"] if "spectrum_db" in arr else _db(arr["spectrum"])
+        y = arr["spectrum_db"] if "spectrum_db" in arr else _db(arr["spectrum"], -300)
+        floor = _auto_floor(y)
         ax.plot(lam * 1e9, y, color=c0)
-        r = _wl_range([(lam, 10 ** (np.asarray(y) / 10))], level=1e-5, margin=0.05)
+        r = _wl_range([(lam, 10 ** (np.asarray(y) / 10))], level=10 ** (floor / 10), margin=0.05)
         if r:
-            ax.set_xlim(r[0] * 1e9, r[1] * 1e9)
-        ax.set_ylim(max(np.min(y), -70), 3)
+            ax.set_xlim(max(r[0], np.nanmin(lam)) * 1e9, min(r[1], np.nanmax(lam)) * 1e9)
+        ax.set_ylim(floor, 3)
         ax.set_xlabel("wavelength (nm)"); ax.set_ylabel("dB")
         _note(ax, f"peak {v.get('peakWavelengthM', np.nan) * 1e9:.1f} nm\nFWHM {fmt(v.get('fwhmM'), 'm')}\n"
                   f"−10 dB {fmt(v.get('width10dBM'), 'm')}")
@@ -633,9 +645,23 @@ def _instrument_panel(res, ins, ax, loc=None):
         y = arr["intensity_db"]
         s, p = _si(max(abs(t[0]), abs(t[-1])))
         ax.plot(t / s, y, color=c0)
-        ax.set_xlabel(f"time ({p}s)"); ax.set_ylabel("intensity (dB)"); ax.set_ylim(max(y.min(), -100) - 2, 3)
+        ax.set_xlim(t[0] / s, t[-1] / s)   # the whole window: pre-pulses far from the peak stay visible
+        ax.set_xlabel(f"time ({p}s)"); ax.set_ylabel("intensity (dB)"); ax.set_ylim(_auto_floor(y, lowest=-200), 3)
         _note(ax, f"pre {v.get('prePulseContrastDb', np.nan):.1f} dB\npost {v.get('postPulseContrastDb', np.nan):.1f} dB\n"
                   f"pedestal {v.get('pedestalEnergyFraction', np.nan) * 100:.2g} %")
+    elif kind in ("crossCorrelator", "thirdOrderCorrelator"):
+        d = arr["delay_s"]
+        y = arr["signal_db"] if "signal_db" in arr else _db(arr["signal"], -300)
+        s, p = _si(max(abs(d[0]), abs(d[-1])))
+        if "signal_ideal" in arr:
+            ax.plot(d / s, _db(arr["signal_ideal"], -300), color=_theme["ref"], lw=0.8, ls="--", label="without noise floor")
+        ax.plot(d / s, y, color=c0, lw=1.0, label="measured")
+        ax.set_xlim(d[0] / s, d[-1] / s)
+        ax.set_ylim(_auto_floor(y, lowest=-200), 3)
+        ax.set_xlabel(f"delay ({p}s)"); ax.set_ylabel("signal (dB)")
+        ax.legend(loc="upper right", fontsize=7)
+        _note(ax, f"pre {v.get('prePulseContrastDb', np.nan):.1f} dB\npost {v.get('postPulseContrastDb', np.nan):.1f} dB\n"
+                  f"floor −{v.get('dynamicRangeDb', np.nan):.0f} dB", loc="upper left")
     elif kind == "polarimeter":
         lam = arr["wavelength_m"] * 1e9
         for j, k in enumerate(("s1", "s2", "s3")):
@@ -831,8 +857,9 @@ def instruments(res):
     return fig
 
 
-def probes(res, db: bool = True, floor_db: float = -40.0):
+def probes(res, db: bool = True, floor_db: Optional[float] = None):
     """Spectral and temporal evolution through the probes (heat maps, one row per probe, input at the bottom).
+    The dB floor follows the data (down to -60 dB) unless ``floor_db`` is given.
     Returns None if the run recorded fewer than two probes."""
     res = load(res)
     names = [p for p in res.summary.get("probes", []) if _has(res, f"probe_{p}_spectrum")]
@@ -842,6 +869,8 @@ def probes(res, db: bool = True, floor_db: float = -40.0):
     rows += [(p, res[f"probe_{p}_wavelength_m"], res[f"probe_{p}_spectrum"], res[f"probe_{p}_time_s"],
               res[f"probe_{p}_power_w"]) for p in names]
     specs = [_sorted_spectrum(l, s) for _, l, s, _, _ in rows]
+    if db and floor_db is None:
+        floor_db = _auto_floor(*[_db(sp[1], -300) for sp in specs], lowest=-60.0)
     r = _wl_range(specs, level=10 ** (floor_db / 10) if db else 1e-3, margin=0.05)
     lam = np.linspace(r[0], r[1], 600) if r else np.linspace(specs[0][0][0], specs[0][0][-1], 600)
     S = np.array([np.interp(lam, l, s, left=0, right=0) for l, s in specs])
@@ -941,15 +970,16 @@ def compare(results: Sequence, labels: Optional[Sequence[str]] = None, db: bool 
             a1.plot(r["output_time_s"] / s_, r["output_power_w"] / ps, color=c, label=labels[k])
             lam, s = _sorted_spectrum(r["output_wavelength_m"], r["output_spectrum"])
             pairs.append((lam, s))
-            a2.plot(lam * 1e9, _db(s, -55) if db else s / s.max(), color=c, label=labels[k])
+            a2.plot(lam * 1e9, _db(s, -300) if db else s / s.max(), color=c, label=labels[k])
         a1.set_xlim(lo / s_, hi / s_); a1.set_xlabel(f"time ({pfx}s)"); a1.set_ylabel(f"power ({pp}W)")
         a1.set_ylim(bottom=0); a1.set_title("Output pulse"); a1.legend(loc="upper left")
-        rr = _wl_range(pairs, level=10 ** (-5) if db else 1e-3)
+        floor = _auto_floor(*[_db(sp[1], -300) for sp in pairs]) if db else None
+        rr = _wl_range(pairs, level=10 ** (floor / 10) if db else 1e-3)
         if rr:
             a2.set_xlim(rr[0] * 1e9, rr[1] * 1e9)
         a2.set_xlabel("wavelength (nm)"); a2.set_ylabel("dB" if db else "spectral density (norm.)")
         if db:
-            a2.set_ylim(-50, 3)
+            a2.set_ylim(floor, 3)
         else:
             a2.set_ylim(bottom=0)
         a2.set_title("Output spectrum"); a2.legend(loc="upper left")

@@ -48,7 +48,13 @@ warning when a name you gave is used twice.
 | `sampling` | what part of the beam it sees: near / far field, pinhole, fibre, slit ([below](#sampling-where-the-instrument-looks)) |
 | `filter` | a spectral filter model in front of it -- optics, a band-pass, the detector's spectral response; applied to the field before it is measured (any [filter model](models.md#kinds-per-category): `constant`, `table`, `gaussian`, `expression`, `callback`) |
 | `detector` | the read-out of the recorded trace ([below](#detector-model)) |
-| `measured` | your recording, for comparison and calibration (fitting plugin) |
+| `axis` | where a curve instrument takes its readings: explicit points or a scan grid, pixel / bin width, resolution ([below](#axis-where-readings-are-taken)) |
+| `measured` | your recording, for comparison and fitting (fitting plugin) |
+
+Every instrument output carries a `settings` block with each parameter in effect (given or default), so a results
+file states exactly which device -- resolution, range, sampling, detector -- produced each reading. Virtual
+instruments (`pulseSummary`, `compressor`, `wigner`, `fieldProbe`, `spaceTime`, `beamProfile`, `conversion`) are
+ideal by design: they report the field itself.
 
 ### Detector model
 
@@ -82,6 +88,41 @@ measured data: the recording has the noise, the model should not.
 * **Delay** (`resolutionS` on autocorrelator, contrast, cross-correlator): Gaussian smoothing along delay.
 * **Detection bandwidth** (scope `riseTimeS` / `bandwidthHz`).
 * **Polarisers** (polarimeter `extinctionRatio`, analyser `polarizerDeg` on spectrometers and energy meters).
+* **Sampling of the axis** (`axis`, every curve instrument): where readings are taken and what each integrates over
+  ([below](#axis-where-readings-are-taken)).
+* **Ranges and grids**: spectrometer `rangeM` and `points`; FROG `points`; d-scan `insertionM` / `gddRangeS2` and
+  `steps`; cross-correlator `rangeS`, `stepS`, `fineStepS`, `dynamicRangeDb`; camera `pixels`, `pixelSizeM`,
+  `bitDepth`; delay scan `fromS`, `toS`, `points`.
+
+### Axis: where readings are taken
+
+A real instrument reads at particular points: the pixels of a spectrometer, the delay steps of an autocorrelator or
+cross-correlator, the samples of an oscilloscope. Each reading integrates over its pixel or bin. `axis` models
+this for every curve instrument: `spectrometer`, `scope`, `autocorrelator`, `crossCorrelator`, `polarimeter`,
+`contrast`, `delayScan`, `beamProfile` and `phaseMatchingCurve`.
+
+```jsonc
+{ "kind": "spectrometer", "resolutionM": 0.3e-9,
+  "axis": { "values": [1020.1e-9, 1020.5e-9, ...], "binWidth": "pixel" } }      // your spectrometer's pixel wavelengths
+
+{ "kind": "autocorrelator", "axis": { "from": -2e-12, "to": 2e-12, "step": 20e-15 } }   // a coarse delay scan
+
+{ "kind": "scope", "axis": { "step": 50e-12, "binWidth": "pixel", "resolution": 200e-12 } }   // 20 GS/s sampling
+```
+
+| key | meaning |
+|---|---|
+| `values` | explicit reading positions, in the axis's SI unit (m for wavelengths, s for delays and time) |
+| `from`, `to`, `step` / `points` | a regular grid (default: the simulated range and number of points) |
+| `binWidth` | what each reading integrates over: a number, or `"pixel"` (the spacing to the neighbours); default: point readings |
+| `resolution` | a Gaussian blur (FWHM) applied before binning, in addition to the instrument's own resolution keys |
+
+All of the instrument's curves are resampled together. dB curves are recomputed from their linear counterparts, so
+a cross-correlator keeps its noise floor and dynamic range. Readings outside the simulated range read zero (no light
+there), with a note. The width and peak readings (FWHM, centroid, peak) are re-evaluated on the sampled curve, and a
+`detector` then acts on the sampled readings. With the fitting plugin, the recorded data are compared on their own
+axis in any case. `axis` matters when the sampling itself changes what is measured (coarse steps, wide pixels),
+and for exporting simulated data on your instrument's grid.
 
 ## crossCorrelator
 
@@ -163,8 +204,9 @@ spectrum and an 11 % shorter autocorrelation than the whole beam.
 ## Recorded data (`measured`, fitting plugin)
 
 With the fitting plugin installed, any instrument can be given your recording (`"measured": "data/spectrum.csv"`,
-a CSV, NPZ or JSON file). The run compares it with the simulated reading, and a `"fit"` in the run spec calibrates
-the model against it. See [Fitting plugin](../plugins/fitting.md).
+a CSV, NPZ or JSON file). The run compares it with the simulated reading. A `"fit"` in the run spec fits transform
+elements and other parameters against it, and instrument-response parameters (`instrument:NAME/resolutionM`) can
+be fitted too. See [Fitting plugin](../plugins/fitting.md).
 
 ## Camera
 

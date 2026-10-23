@@ -92,14 +92,17 @@ See `plugins/zemax/src/UltrafastEngine.Zemax/examples/export.json` (fully commen
 
 ## Building
 
-Point the project at ZOS-API: copy `ZOSAPI.dll`, `ZOSAPI_Interfaces.dll`, `ZOSAPI_NetHelper.dll` into
-`plugins/zemax/src/UltrafastEngine.Zemax/lib`, or pass `-p:ZosApiDir="C:\Program Files\Ansys Zemax OpticStudio 2025 R1"`.
+The project compiles against the ZOS-API of your OpticStudio installation (default
+`C:\Program Files\Ansys Zemax OpticStudio 2025 R1`; pass `-p:ZosApiDir="..."` for another one). The assemblies are
+Ansys property and are not part of this repository. You may copy `ZOSAPI.dll`, `ZOSAPI_Interfaces.dll` and
+`ZOSAPI_NetHelper.dll` from your installation into `plugins/zemax/src/UltrafastEngine.Zemax/lib` (git-ignored) to
+build elsewhere.
 ZOSAPI and ZOSAPI_Interfaces are resolved from the installation at run time by ZOSAPI_NetHelper (not copied).
 
 ## Known assumptions to confirm on your installation
 
-All operand names and interface members used by the binding exist in the ZOS-API assemblies in
-`plugins/zemax/src/UltrafastEngine.Zemax/lib` (checked at compile time). What remains to confirm is run-time behaviour:
+All operand names and interface members used by the binding exist in the ZOS-API assemblies (checked at compile
+time against OpticStudio 2025 R1). What remains to confirm is run-time behaviour:
 
 * GBPW shares GBPS's parameter layout [Surf, Wave, UseX, Waist, S1toW, M2] (confirmed for GBPS).
 * RENA/RENB/RENC return the local surface normal; RAID returns degrees. If an operand is missing the export

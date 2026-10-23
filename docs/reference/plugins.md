@@ -8,6 +8,8 @@ after the stable release.
 
 ## Using plugins
 
+Installing, checking and troubleshooting plugins is described step by step in [Installing plugins](../plugins/installing.md).
+
 ```bash
 ultrafast plugins list              # installed plugins, versions, where they were found, load errors
 ultrafast plugins paths             # the folders searched
@@ -33,7 +35,7 @@ fitting = uf.plugins.module("fitting")       # the plugin's Python module, or No
 `ULTRAFAST_NO_PLUGINS=1` runs the bare core. Plugins are loaded once, on first use of the engine. A plugin that
 fails to load is listed with its error and otherwise ignored; it never stops the engine.
 
-**What happens without a plugin.** A run spec with `"fit"` stops with a message naming the fitting plugin; an
+**What happens without a plugin.** A run spec with `"fit"` or `"backward"`, or a system with a `transform` element, stops with a message naming the fitting plugin; an
 instrument with `"measured"` runs and warns that the key needs the fitting plugin; an unknown element type or CLI
 command says which plugin provides it when it is a first-party one.
 

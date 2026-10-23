@@ -50,7 +50,9 @@ Python: `res = uf.run(system, spec)`; `res.summary`, `res["name_array"]`, `res.i
 Use a **study**, not a loop: it freezes the grid (comparable results), reuses the unchanged part of the system and
 runs in parallel ([Parameter studies](reference/studies.md)). Parameter paths: `element:ID/key`, `material:NAME/n2`,
 `pulse/energyJ`, `pulse/chirp/gddFs2`; outputs: `pulse:end/fwhmS`, `record:ID/BIntegralRad`,
-`instrument:NAME/key`. Calibration against measured data is the fitting plugin's `"fit"` ([Fitting](plugins/fitting.md)).
+`instrument:NAME/key`. Fitting against measured data is the fitting plugin's `"fit"`: mark transform numbers with `{"value", "fit": true}`
+or list paths; results in `fit.json` (layers, influence, provenance) and `fitted-system.ufs`. `"backward"` propagates a
+measured field to the input ([Fitting](plugins/fitting.md)).
 
 ## Facts that are easy to get wrong
 

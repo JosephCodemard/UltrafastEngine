@@ -30,7 +30,8 @@ namespace UltrafastEngine
             {
                 foreach (var mode in Plugins.PluginManager.Modes)
                     if (run.Raw.Has(mode.Key)) return mode.Run(system, run, registry, progress, cancel);
-                if (run.Raw.Has("fit")) throw new JsonException("the run spec has \"fit\", which needs the fitting plugin (not installed: see `ultrafast plugins list` and docs/reference/plugins.md).");
+                foreach (var k in new[] { "fit", "backward" })
+                    if (run.Raw.Has(k)) throw new JsonException("the run spec has \"" + k + "\", which needs the fitting plugin (not installed: see `ultrafast plugins list` and docs/plugins/installing.md).");
             }
             var compiled = Compiler.Compile(system, run, registry);
             return Executor.Execute(compiled, progress, cancel);

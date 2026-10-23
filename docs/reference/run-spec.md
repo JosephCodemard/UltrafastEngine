@@ -33,9 +33,15 @@ editors complete and check run specs that start with `"$schema": ".../schemas/ru
 | `energyJ` / `averagePowerW` + `repRateHz` / `peakPowerW` | pulse energy (one of) |
 | `chirp` | `{ "gddS2", "todS3", "fodS4" }` spectral phase about the carrier (or `gddFs2`, `todFs3`, `fodFs4` in fs units) |
 | `polarization` | `"x"`, `"y"`, `"45"`, `"-45"`, `"rcp"`, `"lcp"`, `{ "angleDeg", "ellipticity" }`, or `[exRe, exIm, eyRe, eyIm]` |
-| `spectrum` | `{ "wavelengthsM", "intensity", "phaseRad" }` or `{ "csv": "file.csv", "wavelengthUnit": "nm" }` (columns: wavelength, intensity per unit wavelength, optional phase) |
+| `spectrum` | a measured spectrum: `{ "wavelengthsM", "intensity", "phaseRad" }` or `{ "csv": "file.csv", "wavelengthUnit": "nm" }` (columns: wavelength, intensity per unit wavelength, optional phase); with `resolutionM` (the recording spectrometer's FWHM), `deconvolve` (remove it by Richardson–Lucy, `deconvolveIterations`, default 30) and `extrapolate` (`"zero"`: no light outside the measured wavelengths, default; `"gaussian"`: Gaussian tails fitted to the data) |
 | `delayS` | time offset |
 | `pedestal` | list of contrast components added to the pulse ([below](#pedestal)) |
+
+A measured spectrum is known only over the wavelengths it covers and at the resolution it was recorded with. The run
+says so in the input description ("measured 1008.8-1053.4 nm (504 points, resolution 0.2 nm, with phase, no light
+outside)"). It replaces the input shape and propagates forward only. To learn what the *system* does to a pulse and
+reuse that knowledge with other inputs, use transform elements and the fit of the
+[fitting plugin](../plugins/fitting.md), which can also propagate a measured output field backward to the input.
 
 ### `pedestal`
 

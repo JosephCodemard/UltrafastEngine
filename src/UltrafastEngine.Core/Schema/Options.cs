@@ -33,6 +33,10 @@ namespace UltrafastEngine.Schema
         public string[] Enum;
         /// <summary>For enum parameters: true / false are accepted too (legacy boolean form; documented in the description).</summary>
         public bool AllowBool;
+        /// <summary>For Number / NumberOrArray parameters: an object is accepted too -- a fit parameter
+        /// <c>{"value": ..., "fit": true, "min": ..., "max": ..., "prior": ...}</c> (fitting plugin); its spec is
+        /// <see cref="ObjectRef"/> when registered.</summary>
+        public bool Fittable;
         /// <summary>For Model parameters: the model category ("index", "beam", "filter", ...).</summary>
         public string ModelCategory;
         /// <summary>For Object parameters: the spec of the nested object (category/name), if it is a registered component.</summary>
@@ -114,6 +118,8 @@ namespace UltrafastEngine.Schema
         }
         /// <summary>The last parameter (an enum) also accepts true / false.</summary>
         public ComponentSpec OrBool() { Params[Params.Count - 1].AllowBool = true; return this; }
+        /// <summary>The last parameter may also be a fit-parameter object (<paramref name="objectRef"/>, default "fitting:value").</summary>
+        public ComponentSpec Fittable(string objectRef = "fitting:value") { var p = Params[Params.Count - 1]; p.Fittable = true; p.ObjectRef = objectRef; return this; }
         /// <summary>Mark the last added parameter as deprecated in favour of <paramref name="replacement"/>.</summary>
         public ComponentSpec Deprecated(string replacement) { Params[Params.Count - 1].DeprecatedBy = replacement; return this; }
         /// <summary>Alternative spellings of the last added parameter.</summary>
