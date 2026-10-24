@@ -29,7 +29,7 @@ namespace UltrafastEngine.Transverse
         private readonly FrequencyGrid _g;
         private readonly ITransverseBasis _b;
         private readonly NonlinearMedium _m;
-        private readonly Complex[] _ramanKernelFreq;
+        private readonly Complex[] _ramanKernelFreq, _ramanAnisoFreq;
         private readonly double _k0, _tArrival0, _tauElement;
         private readonly string _id;
         private readonly SpatialProperties _props;
@@ -76,12 +76,7 @@ namespace UltrafastEngine.Transverse
                 if (_props.N2Scale != null && !_props.N2Scale.DependsOnZ) _n2Static = _props.N2Scale.AtPoints(basis.X, basis.Y, 0);
             }
             if (medium != null && medium.IsActive && medium.EffectiveRamanFraction > 0)
-            {
-                var h = Physics.EnvelopeProblem.NormalizedKernel(medium.Raman.Evaluate(grid.Time), grid.DTime);
-                var hc = new Complex[n];
-                for (int i = 0; i < n; i++) hc[i] = h[i];
-                _ramanKernelFreq = SpectralTransform.TimeToFreq(hc);
-            }
+                (_ramanKernelFreq, _ramanAnisoFreq) = Physics.EnvelopeProblem.RamanKernels(medium.Raman, grid, Vector);
         }
 
         /// <summary>Linear rate per (k mode, frequency): L_1D + i (k_z - k) [+ i kxShift * k_x for walk-off / lateral drift].</summary>
@@ -193,16 +188,27 @@ namespace UltrafastEngine.Transverse
                     I[i] = Ix[i] + Iy[i];
                 }
                 var dnX = new double[n]; var dnY = Vector ? new double[n] : null; var dnI = new double[n];
-                double[] dnXY = null;
+                double[] dnXY = null, ramXY = null;
                 double sc = n2S != null ? n2S[m] : 1.0;
                 if (kerr)
                 {
-                    double[] ram = fR > 0 ? Convolution.CircularConvolveWithKernelFreq(I, _ramanKernelFreq, _g.DTime) : null;
+                    double[] ram = null, ramX = null, ramY = null;
+                    if (fR > 0)
+                    {
+                        if (Vector && _ramanAnisoFreq != null)
+                        {
+                            var rxy = new double[n];
+                            for (int i = 0; i < n; i++) rxy[i] = (e[i] * Complex.Conjugate(ey[i])).Real;
+                            Physics.EnvelopeProblem.VectorRaman(Ix, Iy, I, rxy, _ramanKernelFreq, _ramanAnisoFreq, _g.DTime, out ramX, out ramY, out ramXY);
+                        }
+                        else ram = Convolution.CircularConvolveWithKernelFreq(I, _ramanKernelFreq, _g.DTime);
+                    }
                     for (int i = 0; i < n; i++)
                     {
-                        double r = fR > 0 ? fR * ram[i] : 0;
-                        dnX[i] = sc * _m.N2 * ((1 - fR) * (Ix[i] + (Vector ? 2.0 / 3.0 * Iy[i] : 0)) + r);
-                        if (Vector) dnY[i] = sc * _m.N2 * ((1 - fR) * (Iy[i] + 2.0 / 3.0 * Ix[i]) + r);
+                        double rx = fR > 0 ? fR * (ramX != null ? ramX[i] : ram[i]) : 0;
+                        double ry = fR > 0 ? fR * (ramY != null ? ramY[i] : ram[i]) : 0;
+                        dnX[i] = sc * _m.N2 * ((1 - fR) * (Ix[i] + (Vector ? 2.0 / 3.0 * Iy[i] : 0)) + rx);
+                        if (Vector) dnY[i] = sc * _m.N2 * ((1 - fR) * (Iy[i] + 2.0 / 3.0 * Ix[i]) + ry);
                     }
                 }
                 if (rot != null)
@@ -235,13 +241,11 @@ namespace UltrafastEngine.Transverse
                         for (int i = 0; i < n; i++) { dnX[i] += re[i]; if (Vector) dnY[i] += re[i]; dnI[i] += im[i]; }
                     }
                 }
-                double pk = 0;
                 var nt = new Complex[n]; var nty = Vector ? new Complex[n] : null;
                 double cc = kerr && Vector ? sc * _m.N2 * (1 - fR) / 3.0 : 0;
                 for (int i = 0; i < n; i++)
                 {
                     nt[i] = Complex.ImaginaryOne * _k0 * new Complex(dnX[i], dnI[i]) * e[i];
-                    pk = Math.Max(pk, Math.Abs(dnX[i]));
                     if (Vector)
                     {
                         nty[i] = Complex.ImaginaryOne * _k0 * new Complex(dnY[i], dnI[i]) * ey[i];
@@ -251,9 +255,10 @@ namespace UltrafastEngine.Transverse
                             nty[i] += Complex.ImaginaryOne * _k0 * cc * e[i] * e[i] * Complex.Conjugate(ey[i]);
                         }
                         if (dnXY != null) { nt[i] += Complex.ImaginaryOne * _k0 * dnXY[i] * ey[i]; nty[i] += Complex.ImaginaryOne * _k0 * dnXY[i] * e[i]; }
-                        pk = Math.Max(pk, Math.Abs(dnY[i]));
+                        if (ramXY != null) { double d = sc * _m.N2 * fR * ramXY[i]; nt[i] += Complex.ImaginaryOne * _k0 * d * ey[i]; nty[i] += Complex.ImaginaryOne * _k0 * d * e[i]; }
                     }
                 }
+                double pk = Physics.EnvelopeProblem.PeakIndexChange(e, ey, nt, nty, _k0);
                 var nf = nt; SpectralTransform.TimeToFreqInPlace(nf);
                 Complex[] nfy = null; if (Vector) { nfy = nty; SpectralTransform.TimeToFreqInPlace(nfy); }
                 if (_m.EnableSelfSteepening)

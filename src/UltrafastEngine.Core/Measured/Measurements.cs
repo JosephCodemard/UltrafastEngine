@@ -6,7 +6,7 @@ using System.Linq;
 using UltrafastEngine.Instruments;
 using UltrafastEngine.Serialization;
 
-namespace UltrafastEngine.Plugins.Fitting
+namespace UltrafastEngine.Measured
 {
     /// <summary>
     /// Recorded data for an instrument: columns from a CSV file (header row with column names; '#' comments;
@@ -82,6 +82,9 @@ namespace UltrafastEngine.Plugins.Fitting
         public double[] Residuals = new double[0];      // (simulated - measured) / sigma
         public double Chi2, RmsError = double.NaN;      // RmsError: rms(sim - meas) / peak(meas) on the compared curve or trace
         public int Points;
+        /// <summary>Measured points outside the simulated instrument's range: kept in the residual vector with residual 0
+        /// (so a fit sees vectors of equal length) but not counted in <see cref="Points"/>.</summary>
+        public int Excluded;
         public List<(string Name, double Measured, double Simulated, double Sigma)> Values = new List<(string, double, double, double)>();
         public List<string> Notes = new List<string>();
 
@@ -107,12 +110,35 @@ namespace UltrafastEngine.Plugins.Fitting
 
     /// <summary>
     /// Compares an instrument's simulated reading with recorded data ("measured" in the instrument spec,
-    /// docs/plugins/fitting.md). Curves (spectrometer, autocorrelator, scope, beam profile, delay scan, phase-matching
-    /// curve) and traces (FROG, d-scan, cameras) are interpolated onto the measured axes, normalised (peak, area,
-    /// a free scale, or absolute) and compared point by point; scalar values are compared directly.
+    /// docs/reference/measured-data.md). Curves (spectrometer, autocorrelator, scope, beam profile, delay scan,
+    /// phase-matching curve) and traces (FROG, d-scan, cameras) are interpolated onto the measured axes, normalised
+    /// (peak, area, a free scale, or absolute) and compared point by point; scalar values are compared directly.
+    /// <para>Only the part of the recording that the simulated instrument covers is compared: a recording usually spans
+    /// a smaller (or a different) range than the simulation grid, and the points outside the overlap are left out and
+    /// counted in the notes -- unless the simulated reading has decayed to zero at that edge (an instrument that crops
+    /// its output to the signal), in which case the points beyond are compared with zero. A recording made with a coarser resolution than the simulated instrument's
+    /// ("resolutionM" / "resolutionS") is matched by blurring the simulated curve with the missing Gaussian width
+    /// (FWHM sqrt(rec^2 - sim^2)) before the comparison ("matchResolution": false keeps the simulated curve as is).</para>
     /// </summary>
     public static class Measurements
     {
+        /// <summary>Writes the comparisons of a run (one line per instrument, then its scalar readings).</summary>
+        public static void Report(Results.RunResult res, TextWriter w)
+        {
+            var comps = res.Comparisons;
+            if (comps.Count == 0) return;
+            var ci = CultureInfo.InvariantCulture;
+            w.WriteLine("  measured data:");
+            foreach (var c in comps)
+            {
+                string head = string.Format(ci, "    {0,-22} {1,-14} chi^2 {2,-10:G4} ({3} points)", c.Instrument, c.Kind, c.Chi2, c.Points);
+                if (!double.IsNaN(c.RmsError)) head += string.Format(ci, "  rms error {0:P2}", c.RmsError);
+                w.WriteLine(head);
+                foreach (var v in c.Values)
+                    w.WriteLine(string.Format(ci, "      {0}: measured {1:G4} +- {2:G2}, simulated {3:G4} ({4:+0.0;-0.0} sigma)", v.Name, v.Measured, v.Sigma, v.Simulated, (v.Simulated - v.Measured) / v.Sigma));
+            }
+        }
+
         private sealed class Layout { public string X, Y, Rows, Cols, Trace; public string[] MX, MY, MRows, MCols, MTrace; }
 
         private static Layout For(string kind, InstrumentOutput o)
@@ -151,10 +177,10 @@ namespace UltrafastEngine.Plugins.Fitting
 
         /// <summary>The recording's stated resolution ("resolutionM" / "resolutionS" in measured) against the simulated
         /// instrument's: a mismatch biases every fit, so it is reported.</summary>
-        private static void CheckResolution(InstrumentOutput o, JsonObject s, Comparison c)
+        private static double CheckResolution(InstrumentOutput o, JsonObject s, Comparison c, bool willMatch)
         {
             string key = s.Has("resolutionM") ? "resolutionM" : s.Has("resolutionS") ? "resolutionS" : null;
-            if (key == null) return;
+            if (key == null) return 0;
             double rec = s.GetDouble(key, 0);
             var st = o.Settings ?? new JsonObject();
             string[] candidates = key == "resolutionM" ? new[] { "resolutionM", "spectralResolutionM" } : new[] { "resolutionS", "riseTimeS" };
@@ -165,9 +191,39 @@ namespace UltrafastEngine.Plugins.Fitting
             if (double.IsNaN(sim)) sim = 0;
             bool mismatch = rec > 0 ? Math.Abs(sim - rec) > 0.1 * rec : sim > 0;
             var ci = CultureInfo.InvariantCulture;
+            if (mismatch && rec > sim && willMatch)
+            {
+                double extra = Math.Sqrt(rec * rec - sim * sim);
+                c.Notes.Add(string.Format(ci, "the recording's resolution is {0:G3} and the simulated instrument's {1:G3} ({2}): the simulated reading is blurred by {3:G3} (Gaussian FWHM) to match", rec, sim, simKey ?? "ideal", extra));
+                return extra;
+            }
             if (mismatch)
                 c.Notes.Add(string.Format(ci, "the recording's resolution is {0:G3} but the simulated instrument uses {1:G3} ({2}): set the instrument's {3} to the recording's (or fit it: instrument:{4}/{3})", rec, sim, simKey ?? "ideal", candidates[0], o.Name));
             else c.Notes.Add(string.Format(ci, "resolution {0:G3} matches the recording", rec));
+            return 0;
+        }
+
+        /// <summary>Gaussian blur (FWHM <paramref name="fwhm"/>, same unit as x) of y(x) on a sorted, possibly
+        /// non-uniform axis.</summary>
+        internal static double[] Blur(double[] x, double[] y, double fwhm)
+        {
+            if (!(fwhm > 0) || x.Length < 2) return (double[])y.Clone();
+            double sig = fwhm / (2 * Math.Sqrt(2 * Math.Log(2)));
+            var r = new double[y.Length];
+            for (int i = 0; i < x.Length; i++)
+            {
+                double num = 0, den = 0;
+                for (int j = 0; j < x.Length; j++)
+                {
+                    double d = (x[j] - x[i]) / sig;
+                    if (d < -5) continue; if (d > 5) break;
+                    double dx = 0.5 * ((j + 1 < x.Length ? x[j + 1] : x[j]) - (j > 0 ? x[j - 1] : x[j]));
+                    double w = Math.Exp(-0.5 * d * d) * Math.Abs(dx);
+                    num += w * y[j]; den += w;
+                }
+                r[i] = den > 0 ? num / den : y[i];
+            }
+            return r;
         }
 
         public static Comparison Compare(InstrumentOutput o, JsonValue spec, string baseDir)
@@ -181,6 +237,7 @@ namespace UltrafastEngine.Plugins.Fitting
             var res = new List<double>();
             string file = s.GetString("file");
             var vals = s.GetObject("values");
+            bool resolutionChecked = false;
             if (file != null && file.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {
                 // a JSON file of scalar readings: {"energyJ": 1.2e-6, "fwhmS": [35e-15, 2e-15]}
@@ -199,7 +256,9 @@ namespace UltrafastEngine.Plugins.Fitting
                 var sel = s.GetObject("columns") ?? new JsonObject();
                 if (s.Has("simulated")) { var so = s.GetObject("simulated"); L = new Layout { X = so.GetString("x"), Y = so.GetString("y"), Rows = so.GetString("rows"), Cols = so.GetString("cols"), Trace = so.GetString("trace"), MX = new[] { "x" }, MY = new[] { "y" }, MRows = new[] { "rows" }, MCols = new[] { "cols" }, MTrace = new[] { "trace" } }; }
                 if (L == null) throw new JsonException("instrument '" + o.Name + "' (" + kind + "): no curve to compare a file with -- give \"measured\": {\"values\": {...}} or \"simulated\": {\"x\": ..., \"y\": ...}");
-                if (L.Trace == null) CompareCurve(o, c, md, L, sel, s, norm, relSigma, res);
+                double blur = L.Trace == null ? CheckResolution(o, s, c, s.GetBool("matchResolution", true)) : CheckResolution(o, s, c, false);
+                resolutionChecked = true;
+                if (L.Trace == null) CompareCurve(o, c, md, L, sel, s, norm, relSigma, res, blur);
                 else CompareTrace(o, c, md, L, sel, s, norm, relSigma, res);
             }
             if (vals != null)
@@ -215,10 +274,10 @@ namespace UltrafastEngine.Plugins.Fitting
                     res.Add((sv - mv) / sg * Math.Sqrt(s.GetDouble("valueWeight", 1.0)));
                     o.Values.Set("measured." + kv.Key, mv);
                 }
-            CheckResolution(o, s, c);
+            if (!resolutionChecked) CheckResolution(o, s, c, false);
             double w = Math.Sqrt(Math.Max(0, s.GetDouble("weight", 1.0)));
             c.Residuals = res.Select(r => r * w).ToArray();
-            c.Points = c.Residuals.Length;
+            c.Points = c.Residuals.Length - c.Excluded;
             c.Chi2 = c.Residuals.Sum(r => r * r);
             c.Mode = file == null || (c.File != null && c.File.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) ? "values" : (For(kind, o)?.Trace != null && !s.Has("simulated") ? "trace" : "curve");
             if (!double.IsNaN(c.RmsError)) o.Values.Set("measuredRmsError", c.RmsError);
@@ -227,7 +286,7 @@ namespace UltrafastEngine.Plugins.Fitting
             return c;
         }
 
-        private static void CompareCurve(InstrumentOutput o, Comparison c, MeasuredData md, Layout L, JsonObject sel, JsonObject s, string norm, double relSigma, List<double> res)
+        private static void CompareCurve(InstrumentOutput o, Comparison c, MeasuredData md, Layout L, JsonObject sel, JsonObject s, string norm, double relSigma, List<double> res, double blur = 0)
         {
             string xn = sel.GetString("x") ?? md.Find(L.MX) ?? md.Order[0];
             string yn = sel.GetString("y") ?? md.Find(L.MY) ?? md.Order.FirstOrDefault(n => n != xn);
@@ -253,41 +312,70 @@ namespace UltrafastEngine.Plugins.Fitting
             c.XAxis = L.X;
             var sx = Arr(o, L.X); var sy = Arr(o, L.Y);
             if (sx == null || sy == null) throw new InvalidOperationException("instrument '" + o.Name + "' has no arrays '" + L.X + "' / '" + L.Y + "' to compare with");
-            var so = Enumerable.Range(0, sx.Length).OrderBy(i => sx[i]).ToArray();
+            var so = Enumerable.Range(0, sx.Length).Where(i => !double.IsNaN(sx[i]) && !double.IsNaN(sy[i])).OrderBy(i => sx[i]).ToArray();
             var sxs = so.Select(i => sx[i]).ToArray(); var sys = so.Select(i => sy[i]).ToArray();
+            if (blur > 0) sys = Blur(sxs, sys, blur);
+            // compare only where the simulated instrument has a reading: the recording may extend beyond it. Points
+            // outside keep their place (residual 0, simulated NaN) so the residual vector has the same length in every
+            // run of a fit, but they do not count in chi^2, the rms error or the normalisation
+            // A side where the simulated reading has decayed to zero (an instrument that crops its output to the
+            // signal's support) is not a limit: beyond it the reading is zero and is compared as such. A side where the
+            // reading is still significant (a limited axis, the end of the grid) is: beyond it nothing is known.
+            var inR = new bool[mx.Length];
+            double lo = sxs.Length > 0 ? sxs[0] : double.NaN, hi = sxs.Length > 0 ? sxs[sxs.Length - 1] : double.NaN;
+            double smax = sys.Length > 0 ? sys.Max(Math.Abs) : 0;
+            bool openLo = sys.Length > 1 && Math.Abs(sys[0]) <= 1e-3 * smax, openHi = sys.Length > 1 && Math.Abs(sys[sys.Length - 1]) <= 1e-3 * smax;
+            int zeroed = 0;
+            for (int i = 0; i < mx.Length; i++)
+            {
+                bool inside = sxs.Length >= 2 && mx[i] >= lo && mx[i] <= hi;
+                bool beyondZero = sxs.Length >= 2 && ((mx[i] < lo && openLo) || (mx[i] > hi && openHi));
+                inR[i] = inside || beyondZero;
+                if (beyondZero) zeroed++;
+            }
+            int nIn = inR.Count(v => v);
+            if (zeroed > 0)
+                c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "{0} of {1} measured points lie beyond the simulated reading [{2:G4}, {3:G4}], where it has decayed to zero: compared with zero", zeroed, mx.Length, lo, hi));
+            if (nIn < mx.Length)
+                c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "{0} of {1} measured points lie outside the simulated instrument's range [{2:G4}, {3:G4}], where the simulated reading is still significant at its edge, and are not compared (widen the instrument's range or the grid to include them)", mx.Length - nIn, mx.Length, lo, hi));
+            if (nIn < 3) throw new FormatException(md.Path + ": fewer than 3 measured points inside the simulated instrument's range [" + lo.ToString("G4", CultureInfo.InvariantCulture) + ", " + hi.ToString("G4", CultureInfo.InvariantCulture) + "]");
+            c.Excluded += mx.Length - nIn;
             var sim = mx.Select(x => Interp0(sxs, sys, x)).ToArray();
-            double scale = Normalise(sim, my, mx, norm, c, msig);
-            double peak = my.Max(Math.Abs);
+            double scale = Normalise(sim, my, mx, norm, c, msig, inR);
+            double peak = Enumerable.Range(0, my.Length).Where(i => inR[i]).Select(i => Math.Abs(my[i])).DefaultIfEmpty(0).Max();
             double se = 0;
             string sc = s.GetString("scale", "linear").ToLowerInvariant();
             if (sc == "log" || sc == "db")
             {
                 // high-dynamic-range data (contrast, cross-correlators, spectral wings): compare in dB, so a -90 dB
                 // pedestal weighs as much as the peak; values below the floor are clipped to it on both sides
-                var pos = my.Where(v => v > 0).ToArray();
+                var pos = Enumerable.Range(0, my.Length).Where(i => inR[i] && my[i] > 0).Select(i => my[i]).ToArray();
                 double floorDb = s.GetDouble("floorDb", pos.Length > 0 ? 10 * Math.Log10(pos.Min() / Math.Max(1e-300, peak)) : -100);
                 double floor = peak * Math.Pow(10, floorDb / 10), sdb = s.GetDouble("sigmaDb", 1.0), sedb = 0;
                 for (int i = 0; i < mx.Length; i++)
                 {
+                    if (!inR[i]) { res.Add(0); continue; }
                     double d = 10 * Math.Log10(Math.Max(sim[i], floor) / Math.Max(my[i], floor));
                     res.Add(d / sdb); sedb += d * d;
                     se += (sim[i] - my[i]) * (sim[i] - my[i]);
                 }
-                o.Values.Set("measuredRmsErrorDb", Math.Sqrt(sedb / mx.Length));
+                o.Values.Set("measuredRmsErrorDb", Math.Sqrt(sedb / nIn));
                 c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "compared in dB (sigma {0:G3} dB, floor {1:G3} dB)", sdb, floorDb));
             }
             else
                 for (int i = 0; i < mx.Length; i++)
                 {
+                    if (!inR[i]) { res.Add(0); continue; }
                     double sig = msig != null ? msig[i] : relSigma * peak;
                     if (!(sig > 0)) sig = relSigma * Math.Max(1e-300, peak);
                     res.Add((sim[i] - my[i]) / sig);
                     se += (sim[i] - my[i]) * (sim[i] - my[i]);
                 }
-            c.RmsError = Math.Sqrt(se / mx.Length) / Math.Max(1e-300, peak);
+            c.RmsError = Math.Sqrt(se / nIn) / Math.Max(1e-300, peak);
+            for (int i = 0; i < sim.Length; i++) if (!inR[i]) sim[i] = double.NaN;
             o.Add("measured_x", mx, "", "measured axis (SI)");
             o.Add("measured_y", my, "", "measured data (" + norm + ")");
-            o.Add("simulated_on_measured", sim, "", "simulated reading on the measured axis (" + norm + ")");
+            o.Add("simulated_on_measured", sim, "", "simulated reading on the measured axis (" + norm + "; NaN outside the simulated instrument's range)");
             if (msig != null) o.Add("measured_sigma", msig, "", "measurement uncertainty");
             if (!double.IsNaN(scale)) o.Values.Set("measuredScale", scale);
         }
@@ -322,59 +410,68 @@ namespace UltrafastEngine.Plugins.Fitting
             if (!double.IsNaN(scale)) o.Values.Set("measuredScale", scale);
         }
 
-        /// <summary>Subtracts a background: a number, or "auto" = the median of the data at the edges of the measured
-        /// axis (the first and last 5 % of the points, or of the columns of a trace), where a recording is normally
-        /// dark. Unlike a low percentile, the median of a noisy dark level is not biased by the noise.</summary>
+        /// <summary>Subtracts a background: a number, "min", or "auto". For a curve, "auto" is the median of the first
+        /// and of the last 5 % of the points, taking the lower (darker) of the two ends -- a recording cut off on one
+        /// side by the instrument's range still gives its dark level; for a trace, the median at the edges of the
+        /// columns. Unlike a low percentile, the median of a noisy dark level is not biased by the noise.</summary>
         private static void Background(double[] y, JsonObject s, Comparison c, int cols = 0)
         {
             if (!s.Has("background")) return;
             var b = s["background"];
             double v;
-            if (b.Kind == JsonKind.String && b.AsString().Equals("auto", StringComparison.OrdinalIgnoreCase))
+            static double Median(IEnumerable<double> e) { var a = e.Where(x => !double.IsNaN(x)).OrderBy(x => x).ToArray(); return a.Length == 0 ? 0 : a.Length % 2 == 1 ? a[a.Length / 2] : 0.5 * (a[a.Length / 2 - 1] + a[a.Length / 2]); }
+            string mode = b.Kind == JsonKind.String ? b.AsString().ToLowerInvariant() : null;
+            if (mode == "auto")
             {
-                var edge = new List<double>();
                 if (cols > 0)
                 {
+                    var edge = new List<double>();
                     int rows = y.Length / cols, k = Math.Max(2, cols / 20);
                     for (int r = 0; r < rows; r++) for (int j = 0; j < k; j++) { edge.Add(y[r * cols + j]); edge.Add(y[r * cols + cols - 1 - j]); }
+                    v = Median(edge);
+                    c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "background {0:G3} subtracted (median at the edges of the trace columns)", v));
                 }
                 else
                 {
-                    int k = Math.Max(3, y.Length / 20);
-                    for (int j = 0; j < k && j < y.Length; j++) { edge.Add(y[j]); edge.Add(y[y.Length - 1 - j]); }
+                    int k = Math.Min(Math.Max(3, y.Length / 20), Math.Max(1, y.Length / 4));
+                    double lo = Median(y.Take(k)), hi = Median(y.Skip(y.Length - k));
+                    v = Math.Min(lo, hi);
+                    c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "background {0:G3} subtracted (median of the darker edge of the axis)", v));
                 }
-                var sorted = edge.Where(x => !double.IsNaN(x)).OrderBy(x => x).ToArray();
-                v = sorted.Length == 0 ? 0 : sorted[sorted.Length / 2];
-                c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "background {0:G3} subtracted (median at the edges of the axis)", v));
             }
+            else if (mode == "min") { v = y.Where(x => !double.IsNaN(x)).DefaultIfEmpty(0).Min(); c.Notes.Add(string.Format(CultureInfo.InvariantCulture, "background {0:G3} subtracted (minimum)", v)); }
+            else if (mode == "none") return;
             else v = b.AsDouble();
             for (int i = 0; i < y.Length; i++) y[i] -= v;
         }
 
         /// <summary>Normalise in place: peak (simulation to 1, data scaled onto it by least squares), maximum (both divided by their maximum), area (both to unit integral), scale (simulated x best-fit factor), none.</summary>
-        private static double Normalise(double[] sim, double[] meas, double[] x, string norm, Comparison c, double[] sig)
+        private static double Normalise(double[] sim, double[] meas, double[] x, string norm, Comparison c, double[] sig, bool[] use = null)
         {
+            // sums, maxima and areas over the compared points only (use); the scaling applies to every point
+            bool U(int i) => use == null || use[i];
+            double MaxOf(double[] a) { double m = double.NegativeInfinity; for (int i = 0; i < a.Length; i++) if (U(i) && a[i] > m) m = a[i]; return m; }
             switch (norm)
             {
                 case "none": case "absolute": return double.NaN;
                 case "scale":
                 {
                     double num = 0, den = 0;
-                    for (int i = 0; i < sim.Length; i++) { double w = sig != null && sig[i] > 0 ? 1 / (sig[i] * sig[i]) : 1; num += w * sim[i] * meas[i]; den += w * sim[i] * sim[i]; }
+                    for (int i = 0; i < sim.Length; i++) { if (!U(i)) continue; double w = sig != null && sig[i] > 0 ? 1 / (sig[i] * sig[i]) : 1; num += w * sim[i] * meas[i]; den += w * sim[i] * sim[i]; }
                     double k = den > 0 ? num / den : 1;
                     for (int i = 0; i < sim.Length; i++) sim[i] *= k;
                     return k;
                 }
                 case "area":
                 {
-                    double a = Area(x, sim), b = Area(x, meas);
+                    double a = Area(x, sim, use), b = Area(x, meas, use);
                     if (a > 0) for (int i = 0; i < sim.Length; i++) sim[i] /= a;
                     if (b > 0) for (int i = 0; i < meas.Length; i++) meas[i] /= b;
                     return double.NaN;
                 }
                 case "maximum":
                 {
-                    double a = sim.Max(), b = meas.Max();
+                    double a = MaxOf(sim), b = MaxOf(meas);
                     if (a > 0) for (int i = 0; i < sim.Length; i++) sim[i] /= a;
                     if (b > 0) for (int i = 0; i < meas.Length; i++) meas[i] /= b;
                     if (!(a > 0)) c.Notes.Add("the simulated reading is zero on the measured axis");
@@ -384,22 +481,22 @@ namespace UltrafastEngine.Plugins.Fitting
                 {
                     // "peak": the simulation is normalised to its maximum, and the data are scaled onto it by least
                     // squares -- unlike dividing by the measured maximum, this is not biased by noise on the peak
-                    double a = sim.Max();
-                    if (!(a > 0)) { c.Notes.Add("the simulated reading is zero on the measured axis"); double m0 = meas.Max(); if (m0 > 0) for (int i = 0; i < meas.Length; i++) meas[i] /= m0; return double.NaN; }
+                    double a = MaxOf(sim);
+                    if (!(a > 0)) { c.Notes.Add("the simulated reading is zero on the measured axis"); double m0 = MaxOf(meas); if (m0 > 0) for (int i = 0; i < meas.Length; i++) meas[i] /= m0; return double.NaN; }
                     for (int i = 0; i < sim.Length; i++) sim[i] /= a;
                     double num = 0, den = 0;
-                    for (int i = 0; i < sim.Length; i++) { double w = sig != null && sig[i] > 0 ? 1 / (sig[i] * sig[i]) : 1; num += w * sim[i] * meas[i]; den += w * sim[i] * sim[i]; }
-                    double b = num > 0 && den > 0 ? num / den : meas.Max();   // meas ~ b * sim (unbiased by noise on meas)
+                    for (int i = 0; i < sim.Length; i++) { if (!U(i)) continue; double w = sig != null && sig[i] > 0 ? 1 / (sig[i] * sig[i]) : 1; num += w * sim[i] * meas[i]; den += w * sim[i] * sim[i]; }
+                    double b = num > 0 && den > 0 ? num / den : MaxOf(meas);   // meas ~ b * sim (unbiased by noise on meas)
                     if (b > 0) for (int i = 0; i < meas.Length; i++) meas[i] /= b;
                     return double.NaN;
                 }
             }
         }
 
-        private static double Area(double[] x, double[] y)
+        private static double Area(double[] x, double[] y, bool[] use = null)
         {
-            if (x == null) return y.Sum();
-            double s = 0; for (int i = 1; i < x.Length; i++) s += 0.5 * (y[i] + y[i - 1]) * (x[i] - x[i - 1]); return s;
+            if (x == null) return Enumerable.Range(0, y.Length).Where(i => use == null || use[i]).Sum(i => y[i]);
+            double s = 0; for (int i = 1; i < x.Length; i++) if (use == null || (use[i] && use[i - 1])) s += 0.5 * (y[i] + y[i - 1]) * (x[i] - x[i - 1]); return s;
         }
 
         internal static double Interp0(double[] x, double[] y, double v)

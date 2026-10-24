@@ -8,6 +8,7 @@ using UltrafastEngine.Engine;
 using UltrafastEngine.Models;
 using UltrafastEngine.Results;
 using UltrafastEngine.Schema;
+using UltrafastEngine.Measured;
 using UltrafastEngine.Serialization;
 using UltrafastEngine.Specs;
 using UltrafastEngine.Systems;
@@ -15,21 +16,21 @@ using UltrafastEngine.Systems;
 namespace UltrafastEngine.Plugins.Fitting
 {
     /// <summary>
-    /// The fitting plugin (plugins/fitting): the "measured" instrument key (comparison with recorded CSV / NPZ /
-    /// JSON data), the "fit" run mode (calibration with uncertainties and predictions), their summary sections,
-    /// fit.json, and the CLI reports. Docs: plugins/fitting/README.md.
+    /// The fitting plugin (plugins/fitting): fittable "transform" elements, the "fit" run mode (calibration with
+    /// uncertainties and predictions against the instruments' recorded data -- the "measured" key, which is part of the
+    /// core, docs/reference/measured-data.md), backward propagation, their summary sections, fit.json, and the CLI
+    /// reports. Docs: plugins/fitting/README.md.
     /// </summary>
     public sealed class FittingPlugin : IPlugin
     {
         public const string PluginVersion = "2.1.8-beta";
         public string Id => "fitting";
-        public string Name => "Fitting: transforms, measured data, fitting and backward propagation";
+        public string Name => "Fitting: transforms, fits and backward propagation";
         public string Version => PluginVersion;
-        public string Description => "Fittable \"transform\" elements, comparison with recorded data (\"measured\"), fits with replaceable estimators (\"fit\") and backward propagation (\"backward\").";
+        public string Description => "Fittable \"transform\" elements, fits to recorded data with replaceable estimators (\"fit\") and backward propagation (\"backward\").";
 
         public void Register(PluginContext ctx)
         {
-            ctx.RegisterInstrumentHook(new MeasuredHook());
             var specs = TransformElement.Specs().ToList();
             ctx.RegisterElement("transform", TransformElement.Compile, specs[0]);
             foreach (var sp in specs.Skip(1)) ctx.RegisterSpecKeys(sp);
@@ -37,8 +38,6 @@ namespace UltrafastEngine.Plugins.Fitting
             ctx.RegisterRunMode(new BackwardMode());
             ctx.RegisterResultExtension(new FitResults());
             ctx.RegisterReporter(new FitReporter());
-            ctx.RegisterSpecKeys(new ComponentSpec("instrumentCommon", "fitting")
-                .Obj("measured", "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin.", "fitting:measured"));
             ctx.RegisterSpecKeys(new ComponentSpec("runTop", "fitting")
                 .Obj("fit", "Fit transform parameters (and any listed number) to every instrument with measured data (fitting plugin).", "fitting:fit")
                 .Obj("backward", "Backward propagation: the pulse is the field measured downstream; find the field at every plane upstream (fitting plugin).", "fitting:backward"));
@@ -48,24 +47,6 @@ namespace UltrafastEngine.Plugins.Fitting
                 .Num("regularization", "", "Relative Tikhonov level for inverting linear terms (transmission below this x the peak is not recovered)", "1e-3")
                 .Enum("active", new[] { "error", "linearized", "identity" }, "Amplifiers, crystals and spatial elements: refuse, undo as the filter they were in a forward reference run, or pass through", "error")
                 .Obj("referencePulse", "active = linearized: the input pulse of the forward reference run", "pulse"));
-            ctx.RegisterSpecKeys(new ComponentSpec("fitting:measured", "", "Recorded data for one instrument (fitting plugin).")
-                .Str("file", "CSV, NPZ or JSON file, relative to the run file")
-                .Free("columns", ParamType.Object, "Column / array names: x, y, sigma (curves); rows, cols, trace (traces)")
-                .Enum("normalize", new[] { "peak", "maximum", "area", "scale", "none" }, "How data and simulation are normalised before comparing", "peak")
-                .Num("sigma", "", "Uncertainty of each point relative to the data peak", "0.02")
-                .P("background", ParamType.Any, "", "A number to subtract, or \"auto\" (median at the axis edges)")
-                .Arr("rangeX", "SI", "Compare only this [min, max] of the measured axis")
-                .Str("xUnit", "Unit of the x column (overrides the name suffix)").Str("yUnit", "Unit of the y column")
-                .Str("rowUnit", "Unit of the trace rows").Str("colUnit", "Unit of the trace columns")
-                .Free("values", ParamType.Object, "Scalar readings {name: value | [value, sigma]}")
-                .Num("valueSigma", "", "Relative uncertainty of values given without one", "0.02")
-                .Num("valueWeight", "", "Extra weight of the scalar residuals", "1")
-                .Num("weight", "", "Weight of this instrument in the fit's chi^2", "1")
-                .Free("simulated", ParamType.Object, "Which arrays of the instrument to compare with: x, y | rows, cols, trace")
-                .Enum("scale", new[] { "linear", "log" }, "Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators)", "linear")
-                .Num("sigmaDb", "dB", "scale log: uncertainty of each point in dB", "1").Num("floorDb", "dB", "scale log: floor relative to the peak (values below are clipped to it)", "the data's minimum")
-                .Num("resolutionM", "m", "Spectral resolution of the recording instrument (checked against the simulated instrument)")
-                .Num("resolutionS", "s", "Temporal / delay resolution of the recording instrument (checked against the simulated instrument)"));
             ctx.RegisterSpecKeys(new ComponentSpec("fitting:fit", "", "Fit (fitting plugin).").DocAt("plugins/fitting.md#fitting")
                 .ListOf("parameters", "fitting:parameter", "Numbers to fit by path (in addition to the transform parameters marked for fitting)")
                 .Enum("estimator", new[] { "levenbergMarquardt", "cmaes", "mcmc" }, "Fitting algorithm (plugins may register more)", "levenbergMarquardt")
@@ -91,28 +72,15 @@ namespace UltrafastEngine.Plugins.Fitting
     /// <summary>Typed access to the plugin's data on a <see cref="RunResult"/>.</summary>
     public static class FittingResults
     {
-        internal const string ComparisonsKey = "fitting.comparisons", FitKey = "fitting.fit";
+        internal const string FitKey = "fitting.fit";
 
-        /// <summary>Instruments compared with recorded data ("measured").</summary>
-        public static List<Comparison> Comparisons(this RunResult r)
-        {
-            if (!r.Extensions.TryGetValue(ComparisonsKey, out var o)) r.Extensions[ComparisonsKey] = o = new List<Comparison>();
-            return (List<Comparison>)o;
-        }
+        /// <summary>Instruments compared with recorded data ("measured"): the same list as <see cref="RunResult.Comparisons"/>
+        /// (measured data is part of the core; kept for code written against earlier versions of the plugin).</summary>
+        public static List<Comparison> Comparisons(this RunResult r) => r.Comparisons;
 
         /// <summary>The calibration fit, or null if the run was not a fit.</summary>
         public static FitReport Fit(this RunResult r) => r.Extensions.TryGetValue(FitKey, out var o) ? (FitReport)o : null;
         public static void SetFit(this RunResult r, FitReport f) => r.Extensions[FitKey] = f;
-    }
-
-    internal sealed class MeasuredHook : IInstrumentHook
-    {
-        public IReadOnlyList<string> Keys { get; } = new[] { "measured" };
-        public void AfterMeasure(InstrumentHookContext h)
-        {
-            if (!h.Spec.TryGet("measured", out var m)) return;
-            h.Result.Comparisons().Add(Measurements.Compare(h.Output, m, h.BaseDirectory));
-        }
     }
 
     internal sealed class FitMode : IRunMode
@@ -135,12 +103,6 @@ namespace UltrafastEngine.Plugins.Fitting
     {
         public void ContributeSummary(RunResult r, JsonObject o)
         {
-            var comps = r.Comparisons();
-            if (comps.Count > 0)
-            {
-                o.Set("comparisons", new JsonArray(comps.Select(c => (JsonValue)c.ToJson())));
-                o.Set("measuredChi2", comps.Sum(c => c.Chi2));
-            }
             var f = r.Fit();
             if (f != null) o.Set("fit", f.ToJson());
             var b = r.Backward();
@@ -183,18 +145,6 @@ namespace UltrafastEngine.Plugins.Fitting
                     w.WriteLine(double.IsNaN(kv.Value.RmsAfter)
                         ? string.Format(ci, "  {0,-34} chi^2 {1:G3} -> {2:G3}", kv.Key, kv.Value.Before, kv.Value.After)
                         : string.Format(ci, "  {0,-34} rms error {1:P2} -> {2:P2}", kv.Key, kv.Value.RmsBefore, kv.Value.RmsAfter));
-                return;
-            }
-            var comps = res.Comparisons();
-            if (comps.Count == 0) return;
-            w.WriteLine("  measured data:");
-            foreach (var c in comps)
-            {
-                string head = string.Format(ci, "    {0,-22} {1,-14} chi^2 {2,-10:G4} ({3} points)", c.Instrument, c.Kind, c.Chi2, c.Points);
-                if (!double.IsNaN(c.RmsError)) head += string.Format(ci, "  rms error {0:P2}", c.RmsError);
-                w.WriteLine(head);
-                foreach (var v in c.Values)
-                    w.WriteLine(string.Format(ci, "      {0}: measured {1:G4} +- {2:G2}, simulated {3:G4} ({4:+0.0;-0.0} sigma)", v.Name, v.Measured, v.Sigma, v.Simulated, (v.Simulated - v.Measured) / v.Sigma));
             }
         }
     }

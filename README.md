@@ -54,8 +54,10 @@ gap with your measurements:
   phase (residual dispersion), spectral amplitude (gain narrowing, filters, optionally causal via Kramers–Kronig),
   energy, polarisation errors, contrast degradation (replicas, phase noise, ASE pedestals) and wavefront errors.
   Any of their numbers can be marked `"fit": true`.
-* **Measured data** on any instrument: CSV, NPZ or JSON, curves, traces and readings, compared at the recording
-  instrument's resolution and sampling, linearly or in dB.
+* **Measured data** on any instrument (part of the core): CSV, NPZ or JSON, curves, traces and readings, compared on
+  the recording's axis and range at the recording instrument's resolution, linearly or in dB
+  ([Measured data](docs/reference/measured-data.md)). Measured input spectra are cleaned (sorted, duplicates merged,
+  background subtracted).
 * **Fitting** with Levenberg–Marquardt, CMA-ES or MCMC (or your own estimator), with priors, smoothness and
   instrument-response parameters. Results come in three layers (simulated → inferred → believed), with an influence
   map showing which measurement determines which number and the provenance of every data file. The output includes
@@ -84,7 +86,7 @@ generation in PPLN to better than 1 % in the converted energies. See [Capabiliti
   where every value came from.
 * **Plugins.** Element types, instruments, models, run modes, transform operators, estimators, retrieval
   algorithms, compute back-ends and CLI commands can be added as plugins that the engine discovers at start-up. Two
-  ship with the engine and are installed by every build: **fitting** (transforms, measured data, fitting, backward
+  ship with the engine and are installed by every build: **fitting** (transforms, fitting, backward
   propagation) and **zemax** (export a sequential OpticStudio system to a system file). A plugin is a folder:
   `ultrafast plugins install <folder or zip>`, `ultrafast plugins list`. See [Plugins](docs/plugins/index.md) and
   [Installing plugins](docs/plugins/installing.md).

@@ -33,15 +33,17 @@ editors complete and check run specs that start with `"$schema": ".../schemas/ru
 | `energyJ` / `averagePowerW` + `repRateHz` / `peakPowerW` | pulse energy (one of) |
 | `chirp` | `{ "gddS2", "todS3", "fodS4" }` spectral phase about the carrier (or `gddFs2`, `todFs3`, `fodFs4` in fs units) |
 | `polarization` | `"x"`, `"y"`, `"45"`, `"-45"`, `"rcp"`, `"lcp"`, `{ "angleDeg", "ellipticity" }`, or `[exRe, exIm, eyRe, eyIm]` |
-| `spectrum` | a measured spectrum: `{ "wavelengthsM", "intensity", "phaseRad" }` or `{ "csv": "file.csv", "wavelengthUnit": "nm" }` (columns: wavelength, intensity per unit wavelength, optional phase); with `resolutionM` (the recording spectrometer's FWHM), `deconvolve` (remove it by Richardson–Lucy, `deconvolveIterations`, default 30) and `extrapolate` (`"zero"`: no light outside the measured wavelengths, default; `"gaussian"`: Gaussian tails fitted to the data) |
+| `spectrum` | a measured spectrum: `{ "wavelengthsM", "intensity", "phaseRad" }` or `{ "csv": "file.csv", "wavelengthUnit": "nm" }` (columns: wavelength, intensity per unit wavelength, optional phase); `background` (a number, `"auto"`, `"min"`), `threshold`, `resolutionM` (the recording spectrometer's FWHM), `deconvolve` (remove it by Richardson–Lucy, `deconvolveIterations`, default 30) and `extrapolate` (`"zero"`: no light outside the measured wavelengths, default; `"gaussian"`: Gaussian tails fitted to the data). Rows are sorted, repeated wavelengths merged, non-finite rows dropped. See [Measured data](measured-data.md#measured-input-spectra) |
 | `delayS` | time offset |
 | `pedestal` | list of contrast components added to the pulse ([below](#pedestal)) |
 
 A measured spectrum is known only over the wavelengths it covers and at the resolution it was recorded with. The run
-says so in the input description ("measured 1008.8-1053.4 nm (504 points, resolution 0.2 nm, with phase, no light
-outside)"). It replaces the input shape and propagates forward only. To learn what the *system* does to a pulse and
-reuse that knowledge with other inputs, use transform elements and the fit of the
-[fitting plugin](../plugins/fitting.md), which can also propagate a measured output field backward to the input.
+says so in the input description ("measured 1008.8-1053.4 nm (504 points, background 0.66 % removed, resolution
+0.2 nm, with phase, no light outside)") and reports every cleaning step in the notes; a floor above 0.3 % of the peak
+that is not subtracted gives a warning, because a flat floor shortens the transform limit
+([Measured data](measured-data.md#background)). It replaces the input shape and propagates forward only. To learn
+what the *system* does to a pulse and reuse that knowledge with other inputs, use transform elements and the fit of
+the [fitting plugin](../plugins/fitting.md), which can also propagate a measured output field backward to the input.
 
 ### `pedestal`
 
@@ -79,6 +81,16 @@ instrument instead). The `contrast` and `crossCorrelator` instruments show the r
 | `spectralMargin` | auto | spectral span factor |
 | `minSpanFraction` | 0.1 | nonlinear runs: minimum half-span / carrier |
 | `minPointsPerFwhm` | 12 | samples across the transform-limited FWHM |
+| `satelliteLevel` | 1e-8 | weakest ghost / replica satellite (relative intensity) the window makes room for, including combinations of satellites of several elements (a ghost of a ghost) and satellites that coincide in delay, summed in amplitude |
+
+**Satellites and the window.** Ghosts and replicas follow the main pulse by their delay. Making room for every
+order of every plate would grow the window linearly with the number of plates: 20 plates with ghosts asked for
+4.4 ns. The planner instead makes room for the longest delay at which the satellites of all elements together
+reach `satelliteLevel`. 20 AR-coated plates (0.2 % per face) then need room for one ghost (about 1 ns of window with
+the centred pulse); 20 uncoated ones, whose single ghosts add up coherently when the plates are identical, for
+five. The note "Satellites: the window makes room for ..." says what was chosen. Weaker satellites wrap around the
+window. Set `satelliteLevel` lower for contrast studies, or give `windowS` / `n` with `"auto": false` to set the
+grid yourself.
 
 ## `physics`
 | field | default | |
@@ -115,9 +127,10 @@ A list of `{ "kind": ..., "at": "end" | "input" | element id, "name": ..., ...pa
 [Instruments](instruments.md). Instruments never change the pulse. Two keys work on every instrument:
 
 * `"sampling"`: what part of the beam it sees (near / far field, pinhole, fibre, slit);
-* `"measured"`: your recording to compare with (CSV / NPZ / JSON) -- fitting plugin.
+* `"measured"`: your recording to compare with (CSV / NPZ / JSON), compared on its own axis, range and resolution
+  ([Measured data](measured-data.md)).
 
-See [Sampling](instruments.md#sampling-where-the-instrument-looks) (core) and the [fitting plugin](../plugins/fitting.md).
+See [Sampling](instruments.md#sampling-where-the-instrument-looks) and [Measured data](measured-data.md).
 
 ## `fit` (fitting plugin)
 Calibrates parameters of the system or the run against every instrument with `"measured"` data, then predicts

@@ -36,6 +36,7 @@ nav:
       - Position-dependent properties: reference/spatial-properties.md
       - Spatial models: reference/transverse.md
       - Instruments: reference/instruments.md
+      - Measured data: reference/measured-data.md
       - Pulse retrieval: reference/retrieval.md
       - Parameter studies: reference/studies.md
       - Speed & compute back-ends: reference/speed.md
@@ -51,7 +52,7 @@ nav:
   - Plugins:
       - Overview: plugins/index.md
       - Installing plugins: plugins/installing.md
-      - Fitting (transforms, measured data, backward): plugins/fitting.md
+      - Fitting (transforms, fits, backward): plugins/fitting.md
       - Zemax OpticStudio: plugins/zemax.md
   - Testing & validation: testing.md
   - Roadmap: roadmap.md

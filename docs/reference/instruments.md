@@ -49,7 +49,7 @@ warning when a name you gave is used twice.
 | `filter` | a spectral filter model in front of it -- optics, a band-pass, the detector's spectral response; applied to the field before it is measured (any [filter model](models.md#kinds-per-category): `constant`, `table`, `gaussian`, `expression`, `callback`) |
 | `detector` | the read-out of the recorded trace ([below](#detector-model)) |
 | `axis` | where a curve instrument takes its readings: explicit points or a scan grid, pixel / bin width, resolution ([below](#axis-where-readings-are-taken)) |
-| `measured` | your recording, for comparison and fitting (fitting plugin) |
+| `measured` | your recording, compared on its own axis, range and resolution ([Measured data](measured-data.md)); used by fits |
 
 Every instrument output carries a `settings` block with each parameter in effect (given or default), so a results
 file states exactly which device -- resolution, range, sampling, detector -- produced each reading. Virtual
@@ -120,8 +120,8 @@ this for every curve instrument: `spectrometer`, `scope`, `autocorrelator`, `cro
 All of the instrument's curves are resampled together. dB curves are recomputed from their linear counterparts, so
 a cross-correlator keeps its noise floor and dynamic range. Readings outside the simulated range read zero (no light
 there), with a note. The width and peak readings (FWHM, centroid, peak) are re-evaluated on the sampled curve, and a
-`detector` then acts on the sampled readings. With the fitting plugin, the recorded data are compared on their own
-axis in any case. `axis` matters when the sampling itself changes what is measured (coarse steps, wide pixels),
+`detector` then acts on the sampled readings. Recorded data (`measured`) are compared on their own axis in any
+case. `axis` matters when the sampling itself changes what is measured (coarse steps, wide pixels),
 and for exporting simulated data on your instrument's grid.
 
 ## crossCorrelator
@@ -201,12 +201,14 @@ and an autocorrelator or FROG shows the local pulse, including the spectral phas
 Example 11 shows the effect clearly: after a self-focusing plate, a 15 µm pinhole on axis sees a 13 % wider
 spectrum and an 11 % shorter autocorrelation than the whole beam.
 
-## Recorded data (`measured`, fitting plugin)
+## Recorded data (`measured`)
 
-With the fitting plugin installed, any instrument can be given your recording (`"measured": "data/spectrum.csv"`,
-a CSV, NPZ or JSON file). The run compares it with the simulated reading. A `"fit"` in the run spec fits transform
-elements and other parameters against it, and instrument-response parameters (`instrument:NAME/resolutionM`) can
-be fitted too. See [Fitting plugin](../plugins/fitting.md).
+Any instrument can be given your recording (`"measured": "data/spectrum.csv"`, a CSV, NPZ or JSON file). The run
+compares it with the simulated reading on the recording's axis, only where the simulated instrument has readings,
+after blurring the simulation to the recording's resolution when the recording is coarser. See
+[Measured data](measured-data.md). A `"fit"` in the run spec ([fitting plugin](../plugins/fitting.md)) fits transform
+elements and other parameters against it, and instrument-response parameters (`instrument:NAME/resolutionM`) can be
+fitted too.
 
 ## Camera
 

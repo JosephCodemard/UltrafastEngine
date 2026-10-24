@@ -35,9 +35,10 @@ fitting = uf.plugins.module("fitting")       # the plugin's Python module, or No
 `ULTRAFAST_NO_PLUGINS=1` runs the bare core. Plugins are loaded once, on first use of the engine. A plugin that
 fails to load is listed with its error and otherwise ignored; it never stops the engine.
 
-**What happens without a plugin.** A run spec with `"fit"` or `"backward"`, or a system with a `transform` element, stops with a message naming the fitting plugin; an
-instrument with `"measured"` runs and warns that the key needs the fitting plugin; an unknown element type or CLI
-command says which plugin provides it when it is a first-party one.
+**What happens without a plugin.** A run spec with `"fit"` or `"backward"`, or a system with a `transform` element,
+stops with a message naming the fitting plugin; an unknown element type or CLI command says which plugin provides it
+when it is a first-party one. Recorded data (an instrument's `"measured"`, a measured input spectrum) is part of the
+core and works without any plugin ([Measured data](measured-data.md)).
 
 **NativeAOT builds** (the self-contained C library) cannot load assemblies at run time: plugins must be compiled in
 and registered in code (`PluginManager.Register(new FittingPlugin())`). The hosted engine (Python's default, the
@@ -126,9 +127,9 @@ overrides work for plugin elements like for built-in ones.
 | `RegisterElement(type, compiler, spec)` | an element type (`ElementCompiler(services, element, compiled)`) | |
 | `RegisterInstrument(kind, factory, spec)` | an instrument kind (`IInstrument`) | |
 | `RegisterModels(configure)` | model kinds in every `ModelRegistry` (index, attenuation, timeResponse, filter, beam, delayedResponse, aperture) | |
-| `RegisterInstrumentHook(hook)` | `IInstrumentHook.AfterMeasure` runs after every instrument whose spec has one of the hook's `Keys` | fitting (`measured`) |
+| `RegisterInstrumentHook(hook)` | `IInstrumentHook.AfterMeasure` runs after every instrument whose spec has one of the hook's `Keys` (after the core's `measured` comparison) | |
 | `RegisterRunMode(mode)` | `IRunMode.Run` replaces a plain run when the run spec has the mode's top-level `Key` | fitting (`fit`) |
-| `RegisterResultExtension(ext)` | sections in `summary.json` and extra files in the results folder | fitting (`comparisons`, `fit`, `fit.json`) |
+| `RegisterResultExtension(ext)` | sections in `summary.json` and extra files in the results folder | fitting (`fit`, `fit.json`, `backward`) |
 | `RegisterReporter(reporter)` | lines printed by `ultrafast run` | fitting |
 | `RegisterCommand(command)` | an `ultrafast <name>` subcommand (`ICliCommand`) | zemax (`zemax-demo`, ...) |
 | `RegisterSpecKeys(spec)` | extra keys for the checks and schemas: category `runTop` (top-level run-spec keys) or `instrumentCommon` (keys of every instrument) | fitting |
@@ -136,7 +137,8 @@ overrides work for plugin elements like for built-in ones.
 | `RegisterRetrieval(retrieval)` | a pulse-retrieval method (`IRetrieval`) for `ultrafast retrieve` / `uf.retrieve` ([Pulse retrieval](retrieval.md)) | |
 
 Plugins attach their own data to a result in `RunResult.Extensions[key]` (the fitting plugin offers typed access
-with the extension methods `result.Comparisons()` and `result.Fit()`).
+with the extension method `result.Fit()`). Comparisons with recorded data are core: `result.Comparisons`
+(`UltrafastEngine.Measured.Comparison`).
 
 ### Building the folder
 

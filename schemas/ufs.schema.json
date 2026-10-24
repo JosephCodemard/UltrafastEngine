@@ -1953,6 +1953,13 @@
           "enum": ["zero", "gaussian"],
           "description": "Outside the measured wavelengths: no light, or Gaussian tails fitted to the data Default: zero."
         },
+        "background": {
+          "description": "Background to subtract: a number (intensity units), \"auto\" (median of the darker edge, robust to a spectrum cut off on one side), \"min\" or \"none\" Default: none."
+        },
+        "threshold": {
+          "type": "number",
+          "description": "After background subtraction, values below this fraction of the peak are set to zero Default: 0."
+        },
         "comment": {
           "description": "Free text."
         },

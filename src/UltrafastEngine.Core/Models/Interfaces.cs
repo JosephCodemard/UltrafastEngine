@@ -127,6 +127,21 @@ namespace UltrafastEngine.Models
         double[] Evaluate(double[] t);
     }
 
+    /// <summary>
+    /// A delayed response with a polarisation structure (Hellwarth; Lin &amp; Agrawal, Opt. Lett. 29, 1114 (2004)):
+    /// R_ijkl(t) = h_a(t) d_ij d_kl + h_b(t) (d_ik d_jl + d_il d_jk) / 2, with h_a + h_b = h (<see cref="IDelayedResponse.Evaluate"/>).
+    /// The isotropic part h_a only changes the index for both polarisations alike; the anisotropic part h_b couples them
+    /// (it contributes to nonlinear ellipse rotation and makes circular light see less Raman than linear light).
+    /// Responses without this interface are isotropic (h_b = 0).
+    /// </summary>
+    public interface IVectorDelayedResponse : IDelayedResponse
+    {
+        /// <summary>The anisotropic part h_b(t), on the same normalisation as Evaluate (h_a = h - h_b).</summary>
+        double[] EvaluateAnisotropic(double[] t);
+        /// <summary>Integral of h_b relative to that of h (0: isotropic, 1: purely anisotropic).</summary>
+        double AnisotropicFraction { get; }
+    }
+
     // ------------------------------------------------------------------------------- managed callbacks
     // These are what the C API and the Python bindings wrap user functions into. Register them on the
     // ModelRegistry (or the run) under a name and reference them as {"kind": "callback", "name": "..."}.

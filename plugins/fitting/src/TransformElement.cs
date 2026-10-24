@@ -116,6 +116,7 @@ namespace UltrafastEngine.Plugins.Fitting
                     ce.Notes.Add("linear operators between field operators are applied inside the element: the grid planner does not see their dispersion (put large GDD before or after the pedestal / wavefront operators)");
             }
             ce.SatelliteDelayS = ops.Count > 0 ? ops.Max(o => o.SatelliteDelayS) : 0;
+            foreach (var o in ops) if (o.SatelliteDelayS != 0) ce.Satellites.Add((o.SatelliteDelayS, o.SatelliteLevel));
             ce.Notes.Add("transform: " + (ops.Count == 0 ? "no operators" : string.Join("; ", ops.Select(o => o.Description))));
             int nFit = FitCollector.CountFlags(e.Json);
             if (nFit > 0) ce.Notes.Add(nFit + " transform parameter(s) marked for fitting (used by \"fit\"; a plain run uses their current values)");

@@ -93,6 +93,7 @@ The time/frequency grid (docs/reference/run-spec.md#grid).
 | `spectralMargin` | number |  | auto | Spectral span factor |
 | `minSpanFraction` | number |  | 0.1 | Nonlinear runs: minimum half-span / carrier |
 | `minPointsPerFwhm` | number |  | 12 | Samples across the transform-limited FWHM |
+| `satelliteLevel` | number |  | 1e-8 | Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window |
 
 ## Physics
 
@@ -1043,12 +1044,7 @@ Keys every instrument accepts.
 | `filter` | model (filter) |  |  | Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured |
 | `detector` | object (`detector`) |  |  | Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth |
 | `axis` | object (`instrumentAxis`) |  |  | Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution |
-
-### `fitting` — plugin: fitting
-
-| key | type | unit | default | meaning |
-|---|---|---|---|---|
-| `measured` | object (`fitting:measured`) |  |  | Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin. |
+| `measured` | object (`measured`) |  |  | Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md |
 
 ## Plugin keys (run spec)
 
@@ -1256,33 +1252,6 @@ Spline knots of a transform operator.
 | `phaseRad` | array |  |  | spectralPhase: phase at the knots (numbers or fit objects) |
 | `transmission` | array |  |  | spectralAmplitude: power transmission at the knots |
 | `transmissionDb` | array |  |  | spectralAmplitude: transmission in dB at the knots |
-
-### `fitting:measured`
-
-Recorded data for one instrument (fitting plugin).
-
-| key | type | unit | default | meaning |
-|---|---|---|---|---|
-| `file` | string |  |  | CSV, NPZ or JSON file, relative to the run file |
-| `columns` | object |  |  | Column / array names: x, y, sigma (curves); rows, cols, trace (traces) |
-| `normalize` | `"peak"` \| `"maximum"` \| `"area"` \| `"scale"` \| `"none"` |  | peak | How data and simulation are normalised before comparing |
-| `sigma` | number |  | 0.02 | Uncertainty of each point relative to the data peak |
-| `background` | any |  |  | A number to subtract, or "auto" (median at the axis edges) |
-| `rangeX` | number or array | SI |  | Compare only this [min, max] of the measured axis |
-| `xUnit` | string |  |  | Unit of the x column (overrides the name suffix) |
-| `yUnit` | string |  |  | Unit of the y column |
-| `rowUnit` | string |  |  | Unit of the trace rows |
-| `colUnit` | string |  |  | Unit of the trace columns |
-| `values` | object |  |  | Scalar readings {name: value \| [value, sigma]} |
-| `valueSigma` | number |  | 0.02 | Relative uncertainty of values given without one |
-| `valueWeight` | number |  | 1 | Extra weight of the scalar residuals |
-| `weight` | number |  | 1 | Weight of this instrument in the fit's chi^2 |
-| `simulated` | object |  |  | Which arrays of the instrument to compare with: x, y \| rows, cols, trace |
-| `scale` | `"linear"` \| `"log"` |  | linear | Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators) |
-| `sigmaDb` | number | dB | 1 | scale log: uncertainty of each point in dB |
-| `floorDb` | number | dB | the data's minimum | scale log: floor relative to the peak (values below are clipped to it) |
-| `resolutionM` | number | m |  | Spectral resolution of the recording instrument (checked against the simulated instrument) |
-| `resolutionS` | number | s |  | Temporal / delay resolution of the recording instrument (checked against the simulated instrument) |
 
 ### `fitting:operator`
 
@@ -1533,6 +1502,34 @@ A length of material.
 | `name` | string |  |  | Material **Required.** |
 | `lengthM` | number | m |  | Length **Required.** |
 
+### `measured`
+
+Recorded data for one instrument, compared with its simulated reading on the measured axis (only where the simulated instrument has readings), after matching the recording's resolution. More: [measured-data.md](measured-data.md)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `file` | string |  |  | CSV, NPZ or JSON file, relative to the run file |
+| `columns` | object |  |  | Column / array names: x, y, sigma (curves); rows, cols, trace (traces) |
+| `normalize` | `"peak"` \| `"maximum"` \| `"area"` \| `"scale"` \| `"none"` |  | peak | How data and simulation are normalised before comparing |
+| `sigma` | number |  | 0.02 | Uncertainty of each point relative to the data peak |
+| `background` | any |  | none | A number to subtract, "auto" (median of the darker edge of the axis; for traces, the edges of the columns), "min" or "none" |
+| `rangeX` | number or array | SI |  | Compare only this [min, max] of the measured axis |
+| `xUnit` | string |  |  | Unit of the x column (overrides the name suffix) |
+| `yUnit` | string |  |  | Unit of the y column ("dB" for logarithmic data) |
+| `rowUnit` | string |  |  | Unit of the trace rows |
+| `colUnit` | string |  |  | Unit of the trace columns |
+| `values` | object |  |  | Scalar readings {name: value \| [value, sigma]} |
+| `valueSigma` | number |  | 0.02 | Relative uncertainty of values given without one |
+| `valueWeight` | number |  | 1 | Extra weight of the scalar residuals |
+| `weight` | number |  | 1 | Weight of this instrument in a fit's chi^2 |
+| `simulated` | object |  |  | Which arrays of the instrument to compare with: x, y \| rows, cols, trace |
+| `scale` | `"linear"` \| `"log"` |  | linear | Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators) |
+| `sigmaDb` | number | dB | 1 | scale log: uncertainty of each point in dB |
+| `floorDb` | number | dB | the data's minimum | scale log: floor relative to the peak (values below are clipped to it) |
+| `resolutionM` | number | m |  | Resolution (Gaussian FWHM) of the recording spectrometer / profiler, in the unit of the axis |
+| `resolutionS` | number | s |  | Temporal / delay resolution (Gaussian FWHM) of the recording instrument |
+| `matchResolution` | boolean |  | true | Curves: when the recording is coarser than the simulated instrument, blur the simulated reading by the missing width before comparing |
+
 ### `override`
 
 One override (docs/reference/models.md#overrides).
@@ -1601,6 +1598,8 @@ A measured input spectrum.
 | `deconvolve` | boolean |  | false | Remove the recording resolution (Richardson-Lucy) before use |
 | `deconvolveIterations` | integer |  | 30 | Richardson-Lucy iterations |
 | `extrapolate` | `"zero"` \| `"gaussian"` |  | zero | Outside the measured wavelengths: no light, or Gaussian tails fitted to the data |
+| `background` | any |  | none | Background to subtract: a number (intensity units), "auto" (median of the darker edge, robust to a spectrum cut off on one side), "min" or "none" |
+| `threshold` | number |  | 0 | After background subtraction, values below this fraction of the peak are set to zero |
 
 ### `pump`
 
@@ -1757,6 +1756,7 @@ Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1). More: [nonlinear.md#ra
 | `tau1` | number | s |  | Period parameter |
 | `tau2` | number | s |  | Damping time |
 | `fR` | number |  |  | Raman fraction |
+| `anisotropicFraction` | number |  | 0 | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
 
 ### delayedResponse / `hollenbeck`
 
@@ -1765,6 +1765,7 @@ Hollenbeck & Cantrell 2002 silica Raman: 13 vibrational modes with intermediate 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `fR` | number |  | 0.18 | Raman fraction |
+| `anisotropicFraction` | number |  | 0.25 | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
 
 ### delayedResponse / `linAgrawal`
 
@@ -1779,6 +1780,7 @@ Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full mo
 | `fa` | number |  | 0.75 | Weight a |
 | `fb` | number |  | 0.21 | Weight b (boson peak) |
 | `fc` | number |  | 0.04 | Weight c |
+| `anisotropicFraction` | number |  | (fb + fc): h_b = fc h_a + fb h_b | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
 
 ### delayedResponse / `silica`
 
@@ -1787,6 +1789,7 @@ Fused-silica Raman response: Blow-Wood damped oscillator (12.2 / 32 fs), fR = 0.
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `fR` | number |  | 0.18 | Raman fraction |
+| `anisotropicFraction` | number |  | 0.25 | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
 
 ### filter / `constant`
 

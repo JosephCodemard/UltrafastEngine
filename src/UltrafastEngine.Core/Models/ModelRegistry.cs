@@ -178,11 +178,22 @@ namespace UltrafastEngine.Models
 
             // ---- delayed (Raman) response
             r.Register<IDelayedResponse>("delayedResponse", "none", (s, _) => null);
-            r.Register<IDelayedResponse>("delayedResponse", "silica", (s, _) => new DampedOscillatorResponse(12.2e-15, 32e-15));
-            r.Register<IDelayedResponse>("delayedResponse", "blowWood", (s, _) => new DampedOscillatorResponse(12.2e-15, 32e-15));
-            r.Register<IDelayedResponse>("delayedResponse", "linAgrawal", (s, _) => new LinAgrawalRamanResponse(s.GetDouble("tau1", 12.2e-15), s.GetDouble("tau2", 32e-15), s.GetDouble("taub", 96e-15), s.GetDouble("fa", 0.75), s.GetDouble("fb", 0.21), s.GetDouble("fc", 0.04)));
-            r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => new HollenbeckCantrellRamanResponse());
-            r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")));
+            // the polarisation structure: fused-silica models are 25 % anisotropic (Lin & Agrawal fb + fc), others isotropic
+            // unless "anisotropicFraction" is given
+            IDelayedResponse Split(IDelayedResponse h, ModelSpec s, double def)
+            {
+                double b = s.GetDouble("anisotropicFraction", def);
+                return b > 0 && h != null ? new AnisotropicSplitResponse(h, b) : h;
+            }
+            r.Register<IDelayedResponse>("delayedResponse", "silica", (s, _) => Split(new DampedOscillatorResponse(12.2e-15, 32e-15), s, 0.25));
+            r.Register<IDelayedResponse>("delayedResponse", "blowWood", (s, _) => Split(new DampedOscillatorResponse(12.2e-15, 32e-15), s, 0.25));
+            r.Register<IDelayedResponse>("delayedResponse", "linAgrawal", (s, _) =>
+            {
+                var la = new LinAgrawalRamanResponse(s.GetDouble("tau1", 12.2e-15), s.GetDouble("tau2", 32e-15), s.GetDouble("taub", 96e-15), s.GetDouble("fa", 0.75), s.GetDouble("fb", 0.21), s.GetDouble("fc", 0.04));
+                return s.Json.Has("anisotropicFraction") ? (IDelayedResponse)new AnisotropicSplitResponse(la, s.GetDouble("anisotropicFraction", 0.25)) : la;
+            });
+            r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => Split(new HollenbeckCantrellRamanResponse(), s, 0.25));
+            r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => Split(new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")), s, 0));
             r.Register<IDelayedResponse>("delayedResponse", "expression", (s, _) =>
             {
                 var e = CompiledExpression.Compile(s.Json.GetRequiredString("expr", s.Origin), new[] { "t" }, s.Params());

@@ -7,7 +7,7 @@ UltrafastEngine.sln                  Visual Studio 2026 solution (or `dotnet bui
 src/UltrafastEngine.Core             the physics engine (net10.0 + net48, no dependencies)
 src/UltrafastEngine.Native           C API exports (+ include/ultrafast.h); NativeAOT -> ultrafast.dll/.so/.dylib
 src/UltrafastEngine.Cli              `ultrafast` command line (Windows/macOS/Linux)
-plugins/fitting                      fitting plugin: measured data and calibration (C# + Python module)
+plugins/fitting                      fitting plugin: transforms, calibration fits, backward propagation (C# + Python module)
 plugins/zemax                        zemax plugin: OpticStudio sampling (any OS), the OpticStudio program (Windows), ZOS-API stubs
 schemas/                             JSON Schemas of system files and run specs (editor completion)
 build/                               shared MSBuild logic (plugin layout, Mono reference assemblies)

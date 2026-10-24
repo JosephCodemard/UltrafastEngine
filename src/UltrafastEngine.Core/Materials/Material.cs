@@ -123,6 +123,25 @@ namespace UltrafastEngine.Materials
 
     /// <summary>h(t) from an expression in t (s) or a callback; normalised numerically to unit integral on the
     /// grid it is sampled on, and forced causal.</summary>
+    /// <summary>
+    /// Gives any delayed response a polarisation structure: a fraction b of it (same time shape) is anisotropic,
+    /// h_b = b h, h_a = (1 - b) h (see <see cref="IVectorDelayedResponse"/>). b = 0.25 for fused silica (Lin &amp; Agrawal's
+    /// fb + fc: the anisotropic share of the Raman response, from the measured depolarisation of the Raman spectrum).
+    /// </summary>
+    public sealed class AnisotropicSplitResponse : IVectorDelayedResponse
+    {
+        public IDelayedResponse Inner { get; }
+        public double AnisotropicFraction { get; }
+        public AnisotropicSplitResponse(IDelayedResponse inner, double anisotropicFraction)
+        {
+            if (anisotropicFraction < 0 || anisotropicFraction > 1) throw new ArgumentException("anisotropicFraction must be between 0 and 1");
+            Inner = inner; AnisotropicFraction = anisotropicFraction;
+        }
+        public string Description => Inner.Description + string.Format(System.Globalization.CultureInfo.InvariantCulture, "; anisotropic fraction {0:G3}", AnisotropicFraction);
+        public double[] Evaluate(double[] t) => Inner.Evaluate(t);
+        public double[] EvaluateAnisotropic(double[] t) { var h = Inner.Evaluate(t); for (int i = 0; i < h.Length; i++) h[i] *= AnisotropicFraction; return h; }
+    }
+
     public sealed class FunctionDelayedResponse : IDelayedResponse
     {
         private readonly Func<double[], double[]> _f; private readonly string _d;

@@ -1,14 +1,17 @@
 """Python side of the UltrafastEngine **fitting** plugin (plugins/fitting).
 
-The engine side (C#) adds the ``transform`` element, the ``"measured"`` instrument key and the ``"fit"`` and
-``"backward"`` run modes. This package adds:
+The engine side (C#) adds the ``transform`` element and the ``"fit"`` and ``"backward"`` run modes. Recorded data
+(the instruments' ``"measured"`` key) is part of the core: :func:`ultrafast.build.measured`,
+:attr:`ultrafast.Result.comparisons`, :func:`ultrafast.plotting.measurements` (docs/reference/measured-data.md).
+This package adds:
 
 * builders: :func:`transform` with its operators (:func:`spectral_phase`, :func:`spectral_amplitude`, :func:`energy`,
   :func:`delay`, :func:`jones`, :func:`replica`, :func:`phase_noise`, :func:`pedestal`, :func:`wavefront`),
-  :func:`fit_value`, :func:`fit`, :func:`fit_parameter`, :func:`backward`, :func:`measured`;
-* the ``measurements`` and ``fit`` figures of ``ultrafast-plot`` / :func:`ultrafast.plotting.report`;
-* :func:`comparisons`, :func:`fit_report`, :func:`fitted_system` and :func:`reconstructed_pulse`: typed access to a
-  result's plugin sections.
+  :func:`fit_value`, :func:`fit`, :func:`fit_parameter`, :func:`backward` (and :func:`measured`, the core builder,
+  re-exported);
+* the ``fit`` figure of ``ultrafast-plot`` / :func:`ultrafast.plotting.report`;
+* :func:`fit_report`, :func:`fitted_system` and :func:`reconstructed_pulse`: typed access to a result's plugin
+  sections (and :func:`comparisons`, re-exported from the core).
 
 It is imported automatically by :mod:`ultrafast` when the plugin is installed (``ultrafast.plugins.loaded()``).
 """
@@ -25,8 +28,10 @@ __all__ = ["transform", "spectral_phase", "spectral_amplitude", "energy", "delay
 
 
 def comparisons(result) -> List[Dict[str, Any]]:
-    """The instruments compared with recorded data (``summary["comparisons"]``), or []."""
-    return list(result.summary.get("comparisons") or [])
+    """The instruments compared with recorded data (``summary["comparisons"]``), or [] -- same as
+    :func:`ultrafast.measured.comparisons` (measured data is part of the core)."""
+    from ultrafast.measured import comparisons as _c
+    return list(_c(result))
 
 
 def fit_report(result) -> Optional[Dict[str, Any]]:
@@ -65,7 +70,6 @@ def _read_written(result, name: str) -> Optional[Dict[str, Any]]:
 
 
 def register(host) -> None:
-    """Called by :func:`ultrafast.plugins.load_python_plugins`: registers the figures."""
+    """Called by :func:`ultrafast.plugins.load_python_plugins`: registers the fit figure (``measurements`` is a core figure)."""
     from . import figures
-    host.register_figure("measurements", figures.measurements, after="instruments")
     host.register_figure("fit", figures.fit, after="measurements")

@@ -49,6 +49,8 @@ namespace UltrafastEngine.Plugins.Fitting
         public virtual double GroupDelayAt(double omega) => 0;
         /// <summary>Largest |delay| of satellite pulses the operator creates (s): the grid planner makes room.</summary>
         public virtual double SatelliteDelayS => 0;
+        /// <summary>Intensity of that satellite relative to the main pulse (the grid planner uses it with grid.satelliteLevel).</summary>
+        public virtual double SatelliteLevel => 1;
 
         /// <summary>Apply to a pulse. Linear operators: the transfer with the frame (carrier phase and group delay) removed.</summary>
         public virtual PulseField Apply(PulseField p)
@@ -318,6 +320,7 @@ namespace UltrafastEngine.Plugins.Fitting
         private double RelI => Has("relativeIntensityDb") ? Math.Pow(10, Num("relativeIntensityDb", -40) / 10) : Num("relativeIntensity", 1e-4);
         public override string Description => string.Format(CultureInfo.InvariantCulture, "replica at {0:G4} ps, {1:G3} relative intensity", Tau * 1e12, RelI);
         public override double SatelliteDelayS => Math.Abs(Tau);
+        public override double SatelliteLevel => Math.Max(0, RelI);
         public override JonesSpectrum Transfer(OmegaAxis axis)
         {
             double a = Math.Sqrt(Math.Max(0, RelI)), phi = Num("phaseRad", 0), gdd = Num("gddFs2", 0) * 1e-30, w0 = ReferenceOmega;

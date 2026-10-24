@@ -37,10 +37,11 @@ list of linear terms applied, and notes. Active elements add:
 ## Comparisons and fit
 
 Runs with measured data add `comparisons[]` (one per measured instrument: χ², reduced χ², rms error, scalar
-readings) and `measuredChi2` to `summary.json`. Fits add `fit` (the content of `fit.json`), and every instrument
-value gets a `<value>Sigma`. The arrays are `<instrument>_measured_x` / `_measured_y` / `_simulated_on_measured` /
-`_simulated_sigma` (curves) and `_measured_rows` / `_measured_cols` / `_measured_trace` (traces). See
-[Fitting plugin](../plugins/fitting.md). These sections exist only when the fitting plugin is installed.
+readings, notes) and `measuredChi2` to `summary.json`. The arrays are `<instrument>_measured_x` / `_measured_y` /
+`_simulated_on_measured` (NaN outside the simulated instrument's range) / `_measured_sigma` (curves) and
+`_measured_rows` / `_measured_cols` / `_measured_trace` (traces). See [Measured data](measured-data.md). Fits
+(fitting plugin) add `fit` (the content of `fit.json`), every instrument value gets a `<value>Sigma`, and curves get
+`_simulated_sigma` and `_nominal_on_measured`; see [Fitting plugin](../plugins/fitting.md).
 
 ## Energy budget
 

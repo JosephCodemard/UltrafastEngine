@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using UltrafastEngine.Instruments;
+using UltrafastEngine.Measured;
 using UltrafastEngine.Plugins.Fitting;
 using UltrafastEngine.Results;
 using UltrafastEngine.Serialization;
@@ -105,10 +106,12 @@ namespace UltrafastEngine.Tests
             File.WriteAllText(Path.Combine(dir, "s.csv"), "wavelength_nm,intensity\n1020,0.1\n1030,1\n1040,0.1\n");
             var run = RunSpec.FromJson(O("format", "ultrafast-run", "pulse", Gauss(Lam, 300e-15, 1e-6), "instruments", new JsonArray(new JsonValue[] {
                 O("kind", "spectrometer", "name", "bad", "resolutionM", 0.1e-9, "measured", O("file", "s.csv", "resolutionM", 2e-9)),
+                O("kind", "spectrometer", "name", "coarse", "resolutionM", 4e-9, "measured", O("file", "s.csv", "resolutionM", 2e-9)),
                 O("kind", "spectrometer", "name", "good", "resolutionM", 2e-9, "measured", O("file", "s.csv", "resolutionM", 2e-9)) })), dir);
             var r = Go(Sys(), run);
-            Assert.True(r.Comparisons().First(c => c.Instrument == "bad").Notes.Any(n => n.Contains("set the instrument's resolutionM")), "mismatch reported");
-            Assert.True(r.Comparisons().First(c => c.Instrument == "good").Notes.Any(n => n.Contains("matches the recording")), "match confirmed");
+            Assert.True(r.Comparisons.First(c => c.Instrument == "bad").Notes.Any(n => n.Contains("blurred by")), "finer simulated instrument: blurred to the recording's resolution");
+            Assert.True(r.Comparisons.First(c => c.Instrument == "coarse").Notes.Any(n => n.Contains("set the instrument's resolutionM")), "coarser simulated instrument: mismatch reported");
+            Assert.True(r.Comparisons.First(c => c.Instrument == "good").Notes.Any(n => n.Contains("matches the recording")), "match confirmed");
         }
     }
 }

@@ -13,11 +13,11 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `build`, `capabilities`, `coherence`, `command`, `crystal`, `laser`, `load`, `materials`, `plot`, `plugins`, `retrieve`, `run`, `study`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `build`, `capabilities`, `coherence`, `command`, `crystal`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `retrieve`, `run`, `study`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
-Quick matplotlib plots of a :class:`Result` or a CLI results folder ("overview", "spectrum", "temporal", "phase", "losses", "elements"). Full reports: :func:`ultrafast.plotting.report`.
+Quick matplotlib plots of a :class:`Result` or a CLI results folder ("overview", "measurements", "spectrum", "temporal", "phase", "losses", "elements"). Full reports: :func:`ultrafast.plotting.report`.
 
 ### `load(directory)`
 
@@ -106,6 +106,8 @@ Everything a run produced. ``result.summary`` (dict), ``result['output_power_w']
 * `arrays() -> Mapping[str, np.ndarray]`
 * `elements()` -- Per-element table as a list of dicts (also in summary['elements']).
 * `instrument(name: str) -> dict`
+* `comparisons() -> 'List[_measured.Comparison]'` -- Instruments compared with recorded data (their ``measured`` key): chi^2, rms error, scalar readings, notes. See :mod:`ultrafast.measured`.
+* `comparison(instrument: str) -> '_measured.Comparison'` -- The comparison of one instrument with its recorded data (KeyError if it has none).
 * `write(directory: PathLike) -> Path`
 
 ### `run(system: Union[System, JsonLike], spec: JsonLike, callbacks: Optional[Mapping[str, Any]] = None, progress = None, elements: Optional[Mapping[str, Any]] = None, fields: Optional[Mapping[str, Any]] = None) -> Result`
@@ -238,13 +240,21 @@ A soft (Gaussian, or super-Gaussian of ``order``) aperture acting on a carried t
 
 ### `pulse(center_wavelength_m: float, duration_fwhm_s: Optional[float] = None, energy: Optional[float] = None, shape: str = 'gaussian', rep_rate_hz: Optional[float] = None, average_power_w: Optional[float] = None, peak_power_w: Optional[float] = None, gdd_s2: float = 0.0, tod_s3: float = 0.0, polarization = 'x', **extra) -> 'T.Pulse'`
 
-### `measured_spectrum(wavelengths_m: Sequence[float], intensity: Sequence[float], energy: Optional[float] = None, phase_rad: Optional[Sequence[float]] = None, *, resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None, extrapolate: Optional[str] = None, center_wavelength_m: Optional[float] = None, **extra) -> 'T.Pulse'`
+### `measured_spectrum(wavelengths_m: Sequence[float], intensity: Sequence[float], energy: Optional[float] = None, phase_rad: Optional[Sequence[float]] = None, *, background: Any = None, threshold: Optional[float] = None, resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None, extrapolate: Optional[str] = None, center_wavelength_m: Optional[float] = None, **extra) -> 'T.Pulse'`
 
-An input pulse from a measured spectrum (intensity per unit wavelength, optional phase). ``resolution_m`` is the recording spectrometer's resolution (FWHM); ``deconvolve=True`` removes it (Richardson-Lucy); ``extrapolate`` "zero" (no light outside the data, default) or "gaussian" (Gaussian tails fitted to the data).
+An input pulse from a measured spectrum (intensity per unit wavelength, optional phase), docs/reference/measured-data.md.
+
+### `measured_spectrum_csv(csv: str, energy: Optional[float] = None, *, wavelength_unit: Optional[str] = None, background: Any = None, threshold: Optional[float] = None, resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None, extrapolate: Optional[str] = None, center_wavelength_m: Optional[float] = None, **extra) -> 'T.Pulse'`
+
+An input pulse from a spectrum file (CSV: wavelength, intensity, optional phase in rad; ``wavelength_unit`` "nm" (default), "um" or "m"). Relative paths are resolved against the run file's folder. Same cleaning and options as :func:`measured_spectrum`.
+
+### `measured(file: Optional[str] = None, *, values: Optional[Mapping[str, Any]] = None, sigma: Optional[float] = None, normalize: Optional[str] = None, background: Any = None, columns: Optional[Mapping[str, str]] = None, range_x: Optional[Sequence[float]] = None, x_unit: Optional[str] = None, y_unit: Optional[str] = None, value_sigma: Optional[float] = None, weight: Optional[float] = None, resolution_m: Optional[float] = None, resolution_s: Optional[float] = None, match_resolution: Optional[bool] = None, scale: Optional[str] = None, sigma_db: Optional[float] = None, floor_db: Optional[float] = None, simulated: Optional[Mapping[str, str]] = None, **extra) -> 'T.Measured'`
+
+Recorded data for an instrument (its ``measured`` key; docs/reference/measured-data.md): a CSV / NPZ / JSON ``file`` and/or scalar ``values`` ({name: value | [value, sigma]}, e.g. ``{"energyJ": [1.2e-6, 2e-8]}``).
 
 ### `instrument(kind: str, at: str = 'end', name: Optional[str] = None, **params) -> dict`
 
-An instrument (docs/reference/instruments.md). Keyword arguments are its parameters in the engine's names (``resolutionM=...``, ``axis=axis(...)``, ``detector={...}``, ``measured=...`` with the fitting plugin).
+An instrument (docs/reference/instruments.md). Keyword arguments are its parameters in the engine's names (``resolutionM=...``, ``axis=axis(...)``, ``detector={...}``, ``measured=measured(...)`` to compare with a recording).
 
 ### `axis(values: Optional[Sequence[float]] = None, *, start: Optional[float] = None, stop: Optional[float] = None, step: Optional[float] = None, points: Optional[int] = None, bin_width: Any = None, resolution: Optional[float] = None) -> dict`
 
@@ -261,6 +271,52 @@ A run spec. ``extra`` adds top-level keys provided by plugins, e.g. ``fit=`` (fi
 Where an instrument looks (docs/reference/instruments.md): ``plane`` "near" | "far" (focal plane of a lens of ``focal_length_m``), ``aperture`` "integrated" | "pinhole" | "iris" | "fibre" | "slit" | "point". Use as ``instrument("spectrometer", sampling=sampling("far", "fibre", radius_m=25e-6, focal_length_m=0.1))``.
 
 ### `save(obj: Mapping[str, Any], path: str) -> str`
+
+## `ultrafast.measured`
+
+Measured data: typed comparisons of instruments with recordings (`res.comparisons`), compared arrays.
+
+Measured data: recordings compared with the simulated instruments, and typed access to the comparisons.
+
+### class `ComparedValue(TypedDict)`
+
+One scalar reading compared with its recorded value.
+
+
+### class `Comparison(TypedDict)`
+
+An instrument compared with recorded data (one entry of ``summary["comparisons"]``).
+
+
+### class `MeasuredCurve(TypedDict)`
+
+A compared curve on the measured axis (SI units), normalised as in the comparison.
+
+
+### class `MeasuredTrace(TypedDict)`
+
+A compared 2-D trace on the measured axes, [rows, cols].
+
+
+### `comparisons(result: Any) -> List[Comparison]`
+
+Every instrument compared with recorded data (a :class:`ultrafast.Result` or a results folder), or [].
+
+### `comparison(result: Any, instrument: str) -> Comparison`
+
+The comparison of one instrument (by name). KeyError if it has none.
+
+### `total_chi2(result: Any) -> float`
+
+Sum of the chi^2 of all comparisons (``summary["measuredChi2"]``), 0 if none.
+
+### `curve(result: Any, instrument: str) -> MeasuredCurve`
+
+The measured curve and the simulated reading on the same (measured) axis, as compared.
+
+### `trace(result: Any, instrument: str) -> MeasuredTrace`
+
+The measured 2-D trace and the simulated trace on the same axes, as compared ([rows, cols]).
 
 ## `ultrafast.materials`
 
@@ -374,12 +430,14 @@ Switch the colour theme for figures created afterwards.
 
 ### class `SavedResult`
 
-A results folder written by the CLI / ``Result.write``: same interface as a live Result (``summary``, ``provenance``, ``names()``, ``result[name]``, ``instrument(name)``).
+A results folder written by the CLI / ``Result.write``: same interface as a live Result (``summary``, ``provenance``, ``names()``, ``result[name]``, ``instrument(name)``, ``comparisons``, ``comparison(name)``).
 
 * `__init__(directory: Union[str, Path])`
 * `name() -> str`
 * `names() -> List[str]`
 * `instrument(name: str) -> dict`
+* `comparisons()` -- Instruments compared with recorded data (:mod:`ultrafast.measured`).
+* `comparison(instrument: str)` -- The comparison of one instrument with its recorded data (KeyError if it has none).
 
 ### `load(source) -> 'SavedResult'`
 
@@ -453,6 +511,10 @@ Gain and amplifier elements: one row per element with the single-pass small-sign
 
 Oscillator elements: build-up of the output energy over the round trips, the evolution of the output pulse (time) and spectrum (wavelength) from start-up to steady state, and the final pulse with the key numbers. Returns None if the run has no iterated oscillator.
 
+### `measurements(res)`
+
+Recorded data against the simulation (instruments with ``measured`` data, docs/reference/measured-data.md): one row per instrument with "measured" data -- the measured curve (points), the simulated reading on the same axis (line, with its 1-sigma band after a fit) and the residual; for 2-D traces (FROG, d-scan, cameras) the measured and simulated traces and their difference; for scalar readings a table. Returns None if the run compared nothing.
+
 ### `register_figure(name: str, maker: Callable, after: Optional[str] = None) -> None`
 
 Add a figure to :func:`report` and ``ultrafast-plot`` (used by plugins, e.g. the fitting plugin's ``measurements`` and ``fit``). ``maker(res)`` returns a matplotlib figure, or None when the result has no data for it. ``after`` places it after an existing figure in the default order.
@@ -463,7 +525,7 @@ Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (op
 
 ### `plot(result, what = 'overview', ax = None)`
 
-``uf.plot(result, what)``: "overview" (figure), or a single panel "temporal" / "spectrum" / "phase" / "losses" / "elements" on ``ax``.
+``uf.plot(result, what)``: "overview" or "measurements" (figures), or a single panel "temporal" / "spectrum" / "phase" / "losses" / "elements" on ``ax``.
 
 ## `ultrafast.diagram`
 

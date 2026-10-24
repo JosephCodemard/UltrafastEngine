@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using UltrafastEngine.Measured;
 using UltrafastEngine.Serialization;
 
 namespace UltrafastEngine.Plugins.Fitting

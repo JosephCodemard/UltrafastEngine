@@ -95,7 +95,10 @@ namespace UltrafastEngine.Schema
                 .Str("csv", "CSV file: wavelength, intensity, optional phase").Str("wavelengthUnit", "Unit of the CSV wavelength column", "nm")
                 .Num("resolutionM", "m", "Resolution (Gaussian FWHM) of the spectrometer that recorded it", "0 (unknown)").Num("resolutionNm", "nm", "Resolution in nm")
                 .Bool("deconvolve", "Remove the recording resolution (Richardson-Lucy) before use", "false").Int("deconvolveIterations", "Richardson-Lucy iterations", "30")
-                .Enum("extrapolate", new[] { "zero", "gaussian" }, "Outside the measured wavelengths: no light, or Gaussian tails fitted to the data", "zero"));
+                .Enum("extrapolate", new[] { "zero", "gaussian" }, "Outside the measured wavelengths: no light, or Gaussian tails fitted to the data", "zero")
+                .P("background", ParamType.Any, "", "Background to subtract: a number (intensity units), \"auto\" (median of the darker edge, robust to a spectrum cut off on one side), \"min\" or \"none\"", "none")
+                .Num("threshold", "", "After background subtraction, values below this fraction of the peak are set to zero", "0")
+                .Describe("A measured input spectrum. Rows are sorted by wavelength, repeated wavelengths merged and non-finite rows dropped (each reported in the notes). A floor above 0.3 % of the peak that is not subtracted gives a warning. See docs/reference/measured-data.md."));
             add(new ComponentSpec("grid", "", "The time/frequency grid (docs/reference/run-spec.md#grid).")
                 .Bool("auto", "Size the grid from pulse and system", "true")
                 .Int("n", "Number of samples (with auto: a minimum)", "4096")
@@ -104,7 +107,8 @@ namespace UltrafastEngine.Schema
                 .Bool("snapCarrier", "Put the carrier on the frequency grid", "true")
                 .Num("spectralMargin", "", "Spectral span factor", "auto")
                 .Num("minSpanFraction", "", "Nonlinear runs: minimum half-span / carrier", "0.1")
-                .Num("minPointsPerFwhm", "", "Samples across the transform-limited FWHM", "12"));
+                .Num("minPointsPerFwhm", "", "Samples across the transform-limited FWHM", "12")
+                .Num("satelliteLevel", "", "Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window", "1e-8"));
             add(new ComponentSpec("physics", "", "Physics switches (docs/reference/run-spec.md#physics).")
                 .Bool("nonlinear", "Master switch for nonlinear propagation", "true")
                 .Bool("selfSteepening", "Self-steepening", "true")

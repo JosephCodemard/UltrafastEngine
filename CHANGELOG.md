@@ -2,7 +2,51 @@
 
 ## Unreleased
 
+### Changed
+- **Measured data is part of the core.** The instruments' `"measured"` key (comparison with recorded CSV / NPZ /
+  JSON data), `RunResult.Comparisons` (`UltrafastEngine.Measured`), the `comparisons` / `measuredChi2` summary
+  sections, the CLI's "measured data" lines and the `measurements` figure moved from the fitting plugin into the
+  engine and work without any plugin. The fitting plugin keeps fits, transforms and backward propagation; its
+  `result.Comparisons()`, `ultrafast_fitting.measured` and `ultrafast_fitting.comparisons` remain as aliases. Schema:
+  `obj.fitting:measured` is now `obj.measured` (Python type `ultrafast.types.Measured`).
+- Comparisons only compare the part of a recording that the simulated instrument covers: points outside its range
+  are left out of χ², the rms error and the normalisation (kept with residual 0 and simulated NaN, so a fit's
+  residual vectors keep their length), and counted in the notes.
+- A recording coarser than the simulated instrument (`resolutionM` / `resolutionS` in `measured`) is matched by
+  blurring the simulated curve with the missing Gaussian width (`matchResolution`, default true); a finer recording
+  is reported as before. `background: "auto"` on curves uses the darker edge, and `"min"` / `"none"` are accepted.
+- The time window makes room for ghost / replica satellites down to `grid.satelliteLevel` (default 1e-8): the
+  longest delay at which the satellites of all elements together (combinations included, coincident delays summed
+  in amplitude) reach that level, instead of every order of every element. 20 AR-coated plates now need about 1 ns
+  of window instead of several.
+
 ### Added
+- **Vector Raman response** (Hellwarth tensor: isotropic h_a and anisotropic h_b parts) for elliptical and circular
+  light, in the 1-D and spatial models. `anisotropicFraction` on every delayed-response model; fused silica
+  (`silica`, `blowWood`, `hollenbeck`, the built-in FusedSilica) defaults to 0.25, `linAgrawal` uses its own
+  fc ha + fb hb. The Raman response now contributes to nonlinear ellipse rotation ((1 − fR)/3 + fR b/2 of B sin 2χ for
+  long pulses) and circular light sees (1 − fR) 2/3 + fR (1 − b/2) of the linear index. Linearly polarised and scalar
+  runs are unchanged. New tests `NerTests` check the analytic NER results.
+- **Measured input spectra**: `background` (a number, `"auto"` = median of the darker edge, robust to a spectrum
+  cut off on one side, `"min"`) and `threshold`; rows are sorted, repeated wavelengths merged and non-finite rows
+  dropped, each reported in the notes; a floor above 0.3 % of the peak that is not subtracted gives a warning.
+  `PulseSpec.Prepared()` / `MeasuredSpectrumPreparation` expose the cleaned spectrum.
+- Python: core `b.measured(...)` (with `match_resolution`, `x_unit`, `y_unit`, `simulated`),
+  `b.measured_spectrum(..., background=, threshold=)`, `b.measured_spectrum_csv(...)`, `Result.comparisons`,
+  `Result.comparison(name)` (also on results folders), module `ultrafast.measured` (typed `Comparison`, `curve`,
+  `trace`, `total_chi2`), `uf.plot(res, "measurements")`.
+- Docs: [Measured data](docs/reference/measured-data.md) (input spectra, cleaning, background, comparisons, range and
+  resolution, file formats, Python); nonlinear.md section on polarisation, circular light and NER; `grid.satelliteLevel`.
+
+### Fixed
+- A measured input spectrum with a repeated wavelength (common in digitised curves, together with rows out of order)
+  turned every result into NaN with only a "could not size the grid" warning. Rows are now sorted and repeated
+  wavelengths merged; a non-finite input energy stops the run with a clear message.
+- The B-integral reported for elliptical and circular light left out the coherent term of the χ(3) polarisation
+  (5/6 instead of 2/3 of the linear value for circular light). It is now the peak of the power-weighted effective
+  index change over all polarisation terms. The propagation itself was correct.
+
+### Added (earlier in this release: fitting plugin stage 2, fibres, instruments)
 - **Fitting plugin, stage 2: `transform` elements.** Fittable physical changes to the beam, inserted where they
   happen. Operators: `spectralPhase` (Taylor and not-a-knot spline knots), `spectralAmplitude` (Gaussian /
   super-Gaussian, tilt in dB/nm, spline, any filter model; passive; `causal` minimum phase from the Kramers-Kronig /
@@ -57,7 +101,7 @@
 - Example 25 (PCF supercontinuum benchmark with coherence); docs: capabilities and limitations page, rewritten
   README and overview, forward-looking roadmap (history in docs/design/history.md).
 
-### Fixed
+### Fixed (earlier in this release)
 - Plots no longer cut off data: dB axes (spectra, contrast, cross-correlator, probes, comparisons) follow the data's
   own floor (instead of fixed -50 / -70 / -100 dB). The contrast panel shows the whole window, the cross-correlator
   has its own dB panel, and contrast comparisons use a log scale with a dB residual.

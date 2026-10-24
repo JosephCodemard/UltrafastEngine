@@ -1,8 +1,8 @@
 {
   "id": "fitting",
-  "name": "Fitting: transforms, measured data, fitting and backward propagation",
+  "name": "Fitting: transforms, fits and backward propagation",
   "version": "2.1.8-beta",
-  "description": "Fittable \"transform\" elements, comparison with recorded data (\"measured\"), fits with replaceable estimators (\"fit\") and backward propagation (\"backward\").",
+  "description": "Fittable \"transform\" elements, fits to recorded data with replaceable estimators (\"fit\") and backward propagation (\"backward\").",
   "engine": "2.1.8-beta",
   "entry": "UltrafastEngine.Plugins.Fitting.FittingPlugin",
   "assemblies": {

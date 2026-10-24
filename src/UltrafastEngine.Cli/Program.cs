@@ -152,6 +152,7 @@ Docs: docs/index.md   Examples: docs/examples/";
             Console.WriteLine(string.Format("  energy {0:G4} J (T = {1:P2}), FWHM {2:G4} fs (TL {3:G4} fs), peak {4:G4} W, B = {5:G3} rad",
                 o.GetDouble("energyJ", double.NaN), t.GetDouble("energyTransmission", double.NaN), o.GetDouble("fwhmS", double.NaN) * 1e15,
                 o.GetDouble("transformLimitFwhmS", double.NaN) * 1e15, o.GetDouble("peakPowerW", double.NaN), t.GetDouble("bIntegralRad", 0)));
+            if (!quiet && !res.Extensions.ContainsKey("fitting.fit")) Measured.Measurements.Report(res, Console.Out);
             if (!quiet) foreach (var rep in Plugins.PluginManager.RunReporters) rep.Report(res, Console.Out);
             foreach (var w in res.Warnings.Except(compiled.Warnings)) Console.WriteLine("  WARNING: " + w);
             return 0;

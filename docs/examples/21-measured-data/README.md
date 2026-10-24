@@ -26,7 +26,7 @@ ultrafast-plot results-fit                                     # plots/measureme
 | `dscan.npz` | d-scan with fused-silica wedges after the compressor | NPZ with `insertion_mm` (31), `wavelength_nm` (121) and `trace` (31 × 121); 2 % noise |
 | `power_meter.json` | power meter after the compressor | `{"energyJ": 1.441e-07}`; 3 % calibration uncertainty |
 
-The units come from the column names (`_nm`, `_fs`, `_mm`, ... see [the fitting plugin](../../plugins/fitting.md)).
+The units come from the column names (`_nm`, `_fs`, `_mm`, ... see [Measured data](../../reference/measured-data.md#units-from-column-names)).
 In real life these files come from your lab. Here `make_data.py` generated them from the same model with the
 **true** values (450 fs², 140 nJ, −520 fs²), then added noise and a background. Rerun it to regenerate them.
 
@@ -52,9 +52,9 @@ its peak, with the data scaled onto it by least squares). The run reports a χ²
 
 ```
   measured data:
-    fibre_spectrum         spectrometer   chi^2 36.83      (401 points)  rms error 0.91 %
-    ac_out                 autocorrelator chi^2 264.4      (201 points)  rms error 2.29 %
-    dscan_out              dscan          chi^2 8699       (3751 points)  rms error 4.57 %
+    fibre_spectrum         spectrometer   chi^2 36.89      (401 points)  rms error 0.91 %
+    ac_out                 autocorrelator chi^2 262.8      (201 points)  rms error 2.29 %
+    dscan_out              dscan          chi^2 8996       (3751 points)  rms error 4.65 %
     power_out              energyMeter    chi^2 31.27      (1 points)
       energyJ: measured 1.441E-07 +- 4.3E-09, simulated 1.2E-07 (-5.6 sigma)
 ```
@@ -83,23 +83,23 @@ The fit (Levenberg–Marquardt) minimises the total χ² over every measured ins
 
 ```
 fit: calibrating 3 parameters against the measured instruments ...
-  chi^2 9322 -> 1613 (4354 points, reduced 0.371), 8 iterations, 45 runs
-  input chirp                               456.662 +- 8.97         (start 300)
-  input energy                           1.4138E-07 +- 3.72E-09     (start 1.2E-07)
-  compressor GDD                           -526.904 +- 8.07         (start -300)
+  chi^2 9324 -> 1612 (4354 points, reduced 0.371), 9 iterations, 52 runs
+  input chirp                               458.023 +- 8.97         (start 300)
+  input energy                          1.41728E-07 +- 3.72E-09     (start 1.2E-07)
+  compressor GDD                           -527.997 +- 8.08         (start -300)
   fibre_spectrum                     rms error 0.91 % -> 0.76 %
   ac_out                             rms error 2.28 % -> 0.92 %
   dscan_out                          rms error 4.65 % -> 1.92 %
-  power_out                          chi^2 31.3 -> 0.413
+  power_out                          chi^2 31.3 -> 0.317
   WARNING: Fit: parameters input chirp and compressor GDD are strongly correlated (-0.989): ...
 ```
 
 | parameter | first guess | fitted (±1σ) | true | deviation |
 |---|---|---|---|---|
-| input chirp | 300 fs² | 457 ± 9 fs² | 450 fs² | 0.7σ |
-| input energy | 120 nJ | 141.4 ± 3.7 nJ | 140 nJ | 0.4σ |
-| compressor GDD | −300 fs² | −527 ± 8 fs² | −520 fs² | 0.9σ |
-| net GDD (chirp + compressor) | 0 | −70.2 fs² | −70 fs² | |
+| input chirp | 300 fs² | 458 ± 9 fs² | 450 fs² | 0.9σ |
+| input energy | 120 nJ | 141.7 ± 3.7 nJ | 140 nJ | 0.5σ |
+| compressor GDD | −300 fs² | −528 ± 8 fs² | −520 fs² | 1.0σ |
+| net GDD (chirp + compressor) | 0 | −70.0 fs² | −70 fs² | |
 
 All three are recovered within their error bars, and the residuals left after the fit are at the noise level of the data. The reduced χ² of 0.37 means the stated σ (3 %) is larger than the actual noise (about 2 %), so the error bars are conservative.
 
@@ -148,5 +148,5 @@ The plots show these as ±1σ bands on the simulated curves (`<instrument>_simul
   the wrong instrument model biases the chirp.
 * Set `"freezeGrid": false` in `"fit"` to let each run size its own grid (slower, and less smooth for the fit).
 
-See [the fitting plugin](../../plugins/fitting.md) for every option and
+See [Measured data](../../reference/measured-data.md) for every comparison option, [the fitting plugin](../../plugins/fitting.md) for the fit, and
 [the tutorial](../../tutorials/04-measured-data.md) for a step-by-step walkthrough with your own data.

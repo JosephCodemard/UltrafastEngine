@@ -154,9 +154,13 @@ namespace UltrafastEngine.Tests
         public void Plate_GhostTiltedOutOfTheBeamByAWedge()
         {
             var sys = SysWith(null, O("id", "w", "type", "plate", "material", "FusedSilica", "thicknessM", 3e-3, "wedgeDeg", 0.5, "ghosts", O("beamRadiusM", 2e-3)));
-            var r = GoJ(sys, Run(Gauss(Lam, 100e-15, 1e-6)));
-            var (_, ratio) = LargestSatellite(r.Output, 5e-12, 1e-9);
+            // the ghost is far below grid.satelliteLevel, so the planner makes no room for it: give the window explicitly
+            var r = GoJ(sys, Run(Gauss(Lam, 100e-15, 1e-6), O("grid", O("auto", false, "n", 1 << 17, "windowS", 100e-12))));
+            var (_, ratio) = LargestSatellite(r.Output, 5e-12, 45e-12);
             Assert.Less(ratio, 1e-10, "a 0.5 deg wedge separates the ghost from a 2 mm beam");
+            var auto = GoJ(sys, Run(Gauss(Lam, 100e-15, 1e-6)));
+            double delay = 2 * 1.46 * 3e-3 / C;
+            Assert.Less(auto.Output.Grid.N * auto.Output.Grid.DTime / 2, delay, "no window room for a satellite below grid.satelliteLevel");
         }
 
         /// <summary>The Didenko mechanism: a post-pulse overlapping a stretched pulse in a Kerr medium makes a pre-pulse

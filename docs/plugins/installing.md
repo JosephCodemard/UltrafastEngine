@@ -22,7 +22,7 @@ Check:
 ultrafast plugins list
 ```
 ```
-fitting    2.1.8-beta       Fittable "transform" elements, comparison with recorded data ("measured"), fits with replaceable estimators ("fit") and backward propagation ("backward").
+fitting    2.1.8-beta       Fittable "transform" elements, fits to recorded data with replaceable estimators ("fit") and backward propagation ("backward").
            .../net10.0/plugins/fitting
 zemax      2.1.8-beta       Exports OpticStudio systems to .ufs files and ships the OpticStudio extension program.
            .../net10.0/plugins/zemax
@@ -92,7 +92,6 @@ The plugin's Python module needs nothing beyond the `ultrafast` package (NumPy, 
 | `no assembly for net48` (or `net10.0`) | the plugin was built for one framework only: the CLI and Python run on .NET 10, the OpticStudio extension on .NET Framework 4.8; build the plugin for both (`<TargetFrameworks>net10.0;net48</TargetFrameworks>`) |
 | `plugin id 'x' does not match plugin.json id 'y'` | `IPlugin.Id` and the manifest disagree: make them equal |
 | a run spec with `"fit"` or `"backward"` stops with "needs the fitting plugin" | the fitting plugin is not found: run `ultrafast plugins paths` and check that one of those folders contains `fitting/plugin.json` |
-| an instrument's `"measured"` is ignored with a warning | same: the fitting plugin is not loaded |
 | plugins do not load in the C library | NativeAOT builds cannot load assemblies at run time: register plugins in code (`PluginManager.Register(new FittingPlugin())`) and compile them in |
 | a plugin crashes on load | it is listed with its error and otherwise ignored; the engine keeps running |
 

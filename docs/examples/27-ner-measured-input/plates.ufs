@@ -1,0 +1,22 @@
+{
+  // Example 27: nonlinear ellipse rotation (NER) in a stack of fused-silica plates, driven by a measured spectrum.
+  // Ten 3 mm plates at normal incidence; a constant 150 um beam (plane-wave NER, no Kerr lensing); end-face ghosts of
+  // AR-coated faces (0.2 % per face) show how the window makes room for satellites.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "ner-plates",
+  "description": "10 x 3 mm fused silica, constant beam, AR ghosts",
+  "elements": [
+    { "id": "p1",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p2",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p3",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p4",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p5",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p6",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p7",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p8",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p9",  "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } },
+    { "id": "p10", "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3, "beam": { "kind": "constant", "radiusM": 150e-6 }, "ghosts": { "frontReflectance": 0.002, "backReflectance": 0.002 } }
+  ]
+}

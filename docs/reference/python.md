@@ -100,21 +100,27 @@ plate_typo: PlateElement = {"id": "w", "type": "plate", "thicknesM": 5e-3}   # m
 
 The full list of functions with signatures: [Python API (generated)](python-api.md).
 
-Sampling (core) and, from the fitting plugin's Python module `ultrafast_fitting`, measured data and calibration ([Fitting plugin](../plugins/fitting.md)):
+**Sampling and measured data** (core; [Measured data](measured-data.md)):
 `sampling(plane, aperture, radius_m=, width_m=, focal_length_m=, center_x_m=, na=)`,
-`measured(file, values=, sigma=, normalize=, background=, columns=, range_x=)`,
-`fit_parameter(path, min, max, name=, initial=, unit=)`, `fit(parameters, max_iterations=)` and
-`run_spec(..., fit=)`:
+`measured(file, values=, sigma=, normalize=, background=, columns=, range_x=, resolution_m=, resolution_s=, match_resolution=, scale=, ...)`
+for an instrument's recording, and `measured_spectrum(...)` / `measured_spectrum_csv(...)` (with `background=`,
+`threshold=`, `resolution_m=`, `deconvolve=`, `extrapolate=`) for a measured input pulse. The comparisons come back
+typed: `res.comparisons` (a list of `ultrafast.measured.Comparison`), `res.comparison(name)`, and
+`uf.measured.curve(res, name)` / `trace(res, name)` for the compared arrays.
 
 ```python
-spec = b.run_spec(b.pulse(800e-9, 40e-15, energy=200e-9),
-                  instruments=[b.instrument("spectrometer", name="spec",
+spec = b.run_spec(b.measured_spectrum_csv("data/input.csv", 200e-9, background="auto"),
+                  instruments=[b.instrument("spectrometer", name="spec", resolutionM=0.1e-9,
                                             sampling=b.sampling("far", "fibre", radius_m=25e-6, focal_length_m=0.1),
-                                            measured=b.measured("data/spectrum.csv", background="auto", sigma=0.005))],
-                  fit=b.fit([b.fit_parameter("pulse/energyJ", 50e-9, 500e-9, name="energy")]))
+                                            measured=b.measured("data/spectrum.csv", background="auto", sigma=0.005,
+                                                                resolution_m=0.5e-9))])
 res = uf.run(system, spec)
-res.summary["fit"]["parameters"][0]["value"], res.summary["fit"]["parameters"][0]["sigma"]
+c = res.comparison("spec")                     # chi2, reducedChi2, rmsError, notes (points outside the range, resolution)
+curve = uf.measured.curve(res, "spec")         # measured_x, measured_y, simulated_on_measured (NaN outside the range)
 ```
+
+Calibration fits against these comparisons (`fit=`, `fit_parameter(...)`, transforms) come from the fitting plugin's
+module `ultrafast_fitting` ([Fitting plugin](../plugins/fitting.md)).
 
 ```python
 pump = b.aux_beam("pump", b.pulse(515e-9, 0.8e-12, energy=200e-6), radius_m=0.6e-3)
@@ -152,8 +158,8 @@ ultrafast-plot runA/ runB/ --labels "no CM" "with CM" --out compare/   # each ru
 | `system` | schematic of the system: every element (repeated units such as multipass-cell passes collapsed to "× N"), the beam line coloured by its carrier wavelength, aux beams coming in, by-products leaving, probes, and numbered instrument locations (○ instrument, □ virtual); a numbered list of all instruments and where they sit |
 | `overview` | the system schematic, input/output pulse (+ ideally compressed pulse), spectrum, spectral phase with offset and group delay removed (where the spectrum is above 1 %), energy / FWHM / cumulative B through the system, loss budget by mechanism, key numbers and warnings |
 | `instruments` | one panel per instrument, in system order, titled with its number and location: cameras and wavefront maps (images), Wigner / spectrogram, field probe, space-time maps, spectrometer (dB), autocorrelator, compressor / scope, d-scan trace and FWHM vs GDD, contrast, polarimeter (Stokes vs wavelength); unknown or user instruments are drawn generically (2-D arrays as images against their matching 1-D axes) |
-| `measurements` | runs with measured data: per instrument the measured points, the simulated reading (with its ±1σ band after a fit) and the residual; measured / simulated / difference images for FROG, d-scan and camera traces; scalar readings in units of σ |
-| `fit` | calibration fits: fitted parameters ± σ (and start values), χ² per iteration, the parameter correlation matrix, χ² per instrument before and after |
+| `measurements` | runs with measured data (core): per instrument the measured points, the simulated reading (with its ±1σ band after a fit) and the residual; measured / simulated / difference images for FROG, d-scan and camera traces; scalar readings in units of σ |
+| `fit` | calibration fits (fitting plugin): fitted parameters ± σ (and start values), χ² per iteration, the parameter correlation matrix, χ² per instrument before and after |
 | `probes` | spectrum (dB) and power heat maps, one row per probe, input at the bottom |
 | `elements` | small multiples per element: energy, FWHM, peak power, cumulative B, system GDD, peak intensity, LIDT margin, pulse GDD |
 | `oscillator` | oscillators: build-up over the round trips, evolution of the pulse and the spectrum (heat maps), the final pulse with soliton / QML diagnostics |

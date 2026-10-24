@@ -94,7 +94,7 @@ namespace UltrafastEngine.Physics
         private readonly FrequencyGrid _g;
         private readonly NonlinearMedium _m;
         private readonly IBeamModel _beam;
-        private readonly Complex[] _ramanKernelFreq;
+        private readonly Complex[] _ramanKernelFreq, _ramanAnisoFreq;
         private readonly double _k0;
         private readonly bool _scalar;
         private readonly double _tArrival0, _tauElement;
@@ -121,13 +121,70 @@ namespace UltrafastEngine.Physics
                 if (!scalar) LinearRate[n + i] = Rate((phY ?? phX)[i], (ampY ?? ampX)[i], lengthM);
             }
             if (medium.EffectiveRamanFraction > 0)
-            {
-                var h = NormalizedKernel(medium.Raman.Evaluate(grid.Time), grid.DTime);
-                var hc = new Complex[n];
-                for (int i = 0; i < n; i++) hc[i] = h[i];
-                _ramanKernelFreq = SpectralTransform.TimeToFreq(hc);
-            }
+                (_ramanKernelFreq, _ramanAnisoFreq) = RamanKernels(medium.Raman, grid, !scalar);
             _tLab = new double[n];
+        }
+
+        /// <summary>The Raman kernel (unit sum on the grid) in the frequency domain, and -- for two polarisations and a
+        /// response with a polarisation structure -- its anisotropic part h_b on the same normalisation (else null).</summary>
+        internal static (Complex[] Total, Complex[] Aniso) RamanKernels(IDelayedResponse r, FrequencyGrid grid, bool vector)
+        {
+            int n = grid.N;
+            var raw = r.Evaluate(grid.Time);
+            double s = 0; for (int i = 0; i < n; i++) s += raw[i];
+            s *= grid.DTime;
+            double scale = s > 0 && Math.Abs(s - 1) > 1e-12 ? 1 / s : 1;
+            var hc = new Complex[n];
+            for (int i = 0; i < n; i++) hc[i] = raw[i] * scale;
+            var total = SpectralTransform.TimeToFreq(hc);
+            Complex[] aniso = null;
+            if (vector && r is IVectorDelayedResponse v && v.AnisotropicFraction > 0)
+            {
+                var hb = v.EvaluateAnisotropic(grid.Time);
+                var bc = new Complex[n];
+                for (int i = 0; i < n; i++) bc[i] = hb[i] * scale;
+                aniso = SpectralTransform.TimeToFreq(bc);
+            }
+            return (total, aniso);
+        }
+
+        /// <summary>
+        /// Vector Raman index changes (Hellwarth; Lin &amp; Agrawal 2004): with h = h_a + h_b,
+        /// dn_x = fR [h_a * I + h_b * I_x], dn_y = fR [h_a * I + h_b * I_y], and a coupling dn_xy = fR h_b * Re(A_x A_y^*)
+        /// acting as dn_xy A_y on x and dn_xy A_x on y (all in units of n2 x intensity).
+        /// </summary>
+        internal static void VectorRaman(double[] ix, double[] iy, double[] it, double[] rxy, Complex[] total, Complex[] aniso, double dt,
+            out double[] rx, out double[] ry, out double[] rcross)
+        {
+            int n = it.Length;
+            var all = Convolution.CircularConvolveWithKernelFreq(it, total, dt);
+            var allB = Convolution.CircularConvolveWithKernelFreq(it, aniso, dt);
+            var bx = Convolution.CircularConvolveWithKernelFreq(ix, aniso, dt);
+            var by = Convolution.CircularConvolveWithKernelFreq(iy, aniso, dt);
+            rcross = Convolution.CircularConvolveWithKernelFreq(rxy, aniso, dt);
+            rx = new double[n]; ry = new double[n];
+            for (int i = 0; i < n; i++) { double iso = all[i] - allB[i]; rx[i] = iso + bx[i]; ry[i] = iso + by[i]; }
+        }
+
+        /// <summary>The largest nonlinear index change seen by the pulse, from the power-weighted effective index
+        /// Re(sum_c A_c^* N_c / (i k0)) / sum_c |A_c|^2 (N_c: the nonlinear rate of component c): every coupling term
+        /// is included, so circular light gives 2/3 of the linear value, as it should.</summary>
+        internal static double PeakIndexChange(Complex[] ax, Complex[] ay, Complex[] nx, Complex[] ny, double k0)
+        {
+            int n = ax.Length; double pmax = 0;
+            for (int i = 0; i < n; i++) { double p = ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary + (ay != null ? ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary : 0); if (p > pmax) pmax = p; }
+            if (!(pmax > 0)) return 0;
+            double peak = 0;
+            for (int i = 0; i < n; i++)
+            {
+                double p = ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary + (ay != null ? ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary : 0);
+                if (p < 1e-6 * pmax) continue;
+                var s = Complex.Conjugate(ax[i]) * nx[i];
+                if (ay != null && ny != null) s += Complex.Conjugate(ay[i]) * ny[i];
+                double dn = Math.Abs(s.Imaginary / (k0 * p));   // Re(s / i) = Im(s)
+                if (dn > peak) peak = dn;
+            }
+            return peak;
         }
 
         /// <summary>The sampled Raman kernel scaled to unit sum on the grid, so the delayed fraction is exactly fR
@@ -175,15 +232,25 @@ namespace UltrafastEngine.Physics
             var dnx = new double[n]; var dny = new double[n];
             double fR = _m.EffectiveRamanFraction;
             bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
-            double[] ram = null;
+            double[] ram = null, ramX = null, ramY = null, ramXY = null;
             if (kerr)
             {
-                if (fR > 0) ram = Convolution.CircularConvolveWithKernelFreq(it, _ramanKernelFreq, _g.DTime);
+                if (fR > 0)
+                {
+                    if (!_scalar && _ramanAnisoFreq != null)
+                    {
+                        var rxy = new double[n];
+                        for (int i = 0; i < n; i++) rxy[i] = (ax[i] * Complex.Conjugate(ay[i])).Real / aeff;
+                        VectorRaman(ix, iy, it, rxy, _ramanKernelFreq, _ramanAnisoFreq, _g.DTime, out ramX, out ramY, out ramXY);
+                    }
+                    else ram = Convolution.CircularConvolveWithKernelFreq(it, _ramanKernelFreq, _g.DTime);
+                }
                 for (int i = 0; i < n; i++)
                 {
-                    double r = fR > 0 ? fR * ram[i] : 0.0;
-                    dnx[i] = _m.N2 * ((1 - fR) * (ix[i] + 2.0 / 3.0 * iy[i]) + r);
-                    dny[i] = _m.N2 * ((1 - fR) * (iy[i] + 2.0 / 3.0 * ix[i]) + r);
+                    double rx = fR > 0 ? fR * (ramX != null ? ramX[i] : ram[i]) : 0.0;
+                    double ry = fR > 0 ? fR * (ramY != null ? ramY[i] : ram[i]) : 0.0;
+                    dnx[i] = _m.N2 * ((1 - fR) * (ix[i] + 2.0 / 3.0 * iy[i]) + rx);
+                    dny[i] = _m.N2 * ((1 - fR) * (iy[i] + 2.0 / 3.0 * ix[i]) + ry);
                 }
             }
             double[] dnxy = null;
@@ -218,7 +285,6 @@ namespace UltrafastEngine.Physics
                 }
             }
 
-            double peak = 0;
             var nx = new Complex[n];
             Complex[] ny = _scalar ? null : new Complex[n];
             double cc = kerr ? _m.N2 * (1 - fR) / (3.0 * aeff) : 0.0;
@@ -227,7 +293,6 @@ namespace UltrafastEngine.Physics
                 double ux = uRe != null ? uRe[i] : 0, ui = uIm != null ? uIm[i] : 0;
                 var dX = new Complex(dnx[i] + ux, ui);
                 nx[i] = Complex.ImaginaryOne * _k0 * dX * ax[i];
-                double pk = Math.Abs(dnx[i] + ux);
                 if (!_scalar)
                 {
                     var dY = new Complex(dny[i] + ux, ui);
@@ -238,10 +303,10 @@ namespace UltrafastEngine.Physics
                         ny[i] += Complex.ImaginaryOne * _k0 * cc * ax[i] * ax[i] * Complex.Conjugate(ay[i]);
                     }
                     if (dnxy != null) { nx[i] += Complex.ImaginaryOne * _k0 * dnxy[i] * ay[i]; ny[i] += Complex.ImaginaryOne * _k0 * dnxy[i] * ax[i]; }
-                    pk = Math.Max(pk, Math.Abs(dny[i] + ux));
+                    if (ramXY != null) { double d = _m.N2 * fR * ramXY[i]; nx[i] += Complex.ImaginaryOne * _k0 * d * ay[i]; ny[i] += Complex.ImaginaryOne * _k0 * d * ax[i]; }
                 }
-                if (pk > peak) peak = pk;
             }
+            double peak = PeakIndexChange(ax, _scalar ? null : ay, nx, ny, _k0);
 
             var nxF = SpectralTransform.TimeToFreq(nx);
             var nyF = _scalar ? null : SpectralTransform.TimeToFreq(ny);

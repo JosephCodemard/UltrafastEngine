@@ -77,7 +77,7 @@ def test_fit_marked_transform_parameters(spectrum_file, tmp_path):
     out = res.write(tmp_path / "fit")
     loaded = up.load(out)
     assert up._EXTRA_FIGURES["fit"](loaded) is not None
-    assert up._EXTRA_FIGURES["measurements"](loaded) is not None
+    assert up.measurements(loaded) is not None
 
 
 def test_backward_recovers_the_input():

@@ -33,4 +33,4 @@ Run the commands from this folder.
 * NPZ: `delay_s` or `insertion_m` (rows), `omega_rad_s` (SH signal frequencies, columns), `trace` (rows × columns).
   The same layout as a results folder's `result.npz`, so `ultrafast retrieve` reads both.
 * CSV: a `#` comment line, a header with the unit in each column name (`wavelength_nm`, `delay_ps`), then numbers --
-  the format the fitting plugin reads ([Measured data](../plugins/fitting.md#units-from-column-names)).
+  the format the fitting plugin reads ([Measured data](../reference/measured-data.md#units-from-column-names)).

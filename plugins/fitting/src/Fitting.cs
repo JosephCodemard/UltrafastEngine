@@ -7,6 +7,7 @@ using System.Threading;
 using UltrafastEngine.Engine;
 using UltrafastEngine.Models;
 using UltrafastEngine.Results;
+using UltrafastEngine.Measured;
 using UltrafastEngine.Serialization;
 using UltrafastEngine.Specs;
 using UltrafastEngine.Systems;
@@ -187,7 +188,7 @@ namespace UltrafastEngine.Plugins.Fitting
                 rep.Notes.Add(string.Format(CultureInfo.InvariantCulture, "grid frozen at N = {0}, window = {1:G4} ps for all evaluations (2x the planned bandwidth)", 2 * g.N, g.N * g.DTime * 1e12));
                 e0 = Evaluate(x0);
             }
-            rep.Chi2Initial = e0.Cost; rep.Points = e0.Data.Length;
+            rep.Chi2Initial = e0.Cost; rep.Points = e0.Result.Comparisons().Sum(c => c.Points);   // points outside an instrument's range (residual 0) do not count
             var before = e0.Result.Comparisons().ToDictionary(c => c.Instrument, c => (c.Chi2, c.RmsError));
             if (rep.Points < n) rep.Warnings.Add("fewer data points than parameters: the fit is under-determined (priors and smoothness help)");
             rep.Simulated = Layer(e0, rep, x0, "the system as described (initial parameter values): the forward model before fitting");
@@ -212,11 +213,11 @@ namespace UltrafastEngine.Plugins.Fitting
             var cur = cache.TryGetValue(Key(x), out var cx) ? cx : Evaluate(x);
             // ------------------------------------------------------------ uncertainties at the optimum
             var (J, jacRuns) = Jacobian(x, cur, rep, Evaluate);
-            int mm = cur.R.Length, md = cur.Data.Length;
+            int mm = cur.R.Length, md = cur.Data.Length, mPts = cur.Result.Comparisons().Sum(c => c.Points);   // mPts: compared points only (not those outside a range)
             var H = new double[n, n];
             for (int a = 0; a < n; a++) for (int b = 0; b < n; b++) { double s = 0; for (int k = 0; k < mm; k++) s += J[k, a] * J[k, b]; H[a, b] = s; }
             rep.Chi2Final = cur.Cost; rep.DataChi2Final = cur.Data.Sum(v => v * v);
-            rep.ReducedChi2 = md > n ? rep.DataChi2Final / (md - n) : double.NaN;
+            rep.ReducedChi2 = mPts > n ? rep.DataChi2Final / (mPts - n) : double.NaN;
             double s2 = rep.ReducedChi2 > 1 ? rep.ReducedChi2 : 1;
             if (rep.ReducedChi2 > 1) rep.Notes.Add(string.Format(CultureInfo.InvariantCulture, "reduced chi^2 = {0:G3} > 1: covariance uncertainties scaled by sqrt({0:G3}) (the model or the stated noise does not explain all of the data)", rep.ReducedChi2));
             var (C, nullDirs) = FitMath.PseudoInverse(H);

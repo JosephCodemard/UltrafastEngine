@@ -104,7 +104,8 @@ fused silica). η_k is the mode overlap of the replica with the main beam: its l
 the tilt of a wedge (2 k n α) reduce it, η = exp(-s²/2w²) exp(-(π w δ/λ)²/2), with w from the tracked beam,
 `ghosts.beamRadiusM` or `beamRadiusM` (full overlap and a note when none is known). `ghosts.overlap` sets it
 directly; `frontReflectance` / `backReflectance` replace the coatings' values. The grid planner widens the time
-window for the replicas.
+window for the replicas down to `grid.satelliteLevel` (default 1e-8, combinations of several elements' ghosts
+included; see [Run spec](run-spec.md#grid)).
 
 **Ghosts of other elements.** `bulk`, `crystal`, `gain`, `amplifier` and thick `lens` elements accept `ghosts` too:
 the double reflection at their two end faces at normal incidence, with the delay 2 n_g L / c and the level

@@ -20,6 +20,7 @@ MODULES = [
     ("ultrafast", "__init__.py", "Top level: `import ultrafast as uf`."),
     ("ultrafast.core", "core.py", "Running systems, results, commands (studies, retrieval, materials)."),
     ("ultrafast.build", "build.py", "Builders for system files and run specs (`from ultrafast import build as b`)."),
+    ("ultrafast.measured", "measured.py", "Measured data: typed comparisons of instruments with recordings (`res.comparisons`), compared arrays."),
     ("ultrafast.materials", "materials.py", "The material library: list, show, import refractiveindex.info pages."),
     ("ultrafast.laser", "laser.py", "Laser and amplifier helpers."),
     ("ultrafast.crystal", "crystal.py", "χ(2) crystal helpers."),

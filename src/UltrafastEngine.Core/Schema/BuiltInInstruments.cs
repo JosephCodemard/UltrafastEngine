@@ -15,7 +15,27 @@ namespace UltrafastEngine.Schema
                 .Model("beam", "beam", "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian")
                 .Model("filter", "filter", "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured")
                 .Obj("detector", "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth", "detector")
-                .Obj("axis", "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution", "instrumentAxis"));
+                .Obj("axis", "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution", "instrumentAxis")
+                .Obj("measured", "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md", "measured"));
+            add(new ComponentSpec("measured", "", "Recorded data for one instrument, compared with its simulated reading on the measured axis (only where the simulated instrument has readings), after matching the recording's resolution.").DocAt("reference/measured-data.md")
+                .Str("file", "CSV, NPZ or JSON file, relative to the run file")
+                .Free("columns", ParamType.Object, "Column / array names: x, y, sigma (curves); rows, cols, trace (traces)")
+                .Enum("normalize", new[] { "peak", "maximum", "area", "scale", "none" }, "How data and simulation are normalised before comparing", "peak")
+                .Num("sigma", "", "Uncertainty of each point relative to the data peak", "0.02")
+                .P("background", ParamType.Any, "", "A number to subtract, \"auto\" (median of the darker edge of the axis; for traces, the edges of the columns), \"min\" or \"none\"", "none")
+                .Arr("rangeX", "SI", "Compare only this [min, max] of the measured axis")
+                .Str("xUnit", "Unit of the x column (overrides the name suffix)").Str("yUnit", "Unit of the y column (\"dB\" for logarithmic data)")
+                .Str("rowUnit", "Unit of the trace rows").Str("colUnit", "Unit of the trace columns")
+                .Free("values", ParamType.Object, "Scalar readings {name: value | [value, sigma]}")
+                .Num("valueSigma", "", "Relative uncertainty of values given without one", "0.02")
+                .Num("valueWeight", "", "Extra weight of the scalar residuals", "1")
+                .Num("weight", "", "Weight of this instrument in a fit's chi^2", "1")
+                .Free("simulated", ParamType.Object, "Which arrays of the instrument to compare with: x, y | rows, cols, trace")
+                .Enum("scale", new[] { "linear", "log" }, "Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators)", "linear")
+                .Num("sigmaDb", "dB", "scale log: uncertainty of each point in dB", "1").Num("floorDb", "dB", "scale log: floor relative to the peak (values below are clipped to it)", "the data's minimum")
+                .Num("resolutionM", "m", "Resolution (Gaussian FWHM) of the recording spectrometer / profiler, in the unit of the axis")
+                .Num("resolutionS", "s", "Temporal / delay resolution (Gaussian FWHM) of the recording instrument")
+                .Bool("matchResolution", "Curves: when the recording is coarser than the simulated instrument, blur the simulated reading by the missing width before comparing", "true"));
             add(new ComponentSpec("instrumentAxis", "", "Sampling of a curve instrument's axis (spectrometer wavelengths, scope times, autocorrelator / cross-correlator delays, polarimeter wavelengths, delay scan, contrast, beam profile, phase-matching curve). Units: those of the axis (m, s).").DocAt(D + "axis-where-readings-are-taken")
                 .Arr("values", "SI", "Explicit reading positions (e.g. the pixel wavelengths of your spectrometer)")
                 .Num("from", "SI", "First reading", "the start of the simulated axis").Num("to", "SI", "Last reading", "the end of the simulated axis")
@@ -149,13 +169,13 @@ namespace UltrafastEngine.Schema
                 .Arr("wavelengthsM", "m", "Wavelengths").Arr("wavelengthsNm", "nm", "Wavelengths in nm").Arr("wavelengthsUm", "um", "Wavelengths in um")
                 .Arr("transmission", "", "Power transmission").Arr("phaseRad", "rad", "Phase").Arr("groupDelayS", "s", "Group delay (alternative to the phase)"));
             const string R = "reference/nonlinear.md#raman-models";
-            add(new ComponentSpec("model:delayedResponse", "silica", "Fused-silica Raman response: Blow-Wood damped oscillator (12.2 / 32 fs), fR = 0.18.").Alias("blowWood").DocAt(R).Num("fR", "", "Raman fraction", "0.18"));
+            add(new ComponentSpec("model:delayedResponse", "silica", "Fused-silica Raman response: Blow-Wood damped oscillator (12.2 / 32 fs), fR = 0.18.").Alias("blowWood").DocAt(R).Num("fR", "", "Raman fraction", "0.18").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0.25"));
             add(new ComponentSpec("model:delayedResponse", "linAgrawal", "Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full model), fR = 0.245.").DocAt(R)
                 .Num("fR", "", "Raman fraction", "0.245").Num("tau1", "s", "Oscillator period parameter", "12.2e-15").Num("tau2", "s", "Oscillator damping time", "32e-15")
-                .Num("taub", "s", "Boson-peak time", "96e-15").Num("fa", "", "Weight a", "0.75").Num("fb", "", "Weight b (boson peak)", "0.21").Num("fc", "", "Weight c", "0.04"));
-            add(new ComponentSpec("model:delayedResponse", "hollenbeck", "Hollenbeck & Cantrell 2002 silica Raman: 13 vibrational modes with intermediate broadening, fR = 0.18.").DocAt(R).Num("fR", "", "Raman fraction", "0.18"));
+                .Num("taub", "s", "Boson-peak time", "96e-15").Num("fa", "", "Weight a", "0.75").Num("fb", "", "Weight b (boson peak)", "0.21").Num("fc", "", "Weight c", "0.04").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "(fb + fc): h_b = fc h_a + fb h_b"));
+            add(new ComponentSpec("model:delayedResponse", "hollenbeck", "Hollenbeck & Cantrell 2002 silica Raman: 13 vibrational modes with intermediate broadening, fR = 0.18.").DocAt(R).Num("fR", "", "Raman fraction", "0.18").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0.25"));
             add(new ComponentSpec("model:delayedResponse", "dampedOscillator", "Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1).").DocAt(R)
-                .Num("tau1", "s", "Period parameter").Num("tau2", "s", "Damping time").Num("fR", "", "Raman fraction"));
+                .Num("tau1", "s", "Period parameter").Num("tau2", "s", "Damping time").Num("fR", "", "Raman fraction").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0"));
         }
     }
 }

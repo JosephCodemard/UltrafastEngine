@@ -307,6 +307,12 @@ namespace UltrafastEngine.Engine
                     Instruments.InstrumentDevice.ApplyDetector(ispec, outp);
                     outp.Settings = Instruments.InstrumentDevice.Settings(ispec, inst.Kind);
                     res.Instruments.Add(outp);
+                    // recorded data: compare the reading with the measurement (on the measured axis, its range and resolution)
+                    if (ispec.TryGet("measured", out var measured) && measured != null && !measured.IsNull)
+                    {
+                        try { res.Comparisons.Add(Measured.Measurements.Compare(outp, measured, cr.Run?.BaseDirectory)); }
+                        catch (Exception ex) when (!(ex is OperationCanceledException)) { res.Warnings.Add("Instrument " + outp.Name + ": measured data not compared: " + ex.Message); }
+                    }
                     // plugins post-process the reading (e.g. compare it with recorded data)
                     var hooks = Plugins.PluginManager.Hooks;
                     foreach (var h in hooks)
@@ -315,8 +321,6 @@ namespace UltrafastEngine.Engine
                         try { h.AfterMeasure(new Plugins.InstrumentHookContext { Output = outp, Spec = ispec, Result = res, Compiled = cr }); }
                         catch (Exception ex) when (!(ex is OperationCanceledException)) { res.Warnings.Add("Instrument " + outp.Name + ": " + string.Join("/", h.Keys) + " not processed: " + ex.Message); }
                     }
-                    foreach (var k in PluginKeys.Where(k => ispec.Has(k) && !hooks.Any(h => h.Keys.Contains(k))))
-                        res.Warnings.Add("Instrument " + outp.Name + ": \"" + k + "\" needs the " + PluginKeyOwner(k) + " plugin, which is not installed (ultrafast plugins list).");
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))
                 {
@@ -324,10 +328,6 @@ namespace UltrafastEngine.Engine
                 }
             }
         }
-
-        /// <summary>Instrument keys provided by first-party plugins: used only to name the missing plugin.</summary>
-        private static readonly string[] PluginKeys = { "measured" };
-        private static string PluginKeyOwner(string key) => key == "measured" ? "fitting" : "a";
 
         /// <summary>
         /// A grid for the elements from <paramref name="fromIndex"/> on, sized from the actual pulse (its spectrum,
@@ -351,7 +351,7 @@ namespace UltrafastEngine.Engine
             double window = g.N * g.DTime;
             double fwhmTl = PulseMetrics.Fwhm(g.Time, PulseMetrics.TransformLimitedPower(p));
             var plan = GridPlanner.Plan(p, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window, g.N, run.Grid.MaxN, true, false,
-                double.IsNaN(fwhmTl) ? double.PositiveInfinity : fwhmTl / run.Grid.MinPointsPerFwhm, rest.Sum(x => x.SatelliteDelayS));
+                double.IsNaN(fwhmTl) ? double.PositiveInfinity : fwhmTl / run.Grid.MinPointsPerFwhm, Compiler.SatelliteRoom(rest, run.Grid.SatelliteLevel));
             double reqW = Math.Max(plan.RequiredWindowS, 1e-15), reqDt = plan.RequiredDtS;
             int a = (int)Math.Ceiling(Math.Log(reqW / window, 2) - 1e-9);
             int b = (int)Math.Floor(Math.Log(reqDt / g.DTime, 2) + 1e-9);

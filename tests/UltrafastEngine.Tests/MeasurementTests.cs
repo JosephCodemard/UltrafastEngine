@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using UltrafastEngine.Measured;
 using UltrafastEngine.Plugins.Fitting;
 using UltrafastEngine.Instruments;
 using UltrafastEngine.Results;
@@ -160,8 +161,8 @@ namespace UltrafastEngine.Tests
                 O("kind", "autocorrelator", "name", "ac", "measured", Path.Combine(d, "ac.csv")),
                 O("kind", "dscan", "name", "ds", "material", "FusedSilica", "insertionM", new[] { -2e-3, 2e-3 }, "steps", 9, "measured", O("file", Path.Combine(d, "ds.npz"))),
                 O("kind", "energyMeter", "name", "pm", "measured", O("values", O("energyJ", A(r0.Output.TotalEnergyJ() * 1.03, r0.Output.TotalEnergyJ() * 0.01))))))));
-            Assert.Equal(4, r.Comparisons().Count, "four comparisons: " + string.Join("; ", r.Warnings));
-            var c = r.Comparisons().ToDictionary(x => x.Instrument);
+            Assert.Equal(4, r.Comparisons.Count, "four comparisons: " + string.Join("; ", r.Warnings));
+            var c = r.Comparisons.ToDictionary(x => x.Instrument);
             Assert.Less(c["s"].RmsError, 1e-6, "spectrum residual");
             Assert.Less(c["ac"].RmsError, 1e-6, "autocorrelation residual");
             Assert.Less(c["ds"].RmsError, 1e-6, "d-scan trace residual");
@@ -188,20 +189,20 @@ namespace UltrafastEngine.Tests
             {
                 var r = Go(sys, Spec(Gauss(800e-9, 30e-15, 1e-9), O("instruments", A(O("kind", "spectrometer", "name", "s",
                     "measured", O("file", Path.Combine(d, "s.csv"), "background", "auto", "normalize", norm))))));
-                Assert.Less(r.Comparisons()[0].RmsError, 1e-3, norm + ": offset removed, shapes agree");
+                Assert.Less(r.Comparisons[0].RmsError, 1e-3, norm + ": offset removed, shapes agree");
                 if (norm == "scale") Assert.Close(1000 / mx, V(r, "s").GetDouble("measuredScale", 0), 1e-3, 0, "best-fit scale factor");
             }
             // without the background, the offset shows up
             var rb = Go(sys, Spec(Gauss(800e-9, 30e-15, 1e-9), O("instruments", A(O("kind", "spectrometer", "name", "s", "measured", Path.Combine(d, "s.csv"))))));
-            Assert.Greater(rb.Comparisons()[0].RmsError, 0.05, "uncorrected background is a large residual");
+            Assert.Greater(rb.Comparisons[0].RmsError, 0.05, "uncorrected background is a large residual");
         }
 
         [Test(Category = "instruments")]
         public void Comparison_MissingFile_IsAWarningNotAFailure()
         {
             var r = Go(Sys(O("id", "p", "type", "probe")), Spec(Gauss(800e-9, 30e-15, 1e-9), O("instruments", A(O("kind", "spectrometer", "name", "s", "measured", "/no/such/file.csv")))));
-            Assert.Equal(0, r.Comparisons().Count, "nothing compared");
-            Assert.True(r.Warnings.Any(w => w.Contains("measured not processed") && w.Contains("not found")), "warning names the problem");
+            Assert.Equal(0, r.Comparisons.Count, "nothing compared");
+            Assert.True(r.Warnings.Any(w => w.Contains("measured data not compared") && w.Contains("not found")), "warning names the problem");
             Assert.True(r.Instruments.Any(i => i.Name == "s"), "the instrument still ran");
         }
 

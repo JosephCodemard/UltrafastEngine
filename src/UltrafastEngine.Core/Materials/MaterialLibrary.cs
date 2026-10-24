@@ -63,7 +63,7 @@ namespace UltrafastEngine.Materials
                     break;
                 case "fusedsilica":
                     m = Glass("FusedSilica", new SellmeierIndex(new[] { 0.6961663, 0.4079426, 0.8974794 }, new[] { 0.0684043 * 0.0684043, 0.1162414 * 0.1162414, 9.896161 * 9.896161 }, 1.0, "Malitson 1965"),
-                        air, 2.6e-20, 0.18, new DampedOscillatorResponse(12.2e-15, 32e-15));
+                        air, 2.6e-20, 0.18, new AnisotropicSplitResponse(new DampedOscillatorResponse(12.2e-15, 32e-15), 0.25));
                     break;
                 case "n-bk7":
                     m = Glass("N-BK7", new SellmeierIndex(new[] { 1.03961212, 0.231792344, 1.01046945 }, new[] { 0.00600069867, 0.0200179144, 103.560653 }, 1.0, "Schott"), air, 3.4e-20, 0.0, null);

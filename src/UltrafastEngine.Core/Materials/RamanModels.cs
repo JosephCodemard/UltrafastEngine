@@ -10,8 +10,22 @@ namespace UltrafastEngine.Materials
     /// tau2 = 32 fs), hb(t) = (2 tau_b - t) / tau_b^2 exp(-t / tau_b), tau_b = 96 fs, fa = 0.75, fb = 0.21, fc = 0.04;
     /// fR = 0.245. Both parts have unit integral, so h does too. This is pyNLO's "full" Raman model.
     /// </summary>
-    public sealed class LinAgrawalRamanResponse : IDelayedResponse
+    public sealed class LinAgrawalRamanResponse : IVectorDelayedResponse
     {
+        /// <summary>The anisotropic part h_b = fc ha + fb hb (Lin &amp; Agrawal: the isotropic part is fa ha).</summary>
+        public double[] EvaluateAnisotropic(double[] t)
+        {
+            double na = (_t1 * _t1 + _t2 * _t2) / (_t1 * _t2 * _t2);
+            var h = new double[t.Length];
+            for (int i = 0; i < t.Length; i++)
+            {
+                double x = t[i];
+                if (x < 0) continue;
+                h[i] = _fc * na * Math.Exp(-x / _t2) * Math.Sin(x / _t1) + _fb * (2 * _tb - x) / (_tb * _tb) * Math.Exp(-x / _tb);
+            }
+            return h;
+        }
+        public double AnisotropicFraction => (_fb + _fc) / (_fa + _fb + _fc);
         public const double DefaultFraction = 0.245;
         private readonly double _t1, _t2, _tb, _fa, _fb, _fc;
         public LinAgrawalRamanResponse(double tau1 = 12.2e-15, double tau2 = 32e-15, double taub = 96e-15, double fa = 0.75, double fb = 0.21, double fc = 0.04)

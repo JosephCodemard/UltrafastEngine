@@ -8,11 +8,11 @@ described in [docs/capabilities.md](docs/capabilities.md).
 | | result |
 |---|---|
 | `dotnet build UltrafastEngine.sln -c Release` | builds; one expected warning when no ZOS-API is present (the Zemax binding then builds against stubs) |
-| C# tests, .NET 10, incl. slow (`-- --slow`) | **193/193 pass** |
-| C# tests, .NET Framework 4.8 build under Mono, incl. slow | **193/193 pass** |
-| Python tests (hosted engine), `ULTRAFAST_SLOW=1`, with pyNLO | **50/50 pass**, including the pyNLO cross-checks (fibre, Raman models, gain, DFG) and the transform / fit / backward tests |
-| Every CLI example (30 run specs) with `ULTRAFAST_STRICT_OPTIONS=1` | run (09 after 08, and 26's new-input and backward runs after its fit, as the READMEs say) |
-| Python examples (quickstart, 03, 04, 12, 16, 18) | run |
+| C# tests, .NET 10, incl. slow (`-- --slow`) | **213/213 pass** (incl. the NER and measured-data tests) |
+| C# tests, .NET Framework 4.8 build under Mono, incl. slow | **213/213 pass** |
+| Python tests (hosted engine), `ULTRAFAST_SLOW=1`, with pyNLO | **56/56 pass**, including the pyNLO cross-checks (fibre, Raman models, gain, DFG: scalar results unchanged by the vector Raman), the measured-data tests and the transform / fit / backward tests |
+| Every CLI example (31 run specs, incl. the new 27) with `ULTRAFAST_STRICT_OPTIONS=1` | run (09 after 08, and 26's new-input and backward runs after its fit, as the READMEs say) |
+| Python examples (quickstart, 03, 04, 12, 16, 18, 27 `ner.py`) | run |
 | `ultrafast study` (examples 22, 25 incl. coherence), `ultrafast retrieve` (example 24, `docs/assets`), `ultrafast materials` | run; results quoted in the READMEs |
 | `mkdocs build --strict` | 0 warnings, no broken links or anchors |
 | Generated files (schemas, options.md, `ultrafast.types`, python-api.md) | current (checked by tests) |

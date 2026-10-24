@@ -211,6 +211,8 @@ namespace UltrafastEngine.Engine
                 ce.Post.Add(g);
                 ce.SatelliteDelayS = Math.Max(ce.SatelliteDelayS, orders * delay);
                 var (g0s, g0p) = rt(c.Omega0);
+                double lv = Math.Max(g0s.Magnitude * g0s.Magnitude, g0p.Magnitude * g0p.Magnitude);
+                for (int k = 1; k <= orders; k++) ce.Satellites.Add((k * delay, Math.Pow(lv, k) * ov[k - 1] * ov[k - 1]));
                 ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "ghost: +{0:G4} ps per round trip, relative intensity {1:G3} (s) / {2:G3} (p) x overlap {3:G3}",
                     delay * 1e12, g0s.Magnitude * g0s.Magnitude, g0p.Magnitude * g0p.Magnitude, ov[0] * ov[0]));
                 c.Out.Provenance.Record("element:" + e.Id, "ghosts", g.Description, gr?.Source ?? ModelSource.SystemData, gr?.Origin ?? "system file");
@@ -277,6 +279,7 @@ namespace UltrafastEngine.Engine
             ce.Post.Add(gt);
             ce.SatelliteDelayS = Math.Max(ce.SatelliteDelayS, orders * delay);
             var (g0, _) = rt(c.Omega0);
+            for (int k = 1; k <= orders; k++) ce.Satellites.Add((k * delay, Math.Pow(g0.Magnitude * g0.Magnitude, k) * ov[k - 1] * ov[k - 1]));
             ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "ghost of the end faces ({0}): +{1:G4} ps per round trip, relative intensity {2:G3} x overlap {3:G3}",
                 what, delay * 1e12, g0.Magnitude * g0.Magnitude, ov[0] * ov[0]));
             c.Out.Provenance.Record("element:" + e.Id, "ghosts", gt.Description, gr?.Source ?? ModelSource.SystemData, gr?.Origin ?? "system file");

@@ -32,6 +32,9 @@ namespace UltrafastEngine.Specs
         public double MinSpanFraction { get; set; } = 0.1;
         /// <summary>Minimum number of time samples across the transform-limited FWHM (keeps temporal diagnostics accurate).</summary>
         public double MinPointsPerFwhm { get; set; } = 12;
+        /// <summary>Weakest combination of satellites (ghosts, replicas) the window makes room for, relative intensity
+        /// (the product of the levels of the satellites combined). Default 1e-8.</summary>
+        public double SatelliteLevel { get; set; } = 1e-8;
 
         public static GridSpec FromJson(JsonObject o)
         {
@@ -46,6 +49,8 @@ namespace UltrafastEngine.Specs
             g.SpectralMargin = o.GetDouble("spectralMargin", double.NaN);
             g.MinSpanFraction = o.GetDouble("minSpanFraction", 0.1);
             g.MinPointsPerFwhm = o.GetDouble("minPointsPerFwhm", 12);
+            g.SatelliteLevel = o.GetDouble("satelliteLevel", 1e-8);
+            if (!(g.SatelliteLevel > 0) || g.SatelliteLevel > 1) throw new JsonException("grid.satelliteLevel is a relative intensity, 0 < satelliteLevel <= 1.");
             return g;
         }
     }

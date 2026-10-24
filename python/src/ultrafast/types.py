@@ -1799,8 +1799,8 @@ class AutocorrelatorInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -1826,8 +1826,8 @@ class BeamProfileInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -1889,8 +1889,8 @@ class CameraInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -1922,8 +1922,8 @@ class CompressorInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -1957,8 +1957,8 @@ class ContrastInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -1984,8 +1984,8 @@ class ConversionInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2039,8 +2039,8 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2072,8 +2072,8 @@ class DelayScanInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2111,8 +2111,8 @@ class DscanInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2144,8 +2144,8 @@ class EnergyMeterInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2177,8 +2177,8 @@ class FieldProbeInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2212,8 +2212,8 @@ class FrogInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2249,8 +2249,8 @@ class PhaseMatchingCurveInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2280,8 +2280,8 @@ class PolarimeterInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2307,8 +2307,8 @@ class PulseSummaryInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2340,8 +2340,8 @@ class ScopeInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2371,8 +2371,8 @@ class SpaceTimeInstrument(TypedDict, total=False):
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     detector: Union["Detector", str]
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2412,8 +2412,8 @@ class SpectrometerInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2455,8 +2455,8 @@ class WavefrontSensorInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2488,8 +2488,8 @@ class WignerInstrument(TypedDict, total=False):
     """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
-    measured: Union["Fitting_measured", str]
-    """Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
     """Free text."""
     description: Any
@@ -2811,56 +2811,6 @@ class Fitting_knots(TypedDict, total=False):
     """Free text."""
 
 
-class Fitting_measured(TypedDict, total=False):
-    """Recorded data for one instrument (fitting plugin). [plugin: fitting]"""
-    file: str
-    """CSV, NPZ or JSON file, relative to the run file"""
-    columns: Dict[str, Any]
-    """Column / array names: x, y, sigma (curves); rows, cols, trace (traces)"""
-    normalize: Literal["peak", "maximum", "area", "scale", "none"]
-    """How data and simulation are normalised before comparing Default: peak."""
-    sigma: float
-    """Uncertainty of each point relative to the data peak Default: 0.02."""
-    background: Any
-    """A number to subtract, or "auto" (median at the axis edges)"""
-    rangeX: Union[float, List[float]]
-    """Compare only this [min, max] of the measured axis [SI]"""
-    xUnit: str
-    """Unit of the x column (overrides the name suffix)"""
-    yUnit: str
-    """Unit of the y column"""
-    rowUnit: str
-    """Unit of the trace rows"""
-    colUnit: str
-    """Unit of the trace columns"""
-    values: Dict[str, Any]
-    """Scalar readings {name: value | [value, sigma]}"""
-    valueSigma: float
-    """Relative uncertainty of values given without one Default: 0.02."""
-    valueWeight: float
-    """Extra weight of the scalar residuals Default: 1."""
-    weight: float
-    """Weight of this instrument in the fit's chi^2 Default: 1."""
-    simulated: Dict[str, Any]
-    """Which arrays of the instrument to compare with: x, y | rows, cols, trace"""
-    scale: Literal["linear", "log"]
-    """Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators) Default: linear."""
-    sigmaDb: float
-    """scale log: uncertainty of each point in dB [dB] Default: 1."""
-    floorDb: float
-    """scale log: floor relative to the peak (values below are clipped to it) [dB] Default: the data's minimum."""
-    resolutionM: float
-    """Spectral resolution of the recording instrument (checked against the simulated instrument) [m]"""
-    resolutionS: float
-    """Temporal / delay resolution of the recording instrument (checked against the simulated instrument) [s]"""
-    comment: Any
-    """Free text."""
-    description: Any
-    """Free text."""
-    notes: Any
-    """Free text."""
-
-
 class Fitting_operator(TypedDict, total=False):
     """One transform operator (kind + parameters; numbers may be fit objects). (docs/plugins/fitting.md#operators) [plugin: fitting]"""
     kind: Literal["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront"]
@@ -3065,6 +3015,8 @@ class Grid(TypedDict, total=False):
     """Nonlinear runs: minimum half-span / carrier Default: 0.1."""
     minPointsPerFwhm: float
     """Samples across the transform-limited FWHM Default: 12."""
+    satelliteLevel: float
+    """Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window Default: 1e-8."""
     comment: Any
     """Free text."""
     description: Any
@@ -3196,6 +3148,58 @@ class MaterialPath(TypedDict, total=False):
     """Material"""
     lengthM: float
     """Length [m]"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Measured(TypedDict, total=False):
+    """Recorded data for one instrument, compared with its simulated reading on the measured axis (only where the simulated instrument has readings), after matching the recording's resolution. (docs/reference/measured-data.md)"""
+    file: str
+    """CSV, NPZ or JSON file, relative to the run file"""
+    columns: Dict[str, Any]
+    """Column / array names: x, y, sigma (curves); rows, cols, trace (traces)"""
+    normalize: Literal["peak", "maximum", "area", "scale", "none"]
+    """How data and simulation are normalised before comparing Default: peak."""
+    sigma: float
+    """Uncertainty of each point relative to the data peak Default: 0.02."""
+    background: Any
+    """A number to subtract, "auto" (median of the darker edge of the axis; for traces, the edges of the columns), "min" or "none" Default: none."""
+    rangeX: Union[float, List[float]]
+    """Compare only this [min, max] of the measured axis [SI]"""
+    xUnit: str
+    """Unit of the x column (overrides the name suffix)"""
+    yUnit: str
+    """Unit of the y column ("dB" for logarithmic data)"""
+    rowUnit: str
+    """Unit of the trace rows"""
+    colUnit: str
+    """Unit of the trace columns"""
+    values: Dict[str, Any]
+    """Scalar readings {name: value | [value, sigma]}"""
+    valueSigma: float
+    """Relative uncertainty of values given without one Default: 0.02."""
+    valueWeight: float
+    """Extra weight of the scalar residuals Default: 1."""
+    weight: float
+    """Weight of this instrument in a fit's chi^2 Default: 1."""
+    simulated: Dict[str, Any]
+    """Which arrays of the instrument to compare with: x, y | rows, cols, trace"""
+    scale: Literal["linear", "log"]
+    """Compare in linear units, or in dB (high-dynamic-range data: contrast, cross-correlators) Default: linear."""
+    sigmaDb: float
+    """scale log: uncertainty of each point in dB [dB] Default: 1."""
+    floorDb: float
+    """scale log: floor relative to the peak (values below are clipped to it) [dB] Default: the data's minimum."""
+    resolutionM: float
+    """Resolution (Gaussian FWHM) of the recording spectrometer / profiler, in the unit of the axis [m]"""
+    resolutionS: float
+    """Temporal / delay resolution (Gaussian FWHM) of the recording instrument [s]"""
+    matchResolution: bool
+    """Curves: when the recording is coarser than the simulated instrument, blur the simulated reading by the missing width before comparing Default: true."""
     comment: Any
     """Free text."""
     description: Any
@@ -3364,6 +3368,10 @@ class PulseSpectrum(TypedDict, total=False):
     """Richardson-Lucy iterations Default: 30."""
     extrapolate: Literal["zero", "gaussian"]
     """Outside the measured wavelengths: no light, or Gaussian tails fitted to the data Default: zero."""
+    background: Any
+    """Background to subtract: a number (intensity units), "auto" (median of the darker edge, robust to a spectrum cut off on one side), "min" or "none" Default: none."""
+    threshold: float
+    """After background subtraction, values below this fraction of the peak are set to zero Default: 0."""
     comment: Any
     """Free text."""
     description: Any
@@ -3615,4 +3623,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'Detector', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_measured', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'Detector', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']

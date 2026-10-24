@@ -62,6 +62,11 @@ namespace UltrafastEngine.Engine
         /// <summary>Largest delay (s, either sign) of satellite pulses the element creates (ghost replicas): the grid
         /// planner makes room for them.</summary>
         public double SatelliteDelayS { get; set; }
+        /// <summary>The satellites the element creates, one entry per order: delay (s) and intensity relative to the main
+        /// pulse. The grid planner makes room for every combination of satellites (across all elements) whose product
+        /// level is above grid.satelliteLevel. An element that sets only <see cref="SatelliteDelayS"/> counts as one
+        /// satellite of level 1 (always given room).</summary>
+        public List<(double DelayS, double Level)> Satellites { get; } = new List<(double, double)>();
         /// <summary>Refractive index the beam sees inside the element (for Gaussian beam tracking); NaN = unknown (free space).</summary>
         public double TrackingIndex { get; set; } = double.NaN;
 
@@ -1028,15 +1033,67 @@ namespace UltrafastEngine.Engine
             return Math.Min(pk, Results.PulseMetrics.TransformLimitedPower(p0).Max() * 1.0001);
         }
 
+        /// <summary>Delay room (s) the window needs for the satellites of <paramref name="elements"/>: the largest delay at
+        /// which the satellites of all elements together can reach <paramref name="threshold"/> relative intensity.
+        /// The satellites of successive elements combine (a ghost of a ghost); satellites that land at the same delay
+        /// (identical plates) are summed coherently in amplitude, the worst case. Making room for every order of every
+        /// element instead would grow the window linearly with the number of plates (20 plates with ghosts:
+        /// nanoseconds) for satellites far below any measurable level.</summary>
+        public static double SatelliteRoom(IEnumerable<CompiledElement> elements, double threshold, List<string> notes = null)
+        {
+            var groups = new List<List<(double DelayS, double Amp)>>();
+            foreach (var e in elements)
+            {
+                List<(double, double)> gr;
+                if (e.Satellites.Count > 0) gr = e.Satellites.Where(x => x.DelayS != 0 && x.Level > 0).Select(x => (Math.Abs(x.DelayS), Math.Sqrt(Math.Min(1, x.Level)))).ToList();
+                else if (e.SatelliteDelayS != 0) gr = new List<(double, double)> { (Math.Abs(e.SatelliteDelayS), 1.0) };
+                else continue;
+                if (gr.Count > 0) groups.Add(gr);
+            }
+            if (groups.Count == 0) return 0;
+            threshold = Math.Min(1, Math.Max(threshold, 1e-300));
+            double ampThr = Math.Sqrt(threshold);
+            double minDelay = groups.SelectMany(g => g).Min(x => x.DelayS);
+            double bin = Math.Max(1e-16, 0.02 * minDelay);
+            // worst-case growth of an amplitude through the remaining elements: prune what can never reach the threshold
+            double growth = groups.Aggregate(1.0, (acc, g) => acc * (1 + g.Sum(x => x.Amp)));
+            double prune = 1e-2 * ampThr / growth;
+            // amplitude (upper bound) per delay bin: the generating function prod_e (1 + sum_k a_ek z^tau_ek)
+            var dist = new Dictionary<long, double> { [0] = 1.0 };
+            foreach (var g in groups)
+            {
+                var next = new Dictionary<long, double>(dist);
+                foreach (var kv in dist)
+                    foreach (var (d, a) in g)
+                    {
+                        double v = kv.Value * a;
+                        if (v < prune) continue;
+                        long key = kv.Key + (long)Math.Round(d / bin);
+                        next.TryGetValue(key, out double old); next[key] = old + v;
+                    }
+                dist = next;
+                if (dist.Count > 200000) { prune *= 10; dist = dist.Where(x => x.Key == 0 || x.Value >= prune).ToDictionary(x => x.Key, x => x.Value); }
+            }
+            double room = dist.Where(x => x.Value >= ampThr).Select(x => x.Key * bin).DefaultIfEmpty(0).Max();
+            double all = groups.Sum(gr => gr.Max(x => x.DelayS));
+            if (notes != null && all > room * 1.0001)
+                notes.Add(string.Format(CultureInfo.InvariantCulture, "Satellites: the window makes room for {0:G4} ps of ghost/replica delay (satellites and their combinations down to {1:G2} relative intensity, grid.satelliteLevel); the longest delays of all {2} sources added up would need {3:G4} ps. Weaker satellites may wrap around the window.",
+                    room * 1e12, threshold, groups.Count, all * 1e12));
+            return room;
+        }
+
         private static void BuildGridAndPulse(Ctx c)
         {
             var run = c.Run;
             var ps = run.Pulse;
+            var prep = ps.Shape.Equals("spectrum", StringComparison.OrdinalIgnoreCase) ? ps.Prepared() : null;
+            if (prep != null) { c.Out.Notes.AddRange(prep.Notes); c.Out.Warnings.AddRange(prep.Warnings); }
             double tl = ps.ResolveDurationS();
             if (double.IsNaN(tl))
             {
                 // measured spectrum: transform-limit estimate from its width
-                var wl = ps.SpectrumWavelengthsM; var I = ps.SpectrumIntensity;
+                if (prep == null) throw new ModelException("pulse: shape \"spectrum\" needs a measured spectrum (pulse.spectrum).");
+                var wl = prep.WavelengthsM; var I = prep.Intensity;
                 double cc = PhysicalConstants.SpeedOfLightMPerS;
                 var w = wl.Select(l => 2 * Math.PI * cc / l).ToArray();
                 var ord = Enumerable.Range(0, w.Length).OrderBy(i => w[i]).ToArray();
@@ -1082,7 +1139,7 @@ namespace UltrafastEngine.Engine
             double margin = double.IsNaN(run.Grid.SpectralMargin) ? (anyNl ? Math.Max(3.0, 1.0 + bEst) : 1.3) : run.Grid.SpectralMargin;
             if (anyNl) c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Estimated total B-integral (peak power after the dispersion before each element, no losses): {0:G3} rad; spectral margin {1:G3}.", bEst, margin));
             var plan = GridPlanner.Plan(p0, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window0, run.Grid.ExplicitResolution ? run.Grid.N : n0, run.Grid.MaxN, run.Grid.Auto, run.Grid.ExplicitResolution, Results.PulseMetrics.Fwhm(g0.Time, Results.PulseMetrics.TransformLimitedPower(p0)) / run.Grid.MinPointsPerFwhm,
-                c.Out.Elements.Where(x => x.Enabled).Sum(x => x.SatelliteDelayS) + run.Pulse.SatelliteHalfWindowS());
+                SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes) + run.Pulse.SatelliteHalfWindowS());
             c.Out.GridPlan = plan;
             c.Out.Notes.AddRange(plan.Notes);
             c.Out.Warnings.AddRange(plan.Warnings);

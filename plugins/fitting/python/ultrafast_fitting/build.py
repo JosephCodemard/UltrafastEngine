@@ -1,11 +1,11 @@
 """Builders for the fitting plugin (plain dicts, like :mod:`ultrafast.build`): transform elements and their operators,
-fit objects, the "fit" and "backward" run-spec blocks, and "measured" data for instruments.
+fit objects and the "fit" and "backward" run-spec blocks (``measured`` is the core builder :func:`ultrafast.build.measured`).
 
 >>> from ultrafast import build as b
->>> from ultrafast_fitting import transform, spectral_phase, fit_value, fit, measured
+>>> from ultrafast_fitting import transform, spectral_phase, fit_value, fit
 >>> shaper = transform("residual", [spectral_phase(gdd_fs2=fit_value(0, -2000, 2000), tod_fs3=fit_value(0, -2e4, 2e4))])
 >>> spec = b.run_spec(b.pulse(800e-9, 25e-15, energy=1e-6),
-...                   instruments=[b.instrument("dscan", gddRangeS2=[-500e-30, 500e-30], measured=measured("dscan.npz"))],
+...                   instruments=[b.instrument("dscan", gddRangeS2=[-500e-30, 500e-30], measured=b.measured("dscan.npz"))],
 ...                   fit=fit())
 """
 from __future__ import annotations
@@ -126,19 +126,8 @@ def wavefront(zernike: Optional[Mapping[Union[int, str], Number]] = None, *, rad
 
 
 # ------------------------------------------------------------------ run-spec blocks
-def measured(file: Optional[str] = None, *, values: Optional[dict] = None, sigma: Optional[float] = None,
-             normalize: Optional[str] = None, background: Any = None, columns: Optional[dict] = None,
-             range_x: Optional[Sequence[float]] = None, value_sigma: Optional[float] = None, weight: Optional[float] = None,
-             resolution_m: Optional[float] = None, resolution_s: Optional[float] = None, scale: Optional[str] = None,
-             sigma_db: Optional[float] = None, floor_db: Optional[float] = None, **extra) -> dict:
-    """Recorded data for an instrument (docs/plugins/fitting.md): a CSV / NPZ / JSON ``file`` and/or scalar ``values``
-    ({name: value | [value, sigma]}). ``resolution_m`` / ``resolution_s``: the recording instrument's resolution, checked
-    against the simulated instrument. ``scale="log"`` compares in dB (``sigma_db``, ``floor_db``): use it for contrast and
-    cross-correlator data. Relative file names are resolved against the run file's folder."""
-    return _clean({"file": file, "values": values, "sigma": sigma, "normalize": normalize, "background": background,
-                   "columns": columns, "rangeX": list(range_x) if range_x is not None else None, "valueSigma": value_sigma,
-                   "weight": weight, "resolutionM": resolution_m, "resolutionS": resolution_s, "scale": scale,
-                   "sigmaDb": sigma_db, "floorDb": floor_db, **extra})
+# "measured" is part of the core: ultrafast.build.measured (re-exported here for code written against earlier versions)
+from ultrafast.build import measured  # noqa: E402,F401
 
 
 def fit_parameter(path: str, min: Optional[float] = None, max: Optional[float] = None, *, name: Optional[str] = None,

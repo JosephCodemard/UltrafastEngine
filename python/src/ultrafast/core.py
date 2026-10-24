@@ -5,11 +5,12 @@ import ctypes
 import json
 import os
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
 from . import _native as N
+from . import measured as _measured
 
 PathLike = Union[str, os.PathLike]
 JsonLike = Union[Mapping[str, Any], str, os.PathLike]
@@ -447,6 +448,16 @@ class Result(_Handle):
                     d[a[len(name) + 1:] if a.startswith(name + "_") else a] = self[a]
                 return d
         raise KeyError(name)
+
+    @property
+    def comparisons(self) -> "List[_measured.Comparison]":
+        """Instruments compared with recorded data (their ``measured`` key): chi^2, rms error, scalar readings, notes.
+        See :mod:`ultrafast.measured`."""
+        return _measured.comparisons(self)
+
+    def comparison(self, instrument: str) -> "_measured.Comparison":
+        """The comparison of one instrument with its recorded data (KeyError if it has none)."""
+        return _measured.comparison(self, instrument)
 
     def write(self, directory: PathLike) -> Path:
         p = Path(directory).resolve()

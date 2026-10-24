@@ -398,6 +398,13 @@
           "enum": ["zero", "gaussian"],
           "description": "Outside the measured wavelengths: no light, or Gaussian tails fitted to the data Default: zero."
         },
+        "background": {
+          "description": "Background to subtract: a number (intensity units), \"auto\" (median of the darker edge, robust to a spectrum cut off on one side), \"min\" or \"none\" Default: none."
+        },
+        "threshold": {
+          "type": "number",
+          "description": "After background subtraction, values below this fraction of the peak are set to zero Default: 0."
+        },
         "comment": {
           "description": "Free text."
         },
@@ -485,6 +492,10 @@
         "minPointsPerFwhm": {
           "type": "number",
           "description": "Samples across the transform-limited FWHM Default: 12."
+        },
+        "satelliteLevel": {
+          "type": "number",
+          "description": "Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window Default: 1e-8."
         },
         "comment": {
           "description": "Free text."
@@ -1246,9 +1257,9 @@
       },
       "additionalProperties": false
     },
-    "obj.fitting:measured": {
+    "obj.measured": {
       "type": "object",
-      "description": "Recorded data for one instrument (fitting plugin). [plugin: fitting]",
+      "description": "Recorded data for one instrument, compared with its simulated reading on the measured axis (only where the simulated instrument has readings), after matching the recording's resolution. (docs/reference/measured-data.md)",
       "properties": {
         "file": {
           "type": "string",
@@ -1268,7 +1279,7 @@
           "description": "Uncertainty of each point relative to the data peak Default: 0.02."
         },
         "background": {
-          "description": "A number to subtract, or \"auto\" (median at the axis edges)"
+          "description": "A number to subtract, \"auto\" (median of the darker edge of the axis; for traces, the edges of the columns), \"min\" or \"none\" Default: none."
         },
         "rangeX": {
           "anyOf": [
@@ -1290,7 +1301,7 @@
         },
         "yUnit": {
           "type": "string",
-          "description": "Unit of the y column"
+          "description": "Unit of the y column (\"dB\" for logarithmic data)"
         },
         "rowUnit": {
           "type": "string",
@@ -1314,7 +1325,7 @@
         },
         "weight": {
           "type": "number",
-          "description": "Weight of this instrument in the fit's chi^2 Default: 1."
+          "description": "Weight of this instrument in a fit's chi^2 Default: 1."
         },
         "simulated": {
           "type": "object",
@@ -1335,11 +1346,15 @@
         },
         "resolutionM": {
           "type": "number",
-          "description": "Spectral resolution of the recording instrument (checked against the simulated instrument) [m]"
+          "description": "Resolution (Gaussian FWHM) of the recording spectrometer / profiler, in the unit of the axis [m]"
         },
         "resolutionS": {
           "type": "number",
-          "description": "Temporal / delay resolution of the recording instrument (checked against the simulated instrument) [s]"
+          "description": "Temporal / delay resolution (Gaussian FWHM) of the recording instrument [s]"
+        },
+        "matchResolution": {
+          "type": "boolean",
+          "description": "Curves: when the recording is coarser than the simulated instrument, blur the simulated reading by the missing width before comparing Default: true."
         },
         "comment": {
           "description": "Free text."
@@ -1482,13 +1497,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -1602,13 +1617,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -1999,13 +2014,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -2131,13 +2146,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -2267,13 +2282,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -2387,13 +2402,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -2582,13 +2597,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -2714,13 +2729,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -2878,13 +2893,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3020,13 +3035,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3152,13 +3167,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3289,13 +3304,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3430,13 +3445,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3558,13 +3573,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3678,13 +3693,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3810,13 +3825,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -3932,13 +3947,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -4098,13 +4113,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -4259,13 +4274,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."
@@ -4391,13 +4406,13 @@
         "measured": {
           "anyOf": [
             {
-              "$ref": "#/definitions/obj.fitting:measured"
+              "$ref": "#/definitions/obj.measured"
             },
             {
               "type": "string"
             }
           ],
-          "description": "Recorded data to compare this instrument with: a file name, or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). Fitting plugin."
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
         },
         "comment": {
           "description": "Free text."

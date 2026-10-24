@@ -312,19 +312,67 @@ def pulse(center_wavelength_m: float, duration_fwhm_s: Optional[float] = None, e
 
 
 def measured_spectrum(wavelengths_m: Sequence[float], intensity: Sequence[float], energy: Optional[float] = None,
-                      phase_rad: Optional[Sequence[float]] = None, *, resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None,
+                      phase_rad: Optional[Sequence[float]] = None, *, background: Any = None, threshold: Optional[float] = None,
+                      resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None,
                       extrapolate: Optional[str] = None, center_wavelength_m: Optional[float] = None, **extra) -> "T.Pulse":
-    """An input pulse from a measured spectrum (intensity per unit wavelength, optional phase). ``resolution_m`` is the
-    recording spectrometer's resolution (FWHM); ``deconvolve=True`` removes it (Richardson-Lucy); ``extrapolate``
-    "zero" (no light outside the data, default) or "gaussian" (Gaussian tails fitted to the data)."""
+    """An input pulse from a measured spectrum (intensity per unit wavelength, optional phase), docs/reference/measured-data.md.
+
+    The rows may be in any order: they are sorted, repeated wavelengths are merged and non-finite rows dropped (each
+    reported in the run notes). ``background``: a number to subtract, ``"auto"`` (median of the darker edge -- robust
+    to a spectrum cut off on one side by the spectrometer), ``"min"`` or ``"none"`` (default; a floor above 0.3 % of
+    the peak is then reported, because a flat floor shortens the transform limit). ``threshold``: after subtraction,
+    values below this fraction of the peak are set to zero. ``resolution_m`` is the recording spectrometer's
+    resolution (FWHM); ``deconvolve=True`` removes it (Richardson-Lucy); ``extrapolate`` "zero" (no light outside the
+    recorded range, default) or "gaussian" (Gaussian tails fitted to the data)."""
     sp = _clean({"wavelengthsM": list(wavelengths_m), "intensity": list(intensity), "phaseRad": list(phase_rad) if phase_rad is not None else None,
+                 "background": background, "threshold": threshold,
                  "resolutionM": resolution_m, "deconvolve": deconvolve, "extrapolate": extrapolate})
     return _clean({"shape": "spectrum", "energyJ": energy, "centerWavelengthM": center_wavelength_m, "spectrum": sp, **extra})
 
 
+def measured_spectrum_csv(csv: str, energy: Optional[float] = None, *, wavelength_unit: Optional[str] = None,
+                          background: Any = None, threshold: Optional[float] = None, resolution_m: Optional[float] = None,
+                          deconvolve: Optional[bool] = None, extrapolate: Optional[str] = None,
+                          center_wavelength_m: Optional[float] = None, **extra) -> "T.Pulse":
+    """An input pulse from a spectrum file (CSV: wavelength, intensity, optional phase in rad; ``wavelength_unit`` "nm"
+    (default), "um" or "m"). Relative paths are resolved against the run file's folder. Same cleaning and options as
+    :func:`measured_spectrum`."""
+    sp = _clean({"csv": str(csv), "wavelengthUnit": wavelength_unit, "background": background, "threshold": threshold,
+                 "resolutionM": resolution_m, "deconvolve": deconvolve, "extrapolate": extrapolate})
+    return _clean({"shape": "spectrum", "energyJ": energy, "centerWavelengthM": center_wavelength_m, "spectrum": sp, **extra})
+
+
+def measured(file: Optional[str] = None, *, values: Optional[Mapping[str, Any]] = None, sigma: Optional[float] = None,
+             normalize: Optional[str] = None, background: Any = None, columns: Optional[Mapping[str, str]] = None,
+             range_x: Optional[Sequence[float]] = None, x_unit: Optional[str] = None, y_unit: Optional[str] = None,
+             value_sigma: Optional[float] = None, weight: Optional[float] = None,
+             resolution_m: Optional[float] = None, resolution_s: Optional[float] = None, match_resolution: Optional[bool] = None,
+             scale: Optional[str] = None, sigma_db: Optional[float] = None, floor_db: Optional[float] = None,
+             simulated: Optional[Mapping[str, str]] = None, **extra) -> "T.Measured":
+    """Recorded data for an instrument (its ``measured`` key; docs/reference/measured-data.md): a CSV / NPZ / JSON
+    ``file`` and/or scalar ``values`` ({name: value | [value, sigma]}, e.g. ``{"energyJ": [1.2e-6, 2e-8]}``).
+
+    The simulated reading is compared on the recording's axis and only where the simulated instrument has readings
+    (points outside are left out and counted in the notes). ``resolution_m`` / ``resolution_s``: the recording
+    instrument's resolution (FWHM); if it is coarser than the simulated instrument's, the simulated curve is blurred
+    to match (``match_resolution=False`` to only report it). ``normalize`` "peak" (default) | "maximum" | "area" |
+    "scale" | "none"; ``sigma`` the relative uncertainty per point; ``background`` a number, "auto" (median of the
+    darker edge) or "min"; ``range_x`` [min, max] in SI to compare part of the axis. ``scale="log"`` compares in dB
+    (``sigma_db``, ``floor_db``): use it for contrast and cross-correlator data. Column names carry units
+    (``wavelength_nm``, ``delay_fs``); ``columns`` picks them ({"x", "y", "sigma"} or {"rows", "cols", "trace"}).
+    Use as ``instrument("spectrometer", measured=measured("osa.csv", background="auto"))``."""
+    return _clean({"file": file, "values": dict(values) if values is not None else None, "sigma": sigma, "normalize": normalize,
+                   "background": background, "columns": dict(columns) if columns is not None else None,
+                   "rangeX": list(range_x) if range_x is not None else None, "xUnit": x_unit, "yUnit": y_unit,
+                   "valueSigma": value_sigma, "weight": weight, "resolutionM": resolution_m, "resolutionS": resolution_s,
+                   "matchResolution": match_resolution, "scale": scale, "sigmaDb": sigma_db, "floorDb": floor_db,
+                   "simulated": dict(simulated) if simulated is not None else None, **extra})
+
+
 def instrument(kind: str, at: str = "end", name: Optional[str] = None, **params) -> dict:
     """An instrument (docs/reference/instruments.md). Keyword arguments are its parameters in the engine's names
-    (``resolutionM=...``, ``axis=axis(...)``, ``detector={...}``, ``measured=...`` with the fitting plugin)."""
+    (``resolutionM=...``, ``axis=axis(...)``, ``detector={...}``, ``measured=measured(...)`` to compare with a
+    recording)."""
     return _clean({"kind": kind, "at": at, "name": name, **params})
 
 

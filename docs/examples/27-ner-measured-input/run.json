@@ -1,0 +1,20 @@
+{
+  // Example 27: a digitised input spectrum (floor, rows out of order, a repeated wavelength) with elliptical
+  // polarisation through 10 fused-silica plates; an OSA recording after the plates is compared on its own range.
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run",
+  "version": 2,
+  "name": "ner",
+  "pulse": {
+    "spectrum": { "csv": "data/spectrum_digitised.csv", "background": "auto", "threshold": 0.002 },   // remove the 0.66 % floor and the noise left in the wings
+    "energyJ": 3e-6,
+    "polarization": { "angleDeg": 0, "ellipticity": 0.3 }
+  },
+  "physics": { "selfSteepening": false },
+  "instruments": [
+    { "kind": "polarimeter", "name": "pol_in", "at": "input" },
+    { "kind": "polarimeter", "name": "pol_out", "at": "end" },
+    { "kind": "spectrometer", "name": "osa", "at": "end", "axis": { "from": 1010e-9, "to": 1050e-9, "step": 0.1e-9 },
+      "measured": { "file": "data/spectrum_osa.csv", "background": "auto", "resolutionM": 0.5e-9 } }
+  ]
+}

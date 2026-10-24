@@ -96,7 +96,7 @@ def test_fit_recovers_the_recorded_values(recordings, tmp_path):
     matplotlib.use("Agg")
     from ultrafast import plotting as up
     loaded = up.load(out)
-    assert up._EXTRA_FIGURES["measurements"](loaded) is not None
+    assert up.measurements(loaded) is not None
     assert up._EXTRA_FIGURES["fit"](loaded) is not None
     files = up.report(loaded, tmp_path / "plots", formats=("png",))
     assert "measurements" in files and "fit" in files
@@ -106,5 +106,5 @@ def test_figures_skip_runs_without_data():
     pytest.importorskip("matplotlib")
     from ultrafast import plotting as up
     res = uf.run(_plate(), b.run_spec(_pulse(1e-9), instruments=[b.instrument("spectrometer")]))
-    assert up._EXTRA_FIGURES["measurements"](res) is None
+    assert up.measurements(res) is None
     assert up._EXTRA_FIGURES["fit"](res) is None

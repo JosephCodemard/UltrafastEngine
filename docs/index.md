@@ -52,7 +52,7 @@ polarimeter, camera, each with its own resolution and detector.
 | frequency conversion, OPA / OPCPA | [Crystals](reference/crystals.md) |
 | amplifiers and lasers | [Gain media](reference/gain.md), [Oscillators](reference/oscillators.md) |
 | diffraction, self-focusing, filaments | [Spatial models](reference/transverse.md), [Ionisation](reference/ionization.md) |
-| model my instruments, compare with measurements | [Instruments](reference/instruments.md), [Fitting plugin](plugins/fitting.md) |
+| model my instruments, compare with measurements | [Instruments](reference/instruments.md), [Measured data](reference/measured-data.md) |
 | fit the model to my lab, reuse it on new inputs, propagate backward | [Fitting plugin](plugins/fitting.md), [example 26](examples/26-transforms/README.md) |
 | install or check plugins | [Installing plugins](plugins/installing.md) |
 | scan, optimise, retrieve a pulse | [Studies](reference/studies.md), [Pulse retrieval](reference/retrieval.md) |

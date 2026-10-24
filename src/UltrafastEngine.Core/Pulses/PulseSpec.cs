@@ -51,6 +51,13 @@ namespace UltrafastEngine.Pulses
         public int SpectrumDeconvolveIterations { get; set; } = 30;
         /// <summary>Outside the measured wavelengths: "zero" (no light there) or "gaussian" (Gaussian tails fitted to the data).</summary>
         public string SpectrumExtrapolate { get; set; } = "zero";
+        /// <summary>Background of the measured spectrum: "none" (default), "auto" (median of the darker edge), "min", or
+        /// "value" (then <see cref="SpectrumBackgroundValue"/> is subtracted).</summary>
+        public string SpectrumBackground { get; set; } = "none";
+        /// <summary>Background level subtracted when <see cref="SpectrumBackground"/> is "value" (intensity units).</summary>
+        public double SpectrumBackgroundValue { get; set; }
+        /// <summary>After background subtraction, values below this fraction of the peak are set to zero.</summary>
+        public double SpectrumThreshold { get; set; }
         public double DelayS { get; set; }
         public string PolarizationText { get; set; } = "x";
         /// <summary>Pedestal / contrast components added to the pulse (docs/reference/run-spec.md#pedestal).</summary>
@@ -116,9 +123,25 @@ namespace UltrafastEngine.Pulses
                 p.SpectrumDeconvolve = sp.GetBool("deconvolve", false);
                 p.SpectrumDeconvolveIterations = sp.GetInt("deconvolveIterations", 30);
                 p.SpectrumExtrapolate = sp.GetString("extrapolate", "zero").ToLowerInvariant();
+                if (sp.Has("background"))
+                {
+                    var bgv = sp["background"];
+                    if (bgv.Kind == JsonKind.Number) { p.SpectrumBackground = "value"; p.SpectrumBackgroundValue = bgv.AsDouble(); }
+                    else if (bgv.Kind == JsonKind.Bool) p.SpectrumBackground = bgv.AsBool() ? "auto" : "none";
+                    else
+                    {
+                        p.SpectrumBackground = bgv.AsString().ToLowerInvariant();
+                        if (p.SpectrumBackground != "auto" && p.SpectrumBackground != "min" && p.SpectrumBackground != "none")
+                            throw new JsonException(origin + ".spectrum.background must be a number, \"auto\", \"min\" or \"none\".");
+                    }
+                }
+                p.SpectrumThreshold = sp.GetDouble("threshold", 0);
+                if (p.SpectrumThreshold < 0 || p.SpectrumThreshold >= 1) throw new JsonException(origin + ".spectrum.threshold is a fraction of the peak, 0 <= threshold < 1.");
                 if (p.SpectrumExtrapolate != "zero" && p.SpectrumExtrapolate != "gaussian") throw new JsonException(origin + ".spectrum.extrapolate must be \"zero\" or \"gaussian\".");
                 if (p.SpectrumDeconvolve && !(p.SpectrumResolutionM > 0)) throw new JsonException(origin + ".spectrum.deconvolve needs resolutionM (the recording spectrometer's resolution).");
                 if (!o.Has("shape")) p.Shape = "spectrum";
+                try { p.Prepared(); }
+                catch (ArgumentException ex) { throw new JsonException(origin + ".spectrum: " + ex.Message.Replace("measured spectrum: ", "")); }
             }
             return p;
         }
@@ -172,14 +195,29 @@ namespace UltrafastEngine.Pulses
             wavelengthsM = w.ToArray(); intensity = I.ToArray(); phase = anyPh ? ph.ToArray() : null;
         }
 
+        private PreparedSpectrum _prepared; private object[] _preparedKey;
+
+        /// <summary>The measured spectrum after cleaning (sorted, repeated wavelengths merged, non-finite rows dropped,
+        /// background removed): see <see cref="MeasuredSpectrumPreparation"/>. Null when the pulse has no measured spectrum.</summary>
+        public PreparedSpectrum Prepared()
+        {
+            if (SpectrumWavelengthsM == null || SpectrumIntensity == null) return null;
+            var key = new object[] { SpectrumWavelengthsM, SpectrumIntensity, SpectrumPhaseRad, SpectrumBackground, SpectrumBackgroundValue, SpectrumThreshold };
+            if (_prepared != null && _preparedKey != null && key.Zip(_preparedKey, (a, b) => Equals(a, b)).All(x => x)) return _prepared;
+            _prepared = MeasuredSpectrumPreparation.Prepare(SpectrumWavelengthsM, SpectrumIntensity, SpectrumPhaseRad, SpectrumBackground, SpectrumBackgroundValue, SpectrumThreshold);
+            _preparedKey = key;
+            return _prepared;
+        }
+
         /// <summary>Centre wavelength: explicit, or intensity-weighted mean of the measured spectrum.</summary>
         public double ResolveCenterWavelengthM()
         {
             if (!double.IsNaN(CenterWavelengthM)) return CenterWavelengthM;
-            if (SpectrumWavelengthsM != null)
+            var pr = Prepared();
+            if (pr != null)
             {
                 double num = 0, den = 0;
-                for (int i = 0; i < SpectrumWavelengthsM.Length; i++) { num += SpectrumWavelengthsM[i] * SpectrumIntensity[i]; den += SpectrumIntensity[i]; }
+                for (int i = 0; i < pr.WavelengthsM.Length; i++) { num += pr.WavelengthsM[i] * pr.Intensity[i]; den += pr.Intensity[i]; }
                 if (den > 0) return num / den;
             }
             throw new JsonException("pulse: centerWavelengthM is required.");
@@ -300,6 +338,7 @@ namespace UltrafastEngine.Pulses
             for (int i = 0; i < n; i++) { ax[i] = a[i] * pol.Ex; ay[i] = a[i] * pol.Ey; }
             var pulse = new PulseField(grid, ax, ay, RepRateHz);
             double e0 = pulse.TotalEnergyJ();
+            if (double.IsNaN(e0) || double.IsInfinity(e0)) throw new InvalidOperationException("Input pulse energy is not a finite number (check the pulse values" + (shape == "spectrum" ? " and the measured spectrum" : "") + ").");
             if (e0 <= 0) throw new InvalidOperationException("Input pulse has zero energy on this grid (is the spectrum inside the grid's frequency range?).");
             double target;
             if (double.IsNaN(EnergyJ) && double.IsNaN(AveragePowerW) && !double.IsNaN(PeakPowerW))
@@ -350,9 +389,9 @@ namespace UltrafastEngine.Pulses
         /// (Richardson-Lucy on a uniform wavelength grid), else as given.</summary>
         public (double[] WavelengthsM, double[] Intensity, double[] PhaseRad) MeasuredSpectrum()
         {
-            if (!SpectrumDeconvolve || !(SpectrumResolutionM > 0)) return (SpectrumWavelengthsM, SpectrumIntensity, SpectrumPhaseRad);
-            var o = Enumerable.Range(0, SpectrumWavelengthsM.Length).OrderBy(i => SpectrumWavelengthsM[i]).ToArray();
-            var lx = o.Select(i => SpectrumWavelengthsM[i]).ToArray(); var ly = o.Select(i => Math.Max(0, SpectrumIntensity[i])).ToArray();
+            var pr = Prepared();
+            if (!SpectrumDeconvolve || !(SpectrumResolutionM > 0)) return (pr.WavelengthsM, pr.Intensity, pr.PhaseRad);
+            var lx = pr.WavelengthsM; var ly = pr.Intensity.Select(v => Math.Max(0, v)).ToArray();
             double lo = lx[0], hi = lx[lx.Length - 1];
             double minStep = Enumerable.Range(1, lx.Length - 1).Select(i => lx[i] - lx[i - 1]).Where(d => d > 0).DefaultIfEmpty(SpectrumResolutionM / 5).Min();
             double step = Math.Min(minStep, SpectrumResolutionM / 5);
@@ -380,7 +419,7 @@ namespace UltrafastEngine.Pulses
                 for (int i = 0; i < m; i++) est[i] *= corr[i];
             }
             double[] phase = null;
-            if (SpectrumPhaseRad != null) { var pl = new LinearInterpolator(lx, o.Select(i => SpectrumPhaseRad[i]).ToArray()); phase = x.Select(pl.Evaluate).ToArray(); }
+            if (pr.PhaseRad != null) { var pl = new LinearInterpolator(lx, pr.PhaseRad); phase = x.Select(pl.Evaluate).ToArray(); }
             return (x, est, phase);
         }
 
@@ -389,11 +428,13 @@ namespace UltrafastEngine.Pulses
             var ci = CultureInfo.InvariantCulture;
             string d = Shape + " @ " + (ResolveCenterWavelengthM() * 1e9).ToString("F2", ci) + " nm";
             if (Shape.ToLowerInvariant() != "spectrum") d += ", " + (ResolveDurationS() * 1e15).ToString("G4", ci) + " fs TL";
-            else if (SpectrumWavelengthsM != null && SpectrumWavelengthsM.Length > 1)
+            else if (Prepared() != null)
             {
-                d += string.Format(ci, ", measured {0:F1}-{1:F1} nm ({2} points", SpectrumWavelengthsM.Min() * 1e9, SpectrumWavelengthsM.Max() * 1e9, SpectrumWavelengthsM.Length);
+                var pr = Prepared();
+                d += string.Format(ci, ", measured {0:F1}-{1:F1} nm ({2} points", pr.WavelengthsM[0] * 1e9, pr.WavelengthsM[pr.WavelengthsM.Length - 1] * 1e9, pr.WavelengthsM.Length);
+                if (pr.Background != 0) d += string.Format(ci, ", background {0:G3} % removed", 100 * pr.BackgroundRelative);
                 if (SpectrumResolutionM > 0) d += string.Format(ci, ", resolution {0:G3} nm{1}", SpectrumResolutionM * 1e9, SpectrumDeconvolve ? ", deconvolved" : "");
-                d += SpectrumPhaseRad != null ? ", with phase" : ", flat phase";
+                d += pr.PhaseRad != null ? ", with phase" : ", flat phase";
                 d += SpectrumExtrapolate == "gaussian" ? ", Gaussian tails outside)" : ", no light outside)";
             }
             if (Gdd != 0) d += ", GDD " + (Gdd * 1e30).ToString("G4", ci) + " fs^2";

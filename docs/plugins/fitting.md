@@ -1,4 +1,4 @@
-# Fitting plugin: transforms, measured data, fitting and backward propagation
+# Fitting plugin: transforms, fitting and backward propagation
 
 !!! note "Plugin"
     These features come from the **fitting plugin** (`plugins/fitting`). It ships with the engine and is loaded
@@ -13,7 +13,7 @@ The fitting plugin closes that gap in four steps:
    insert where they happen: spectral phase (dispersion), spectral amplitude (gain narrowing, filters), energy,
    polarisation errors, contrast degradation (replicas, phase noise, ASE pedestals) and wavefront errors. Each is a
    physical operator on the complex field, so spectrum, pulse, contrast and beam stay consistent with each other.
-2. **[Measured data](#measured-data-comparing-with-recordings)** (`"measured"` on any instrument) compares a
+2. **[Measured data](../reference/measured-data.md)** (`"measured"` on any instrument, a core feature) compares a
    simulated instrument with your recording: CSV, NPZ or JSON, curves, 2-D traces and scalar readings, at the
    recording instrument's resolution and sampling.
 3. **[Fitting](#fitting)** (`"fit"` in the run spec) finds the transform numbers you marked, and any other number in
@@ -296,143 +296,10 @@ field over its full bandwidth, and prefer a larger `regularization` for noisy da
 
 ## Measured data: comparing with recordings
 
-**Every measurement has a finite resolution and is sampled at particular points.** Model the recording instrument
-the way it is: the spectrometer's `resolutionM` and its pixel axis, the autocorrelator's delay steps, the
-cross-correlator's scan grid and noise floor, the camera's pixels. The common instrument key
-[`axis`](../reference/instruments.md#axis-where-readings-are-taken) sets where any curve instrument takes its
-readings: explicit points, from/to/step, pixel integration and a Gaussian resolution. State the recording's
-resolution in `measured` (`resolutionM` / `resolutionS`) and the plugin checks it against the simulated instrument.
-If you do not know the resolution, fit it: `instrument:NAME/resolutionM` is a fit parameter like any other.
-
-Give an instrument a `"measured"` entry: a file name, or an object with options.
-
-```jsonc
-{ "kind": "spectrometer", "name": "spec", "at": "end",
-  "measured": "data/spectrum.csv" }                         // shortest form
-
-{ "kind": "autocorrelator", "name": "ac", "at": "end",
-  "measured": { "file": "data/ac.csv", "sigma": 0.02, "background": "auto", "normalize": "peak" } }
-
-{ "kind": "powerMeter", "name": "pm", "at": "end",
-  "measured": { "values": { "energyJ": [1.41e-7, 4e-9] } } }   // scalar readings: value or [value, sigma]
-```
-
-The run then:
-
-1. reads the file and converts the axes to SI units (from the column names);
-2. interpolates the simulated reading onto the measured axis;
-3. normalises both;
-4. reports the residuals, χ² and an rms error.
-
-Nothing is fitted unless the run has a [`"fit"`](#calibration-fit) block. Comparing is cheap: it costs no extra
-simulation.
-
-### File formats
-
-**CSV** (`.csv`, `.txt`, `.dat`): one header row with column names, then numbers. The separator (comma, semicolon,
-tab or spaces) is detected, and lines starting with `#` are ignored. Without a header, the columns are called
-`col0`, `col1`, ...
-
-```
-wavelength_nm,counts
-700.0,24
-700.5,29
-...
-```
-
-**NPZ** (`.npz`, `numpy.savez`): named arrays. This is the format for 2-D traces:
-
-```python
-np.savez("dscan.npz", insertion_mm=z, wavelength_nm=lam, trace=T)    # T.shape == (len(z), len(lam))
-np.savez("frog.npz", delay_fs=tau, wavelength_nm=lam, trace=F)       # rows = delay, columns = wavelength
-```
-
-Supported: `np.savez` and `np.savez_compressed`; dtypes float64/32, int64/32, uint8, bool; C or Fortran order.
-
-**JSON** (`.json`): scalar readings, `{"energyJ": 1.44e-7, "fwhmS": [35e-15, 2e-15]}`. The names are the
-instrument's value names (see [Instruments](../reference/instruments.md)). Each value is either a number or `[value, sigma]`.
-
-### Units from column names
-
-The part after the last `_` is the unit:
-
-| suffix | factor | | suffix | factor |
-|---|---|---|---|---|
-| `nm`, `um`, `mm`, `cm` | 1e-9, 1e-6, 1e-3, 1e-2 | | `fs2`, `ps2`, `fs3` | 1e-30, 1e-24, 1e-45 |
-| `fs`, `ps`, `ns`, `us`, `ms` | 1e-15 … 1e-3 | | `pj`, `nj`, `uj`, `mj` | 1e-12 … 1e-3 |
-| `uw`, `mw`, `kw` | 1e-6, 1e-3, 1e3 | | `thz` | 1e12 |
-
-Anything else (or no suffix) is taken as SI. A wavelength column without a unit and with values above 1e-3 is
-assumed to be in nm (with a note). Override with `"xUnit"`, `"yUnit"`, `"rowUnit"`, `"colUnit"` (e.g. `"um"`).
-
-### Which columns are used
-
-The columns are found by name: the first column that equals, or starts with, one of these names followed by `_`.
-Choose explicitly with `"columns": {"x": "lambda_nm", "y": "I", "sigma": "err"}` (curves) or
-`{"rows": ..., "cols": ..., "trace": ...}` (traces).
-
-| instrument | compared with | measured x / rows | measured y / cols | trace |
-|---|---|---|---|---|
-| `spectrometer` | spectrum vs wavelength | `wavelength`, `lambda`, `wl`, `x` | `spectrum`, `intensity`, `counts`, `signal`, `y` | |
-| `autocorrelator` | trace vs delay | `delay`, `tau`, `x` | `signal`, `ac`, `intensity`, `y` | |
-| `crossCorrelator` | contrast trace vs delay (use `"scale": "log"`) | `delay`, `tau`, `x` | `signal`, `intensity`, `y` (a column ending `_db`, or `"yUnit": "dB"`, is read as dB) | |
-| `scope` | detected power vs time | `time`, `t`, `x` | `signal`, `power`, `voltage`, `y` | |
-| `beamProfile` | fluence vs radius (or x cut) | `radius`, `r`, `x` (`x`, `position`) | `fluence`, `intensity`, `signal`, `y` | |
-| `delayScan` | output energy vs aux delay | `delay`, `x` | `energy`, `signal`, `y` | |
-| `phaseMatchingCurve` | efficiency vs the scan variable | `detuning`, `temperature`, `period`, `wavelength`, `x` | `efficiency`, `signal`, `y` | |
-| `frog` | trace [delay × wavelength] | `delay`, `tau` | `wavelength`, `lambda` | `trace`, `frog` |
-| `dscan` | trace [insertion or GDD × SHG wavelength] | `insertion`, `glass`, `z` (or `gdd`) | `wavelength`, `shg_wavelength`, `lambda` | `trace`, `dscan` |
-| `camera` | fluence image [x × y] | `x` | `y` | `image`, `fluence`, `counts` |
-| any (values) | scalar values | | | |
-
-A CSV curve may have a `sigma` / `err` / `error` / `std` column with per-point uncertainties (in the y units).
-
-Any other instrument, including your own, can be compared through `"simulated": {"x": "<array suffix>", "y": "<array
-suffix>"}` (or `rows`/`cols`/`trace`). These name the instrument's own arrays to compare with, and the data columns are
-then called `x`/`y` (or picked with `"columns"`).
-
-### Options
-
-| key | default | meaning |
-|---|---|---|
-| `file` | | CSV / NPZ / JSON, relative to the run file |
-| `columns` | auto | see above |
-| `normalize` | `peak` | `peak`: the simulation is scaled to a maximum of 1 and the data are scaled onto it by least squares, which is robust against noise on the measured maximum. `maximum`: both divided by their maxima. `area`: both to unit area. `scale`: the simulation times a best-fit factor (reported as `measuredScale`), with the data left in their own units. `none`: absolute comparison (data in SI units of the simulated reading). |
-| `sigma` | 0.02 | uncertainty of each point, relative to the data peak (when there is no sigma column) |
-| `background` | none | a number to subtract, or `"auto"`: the median of the data over the first and last 5 % of the axis (for traces: of the columns), where a recording is normally dark. Use a number if your data have signal at the edges. |
-| `rangeX` | all | `[min, max]` in SI: compare only this part of the curve |
-| `xUnit`, `yUnit`, `rowUnit`, `colUnit` | from names | unit overrides |
-| `values` | | scalar readings `{name: value}` or `{name: [value, sigma]}`; can be combined with a file |
-| `valueSigma` | 0.02 | relative uncertainty of values given without one |
-| `valueWeight` | 1 | extra weight of the scalar residuals |
-| `weight` | 1 | weight of the whole instrument in the fit's χ² |
-| `simulated` | | which arrays of the instrument to compare with (see above) |
-| `scale` | `linear` | `log`: compare in dB, so a −90 dB pedestal weighs as much as the peak (contrast and cross-correlator data, spectral wings) |
-| `sigmaDb` | 1 | `scale: log`: uncertainty of each point in dB |
-| `floorDb` | the data's minimum | `scale: log`: floor relative to the peak; values below it are clipped to it on both sides |
-| `resolutionM`, `resolutionS` | | the recording instrument's resolution: compared with the simulated instrument's (`resolutionM` / `spectralResolutionM`, `resolutionS` / `riseTimeS`, `axis.resolution`), and a mismatch is reported |
-
-**Choosing σ.** χ² only means something if σ is the real noise level. The *reduced* χ² (χ² per point) should be
-close to 1 for a good model with the right σ. If it is much below 1, σ is too large; if it is far above 1, the model
-misses something or σ is too small. The fit uses σ to weight instruments against each other, so a 2-D trace with
-thousands of points dominates a scalar reading unless you set `weight`.
-
-### Outputs
-
-* `summary.json → comparisons[]`: one entry per measured instrument, with `instrument`, `kind`, `at`, `mode`
-  (`curve`, `trace`, `values`), `points`, `chi2`, `reducedChi2`, `rmsError` (rms of simulated − measured over the
-  data peak; for traces this is the FROG "G error"), `normalization`, `values` (measured, simulated, sigma,
-  deviation) and `notes`. `summary.json → measuredChi2` is the sum.
-* Instrument values: `measuredChi2`, `measuredRmsError`, `measuredScale` (with `normalize: scale`),
-  `measured.<value>`.
-* Arrays (`result.npz`, `<name>_...`): curves `measured_x`, `measured_y`, `simulated_on_measured`,
-  `measured_sigma`; traces `measured_rows`, `measured_cols`, `measured_trace`, `simulated_on_measured`.
-* The CLI prints a χ² / rms line per instrument. `ultrafast-plot` draws `measurements.png`: measured points and
-  the simulated curve with the residual, measured / simulated / difference images for traces, and scalar readings
-  in units of σ.
-
-If a file cannot be read or does not fit the instrument, the run continues and gives a warning
-(`Instrument X: measured data not compared: ...`).
+The `"measured"` key of instruments -- recorded CSV / NPZ / JSON data compared with the simulated reading on the
+recording's axis, range and resolution -- is part of the core engine and documented in
+[Measured data](../reference/measured-data.md). The fit uses those comparisons: its χ² is the sum of the
+instruments' χ², each weighted by the instrument's `weight`.
 
 ## Python
 
@@ -448,8 +315,8 @@ line = b.system("cpa", [
                          fx.replica(6e-12, relative_intensity_db=fx.fit_value(-50, -90, -20))]),
     b.dispersion("compressor", gdd_s2=-1e-25)])
 spec = b.run_spec(b.pulse(1030e-9, 100e-15, energy=1e-3),
-                  instruments=[b.instrument("spectrometer", resolutionM=0.2e-9, measured=fx.measured("spectrum.csv", background="auto")),
-                               b.instrument("crossCorrelator", rangeS=[-15e-12, 15e-12], measured=fx.measured("xc.csv", scale="log"))],
+                  instruments=[b.instrument("spectrometer", resolutionM=0.2e-9, measured=b.measured("spectrum.csv", background="auto")),
+                               b.instrument("crossCorrelator", rangeS=[-15e-12, 15e-12], measured=b.measured("xc.csv", scale="log"))],
                   fit=fx.fit(estimator="levenbergMarquardt"))
 res = uf.run(line, spec)
 report = fx.fit_report(res)                # fit.json as a dict: parameters, layers, influence, provenance
@@ -461,9 +328,10 @@ seed = fx.reconstructed_pulse(back)        # a pulse dict for new runs
 ```
 
 Builders: `transform`, `spectral_phase`, `spectral_amplitude`, `energy`, `delay`, `jones`, `replica`, `phase_noise`,
-`pedestal`, `wavefront`, `fit_value`, `fit`, `fit_parameter`, `backward`, `measured` (all with type hints).
-Accessors: `comparisons`, `fit_report`, `fitted_system`, `reconstructed_pulse`. Core helpers for recordings:
-`b.axis(...)` (instrument sampling) and `b.measured_spectrum(...)` (a measured input spectrum with its resolution).
+`pedestal`, `wavefront`, `fit_value`, `fit`, `fit_parameter`, `backward` (all with type hints).
+Accessors: `fit_report`, `fitted_system`, `reconstructed_pulse`. Measured data is core: `b.measured(...)`,
+`res.comparisons`, `b.axis(...)` (instrument sampling) and `b.measured_spectrum(...)` ([Measured data](../reference/measured-data.md));
+`fx.measured` and `fx.comparisons` remain as aliases.
 
 ## Practical advice
 

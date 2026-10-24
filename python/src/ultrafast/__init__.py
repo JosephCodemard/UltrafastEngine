@@ -21,15 +21,16 @@ from . import crystal
 from . import laser
 from . import plugins
 from . import materials
+from . import measured
 from . import types
 
 __version__ = "2.1.8b0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
-           "command", "study", "coherence", "retrieve", "build", "crystal", "laser", "plugins", "materials", "types", "plot", "load"]
+           "command", "study", "coherence", "retrieve", "build", "crystal", "laser", "plugins", "materials", "measured", "types", "plot", "load"]
 
 
 def plot(result, what: str = "overview", ax=None):
-    """Quick matplotlib plots of a :class:`Result` or a CLI results folder ("overview", "spectrum",
+    """Quick matplotlib plots of a :class:`Result` or a CLI results folder ("overview", "measurements", "spectrum",
     "temporal", "phase", "losses", "elements"). Full reports: :func:`ultrafast.plotting.report`."""
     from .plotting import plot as _plot
     return _plot(result, what, ax)

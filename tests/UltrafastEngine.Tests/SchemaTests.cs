@@ -78,7 +78,7 @@ namespace UltrafastEngine.Tests
                 Assert.True(rd.Has("instrument." + k), "instrument." + k + " in the run schema");
             // plugin keys appear too (fitting plugin registered by the runner)
             Assert.True(r.GetObject("properties").Has("fit"), "fit (fitting plugin) in the run schema");
-            Assert.True(rd.GetObject("instrument.spectrometer").GetObject("properties").Has("measured"), "measured (fitting plugin) on instruments");
+            Assert.True(rd.GetObject("instrument.spectrometer").GetObject("properties").Has("measured"), "measured (core) on instruments");
             // valid JSON round trip
             JsonValue.Parse(s.ToJson(true)); JsonValue.Parse(r.ToJson(true));
         }

@@ -29,6 +29,9 @@ namespace UltrafastEngine.Results
         /// <summary>Full pulses kept at "input", "end", and every element id (references, not copies).</summary>
         public Dictionary<string, PulseField> At { get; } = new Dictionary<string, PulseField>(StringComparer.OrdinalIgnoreCase);
         public List<InstrumentOutput> Instruments { get; } = new List<InstrumentOutput>();
+        /// <summary>Instruments compared with recorded data ("measured" in the instrument spec): residuals, chi^2,
+        /// rms error, scalar readings. docs/reference/measured-data.md.</summary>
+        public List<Measured.Comparison> Comparisons { get; } = new List<Measured.Comparison>();
         /// <summary>Data that plugins attach to the result (e.g. the fitting plugin's comparisons and fit report),
         /// by key. Plugins add their summary sections and files through <see cref="Plugins.IResultExtension"/>.</summary>
         public Dictionary<string, object> Extensions { get; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -125,6 +128,11 @@ namespace UltrafastEngine.Results
             var ins = new JsonArray();
             foreach (var i in Instruments) ins.Add(i.ToJson());
             o.Set("instruments", ins);
+            if (Comparisons.Count > 0)
+            {
+                o.Set("comparisons", new JsonArray(Comparisons.Select(c => (JsonValue)c.ToJson())));
+                o.Set("measuredChi2", Comparisons.Sum(c => c.Chi2));
+            }
             foreach (var ext in Plugins.PluginManager.Extensions) ext.ContributeSummary(this, o);
             o.Set("probes", JsonValue.FromArray(Snapshots.Select(s => s.Id)));
             o.Set("arrays", new JsonArray(Arrays().Select(a => (JsonValue)new JsonObject().Set("name", a.Name).Set("shape", JsonValue.FromArray(a.Shape.Select(x => (double)x))).Set("unit", a.Unit).Set("description", a.Description))));
