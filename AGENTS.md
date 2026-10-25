@@ -16,7 +16,11 @@ dotnet build UltrafastEngine.sln -c Release
 dotnet run --project tests/UltrafastEngine.Tests -f net10.0 -c Release            # C# tests (-- --slow: all; -- Name: filter)
 python3 python/tools/build_engine.py && python3 -m pytest python/tests             # Python
 python3 -m mkdocs build --strict                                                   # docs
+./build.sh --help                                                                  # release packages (docs/releasing.md)
 ```
+
+Claude Code users: `CLAUDE.md` (imports this file), folder `CLAUDE.md` files, and `.claude/` (commands, subagents,
+skills, hooks) -- see [docs/claude-code.md](docs/claude-code.md).
 
 ## Rules
 

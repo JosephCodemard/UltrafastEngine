@@ -2,7 +2,7 @@
 
 > C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 2.1.8-beta.
 
-Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change the code). Every option with units and defaults: docs/reference/options.md.
+Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change the code; Claude Code: CLAUDE.md). Every option with units and defaults: docs/reference/options.md.
 
 ## Guides
 - [Home](docs/index.md)
@@ -63,6 +63,8 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Testing & validation](docs/testing.md)
 - [Roadmap](docs/roadmap.md)
 - [For AI agents](docs/agents.md)
+- [Claude Code setup](docs/claude-code.md): CLAUDE.md files, commands, subagents, skills, hooks
+- [Releasing](docs/releasing.md): build.sh / build.bat release packages
 
 ## Design notes
 - [Phase 2 proposal (active media)](docs/design/phase2-active-media.md)

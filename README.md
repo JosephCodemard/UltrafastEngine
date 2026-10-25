@@ -102,11 +102,13 @@ generation in PPLN to better than 1 % in the converted energies. See [Capabiliti
 |---|---|
 | [Getting started](docs/getting-started.md) | build on Windows, macOS (including Apple silicon) and Linux; Python setup |
 | [Tutorials](docs/tutorials/index.md) | five step-by-step tutorials: first run, diagnostics, a CPA chain, measured data, contrast |
-| [Examples](docs/examples/README.md) | 26 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier, OPCPA and a fitted CPA line |
+| [Examples](docs/examples/README.md) | 27 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier, OPCPA and a fitted CPA line |
 | [Reference](docs/reference/system-file.md) | system file, run spec, every element and instrument, models, results |
 | [Capabilities and limitations](docs/capabilities.md) | what is modelled, how it is validated, and what is not modelled |
 | [Plugins](docs/plugins/index.md) | the fitting and zemax plugins, [installing plugins](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
 | [For AI agents](docs/agents.md) | how to drive and extend the engine programmatically ([`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt)) |
+| [Claude Code](docs/claude-code.md) | the Claude Code setup: `CLAUDE.md` files, project commands, subagents, skills and hooks |
+| [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages (CLI, Python wheel, C API, C# libraries, OpticStudio extension) for each platform, with only the plugins you choose |
 
 The documentation is a [MkDocs](https://www.mkdocs.org) site: `pip install mkdocs-material && mkdocs serve`.
 
@@ -121,6 +123,8 @@ plugins/fitting, plugins/zemax
 schemas/                     JSON Schemas of system files and run specs
 docs/                        documentation, tutorials, examples, synthetic test data
 tests/                       C# test suite (no external framework)
+build/, build.sh, build.bat  MSBuild helpers and the release packager (docs/releasing.md)
+CLAUDE.md, .claude/          Claude Code setup (docs/claude-code.md)
 ```
 
 ## Status

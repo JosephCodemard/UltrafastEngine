@@ -23,8 +23,10 @@
     <PublishAot>true</PublishAot>
     <NativeLib>Shared</NativeLib>
     <SelfContained>true</SelfContained>
-    <!-- the published library is called ultrafast(.dll/.so/.dylib) -->
+    <!-- the published library is ultrafast.dll on Windows, libultrafast.so / libultrafast.dylib elsewhere (the names
+         the Python package, CMake's find_library and the C linker look for) -->
     <TargetName>ultrafast</TargetName>
+    <TargetName Condition="!$(RuntimeIdentifier.StartsWith('win'))">libultrafast</TargetName>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>

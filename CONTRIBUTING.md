@@ -16,3 +16,6 @@ Thank you for helping! A few rules keep the engine trustworthy:
    page entry and, ideally, an example.
 
 Code style: 4 spaces, braces on new lines for types/methods (see `.editorconfig`), `var` where the type is obvious.
+
+AI coding agents: see `AGENTS.md`; Claude Code reads `CLAUDE.md` and `.claude/` ([docs/claude-code.md](docs/claude-code.md)).
+Release packages: `./build.sh` / `build.bat` ([docs/releasing.md](docs/releasing.md)).

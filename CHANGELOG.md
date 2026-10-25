@@ -21,6 +21,17 @@
   of window instead of several.
 
 ### Added
+- **Release packaging**: `build.sh` / `build.bat` (`build/package.py`, standard library only) compile and lay out
+  release folders without source code for any of win-x64, win-x86, win-arm64, linux-x64, linux-arm64, osx-arm64,
+  osx-x64 or portable: the self-contained `ultrafast` CLI, a Python wheel (hosted engine for every OS, or the native
+  engine for one platform), the C API (header, NativeAOT library, CMake example), C# libraries (net10.0, net48) and
+  the OpticStudio extension, each with only the plugins chosen (`--plugins fitting zemax | none`), a README, the
+  schemas and a SHA-256 manifest. ZOS-API assemblies are never packaged. Docs: [Releasing](docs/releasing.md).
+- **Claude Code setup**: `CLAUDE.md` (project memory, imports `AGENTS.md`), folder `CLAUDE.md` files for the engine,
+  tests, Python, plugins and docs, and `.claude/` with project commands (`/test`, `/regen`, `/verify`,
+  `/physics-change`, `/new-option`, `/bug-report`, `/release`, `/example-check`), subagents (`test-runner`,
+  `physics-reviewer`, `docs-sync`), skills (`engine-physics`, `run-simulations`) and hooks that block edits to the
+  ZOS-API assemblies, generated files and build output. Docs: [Claude Code](docs/claude-code.md).
 - **Vector Raman response** (Hellwarth tensor: isotropic h_a and anisotropic h_b parts) for elliptical and circular
   light, in the 1-D and spatial models. `anisotropicFraction` on every delayed-response model; fused silica
   (`silica`, `blowWood`, `hollenbeck`, the built-in FusedSilica) defaults to 0.25, `linAgrawal` uses its own
@@ -39,6 +50,10 @@
   resolution, file formats, Python); nonlinear.md section on polarisation, circular light and NER; `grid.satelliteLevel`.
 
 ### Fixed
+- The NativeAOT library is named `libultrafast.so` / `libultrafast.dylib` on Linux / macOS (it was `ultrafast.so`,
+  which the Python package and CMake's `find_library` did not find); the Python loader accepts both names.
+- Fits count only the compared points (not those outside an instrument's range) in the point count and the
+  reduced χ².
 - A measured input spectrum with a repeated wavelength (common in digitised curves, together with rows out of order)
   turned every result into NaN with only a "could not size the grid" warning. Rows are now sorted and repeated
   wavelengths merged; a non-finite input energy stops the run with a clear message.

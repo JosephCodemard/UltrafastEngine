@@ -1,6 +1,9 @@
 site_name: UltrafastEngine
 site_description: Nonlinear ultrafast pulse propagation through complete optical systems
 docs_dir: docs
+# CLAUDE.md files are instructions for Claude Code, not pages of the site
+exclude_docs: |
+  CLAUDE.md
 theme:
   name: readthedocs
 nav:
@@ -57,6 +60,8 @@ nav:
   - Testing & validation: testing.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md
+  - Claude Code: claude-code.md
+  - Releasing (build.sh): releasing.md
   - Design notes:
       - Development history: design/history.md
       - Phase 2 proposal (active media): design/phase2-active-media.md

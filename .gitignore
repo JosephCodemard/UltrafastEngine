@@ -27,3 +27,10 @@ plugins/zemax/src/UltrafastEngine.Zemax/lib/*.dll
 # update leftovers
 _to_delete/
 _update/
+
+# release packages (build.sh / build.bat)
+dist/
+
+# personal Claude Code files
+CLAUDE.local.md
+.claude/settings.local.json

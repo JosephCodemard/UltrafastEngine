@@ -129,6 +129,8 @@ def _candidates():
     if env:
         yield Path(env)
     yield _HERE / "bin" / "native" / _native_name()
+    if not sys.platform.startswith("win"):   # older builds named it ultrafast.so / ultrafast.dylib
+        yield _HERE / "bin" / "native" / _native_name()[3:]
     yield _HERE / "bin" / "hosted" / "UltrafastEngine.Native.dll"
     repo = _HERE.parents[2] if len(_HERE.parents) > 2 else _HERE
     for cfg in ("Release", "Debug"):
