@@ -27,6 +27,7 @@ _HERE = Path(__file__).resolve().parent
 EXPORTS: Dict[str, str] = {
     "uf_version": "Version", "uf_last_error": "LastError", "uf_free": "Free", "uf_release": "Release",
     "uf_capabilities": "Capabilities", "uf_crystal_phase_match": "CrystalPhaseMatch", "uf_command": "Command",
+    "uf_devices_json": "DevicesJson", "uf_set_default_backend": "SetDefaultBackend",
     "uf_system_load_file": "SystemLoadFile", "uf_system_load_json": "SystemLoadJson",
     "uf_system_to_json": "SystemToJson", "uf_system_validate": "SystemValidate",
     "uf_run_create": "RunCreate", "uf_run_create_file": "RunCreateFile",
@@ -91,6 +92,8 @@ SIGNATURES = {
     "uf_release": (None, [vp]),
     "uf_capabilities": (ctypes.c_int, [vpp]),
     "uf_command": (ctypes.c_int, [ctypes.c_char_p, vpp]),
+    "uf_devices_json": (ctypes.c_int, [ctypes.c_char_p, vpp]),
+    "uf_set_default_backend": (ctypes.c_int, [ctypes.c_char_p]),
     "uf_crystal_phase_match": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_load_file": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_load_json": (ctypes.c_int, [ctypes.c_char_p, vpp]),

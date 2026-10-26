@@ -6,7 +6,7 @@ documentation index: [llms.txt](llms.txt).
 ## What this is
 
 UltrafastEngine 2.1.8-beta: a C# engine for nonlinear ultrafast pulse propagation through optical systems, with a
-CLI (`ultrafast`), a C API, a Python package (`ultrafast`) and plugins (fitting, zemax). Inputs are a system file
+CLI (`ultrafast`), a C API, a Python package (`ultrafast`) and plugins (fitting, zemax, gpu). Inputs are a system file
 (`.ufs`) and a run spec (`run.json`), both JSON with comments; outputs are `summary.json`, `result.npz`, CSVs.
 
 ## Build and test
@@ -45,6 +45,6 @@ skills, hooks) -- see [docs/claude-code.md](docs/claude-code.md).
 | engine | `src/UltrafastEngine.Core` (`Engine/` compiler, executor, planner, studies; `Physics/`, `Optics/`, `Materials/`, `Instruments/`, `Retrieval/`, `Numerics/`) |
 | CLI / C API | `src/UltrafastEngine.Cli`, `src/UltrafastEngine.Native` (`include/ultrafast.h`) |
 | Python | `python/src/ultrafast` (`build.py` builders, `types.py` generated TypedDicts) |
-| plugins | `plugins/fitting`, `plugins/zemax` |
+| plugins | `plugins/fitting`, `plugins/zemax`, `plugins/gpu` (CUDA / OpenCL back-ends) |
 | docs | `docs/` (MkDocs), reference in `docs/reference/` |
 | synthetic test data with answers | `docs/assets/` |

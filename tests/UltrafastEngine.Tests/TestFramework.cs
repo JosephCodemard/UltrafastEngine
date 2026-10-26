@@ -50,6 +50,7 @@ namespace UltrafastEngine.Tests
             // the first-party plugins are referenced by this runner: register them in code (as a NativeAOT host would)
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Fitting.FittingPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Zemax.ZemaxPlugin());
+            UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Gpu.GpuPlugin());
             var filters = args.Where(a => !a.StartsWith("--")).ToArray();
             bool includeSlow = args.Contains("--slow") || filters.Length > 0;
             bool verbose = args.Contains("--verbose");

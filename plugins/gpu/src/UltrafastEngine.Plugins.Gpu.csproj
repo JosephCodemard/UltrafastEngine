@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The GPU plugin: compute back-ends "cuda" (NVIDIA driver API + NVRTC, cuFFT / cuBLAS when installed) and "opencl"
+    (any OpenCL 1.2 device with double precision). Every vendor library is loaded at run time, so the plugin builds
+    and loads on machines without a GPU (the back-ends then report why they are unavailable). No NuGet packages.
+    Laid out as an installable plugin folder in artifacts/plugins/gpu (see build/Plugin.targets). The NativeAOT C
+    library (src/UltrafastEngine.Native) compiles this project in and registers it at start-up.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <RootNamespace>UltrafastEngine.Plugins.Gpu</RootNamespace>
+    <AssemblyName>UltrafastEngine.Plugins.Gpu</AssemblyName>
+    <PluginId>gpu</PluginId>
+    <PluginFolder>$(MSBuildThisFileDirectory)../</PluginFolder>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)src/UltrafastEngine.Core/UltrafastEngine.Core.csproj" Private="false" />
+  </ItemGroup>
+  <Import Project="$(RepoRoot)build/Plugin.targets" />
+</Project>

@@ -129,7 +129,12 @@ namespace UltrafastEngine.Schema
                 .Num("collisionTimeS", "s", "Electron collision time").Num("recombinationTimeS", "s", "Recombination / trapping time").Num("recombinationBetaM3PerS", "m^3/s", "Two-body recombination")
                 .Bool("avalanche", "Avalanche (impact) ionisation", "true for solids").Bool("absorption", "Plasma and ionisation losses", "true").Str("species", "Gas species (when the material does not say)"));
             add(new ComponentSpec("compute", "", "Compute back-end (docs/reference/speed.md).")
-                .Str("backend", "Back-end name (cpu, or one a plugin registers)", "cpu").Int("threads", "Worker threads (0 = all cores)", "0"));
+                .Str("backend", "Back-end: cpu, auto (the fastest available that supports each element), or one a plugin registers (cuda, opencl)", "cpu")
+                .Int("threads", "Worker threads (0 = all cores)", "0")
+                .Enum("fft", new[] { "auto", "managed", "fftw", "accelerate" }, "CPU FFT provider (process-wide): auto = Accelerate on macOS, FFTW when installed, else managed", "ULTRAFAST_FFT or auto")
+                .Int("device", "GPU device index (ultrafast devices lists them)", "-1 (first suitable)")
+                .Int("gpuMinPoints", "backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU", "8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end")
+                .Int("deviceSlots", "GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits", "4"));
             add(new ComponentSpec("pedestalComponent", "", "A pedestal / contrast component of the input pulse (docs/reference/run-spec.md#pedestal).").Open()
                 .Enum("kind", new[] { "replica", "prePulse", "postPulse", "ase", "phaseNoise", "exponential" }, "Component", required: true)
                 .Num("delayS", "s", "Delay (replica; ASE envelope centre)").Num("relativeIntensity", "", "Intensity relative to the main peak").Num("relativeEnergy", "", "Energy relative to the main pulse (replica)")

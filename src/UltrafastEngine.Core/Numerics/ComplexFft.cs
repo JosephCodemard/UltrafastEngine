@@ -61,6 +61,19 @@ namespace UltrafastEngine.Numerics
             int n = a.Length;
             if (n == 0) return;
             if ((n & (n - 1)) != 0) { MixedRadixFft.Transform(a, exponentSign, normalize); return; }   // any length: mixed radix / Bluestein
+            if (UseStockham && n >= 256) { StockhamFft.Transform(a, exponentSign, normalize); return; }   // radix-4 Stockham (faster)
+            Radix2InPlace(a, exponentSign, normalize);
+        }
+
+        /// <summary>Power-of-two transforms use the radix-4 Stockham FFT (<see cref="StockhamFft"/>); false selects the
+        /// original radix-2 Cooley-Tukey (kept as a reference for the tests).</summary>
+        public static bool UseStockham = true;
+
+        /// <summary>The original in-place radix-2 Cooley-Tukey transform (power-of-two lengths).</summary>
+        public static void Radix2InPlace(Complex[] a, int exponentSign, bool normalize)
+        {
+            int n = a.Length;
+            if (n == 0) return;
 
             // Bit-reversal permutation
             for (int i = 1, j = 0; i < n; i++)
@@ -265,18 +278,28 @@ namespace UltrafastEngine.Numerics
     /// <summary>The built-in managed radix-2 FFT (parallelised for large N).</summary>
     public sealed class ManagedRadix2Fft : IFft
     {
-        public string Name => "managed-radix2";
+        public string Name => "managed";
         public void TransformInPlace(Complex[] data, int exponentSign, bool normalize) => ComplexFft.TransformInPlace(data, exponentSign, normalize);
     }
 
     /// <summary>Global FFT backend selection.</summary>
     public static class Fft
     {
-        private static IFft _provider = new ManagedRadix2Fft();
-        /// <summary>The backend used by <see cref="SpectralTransform"/>. Thread-safe to read; set once at start-up.</summary>
+        private static IFft _provider;
+        /// <summary>The backend used by <see cref="SpectralTransform"/>. Thread-safe to read; set once at start-up. The
+        /// first use picks one with <see cref="FftProviders"/>: ULTRAFAST_FFT if set, else "auto" (Accelerate on macOS,
+        /// FFTW when installed, else the managed FFT).</summary>
         public static IFft Provider
         {
-            get => _provider;
+            get
+            {
+                var p = _provider;
+                if (p != null) return p;
+                var env = System.Environment.GetEnvironmentVariable("ULTRAFAST_FFT");
+                p = FftProviders.Get(string.IsNullOrEmpty(env) ? "auto" : env, out _) ?? FftProviders.Managed;
+                _provider = p;
+                return p;
+            }
             set => _provider = value ?? throw new System.ArgumentNullException(nameof(value));
         }
     }

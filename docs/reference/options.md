@@ -1148,8 +1148,12 @@ Compute back-end (docs/reference/speed.md).
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `backend` | string |  | cpu | Back-end name (cpu, or one a plugin registers) |
+| `backend` | string |  | cpu | Back-end: cpu, auto (the fastest available that supports each element), or one a plugin registers (cuda, opencl) |
 | `threads` | integer |  | 0 | Worker threads (0 = all cores) |
+| `fft` | `"auto"` \| `"managed"` \| `"fftw"` \| `"accelerate"` |  | ULTRAFAST_FFT or auto | CPU FFT provider (process-wide): auto = Accelerate on macOS, FFTW when installed, else managed |
+| `device` | integer |  | -1 (first suitable) | GPU device index (ultrafast devices lists them) |
+| `gpuMinPoints` | integer |  | 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end | backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU |
+| `deviceSlots` | integer |  | 4 | GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits |
 
 ### `detector`
 

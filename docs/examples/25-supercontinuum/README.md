@@ -9,6 +9,9 @@ ultrafast run pcf.ufs run.json -o results            # ~50 s
 ultrafast study coherence.json -o coherence-results    # 6 runs with quantum noise, ~3 min
 ```
 
+With an NVIDIA or OpenCL GPU, add `--backend auto` (or `"compute": {"backend": "auto"}`): the fibre runs on the
+device with the same result ([GPU](../../plugins/gpu.md)). Installing FFTW (Windows / Linux) speeds up the CPU run.
+
 What to look at:
 
 * `results/summary.json → elements[0].values`: soliton number N = 8.7, L_D = 6.8 cm, L_NL = 0.9 mm, fission length

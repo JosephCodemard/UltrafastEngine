@@ -8,8 +8,8 @@ described in [docs/capabilities.md](docs/capabilities.md).
 | | result |
 |---|---|
 | `dotnet build UltrafastEngine.sln -c Release` | builds; one expected warning when no ZOS-API is present (the Zemax binding then builds against stubs) |
-| C# tests, .NET 10, incl. slow (`-- --slow`) | **213/213 pass** (incl. the NER and measured-data tests) |
-| C# tests, .NET Framework 4.8 build under Mono, incl. slow | **213/213 pass** |
+| C# tests, .NET 10, incl. slow (`-- --slow`) | **225/225 pass** (incl. the NER, measured-data, compute and GPU tests; the GPU tests ran on an OpenCL CPU device, PoCL) |
+| C# tests, .NET Framework 4.8 build under Mono, incl. slow | **225/225 pass** (GPU tests on PoCL) |
 | Python tests (hosted engine), `ULTRAFAST_SLOW=1`, with pyNLO | **61/61 pass**, including the pyNLO cross-checks (fibre, Raman models, gain, DFG: scalar results unchanged by the vector Raman), the measured-data tests and the transform / fit / backward tests |
 | Every CLI example (31 run specs, incl. the new 27) with `ULTRAFAST_STRICT_OPTIONS=1` | run (09 after 08, and 26's new-input and backward runs after its fit, as the READMEs say) |
 | Python examples (quickstart, 03, 04, 12, 16, 18, 27 `ner.py`) | run |
@@ -19,6 +19,7 @@ described in [docs/capabilities.md](docs/capabilities.md).
 | Generated files (schemas, options.md, `ultrafast.types`, python-api.md) | current (checked by tests) |
 | `mypy` on `ultrafast.build` + `ultrafast.types` and `ultrafast_fitting.build` | no issues; a misspelt element key is reported |
 | C header | `gcc -fsyntax-only` passes |
+| GPU plugin, OpenCL path | `ultrafast devices --selftest` on PoCL: FFT, 1-D scalar / vector, radial, cartesian all match the CPU to ~1e-15; the same through the NativeAOT library (`uf_devices_json`) and the C++ example `devices.cpp`; Python `uf.devices()` / runs on the device |
 
 ## Not verifiable here -- please check on your machines
 
@@ -30,7 +31,14 @@ described in [docs/capabilities.md](docs/capabilities.md).
    nuget.org runtime packs. On Linux x64 it was built (through `build.sh --cpp`), loaded by the C++ example and by
    the native Python wheel.
 4. **Visual Studio 2026**: the solution targets .NET 10 + .NET Framework 4.8 and should open as is.
-5. **Release packages on macOS and Windows**: `./build.sh --all --platform osx-arm64` on the Mac and
+5. **GPU plugin on real GPUs**: no GPU here. The OpenCL path was verified on PoCL (a CPU OpenCL runtime); the CUDA
+   path (driver API, NVRTC, cuFFT, cuBLAS) shares the kernels and steppers but has not run. On an NVIDIA machine run
+   `ultrafast devices --selftest --benchmark` (Windows and Linux), and on an AMD / Intel GPU with OpenCL; send the
+   `--json` output if a check fails. The speed-ups in docs/reference/speed.md are expectations until measured.
+6. **Accelerate FFT on macOS**: written against vDSP's documented API, not run here (Linux only); the provider is
+   used only after it passes its self-check against the managed FFT, so a fault shows up as a note and a fall-back.
+   `ultrafast devices` on the Mac shows the provider in use.
+7. **Release packages on macOS and Windows**: `./build.sh --all --platform osx-arm64` on the Mac and
    `build.bat --all --platform win-x64 --zos-api-dir ...` on Windows (NativeAOT parts must be built on their own OS).
 
 ## Known limitations (summary; full list in docs/capabilities.md)
@@ -41,8 +49,8 @@ described in [docs/capabilities.md](docs/capabilities.md).
 - Rotational Raman: molecular constants from the literature, dephasing times approximate; electronic n2 values
   spread by 10-30 % in the literature.
 - Envelope-mode plasma uses the carrier frequency for the Drude term (exact in carrier-resolved mode).
-- Compute back-ends: only the CPU back-end ships; GPU back-ends are plugin work. Studies do not pipeline elements
-  across points.
+- GPU (gpu plugin): 1-D and spatial envelope propagation only; user responses, rotational Raman, position-dependent
+  properties, carrier-resolved, χ(2) and gain stay on the CPU. Studies do not pipeline elements across points.
 - Gain: ASE only in 1-D, no thermal stress birefringence; library cross sections good to ~10-20 %.
 - Oscillators relax the gain dynamics; first-principles spatial KLM is slow (experimental).
 - Fibres: single mode, frequency-independent effective area, unsaturated gain.

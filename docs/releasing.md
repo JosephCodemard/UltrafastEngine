@@ -6,7 +6,7 @@ copy to another computer: the programs and libraries you choose, the plugins you
 
 ```bash
 ./build.sh                                               # CLI for this machine, all plugins
-./build.sh --cli --python --cpp --csharp --plugins fitting zemax --platform osx-arm64 win-x64 linux-x64
+./build.sh --cli --python --cpp --csharp --plugins fitting zemax gpu --platform osx-arm64 win-x64 linux-x64
 ./build.sh --all --plugins none --platform host          # everything, core only
 ./build.sh --list                                        # platforms, plugins, what this machine can build
 ```
@@ -37,7 +37,7 @@ executable bits):
 | option | meaning |
 |---|---|
 | `--cli`, `--python`, `--cpp`, `--csharp`, `--zemax`, `--all` | components (default: `--cli`) |
-| `--plugins ID ...` | `fitting` (aliases `transform`, `fit`), `zemax`, `all` (default), `none` |
+| `--plugins ID ...` | `fitting` (aliases `transform`, `fit`), `zemax`, `gpu` (aliases `cuda`, `opencl`), `all` (default), `none` |
 | `--platform RID ...` | `win-x64` (`win64`), `win-x86` (`x86`, `win32`), `win-arm64`, `linux-x64` (`linux`), `linux-arm64`, `linux-musl-x64`, `osx-arm64` (`mac`), `osx-x64` (`mac-intel`), `portable` (framework-dependent, any OS), `host` (this machine; default) |
 | `--framework-dependent` | the CLI uses an installed .NET 10 runtime (about 8 MB instead of about 75 MB) |
 | `--single-file` | the CLI as one executable |
@@ -63,7 +63,9 @@ package is still built.
 
 The selected plugins go into `bin/plugins/`, the hosted wheel (`ultrafast/bin/hosted/plugins/`) and
 `csharp/plugins/`. Users add others with `ultrafast plugins install <folder or zip>` (copies into
-`~/.ultrafast/plugins`). The NativeAOT library (C API, native wheel) cannot load plugins at run time.
+`~/.ultrafast/plugins`). The NativeAOT library (C API, native wheel) cannot load plugins at run time; the `gpu`
+plugin is compiled into it when selected (`-p:UF_WITH_GPU=false` otherwise). The GPU back-ends load the vendor
+libraries (CUDA driver, NVRTC, OpenCL) from the target computer at run time; nothing NVIDIA-owned is packaged.
 
 ## The ZOS-API rule
 

@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Changed
+- **Faster CPU propagation**: the managed FFT for powers of two is now a radix-4 Stockham autosort (3-10x faster than
+  the radix-2 code at 8192-65536 points), the 1-D envelope operator works in place without allocations, and the
+  adaptive stepper reuses its buffers. The supercontinuum example went from 23.4 s to 8.8 s (managed FFT) or 5.7 s
+  (FFTW) on a 2-core machine, with the same output to 1e-12.
+- Run specs without `compute.backend` use the process default (`cpu` unless changed) instead of always `cpu`.
 - **Measured data is part of the core.** The instruments' `"measured"` key (comparison with recorded CSV / NPZ /
   JSON data), `RunResult.Comparisons` (`UltrafastEngine.Measured`), the `comparisons` / `measuredChi2` summary
   sections, the CLI's "measured data" lines and the `measurements` figure moved from the fitting plugin into the
@@ -21,6 +26,26 @@
   of window instead of several.
 
 ### Added
+- **GPU plugin** (`plugins/gpu`): compute back-ends `cuda` (NVIDIA driver API, kernels compiled at run time by NVRTC,
+  cuFFT / cuBLAS when found) and `opencl` (any double-precision OpenCL 1.2 device). One kernel source serves both.
+  On the device: 1-D envelope propagation (scalar / vector Kerr with the coherent coupling, scalar / vector Raman,
+  self-steepening, z-dependent beam area) and radial / cartesian spatial propagation (the Hankel transform as one
+  matrix product over all frequencies, batched FFTs; envelope or UPPE coupling), with the same ERK4(3)-IP / RK4IP
+  schemes, step control and B-integral as the CPU; results agree with the CPU to rounding (~1e-15 in the
+  self-test). Unsupported elements (user responses, rotational Raman, position-dependent properties, carrier-resolved,
+  χ(2), gain) stay on the CPU with a note; a device error falls back to the CPU. Concurrent runs (studies, fits)
+  get one stream / queue each (`compute.deviceSlots`). No NuGet packages; vendor libraries load at run time, so the
+  plugin loads everywhere. Docs: [GPU](docs/plugins/gpu.md).
+- `"compute": {"backend": "auto"}`: each nonlinear element goes to the fastest device back-end that supports it and
+  is large enough (`gpuMinPoints`, default 8192 samples 1-D, 32768 spatial), else to the CPU. New `compute` keys:
+  `fft`, `device`, `gpuMinPoints`, `deviceSlots`. Process default: `ULTRAFAST_BACKEND`, `ultrafast run --backend`,
+  `uf.set_default_backend`, `uf_set_default_backend`.
+- `ultrafast devices [--selftest] [--benchmark]`, Python `uf.devices()`, `uf.benchmark()`, `uf.set_default_backend()`,
+  builder `b.compute()` (and `run_spec(compute=...)`), C `uf_devices_json`, `uf_set_default_backend`, commands
+  `devices` / `compute.default`; the NativeAOT library has the gpu plugin compiled in. C++ example `devices.cpp`.
+- **Native CPU FFT providers**: Apple Accelerate (vDSP) on macOS, FFTW 3 on Windows / Linux / macOS when installed
+  (or Intel MKL through `ULTRAFAST_FFTW_LIBRARY`), chosen with `"compute": {"fft"}` or `ULTRAFAST_FFT` (default
+  `auto`); each is checked against the managed FFT before use.
 - **Release packaging**: `build.sh` / `build.bat` (`build/package.py`, standard library only) compile and lay out
   release folders without source code for any of win-x64, win-x86, win-arm64, linux-x64, linux-arm64, osx-arm64,
   osx-x64 or portable: the self-contained `ultrafast` CLI, a Python wheel (hosted engine for every OS, or the native

@@ -133,8 +133,19 @@ namespace UltrafastEngine.Specs
         public List<JsonObject> Instruments { get; } = new List<JsonObject>();
         public List<OverrideRule> Overrides { get; } = new List<OverrideRule>();
         public OutputOptions Outputs { get; set; } = new OutputOptions();
-        /// <summary>Compute back-end ("cpu" or a plugin's) and thread count (0 = all cores).</summary>
-        public string ComputeBackend { get; set; } = "cpu";
+        /// <summary>Compute back-end ("cpu", "auto" or a plugin's: "cuda", "opencl"); null = the process default
+        /// (<see cref="Numerics.ComputeBackends.DefaultName"/>: ULTRAFAST_BACKEND or "cpu").</summary>
+        public string ComputeBackend { get; set; }
+        /// <summary>FFT provider for the run ("auto", "managed", "fftw", "accelerate"); null keeps the process default.</summary>
+        public string ComputeFft { get; set; }
+        /// <summary>Device index for GPU back-ends (-1: the back-end's choice).</summary>
+        public int ComputeDevice { get; set; } = -1;
+        /// <summary>"auto" back-end: smallest problem (complex samples per state) sent to a GPU (0: the back-end's default).</summary>
+        public int GpuMinPoints { get; set; }
+        /// <summary>GPU back-ends: concurrent element propagations per device (0: the back-end's default, 4).</summary>
+        public int DeviceSlots { get; set; }
+        /// <summary>The raw "compute" object (back-end specific keys).</summary>
+        public JsonObject ComputeOptions { get; set; }
         public int Threads { get; set; }
         /// <summary>Beam at the system input (used by elements that have no beam of their own).</summary>
         public JsonObject InputBeam { get; set; }
@@ -170,7 +181,12 @@ namespace UltrafastEngine.Specs
                 InputBeam = o.GetObject("inputBeam")
             };
             var co = o.GetObject("compute");
-            if (co != null) { r.ComputeBackend = co.GetString("backend", "cpu"); r.Threads = co.GetInt("threads", 0); }
+            if (co != null)
+            {
+                r.ComputeBackend = co.GetString("backend", null); r.Threads = co.GetInt("threads", 0);
+                r.ComputeFft = co.GetString("fft"); r.ComputeDevice = co.GetInt("device", -1);
+                r.GpuMinPoints = co.GetInt("gpuMinPoints", 0); r.DeviceSlots = co.GetInt("deviceSlots", 0); r.ComputeOptions = co;
+            }
             var st = o.GetObject("stepper");
             if (st != null)
             {

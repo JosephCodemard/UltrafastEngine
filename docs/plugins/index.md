@@ -7,7 +7,8 @@ ship as **plugins**: installed separately, loaded through public interfaces, nev
 |---|---|---|
 | `fitting` | `transform` elements (fittable physical changes to the beam), the `"fit"` run mode against the instruments' recorded data (replaceable estimators, priors, three result layers, influence map, fitted system for new inputs), the `"backward"` run mode (propagate a measured field back to the input), the `fit` figure. Recorded data itself (`"measured"`) is core: [Measured data](../reference/measured-data.md) | [Fitting](fitting.md) |
 | `zemax` | `ultrafast zemax-build`, `zemax-replay`, `zemax-demo`; the OpticStudio extension program (Windows) | [Zemax](zemax.md) |
+| `gpu` | compute back-ends `cuda` (NVIDIA) and `opencl` (any double-precision OpenCL GPU): 1-D and spatial nonlinear propagation on the GPU, used by `"compute": {"backend": "auto"}`; `ultrafast devices` | [GPU](gpu.md) |
 
-Both ship with the engine and are installed in the CLI's and the Python package's `plugins/` folders by every build.
+All three ship with the engine and are installed in the CLI's and the Python package's `plugins/` folders by every build.
 How to install plugins elsewhere, check them and fix loading problems: [Installing plugins](installing.md). How
 plugins are written: [Plugin system](../reference/plugins.md).

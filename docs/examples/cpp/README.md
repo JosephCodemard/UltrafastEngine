@@ -1,5 +1,8 @@
 # C++ example
 
+`devices.cpp` lists the compute devices (CPU, CUDA, OpenCL), self-tests them (`--selftest`) and runs a system on
+the fastest suitable one (`uf_devices_json`, `uf_set_default_backend("auto")`; docs/plugins/gpu.md).
+
 `run_system.cpp` uses the C API (`src/UltrafastEngine.Native/include/ultrafast.h`): load a system and run spec,
 register a C++ time-response callback and a progress callback, run, read the summary JSON and an array, write
 the results. The same API is usable from C, Fortran (ISO_C_BINDING), MATLAB (`loadlibrary`), LabVIEW, Julia...

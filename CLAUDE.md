@@ -58,7 +58,8 @@ after a code change.
 | grid sizing, satellites | `Engine/GridPlanner.cs`, `Compiler.SatelliteRoom` |
 | driving the engine (writing .ufs / run.json) | `docs/agents.md`; skill `run-simulations` |
 | Python API | `python/CLAUDE.md` |
-| plugins (fitting, zemax) | `plugins/CLAUDE.md` |
+| plugins (fitting, zemax, gpu) | `plugins/CLAUDE.md` |
+| speed: CPU FFT providers, compute back-ends, GPU | `docs/reference/speed.md`, `docs/plugins/gpu.md`; tests `ComputeTests`, `GpuTests` |
 | tests | `tests/UltrafastEngine.Tests/CLAUDE.md` |
 | status / what is verified | `PROJECT_STATUS.md`; history in `CHANGELOG.md` (top section only) |
 

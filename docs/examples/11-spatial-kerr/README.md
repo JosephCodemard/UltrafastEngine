@@ -12,6 +12,9 @@ ultrafast run kerr.ufs run-linear.json -o results-run-linear    # same, at 1 nJ 
 ultrafast-plot results-run
 ```
 
+Spatial runs gain most from a GPU: `ultrafast run kerr.ufs run.json --backend auto` puts the radial elements on the
+device when one is found ([GPU](../../plugins/gpu.md)).
+
 Beam radius (1/e^2, second moment, energy-weighted over the spectrum) after each element:
 
 | element | linear (1 nJ) | 4 uJ |

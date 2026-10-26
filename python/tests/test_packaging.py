@@ -18,11 +18,20 @@ def test_aliases_and_plugin_selection():
     assert a.rids == ["win-x64", "win-x86", "osx-arm64", "linux-x64"]
     assert a.plugins == ["fitting"] and a.cli and a.python and not a.cpp
     assert pkg.parse(["--plugins", "none"]).plugins == []
-    assert pkg.parse([]).plugins == ["fitting", "zemax"] and pkg.parse([]).cli
+    assert pkg.parse([]).plugins == ["fitting", "zemax", "gpu"] and pkg.parse([]).cli
+    assert pkg.parse(["--plugins", "cuda"]).plugins == ["gpu"]
     b = pkg.parse(["--all"])
     assert b.cli and b.python and b.cpp and b.csharp
     with pytest.raises(SystemExit):
         pkg.parse(["--plugins", "nosuch"])
+
+
+def test_gpu_plugin_is_compiled_into_the_native_library_only_when_selected():
+    assert pkg.Builder.__dict__.get("_gpu_flag") is not None
+    with_gpu = pkg.parse(["--cpp", "--plugins", "gpu"])
+    without = pkg.parse(["--cpp", "--plugins", "fitting"])
+    assert pkg.Builder._gpu_flag(type("B", (), {"a": with_gpu})()) == []
+    assert pkg.Builder._gpu_flag(type("B", (), {"a": without})()) == ["-p:UF_WITH_GPU=false"]
 
 
 def test_os_of_and_native_names():

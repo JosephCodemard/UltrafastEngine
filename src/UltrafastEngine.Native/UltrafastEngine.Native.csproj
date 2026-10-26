@@ -32,6 +32,14 @@
   <ItemGroup>
     <ProjectReference Include="..\UltrafastEngine.Core\UltrafastEngine.Core.csproj" />
   </ItemGroup>
+  <!-- The GPU plugin is compiled in and registered at load (the NativeAOT library cannot load plugin folders).
+       build/package.py sets UF_WITH_GPU=false when the gpu plugin is not selected. -->
+  <PropertyGroup Condition="'$(UF_WITH_GPU)' != 'false'">
+    <DefineConstants>$(DefineConstants);UF_WITH_GPU</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(UF_WITH_GPU)' != 'false'">
+    <ProjectReference Include="..\..\plugins\gpu\src\UltrafastEngine.Plugins.Gpu.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="include\ultrafast.h" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

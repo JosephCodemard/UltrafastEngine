@@ -73,7 +73,25 @@ uf_command("{\"command\": \"materials.show\", \"name\": \"main/SiO2/Malitson\"}"
 ```
 
 Commands: `study` ([Parameter studies](studies.md)), `retrieve` ([Pulse retrieval](retrieval.md)),
-`materials.list`, `materials.show`, `materials.import` ([Materials](materials.md#refractiveindexinfo-pages)).
+`materials.list`, `materials.show`, `materials.import` ([Materials](materials.md#refractiveindexinfo-pages)),
+`devices` and `compute.default` (below).
+
+## Compute devices (GPU)
+
+```c
+char* json;
+uf_devices_json(NULL, &json);                       /* {"defaultBackend", "fft", "backends": [...], "devices": [...]} */
+uf_free(json);
+uf_devices_json("{\"selftest\": true, \"benchmark\": false, \"backend\": \"cuda\", \"device\": 0}", &json);
+uf_set_default_backend("auto");                     /* runs without "compute": {"backend"} use the GPU when it helps */
+```
+
+`uf_devices_json` lists the CPU and every CUDA / OpenCL device; with `"selftest": true` each device is compared with
+the CPU on standard problems (`"selftest": [{"backend", "device", "passed", "checks": [...]}]`), with
+`"benchmark": true` it is also timed. `uf_set_default_backend` sets the back-end of runs whose spec names none
+(`"cpu"`, `"auto"`, `"cuda"`, `"opencl"`; NULL restores `ULTRAFAST_BACKEND` or `"cpu"`); an unknown name returns
+`UF_E_ARGUMENT`. The library has the [gpu plugin](../plugins/gpu.md) compiled in (unless it was packaged without it);
+`docs/examples/cpp/devices.cpp` is a complete program.
 
 A complete C++ program is in `docs/examples/cpp` (CMake; opens directly in Visual Studio).
 

@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `build`, `capabilities`, `coherence`, `command`, `crystal`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `retrieve`, `run`, `study`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `benchmark`, `build`, `capabilities`, `coherence`, `command`, `crystal`, `devices`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `retrieve`, `run`, `set_default_backend`, `study`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -45,7 +45,19 @@ Built-in model kinds, element types, materials and instruments.
 
 ### `command(request: Mapping[str, Any]) -> dict`
 
-Run a JSON command of the engine (``uf_command``): ``{"command": "study" | "retrieve" | "materials.list" | "materials.show" | "materials.import", ...}``. The higher-level :func:`study`, :func:`retrieve` and :mod:`ultrafast.materials` wrap it.
+Run a JSON command of the engine (``uf_command``): ``{"command": "study" | "retrieve" | "materials.list" | "materials.show" | "materials.import" | "devices" | "compute.default", ...}``. The higher-level :func:`study`, :func:`retrieve` and :mod:`ultrafast.materials` wrap it.
+
+### `devices(selftest: bool = False, benchmark: bool = False, backend: Optional[str] = None, device: Optional[int] = None) -> dict`
+
+Compute back-ends and devices (docs/reference/speed.md): ``{"defaultBackend", "fft", "backends": [...], "devices": [{"backend", "index", "name", "memoryBytes", "doublePrecision", "usable", ...}]}`` -- the CPU first, then CUDA / OpenCL devices found by the gpu plugin. ``selftest=True`` compares every usable device (or only ``backend`` / ``device``) with the CPU on standard problems (result in ``"selftest"``); ``benchmark=True`` also times both.
+
+### `benchmark(backend: Optional[str] = None, device: Optional[int] = None) -> List[dict]`
+
+Seconds per run on the CPU and on each device for growing 1-D and spatial problems, with the speed-up (``[{"problem", "n", "cpuSeconds", "deviceSeconds", "speedup", "relativeError", ...}]``; the first device of each available back-end unless ``backend`` / ``device`` are given). Takes a few minutes.
+
+### `set_default_backend(backend: Optional[str] = None, fft: Optional[str] = None) -> dict`
+
+Process-wide defaults: the back-end of runs whose spec has no ``compute.backend`` ("cpu", "auto", "cuda", "opencl"; None keeps the current one) and the CPU FFT provider ("auto", "managed", "fftw", "accelerate"). Returns the settings in force. The ULTRAFAST_BACKEND / ULTRAFAST_FFT environment variables set the initial values.
 
 ### `study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = (), outputs: Sequence[str] = (), mode: str = 'scan', output: Optional[PathLike] = None, **options) -> dict`
 
@@ -262,9 +274,13 @@ Where a curve instrument takes its readings (docs/reference/instruments.md#axis-
 
 ### `override(target: str, prop: str, model: Any = None, value: Any = None, mode: str = 'replace') -> dict`
 
-### `run_spec(pulse: Mapping[str, Any], name: str = 'run', grid: Optional[Mapping[str, Any]] = None, physics: Optional[Mapping[str, Any]] = None, stepper: Optional[Mapping[str, Any]] = None, probes: Any = 'all', instruments: Optional[list] = None, overrides: Optional[list] = None, outputs: Optional[Mapping[str, Any]] = None, input_beam: Optional[Mapping[str, Any]] = None, **extra) -> 'T.RunSpec'`
+### `run_spec(pulse: Mapping[str, Any], name: str = 'run', grid: Optional[Mapping[str, Any]] = None, physics: Optional[Mapping[str, Any]] = None, stepper: Optional[Mapping[str, Any]] = None, probes: Any = 'all', instruments: Optional[list] = None, overrides: Optional[list] = None, outputs: Optional[Mapping[str, Any]] = None, input_beam: Optional[Mapping[str, Any]] = None, compute: Optional[Mapping[str, Any]] = None, **extra) -> 'T.RunSpec'`
 
-A run spec. ``extra`` adds top-level keys provided by plugins, e.g. ``fit=`` (fitting plugin: ``from ultrafast_fitting import fit``).
+A run spec. ``compute`` selects the compute back-end (:func:`compute`; GPU: ``compute(backend="auto")``). ``extra`` adds top-level keys provided by plugins, e.g. ``fit=`` (fitting plugin: ``from ultrafast_fitting import fit``).
+
+### `compute(backend: Optional[str] = None, *, threads: Optional[int] = None, fft: Optional[str] = None, device: Optional[int] = None, gpu_min_points: Optional[int] = None) -> 'T.Compute'`
+
+Where the run computes (docs/reference/speed.md).
 
 ### `sampling(plane: str = 'near', aperture: str = 'pinhole', radius_m: Optional[float] = None, width_m: Optional[float] = None, focal_length_m: Optional[float] = None, center_x_m: Optional[float] = None, center_y_m: Optional[float] = None, na: Optional[float] = None, propagate_m: Optional[float] = None) -> dict`
 

@@ -205,8 +205,132 @@ namespace UltrafastEngine.Physics
 
         public double AreaAt(double z) => _beam.EffectiveArea(Math.Max(0, Math.Min(LengthM, z)));
 
+        /// <summary>Per-thread work arrays of the fast path (the problem object may be shared by parallel runs).</summary>
+        private sealed class Work
+        {
+            public int N;
+            public Complex[] Ax, Ay, C, Nx, Ny;
+            public double[] Ix, Iy, It, Rxy, Ram, RamX, RamY, RamXY, AllB;
+            public Work(int n)
+            {
+                N = n; Ax = new Complex[n]; Ay = new Complex[n]; C = new Complex[n]; Nx = new Complex[n]; Ny = new Complex[n];
+                Ix = new double[n]; Iy = new double[n]; It = new double[n]; Rxy = new double[n]; Ram = new double[n];
+                RamX = new double[n]; RamY = new double[n]; RamXY = new double[n]; AllB = new double[n];
+            }
+        }
+        [ThreadStatic] private static Work _work;
+
+        /// <summary>Kerr + Raman + self-steepening without user responses or rotational Raman: the same arithmetic as the
+        /// general path, in place on reused arrays (no allocation per evaluation; large arrays would otherwise go to the
+        /// large-object heap at every stage).</summary>
+        public bool FastPath => UseFastPath && _m.Rotational == null && _m.ExtraResponses.Count == 0;
+
+        /// <summary>Process-wide switch for the in-place fast path (tests compare it with the general path).</summary>
+        public static bool UseFastPath = true;
+
+        /// <summary>The data a device back-end (GPU) needs to evaluate this problem's nonlinear operator itself; null when
+        /// the problem uses features only the CPU path implements (user responses, rotational Raman).</summary>
+        public EnvelopeDeviceSpec DeviceSpec()
+        {
+            if (_m.Rotational != null || _m.ExtraResponses.Count != 0) return null;
+            bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
+            return new EnvelopeDeviceSpec
+            {
+                N = _g.N, Scalar = _scalar, K0 = _k0, N2 = kerr ? _m.N2 : 0, RamanFraction = kerr ? _m.EffectiveRamanFraction : 0,
+                RamanKernelFreq = kerr && _m.EffectiveRamanFraction > 0 ? _ramanKernelFreq : null,
+                RamanAnisoFreq = kerr && _m.EffectiveRamanFraction > 0 && !_scalar ? _ramanAnisoFreq : null,
+                SelfSteepening = _m.EnableSelfSteepening, OmegaOffset = _g.OmegaOffset, OmegaCenter = _g.OmegaCenter, DTime = _g.DTime,
+                LinearRate = LinearRate, LengthM = LengthM, AreaAt = AreaAt
+            };
+        }
+
+        private static void ConvolveInPlace(double[] signal, Complex[] kFreq, double dt, Complex[] c, double[] result)
+        {
+            int n = signal.Length;
+            for (int i = 0; i < n; i++) c[i] = signal[i];
+            SpectralTransform.TimeToFreqInPlace(c);
+            for (int i = 0; i < n; i++) c[i] = c[i] * kFreq[i];
+            SpectralTransform.FreqToTimeInPlace(c);
+            for (int i = 0; i < n; i++) result[i] = c[i].Real * dt;
+        }
+
+        private double NonlinearFast(Complex[] state, double z, Complex[] rate)
+        {
+            int n = _g.N;
+            var w = _work;
+            if (w == null || w.N != n) _work = w = new Work(n);
+            double aeff = AreaAt(z);
+            var ax = w.Ax; var ay = _scalar ? null : w.Ay;
+            Array.Copy(state, 0, ax, 0, n);
+            SpectralTransform.FreqToTimeInPlace(ax);
+            if (!_scalar) { Array.Copy(state, n, ay, 0, n); SpectralTransform.FreqToTimeInPlace(ay); }
+            var ix = w.Ix; var iy = w.Iy; var it = w.It;
+            for (int i = 0; i < n; i++)
+            {
+                ix[i] = (ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary) / aeff;
+                iy[i] = _scalar ? 0 : (ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary) / aeff;
+                it[i] = ix[i] + iy[i];
+            }
+            double fR = _m.EffectiveRamanFraction;
+            bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
+            bool vecRaman = false;
+            if (kerr && fR > 0)
+            {
+                if (!_scalar && _ramanAnisoFreq != null)
+                {
+                    vecRaman = true;
+                    for (int i = 0; i < n; i++) w.Rxy[i] = (ax[i] * Complex.Conjugate(ay[i])).Real / aeff;
+                    ConvolveInPlace(it, _ramanKernelFreq, _g.DTime, w.C, w.Ram);
+                    ConvolveInPlace(it, _ramanAnisoFreq, _g.DTime, w.C, w.AllB);
+                    ConvolveInPlace(ix, _ramanAnisoFreq, _g.DTime, w.C, w.RamX);
+                    ConvolveInPlace(iy, _ramanAnisoFreq, _g.DTime, w.C, w.RamY);
+                    ConvolveInPlace(w.Rxy, _ramanAnisoFreq, _g.DTime, w.C, w.RamXY);
+                    for (int i = 0; i < n; i++) { double iso = w.Ram[i] - w.AllB[i]; w.RamX[i] = iso + w.RamX[i]; w.RamY[i] = iso + w.RamY[i]; }
+                }
+                else ConvolveInPlace(it, _ramanKernelFreq, _g.DTime, w.C, w.Ram);
+            }
+            var nx = w.Nx; var ny = _scalar ? null : w.Ny;
+            double cc = kerr ? _m.N2 * (1 - fR) / (3.0 * aeff) : 0.0;
+            for (int i = 0; i < n; i++)
+            {
+                double dnx = 0, dny = 0;
+                if (kerr)
+                {
+                    double rx = fR > 0 ? fR * (vecRaman ? w.RamX[i] : w.Ram[i]) : 0.0;
+                    double ry = fR > 0 ? fR * (vecRaman ? w.RamY[i] : w.Ram[i]) : 0.0;
+                    dnx = _m.N2 * ((1 - fR) * (ix[i] + 2.0 / 3.0 * iy[i]) + rx);
+                    dny = _m.N2 * ((1 - fR) * (iy[i] + 2.0 / 3.0 * ix[i]) + ry);
+                }
+                nx[i] = Complex.ImaginaryOne * _k0 * new Complex(dnx, 0) * ax[i];
+                if (!_scalar)
+                {
+                    ny[i] = Complex.ImaginaryOne * _k0 * new Complex(dny, 0) * ay[i];
+                    if (cc != 0)
+                    {
+                        nx[i] += Complex.ImaginaryOne * _k0 * cc * ay[i] * ay[i] * Complex.Conjugate(ax[i]);
+                        ny[i] += Complex.ImaginaryOne * _k0 * cc * ax[i] * ax[i] * Complex.Conjugate(ay[i]);
+                    }
+                    if (vecRaman) { double d = _m.N2 * fR * w.RamXY[i]; nx[i] += Complex.ImaginaryOne * _k0 * d * ay[i]; ny[i] += Complex.ImaginaryOne * _k0 * d * ax[i]; }
+                }
+            }
+            double peak = PeakIndexChange(ax, ay, nx, ny, _k0);
+            SpectralTransform.TimeToFreqInPlace(nx);
+            if (!_scalar) SpectralTransform.TimeToFreqInPlace(ny);
+            if (_m.EnableSelfSteepening)
+                for (int i = 0; i < n; i++)
+                {
+                    double f = 1.0 + _g.OmegaOffset[i] / _g.OmegaCenter;
+                    nx[i] *= f;
+                    if (ny != null) ny[i] *= f;
+                }
+            Array.Copy(nx, 0, rate, 0, n);
+            if (!_scalar) Array.Copy(ny, 0, rate, n, n);
+            return _k0 * peak;
+        }
+
         public double Nonlinear(Complex[] state, double z, Complex[] rate)
         {
+            if (FastPath) return NonlinearFast(state, z, rate);
             int n = _g.N;
             double aeff = AreaAt(z);
             Complex[] axF = new Complex[n], ayF = null;
@@ -323,6 +447,20 @@ namespace UltrafastEngine.Physics
             if (!_scalar) Array.Copy(nyF, 0, rate, n, n);
             return _k0 * peak;
         }
+    }
+
+    /// <summary>What a device back-end needs to evaluate an <see cref="EnvelopeProblem"/> itself (arrays in the engine's
+    /// centred order: <see cref="FrequencyGrid.OmegaOffset"/> ascending, time centred). See
+    /// <see cref="EnvelopeProblem.DeviceSpec"/>.</summary>
+    public sealed class EnvelopeDeviceSpec
+    {
+        public int N;
+        public bool Scalar;
+        public double K0, N2, RamanFraction, OmegaCenter, DTime, LengthM;
+        public bool SelfSteepening;
+        public Complex[] RamanKernelFreq, RamanAnisoFreq, LinearRate;
+        public double[] OmegaOffset;
+        public Func<double, double> AreaAt;
     }
 
     // ============================================================================== field (carrier-resolved)
@@ -560,7 +698,12 @@ namespace UltrafastEngine.Physics
         public static Complex[] Propagate(IPropagationProblem p, Complex[] a0, StepperSettings st, StepStatistics stats, Action<double> progress = null)
         {
             var b = ComputeBackends.Current;
-            if (b != null && !(b is CpuBackend) && b.Supports(p)) { stats.Notes.Add("compute back-end: " + b.Name); return b.Propagate(p, a0, st, stats, progress); }
+            if (b != null && !(b is CpuBackend))
+            {
+                if (b is AutoBackend) return b.Propagate(p, a0, st, stats, progress);
+                if (b.Supports(p)) { stats.Notes.Add("compute back-end: " + b.Name); return b.Propagate(p, a0, st, stats, progress); }
+                stats.Notes.Add(b.Name + ": " + ((b as IDeviceBackend)?.WhyNot(p) ?? "this element is not supported") + "; ran on the CPU");
+            }
             return PropagateCpu(p, a0, st, stats, progress);
         }
 
@@ -649,6 +792,8 @@ namespace UltrafastEngine.Physics
             h = Math.Min(h, st.MaxStepM);
             double z = 0;
             var bp = p as IBreakpoints;
+            Complex[] half = new Complex[n], aI = new Complex[n], k1 = new Complex[n], k2 = new Complex[n], k3 = new Complex[n], k4 = new Complex[n],
+                      k5 = new Complex[n], tmp = new Complex[n], beta = new Complex[n], a4 = new Complex[n];
             stats.Method = "erk4(3)-ip (adaptive, tol " + st.Tolerance.ToString("G2", System.Globalization.CultureInfo.InvariantCulture) + ")";
             int guard = 0;
             double lastReport = 0;
@@ -667,20 +812,16 @@ namespace UltrafastEngine.Physics
                     if (zb < z + h * (1 + 1e-12)) { h = zb - z; onWall = true; }
                 }
                 double zEnd = onWall ? z + h * (1 - 1e-9) : z + h; // evaluate end-of-step stages on this side of a wall
-                var half = ExpL(p.LinearRate, 0.5 * h);
-                var aI = new Complex[n]; Mul(half, a, aI);
-                var k1 = new Complex[n]; Mul(half, kN, k1);
-                var k = new Complex[n];
-                p.Nonlinear(Axpy(aI, 0.5 * h, k1), z + 0.5 * h, k); var k2 = (Complex[])k.Clone();
-                p.Nonlinear(Axpy(aI, 0.5 * h, k2), z + 0.5 * h, k); var k3 = (Complex[])k.Clone();
-                var t4 = Axpy(aI, h, k3); Mul(half, t4, t4);
-                p.Nonlinear(t4, zEnd, k); var k4 = (Complex[])k.Clone();
-                var beta = new Complex[n];
+                ComplexKernels.Exp(p.LinearRate, 0.5 * h, half);
+                Mul(half, a, aI);
+                Mul(half, kN, k1);
+                ComplexKernels.Axpy(aI, 0.5 * h, k1, tmp); p.Nonlinear(tmp, z + 0.5 * h, k2);
+                ComplexKernels.Axpy(aI, 0.5 * h, k2, tmp); p.Nonlinear(tmp, z + 0.5 * h, k3);
+                ComplexKernels.Axpy(aI, h, k3, tmp); Mul(half, tmp, tmp);
+                p.Nonlinear(tmp, zEnd, k4);
                 for (int i = 0; i < n; i++) beta[i] = aI[i] + h / 6.0 * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i]);
                 Mul(half, beta, beta);
-                var a4 = new Complex[n];
                 for (int i = 0; i < n; i++) a4[i] = beta[i] + h / 6.0 * k4[i];
-                var k5 = new Complex[n];
                 double pk5 = p.Nonlinear(a4, zEnd, k5);
                 double num = 0;
                 for (int i = 0; i < n; i++)
@@ -697,8 +838,9 @@ namespace UltrafastEngine.Physics
                     stats.Accepted++;
                     stats.BIntegralRad += 0.5 * (pk + pk5) * h;
                     stats.MinStepM = Math.Min(stats.MinStepM, h); stats.MaxStepM = Math.Max(stats.MaxStepM, h);
-                    z += h; a = a4; kN = k5; pk = pk5;
-                    if (onWall && z < L * (1 - 1e-12)) { kN = new Complex[n]; pk = p.Nonlinear(a, z + 1e-9 * h, kN); } // the other side of the wall
+                    z += h; pk = pk5;
+                    { var t = a; a = a4; a4 = t; t = kN; kN = k5; k5 = t; }   // a <- a4, kN <- k5 (buffers swapped, not copied)
+                    if (onWall && z < L * (1 - 1e-12)) pk = p.Nonlinear(a, z + 1e-9 * h, kN); // the other side of the wall
                     if (forced && err > st.Tolerance && !stats.Notes.Contains("tolerance not met at minimum step")) stats.Notes.Add("tolerance not met at minimum step");
                     if (progress != null && (z / L - lastReport >= 0.005 || z >= L * (1 - 1e-12))) { lastReport = z / L; progress(Math.Min(1.0, z / L)); }
                 }

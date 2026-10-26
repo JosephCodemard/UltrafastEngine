@@ -860,11 +860,28 @@
       "properties": {
         "backend": {
           "type": "string",
-          "description": "Back-end name (cpu, or one a plugin registers) Default: cpu."
+          "description": "Back-end: cpu, auto (the fastest available that supports each element), or one a plugin registers (cuda, opencl) Default: cpu."
         },
         "threads": {
           "type": "integer",
           "description": "Worker threads (0 = all cores) Default: 0."
+        },
+        "fft": {
+          "type": "string",
+          "enum": ["auto", "managed", "fftw", "accelerate"],
+          "description": "CPU FFT provider (process-wide): auto = Accelerate on macOS, FFTW when installed, else managed Default: ULTRAFAST_FFT or auto."
+        },
+        "device": {
+          "type": "integer",
+          "description": "GPU device index (ultrafast devices lists them) Default: -1 (first suitable)."
+        },
+        "gpuMinPoints": {
+          "type": "integer",
+          "description": "backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU Default: 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end."
+        },
+        "deviceSlots": {
+          "type": "integer",
+          "description": "GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits Default: 4."
         },
         "comment": {
           "description": "Free text."

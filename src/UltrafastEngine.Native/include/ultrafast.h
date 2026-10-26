@@ -112,9 +112,17 @@ UF_API void        UF_CALL uf_release(void* h);    /* uf_system*, uf_run*, uf_re
 /* JSON describing built-in model kinds, materials, crystals and instruments */
 UF_API int         UF_CALL uf_capabilities(char** json_out);
 /* JSON command: studies, pulse retrieval, material library.
-   request: {"command": "study" | "retrieve" | "materials.list" | "materials.show" | "materials.import", ...}
+   request: {"command": "study" | "retrieve" | "materials.list" | "materials.show" | "materials.import" | "devices" |
+   "compute.default", ...}
    (docs/reference/c-api.md). The reply (free with uf_free) is a JSON object. */
 UF_API int         UF_CALL uf_command(const char* request_json, char** result_json_out);
+/* compute back-ends and devices (CPU, CUDA, OpenCL; docs/reference/speed.md). options_json may be NULL or
+   {"selftest": true, "benchmark": false, "backend": "cuda", "device": 0}: the self-test compares each device with
+   the CPU on standard problems. Same as uf_command({"command": "devices", ...}). Free the reply with uf_free. */
+UF_API int         UF_CALL uf_devices_json(const char* options_json, char** json_out);
+/* back-end of runs whose spec has no "compute": {"backend"}: "cpu", "auto", "cuda", "opencl"; NULL or "" restores the
+   default (ULTRAFAST_BACKEND, else "cpu"). Returns UF_E_ARGUMENT for an unknown back-end. */
+UF_API int         UF_CALL uf_set_default_backend(const char* name);
 /* phase-matching calculator (docs/reference/crystals.md): JSON request in, JSON result out */
 UF_API int         UF_CALL uf_crystal_phase_match(const char* request_json, char** result_json_out);
 

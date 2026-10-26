@@ -14,4 +14,11 @@ engine. Guide: `docs/reference/plugins.md`; extension points in `src/UltrafastEn
   record/replay -- this is the plugin) and `UltrafastEngine.Zemax` (Windows net48 x64 OpticStudio extension; builds
   against stubs when no ZOS-API is found). **Never touch, copy or package `ZOSAPI*.dll`** (Ansys property; `lib/` is
   git-ignored and edit-protected).
+* **gpu** (`gpu/src`): compute back-ends `cuda` / `opencl` (`GpuBackend.cs`), device layer (`GpuDevice.cs`,
+  `OpenClDevice.cs`, `CudaDevice.cs`: vendor C APIs through function pointers, loaded at run time), **one** kernel
+  source for both runtimes (`Kernels.cs`), device steppers mirroring the CPU (`EnvelopeStepper.cs`: ERK4(3)-IP /
+  RK4IP + 1-D operator; `SpatialStepper.cs`), self-test / benchmark (`GpuSelfTest.cs`). Compiled into the NativeAOT
+  library (`UF_WITH_GPU`). A physics change to `EnvelopeProblem` / `SpatialEnvelopeProblem` must be mirrored in the
+  kernels (or make `DeviceSpec()` return null for it) and checked by `GpuTests` (PoCL runs them without a GPU:
+  docs/plugins/gpu.md). Docs: `docs/plugins/gpu.md`.
 * After changing a plugin's Python: rerun `python3 python/tools/build_engine.py`.

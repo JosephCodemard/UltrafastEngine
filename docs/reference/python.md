@@ -42,6 +42,10 @@ then a repository build. `uf._native.library().mode` says which back-end is in u
 | `uf.study(system, spec, parameters=[...], outputs=[...], mode="scan" \| "optimize" \| "sensitivity", **options)` | parameter studies ([Parameter studies](studies.md)) |
 | `uf.retrieve("pcgpa" \| "epie" \| "dscan", trace, instrument=, fundamental=, material=, output=)` | pulse retrieval; returns a ready-to-use `"pulse"` ([Pulse retrieval](retrieval.md)) |
 | `uf.materials.available()`, `.show(name)`, `.import_page(path, name=)`, `.refractiveindex(page, pressure_bar=)` | material library and refractiveindex.info pages ([Materials](materials.md#refractiveindexinfo-pages)) |
+| `uf.devices(selftest=False, benchmark=False, backend=None, device=None)` | compute back-ends and devices (CPU, CUDA, OpenCL), optional self-test against the CPU ([GPU](../plugins/gpu.md)) |
+| `uf.benchmark(backend=None, device=None)` | seconds per run on the CPU and each device, with the speed-up ([Speed](speed.md)) |
+| `uf.set_default_backend(backend=None, fft=None)` | process defaults: back-end of runs without `compute.backend` (`"auto"` uses a GPU when it helps), CPU FFT provider |
+| `b.compute(backend, threads=, fft=, device=, gpu_min_points=)` | the run spec's `"compute"` section: `b.run_spec(..., compute=b.compute("auto"))` |
 | `uf.command({"command": ...})` | any engine command as JSON (the same as the C function `uf_command`) |
 | `ultrafast.types` | TypedDicts of every element and section (`PlateElement`, `RunSpec`, ...): editor completion and type checking |
 | `uf.version()`, `uf.capabilities()` | |
@@ -136,7 +140,8 @@ Examples: `docs/examples/python/quickstart.py`, `docs/examples/04-custom-index-p
 ## Performance notes
 
 Callbacks are called once per solver stage with whole arrays: keep them vectorised (NumPy), avoid Python loops
-over samples. The ctypes round trip costs microseconds; a typical nonlinear element calls a time response a few
+over samples. Elements with a callback response run on the CPU even when a GPU back-end is selected; elements
+without one can run on the GPU (`b.compute("auto")`, [GPU](../plugins/gpu.md)). The ctypes round trip costs microseconds; a typical nonlinear element calls a time response a few
 thousand times.
 
 ## Plotting results

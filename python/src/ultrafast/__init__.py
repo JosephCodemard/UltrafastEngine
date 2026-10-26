@@ -14,8 +14,8 @@ Quick start::
 Docs: docs/reference/python.md. The engine itself is the C# UltrafastEngine.Core, reached through its C API
 (``include/ultrafast.h``) -- see :mod:`ultrafast._native` for how the library is found.
 """
-from .core import (ElementContext, Result, ResponseContext, Run, System, UltrafastError, capabilities, coherence, command, retrieve, run,
-                   study, version)
+from .core import (ElementContext, Result, ResponseContext, Run, System, UltrafastError, benchmark, capabilities, coherence, command, devices,
+                   retrieve, run, set_default_backend, study, version)
 from . import build
 from . import crystal
 from . import laser
@@ -26,7 +26,7 @@ from . import types
 
 __version__ = "2.1.8b0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
-           "command", "study", "coherence", "retrieve", "build", "crystal", "laser", "plugins", "materials", "measured", "types", "plot", "load"]
+           "command", "study", "coherence", "retrieve", "devices", "benchmark", "set_default_backend", "build", "crystal", "laser", "plugins", "materials", "measured", "types", "plot", "load"]
 
 
 def plot(result, what: str = "overview", ax=None):

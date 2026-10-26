@@ -77,11 +77,45 @@ def capabilities() -> dict:
 
 def command(request: Mapping[str, Any]) -> dict:
     """Run a JSON command of the engine (``uf_command``): ``{"command": "study" | "retrieve" | "materials.list" |
-    "materials.show" | "materials.import", ...}``. The higher-level :func:`study`, :func:`retrieve` and
+    "materials.show" | "materials.import" | "devices" | "compute.default", ...}``. The higher-level :func:`study`, :func:`retrieve` and
     :mod:`ultrafast.materials` wrap it."""
     pp = ctypes.c_void_p()
     _check(_lib().fn("uf_command")(json.dumps(request, default=_json_default).encode(), ctypes.byref(pp)))
     return json.loads(_take_string(pp))
+
+
+def devices(selftest: bool = False, benchmark: bool = False, backend: Optional[str] = None, device: Optional[int] = None) -> dict:
+    """Compute back-ends and devices (docs/reference/speed.md): ``{"defaultBackend", "fft", "backends": [...],
+    "devices": [{"backend", "index", "name", "memoryBytes", "doublePrecision", "usable", ...}]}`` -- the CPU first, then
+    CUDA / OpenCL devices found by the gpu plugin. ``selftest=True`` compares every usable device (or only
+    ``backend`` / ``device``) with the CPU on standard problems (result in ``"selftest"``); ``benchmark=True`` also
+    times both."""
+    req: Dict[str, Any] = {"command": "devices", "selftest": selftest, "benchmark": benchmark}
+    if backend is not None: req["backend"] = backend
+    if device is not None: req["device"] = device
+    return command(req)
+
+
+def benchmark(backend: Optional[str] = None, device: Optional[int] = None) -> List[dict]:
+    """Seconds per run on the CPU and on each device for growing 1-D and spatial problems, with the speed-up
+    (``[{"problem", "n", "cpuSeconds", "deviceSeconds", "speedup", "relativeError", ...}]``; the first device of each
+    available back-end unless ``backend`` / ``device`` are given). Takes a few minutes."""
+    r = devices(selftest=True, benchmark=True, backend=backend, device=device)
+    rows: List[dict] = []
+    for t in r.get("selftest", []):
+        for row in t.get("benchmark", []):
+            rows.append({"backend": t.get("backend"), "device": t.get("device"), **row})
+    return rows
+
+
+def set_default_backend(backend: Optional[str] = None, fft: Optional[str] = None) -> dict:
+    """Process-wide defaults: the back-end of runs whose spec has no ``compute.backend`` ("cpu", "auto", "cuda",
+    "opencl"; None keeps the current one) and the CPU FFT provider ("auto", "managed", "fftw", "accelerate").
+    Returns the settings in force. The ULTRAFAST_BACKEND / ULTRAFAST_FFT environment variables set the initial values."""
+    req: Dict[str, Any] = {"command": "compute.default"}
+    if backend is not None: req["backend"] = backend
+    if fft is not None: req["fft"] = fft
+    return command(req)
 
 
 def _as_source(x: Any) -> Any:

@@ -398,12 +398,25 @@ def override(target: str, prop: str, model: Any = None, value: Any = None, mode:
 def run_spec(pulse: Mapping[str, Any], name: str = "run", grid: Optional[Mapping[str, Any]] = None, physics: Optional[Mapping[str, Any]] = None,
              stepper: Optional[Mapping[str, Any]] = None, probes: Any = "all", instruments: Optional[list] = None,
              overrides: Optional[list] = None, outputs: Optional[Mapping[str, Any]] = None, input_beam: Optional[Mapping[str, Any]] = None,
-             **extra: Any) -> "T.RunSpec":
-    """A run spec. ``extra`` adds top-level keys provided by plugins, e.g. ``fit=`` (fitting plugin:
-    ``from ultrafast_fitting import fit``)."""
+             compute: Optional[Mapping[str, Any]] = None, **extra: Any) -> "T.RunSpec":
+    """A run spec. ``compute`` selects the compute back-end (:func:`compute`; GPU: ``compute(backend="auto")``).
+    ``extra`` adds top-level keys provided by plugins, e.g. ``fit=`` (fitting plugin: ``from ultrafast_fitting import fit``)."""
     return _clean({"format": "ultrafast-run", "version": 2, "name": name, "pulse": pulse, "grid": grid, "physics": physics,
                    "stepper": stepper, "probes": probes, "instruments": instruments, "overrides": overrides,
-                   "outputs": outputs, "inputBeam": input_beam, **extra})
+                   "outputs": outputs, "inputBeam": input_beam, "compute": compute, **extra})
+
+
+def compute(backend: Optional[str] = None, *, threads: Optional[int] = None, fft: Optional[str] = None, device: Optional[int] = None,
+            gpu_min_points: Optional[int] = None) -> "T.Compute":
+    """Where the run computes (docs/reference/speed.md).
+
+    ``backend``: "cpu" (default), "auto" (each nonlinear element goes to the fastest device that supports it and is
+    large enough -- a GPU when the gpu plugin finds one -- else the CPU), "cuda" or "opencl" (gpu plugin; elements
+    the device cannot run stay on the CPU with a note). ``threads``: CPU worker threads (0 = all cores). ``fft``: CPU
+    FFT provider "auto" (Accelerate on macOS, FFTW when installed, else managed), "managed", "fftw", "accelerate".
+    ``device``: GPU index from :func:`ultrafast.devices`. ``gpu_min_points``: smallest problem (complex samples per
+    state) "auto" sends to a GPU (default 8192 for 1-D, 32768 for spatial). Results agree with the CPU to rounding."""
+    return _clean({"backend": backend, "threads": threads, "fft": fft, "device": device, "gpuMinPoints": gpu_min_points})  # type: ignore[return-value]
 
 
 def sampling(plane: str = "near", aperture: str = "pinhole", radius_m: Optional[float] = None,

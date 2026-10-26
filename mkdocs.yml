@@ -57,6 +57,7 @@ nav:
       - Installing plugins: plugins/installing.md
       - Fitting (transforms, fits, backward): plugins/fitting.md
       - Zemax OpticStudio: plugins/zemax.md
+      - GPU (CUDA, OpenCL): plugins/gpu.md
   - Testing & validation: testing.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md

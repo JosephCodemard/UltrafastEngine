@@ -34,6 +34,10 @@ dn_x = n2[(1−fR)(I_x + ⅔ I_y) + fR(h_a ∗ I + h_b ∗ I_x)] (+ user Δn). y
 * Carrier-resolved field mode (`fieldMode`) is scalar; its B uses the cycle-averaged index.
 * Steppers: ERK4(3)-IP adaptive (default, tol 1e-6), RK4IP fixed; the step count follows the peak nonlinear rate.
 
+**GPU mirror**: the gpu plugin re-implements the 1-D and spatial operators in `plugins/gpu/src/Kernels.cs` and the
+steppers in `EnvelopeStepper.cs`. Any change to these operators must be mirrored there, or `DeviceSpec()` must
+return null for the new feature; `GpuTests` (PoCL without a GPU) check device = CPU to 1e-9.
+
 ## Grids and satellites (Engine/GridPlanner.cs, Compiler.SatelliteRoom)
 
 * Window holds the pulse after every element + group-delay spread + satellites; dt resolves the spectrum × margin

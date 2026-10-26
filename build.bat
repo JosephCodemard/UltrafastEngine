@@ -1,6 +1,6 @@
 @echo off
 rem Compile and package UltrafastEngine release folders. Options: build.bat --help ; guide: docs\releasing.md
-rem   build.bat --cli --python --cpp --csharp --plugins fitting zemax --platform win64 x86 --zos-api-dir "C:\Program Files\Ansys Zemax OpticStudio 2025 R1"
+rem   build.bat --cli --python --cpp --csharp --plugins fitting zemax gpu --platform win64 x86 --zos-api-dir "C:\Program Files\Ansys Zemax OpticStudio 2025 R1"
 setlocal
 set "PY="
 where py >nul 2>nul && set "PY=py -3"

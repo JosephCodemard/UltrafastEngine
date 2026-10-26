@@ -72,14 +72,16 @@ InstrumentFactory.Register("myMeter", spec => new BeamQualityMeter());
 ## Another FFT
 
 Implement `Numerics.IFft` (one in-place power-of-two transform) and set `Fft.Provider = new MyFft();` once at
-start-up (e.g. FFTW or MKL through P/Invoke, cuFFT for GPU work). Results report the back-end name. Other lengths
+start-up. FFTW, MKL (through its FFTW interface) and Apple Accelerate are built in (`"compute": {"fft"}`,
+[Speed](speed.md)). Results report the back-end name. Other lengths
 use the built-in mixed-radix / Bluestein transforms ([Speed](speed.md)).
 
 ## A compute back-end
 
 To run whole nonlinear segments elsewhere (a GPU, a cluster), implement `Numerics.IComputeBackend` and register it
 (`ComputeBackends.Register(...)` or a plugin's `ctx.RegisterBackend(...)`); a run selects it with
-`"compute": {"backend": "name"}`. See [Speed and compute back-ends](speed.md#compute-back-ends).
+`"compute": {"backend": "name"}`. See [Speed and compute back-ends](speed.md#compute-back-ends); the
+[gpu plugin](../plugins/gpu.md) is a complete example (`IDeviceBackend`, `DeviceSpec()`).
 
 ## A retrieval algorithm
 

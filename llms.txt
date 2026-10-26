@@ -58,6 +58,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Installing plugins](docs/plugins/installing.md)
 - [Fitting (transforms, measured data, fitting, backward propagation)](docs/plugins/fitting.md)
 - [Zemax OpticStudio](docs/plugins/zemax.md)
+- [GPU: CUDA and OpenCL back-ends, devices, self-test, setup per OS](docs/plugins/gpu.md)
 
 ## Testing, roadmap, agents
 - [Testing & validation](docs/testing.md)

@@ -18,8 +18,9 @@ namespace UltrafastEngine.Cli
     {
         private const string Usage = @"UltrafastEngine 2.0 command line
 
-  ultrafast run <system.ufs> <run.json> [-o <dir>] [--quiet] [--threads <n>]
+  ultrafast run <system.ufs> <run.json> [-o <dir>] [--quiet] [--threads <n>] [--backend cpu|auto|cuda|opencl] [--device <i>]
         Propagate the pulse through the system; writes summary.json, result.npz, provenance.json and CSVs.
+        --backend / --device override the run spec's compute settings (GPU back-ends: the gpu plugin, docs/plugins/gpu.md).
   ultrafast validate <system.ufs> [run.json]
         Check a system file (and optionally a run spec) without propagating.
   ultrafast describe <system.ufs>
@@ -41,7 +42,10 @@ namespace UltrafastEngine.Cli
         Markdown reference of every option (generated from the engine; docs/reference/options.md).
   ultrafast migrate <file.ufs|run.json> [-o out]
         Upgrade an older file to the current format version.
-  ultrafast study <study.json> [-o <dir>] [--parallel <n>]
+  ultrafast devices [--selftest] [--benchmark] [--backend <name>] [--device <i>] [--json]
+        Compute back-ends and devices (CPU, CUDA, OpenCL), the CPU FFT in use; --selftest compares each device with
+        the CPU on standard problems, --benchmark also times both (docs/reference/speed.md).
+  ultrafast study <study.json> [-o <dir>] [--parallel <n>] [--backend <name>]
         Parameter scan (grid, random, LHS, Sobol), optimisation or sensitivity study (docs/reference/studies.md).
   ultrafast retrieve <pcgpa|epie|dscan> <trace.npz|trace.json> [--kind shg-frog|pg-frog|dscan] [--fundamental spectrum.csv]
                      [--material FusedSilica] [--instrument name] [--iterations n] [-o <dir>]
@@ -60,7 +64,7 @@ Docs: docs/index.md   Examples: docs/examples/";
             {
                 switch (args[0].ToLowerInvariant())
                 {
-                    case "run": return Run(args.Skip(1).ToArray());
+                    case "run": ApplyBackend(args); return Run(args.Skip(1).ToArray());
                     case "validate": return Validate(args.Skip(1).ToArray());
                     case "describe": return Describe(args.Skip(1).ToArray());
                     case "info": Console.WriteLine(Info().ToJson(true)); return 0;
@@ -70,7 +74,8 @@ Docs: docs/index.md   Examples: docs/examples/";
                     case "plugins": return PluginsCommand(args.Skip(1).ToArray());
                     case "schema": return SchemaCommand(args.Skip(1).ToArray());
                     case "migrate": return MigrateCommand(args.Skip(1).ToArray());
-                    case "study": return StudyCommand(args.Skip(1).ToArray());
+                    case "study": ApplyBackend(args); return StudyCommand(args.Skip(1).ToArray());
+                    case "devices": return DevicesCommand(args.Skip(1).ToArray());
                     case "retrieve": return RetrieveCommand(args.Skip(1).ToArray());
                     case "materials": return MaterialsCommand(args.Skip(1).ToArray());
                     case "reference":
@@ -103,11 +108,60 @@ Docs: docs/index.md   Examples: docs/examples/";
             var r = new System.Collections.Generic.List<string>();
             for (int i = 0; i < a.Length; i++)
             {
-                if (a[i] == "-o" || a[i] == "--out" || a[i] == "--threads") { i++; continue; }
+                if (a[i] == "-o" || a[i] == "--out" || a[i] == "--threads" || a[i] == "--backend" || a[i] == "--device") { i++; continue; }
                 if (a[i].StartsWith("--")) continue;
                 r.Add(a[i]);
             }
             return r.ToArray();
+        }
+
+        /// <summary>--backend / --device: override every run's "compute" back-end (and device index).</summary>
+        private static void ApplyBackend(string[] a)
+        {
+            var b = Opt(a, "--backend");
+            if (b != null) ComputeBackends.OverrideName = b;
+            var d = Opt(a, "--device");
+            if (d != null) ComputeBackends.OverrideDevice = int.Parse(d);
+        }
+
+        private static int DevicesCommand(string[] a)
+        {
+            int dev = Opt(a, "--device") != null ? int.Parse(Opt(a, "--device")) : -1;
+            bool bench = a.Contains("--benchmark"), self = a.Contains("--selftest") || bench;
+            var r = Commands.Devices(self, bench, Opt(a, "--backend"), dev);
+            if (a.Contains("--json")) { Console.WriteLine(r.ToJson(true)); return 0; }
+            Console.WriteLine("default back-end: " + r.GetString("defaultBackend", "cpu") + "    CPU FFT: " + r.GetString("fft", ""));
+            Console.WriteLine("back-ends:");
+            foreach (JsonObject b in r.GetArray("backends"))
+                Console.WriteLine(string.Format("  {0,-8} {1}", b.GetString("name", ""), b.GetBool("available", true) ? b.GetString("description", "") : "unavailable: " + b.GetString("unavailable", "")));
+            Console.WriteLine("devices:");
+            foreach (JsonObject d in r.GetArray("devices"))
+            {
+                double mem = d.GetDouble("memoryBytes", 0);
+                Console.WriteLine(string.Format("  {0,-7}#{1} {2}{3}{4}{5}", d.GetString("backend", ""), d.GetInt("index", 0), d.GetString("name", ""),
+                    mem > 0 ? string.Format(", {0:F1} GB", mem / 1073741824.0) : "", d.GetBool("usable", true) ? "" : " [not usable]",
+                    string.IsNullOrEmpty(d.GetString("notes", "")) ? "" : "  (" + d.GetString("notes", "") + ")"));
+            }
+            bool ok = true;
+            if (r.Has("selftest"))
+                foreach (JsonObject t in r.GetArray("selftest"))
+                {
+                    bool p = t.GetBool("passed", false), skip = t.GetBool("skipped", false); ok &= p || skip;
+                    Console.WriteLine("self-test " + t.GetString("backend", "") + (t.Has("device") ? " #" + t.GetInt("device", 0) + " " + t.GetString("name", "") : "") + ": " + (skip ? "skipped" : p ? "PASSED" : "FAILED") + (t.Has("error") ? " (" + t.GetString("error", "") + ")" : ""));
+                    if (t.Has("checks"))
+                        foreach (JsonObject c in t.GetArray("checks"))
+                            Console.WriteLine(string.Format("    {0,-10} {1,-6} rel. error {2:E1}  {3:F3} s{4}", c.GetString("check", ""), c.GetBool("passed", false) ? "ok" : "FAIL",
+                                c.GetDouble("relativeError", double.NaN), c.GetDouble("seconds", 0), c.Has("note") ? "  " + c.GetString("note", "") : ""));
+                    if (t.Has("benchmark"))
+                    {
+                        Console.WriteLine("    benchmark (seconds per run):");
+                        foreach (JsonObject bm in t.GetArray("benchmark"))
+                            Console.WriteLine(bm.Has("error") ? "      " + bm.GetString("problem", "") + ": " + bm.GetString("error", "") :
+                                string.Format("      {0,-9} n = {1,-6}{2,-12} cpu {3,8:F3}  device {4,8:F3}  speed-up {5,6:F2}x", bm.GetString("problem", ""), bm.GetInt("n", 0),
+                                bm.Has("transversePoints") ? " x " + bm.GetInt("transversePoints", 0) : "", bm.GetDouble("cpuSeconds", 0), bm.GetDouble("deviceSeconds", 0), bm.GetDouble("speedup", 0)));
+                    }
+                }
+            return ok ? 0 : 3;
         }
 
         private static int Run(string[] a)

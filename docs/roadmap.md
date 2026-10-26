@@ -27,7 +27,8 @@ how the engine got here is in [Development history](design/history.md). Fitting,
 ## Plugins and distribution
 - [ ] Live-data plugin (streamed recordings, a digital twin that re-fits as data arrive)
 - [ ] ML / PINN estimator and surrogate plugins
-- [ ] GPU compute back-ends (Vulkan / OpenCL, CUDA, Metal) as plugins
+- [x] GPU compute back-ends as a plugin: CUDA and OpenCL (1-D and spatial envelope); native CPU FFTs (Accelerate, FFTW)
+- [ ] GPU: user responses as device kernels, χ(2) and carrier-resolved propagation on the device
 - [ ] Branches (splitters, parallel paths, coherent recombination)
 - [ ] Wheels for Windows / macOS / Linux on PyPI, NuGet package for the core
 - [ ] OpticStudio User Extension (menu-integrated) in addition to the Interactive Extension

@@ -50,6 +50,7 @@ ZEMAX_EXE = REPO / "plugins" / "zemax" / "src" / "UltrafastEngine.Zemax" / "Ultr
 PLUGINS = {
     "fitting": (REPO / "plugins" / "fitting" / "src" / "UltrafastEngine.Plugins.Fitting.csproj", ("transform", "transforms", "fit")),
     "zemax": (REPO / "plugins" / "zemax" / "src" / "UltrafastEngine.Zemax.Sampling" / "UltrafastEngine.Zemax.Sampling.csproj", ("opticstudio",)),
+    "gpu": (REPO / "plugins" / "gpu" / "src" / "UltrafastEngine.Plugins.Gpu.csproj", ("cuda", "opencl")),
 }
 
 RIDS = ["win-x64", "win-x86", "win-arm64", "linux-x64", "linux-arm64", "linux-musl-x64", "osx-x64", "osx-arm64"]
@@ -234,9 +235,13 @@ class Builder:
             return None
         Log.step("NativeAOT library for %s" % rid)
         tmp = self.cache / ("aot-" + rid)
-        run(["dotnet", "publish", NATIVE, "-c", "Release", "-nologo", "-r", rid, "-o", tmp])
+        run(["dotnet", "publish", NATIVE, "-c", "Release", "-nologo", "-r", rid, "-o", tmp] + self._gpu_flag())
         self._aot[rid] = tmp
         return tmp
+
+    def _gpu_flag(self):
+        """The NativeAOT library compiles the gpu plugin in (it cannot load plugin folders) only when it is selected."""
+        return [] if "gpu" in self.a.plugins else ["-p:UF_WITH_GPU=false"]
 
     def cpp(self, rid, root: Path):
         lib = self.aot(rid)
@@ -259,8 +264,11 @@ class Builder:
         ex = dst / "example"
         ex.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO / "docs" / "examples" / "cpp" / "run_system.cpp", ex / "run_system.cpp")
+        shutil.copy2(REPO / "docs" / "examples" / "cpp" / "devices.cpp", ex / "devices.cpp")
         (ex / "CMakeLists.txt").write_text(CPP_CMAKE)
-        (dst / "README.md").write_text(CPP_README.format(ver=self.ver, rid=rid, libs=", ".join(found)))
+        gpu = ("The gpu plugin is compiled in: `uf_devices_json` lists CUDA / OpenCL devices and `uf_set_default_backend(\"auto\")` "
+               "uses them." if "gpu" in self.a.plugins else "Built without the gpu plugin (add `--plugins gpu`).")
+        (dst / "README.md").write_text(CPP_README.format(ver=self.ver, rid=rid, libs=", ".join(found), gpu=gpu))
 
     # Python wheel -------------------------------------------------------------------------------------
     def python(self, rid, root: Path):
@@ -273,8 +281,9 @@ class Builder:
                 dst.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(self._hosted_wheel, dst / self._hosted_wheel.name)
         else:
-            if self.a.plugins:
-                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel; use --python-engine hosted to ship them" % ", ".join(self.a.plugins))
+            left = [p for p in self.a.plugins if p != "gpu"]
+            if left:
+                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel (gpu is compiled in); use --python-engine hosted to ship them" % ", ".join(left))
             w = self._wheel("native", rid)
             if w and not Log.dry:
                 dst.mkdir(parents=True, exist_ok=True)
@@ -290,7 +299,7 @@ class Builder:
             shutil.copytree(REPO / "python" / "src" / "ultrafast", pkg, ignore=shutil.ignore_patterns("bin", "__pycache__", "*.pyc"))
         binp = pkg / "bin"
         if engine == "hosted":
-            run(["dotnet", "build", NATIVE, "-c", "Release", "-nologo", "-p:UF_NO_AOT=true", "-p:GenerateDocumentationFile=false", "-o", binp / "hosted"])
+            run(["dotnet", "build", NATIVE, "-c", "Release", "-nologo", "-p:UF_NO_AOT=true", "-p:GenerateDocumentationFile=false", "-o", binp / "hosted"] + self._gpu_flag())
             if not Log.dry and not self.a.symbols:
                 for p in (binp / "hosted").glob("*.pdb"):
                     p.unlink()
@@ -536,13 +545,14 @@ Plugins: put the folders of `plugins/` into a `plugins/` folder next to your exe
 CPP_README = """# UltrafastEngine {ver} C API ({rid})
 
 * `include/ultrafast.h` -- the API (systems, runs, callbacks, results).
-* `lib/` -- {libs}: the NativeAOT library. It needs no .NET runtime. Plugins cannot be loaded by it.
-* `example/` -- `run_system.cpp` and a CMake project:
+* `lib/` -- {libs}: the NativeAOT library. It needs no .NET runtime. Plugins cannot be loaded by it. {gpu}
+* `example/` -- `run_system.cpp`, `devices.cpp` and a CMake project:
 
 ```bash
 cmake -S example -B build -DULTRAFAST_DIR="$PWD"
 cmake --build build --config Release
 build/run_system system.ufs run.json results        # (Windows: build\\Release\\run_system.exe)
+build/devices --selftest                            # compute devices (CPU, CUDA, OpenCL) compared with the CPU
 ```
 
 Keep the library next to your program (or on the library path).
@@ -562,6 +572,14 @@ else()
   find_library(ULTRAFAST_LIB NAMES ultrafast PATHS "${ULTRAFAST_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
   target_link_libraries(run_system PRIVATE "${ULTRAFAST_LIB}")
   set_target_properties(run_system PROPERTIES BUILD_RPATH "${ULTRAFAST_DIR}/lib" INSTALL_RPATH "$ORIGIN")
+endif()
+add_executable(devices devices.cpp)
+target_include_directories(devices PRIVATE "${ULTRAFAST_DIR}/include")
+if(WIN32)
+  target_link_libraries(devices PRIVATE "${ULTRAFAST_DIR}/lib/ultrafast.lib")
+else()
+  target_link_libraries(devices PRIVATE "${ULTRAFAST_LIB}")
+  set_target_properties(devices PROPERTIES BUILD_RPATH "${ULTRAFAST_DIR}/lib" INSTALL_RPATH "$ORIGIN")
 endif()
 """
 

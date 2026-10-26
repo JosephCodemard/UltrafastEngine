@@ -27,8 +27,50 @@ namespace UltrafastEngine
                 case "materials.list": return MaterialsList();
                 case "materials.show": return MaterialsShow(request.GetRequiredString("name", "materials.show"), baseDirectory);
                 case "materials.import": return MaterialsImport(request, baseDirectory);
-                default: throw new JsonException("unknown command \"" + cmd + "\" (study, retrieve, materials.list, materials.show, materials.import)");
+                case "devices": return Devices(request.GetBool("selftest", false), request.GetBool("benchmark", false), request.GetString("backend", null), request.GetInt("device", -1));
+                case "compute.default":
+                    if (request.Has("backend")) Numerics.ComputeBackends.DefaultName = request.GetString("backend", null);
+                    if (request.Has("fft")) { var note = Numerics.FftProviders.Select(request.GetString("fft", "auto")); if (note != null) return new JsonObject().Set("backend", Numerics.ComputeBackends.DefaultName).Set("fft", Numerics.Fft.Provider.Name).Set("warning", note); }
+                    return new JsonObject().Set("backend", Numerics.ComputeBackends.DefaultName).Set("fft", Numerics.Fft.Provider.Name);
+                default: throw new JsonException("unknown command \"" + cmd + "\" (study, retrieve, materials.list, materials.show, materials.import, devices, compute.default)");
             }
+        }
+
+        // ------------------------------------------------------------------------------------------ devices
+
+        /// <summary>
+        /// {"command": "devices", "selftest": false, "benchmark": false, "backend": null, "device": -1}: the compute
+        /// back-ends and their devices (the CPU first), the CPU FFT provider and the default back-end; with selftest,
+        /// each device back-end (or only <paramref name="backend"/>) compares its device with the CPU on standard
+        /// problems, and with benchmark also times both.
+        /// </summary>
+        public static JsonObject Devices(bool selftest = false, bool benchmark = false, string backend = null, int device = -1)
+        {
+            var res = new JsonObject();
+            res.Set("defaultBackend", Numerics.ComputeBackends.DefaultName).Set("fft", Numerics.Fft.Provider.Name);
+            var backs = new List<JsonValue>();
+            foreach (var b in Numerics.ComputeBackends.Available.OrderBy(x => x.Name))
+            {
+                var o = new JsonObject().Set("name", b.Name).Set("description", b.Description);
+                if (b is Numerics.IDeviceBackend d) o.Set("priority", d.Priority).Set("available", d.Unavailable == null).Set("unavailable", d.Unavailable ?? "");
+                else o.Set("available", true);
+                backs.Add(o);
+            }
+            res.Set("backends", new JsonArray(backs.ToArray()));
+            res.Set("devices", new JsonArray(Numerics.ComputeBackends.AllDevices().Select(x => (JsonValue)x.ToJson()).ToArray()));
+            if (selftest || benchmark)
+            {
+                var tests = new List<JsonValue>();
+                foreach (var d in Numerics.ComputeBackends.Available.OfType<Numerics.IDeviceBackend>().OrderByDescending(x => x.Priority))
+                {
+                    if (backend != null && !string.Equals(backend, d.Name, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (d.Unavailable != null) { tests.Add(new JsonObject().Set("backend", d.Name).Set("passed", false).Set("skipped", true).Set("error", d.Unavailable)); continue; }
+                    var devs = device >= 0 ? new[] { device } : d.Devices.Where(x => x.Usable).Select(x => x.Index).ToArray();
+                    foreach (var i in devs) tests.Add(d.SelfTest(i, benchmark));
+                }
+                res.Set("selftest", new JsonArray(tests.ToArray()));
+            }
+            return res;
         }
 
         private static string Abs(string p, string b) => p == null ? null : Path.IsPathRooted(p) || b == null ? p : Path.Combine(b, p);

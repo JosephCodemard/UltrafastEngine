@@ -2635,9 +2635,17 @@ class Chirp(TypedDict, total=False):
 class Compute(TypedDict, total=False):
     """Compute back-end (docs/reference/speed.md)."""
     backend: str
-    """Back-end name (cpu, or one a plugin registers) Default: cpu."""
+    """Back-end: cpu, auto (the fastest available that supports each element), or one a plugin registers (cuda, opencl) Default: cpu."""
     threads: int
     """Worker threads (0 = all cores) Default: 0."""
+    fft: Literal["auto", "managed", "fftw", "accelerate"]
+    """CPU FFT provider (process-wide): auto = Accelerate on macOS, FFTW when installed, else managed Default: ULTRAFAST_FFT or auto."""
+    device: int
+    """GPU device index (ultrafast devices lists them) Default: -1 (first suitable)."""
+    gpuMinPoints: int
+    """backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU Default: 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end."""
+    deviceSlots: int
+    """GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits Default: 4."""
     comment: Any
     """Free text."""
     description: Any

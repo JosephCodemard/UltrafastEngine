@@ -70,18 +70,21 @@ namespace UltrafastEngine.Engine
         public static RunResult Execute(CompiledRun cr, ProgressCallback progress = null, CancellationToken cancel = default)
         {
             // compute back-end and threads for this run
-            var prevBackend = ComputeBackends.Current; int prevThreads = ParallelismSettings.MaxDegreeOfParallelism;
-            var b = ComputeBackends.Get(cr.Run.ComputeBackend);
-            if (b == null) { cr.Warnings.Add("compute back-end \"" + cr.Run.ComputeBackend + "\" is not available (installed: " + string.Join(", ", ComputeBackends.Available.Select(x => x.Name)) + "); using cpu."); b = ComputeBackends.Get("cpu"); }
+            var prevBackend = ComputeBackends.Current; var prevFft = Fft.Provider; int prevThreads = ParallelismSettings.MaxDegreeOfParallelism;
+            if (!string.IsNullOrEmpty(cr.Run.ComputeFft)) { var fn = FftProviders.Select(cr.Run.ComputeFft); if (fn != null) cr.Warnings.Add(fn); }
+            var bname = ComputeBackends.Resolve(cr.Run.ComputeBackend);
+            var b = ComputeBackends.Get(bname);
+            if (b == null) { cr.Warnings.Add("compute back-end \"" + bname + "\" is not available (installed: " + string.Join(", ", ComputeBackends.Available.Select(x => x.Name)) + "); using cpu."); b = ComputeBackends.Get("cpu"); }
             try
             {
                 ComputeBackends.Current = b;
+                ComputeBackends.Settings = new ComputeSettings { Device = ComputeBackends.ResolveDevice(cr.Run.ComputeDevice), GpuMinPoints = cr.Run.GpuMinPoints, DeviceSlots = cr.Run.DeviceSlots, Options = cr.Run.ComputeOptions };
                 if (cr.Run.Threads > 0) ParallelismSettings.MaxDegreeOfParallelism = cr.Run.Threads;
                 var r = Execute(cr, progress, cancel, true);
                 if (!(b is CpuBackend)) r.Notes.Add("compute back-end: " + b.Description);
                 return r;
             }
-            finally { ComputeBackends.Current = prevBackend; ParallelismSettings.MaxDegreeOfParallelism = prevThreads; }
+            finally { ComputeBackends.Current = prevBackend; Fft.Provider = prevFft; ComputeBackends.Settings = null; ParallelismSettings.MaxDegreeOfParallelism = prevThreads; }
         }
 
         /// <summary>

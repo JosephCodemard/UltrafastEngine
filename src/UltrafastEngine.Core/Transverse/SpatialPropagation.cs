@@ -132,6 +132,41 @@ namespace UltrafastEngine.Transverse
             return f;
         }
 
+        /// <summary>Why <see cref="DeviceSpec"/> returns null (or null when it does not).</summary>
+        public string DeviceUnsupportedReason
+        {
+            get
+            {
+                if (!Active) return "linear element";
+                if (_props != null) return "position-dependent properties";
+                if (_m.Rotational != null) return "rotational Raman";
+                if (_m.ExtraResponses.Count > 0) return "user responses";
+                if (!(_b is RadialBasis) && !(_b is CartesianBasis)) return "transverse basis " + _b.Kind;
+                if (_g.N % 2 != 0) return "odd grid size";
+                return null;
+            }
+        }
+
+        /// <summary>What a device back-end needs to evaluate this problem itself (Kerr, Raman, self-steepening, vector
+        /// coupling, UPPE factor; radial or cartesian basis); null when the element uses a feature only the CPU path
+        /// implements (<see cref="DeviceUnsupportedReason"/>).</summary>
+        public SpatialDeviceSpec DeviceSpec()
+        {
+            if (DeviceUnsupportedReason != null) return null;
+            bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
+            double fR = _m.EffectiveRamanFraction;
+            var spec = new SpatialDeviceSpec
+            {
+                N = _g.N, M = _b.M, Vector = Vector, K0 = _k0, N2 = kerr ? _m.N2 : 0, RamanFraction = fR,
+                RamanKernelFreq = kerr && fR > 0 ? _ramanKernelFreq : null, RamanAnisoFreq = kerr && fR > 0 && Vector ? _ramanAnisoFreq : null,
+                SelfSteepening = _m.EnableSelfSteepening, OmegaOffset = _g.OmegaOffset, OmegaCenter = _g.OmegaCenter, DTime = _g.DTime,
+                LinearRate = LinearRate, LengthM = LengthM, Uppe = _uppe
+            };
+            if (_b is RadialBasis rb) { spec.Matrix = rb.Matrix; spec.Scale = rb.Scale; }
+            else { var cb = (CartesianBasis)_b; spec.Cartesian = true; spec.Nx = cb.Nx; spec.Ny = cb.Ny; }
+            return spec;
+        }
+
         public double AreaAt(double z) => 1.0; // diffraction is in the linear operator: no area-based step limit
 
         /// <summary>Position-dependent linear terms at point m: i (omega / c) Delta n E - alpha / 2 E.</summary>
@@ -292,6 +327,17 @@ namespace UltrafastEngine.Transverse
             StaticPhaseRate = phaseRate;
             return _k0 * peaks.Max();
         }
+    }
+
+    /// <summary>What a device back-end needs for a <see cref="SpatialEnvelopeProblem"/> (layout [c * M n + m n + i];
+    /// spectra in the engine's centred order).</summary>
+    public sealed class SpatialDeviceSpec
+    {
+        public int N, M, Nx, Ny;
+        public bool Vector, Cartesian, SelfSteepening;
+        public double K0, N2, RamanFraction, OmegaCenter, DTime, LengthM;
+        public Complex[] RamanKernelFreq, RamanAnisoFreq, LinearRate;
+        public double[] OmegaOffset, Uppe, Matrix, Scale;
     }
 
     /// <summary>Building the transverse field an element starts from, following the transport rules

@@ -120,6 +120,12 @@ namespace UltrafastEngine.Transverse
         private readonly double[] _t;      // M x M orthogonal matrix, row-major
         private readonly double[] _scale;  // R / |J1(j_m)|
 
+        /// <summary>The M x M orthogonal transform matrix (row-major): ToK = T (scale x data), ToSpace = (T data) / scale.
+        /// Exposed for device back-ends.</summary>
+        public double[] Matrix => _t;
+        /// <summary>Per-point scale R / |J1(j_m)| used by ToK / ToSpace.</summary>
+        public double[] Scale => _scale;
+
         public RadialBasis(int points, double radiusM)
         {
             if (points < 4) throw new ArgumentException("radial basis needs at least 4 points");

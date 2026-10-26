@@ -63,6 +63,20 @@ namespace UltrafastEngine.Native
     /// of ultrafast.dll / libultrafast.so; in a hosted build they are retrieved as function pointers through
     /// hostfxr (this is what the Python package does in development mode). See include/ultrafast.h.
     /// </summary>
+    /// <summary>Registers the compiled-in plugins when the library loads.</summary>
+    internal static class NativeInit
+    {
+#pragma warning disable CA2255 // a library-load hook is exactly what this is
+        [System.Runtime.CompilerServices.ModuleInitializer]
+#pragma warning restore CA2255
+        internal static void Init()
+        {
+#if UF_WITH_GPU
+            UltrafastEngine.Plugins.Gpu.GpuPlugin.RegisterStatic();
+#endif
+        }
+    }
+
     public static unsafe class Exports
     {
         public const int OK = 0, E_ARGUMENT = -1, E_PARSE = -2, E_MODEL = -3, E_RUN = -4, E_NOT_FOUND = -5, E_CALLBACK = -6, E_CANCELLED = -7, E_BUFFER = -8, E_INTERNAL = -99;
@@ -151,6 +165,37 @@ namespace UltrafastEngine.Native
                 if (json == null) throw new ArgumentException("result_json_out is null");
                 var req = JsonValue.Parse(Str(request) ?? throw new ArgumentException("request_json is null")).AsObject();
                 *json = OutStr(UltrafastEngine.Commands.Execute(req, req.GetString("baseDirectory")).ToJson(false));
+                return Ok();
+            }
+            catch (Exception ex) { return Fail(ex); }
+        }
+
+        /// <summary>Compute back-ends and devices as JSON; options_json (may be null) as the "devices" command:
+        /// {"selftest": bool, "benchmark": bool, "backend": name, "device": index}.</summary>
+        [UnmanagedCallersOnly(EntryPoint = "uf_devices_json", CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static int DevicesJson(byte* options, byte** json)
+        {
+            try
+            {
+                if (json == null) throw new ArgumentException("json_out is null");
+                var o = options == null ? new JsonObject() : JsonValue.Parse(Str(options)).AsObject();
+                *json = OutStr(UltrafastEngine.Commands.Devices(o.GetBool("selftest", false), o.GetBool("benchmark", false), o.GetString("backend", null), o.GetInt("device", -1)).ToJson(true));
+                return Ok();
+            }
+            catch (Exception ex) { return Fail(ex); }
+        }
+
+        /// <summary>Back-end for runs whose spec names none ("cpu", "auto", "cuda", "opencl"; null or "" restores
+        /// ULTRAFAST_BACKEND / cpu). Unknown names fail with E_ARGUMENT.</summary>
+        [UnmanagedCallersOnly(EntryPoint = "uf_set_default_backend", CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static int SetDefaultBackend(byte* name)
+        {
+            try
+            {
+                var n = Str(name);
+                if (!string.IsNullOrEmpty(n) && Numerics.ComputeBackends.Get(n) == null)
+                    throw new ArgumentException("unknown compute back-end \"" + n + "\" (installed: " + string.Join(", ", Numerics.ComputeBackends.Available.Select(b => b.Name)) + ")");
+                Numerics.ComputeBackends.DefaultName = n;
                 return Ok();
             }
             catch (Exception ex) { return Fail(ex); }
