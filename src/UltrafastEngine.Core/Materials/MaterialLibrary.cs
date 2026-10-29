@@ -225,6 +225,7 @@ namespace UltrafastEngine.Materials
                 var spec = ModelSpec.FromJson(o["index"], source, origin + ".index");
                 var idx = reg.Create<IRefractiveIndex>("index", spec);
                 if (idx is RefractiveIndexInfoIndex rii && rii.Page.HasK && !o.Has("attenuation")) m.Attenuation = rii;   // k data -> absorption
+                else if (!(idx is RefractiveIndexInfoIndex) && idx is IAttenuation both && !o.Has("attenuation")) m.Attenuation = both;   // one model gives n and alpha (Kramers-Kronig consistent, e.g. gas lines)
                 string reference = o.GetString("indexReference", spec.Kind == "table" ? "vacuum" : "vacuum");
                 m.IndexReference = reference;
                 if (string.Equals(reference, "air", StringComparison.OrdinalIgnoreCase))

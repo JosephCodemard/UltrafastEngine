@@ -40,6 +40,13 @@
   <ItemGroup Condition="'$(UF_WITH_GPU)' != 'false'">
     <ProjectReference Include="..\..\plugins\gpu\src\UltrafastEngine.Plugins.Gpu.csproj" />
   </ItemGroup>
+  <!-- The hitran plugin (gas lines) likewise; UF_WITH_HITRAN=false leaves it out. -->
+  <PropertyGroup Condition="'$(UF_WITH_HITRAN)' != 'false'">
+    <DefineConstants>$(DefineConstants);UF_WITH_HITRAN</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(UF_WITH_HITRAN)' != 'false'">
+    <ProjectReference Include="..\..\plugins\hitran\src\UltrafastEngine.Plugins.Hitran.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="include\ultrafast.h" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

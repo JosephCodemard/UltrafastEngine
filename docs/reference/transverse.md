@@ -97,6 +97,36 @@ The per-element record then reports `beam.radiusXM`, `radiusYM` (second-moment, 
 (M² from the second moments in space and spatial frequency, after removing the fitted wavefront curvature). The
 `beamProfile` instrument gives the fluence across the beam.
 
+## Small-scale self-focusing
+
+A beam above the critical power breaks up into filaments from its small-scale structure. The cartesian model (`"model": "cartesian"`) follows
+this in 2-D (x, y) when the field starts with a seed:
+
+```jsonc
+"transverse": { "model": "cartesian", "nx": 128, "ny": 128, "halfWidthM": 0.6e-3,        // 128 x 128 over 4 beam radii (w = 0.3 mm)
+   "initialProfile": { "kind": "flatTop",
+      "noise":  { "relativeAmplitudeRms": 0.01, "correlationLengthM": 40e-6, "seed": 1 },        // seeded smooth random amplitude (and phaseRmsRad)
+      "ripple": { "periodM": 67e-6, "relativeAmplitude": 0.01, "angleDeg": 0 } } }               // or one sinusoidal ripple: the textbook seed
+```
+
+* `noise`: `N(x, y) = sqrt(2/K) sum cos(kx x + ky y + phi_k)`, wavevectors Gaussian with rms 1 / correlation length, unit variance, scaled by
+  `relativeAmplitudeRms` (field amplitude; the fluence contrast is twice that) and `phaseRmsRad`. Reproducible from `seed`.
+* `ripple`: the field amplitude is multiplied by `1 + a cos(2 pi (x cos t + y sin t) / period + phase)`.
+* The element reports `fluenceContrastIn` / `fluenceContrastOut` (rms / mean of the fluence over the core r < w/2), `smallScaleGain` (their ratio),
+  `peakPowerOverCritical` (P / P_cr) and the cuts `fluence_in_x`, `fluence_out_x`, `x_m` (arrays `el_<id>_...` in `result.npz`) along y = 0.
+
+**Reference: Bespalov-Talanov.** For a plane wave of intensity I with an amplitude ripple of wavenumber K, linearising the envelope equation gives
+`u' = q v`, `v' = (2 Delta - q) u` with `q = K^2 / 2k`, `Delta = k0 n2 I`, hence `u(z) = u(0) cosh(g z)`, `g^2 = q (2 Delta - q)` (a cosine for
+`q > 2 Delta`): the most unstable ripple, `q = Delta`, grows as cosh(B), B = Delta L. `SmallScaleTests` compares the engine with this, integrated over
+the Gaussian pulse in time: the fluence ripple after 3 mm at `q = Delta` and `q = 3 Delta` agrees to 6 % (observed < 1 %), and without Kerr the
+ripple follows the Talbot law `2 eps |cos(q L)|`.
+
+**Size and speed.** The state is `nx x ny x N_t` complex numbers per field: 128 x 128 x 512 is 134 MB, and the 10 mm example below ran in 57 s on a
+laptop CPU (4 cores). 256 x 256 at 2^13 time points is 64 x larger (8.6 GB per field array, several of them held by the solver):
+use a short time window and the [GPU plugin](../plugins/gpu.md) (`"compute": {"backend": "auto"}` runs the cartesian model on the device), or reduce
+`nx` and `N_t` and check that `edge` warnings stay quiet. The grid must resolve the most unstable ripple (period 2 pi / sqrt(2 k Delta) -- about 90 um
+in the example, 9 samples) and the correlation length of the seed; the box (4 beam radii) must hold the beam. [Example 29](../examples/29-small-scale-self-focusing/README.md).
+
 ## Collapse to 1-D, and what the 1-D quantities mean
 
 The pulse's 1-D spectrum after a spatial element is the spectrum **integrated over the beam** (exact energy) with
@@ -113,5 +143,7 @@ spectra show up as a reduced temporal Strehl, not in the 1-D phase. The true pea
 | Gaussian beam w(z), radial and cartesian | < 0.5-1 %, M² = 1.00 | `SpatialTests.Diffraction_*` |
 | lens + gap focus vs Gaussian optics | < 2 % | `SpatialTests.LensAndGap_*` |
 | thin Kerr lens phase vs n2 I(r) k L | < 2 % | `SpatialTests.ThinKerrLens_*` |
+| Bespalov-Talanov ripple growth (cosh(g z)), q = Delta and q = 3 Delta; Talbot ripple without Kerr | 6 % (observed < 1 %) | `SmallScaleTests.SmallScale_RippleGrowth_*`, `..._TheRippleDiffractsAsTheTalbotEffect` |
+| seeded noise reproducible and linear in its amplitude; P / P_cr | 2 % | `SmallScaleTests.SmallScale_Seeded*`, `..._ReportsPeakPowerOverCritical` |
 | beamProfile instrument vs w(z) | < 1 % | `Chi2Tests.BeamProfileInstrument_*` |
 | radial χ(2) vs 1-D Gaussian overlap (low conversion) | < 1 % | `Chi2Tests.Shg_RadialModelAgrees*` |

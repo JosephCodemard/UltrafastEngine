@@ -30,6 +30,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Gases (rotational Raman)](docs/reference/gases.md)
 - [Surfaces, losses, polarisation](docs/reference/coatings.md)
 - [Optical components](docs/reference/components.md)
+- [Delayed light: tail grid, window warnings, ghosts, mirror substrate echoes, coating ripple, delayed scatter](docs/reference/delayed-light.md)
 - [Nonlinear physics & solvers](docs/reference/nonlinear.md)
 - [Ionisation & plasma](docs/reference/ionization.md)
 - [Active elements & aux beams](docs/reference/active-elements.md)
@@ -59,6 +60,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Fitting (transforms, measured data, fitting, backward propagation)](docs/plugins/fitting.md)
 - [Zemax OpticStudio](docs/plugins/zemax.md)
 - [GPU: CUDA and OpenCL back-ends, devices, self-test, setup per OS](docs/plugins/gpu.md)
+- [HITRAN: line-by-line absorption and dispersion of air (H2O, CO2, O2), data download](docs/plugins/hitran.md)
 
 ## Testing, roadmap, agents
 - [Testing & validation](docs/testing.md)

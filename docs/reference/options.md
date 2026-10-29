@@ -23,6 +23,7 @@ An optical system: a chain of elements. More: [system-file.md](system-file.md)
 | `environment` | object (`environment`) |  |  | Air of the laboratory and the index reference of quoted data |
 | `materials` | object |  |  | Materials defined in this file, by name (docs/reference/materials.md) |
 | `coatings` | object |  |  | Coatings defined in this file, by name (docs/reference/coatings.md) |
+| `substrates` | object |  |  | Mirror substrates defined in this file, by name: material, thicknessM, backCoating / backReflectance, wedgeDeg (docs/reference/coatings.md#substrate-echoes) |
 | `inputBeam` | model (beam) |  |  | Default beam for nonlinear elements without one |
 | `elements` | array of `element` |  |  | The beam path, in order **Required.** |
 | `overrides` | array of `override` |  |  | Changes to models or values (docs/reference/models.md#overrides) |
@@ -44,6 +45,7 @@ A run: the pulse, the instruments and numerical settings. More: [run-spec.md](ru
 | `stepper` | object (`stepper`) |  |  | Nonlinear solver settings |
 | `probes` | any |  | "end" | Snapshots of the pulse: "all", "end" or a list of element ids |
 | `instruments` | array of `instrument` |  |  | Instruments |
+| `detectors` | object |  |  | Detector presets by name: {instrument: {keys for an instrument that does not set them}, detector: {read-out}}; an instrument says "detector": "name" (docs/reference/instruments.md#detector-presets) |
 | `overrides` | array of `override` |  |  | Overrides (highest priority) |
 | `inputBeam` | model (beam) |  |  | Default beam for nonlinear elements without one |
 | `outputs` | object (`outputs`) |  |  | Which files to write |
@@ -94,6 +96,9 @@ The time/frequency grid (docs/reference/run-spec.md#grid).
 | `minSpanFraction` | number |  | 0.1 | Nonlinear runs: minimum half-span / carrier |
 | `minPointsPerFwhm` | number |  | 12 | Samples across the transform-limited FWHM |
 | `satelliteLevel` | number |  | 1e-8 | Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window |
+| `extendForSatellites` | boolean |  | false | Manual window (auto false): grow the window, keeping dt, so that ghosts, echoes and pedestal replicas above satelliteLevel fit |
+| `strict` | boolean |  | false | A ghost, echo or pedestal that wraps around the window is an error instead of a warning |
+| `tail` | any |  | false | Delayed-light ledger: true, or {windowS, warnEnergyFraction, exactSteps (every linear element takes the exact long-grid step; default false), crossPhase (first-order cross-phase of the tail by the main pulse in nonlinear elements; default true)}. A second, long, linear grid with the same time step carries ghosts, echoes and gas-line tails next to the main nonlinear grid (docs/reference/delayed-light.md) |
 
 ## Physics
 
@@ -196,6 +201,7 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 | `transmission` | number or array |  |  | Per-wavelength internal transmission (else the material's attenuation) |
 | `dispersionSource` | `"data"` \| `"material"` |  | data | Use traced data or the material index |
 | `airPathM` | number | m |  | Air path whose data are relative to air |
+| `air` | any |  |  | gap only: this gap's air (temperatureC, pressurePa, humidity, co2ppm, and the keys of environment.air), overriding the system's environment.air (docs/reference/gases.md#air-in-the-gaps) |
 | `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 
 ### `chirpedMirror`
@@ -364,6 +370,7 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 | `transmission` | number or array |  |  | Per-wavelength internal transmission (else the material's attenuation) |
 | `dispersionSource` | `"data"` \| `"material"` |  | data | Use traced data or the material index |
 | `airPathM` | number | m |  | Air path whose data are relative to air |
+| `air` | any |  |  | gap only: this gap's air (temperatureC, pressurePa, humidity, co2ppm, and the keys of environment.air), overriding the system's environment.air (docs/reference/gases.md#air-in-the-gaps) |
 | `ghosts` | any |  | false | Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) |
 
 ### `grating`
@@ -380,6 +387,9 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `aoiRad` | number or array | rad |  | Angle of incidence (per wavelength or scalar) |
 | `aoiDeg` | number or array | deg |  | Angle of incidence in degrees |
 | `coating` | model (coating) |  |  | Coating name (from coatings) or inline coating; none = bare Fresnel |
+| `ripple` | any |  |  | Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating |
+| `delayedScatter` | any |  |  | Scatter returned as delayed light: {fraction, delay: {kind: uniform\|exponential\|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter) |
+| `substrate` | any |  |  | mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating \| backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes) |
 | `efficiency` | number or array |  |  | Diffraction efficiency (grating, no coating) |
 | `efficiencyS` | number or array |  |  | s efficiency |
 | `efficiencyP` | number or array |  |  | p efficiency |
@@ -426,6 +436,9 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `aoiRad` | number or array | rad |  | Angle of incidence (per wavelength or scalar) |
 | `aoiDeg` | number or array | deg |  | Angle of incidence in degrees |
 | `coating` | model (coating) |  |  | Coating name (from coatings) or inline coating; none = bare Fresnel |
+| `ripple` | any |  |  | Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating |
+| `delayedScatter` | any |  |  | Scatter returned as delayed light: {fraction, delay: {kind: uniform\|exponential\|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter) |
+| `substrate` | any |  |  | mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating \| backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes) |
 | `efficiency` | number or array |  |  | Diffraction efficiency (grating, no coating) |
 | `efficiencyS` | number or array |  |  | s efficiency |
 | `efficiencyP` | number or array |  |  | p efficiency |
@@ -472,6 +485,9 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `aoiRad` | number or array | rad |  | Angle of incidence (per wavelength or scalar) |
 | `aoiDeg` | number or array | deg |  | Angle of incidence in degrees |
 | `coating` | model (coating) |  |  | Coating name (from coatings) or inline coating; none = bare Fresnel |
+| `ripple` | any |  |  | Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating |
+| `delayedScatter` | any |  |  | Scatter returned as delayed light: {fraction, delay: {kind: uniform\|exponential\|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter) |
+| `substrate` | any |  |  | mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating \| backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes) |
 | `efficiency` | number or array |  |  | Diffraction efficiency (grating, no coating) |
 | `efficiencyS` | number or array |  |  | s efficiency |
 | `efficiencyP` | number or array |  |  | p efficiency |
@@ -508,6 +524,7 @@ Also accepts: `nonlinearMedium`, `beamSize` (see *Common key groups*).
 | `coatingBack` | model (coating) |  |  | Back coating |
 | `wedgeDeg` | number | deg | 0 | Wedge angle (tilts the ghosts) |
 | `ghosts` | any |  | false | true / false or a ghosts object |
+| `delayedScatter` | any |  |  | Bulk back-scatter returned as delayed light: {fraction, delay: {kind: uniform, maxS (default 2 n_g d cos(theta)/c)}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces (default 2), delay} (docs/reference/coatings.md#delayed-scatter) |
 | `od` | number or array |  |  | Optical density (number, or per wavelength) |
 | `kind` | `"absorptive"` \| `"reflective"` |  | absorptive | ND type (ndFilter) |
 
@@ -562,6 +579,7 @@ Also accepts: `nonlinearMedium`, `beamSize` (see *Common key groups*).
 | `coatingBack` | model (coating) |  |  | Back coating |
 | `wedgeDeg` | number | deg | 0 | Wedge angle (tilts the ghosts) |
 | `ghosts` | any |  | false | true / false or a ghosts object |
+| `delayedScatter` | any |  |  | Bulk back-scatter returned as delayed light: {fraction, delay: {kind: uniform, maxS (default 2 n_g d cos(theta)/c)}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces (default 2), delay} (docs/reference/coatings.md#delayed-scatter) |
 | `od` | number or array |  |  | (ndFilter only) |
 | `kind` | `"absorptive"` \| `"reflective"` |  | absorptive | ND type (ndFilter) |
 
@@ -764,6 +782,8 @@ Third-order (SHG-gated) cross-correlator: high-dynamic-range contrast with noise
 | `noiseFloor` | number |  |  | Noise floor (relative to the peak; alternative to dynamicRangeDb) |
 | `noise` | boolean |  | true | Fluctuating detector background (else a flat floor) |
 | `seed` | integer |  | 1 | Noise seed |
+| `saturationLevel` | number |  | 0 | Detector saturation: the reading (signal x attenuation + floor) is clipped at this level, relative to the unattenuated peak (0 or omitted: none) |
+| `segments` | any |  |  | Attenuation-range stitching: a list of {fromS, toS, attenuation (or gain), noiseFloor} -- the signal in that delay range is measured through the attenuation (power factor) and divided by it afterwards, so the floor rises as 1/attenuation and saturation moves up accordingly |
 | `resolutionS` | number | s | 0 | Extra temporal resolution (Gaussian FWHM) |
 | `shgAcceptanceFwhmM` | number | m |  | SHG crystal acceptance (SH wavelength FWHM) |
 | `polarization` | any |  | "total" | "total", "x", "y" or an analyser angle in degrees |
@@ -1042,7 +1062,7 @@ Keys every instrument accepts.
 | `sampling` | object (`sampling`) |  |  | What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments) |
 | `beam` | model (beam) |  |  | Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian |
 | `filter` | model (filter) |  |  | Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured |
-| `detector` | object (`detector`) |  |  | Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth |
+| `detector` | any |  |  | Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name \| file, ...overrides} |
 | `axis` | object (`instrumentAxis`) |  |  | Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution |
 | `measured` | object (`measured`) |  |  | Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md |
 
@@ -1084,7 +1104,8 @@ Laboratory air (Ciddor).
 | `pressurePa` | number | Pa | 101325 | Pressure |
 | `humidity` | number |  | 0 | Relative humidity 0..1 |
 | `co2ppm` | number | ppm | 450 | CO2 |
-| `kind` | string |  |  | An index model kind instead (e.g. "ciddor") |
+| `kind` | string |  |  | An index model kind instead (e.g. "ciddor", or "hitran" with the hitran plugin) |
+| `applyToGaps` | boolean |  | false | Use this air (humidity, temperature, pressure, gas lines) as the "Air" of every gap; a gap's own "air" overrides it. Off by default: existing results do not change |
 
 ### `auxBeam`
 
@@ -1165,6 +1186,9 @@ Detector read-out applied to an instrument's recorded arrays and readings (spect
 | `noise` | number |  | 0 | Multiplicative noise, relative rms |
 | `noiseFloor` | number |  | 0 | Additive noise rms relative to the trace peak |
 | `dynamicRangeDb` | number | dB |  | Noise floor as a dynamic range (alternative to noiseFloor) |
+| `response` | any |  |  | Spectral response of the detector (spectral instruments): {wavelengthsM, values} -- the reading is multiplied by values(lambda) (e.g. the quantum efficiency), interpolated, held at the ends |
+| `counting` | `"energy"` \| `"photons"` |  | energy | photons: the spectrum is converted from energy to photon counts (x lambda / lambda_carrier) before the response |
+| `saturationLevel` | number |  | 0 | Detector saturation: readings are clipped at this fraction of the trace peak (0 or omitted: none) |
 | `bitDepth` | integer |  | 0 | ADC bits, full scale at the trace maximum (0: ideal) |
 | `seed` | integer |  | 1 | Random seed |
 
@@ -1406,6 +1430,8 @@ Initial transverse field.
 | `tiltYRad` | number | rad |  | Tilt about x |
 | `radiusOfCurvatureM` | number | m |  | Wavefront radius of curvature (negative: converging) |
 | `radiusM` | number | m |  | 1/e^2 radius (default: from the element's beam) |
+| `ripple` | any |  |  | Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing) |
+| `noise` | any |  |  | Seeded random noise (cartesian): {relativeAmplitudeRms, phaseRmsRad, correlationLengthM, seed, components} |
 
 ### `instrumentAxis`
 

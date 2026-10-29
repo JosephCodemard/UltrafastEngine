@@ -32,6 +32,30 @@ All kinds take an optional `lidt`. Example:
 }
 ```
 
+## Substrate echoes
+
+A `mirror` with a `substrate` adds the echo of the light that leaks through the coating, reflects from the back face of the
+substrate and returns after `2 n_g d cos(theta) / c` (62 / 93 / 124 ps for 6.35 / 9.5 / 12.7 mm of fused silica at 1030 nm). The
+transfer is exact in n(omega), the leakage follows the coating's `T(lambda)`, the back face may be bare, AR-coated or wedged.
+Keys, the catalogue of substrates and the physics: [Delayed light](delayed-light.md#mirror-substrate-echoes).
+
+```jsonc
+{ "id": "m1", "type": "mirror", "coating": "HR1030", "substrate": "FS-12.7mm" }
+```
+
+## Coating ripple
+
+`"ripple": {"phaseRmsRad": 0.03, "amplitudeRms": 0.01, "maxDelayS": 5e-12, "seed": 7}` on a mirror or interface multiplies the
+reflection by a random phase and amplitude ripple whose pedestal lies within +-`maxDelayS`; measured ripple is a `table` coating.
+See [Delayed light](delayed-light.md#coating-ripple).
+
+## Delayed scatter
+
+`"delayedScatter": {"fraction": 1e-4, "delay": {"kind": "uniform", "maxS": 40e-12}, "spectralExponent": 4}` returns a fraction of
+the power as incoherent delayed light instead of losing it (`roughnessRmsM` below books the lost part). On a plate the default
+delay is 0 .. 2 n_g d cos(theta)/c. `"model": "surface"` derives the fraction from the roughness and correlation length (TIS, and the share `1 - exp(-(l/w)^2)` that stays in the mode).
+See [Delayed light](delayed-light.md#delayed-scatter).
+
 ## Loss mechanisms
 
 | mechanism | source |

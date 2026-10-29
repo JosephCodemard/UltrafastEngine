@@ -29,6 +29,7 @@ nav:
       - Gases (rotational Raman): reference/gases.md
       - Surfaces, losses, polarisation: reference/coatings.md
       - Optical components: reference/components.md
+      - Delayed light (tails, ghosts, echoes): reference/delayed-light.md
       - Nonlinear physics & solvers: reference/nonlinear.md
       - Fibres & waveguides: reference/fibers.md
       - Ionisation & plasma: reference/ionization.md
@@ -58,6 +59,7 @@ nav:
       - Fitting (transforms, fits, backward): plugins/fitting.md
       - Zemax OpticStudio: plugins/zemax.md
       - GPU (CUDA, OpenCL): plugins/gpu.md
+      - HITRAN (gas lines in air): plugins/hitran.md
   - Testing & validation: testing.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md

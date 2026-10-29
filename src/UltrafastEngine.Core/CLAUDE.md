@@ -14,7 +14,7 @@ plugin hooks) → `Results/RunResult` (summary JSON, npz, CSVs).
 | folder | what |
 |---|---|
 | `Schema/` | **declarations of every key** (`BuiltInElements/Instruments/Options.cs`), validator, JSON-schema + options.md generators, `Migrations.cs` (renamed keys) |
-| `Engine/` | `Compiler.cs` (+ `CompilerComponents.cs` plates/ghosts/TFP..., `CompilerFiber.cs`), `Executor.cs`, `GridPlanner.cs`, `Studies.cs`, `Active.cs`, `AuxBeams.cs` |
+| `Engine/` | `TailLedger.cs` (the delayed-light ledger, `grid.tail`), `CompilerSubstrate.cs` (mirror substrate echoes, ripple, delayed scatter), `Compiler.cs` (+ `CompilerComponents.cs` plates/ghosts/TFP..., `CompilerFiber.cs`), `Executor.cs`, `GridPlanner.cs`, `Studies.cs`, `Active.cs`, `AuxBeams.cs` |
 | `Physics/` | `Nonlinear.cs` (EnvelopeProblem, FieldProblem, RK4IP / ERK4(3)-IP steppers, vector Kerr + Raman, B-integral), `LinearTerms.cs`, `JonesSpectrum.cs`, `Ionization.cs` |
 | `Transverse/` | radial / cartesian spatial propagation (`SpatialPropagation.cs` mirrors the 1-D nonlinear terms) |
 | `Pulses/` | `PulseSpec` (input pulse, measured spectrum), `MeasuredSpectrumPreparation`, `FrequencyGrid`, `PulseField`, `Pedestals` |
@@ -41,4 +41,8 @@ plugin hooks) → `Results/RunResult` (summary JSON, npz, CSVs).
 * The reported B-integral is Im(Σ A_c* N_c)/(k0 Σ|A_c|²) at the peak (all χ(3) terms).
 * Satellite room: `Compiler.SatelliteRoom` (amplitude-summed combinations above `grid.satelliteLevel`); an element
   that only sets `SatelliteDelayS` counts as level 1.
-* Loss budget: input − output energy = Σ booked losses, exactly.
+* Loss budget: input − output energy = Σ booked losses, exactly (with `grid.tail`, the energy parked in the tail is the booked
+  mechanism `delayed light (tail)`).
+* Delayed light: with `grid.tail` linear elements act on main + tail exactly (`TailLedger.Apply`), nonlinear / active elements
+  on the main field (the tail passes their linear terms); both grids share dt and the carrier. Terms with narrow features
+  must not enter the propagation frame (`ISmoothIndex`, `PhaseTerm.FrameReference`).

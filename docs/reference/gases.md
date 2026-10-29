@@ -50,6 +50,22 @@ vector) and in carrier-resolved mode (it follows the cycle-averaged intensity).
     response. They now have the electronic n2 plus the rotational response: SPM of long pulses in N2 or air is
     about 3x stronger than before, which is what measurements show.
 
+## Air in the gaps
+
+A `gap` is air by default, and "Air" is the Ciddor index at 20 C, 101 325 Pa, dry, 450 ppm CO2. The system's `environment.air`
+(temperature, pressure, relative humidity 0..1, CO2) only supplied the air used for data quoted *relative to air*
+(OpticStudio exports). To make it the air of **every gap** (and of every other use of the name "Air"), switch it on:
+
+```jsonc
+"environment": { "air": { "temperatureC": 24, "pressurePa": 100500, "humidity": 0.45, "applyToGaps": true } }
+```
+
+It is off by default, so existing results do not change; a note in the result says when it is on. A gap can override it:
+`{"id": "g", "type": "gap", "lengthM": 2.0, "air": {"humidity": 0.2}}` (the gap's keys overlay the environment's). `air` may also name
+another index model with `"kind"`: the [hitran plugin](../plugins/hitran.md) adds the absorption lines and the dispersion of H2O,
+CO2 and O2 (a model that provides both an index and an absorption is used for both). Python: `build.air(...)`,
+`build.environment(air=...)`, `build.gap(..., air=...)`.
+
 ## Ionisation
 
 Gases can ionise: see [Ionisation and plasma](ionization.md).

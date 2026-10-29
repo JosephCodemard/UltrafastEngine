@@ -69,6 +69,9 @@ ideal by design: they report the field itself.
 | `calibration` | reading / true value (e.g. 1.03 for a power meter reading 3 % high) |
 | `noise` | multiplicative noise, relative rms |
 | `noiseFloor` or `dynamicRangeDb` | additive noise rms relative to the trace peak |
+| `saturationLevel` | readings are clipped at this fraction of the trace peak (0: none) |
+| `response` | spectral response of the detector, `{wavelengthsM, values}` (e.g. the quantum efficiency): spectral instruments only; linear in wavelength, held at the ends |
+| `counting` | `"photons"`: the energy spectrum is first converted to photon counts (x lambda / lambda at the centre of the axis); default `"energy"` |
 | `bitDepth` | ADC quantisation, full scale at the trace maximum |
 | `seed` | random seed: the same seed gives the same noise |
 
@@ -76,6 +79,29 @@ It acts on the recorded arrays and readings of the spectrometer, scope, autocorr
 meter, and the width and peak readings (FWHM, centroid, peak) are then re-evaluated on the detected trace. Cameras
 (`sensor`) and the cross-correlator have detector models of their own. Leave the detector out when you fit a model to
 measured data: the recording has the noise, the model should not.
+
+### Detector presets
+
+A detector you use again -- with its calibrated floor, saturation level, attenuation segments or quantum-efficiency table -- is defined once and
+named. **The engine contains no instrument's numbers; they are yours (a manual, a calibration).** In the run spec:
+
+```jsonc
+"detectors": {
+  "my-xc": { "instrument": { "saturationLevel": 0.9, "noiseFloor": 1e-11,
+                             "segments": [ { "fromS": -2e-12, "toS": 2e-12, "attenuation": 1e-3 } ] } },     // fills what the instrument does not set
+  "my-ccd": { "detector": { "response": { "wavelengthsM": [900e-9, 1000e-9, 1100e-9], "values": [0.45, 0.35, 0.08] },
+                            "counting": "photons", "noise": 0.005, "bitDepth": 16 } }
+},
+"instruments": [ { "kind": "crossCorrelator", "detector": "my-xc" },
+                 { "kind": "spectrometer", "detector": "my-ccd" },
+                 { "kind": "spectrometer", "detector": { "preset": "my-ccd", "noise": 0.02 } },           // a preset with overrides
+                 { "kind": "spectrometer", "detector": { "preset": "presets/ccd.json" } } ]                 // or a JSON file (relative to the run spec)
+```
+
+A preset has an `instrument` object (keys filled into an instrument that does not set them: `saturationLevel`, `segments`, `noiseFloor`,
+`dynamicRangeDb`, `resolutionM`, ...; the instrument's own keys win) and a `detector` object (the read-out above; the instrument's keys given next
+to `"preset"` win). An unknown preset is a warning that names it. Python: `build.detector_preset`, `build.detector`, `build.detector_response`,
+`run_spec(detectors=...)`.
 
 ### Resolution and acceptance
 
@@ -144,6 +170,14 @@ S(τ) = ∫ I(t) G(t - τ) dt.
 * The detector floor is `dynamicRangeDb` below the peak (or `noiseFloor`), with a fluctuating background unless
   `"noise": false`; `resolutionS` adds the delay resolution of the scanner, `shgAcceptanceFwhmM` the finite SH
   bandwidth of the doubling crystal.
+* **Delayed light.** With `grid.tail` ([Delayed light](delayed-light.md)) the SHG gate is made from the main field only,
+  and the probe channel (linear in intensity) from main + tail: a ghost or an echo appears as the real device sees it.
+* **Saturation and range stitching** (generic, set by you -- no instrument's numbers are built in). `saturationLevel` clips the
+  reading (signal x attenuation + floor) at that fraction of the unattenuated peak; `segments` is a list of
+  `{fromS, toS, attenuation (or gain), noiseFloor}`: the signal in that delay range is measured through the attenuation (a
+  power factor) and divided by it afterwards, so its floor rises as 1/attenuation and a strong peak no longer saturates.
+  Example: `"saturationLevel": 0.5, "segments": [{"fromS": -2e-12, "toS": 2e-12, "attenuation": 1e-3}]`. Notes count the
+  saturated points.
 * Reports: `fwhmS`, `noiseFloor`, `dynamicRangeDb`, `prePulseContrastDb` / `prePulseDelayS` and
   `postPulseContrastDb` / `postPulseDelayS` (strongest feature outside `windowS`), `contrastAt_m50ps_db` ... for each
   of `probeDelaysS`; arrays `delay_s`, `signal`, `signal_db`, `signal_ideal`.

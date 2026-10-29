@@ -20,6 +20,15 @@ namespace UltrafastEngine.Models
         void Evaluate(double[] omega, double[] nOut);
     }
 
+    /// <summary>An index model with narrow spectral features (gas absorption lines, a few GHz wide) that offers its smooth part.
+    /// The frame of a propagation step removes the group delay at the carrier; with a line at the carrier that delay would be
+    /// the (tens of ps) group delay of the line, and would change with the exact carrier and the grid. The frame reference
+    /// therefore uses <see cref="Smooth"/>; the lines stay in the transfer function and show up as ringing behind the pulse.</summary>
+    public interface ISmoothIndex
+    {
+        IRefractiveIndex Smooth { get; }
+    }
+
     /// <summary>Power attenuation coefficient alpha(omega) in 1/m (intensity falls as exp(-alpha z)).</summary>
     public interface IAttenuation
     {

@@ -14,7 +14,7 @@ namespace UltrafastEngine.Schema
                 .Obj("sampling", "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)", "sampling")
                 .Model("beam", "beam", "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian")
                 .Model("filter", "filter", "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured")
-                .Obj("detector", "Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth", "detector")
+                .P("detector", ParamType.Any, "", "Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}")
                 .Obj("axis", "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution", "instrumentAxis")
                 .Obj("measured", "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md", "measured"));
             add(new ComponentSpec("measured", "", "Recorded data for one instrument, compared with its simulated reading on the measured axis (only where the simulated instrument has readings), after matching the recording's resolution.").DocAt("reference/measured-data.md")
@@ -47,6 +47,9 @@ namespace UltrafastEngine.Schema
                 .Num("noise", "", "Multiplicative noise, relative rms", "0")
                 .Num("noiseFloor", "", "Additive noise rms relative to the trace peak", "0")
                 .Num("dynamicRangeDb", "dB", "Noise floor as a dynamic range (alternative to noiseFloor)")
+                .P("response", ParamType.Any, "", "Spectral response of the detector (spectral instruments): {wavelengthsM, values} -- the reading is multiplied by values(lambda) (e.g. the quantum efficiency), interpolated, held at the ends")
+                .Enum("counting", new[] { "energy", "photons" }, "photons: the spectrum is converted from energy to photon counts (x lambda / lambda_carrier) before the response", "energy")
+                .Num("saturationLevel", "", "Detector saturation: readings are clipped at this fraction of the trace peak (0 or omitted: none)", "0")
                 .Int("bitDepth", "ADC bits, full scale at the trace maximum (0: ideal)", "0")
                 .Int("seed", "Random seed", "1"));
             add(new ComponentSpec("sampling", "", "Near / far field and apertures for non-imaging instruments.").DocAt(D + "sampling")
@@ -91,6 +94,8 @@ namespace UltrafastEngine.Schema
                 .Num("fineStepS", "s", "Fine step near zero delay").Num("fineRangeS", "s", "Half-range of the fine steps")
                 .Num("dynamicRangeDb", "dB", "Noise floor below the peak", "110").Num("noiseFloor", "", "Noise floor (relative to the peak; alternative to dynamicRangeDb)")
                 .Bool("noise", "Fluctuating detector background (else a flat floor)", "true").Int("seed", "Noise seed", "1")
+                .Num("saturationLevel", "", "Detector saturation: the reading (signal x attenuation + floor) is clipped at this level, relative to the unattenuated peak (0 or omitted: none)", "0")
+                .P("segments", ParamType.Any, "", "Attenuation-range stitching: a list of {fromS, toS, attenuation (or gain), noiseFloor} -- the signal in that delay range is measured through the attenuation (power factor) and divided by it afterwards, so the floor rises as 1/attenuation and saturation moves up accordingly")
                 .Num("resolutionS", "s", "Extra temporal resolution (Gaussian FWHM)", "0").Num("shgAcceptanceFwhmM", "m", "SHG crystal acceptance (SH wavelength FWHM)")
                 .P("polarization", ParamType.Any, "", "\"total\", \"x\", \"y\" or an analyser angle in degrees", "\"total\"")
                 .Arr("probeDelaysS", "s", "Delays at which to report the contrast in dB").Num("windowS", "s", "Pre/post window around the peak", "5 x FWHM"));

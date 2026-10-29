@@ -82,6 +82,9 @@ instrument instead). The `contrast` and `crossCorrelator` instruments show the r
 | `minSpanFraction` | 0.1 | nonlinear runs: minimum half-span / carrier |
 | `minPointsPerFwhm` | 12 | samples across the transform-limited FWHM |
 | `satelliteLevel` | 1e-8 | weakest ghost / replica satellite (relative intensity) the window makes room for, including combinations of satellites of several elements (a ghost of a ghost) and satellites that coincide in delay, summed in amplitude |
+| `extendForSatellites` | false | with a manual window (`"auto": false`), grow the window (keeping dt) until the satellites fit |
+| `strict` | false | a satellite or pedestal replica that wraps around the window is an error, not a warning |
+| `tail` | false | `true` or `{windowS, warnEnergyFraction}`: the delayed-light ledger, a second long linear grid ([Delayed light](delayed-light.md)) |
 
 **Satellites and the window.** Ghosts and replicas follow the main pulse by their delay. Making room for every
 order of every plate would grow the window linearly with the number of plates: 20 plates with ghosts asked for
@@ -90,7 +93,9 @@ reach `satelliteLevel`. 20 AR-coated plates (0.2 % per face) then need room for 
 the centred pulse); 20 uncoated ones, whose single ghosts add up coherently when the plates are identical, for
 five. The note "Satellites: the window makes room for ..." says what was chosen. Weaker satellites wrap around the
 window. Set `satelliteLevel` lower for contrast studies, or give `windowS` / `n` with `"auto": false` to set the
-grid yourself.
+grid yourself. A manual window that is too small gets a specific warning for each satellite or pedestal replica that wraps
+(its source, delay, level, energy and where it wraps to); `extendForSatellites` grows the window, `strict` makes it an
+error, and `tail` carries the satellites on a second, long, linear grid instead ([Delayed light](delayed-light.md)).
 
 ## `physics`
 | field | default | |

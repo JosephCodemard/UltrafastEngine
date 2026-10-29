@@ -21,6 +21,18 @@ described in [docs/capabilities.md](docs/capabilities.md).
 | C header | `gcc -fsyntax-only` passes |
 | GPU plugin, OpenCL path | `ultrafast devices --selftest` on PoCL: FFT, 1-D scalar / vector, radial, cartesian all match the CPU to ~1e-15; the same through the NativeAOT library (`uf_devices_json`) and the C++ example `devices.cpp`; Python `uf.devices()` / runs on the device |
 
+## Verified for the delayed-light / HITRAN work (macOS arm64, .NET 10, Python 3.12, 2026-10-29)
+
+| | result |
+|---|---|
+| `dotnet build UltrafastEngine.sln -c Release` (net10.0 and net48) | 0 errors |
+| C# tests, .NET 10, incl. slow (`-- --slow`), after the follow-ups (2-D seeds, tail, surface scatter, detector presets, TIPS) | **270 pass, 0 fail, 8 skipped** (the 7 `GpuTests` and the opt-in `AgainstHapi_*` test, which passes -- 1 of 1 -- with `ULTRAFAST_HITRAN_VALIDATE_DIR` set; 15 more tests: 4 `SmallScaleTests`, 7 `DelayedLightTests`, 4 `HitranTests`). Before the follow-ups: **255 pass, 0 fail, 7 skipped** (the 225 tests of before -- 218 run, 7 skipped -- plus the 24 `DelayedLightTests` and 13 `HitranTests`; the 7 skips are the `GpuTests`: this Mac has no double-precision CUDA / OpenCL device, so the GPU = CPU parity tests did not run here; no GPU kernel or nonlinear operator was changed) |
+| Python tests (hosted engine), no pyNLO, `ULTRAFAST_SLOW` unset | 63 pass, 9 skipped (8 in `test_delayed_light.py`, 1 new in `test_packaging.py`) |
+| CLI examples in strict mode, incl. the new 28 (delayed light) and 29 (2-D small-scale self-focusing, 57 s) | 28 run; 07, 09 and the two dependent runs of 26 need their own inputs (Zemax export, earlier results) and were not run standalone |
+| HITRAN against HAPI (real H2O, CO2, O2 lines, 250 / 296 / 350 K, `plugins/hitran/tools/make_hapi_reference.py`) | integrated absorption within 0.7 %, worst point on a line within 3.9 % (same wing cutoff); compared with the reference implementation, not with a measured spectrum |
+| Generated files | regenerated (`/regen` steps); `SchemaTests` pass |
+| Not run here | the net48 tests under Mono, the pyNLO cross-checks, `mypy` (not installed), a NativeAOT publish with the hitran plugin compiled in, the live HITRAN API download (the downloader is tested with a fake API) |
+
 ## Not verifiable here -- please check on your machines
 
 1. **Apple silicon (arm64)**: the SIMD kernels use `Vector128` (NEON on ARM64) on .NET 10 and fall back to scalar

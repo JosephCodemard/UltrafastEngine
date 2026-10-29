@@ -58,6 +58,10 @@
       "type": "object",
       "description": "Coatings defined in this file, by name (docs/reference/coatings.md)"
     },
+    "substrates": {
+      "type": "object",
+      "description": "Mirror substrates defined in this file, by name: material, thicknessM, backCoating / backReflectance, wedgeDeg (docs/reference/coatings.md#substrate-echoes)"
+    },
     "inputBeam": {
       "anyOf": [
         {
@@ -206,7 +210,11 @@
         },
         "kind": {
           "type": "string",
-          "description": "An index model kind instead (e.g. \"ciddor\")"
+          "description": "An index model kind instead (e.g. \"ciddor\", or \"hitran\" with the hitran plugin)"
+        },
+        "applyToGaps": {
+          "type": "boolean",
+          "description": "Use this air (humidity, temperature, pressure, gas lines) as the \"Air\" of every gap; a gap's own \"air\" overrides it. Off by default: existing results do not change Default: false."
         },
         "comment": {
           "description": "Free text."
@@ -558,6 +566,12 @@
         "radiusM": {
           "type": "number",
           "description": "1/e^2 radius (default: from the element's beam) [m]"
+        },
+        "ripple": {
+          "description": "Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing)"
+        },
+        "noise": {
+          "description": "Seeded random noise (cartesian): {relativeAmplitudeRms, phaseRmsRad, correlationLengthM, seed, components}"
         },
         "comment": {
           "description": "Free text."
@@ -1194,6 +1208,9 @@
         "airPathM": {
           "type": "number",
           "description": "Air path whose data are relative to air [m]"
+        },
+        "air": {
+          "description": "gap only: this gap's air (temperatureC, pressurePa, humidity, co2ppm, and the keys of environment.air), overriding the system's environment.air (docs/reference/gases.md#air-in-the-gaps)"
         },
         "ghosts": {
           "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
@@ -4031,6 +4048,9 @@
           "type": "number",
           "description": "Air path whose data are relative to air [m]"
         },
+        "air": {
+          "description": "gap only: this gap's air (temperatureC, pressurePa, humidity, co2ppm, and the keys of environment.air), overriding the system's environment.air (docs/reference/gases.md#air-in-the-gaps)"
+        },
         "ghosts": {
           "description": "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."
         },
@@ -4411,6 +4431,15 @@
             }
           ],
           "description": "Coating name (from coatings) or inline coating; none = bare Fresnel A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\"."
+        },
+        "ripple": {
+          "description": "Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating"
+        },
+        "delayedScatter": {
+          "description": "Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: \"surface\", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"
+        },
+        "substrate": {
+          "description": "mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. \"FS-12.7mm\") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"
         },
         "efficiency": {
           "anyOf": [
@@ -5005,6 +5034,15 @@
             }
           ],
           "description": "Coating name (from coatings) or inline coating; none = bare Fresnel A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\"."
+        },
+        "ripple": {
+          "description": "Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating"
+        },
+        "delayedScatter": {
+          "description": "Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: \"surface\", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"
+        },
+        "substrate": {
+          "description": "mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. \"FS-12.7mm\") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"
         },
         "efficiency": {
           "anyOf": [
@@ -5606,6 +5644,15 @@
           ],
           "description": "Coating name (from coatings) or inline coating; none = bare Fresnel A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\"."
         },
+        "ripple": {
+          "description": "Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating"
+        },
+        "delayedScatter": {
+          "description": "Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: \"surface\", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"
+        },
+        "substrate": {
+          "description": "mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. \"FS-12.7mm\") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"
+        },
         "efficiency": {
           "anyOf": [
             {
@@ -6066,6 +6113,9 @@
         },
         "ghosts": {
           "description": "true / false or a ghosts object Default: false."
+        },
+        "delayedScatter": {
+          "description": "Bulk back-scatter returned as delayed light: {fraction, delay: {kind: uniform, maxS (default 2 n_g d cos(theta)/c)}, spectralExponent, seed}, or the analytic surface model {model: \"surface\", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces (default 2), delay} (docs/reference/coatings.md#delayed-scatter)"
         },
         "od": {
           "anyOf": [
@@ -6692,6 +6742,9 @@
         },
         "ghosts": {
           "description": "true / false or a ghosts object Default: false."
+        },
+        "delayedScatter": {
+          "description": "Bulk back-scatter returned as delayed light: {fraction, delay: {kind: uniform, maxS (default 2 n_g d cos(theta)/c)}, spectralExponent, seed}, or the analytic surface model {model: \"surface\", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces (default 2), delay} (docs/reference/coatings.md#delayed-scatter)"
         },
         "od": {
           "anyOf": [
@@ -9233,7 +9286,7 @@
               "properties": {
                 "kind": {
                   "type": "string",
-                  "enum": ["callback", "cauchy", "ciddor", "constant", "expression", "gas", "library", "refractiveindex", "sellmeier", "table"]
+                  "enum": ["callback", "cauchy", "ciddor", "constant", "expression", "gas", "hitran", "library", "refractiveindex", "sellmeier", "table"]
                 }
               }
             },
@@ -9241,7 +9294,7 @@
               "type": "array"
             }
           ],
-          "description": "Ordinary index (user crystal) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, cauchy, ciddor, constant, expression, gas, library, refractiveindex, sellmeier, table)."
+          "description": "Ordinary index (user crystal) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, cauchy, ciddor, constant, expression, gas, hitran, library, refractiveindex, sellmeier, table)."
         },
         "indexExtraordinary": {
           "anyOf": [
@@ -9256,7 +9309,7 @@
               "properties": {
                 "kind": {
                   "type": "string",
-                  "enum": ["callback", "cauchy", "ciddor", "constant", "expression", "gas", "library", "refractiveindex", "sellmeier", "table"]
+                  "enum": ["callback", "cauchy", "ciddor", "constant", "expression", "gas", "hitran", "library", "refractiveindex", "sellmeier", "table"]
                 }
               }
             },
@@ -9264,7 +9317,7 @@
               "type": "array"
             }
           ],
-          "description": "Extraordinary index (user crystal) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, cauchy, ciddor, constant, expression, gas, library, refractiveindex, sellmeier, table)."
+          "description": "Extraordinary index (user crystal) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, cauchy, ciddor, constant, expression, gas, hitran, library, refractiveindex, sellmeier, table)."
         },
         "construction": {
           "type": "string",

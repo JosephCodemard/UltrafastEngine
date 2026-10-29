@@ -35,6 +35,21 @@ namespace UltrafastEngine.Specs
         /// <summary>Weakest combination of satellites (ghosts, replicas) the window makes room for, relative intensity
         /// (the product of the levels of the satellites combined). Default 1e-8.</summary>
         public double SatelliteLevel { get; set; } = 1e-8;
+        /// <summary>With grid.auto false (a manual window): grow the window, keeping the time step, so that ghosts, echoes and
+        /// pedestal replicas above grid.satelliteLevel fit. Default false (the manual window is kept and the wrap-around is reported).</summary>
+        public bool ExtendForSatellites { get; set; }
+        /// <summary>Make a satellite or pedestal that wraps around the window an error instead of a warning. Default false.</summary>
+        public bool Strict { get; set; }
+        /// <summary>Delayed-light ledger (docs/reference/delayed-light.md): a second, long, linear grid next to the main one.</summary>
+        public bool TailEnabled { get; set; }
+        /// <summary>Window of the tail grid (s); NaN = sized from the satellites (at least 8 x the main window).</summary>
+        public double TailWindowS { get; set; } = double.NaN;
+        /// <summary>Tail energy fraction above which the result carries a warning (default 0.01).</summary>
+        public double TailWarnFraction { get; set; } = 0.01;
+        /// <summary>Take the exact long-grid step for every linear element, also the smooth ones (default false: smooth elements act on main and tail separately).</summary>
+        public bool TailExactSteps { get; set; }
+        /// <summary>First-order cross-phase of the tail by the main pulse in nonlinear elements (default true).</summary>
+        public bool TailCrossPhase { get; set; } = true;
 
         public static GridSpec FromJson(JsonObject o)
         {
@@ -50,6 +65,26 @@ namespace UltrafastEngine.Specs
             g.MinSpanFraction = o.GetDouble("minSpanFraction", 0.1);
             g.MinPointsPerFwhm = o.GetDouble("minPointsPerFwhm", 12);
             g.SatelliteLevel = o.GetDouble("satelliteLevel", 1e-8);
+            g.ExtendForSatellites = o.GetBool("extendForSatellites", false);
+            g.Strict = o.GetBool("strict", false);
+            var tv = o["tail"];
+            if (tv != null && !tv.IsNull)
+            {
+                if (tv.Kind == JsonKind.Bool) g.TailEnabled = tv.AsBool();
+                else if (tv.Kind == JsonKind.Object)
+                {
+                    var to = tv.AsObject();
+                    g.TailEnabled = to.GetBool("enabled", true);
+                    g.TailWindowS = to.GetDouble("windowS", to.Has("windowPs") ? to.GetDouble("windowPs", 0) * 1e-12 : double.NaN);
+                    g.TailWarnFraction = to.GetDouble("warnEnergyFraction", 0.01);
+                    g.TailExactSteps = to.GetBool("exactSteps", false);
+                    g.TailCrossPhase = to.GetBool("crossPhase", true);
+                }
+                else throw new JsonException("grid.tail is true/false or an object {windowS, warnEnergyFraction, exactSteps, crossPhase}.");
+                // the tail grid contains the main frequency samples whether or not the carrier is snapped, and a small main window has a
+                // coarse frequency step (8.5 ps: 117 GHz = 0.4 nm), so the carrier stays where the user put it unless snapCarrier is given
+                if (g.TailEnabled && !o.Has("snapCarrier")) g.SnapCarrier = false;
+            }
             if (!(g.SatelliteLevel > 0) || g.SatelliteLevel > 1) throw new JsonException("grid.satelliteLevel is a relative intensity, 0 < satelliteLevel <= 1.");
             return g;
         }
@@ -131,6 +166,9 @@ namespace UltrafastEngine.Specs
         public string ProbeMode { get; set; } = "all";
         public HashSet<string> ProbeIds { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public List<JsonObject> Instruments { get; } = new List<JsonObject>();
+        /// <summary>Detector presets by name ("detectors"): {instrument: {keys filled into an instrument that does not set them}, detector: {read-out}}.
+        /// An instrument uses one with <c>"detector": "name"</c> (docs/reference/instruments.md#detector-presets).</summary>
+        public JsonObject Detectors { get; set; } = new JsonObject();
         public List<OverrideRule> Overrides { get; } = new List<OverrideRule>();
         public OutputOptions Outputs { get; set; } = new OutputOptions();
         /// <summary>Compute back-end ("cpu", "auto" or a plugin's: "cuda", "opencl"); null = the process default
@@ -206,6 +244,7 @@ namespace UltrafastEngine.Specs
             }
             var ins = o.GetArray("instruments");
             if (ins != null) foreach (var i in ins) r.Instruments.Add(i.AsObject());
+            r.Detectors = o.GetObject("detectors") ?? new JsonObject();
             r.Overrides.AddRange(OverrideSet.Parse(o.GetArray("overrides"), ModelSource.RunOverride, "run spec"));
             r.MigrationNotes.AddRange(migrationNotes);
             return r;

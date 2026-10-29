@@ -185,6 +185,17 @@ namespace UltrafastEngine.Materials
         public double RelativeHumidity { get; }
         public double Co2Ppm { get; }
 
+        /// <summary>Mole fraction of water vapour: enhancement factor x RH x saturation vapour pressure / pressure (CIPM-2007 / Ciddor).</summary>
+        public double WaterVaporMoleFraction
+        {
+            get
+            {
+                double T = TemperatureC + 273.15, p = PressurePa, t = TemperatureC;
+                double svp = Math.Exp(1.2378847e-5 * T * T - 1.9121316e-2 * T + 33.93711047 - 6.3431645e3 / T);
+                return (1.00062 + 3.14e-8 * p + 5.6e-7 * t * t) * RelativeHumidity * svp / p;
+            }
+        }
+
         public CiddorAirIndex(double temperatureC = 20.0, double pressurePa = 101325.0, double relativeHumidity = 0.0, double co2Ppm = 450.0)
         {
             TemperatureC = temperatureC; PressurePa = pressurePa; RelativeHumidity = relativeHumidity; Co2Ppm = co2Ppm;

@@ -28,6 +28,10 @@ namespace UltrafastEngine.Results
         public List<ProbeSnapshot> Snapshots { get; } = new List<ProbeSnapshot>();
         /// <summary>Full pulses kept at "input", "end", and every element id (references, not copies).</summary>
         public Dictionary<string, PulseField> At { get; } = new Dictionary<string, PulseField>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>The delayed-light ledger of the run (null without grid.tail) and the tail alone (on the long grid) at the
+        /// probes, instrument locations and "end".</summary>
+        public Engine.TailLedger TailLedger { get; set; }
+        public Dictionary<string, PulseField> TailAt { get; } = new Dictionary<string, PulseField>(StringComparer.OrdinalIgnoreCase);
         public List<InstrumentOutput> Instruments { get; } = new List<InstrumentOutput>();
         /// <summary>Instruments compared with recorded data ("measured" in the instrument spec): residuals, chi^2,
         /// rms error, scalar readings. docs/reference/measured-data.md.</summary>
@@ -81,6 +85,13 @@ namespace UltrafastEngine.Results
             {
                 double j = Records.Sum(r => r.LossJ.TryGetValue(m, out var v) ? v : 0);
                 mech.Set(m, new JsonObject().Set("energyJ", j).Set("fractionOfInput", inS.EnergyJ > 0 ? j / inS.EnergyJ : double.NaN));
+            }
+            if (TailLedger != null)
+            {
+                double eT = TailLedger.TailEnergyJ, eO = outS.EnergyJ;
+                o.Set("tail", new JsonObject().Set("n", TailLedger.Long.N).Set("windowS", TailLedger.WindowS).Set("dtS", TailLedger.Long.DTime).Set("factor", TailLedger.Factor)
+                    .Set("energyJ", eT).Set("fractionOfOutput", eT + eO > 0 ? eT / (eT + eO) : 0.0).Set("edgeEnergyFraction", TailLedger.TailEdgeEnergyFraction())
+                    .Set("exactSteps", TailLedger.ExactSteps).Set("separateSteps", TailLedger.SeparateSteps));
             }
             o.Set("lossBudget", mech);
             o.Set("energyBudget", mech); // same table; negative entries are energy GAINED by the main beam (parametric gain, amplification)

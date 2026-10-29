@@ -18,7 +18,7 @@ def test_aliases_and_plugin_selection():
     assert a.rids == ["win-x64", "win-x86", "osx-arm64", "linux-x64"]
     assert a.plugins == ["fitting"] and a.cli and a.python and not a.cpp
     assert pkg.parse(["--plugins", "none"]).plugins == []
-    assert pkg.parse([]).plugins == ["fitting", "zemax", "gpu"] and pkg.parse([]).cli
+    assert pkg.parse([]).plugins == ["fitting", "zemax", "gpu", "hitran"] and pkg.parse([]).cli
     assert pkg.parse(["--plugins", "cuda"]).plugins == ["gpu"]
     b = pkg.parse(["--all"])
     assert b.cli and b.python and b.cpp and b.csharp
@@ -32,6 +32,16 @@ def test_gpu_plugin_is_compiled_into_the_native_library_only_when_selected():
     without = pkg.parse(["--cpp", "--plugins", "fitting"])
     assert pkg.Builder._gpu_flag(type("B", (), {"a": with_gpu})()) == []
     assert pkg.Builder._gpu_flag(type("B", (), {"a": without})()) == ["-p:UF_WITH_GPU=false"]
+
+
+def test_hitran_plugin_is_compiled_into_the_native_library_only_when_selected():
+    with_h = pkg.parse(["--cpp", "--plugins", "hitran"])
+    without = pkg.parse(["--cpp", "--plugins", "fitting"])
+    B = lambda a: type("B", (), {"a": a, "_gpu_flag": pkg.Builder._gpu_flag, "_hitran_flag": pkg.Builder._hitran_flag})()
+    assert pkg.Builder._hitran_flag(B(with_h)) == []
+    assert pkg.Builder._hitran_flag(B(without)) == ["-p:UF_WITH_HITRAN=false"]
+    assert pkg.parse(["--plugins", "hapi"]).plugins == ["hitran"]
+    assert "gpu" not in pkg.parse(["--plugins", "hitran"]).plugins
 
 
 def test_os_of_and_native_names():

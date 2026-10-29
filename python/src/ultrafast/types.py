@@ -165,6 +165,8 @@ class BulkElement(TypedDict, total=False):
     """Use traced data or the material index Default: data."""
     airPathM: float
     """Air path whose data are relative to air [m]"""
+    air: Any
+    """gap only: this gap's air (temperatureC, pressurePa, humidity, co2ppm, and the keys of environment.air), overriding the system's environment.air (docs/reference/gases.md#air-in-the-gaps)"""
     ghosts: Any
     """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     beam: Union[float, str, Dict[str, Any], List[Any]]
@@ -702,6 +704,8 @@ class GapElement(TypedDict, total=False):
     """Use traced data or the material index Default: data."""
     airPathM: float
     """Air path whose data are relative to air [m]"""
+    air: Any
+    """gap only: this gap's air (temperatureC, pressurePa, humidity, co2ppm, and the keys of environment.air), overriding the system's environment.air (docs/reference/gases.md#air-in-the-gaps)"""
     ghosts: Any
     """Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections) Default: false."""
     beam: Union[float, str, Dict[str, Any], List[Any]]
@@ -765,6 +769,12 @@ class GratingElement(TypedDict, total=False):
     """Angle of incidence in degrees [deg]"""
     coating: Union[float, str, Dict[str, Any], List[Any]]
     """Coating name (from coatings) or inline coating; none = bare Fresnel A model: a number, a name / "@callback" / expression string, or an object with "kind"."""
+    ripple: Any
+    """Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating"""
+    delayedScatter: Any
+    """Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"""
+    substrate: Any
+    """mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"""
     efficiency: Union[float, List[float]]
     """Diffraction efficiency (grating, no coating)"""
     efficiencyS: Union[float, List[float]]
@@ -895,6 +905,12 @@ class InterfaceElement(TypedDict, total=False):
     """Angle of incidence in degrees [deg]"""
     coating: Union[float, str, Dict[str, Any], List[Any]]
     """Coating name (from coatings) or inline coating; none = bare Fresnel A model: a number, a name / "@callback" / expression string, or an object with "kind"."""
+    ripple: Any
+    """Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating"""
+    delayedScatter: Any
+    """Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"""
+    substrate: Any
+    """mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"""
     efficiency: Union[float, List[float]]
     """Diffraction efficiency (grating, no coating)"""
     efficiencyS: Union[float, List[float]]
@@ -1025,6 +1041,12 @@ class MirrorElement(TypedDict, total=False):
     """Angle of incidence in degrees [deg]"""
     coating: Union[float, str, Dict[str, Any], List[Any]]
     """Coating name (from coatings) or inline coating; none = bare Fresnel A model: a number, a name / "@callback" / expression string, or an object with "kind"."""
+    ripple: Any
+    """Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating"""
+    delayedScatter: Any
+    """Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"""
+    substrate: Any
+    """mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"""
     efficiency: Union[float, List[float]]
     """Diffraction efficiency (grating, no coating)"""
     efficiencyS: Union[float, List[float]]
@@ -1120,6 +1142,8 @@ class NdFilterElement(TypedDict, total=False):
     """Wedge angle (tilts the ghosts) [deg] Default: 0."""
     ghosts: Any
     """true / false or a ghosts object Default: false."""
+    delayedScatter: Any
+    """Bulk back-scatter returned as delayed light: {fraction, delay: {kind: uniform, maxS (default 2 n_g d cos(theta)/c)}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces (default 2), delay} (docs/reference/coatings.md#delayed-scatter)"""
     od: Union[float, List[float]]
     """Optical density (number, or per wavelength)"""
     kind: Literal["absorptive", "reflective"]
@@ -1284,6 +1308,8 @@ class PlateElement(TypedDict, total=False):
     """Wedge angle (tilts the ghosts) [deg] Default: 0."""
     ghosts: Any
     """true / false or a ghosts object Default: false."""
+    delayedScatter: Any
+    """Bulk back-scatter returned as delayed light: {fraction, delay: {kind: uniform, maxS (default 2 n_g d cos(theta)/c)}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces (default 2), delay} (docs/reference/coatings.md#delayed-scatter)"""
     od: Union[float, List[float]]
     """(ndFilter only)"""
     kind: Literal["absorptive", "reflective"]
@@ -1728,9 +1754,9 @@ class WaveplateElement(TypedDict, total=False):
     material: str
     """Birefringent crystal: Quartz, MgF2, Sapphire, Calcite, YVO4, aBBO (enables the thick-plate model)"""
     indexOrdinary: Union[float, str, Dict[str, Any], List[Any]]
-    """Ordinary index (user crystal) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, cauchy, ciddor, constant, expression, gas, library, refractiveindex, sellmeier, table)."""
+    """Ordinary index (user crystal) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, cauchy, ciddor, constant, expression, gas, hitran, library, refractiveindex, sellmeier, table)."""
     indexExtraordinary: Union[float, str, Dict[str, Any], List[Any]]
-    """Extraordinary index (user crystal) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, cauchy, ciddor, constant, expression, gas, library, refractiveindex, sellmeier, table)."""
+    """Extraordinary index (user crystal) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, cauchy, ciddor, constant, expression, gas, hitran, library, refractiveindex, sellmeier, table)."""
     construction: Literal["single", "compound"]
     """One plate, or a compound zero-order pair with crossed axes Default: single."""
     thicknessM: float
@@ -1795,8 +1821,8 @@ class AutocorrelatorInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -1822,8 +1848,8 @@ class BeamProfileInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -1885,8 +1911,8 @@ class CameraInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -1918,8 +1944,8 @@ class CompressorInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -1953,8 +1979,8 @@ class ContrastInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -1980,8 +2006,8 @@ class ConversionInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2014,6 +2040,10 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
     """Fluctuating detector background (else a flat floor) Default: true."""
     seed: int
     """Noise seed Default: 1."""
+    saturationLevel: float
+    """Detector saturation: the reading (signal x attenuation + floor) is clipped at this level, relative to the unattenuated peak (0 or omitted: none) Default: 0."""
+    segments: Any
+    """Attenuation-range stitching: a list of {fromS, toS, attenuation (or gain), noiseFloor} -- the signal in that delay range is measured through the attenuation (power factor) and divided by it afterwards, so the floor rises as 1/attenuation and saturation moves up accordingly"""
     resolutionS: float
     """Extra temporal resolution (Gaussian FWHM) [s] Default: 0."""
     shgAcceptanceFwhmM: float
@@ -2035,8 +2065,8 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2068,8 +2098,8 @@ class DelayScanInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2107,8 +2137,8 @@ class DscanInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2140,8 +2170,8 @@ class EnergyMeterInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2173,8 +2203,8 @@ class FieldProbeInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2208,8 +2238,8 @@ class FrogInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2245,8 +2275,8 @@ class PhaseMatchingCurveInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2276,8 +2306,8 @@ class PolarimeterInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2303,8 +2333,8 @@ class PulseSummaryInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2336,8 +2366,8 @@ class ScopeInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2369,8 +2399,8 @@ class SpaceTimeInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     measured: Union["Measured", str]
     """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
     comment: Any
@@ -2408,8 +2438,8 @@ class SpectrometerInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2451,8 +2481,8 @@ class WavefrontSensorInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2484,8 +2514,8 @@ class WignerInstrument(TypedDict, total=False):
     """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
     filter: Union[float, str, Dict[str, Any], List[Any]]
     """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
-    detector: Union["Detector", str]
-    """Read-out of the recorded trace / readings: calibration, noise, noise floor, bit depth"""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
     axis: Union["InstrumentAxis", str]
     """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
     measured: Union["Measured", str]
@@ -2535,7 +2565,9 @@ class Air(TypedDict, total=False):
     co2ppm: float
     """CO2 [ppm] Default: 450."""
     kind: str
-    """An index model kind instead (e.g. "ciddor")"""
+    """An index model kind instead (e.g. "ciddor", or "hitran" with the hitran plugin)"""
+    applyToGaps: bool
+    """Use this air (humidity, temperature, pressure, gas lines) as the "Air" of every gap; a gap's own "air" overrides it. Off by default: existing results do not change Default: false."""
     comment: Any
     """Free text."""
     description: Any
@@ -2646,28 +2678,6 @@ class Compute(TypedDict, total=False):
     """backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU Default: 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end."""
     deviceSlots: int
     """GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits Default: 4."""
-    comment: Any
-    """Free text."""
-    description: Any
-    """Free text."""
-    notes: Any
-    """Free text."""
-
-
-class Detector(TypedDict, total=False):
-    """Detector read-out applied to an instrument's recorded arrays and readings (spectrometer, scope, autocorrelator, FROG, d-scan, energy meter); width and peak readings are re-evaluated on the detected trace. (docs/reference/instruments.md#detector-model)"""
-    calibration: float
-    """Calibration factor (reading / true value) Default: 1."""
-    noise: float
-    """Multiplicative noise, relative rms Default: 0."""
-    noiseFloor: float
-    """Additive noise rms relative to the trace peak Default: 0."""
-    dynamicRangeDb: float
-    """Noise floor as a dynamic range (alternative to noiseFloor) [dB]"""
-    bitDepth: int
-    """ADC bits, full scale at the trace maximum (0: ideal) Default: 0."""
-    seed: int
-    """Random seed Default: 1."""
     comment: Any
     """Free text."""
     description: Any
@@ -3025,6 +3035,12 @@ class Grid(TypedDict, total=False):
     """Samples across the transform-limited FWHM Default: 12."""
     satelliteLevel: float
     """Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window Default: 1e-8."""
+    extendForSatellites: bool
+    """Manual window (auto false): grow the window, keeping dt, so that ghosts, echoes and pedestal replicas above satelliteLevel fit Default: false."""
+    strict: bool
+    """A ghost, echo or pedestal that wraps around the window is an error instead of a warning Default: false."""
+    tail: Any
+    """Delayed-light ledger: true, or {windowS, warnEnergyFraction, exactSteps (every linear element takes the exact long-grid step; default false), crossPhase (first-order cross-phase of the tail by the main pulse in nonlinear elements; default true)}. A second, long, linear grid with the same time step carries ghosts, echoes and gas-line tails next to the main nonlinear grid (docs/reference/delayed-light.md) Default: false."""
     comment: Any
     """Free text."""
     description: Any
@@ -3071,6 +3087,10 @@ class InitialProfile(TypedDict, total=False):
     """Wavefront radius of curvature (negative: converging) [m]"""
     radiusM: float
     """1/e^2 radius (default: from the element's beam) [m]"""
+    ripple: Any
+    """Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing)"""
+    noise: Any
+    """Seeded random noise (cartesian): {relativeAmplitudeRms, phaseRmsRad, correlationLengthM, seed, components}"""
     comment: Any
     """Free text."""
     description: Any
@@ -3602,6 +3622,7 @@ System = TypedDict('System', {
     'environment': Union["Environment", str],  # Air of the laboratory and the index reference of quoted data
     'materials': Dict[str, Any],  # Materials defined in this file, by name (docs/reference/materials.md)
     'coatings': Dict[str, Any],  # Coatings defined in this file, by name (docs/reference/coatings.md)
+    'substrates': Dict[str, Any],  # Mirror substrates defined in this file, by name: material, thicknessM, backCoating / backReflectance
     'inputBeam': Union[float, str, Dict[str, Any], List[Any]],  # Default beam for nonlinear elements without one A model: a number, a name / "@callback" / expression
     'elements': List["Element"],  # The beam path, in order.
     'overrides': List["Override"],  # Changes to models or values (docs/reference/models.md#overrides)
@@ -3620,6 +3641,7 @@ RunSpec = TypedDict('RunSpec', {
     'stepper': Union["Stepper", str],  # Nonlinear solver settings
     'probes': Any,  # Snapshots of the pulse: "all", "end" or a list of element ids Default: "end".
     'instruments': List["Instrument"],  # Instruments: what you measure, and where (docs/reference/instruments.md).
+    'detectors': Dict[str, Any],  # Detector presets by name: {instrument: {keys for an instrument that does not set them}, detector: {r
     'overrides': List["Override"],  # Overrides (highest priority)
     'inputBeam': Union[float, str, Dict[str, Any], List[Any]],  # Default beam for nonlinear elements without one A model: a number, a name / "@callback" / expression
     'outputs': Union["Outputs", str],  # Which files to write
@@ -3631,4 +3653,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'Detector', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']

@@ -160,6 +160,9 @@ namespace UltrafastEngine.Engine
             ce.Post.Add(new InterfaceTerm(ce.Label + " back", mat, medium, back, "refract", thetaT, basis));
             ce.TrackingIndex = mat.IndexAt(c.Omega0);
 
+            AddDelayedScatter(c, e, ce, 2 * mat.GroupIndexAt(c.Omega0) * d * Math.Cos(tt0) / Cl, ce.Post,
+                new SurfaceGeometry { Before = medium, After = mat, Aoi = _ => aoi, Mode = "refract", Surfaces = 2 });
+
             // ghosts
             var gj = e.Json["ghosts"];
             bool ghosts = gj != null && (gj.Kind == JsonKind.Object || (gj.Kind == JsonKind.Bool && gj.AsBool()));

@@ -21,4 +21,8 @@ engine. Guide: `docs/reference/plugins.md`; extension points in `src/UltrafastEn
   library (`UF_WITH_GPU`). A physics change to `EnvelopeProblem` / `SpatialEnvelopeProblem` must be mirrored in the
   kernels (or make `DeviceSpec()` return null for it) and checked by `GpuTests` (PoCL runs them without a GPU:
   docs/plugins/gpu.md). Docs: `docs/plugins/gpu.md`.
+* **hitran** (`hitran/src`): the `index` / `attenuation` model kind `"hitran"` (`GasLines.cs`: `HitranAirIndex` -- Voigt lines,
+  one complex line shape gives n and alpha; `Faddeeva.cs`; `HitranLines.cs`: `.par` and CSV readers; `HitranPlugin.cs`). Partition sums: `PartitionTable` (`<NAME>.partition.csv`, written by the downloader from `hapi.partitionSum`), else the power law. It implements
+  `ISmoothIndex` (the propagation frame ignores the line group delay). No data in the repo: `ultrafast_hitran` (python) downloads
+  them with the HITRAN API. Compiled into the NativeAOT library (`UF_WITH_HITRAN`). Docs: `docs/plugins/hitran.md`; tests `HitranTests`.
 * After changing a plugin's Python: rerun `python3 python/tools/build_engine.py`.

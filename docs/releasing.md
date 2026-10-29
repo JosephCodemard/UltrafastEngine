@@ -6,7 +6,7 @@ copy to another computer: the programs and libraries you choose, the plugins you
 
 ```bash
 ./build.sh                                               # CLI for this machine, all plugins
-./build.sh --cli --python --cpp --csharp --plugins fitting zemax gpu --platform osx-arm64 win-x64 linux-x64
+./build.sh --cli --python --cpp --csharp --plugins fitting zemax gpu hitran --platform osx-arm64 win-x64 linux-x64
 ./build.sh --all --plugins none --platform host          # everything, core only
 ./build.sh --list                                        # platforms, plugins, what this machine can build
 ```

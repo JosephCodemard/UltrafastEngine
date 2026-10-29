@@ -106,6 +106,7 @@ namespace UltrafastEngine.Optics
     /// </summary>
     public sealed class FaradayTerm : JonesTerm
     {
+        public override bool IsSmooth => true;
         public double DesignAngleRad { get; } public double DesignOmega { get; } public double PoleWavelengthM { get; } public bool Dispersive { get; }
         public FaradayTerm(double designAngleRad, double designOmega, double poleWavelengthM, bool dispersive)
         { DesignAngleRad = designAngleRad; DesignOmega = designOmega; PoleWavelengthM = poleWavelengthM; Dispersive = dispersive; Mechanism = "polarization"; }

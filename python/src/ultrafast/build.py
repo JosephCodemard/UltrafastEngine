@@ -26,7 +26,9 @@ def _clean(d: Dict[str, Any]) -> Dict[str, Any]:
 # ------------------------------------------------------------------ system file
 def system(name: str, elements: Sequence[Mapping[str, Any]], materials: Optional[Mapping[str, Any]] = None, coatings: Optional[Mapping[str, Any]] = None,
            wavelengths_m: Optional[Sequence[float]] = None, overrides: Optional[list] = None, environment: Optional[Mapping[str, Any]] = None,
-           description: Optional[str] = None) -> "T.System":
+           description: Optional[str] = None, substrates: Optional[Mapping[str, Any]] = None) -> "T.System":
+    """A system file. ``substrates`` defines mirror substrates by name (see :func:`substrate`); ``environment`` is the lab
+    air (:func:`environment`)."""
     d = {"format": "ultrafast-system", "version": 2, "name": name}
     if description:
         d["description"] = description
@@ -38,6 +40,8 @@ def system(name: str, elements: Sequence[Mapping[str, Any]], materials: Optional
         d["materials"] = materials
     if coatings:
         d["coatings"] = coatings
+    if substrates:
+        d["substrates"] = substrates
     d["elements"] = list(elements)
     if overrides:
         d["overrides"] = list(overrides)
@@ -59,16 +63,23 @@ def fiber(id: str, length_m: float, betas: Optional[Sequence[float]] = None, gam
                    "lossDbPerKm": loss_db_per_km, "gainDbPerM": gain_db_per_m, "raman": raman, **extra})
 
 
-def gap(id: str, length_m: float, medium: str = "Air", **extra) -> "T.GapElement":
-    return _clean({"id": id, "type": "gap", "material": medium, "lengthM": length_m, **extra})
+def gap(id: str, length_m: float, medium: str = "Air", air: Optional[Mapping[str, Any]] = None, **extra) -> "T.GapElement":
+    """Free space (air by default). ``air`` (see :func:`air`) gives this gap its own temperature, pressure, humidity or gas
+    lines instead of the system's ``environment.air``."""
+    return _clean({"id": id, "type": "gap", "material": medium, "lengthM": length_m, "air": air, **extra})
 
 
 def interface(id: str, before: str = "Air", after: str = "Air", aoi_deg: float = 0.0, coating=None, mode: str = "refract", **extra) -> "T.InterfaceElement":
     return _clean({"id": id, "type": "interface", "mode": mode, "before": before, "after": after, "aoiDeg": aoi_deg, "coating": coating, **extra})
 
 
-def mirror(id: str, coating=None, aoi_deg: float = 0.0, medium: str = "Air", **extra) -> "T.MirrorElement":
-    return _clean({"id": id, "type": "mirror", "before": medium, "aoiDeg": aoi_deg, "coating": coating, **extra})
+def mirror(id: str, coating=None, aoi_deg: float = 0.0, medium: str = "Air", substrate: Any = None, ripple: Optional[Mapping[str, Any]] = None,
+           delayed_scatter: Optional[Mapping[str, Any]] = None, **extra) -> "T.MirrorElement":
+    """A reflecting surface. ``substrate``: a name ("FS-12.7mm", or one defined with ``system(substrates=...)``) or :func:`substrate`
+    -- light leaking through the coating returns as an echo delayed by 2 n_g d cos(theta) / c. ``ripple``: :func:`coating_ripple`.
+    ``delayed_scatter``: :func:`delayed_scatter`. ``aoi_deg`` defaults to 0 (a Herriott cell: a few mrad)."""
+    return _clean({"id": id, "type": "mirror", "before": medium, "aoiDeg": aoi_deg, "coating": coating, "substrate": substrate, "ripple": ripple,
+                   "delayedScatter": delayed_scatter, **extra})
 
 
 def dispersion(id: str, gdd_s2: float = 0.0, tod_s3: float = 0.0, fod_s4: float = 0.0, **extra) -> "T.DispersionElement":
@@ -100,10 +111,14 @@ def waveplate(id: str, plate: str = "half", axis_deg: float = 0.0, design_wavele
 
 
 def plate(id: str, material: str, thickness_m: float, aoi_deg: float = 0.0, ghosts: Any = False, coating: Any = None,
-          wedge_deg: float = 0.0, beam: Optional[Mapping[str, Any]] = None, **extra) -> "T.PlateElement":
-    """Plane-parallel plate / window: surfaces, bulk (dispersion, nonlinearity with a beam), optional ghost replicas."""
+          wedge_deg: float = 0.0, beam: Optional[Mapping[str, Any]] = None, delayed_scatter: Optional[Mapping[str, Any]] = None,
+          **extra) -> "T.PlateElement":
+    """Plane-parallel plate / window: surfaces, bulk (dispersion, nonlinearity with a beam), optional ghost replicas. The ghosts
+    use the reflectance of ``coating`` at each wavelength (a ``table`` coating or a stack), not a flat value. ``delayed_scatter``:
+    bulk back-scatter returned as delayed light (:func:`delayed_scatter`; the default delay is 0 .. 2 n_g d / c)."""
     return _clean({"id": id, "type": "plate", "material": material, "thicknessM": thickness_m, "aoiDeg": aoi_deg or None,
-                   "ghosts": ghosts or None, "coating": coating, "wedgeDeg": wedge_deg or None, "beam": beam, **extra})
+                   "ghosts": ghosts or None, "coating": coating, "wedgeDeg": wedge_deg or None, "beam": beam,
+                   "delayedScatter": delayed_scatter, **extra})
 
 
 def nd_filter(id: str, od: Any, kind: str = "absorptive", material: Optional[str] = None, thickness_m: Optional[float] = None,
@@ -129,6 +144,117 @@ def wavefront(id: str, zernike_noll_waves: Optional[Sequence[float]] = None, rad
     """A wavefront error: Zernike terms (Noll order, waves) over ``radius_m`` and/or a random figure (cartesian grids)."""
     return _clean({"id": id, "type": "wavefront", "zernikeNollWaves": list(zernike_noll_waves) if zernike_noll_waves else None,
                    "radiusM": radius_m, "randomRmsM": random_rms_m, "correlationLengthM": correlation_length_m, **extra})
+
+
+def substrate(material: str = "FusedSilica", thickness_m: Optional[float] = None, *, back_reflectance: Optional[float] = None,
+              back_coating: Any = None, wedge_deg: Optional[float] = None, orders: Optional[int] = None,
+              beam_radius_m: Optional[float] = None) -> dict:
+    """A mirror substrate (for ``mirror(substrate=...)`` or ``system(substrates={name: ...})``). Light that leaks through the HR
+    coating reflects from the back face (bare Fresnel unless ``back_reflectance`` -- a flat power reflectance, e.g. 1e-3 for an AR
+    coating -- or ``back_coating`` is given) and returns ``orders`` times as an echo delayed by 2 n_g(lambda) d cos(theta_t) / c.
+    Built-in names: FS-3mm, FS-6.35mm, FS-9.5mm, FS-12.7mm, FS-25.4mm, BK7-6.35mm, BK7-12.7mm (fused silica / N-BK7, bare back face)."""
+    return _clean({"material": material, "thicknessM": thickness_m, "backReflectance": back_reflectance, "backCoating": back_coating,
+                   "wedgeDeg": wedge_deg, "orders": orders, "beamRadiusM": beam_radius_m})
+
+
+def coating_ripple(phase_rms_rad: float = 0.0, amplitude_rms: float = 0.0, max_delay_s: float = 5e-12, *, seed: Optional[int] = None,
+                   components: Optional[int] = None) -> dict:
+    """Random phase / amplitude ripple of a mirror coating (for ``mirror(ripple=...)``). The first-order pedestal holds a fraction
+    ``phase_rms_rad`` squared of the energy within +-``max_delay_s`` of the pulse. Measured ripple: use a ``table`` coating."""
+    return _clean({"phaseRmsRad": phase_rms_rad, "amplitudeRms": amplitude_rms, "maxDelayS": max_delay_s, "seed": seed, "components": components})
+
+
+def delay_uniform(max_s: Optional[float] = None, min_s: float = 0.0) -> dict:
+    """Delays uniform in [min_s, max_s] (default max: 2 n_g d cos(theta) / c of the plate, or of the mirror substrate)."""
+    return _clean({"kind": "uniform", "minS": min_s, "maxS": max_s})
+
+
+def delay_exponential(tau_s: float, max_s: Optional[float] = None) -> dict:
+    """Delays with an exponential weight exp(-t / tau_s)."""
+    return _clean({"kind": "exponential", "tauS": tau_s, "maxS": max_s})
+
+
+def delay_table(delays_s: Sequence[float], weights: Sequence[float]) -> dict:
+    """Delays from a table (weights are normalised)."""
+    return {"kind": "table", "delaysS": list(map(float, delays_s)), "weights": list(map(float, weights))}
+
+
+def delayed_scatter(fraction: Optional[float] = None, delay: Optional[Mapping[str, Any]] = None, spectral_exponent: Optional[float] = None, *,
+                    seed: Optional[int] = None, components: Optional[int] = None, model: Optional[str] = None,
+                    roughness_rms_m: Optional[float] = None, correlation_length_m: Optional[float] = None,
+                    beam_radius_m: Optional[float] = None, surfaces: Optional[int] = None) -> dict:
+    """Scatter as delayed light, not loss. Generic model: ``fraction`` of the power returns incoherently after ``delay``
+    (:func:`delay_uniform`, :func:`delay_exponential`, :func:`delay_table`) with an intensity weight lambda^-``spectral_exponent``.
+    Analytic surface model (``model="surface"``): rms roughness ``roughness_rms_m`` gives the total integrated scatter
+    (4 pi sigma / lambda)^2 per surface; the share 1 - exp(-(l/w)^2) of it (correlation length l, beam radius w) stays in the mode and returns
+    after ``delay`` (none: at once), the rest is lost (booked as scatter). ``surfaces`` defaults to 1 (mirror) / 2 (plate)."""
+    return _clean({"fraction": fraction, "delay": delay, "spectralExponent": spectral_exponent, "seed": seed, "components": components, "model": model,
+                   "roughnessRmsM": roughness_rms_m, "correlationLengthM": correlation_length_m, "beamRadiusM": beam_radius_m, "surfaces": surfaces})
+
+
+def air(*, temperature_c: Optional[float] = None, pressure_pa: Optional[float] = None, humidity: Optional[float] = None,
+        co2_ppm: Optional[float] = None, apply_to_gaps: Optional[bool] = None, kind: Optional[str] = None, **model) -> "T.Air":
+    """Lab air (Ciddor index from temperature, pressure, relative humidity 0..1 and CO2), for ``environment(air=...)`` or one
+    ``gap(air=...)``. ``apply_to_gaps=True`` uses it as the "Air" of every gap (off by default: existing results do not change).
+    ``kind="hitran"`` (hitran plugin) adds line-by-line absorption and dispersion: see ``ultrafast_hitran.air``."""
+    return _clean({"temperatureC": temperature_c, "pressurePa": pressure_pa, "humidity": humidity, "co2ppm": co2_ppm,
+                   "applyToGaps": apply_to_gaps, "kind": kind, **model})
+
+
+def environment(air: Optional[Mapping[str, Any]] = None, index_reference: Optional[str] = None) -> "T.Environment":
+    """The system's ``environment``: the lab air and whether quoted data are relative to "air" or "vacuum"."""
+    return _clean({"air": air, "indexReference": index_reference})
+
+
+def grid(*, n: Optional[int] = None, window_s: Optional[float] = None, window_ps: Optional[float] = None, auto: Optional[bool] = None,
+         max_n: Optional[int] = None, snap_carrier: Optional[bool] = None, spectral_margin: Optional[float] = None,
+         min_span_fraction: Optional[float] = None, min_points_per_fwhm: Optional[float] = None, satellite_level: Optional[float] = None,
+         extend_for_satellites: Optional[bool] = None, strict: Optional[bool] = None, tail: Any = None) -> "T.Grid":
+    """The time grid. ``tail=True`` (or :func:`tail_grid`) adds the delayed-light ledger: a second, long, linear grid with the same
+    time step that carries ghosts, echoes, scatter and gas-line tails while the nonlinear solver stays on the small main grid.
+    ``extend_for_satellites=True`` grows a manual window to hold the satellites; ``strict=True`` makes a wrapping satellite an error."""
+    return _clean({"n": n, "windowS": window_s, "windowPs": window_ps, "auto": auto, "maxN": max_n, "snapCarrier": snap_carrier,
+                   "spectralMargin": spectral_margin, "minSpanFraction": min_span_fraction, "minPointsPerFwhm": min_points_per_fwhm,
+                   "satelliteLevel": satellite_level, "extendForSatellites": extend_for_satellites, "strict": strict, "tail": tail})
+
+
+def tail_grid(window_s: Optional[float] = None, warn_energy_fraction: Optional[float] = None, *, exact_steps: Optional[bool] = None,
+              cross_phase: Optional[bool] = None) -> dict:
+    """``grid(tail=tail_grid(window_s=2e-9))``: the long tail grid of the delayed-light ledger (default window: from the satellites,
+    at least 8 x the main window). A warning is added when the tail holds more than ``warn_energy_fraction`` (0.01) of the energy.
+    ``exact_steps=True`` takes the exact long-grid step for every linear element (default: smooth elements -- dispersion, flat loss, bare
+    surfaces -- act on main and tail separately, much cheaper); ``cross_phase=False`` leaves out the first-order cross-phase of the tail
+    by the main pulse in nonlinear elements."""
+    return _clean({"windowS": window_s, "warnEnergyFraction": warn_energy_fraction, "exactSteps": exact_steps, "crossPhase": cross_phase})
+
+
+def detector_response(wavelengths_m: Sequence[float], values: Sequence[float]) -> dict:
+    """A spectral response table (e.g. the quantum efficiency) for ``detector(response=...)``: linear in wavelength, held at the ends."""
+    return {"wavelengthsM": list(map(float, wavelengths_m)), "values": list(map(float, values))}
+
+
+def detector(*, calibration: Optional[float] = None, noise: Optional[float] = None, noise_floor: Optional[float] = None,
+             dynamic_range_db: Optional[float] = None, saturation_level: Optional[float] = None, bit_depth: Optional[int] = None,
+             response: Optional[Mapping[str, Any]] = None, counting: Optional[str] = None, seed: Optional[int] = None,
+             preset: Optional[str] = None) -> "T.Detector":
+    """The read-out of an instrument (``instrument(..., detector=detector(...))``). ``response`` (:func:`detector_response`) is the spectral
+    response of a spectral instrument; ``counting="photons"`` converts the energy spectrum to photon counts first. ``preset`` names an entry
+    of ``run_spec(detectors=...)`` (or a JSON file) that the other keys override."""
+    return _clean({"calibration": calibration, "noise": noise, "noiseFloor": noise_floor, "dynamicRangeDb": dynamic_range_db,
+                   "saturationLevel": saturation_level, "bitDepth": bit_depth, "response": response, "counting": counting, "seed": seed, "preset": preset})
+
+
+def detector_preset(*, instrument: Optional[Mapping[str, Any]] = None, detector: Optional[Mapping[str, Any]] = None) -> dict:
+    """A reusable detector preset for ``run_spec(detectors={name: ...})``: ``instrument`` keys fill instrument parameters the instrument does
+    not set (``saturationLevel``, ``segments`` from :func:`detector_segment`, ``noiseFloor``, ...); ``detector`` is the read-out. An instrument
+    uses it with ``detector="name"``. Numbers are yours (a manual, a calibration): none are built in."""
+    return _clean({"instrument": instrument, "detector": detector})
+
+
+def detector_segment(from_s: float, to_s: float, attenuation: float = 1.0, noise_floor: Optional[float] = None) -> dict:
+    """One delay range of a cross-correlator scan measured through an attenuation (a power factor): for the instrument's
+    ``segments=[...]`` (stitching) together with ``saturation_level``-style keys ``saturationLevel`` and ``noiseFloor``."""
+    return _clean({"fromS": from_s, "toS": to_s, "attenuation": attenuation, "noiseFloor": noise_floor})
 
 
 def pedestal(kind: str, **params) -> dict:
@@ -168,6 +294,27 @@ def transverse(model: str = "radial", points: Optional[int] = None, radius_m: Op
     """Transverse (spatial) model for an element: "radial" (Hankel) or "cartesian" (x-y FFT)."""
     return _clean({"model": model, "points": points, "radiusM": radius_m, "nx": nx, "ny": ny, "halfWidthM": half_width_m,
                    "transport": transport, "initialProfile": initial_profile, **extra})
+
+
+def initial_profile(kind: str = "gaussian", *, order: Optional[int] = None, radius_m: Optional[float] = None, ripple: Optional[Mapping[str, Any]] = None,
+                    noise: Optional[Mapping[str, Any]] = None, **extra) -> dict:
+    """The field at the first spatial element (``transverse(initial_profile=...)``): "gaussian", "superGaussian" (``order``) or "flatTop".
+    ``ripple`` / ``noise`` (cartesian grids) seed small-scale self-focusing: :func:`profile_ripple`, :func:`profile_noise`."""
+    return _clean({"kind": kind, "order": order, "radiusM": radius_m, "ripple": ripple, "noise": noise, **extra})
+
+
+def profile_ripple(period_m: float, relative_amplitude: float, angle_deg: float = 0.0, phase_rad: float = 0.0) -> dict:
+    """A sinusoidal amplitude ripple a cos(2 pi (x cos t + y sin t) / period + phase) on the field: the Bespalov-Talanov seed. The ripple of
+    the fluence is 2 a; with a plane wave of intensity I it grows as cosh(g z), g^2 = q (2 Delta - q), q = K^2 / 2k, Delta = k0 n2 I."""
+    return {"periodM": period_m, "relativeAmplitude": relative_amplitude, "angleDeg": angle_deg, "phaseRad": phase_rad}
+
+
+def profile_noise(relative_amplitude_rms: float = 0.0, correlation_length_m: float = 50e-6, phase_rms_rad: float = 0.0, seed: int = 1,
+                  components: Optional[int] = None) -> dict:
+    """Seeded smooth random amplitude (relative rms) and phase noise with the given correlation length: the seed of small-scale
+    self-focusing. The element reports ``fluenceContrastIn`` / ``Out`` and ``smallScaleGain``."""
+    return _clean({"relativeAmplitudeRms": relative_amplitude_rms, "phaseRmsRad": phase_rms_rad or None, "correlationLengthM": correlation_length_m,
+                   "seed": seed, "components": components})
 
 
 def aux_beam(role: str, pulse: Optional[Mapping[str, Any]] = None, *, from_results: Optional[str] = None, energy: Optional[float] = None,
@@ -398,12 +545,12 @@ def override(target: str, prop: str, model: Any = None, value: Any = None, mode:
 def run_spec(pulse: Mapping[str, Any], name: str = "run", grid: Optional[Mapping[str, Any]] = None, physics: Optional[Mapping[str, Any]] = None,
              stepper: Optional[Mapping[str, Any]] = None, probes: Any = "all", instruments: Optional[list] = None,
              overrides: Optional[list] = None, outputs: Optional[Mapping[str, Any]] = None, input_beam: Optional[Mapping[str, Any]] = None,
-             compute: Optional[Mapping[str, Any]] = None, **extra: Any) -> "T.RunSpec":
+             compute: Optional[Mapping[str, Any]] = None, detectors: Optional[Mapping[str, Any]] = None, **extra: Any) -> "T.RunSpec":
     """A run spec. ``compute`` selects the compute back-end (:func:`compute`; GPU: ``compute(backend="auto")``).
     ``extra`` adds top-level keys provided by plugins, e.g. ``fit=`` (fitting plugin: ``from ultrafast_fitting import fit``)."""
     return _clean({"format": "ultrafast-run", "version": 2, "name": name, "pulse": pulse, "grid": grid, "physics": physics,
                    "stepper": stepper, "probes": probes, "instruments": instruments, "overrides": overrides,
-                   "outputs": outputs, "inputBeam": input_beam, "compute": compute, **extra})
+                   "outputs": outputs, "inputBeam": input_beam, "compute": compute, "detectors": detectors, **extra})
 
 
 def compute(backend: Optional[str] = None, *, threads: Optional[int] = None, fft: Optional[str] = None, device: Optional[int] = None,

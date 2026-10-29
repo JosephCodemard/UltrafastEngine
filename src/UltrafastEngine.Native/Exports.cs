@@ -74,6 +74,9 @@ namespace UltrafastEngine.Native
 #if UF_WITH_GPU
             UltrafastEngine.Plugins.Gpu.GpuPlugin.RegisterStatic();
 #endif
+#if UF_WITH_HITRAN
+            UltrafastEngine.Plugins.Hitran.HitranPlugin.RegisterStatic();
+#endif
         }
     }
 

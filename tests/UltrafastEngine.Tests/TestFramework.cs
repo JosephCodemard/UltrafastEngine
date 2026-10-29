@@ -51,6 +51,7 @@ namespace UltrafastEngine.Tests
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Fitting.FittingPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Zemax.ZemaxPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Gpu.GpuPlugin());
+            UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Hitran.HitranPlugin());
             var filters = args.Where(a => !a.StartsWith("--")).ToArray();
             bool includeSlow = args.Contains("--slow") || filters.Length > 0;
             bool verbose = args.Contains("--verbose");

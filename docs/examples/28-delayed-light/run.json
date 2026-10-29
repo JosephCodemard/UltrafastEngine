@@ -1,0 +1,11 @@
+{
+  "format": "ultrafast-run", "version": 2, "name": "delayed light",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1030e-9, "durationFwhmS": 100e-15, "energyJ": 1e-6 },
+  // the main grid is sized for the pulse; ghosts, the echo and the ripple pedestal live on the long tail grid
+  "grid": { "tail": true },
+  "instruments": [
+    { "kind": "crossCorrelator", "name": "xc", "rangeS": [-20e-12, 160e-12], "points": 3601, "noise": false, "dynamicRangeDb": 130,
+      "windowS": 10e-12, "probeDelaysS": [48.8e-12, 123.96e-12, 3e-12] },
+    { "kind": "energyMeter", "name": "energy" }
+  ]
+}

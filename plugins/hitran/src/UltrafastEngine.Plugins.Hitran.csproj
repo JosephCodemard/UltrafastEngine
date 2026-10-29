@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The hitran plugin: line-by-line gas absorption and dispersion (Voigt lines from HITRAN line lists) as an "index"
+    model of kind "hitran". The line data are NOT part of the plugin: the user downloads them (python: ultrafast_hitran).
+    Laid out as an installable plugin folder in artifacts/plugins/hitran (see build/Plugin.targets).
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <RootNamespace>UltrafastEngine.Plugins.Hitran</RootNamespace>
+    <AssemblyName>UltrafastEngine.Plugins.Hitran</AssemblyName>
+    <PluginId>hitran</PluginId>
+    <PluginFolder>$(MSBuildThisFileDirectory)../</PluginFolder>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)src/UltrafastEngine.Core/UltrafastEngine.Core.csproj" Private="false" />
+  </ItemGroup>
+  <Import Project="$(RepoRoot)build/Plugin.targets" />
+</Project>

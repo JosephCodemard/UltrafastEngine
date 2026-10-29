@@ -51,6 +51,7 @@ PLUGINS = {
     "fitting": (REPO / "plugins" / "fitting" / "src" / "UltrafastEngine.Plugins.Fitting.csproj", ("transform", "transforms", "fit")),
     "zemax": (REPO / "plugins" / "zemax" / "src" / "UltrafastEngine.Zemax.Sampling" / "UltrafastEngine.Zemax.Sampling.csproj", ("opticstudio",)),
     "gpu": (REPO / "plugins" / "gpu" / "src" / "UltrafastEngine.Plugins.Gpu.csproj", ("cuda", "opencl")),
+    "hitran": (REPO / "plugins" / "hitran" / "src" / "UltrafastEngine.Plugins.Hitran.csproj", ("hapi", "gas", "water")),
 }
 
 RIDS = ["win-x64", "win-x86", "win-arm64", "linux-x64", "linux-arm64", "linux-musl-x64", "osx-x64", "osx-arm64"]
@@ -235,13 +236,20 @@ class Builder:
             return None
         Log.step("NativeAOT library for %s" % rid)
         tmp = self.cache / ("aot-" + rid)
-        run(["dotnet", "publish", NATIVE, "-c", "Release", "-nologo", "-r", rid, "-o", tmp] + self._gpu_flag())
+        run(["dotnet", "publish", NATIVE, "-c", "Release", "-nologo", "-r", rid, "-o", tmp] + self._compiled_in_flags())
         self._aot[rid] = tmp
         return tmp
 
     def _gpu_flag(self):
         """The NativeAOT library compiles the gpu plugin in (it cannot load plugin folders) only when it is selected."""
         return [] if "gpu" in self.a.plugins else ["-p:UF_WITH_GPU=false"]
+
+    def _hitran_flag(self):
+        """Likewise the hitran plugin (gas lines)."""
+        return [] if "hitran" in self.a.plugins else ["-p:UF_WITH_HITRAN=false"]
+
+    def _compiled_in_flags(self):
+        return self._gpu_flag() + self._hitran_flag()
 
     def cpp(self, rid, root: Path):
         lib = self.aot(rid)
@@ -281,9 +289,9 @@ class Builder:
                 dst.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(self._hosted_wheel, dst / self._hosted_wheel.name)
         else:
-            left = [p for p in self.a.plugins if p != "gpu"]
+            left = [p for p in self.a.plugins if p not in ("gpu", "hitran")]
             if left:
-                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel (gpu is compiled in); use --python-engine hosted to ship them" % ", ".join(left))
+                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel (gpu and hitran are compiled in); use --python-engine hosted to ship them" % ", ".join(left))
             w = self._wheel("native", rid)
             if w and not Log.dry:
                 dst.mkdir(parents=True, exist_ok=True)
@@ -299,7 +307,7 @@ class Builder:
             shutil.copytree(REPO / "python" / "src" / "ultrafast", pkg, ignore=shutil.ignore_patterns("bin", "__pycache__", "*.pyc"))
         binp = pkg / "bin"
         if engine == "hosted":
-            run(["dotnet", "build", NATIVE, "-c", "Release", "-nologo", "-p:UF_NO_AOT=true", "-p:GenerateDocumentationFile=false", "-o", binp / "hosted"] + self._gpu_flag())
+            run(["dotnet", "build", NATIVE, "-c", "Release", "-nologo", "-p:UF_NO_AOT=true", "-p:GenerateDocumentationFile=false", "-o", binp / "hosted"] + self._compiled_in_flags())
             if not Log.dry and not self.a.symbols:
                 for p in (binp / "hosted").glob("*.pdb"):
                     p.unlink()

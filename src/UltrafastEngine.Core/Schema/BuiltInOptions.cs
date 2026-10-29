@@ -34,6 +34,7 @@ namespace UltrafastEngine.Schema
                 .Obj("environment", "Air of the laboratory and the index reference of quoted data", "environment")
                 .Free("materials", ParamType.Object, "Materials defined in this file, by name (docs/reference/materials.md)")
                 .Free("coatings", ParamType.Object, "Coatings defined in this file, by name (docs/reference/coatings.md)")
+                .Free("substrates", ParamType.Object, "Mirror substrates defined in this file, by name: material, thicknessM, backCoating / backReflectance, wedgeDeg (docs/reference/coatings.md#substrate-echoes)")
                 .Model("inputBeam", "beam", "Default beam for nonlinear elements without one")
                 .ListOf("elements", "element", "The beam path, in order", required: true)
                 .ListOf("overrides", "override", "Changes to models or values (docs/reference/models.md#overrides)"));
@@ -44,7 +45,8 @@ namespace UltrafastEngine.Schema
                 .Obj("air", "Air: temperatureC, pressurePa, humidity, co2ppm, or an index model with kind", "air"));
             add(new ComponentSpec("air", "", "Laboratory air (Ciddor).").Open()
                 .Num("temperatureC", "degC", "Temperature", "20").Num("pressurePa", "Pa", "Pressure", "101325")
-                .Num("humidity", "", "Relative humidity 0..1", "0").Num("co2ppm", "ppm", "CO2", "450").Str("kind", "An index model kind instead (e.g. \"ciddor\")"));
+                .Num("humidity", "", "Relative humidity 0..1", "0").Num("co2ppm", "ppm", "CO2", "450").Str("kind", "An index model kind instead (e.g. \"ciddor\", or \"hitran\" with the hitran plugin)")
+                .Bool("applyToGaps", "Use this air (humidity, temperature, pressure, gas lines) as the \"Air\" of every gap; a gap's own \"air\" overrides it. Off by default: existing results do not change", "false"));
             add(new ComponentSpec("override", "", "One override (docs/reference/models.md#overrides).")
                 .Str("target", "material:NAME, element:ID (trailing * wildcard), element:*, type:TYPE or global", required: true)
                 .Str("property", "Property to change (lengthM, n2, index, beam, coating, timeResponse, filter, enabled, ...)", required: true)
@@ -63,6 +65,7 @@ namespace UltrafastEngine.Schema
                 .Obj("stepper", "Nonlinear solver settings", "stepper")
                 .P("probes", ParamType.Any, "", "Snapshots of the pulse: \"all\", \"end\" or a list of element ids", "\"end\"")
                 .ListOf("instruments", "instrument", "Instruments")
+                .Free("detectors", ParamType.Object, "Detector presets by name: {instrument: {keys for an instrument that does not set them}, detector: {read-out}}; an instrument says \"detector\": \"name\" (docs/reference/instruments.md#detector-presets)")
                 .ListOf("overrides", "override", "Overrides (highest priority)")
                 .Model("inputBeam", "beam", "Default beam for nonlinear elements without one")
                 .Obj("outputs", "Which files to write", "outputs")
@@ -108,7 +111,10 @@ namespace UltrafastEngine.Schema
                 .Num("spectralMargin", "", "Spectral span factor", "auto")
                 .Num("minSpanFraction", "", "Nonlinear runs: minimum half-span / carrier", "0.1")
                 .Num("minPointsPerFwhm", "", "Samples across the transform-limited FWHM", "12")
-                .Num("satelliteLevel", "", "Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window", "1e-8"));
+                .Num("satelliteLevel", "", "Weakest combination of ghost / replica satellites the window makes room for (relative intensity); weaker multi-satellite combinations may wrap around the window", "1e-8")
+                .Bool("extendForSatellites", "Manual window (auto false): grow the window, keeping dt, so that ghosts, echoes and pedestal replicas above satelliteLevel fit", "false")
+                .Bool("strict", "A ghost, echo or pedestal that wraps around the window is an error instead of a warning", "false")
+                .P("tail", ParamType.Any, "", "Delayed-light ledger: true, or {windowS, warnEnergyFraction, exactSteps (every linear element takes the exact long-grid step; default false), crossPhase (first-order cross-phase of the tail by the main pulse in nonlinear elements; default true)}. A second, long, linear grid with the same time step carries ghosts, echoes and gas-line tails next to the main nonlinear grid (docs/reference/delayed-light.md)", "false"));
             add(new ComponentSpec("physics", "", "Physics switches (docs/reference/run-spec.md#physics).")
                 .Bool("nonlinear", "Master switch for nonlinear propagation", "true")
                 .Bool("selfSteepening", "Self-steepening", "true")
@@ -171,7 +177,9 @@ namespace UltrafastEngine.Schema
                 .Num("decenterXM", "m", "Decentre in x").Num("decenterYM", "m", "Decentre in y")
                 .Num("tiltXRad", "rad", "Tilt about y").Num("tiltYRad", "rad", "Tilt about x")
                 .Num("radiusOfCurvatureM", "m", "Wavefront radius of curvature (negative: converging)")
-                .Num("radiusM", "m", "1/e^2 radius (default: from the element's beam)"));
+                .Num("radiusM", "m", "1/e^2 radius (default: from the element's beam)")
+                .P("ripple", ParamType.Any, "", "Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing)")
+                .P("noise", ParamType.Any, "", "Seeded random noise (cartesian): {relativeAmplitudeRms, phaseRmsRad, correlationLengthM, seed, components}"));
             add(new ComponentSpec("material", "", "A material (docs/reference/materials.md).")
                 .Str("base", "Start from a built-in material")
                 .Model("index", "index", "Refractive index model")

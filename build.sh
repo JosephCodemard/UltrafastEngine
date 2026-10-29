@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compile and package UltrafastEngine release folders. Options: ./build.sh --help ; guide: docs/releasing.md
-#   ./build.sh --cli --python --cpp --csharp --plugins fitting zemax gpu --platform linux-x64 osx-arm64 win-x64
+#   ./build.sh --cli --python --cpp --csharp --plugins fitting zemax gpu hitran --platform linux-x64 osx-arm64 win-x64
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 py="$(command -v python3 || command -v python || true)"

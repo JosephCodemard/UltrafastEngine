@@ -26,6 +26,46 @@
   of window instead of several.
 
 ### Added
+- **Delayed light** ([docs](docs/reference/delayed-light.md)). **`grid.tail`**: a second, long, linear grid with the same time
+  step carries ghosts, echoes, scatter and gas-line ring-down next to the small nonlinear grid; linear elements act on main +
+  tail exactly (a smooth split moves light between the two, energy is conserved), nonlinear elements on the main field. Linear
+  instruments and the cross-correlator probe see main + tail, the SHG gate sees the main field only; `summary.json -> tail`;
+  the loss mechanism `delayed light (tail)` keeps the budget closed. Reproduces one 2 ns grid for water lines (energy 1e-5,
+  tail power 2 %) in a fifth of the time for a gap + Kerr plate.
+- **Window planning**: a manual window that is too small now warns by name (element or pedestal, delay, relative
+  intensity in dB, energy, where it wraps to, the window that would hold it); `grid.extendForSatellites` grows it;
+  `grid.strict` turns the warning into an error.
+- **Mirror substrate echoes**: `mirror.substrate` (catalogue names `FS-6.35mm` ..., the file's `substrates`, or inline
+  material / thickness / back coating or reflectance / wedge): the exact transfer r + t^2 r_b exp(i 2 n(w) w d cos(theta)/c)
+  with Stokes reciprocity, so the delay is 2 n_g d cos(theta) / c (61.98 / 92.7 / 123.96 ps for 6.35 / 9.5 / 12.7 mm of
+  fused silica) and the leakage follows the coating's T(lambda).
+- **Coating ripple** (`ripple`): random phase / amplitude ripple whose pedestal lies within +-`maxDelayS` (5 ps).
+- **Delayed scatter** (`delayedScatter` on mirrors, interfaces and plates): a fraction of the power returned incoherently
+  with a uniform / exponential / table delay kernel and a lambda^-n weight; plates default to 0 .. 2 n_g d cos(theta)/c.
+- **`environment.air.applyToGaps`** (off by default): the system's temperature, pressure and humidity are the "Air" of
+  every gap, with a per-gap `air` override and a run note. Plain Ciddor reproduces the built-in Air.
+- **Detector**: `saturationLevel` (detector, cross-correlator) and cross-correlator `segments` for attenuation-range
+  stitching (generic, user configured).
+- **HITRAN plugin** (`plugins/hitran`, [docs](docs/plugins/hitran.md)): the air index model `"kind": "hitran"`: Voigt lines of H2O,
+  CO2 and O2 with temperature scaling and pressure shift, absorption and dispersion from one complex line shape
+  (Kramers-Kronig consistent), Python builders and `python -m ultrafast_hitran download` (HITRAN API). Compiled into the
+  NativeAOT library like the GPU plugin (`UF_WITH_HITRAN`). Data are not shipped.
+- Core: `ISmoothIndex` (index models with narrow features offer a smooth part for the propagation frame), a material whose
+  index model is also an `IAttenuation` uses it for both, `Substrates` in the system file, Python `build.substrate`,
+  `coating_ripple`, `delayed_scatter`, `delay_*`, `air`, `environment`, `grid`, `tail_grid`, `detector_segment`.
+- **Follow-ups of the delayed-light work.**
+  - *2-D plate*: `transverse.initialProfile.noise` / `ripple` seed small-scale self-focusing on cartesian grids; the spatial element reports
+    `fluenceContrastIn` / `Out`, `smallScaleGain`, `peakPowerOverCritical` and fluence cuts; validated against Bespalov-Talanov growth
+    (`SmallScaleTests`); example 29 (128 x 128, P / P_cr = 96).
+  - *Tail*: smooth elements (dispersion, flat loss, bare surfaces ...) act on main and tail separately instead of the exact long-grid step
+    (`LinearTerm.IsSmooth`, `grid.tail.exactSteps` to force the exact step); first-order cross-phase of the tail by the main pulse in Kerr
+    elements (`grid.tail.crossPhase`).
+  - *Surface scatter*: `delayedScatter.model = "surface"`: roughness and correlation length against the mode radius (TIS, in-mode share
+    `1 - exp(-(l/w)^2)`, lambda^-2).
+  - *Detector*: `detector.response` (spectral response table), `counting: "photons"`, and reusable **presets** (`detectors` in the run spec or a JSON
+    file; no instrument numbers built in). Python: `build.detector`, `detector_response`, `detector_preset`, `initial_profile`, `profile_noise`, `profile_ripple`.
+  - *HITRAN*: TIPS partition sums (written by the downloader, per isotopologue); the downloader skips isotopologues without lines; CO2 and O2 bands and H2O at
+    250 - 350 K validated against HAPI's Voigt absorption (`plugins/hitran/tools/make_hapi_reference.py`, opt-in test): integrated within 0.7 %.
 - **GPU plugin** (`plugins/gpu`): compute back-ends `cuda` (NVIDIA driver API, kernels compiled at run time by NVRTC,
   cuFFT / cuBLAS when found) and `opencl` (any double-precision OpenCL 1.2 device). One kernel source serves both.
   On the device: 1-D envelope propagation (scalar / vector Kerr with the coherent coupling, scalar / vector Raman,

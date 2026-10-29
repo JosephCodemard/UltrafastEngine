@@ -215,6 +215,7 @@ namespace UltrafastEngine.Transverse
                 double q = basis.Kind == "radial" ? Math.Pow(basis.Radius[m] / wx, 2) : x * x / (wx * wx) + y * y / (wy * wy);
                 amp[m] = Math.Exp(-Math.Pow(q, order));
             }
+            var seedPhase = SeedNoise(basis, shape, amp, wx, origin);
             double norm = 0; for (int m = 0; m < M; m++) norm += basis.Weights[m] * amp[m] * amp[m];
             if (!(norm > 0)) throw new InvalidOperationException("transverse profile has no energy on the grid (beam larger than the grid or zero radius)");
             norm = 1 / Math.Sqrt(norm);
@@ -227,10 +228,53 @@ namespace UltrafastEngine.Transverse
                     double r2 = basis.Radius[m] * basis.Radius[m];
                     double ph = double.IsInfinity(R) ? 0 : k * r2 / (2 * R);
                     if (tilt != 0) ph += k * Math.Sin(tilt) * basis.X[m];
+                    if (seedPhase != null) ph += seedPhase[m];
                     data[m * nf + f] = Complex.FromPolarCoordinates(amp[m] * norm, ph);
                 }
             }
             return new TransverseProfile(basis, omegas, data, origin);
+        }
+
+        /// <summary>
+        /// Seeds of small-scale structure on the initial field (the starting point of small-scale self-focusing, Bespalov-Talanov):
+        /// <c>ripple</c> {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase));
+        /// <c>noise</c> {relativeAmplitudeRms, phaseRmsRad, correlationLengthM, seed, components}: a smooth random amplitude and phase,
+        /// N(x, y) = sqrt(2/K) sum cos(kx x + ky y + phi_k) with Gaussian-distributed wavevectors of rms 1/correlationLength, unit variance.
+        /// Multiplies <paramref name="amp"/> in place; returns the phase (rad) to add, or null. Cartesian grids only.
+        /// </summary>
+        private static double[] SeedNoise(ITransverseBasis basis, JsonObject shape, double[] amp, double w, string origin)
+        {
+            var rip = shape?.GetObject("ripple"); var noi = shape?.GetObject("noise");
+            if (rip == null && noi == null) return null;
+            if (basis.Kind == "radial") throw new InvalidOperationException("element " + origin + ": initialProfile ripple / noise need a cartesian transverse grid (\"model\": \"cartesian\").");
+            int M = basis.M;
+            if (rip != null)
+            {
+                double period = rip.GetDouble("periodM", double.NaN), a = rip.GetDouble("relativeAmplitude", 0), ph0 = rip.GetDouble("phaseRad", 0), ang = rip.GetDouble("angleDeg", 0) * Math.PI / 180;
+                if (!(period > 0)) throw new InvalidOperationException("element " + origin + ": initialProfile.ripple.periodM is needed.");
+                for (int m = 0; m < M; m++) amp[m] *= 1 + a * Math.Cos(2 * Math.PI * (basis.X[m] * Math.Cos(ang) + basis.Y[m] * Math.Sin(ang)) / period + ph0);
+            }
+            if (noi == null) return null;
+            double aRms = noi.GetDouble("relativeAmplitudeRms", 0), pRms = noi.GetDouble("phaseRmsRad", 0);
+            double corr = noi.GetDouble("correlationLengthM", double.NaN);
+            if (!(corr > 0)) throw new InvalidOperationException("element " + origin + ": initialProfile.noise.correlationLengthM is needed.");
+            int K = Math.Max(16, noi.GetInt("components", 256));
+            var rnd = new Random(noi.GetInt("seed", 1));
+            Func<double, double[]> field = rms =>
+            {
+                var f = new double[M]; if (!(rms > 0)) return f;
+                for (int k = 0; k < K; k++)
+                {
+                    double u1 = 1 - rnd.NextDouble(), u2 = rnd.NextDouble(), u3 = 1 - rnd.NextDouble(), u4 = rnd.NextDouble();
+                    double kx = Math.Sqrt(-2 * Math.Log(u1)) * Math.Cos(2 * Math.PI * u2) / corr, ky = Math.Sqrt(-2 * Math.Log(u3)) * Math.Cos(2 * Math.PI * u4) / corr, p = 2 * Math.PI * rnd.NextDouble();
+                    for (int m = 0; m < M; m++) f[m] += Math.Cos(kx * basis.X[m] + ky * basis.Y[m] + p);
+                }
+                double s = rms * Math.Sqrt(2.0 / K); for (int m = 0; m < M; m++) f[m] *= s;
+                return f;
+            };
+            var an = field(aRms); var pn = field(pRms);
+            for (int m = 0; m < M; m++) amp[m] *= Math.Max(0, 1 + an[m]);
+            return pRms > 0 ? pn : null;
         }
 
         /// <summary>Frequencies at which to store a profile: up to <paramref name="count"/> bins spread over the

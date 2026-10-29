@@ -28,6 +28,9 @@ namespace UltrafastEngine.Instruments
             var p = ctx.Pulse; var s = ctx.Spec; var g = p.Grid; int n = g.N;
             // ---- the field the device accepts (input polariser)
             var ax = p.TemporalAx(); var ay = p.TemporalAy();
+            // gate field: with a delayed-light tail the SHG gate comes from the main field only (the probe channel is linear
+            // in intensity, so main + tail is right there)
+            var gx = ctx.GatePulse != null ? ctx.GatePulse.TemporalAx() : ax; var gy = ctx.GatePulse != null ? ctx.GatePulse.TemporalAy() : ay;
             var e = new Complex[n];
             string pol = s.Has("polarization") ? (s["polarization"].Kind == JsonKind.Number ? s["polarization"].AsDouble().ToString(CultureInfo.InvariantCulture) : s.GetString("polarization", "total")) : "total";
             double[] I = new double[n];
@@ -35,15 +38,15 @@ namespace UltrafastEngine.Instruments
             {
                 for (int i = 0; i < n; i++) I[i] = ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary + ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary;
                 // the SHG gate needs one field: use the dominant component (and note it)
-                double ex = ax.Sum(z => z.Magnitude * z.Magnitude), ey = ay.Sum(z => z.Magnitude * z.Magnitude);
-                e = ex >= ey ? ax : ay;
+                double ex = gx.Sum(z => z.Magnitude * z.Magnitude), ey = gy.Sum(z => z.Magnitude * z.Magnitude);
+                e = ex >= ey ? gx : gy;
                 if (Math.Min(ex, ey) > 1e-3 * Math.Max(ex, ey)) o.Notes.Add("pulse is not linearly polarised: the gate is made from the dominant component, the signal from the total intensity");
             }
             else
             {
                 double ang = pol == "x" ? 0 : pol == "y" ? Math.PI / 2 : double.Parse(pol, CultureInfo.InvariantCulture) * Math.PI / 180;
                 double c = Math.Cos(ang), sn = Math.Sin(ang);
-                for (int i = 0; i < n; i++) { e[i] = c * ax[i] + sn * ay[i]; I[i] = e[i].Real * e[i].Real + e[i].Imaginary * e[i].Imaginary; }
+                for (int i = 0; i < n; i++) { e[i] = c * gx[i] + sn * gy[i]; var pr = c * ax[i] + sn * ay[i]; I[i] = pr.Real * pr.Real + pr.Imaginary * pr.Imaginary; }
             }
             // ---- gate: second harmonic of the same field (through the crystal acceptance, if given)
             var e2 = new Complex[n];
@@ -99,14 +102,33 @@ namespace UltrafastEngine.Instruments
             bool noise = s.GetBool("noise", true);
             var rnd = new Random(s.GetInt("seed", 1));
             var meas = new double[delays.Count]; var ideal = new double[delays.Count];
+            // generic detector: saturation and attenuation-range stitching (a list of delay ranges, each measured through its own
+            // attenuation and divided by it afterwards -- the user configures them; no instrument-specific numbers are built in)
+            double sat = s.GetDouble("saturationLevel", 0);
+            var segs = new List<(double From, double To, double Att, double Floor)>();
+            if (s["segments"] != null && s["segments"].Kind == JsonKind.Array)
+                foreach (var sg in s["segments"].AsArray())
+                {
+                    var so = sg.AsObject();
+                    double att = so.Has("attenuation") ? so.GetDouble("attenuation", 1) : so.Has("gain") ? so.GetDouble("gain", 1) : 1.0;
+                    if (!(att > 0)) throw new InvalidOperationException("crossCorrelator: a segment's attenuation / gain must be positive.");
+                    segs.Add((so.GetDouble("fromS", double.NegativeInfinity), so.GetDouble("toS", double.PositiveInfinity), att, so.Has("noiseFloor") ? so.GetDouble("noiseFloor", floor) : floor));
+                }
+            int nSat = 0;
             for (int k = 0; k < delays.Count; k++)
             {
                 double x = delays[k] + tPeak;   // the scan is centred on the correlation peak (zero delay)
                 double v = x < lo || x > hi ? 0 : Tools.Interp(lags, S, x);
                 ideal[k] = v;
-                double nz = noise ? floor * Math.Abs(Gauss(rnd)) : floor;
-                meas[k] = v + nz;
+                double att = 1.0, fl = floor;
+                foreach (var sg in segs) if (delays[k] >= sg.From && delays[k] <= sg.To) { att = sg.Att; fl = sg.Floor; break; }
+                double nz = noise ? fl * Math.Abs(Gauss(rnd)) : fl;
+                double reading = v * att + nz;
+                if (sat > 0 && reading > sat) { reading = sat; nSat++; }
+                meas[k] = reading / att;
             }
+            if (sat > 0) o.Notes.Add(nSat + " of " + delays.Count + " scan points saturate the detector (clipped at " + sat.ToString("G3", CultureInfo.InvariantCulture) + " of the peak)");
+            if (segs.Count > 0) o.Notes.Add("attenuation-range stitching: " + segs.Count + " segment(s); each reading is divided by its attenuation, so its noise floor is the detector floor / attenuation");
             var mmax = meas.Max();
             o.Add("delay_s", delays.ToArray(), "s", "delay (positive: after the main pulse)");
             o.Add("signal", meas.Select(v => v / mmax).ToArray(), "", "normalised third-order correlation (with noise floor)");

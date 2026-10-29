@@ -392,6 +392,42 @@ namespace UltrafastEngine.Transverse
     /// </summary>
     public sealed class SpatialBulkElement : IActiveElement
     {
+        /// <summary>
+        /// Small-scale self-focusing diagnostics on a cartesian grid: the fluence contrast (rms / mean) over the beam core (r &lt; w / 2) at the
+        /// entrance and exit, their ratio (<c>smallScaleGain</c>), the peak power over the critical power, and fluence cuts through y = 0
+        /// (<c>fluence_in_x</c>, <c>fluence_out_x</c>, <c>x_m</c>) to analyse the ripple spectrum.
+        /// </summary>
+        private void SmallScaleDiagnostics(ActiveContext ctx, ITransverseBasis basis, double[] fin, double[] fout, double w, PulseField p, FrequencyGrid g)
+        {
+            double r0 = 0.5 * w; int cnt = 0; double s1 = 0, s2 = 0, o1 = 0, o2 = 0;
+            for (int m = 0; m < basis.M; m++)
+            {
+                if (basis.X[m] * basis.X[m] + basis.Y[m] * basis.Y[m] > r0 * r0) continue;
+                cnt++; s1 += fin[m]; s2 += fin[m] * fin[m]; o1 += fout[m]; o2 += fout[m] * fout[m];
+            }
+            if (cnt > 8 && s1 > 0 && o1 > 0)
+            {
+                double ci = Math.Sqrt(Math.Max(0, s2 / cnt - Math.Pow(s1 / cnt, 2))) / (s1 / cnt), co = Math.Sqrt(Math.Max(0, o2 / cnt - Math.Pow(o1 / cnt, 2))) / (o1 / cnt);
+                ctx.Record.Values["fluenceContrastIn"] = ci; ctx.Record.Values["fluenceContrastOut"] = co;
+                if (ci > 1e-12) ctx.Record.Values["smallScaleGain"] = co / ci;
+            }
+            if (Medium != null && Medium.IsActive && Medium.N2 > 0 && !Medium.ReplaceKerr)
+            {
+                double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / g.OmegaCenter, n0 = Material.IndexAt(g.OmegaCenter);
+                ctx.Record.Values["peakPowerOverCritical"] = PulseMetrics.TemporalPower(p).Max() / (3.77 * lam * lam / (8 * Math.PI * n0 * Medium.N2));
+            }
+            if (basis.Kind == "cartesian")
+            {
+                double ymin = basis.Y.Min(x => Math.Abs(x)); var idx = Enumerable.Range(0, basis.M).Where(m => Math.Abs(Math.Abs(basis.Y[m]) - ymin) < 1e-12 * Math.Max(1, Math.Abs(ymin))).Where(m => basis.Y[m] >= 0 || ymin == 0 || true).GroupBy(m => basis.X[m]).Select(gr => gr.First()).OrderBy(m => basis.X[m]).ToArray();
+                if (idx.Length > 1)
+                {
+                    ctx.Record.AddArray("x_m", idx.Select(m => basis.X[m]).ToArray(), "m", "x of the fluence cuts", idx.Length);
+                    ctx.Record.AddArray("fluence_in_x", idx.Select(m => fin[m]).ToArray(), "J/m^2", "input fluence along x at y = 0", idx.Length);
+                    ctx.Record.AddArray("fluence_out_x", idx.Select(m => fout[m]).ToArray(), "J/m^2", "output fluence along x at y = 0", idx.Length);
+                }
+            }
+        }
+
         public TransverseSpec Spec { get; set; }
         public NonlinearMedium Medium { get; set; }
         public IBeamModel Beam { get; set; }
@@ -422,6 +458,7 @@ namespace UltrafastEngine.Transverse
             double eyFrac = p.Ay.Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary) / Math.Max(1e-300, p.Ax.Concat(p.Ay).Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary));
             bool vector = Spec.Polarization == "vector" || (Spec.Polarization == "auto" && eyFrac > 1e-6) || (prof.DataY != null && Spec.Polarization != "scalar");
             var E = TransverseOps.Expand(p.Ax, g.OmegaAbsolute, prof);
+            var fluIn = TransverseOps.Fluence(E, n, g, basis);          // the input fluence (before the transform to k space), for the small-scale diagnostics
             basis.ToK(E, n);
             Complex[] state = E;
             int block = E.Length;
@@ -459,6 +496,7 @@ namespace UltrafastEngine.Transverse
             var flu = TransverseOps.Fluence(outK, n, g, basis);
             if (outKy != null) { var fy = TransverseOps.Fluence(outKy, n, g, basis); for (int m = 0; m < flu.Length; m++) flu[m] += fy[m]; }
             ctx.Record.Values["peakFluenceOutJPerM2"] = flu.Max();
+            SmallScaleDiagnostics(ctx, basis, fluIn, flu, wexp, p, g);
             ctx.Record.Values["onAxisFluenceOutJPerM2"] = flu[Array.IndexOf(basis.Radius, basis.Radius.Min())];
             double edge = 0, tot = 0; double rmax = basis.Extent;
             for (int m = 0; m < basis.M; m++) { double e = flu[m] * basis.Weights[m]; tot += e; if (basis.Radius[m] > 0.85 * rmax) edge += e; }

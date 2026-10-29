@@ -1,0 +1,15 @@
+{
+  // A plate with a wavelength-dependent AR coating and a 12.7 mm-substrate HR mirror: their ghost and echo are delayed light
+  "format": "ultrafast-system", "version": 2, "name": "delayed light",
+  "coatings": {
+    // AR coating measured at four wavelengths: R falls towards the red
+    "AR": { "kind": "table", "wavelengthsM": [900e-9, 1000e-9, 1060e-9, 1200e-9], "R": [0.004, 0.002, 0.0005, 0.0002], "T": [0.996, 0.998, 0.9995, 0.9998] },
+    // HR coating that leaks 1 % at 1030 nm
+    "HR": { "kind": "ideal", "R": 0.99, "T": 0.01 }
+  },
+  "elements": [
+    { "id": "window", "type": "plate", "material": "FusedSilica", "thicknessM": 5e-3, "coating": "AR", "ghosts": true },
+    { "id": "mirror", "type": "mirror", "coating": "HR", "aoiDeg": 0, "substrate": "FS-12.7mm",
+      "ripple": { "phaseRmsRad": 0.02, "maxDelayS": 5e-12, "seed": 3 } }
+  ]
+}

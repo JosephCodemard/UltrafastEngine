@@ -116,6 +116,25 @@ namespace UltrafastEngine.Engine
             int snapPoints = cr.Run.Outputs.MaxPoints > 0 ? cr.Run.Outputs.MaxPoints : 2048;
             var pulse = cr.Input;
             res.At["input"] = pulse;
+            TailLedger tail = null;
+            var tailKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "end" };
+            if (measure && cr.Run.Grid.TailEnabled)
+            {
+                if (resumeBase != null) res.Notes.Add("grid.tail is not used in prefix-cached study runs");
+                else
+                {
+                    foreach (var ispec in cr.Run.Instruments) tailKeys.Add(ispec.GetString("at", "end"));
+                    foreach (var pe in cr.Elements.Where(x => x.Probe)) tailKeys.Add(pe.Id);
+                    double mainW = cr.Grid.N * cr.Grid.DTime;
+                    double sat = Compiler.SatelliteRoom(cr.Elements.Where(x => x.Enabled), cr.Run.Grid.SatelliteLevel);
+                    double wTail = double.IsNaN(cr.Run.Grid.TailWindowS) ? Math.Max(8 * mainW, 2.5 * (2 * sat + mainW)) : cr.Run.Grid.TailWindowS;
+                    if (wTail < 2 * mainW) { res.Warnings.Add("grid.tail.windowS is shorter than twice the main window; using twice the main window."); wTail = 2 * mainW; }
+                    tail = new TailLedger(cr.Grid, wTail, cr.Run.Grid.MaxN);
+                    res.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Delayed-light ledger: tail grid N = {0} ({1}x the main grid), window {2:G4} ps, dt {3:G4} fs; linear elements act on main + tail exactly, nonlinear elements on the main field (the tail's own nonlinear propagation and main x tail interference are neglected).",
+                        tail.Long.N, tail.Factor, tail.WindowS * 1e12, tail.Long.DTime * 1e15));
+                    if (tail.WindowS < wTail * 0.999) res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "grid.maxN limits the tail window to {0:G4} ps (wanted {1:G4} ps).", tail.WindowS * 1e12, wTail * 1e12));
+                }
+            }
             double arrival = 0, cumLen = 0, cumB = 0;
             var system = new DispersionPoint();
             int count = cr.Elements.Count;
@@ -146,7 +165,7 @@ namespace UltrafastEngine.Engine
                 }
 
                 el.Prepare?.Invoke(pulse, rec);
-                foreach (var t in el.Pre) pulse = ApplyTerm(pulse, t, AxisOf(pulse.Grid), rec, ref own);
+                pulse = ApplyLinear(tail, pulse, el.Pre, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
                 Action<double> prog = progress == null && !cancel.CanBeCanceled ? (Action<double>)null : f => { progress?.Invoke(el.Id, ei, count, f); cancel.ThrowIfCancellationRequested(); };
                 if (el.Active != null)
                 {
@@ -157,6 +176,7 @@ namespace UltrafastEngine.Engine
                         DownstreamGrid = p => PlanDownstreamGrid(cr, p, eiCopy + 1, rec.Notes)
                     };
                     pulse = el.Active.Execute(actx, pulse);
+                    if (tail != null) rec.Notes.Add("delayed-light tail: this active element acts on the main field only; the tail passes through its Pre/Post linear terms");
                     own += actx.Own;
                     rec.Terms.Add(el.Active.Description);
                     foreach (var kv in actx.Byproducts)
@@ -187,11 +207,19 @@ namespace UltrafastEngine.Engine
                             res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));
                     }
                     var stats = new StepStatistics();
+                    var pulseBefore = pulse;
                     double tauEl = seg.Background.Sum(b => b.GroupDelayAt(grid.OmegaCenter));
                     pulse = seg.CarrierResolved
                         ? PropagateField(cr, pulse, seg, arrival, tauEl, el.Id, stats, rec, prog)
                         : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog);
                     foreach (var b in seg.Background) { var d = b.DispersionAt(grid.OmegaCenter); own += d; rec.Terms.Add(b.Description); }
+                    tail?.PropagateTail(seg.Background, (m, dE) => AddLoss(rec, m, dE));
+                    if (tail != null && cr.Run.Grid.TailCrossPhase && !seg.CarrierResolved && !seg.Medium.ReplaceKerr && seg.Medium.N2 > 0 && ReferenceEquals(pulseBefore.Grid, pulse.Grid))
+                    {
+                        double inv = 0; int ns = 100;
+                        for (int k = 0; k < ns; k++) inv += seg.LengthM / ns / seg.Beam.EffectiveArea(seg.LengthM * (k + 0.5) / ns);
+                        tail.CrossPhase(pulseBefore, pulse, grid.OmegaCenter / PhysicalConstants.SpeedOfLightMPerS * seg.Medium.N2 * inv);
+                    }
                     double eAfter = pulse.TotalEnergyJ();
                     // energy change inside a nonlinear segment: absorption if the medium absorbs (linear attenuation or
                     // an imaginary index response); otherwise Raman (energy given to the medium) plus solver error
@@ -204,7 +232,12 @@ namespace UltrafastEngine.Engine
                     rec.PeakIntensityWPerM2 = Math.Max(Results.PulseMetrics.TemporalPower(pulse).Max(), 0) / minA;
                     foreach (var n in stats.Notes) rec.Notes.Add(n);
                 }
-                foreach (var t in el.Post) pulse = ApplyTerm(pulse, t, AxisOf(pulse.Grid), rec, ref own);
+                pulse = ApplyLinear(tail, pulse, el.Post, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
+                if (tail != null && !ReferenceEquals(pulse.Grid, tail.Main))
+                {
+                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}' changed the grid or carrier: the delayed-light tail ({1:G3} J) is dropped from here on.", el.Id, tail.TailEnergyJ));
+                    tail = null;
+                }
 
                 // a carried transverse profile goes stale through elements that propagate without knowing about it
                 if (pulse.Profile != null && pulse.Profile.Exact && !(el.Active?.TransverseAware ?? false) && el.LengthM > 0)
@@ -260,10 +293,22 @@ namespace UltrafastEngine.Engine
                 res.Records.Add(rec);
                 if (el.Probe) res.Snapshots.Add(Snapshot(el.Id, pulse, snapPoints));
                 res.At[el.Id] = pulse;
+                if (tail != null && tailKeys.Contains(el.Id)) res.TailAt[el.Id] = tail.TailField(pulse.RepRateHz);
                 progress?.Invoke(el.Id, ei, count, 1.0);
             }
             res.Output = pulse;
             res.At["end"] = pulse;
+            if (tail != null && ReferenceEquals(pulse.Grid, tail.Main))
+            {
+                res.TailLedger = tail;
+                res.TailAt["end"] = tail.TailField(pulse.RepRateHz);
+                double eTail = tail.TailEnergyJ, eMain = pulse.TotalEnergyJ();
+                if (eTail > cr.Run.Grid.TailWarnFraction * (eTail + eMain))
+                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "The delayed-light tail holds {0:P2} of the output energy (more than {1:P1}): the neglected nonlinear propagation of the tail may matter.", eTail / (eTail + eMain), cr.Run.Grid.TailWarnFraction));
+                double edge = tail.TailEdgeEnergyFraction();
+                if (edge > 1e-3 && eTail > 1e-9 * eMain)
+                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "{0:P2} of the tail energy is near the edge of the tail window ({1:G4} ps): the tail wraps around; raise grid.tail.windowS.", edge, tail.WindowS * 1e12));
+            }
             res.FinalArrivalS = arrival; res.FinalSystem = system;
 
             if (measure) MeasureInstruments(cr, res, cancel);
@@ -276,14 +321,20 @@ namespace UltrafastEngine.Engine
         /// ids, "end"), apply each instrument's sampling, filter and detector, and let plugins post-process the readings.
         /// Used after a forward run and by run modes that produce the pulses differently (e.g. backward propagation).
         /// </summary>
+        private static readonly HashSet<string> TailLinearInstruments = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "energyMeter", "powerMeter", "spectrometer", "scope", "photodiode", "contrast", "polarimeter", "crossCorrelator" };
+
         public static void MeasureInstruments(CompiledRun cr, RunResult res, CancellationToken cancel = default)
         {
             // instruments (names are unique: a repeated name gets _2, _3, ...)
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var ispec in cr.Run.Instruments)
+            foreach (var ispec0 in cr.Run.Instruments)
             {
                 cancel.ThrowIfCancellationRequested();
+                var ispec = ispec0;
                 string at = ispec.GetString("at", "end");
+                try { ispec = Instruments.InstrumentDevice.ResolveDetector(ispec, cr.Run); }
+                catch (Exception ex) when (!(ex is OperationCanceledException)) { res.Warnings.Add("Instrument " + ispec.GetString("kind", "?") + " at " + at + ": " + ex.Message); continue; }
                 if (!res.At.TryGetValue(at, out var p)) { res.Warnings.Add("Instrument at \"" + at + "\": no pulse recorded there."); continue; }
                 try
                 {
@@ -298,6 +349,18 @@ namespace UltrafastEngine.Engine
                         else res.Notes.Add("Instrument " + inst.Kind + " at " + at + " is reported as \"" + name + "\" (another unnamed " + inst.Kind + " is there; give each a \"name\").");
                     }
                     var outp = new Instruments.InstrumentOutput { Name = name, Kind = inst.Kind, Location = at };
+                    if (res.TailLedger != null && res.TailAt.TryGetValue(at, out var tailField) && ReferenceEquals(p.Grid, res.TailLedger.Main))
+                    {
+                        if (TailLinearInstruments.Contains(inst.Kind))
+                        {
+                            ctx.Pulse = res.TailLedger.Composite(p, tailField);
+                            if (inst.Kind == "crossCorrelator") ctx.GatePulse = res.TailLedger.EmbedMain(p);
+                            outp.Notes.Add(inst.Kind == "crossCorrelator"
+                                ? "delayed-light tail included in the probe channel; the SHG gate is made from the main field only"
+                                : "delayed-light tail included (main + tail on the long grid)");
+                        }
+                        else outp.Notes.Add("nonlinear instrument: the delayed-light tail is not included (main field only)");
+                    }
                     var sampling = ispec.GetObject("sampling");
                     if (sampling != null)
                     {
@@ -305,6 +368,7 @@ namespace UltrafastEngine.Engine
                         else ctx.Pulse = Instruments.Sampling.Apply(ctx, sampling, outp);
                     }
                     ctx.Pulse = Instruments.InstrumentDevice.ApplyFilter(ctx, outp);
+                    if (ctx.GatePulse != null && !ReferenceEquals(ctx.GatePulse.Grid, ctx.Pulse.Grid)) { ctx.GatePulse = null; outp.Notes.Add("sampling changed the grid: the gate is made from the composite field"); }
                     inst.Measure(ctx, outp);
                     Instruments.InstrumentDevice.ApplyAxis(ispec, outp);
                     Instruments.InstrumentDevice.ApplyDetector(ispec, outp);
@@ -371,6 +435,39 @@ namespace UltrafastEngine.Engine
             notes?.Add(string.Format(CultureInfo.InvariantCulture, "grid re-planned for the rest of the system: N = {0}, window {1:G4} ps, dt {2:G4} fs (carrier {3:F2} nm)",
                 ng.N, ng.N * ng.DTime * 1e12, ng.DTime * 1e15, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / ng.OmegaCenter * 1e9));
             return ng;
+        }
+
+        /// <summary>Apply an element's Pre or Post terms: one by one to the main field, or, with a delayed-light ledger,
+        /// exactly to main + tail (light moved between the two is booked as "delayed light (tail)" so the loss budget closes).</summary>
+        private static PulseField ApplyLinear(TailLedger tail, PulseField p, List<LinearTerm> terms, OmegaAxis axis, ElementRecord rec, ref DispersionPoint own, Func<FrequencyGrid, OmegaAxis> axisOf, bool exactSteps)
+        {
+            if (terms.Count == 0) return p;
+            if (tail == null || !ReferenceEquals(p.Grid, tail.Main) || p.Profile?.DataY != null)
+            {
+                if (tail != null && ReferenceEquals(p.Grid, tail.Main)) tail.PropagateTail(terms, (m, dE) => AddLoss(rec, m, dE));
+                foreach (var t in terms) p = ApplyTerm(p, t, axisOf(p.Grid), rec, ref own);
+                return p;
+            }
+            if (!exactSteps && terms.All(t => t.IsSmooth))
+            {
+                // smooth terms (dispersion, flat loss, bare Fresnel ...): the impulse response is short, so main and tail can be treated
+                // separately -- the main field on the main grid, the tail on the long grid -- without the three long FFTs of the exact step
+                tail.PropagateTail(terms, (m, dE) => AddLoss(rec, m, dE));
+                foreach (var t in terms) p = ApplyTerm(p, t, axisOf(p.Grid), rec, ref own);
+                tail.SeparateSteps++;
+                return p;
+            }
+            tail.ExactSteps++;
+            double e0 = p.TotalEnergyJ(), booked = 0;
+            var q = tail.Apply(p, terms, (m, dE) => { AddLoss(rec, m, dE); booked += dE; });
+            AddLoss(rec, "delayed light (tail)", (e0 - q.TotalEnergyJ()) - booked);
+            foreach (var t in terms)
+            {
+                var d = t.DispersionAt(p.Grid.OmegaCenter);
+                if (!double.IsNaN(d.GroupDelayS)) own += d;
+                rec.Terms.Add(t.Description);
+            }
+            return q;
         }
 
         internal static void AddLoss(ElementRecord rec, string mech, double dE)

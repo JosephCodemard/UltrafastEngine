@@ -1,0 +1,13 @@
+{
+  "id": "hitran",
+  "name": "HITRAN: line-by-line absorption and dispersion of gases",
+  "version": "2.1.8-beta",
+  "description": "Line-by-line Voigt absorption and Kramers-Kronig-consistent dispersion of H2O, CO2 and O2 from HITRAN line lists, as an air index model (\"kind\": \"hitran\").",
+  "engine": "2.1.8-beta",
+  "entry": "UltrafastEngine.Plugins.Hitran.HitranPlugin",
+  "assemblies": {
+    "net10.0": "lib/net10.0/UltrafastEngine.Plugins.Hitran.dll",
+    "net48": "lib/net48/UltrafastEngine.Plugins.Hitran.dll"
+  },
+  "python": { "module": "ultrafast_hitran" }
+}

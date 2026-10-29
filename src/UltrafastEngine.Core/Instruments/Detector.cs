@@ -197,12 +197,74 @@ namespace UltrafastEngine.Instruments
             o.Arrays[i] = new Serialization.NdArray(a.Name, data, data.Length) { Unit = a.Unit, Description = a.Description };
         }
 
+        /// <summary>The detector's spectral response (quantum efficiency ...) and the photon-counting conversion, on the instruments with a wavelength axis.</summary>
+        private static void ApplySpectralResponse(JsonObject d, InstrumentOutput o)
+        {
+            var resp = d["response"]; bool photons = d.GetString("counting", "energy").Equals("photons", StringComparison.OrdinalIgnoreCase);
+            if ((resp == null || resp.IsNull) && !photons) return;
+            var axis = o.Arrays.FirstOrDefault(a => a.Name.EndsWith("_wavelength_m", StringComparison.Ordinal));
+            if (axis == null || !Readouts.TryGetValue(o.Kind, out var ro) || ro.Arrays.Length == 0) { o.Notes.Add("detector response / counting need a spectral instrument (a wavelength axis); ignored for a " + o.Kind); return; }
+            double[] rw = null, rv = null;
+            if (resp != null && !resp.IsNull)
+            {
+                var ro2 = resp.AsObject(); rw = ro2.GetDoubleArray("wavelengthsM"); rv = ro2.GetDoubleArray("values");
+                if (rw == null || rv == null || rw.Length != rv.Length || rw.Length < 1) throw new InvalidOperationException("detector.response needs wavelengthsM and values of the same length.");
+                var ord = Enumerable.Range(0, rw.Length).OrderBy(i => rw[i]).ToArray(); rw = ord.Select(i => rw[i]).ToArray(); rv = ord.Select(i => rv[i]).ToArray();
+            }
+            double lam0 = axis.Data.Length > 0 ? axis.Data[axis.Data.Length / 2] : 1;
+            foreach (var suffix in ro.Arrays)
+            {
+                var a = o.Arrays.FirstOrDefault(x => x.Name.EndsWith("_" + suffix, StringComparison.Ordinal));
+                if (a == null || a.Data.Length != axis.Data.Length) continue;
+                for (int i = 0; i < a.Data.Length; i++)
+                {
+                    double f = 1.0;
+                    if (photons) f *= axis.Data[i] / lam0;
+                    if (rw != null) f *= Tools.Interp(rw, rv, axis.Data[i]);
+                    a.Data[i] *= f;
+                }
+            }
+            o.Notes.Add("detector: " + (photons ? "photon counting (energy spectrum x lambda / " + (lam0 * 1e9).ToString("F1", CultureInfo.InvariantCulture) + " nm)" : "") + (photons && rw != null ? ", " : "") + (rw != null ? "spectral response (" + rw.Length + " point" + (rw.Length == 1 ? "" : "s") + ")" : ""));
+        }
+
         private static double Erf(double x)
         {
             // Abramowitz-Stegun 7.1.26 (|error| < 1.5e-7)
             double t = 1 / (1 + 0.3275911 * Math.Abs(x));
             double y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.Exp(-x * x);
             return x >= 0 ? y : -y;
+        }
+
+        /// <summary>
+        /// Resolves a detector preset: <c>"detector": "name"</c> (a run-spec "detectors" entry, or a JSON file), or <c>{"preset": name | file, ...overrides}</c>.
+        /// The preset's <c>instrument</c> keys fill instrument parameters the instrument does not set (saturation, segments, noise floor ...); its
+        /// <c>detector</c> object becomes the instrument's detector, with the instrument's own keys on top. Returns the spec unchanged without a preset.
+        /// </summary>
+        public static JsonObject ResolveDetector(JsonObject ispec, Specs.RunSpec run)
+        {
+            var dv = ispec["detector"];
+            if (dv == null || dv.IsNull) return ispec;
+            string name = null; JsonObject over = null;
+            if (dv.Kind == JsonKind.String) name = dv.AsString();
+            else if (dv.Kind == JsonKind.Object && dv.AsObject().Has("preset")) { over = dv.AsObject(); name = over.GetString("preset"); }
+            else return ispec;
+            JsonObject preset = run?.Detectors?.GetObject(name);
+            if (preset == null)
+            {
+                string path = run?.BaseDirectory != null && !System.IO.Path.IsPathRooted(name) ? System.IO.Path.Combine(run.BaseDirectory, name) : name;
+                if (System.IO.File.Exists(path)) preset = JsonValue.ParseFile(path).AsObject();
+            }
+            if (preset == null) throw new InvalidOperationException("detector preset \"" + name + "\" is neither in the run spec's \"detectors\" nor a file.");
+            var res = new JsonObject();
+            foreach (var kv in ispec) if (kv.Key != "detector") res.Set(kv.Key, kv.Value);
+            var inst = preset.GetObject("instrument");
+            if (inst != null) foreach (var kv in inst) if (!res.Has(kv.Key)) res.Set(kv.Key, kv.Value);
+            var det = new JsonObject();
+            var pd = preset.GetObject("detector");
+            if (pd != null) foreach (var kv in pd) det.Set(kv.Key, kv.Value);
+            if (over != null) foreach (var kv in over) if (kv.Key != "preset") det.Set(kv.Key, kv.Value);
+            if (det.Count > 0) res.Set("detector", det);
+            return res;
         }
 
         /// <summary>Apply the "detector" read-out model to the recorded arrays and readings.</summary>
@@ -215,10 +277,12 @@ namespace UltrafastEngine.Instruments
                 o.Notes.Add("\"detector\" is not used by a " + o.Kind + " (it has its own detector model or records no trace)");
                 return;
             }
+            ApplySpectralResponse(d, o);
             double cal = d.GetDouble("calibration", 1.0);
             double rel = d.GetDouble("noise", 0);
             double floor = d.Has("noiseFloor") ? d.GetDouble("noiseFloor", 0) : d.Has("dynamicRangeDb") ? Math.Pow(10, -d.GetDouble("dynamicRangeDb", 100) / 10) : 0;
             int bits = d.GetInt("bitDepth", 0);
+            double satLevel = d.GetDouble("saturationLevel", 0);
             var rnd = new Random(d.GetInt("seed", 1));
             foreach (var suffix in ro.Arrays)
             {
@@ -230,6 +294,7 @@ namespace UltrafastEngine.Instruments
                     double v = y[i] * (1 + rel * Gauss(rnd)) + floor * peak * Gauss(rnd);
                     y[i] = cal * v;
                 }
+                if (satLevel > 0) { double cap = satLevel * peak * cal; for (int i = 0; i < y.Length; i++) if (y[i] > cap) y[i] = cap; }
                 if (bits > 0 && bits < 31)
                 {
                     double fs = y.Max(); double levels = (1 << bits) - 1;
@@ -246,6 +311,7 @@ namespace UltrafastEngine.Instruments
             if (cal != 1) parts.Add("calibration x" + cal.ToString("G4", CultureInfo.InvariantCulture));
             if (rel > 0) parts.Add("noise " + (rel * 100).ToString("G3", CultureInfo.InvariantCulture) + " % rms");
             if (floor > 0) parts.Add("floor " + floor.ToString("G3", CultureInfo.InvariantCulture) + " of the peak (" + (-10 * Math.Log10(floor)).ToString("G3", CultureInfo.InvariantCulture) + " dB)");
+            if (satLevel > 0) parts.Add("saturation at " + satLevel.ToString("G3", CultureInfo.InvariantCulture) + " of the peak");
             if (bits > 0) parts.Add(bits + "-bit ADC");
             if (parts.Count > 0) o.Notes.Add("detector: " + string.Join(", ", parts) + "; readings re-evaluated on the detected trace");
         }

@@ -11,6 +11,13 @@ how the engine got here is in [Development history](docs/design/history.md). Fit
 - [ ] Crystal surfaces recognised and mapped to `crystal` elements
 - [ ] Output basis vectors in results (lab-frame polarisation after folded paths)
 
+## Delayed light and gas (done; what is left)
+- [x] 2-D plate at P / P_cr ~ 100: seeded noise / ripple, diagnostics, Bespalov-Talanov check, example 29 -- *left:* a 256 x 256 run at 2^13 time points on a GPU
+- [x] Detector response tables, photon counting and presets (user-defined) -- *left:* a catalogue of real instruments (needs their manuals / calibrations)
+- [x] Analytic surface scatter for `delayedScatter` -- *left:* non-Gaussian roughness spectra (fractal / PSD tables), bulk scatter from a measured BRDF
+- [x] TIPS partition sums for the hitran plugin; H2O, CO2 and O2 vs HAPI -- *left:* a comparison with a measured air transmission; continuum absorption
+- [x] Tail: smooth elements skip the exact step; first-order cross-phase -- *left:* second-order tail nonlinearity (the tail's own self-phase)
+
 ## Physics extensions under consideration
 - [ ] Frequency-dependent effective area and multimode fibres
 - [ ] z-dependent dispersion within one fibre element (tapers)

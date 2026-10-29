@@ -28,6 +28,7 @@ namespace UltrafastEngine.Schema
                     .Arr("transmission", "", "Per-wavelength internal transmission (else the material's attenuation)")
                     .Enum("dispersionSource", new[] { "data", "material" }, "Use traced data or the material index", "data")
                     .Num("airPathM", "m", "Air path whose data are relative to air")
+                    .P("air", ParamType.Any, "", "gap only: this gap's air (temperatureC, pressurePa, humidity, co2ppm, and the keys of environment.air), overriding the system's environment.air (docs/reference/gases.md#air-in-the-gaps)")
                     .P("ghosts", ParamType.Any, "", "Ghost replicas of the end faces: true / false or a ghosts object (components.md#ghost-reflections)", "false"));
 
             foreach (var t in new[] { "interface", "mirror", "grating" })
@@ -37,6 +38,9 @@ namespace UltrafastEngine.Schema
                     .Str("before", "Medium before the surface", "Air").Str("after", "Medium after (mirror: substrate/metal; omitted = ideal)")
                     .Arr("aoiRad", "rad", "Angle of incidence (per wavelength or scalar)").Arr("aoiDeg", "deg", "Angle of incidence in degrees")
                     .Model("coating", "coating", "Coating name (from coatings) or inline coating; none = bare Fresnel")
+                    .P("ripple", ParamType.Any, "", "Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating")
+                    .P("delayedScatter", ParamType.Any, "", "Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: \"surface\", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)")
+                    .P("substrate", ParamType.Any, "", "mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. \"FS-12.7mm\") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)")
                     .Arr("efficiency", "", "Diffraction efficiency (grating, no coating)").Arr("efficiencyS", "", "s efficiency").Arr("efficiencyP", "", "p efficiency")
                     .Arr("kIn", "", "Incoming ray direction (global) for exact s/p basis transport").Arr("kOut", "", "Outgoing ray direction").Arr("normal", "", "Surface normal")
                     .Num("planeOfIncidenceDeg", "deg", "s-direction angle from local x when no vectors are given", "90").Also("planeOfIncidence")
@@ -107,6 +111,7 @@ namespace UltrafastEngine.Schema
                     .Model("coating", "coating", "Coating of both surfaces").Model("coatingFront", "coating", "Front coating").Model("coatingBack", "coating", "Back coating")
                     .Num("wedgeDeg", "deg", "Wedge angle (tilts the ghosts)", "0")
                     .P("ghosts", ParamType.Any, "", "true / false or a ghosts object", "false")
+                    .P("delayedScatter", ParamType.Any, "", "Bulk back-scatter returned as delayed light: {fraction, delay: {kind: uniform, maxS (default 2 n_g d cos(theta)/c)}, spectralExponent, seed}, or the analytic surface model {model: \"surface\", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces (default 2), delay} (docs/reference/coatings.md#delayed-scatter)")
                     .Arr("od", "", t == "ndFilter" ? "Optical density (number, or per wavelength)" : "(ndFilter only)")
                     .Enum("kind", new[] { "absorptive", "reflective" }, "ND type (ndFilter)", "absorptive"));
             add(new ComponentSpec("element", "fiber", "A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material; gamma or n2 + effective area; loss; gain; Raman; soliton and dispersive-wave diagnostics.")

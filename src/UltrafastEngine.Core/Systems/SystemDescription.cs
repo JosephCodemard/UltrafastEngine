@@ -50,6 +50,8 @@ namespace UltrafastEngine.Systems
         public JsonObject Environment { get; set; } = new JsonObject();
         public JsonObject Materials { get; set; } = new JsonObject();
         public JsonObject Coatings { get; set; } = new JsonObject();
+        /// <summary>Mirror substrates defined in the file, by name (material, thicknessM, back face, wedge): used by the mirror's "substrate".</summary>
+        public JsonObject Substrates { get; set; } = new JsonObject();
         public JsonObject InputBeam { get; set; }
         public List<SystemElement> Elements { get; } = new List<SystemElement>();
         public List<OverrideRule> Overrides { get; } = new List<OverrideRule>();
@@ -85,6 +87,7 @@ namespace UltrafastEngine.Systems
                 Environment = o.GetObject("environment") ?? new JsonObject(),
                 Materials = o.GetObject("materials") ?? new JsonObject(),
                 Coatings = o.GetObject("coatings") ?? new JsonObject(),
+                Substrates = o.GetObject("substrates") ?? new JsonObject(),
                 InputBeam = o.GetObject("inputBeam"),
                 BaseDirectory = baseDirectory
             };
@@ -125,6 +128,7 @@ namespace UltrafastEngine.Systems
             if (Environment.Count > 0) o.Set("environment", Environment);
             if (Materials.Count > 0) o.Set("materials", Materials);
             if (Coatings.Count > 0) o.Set("coatings", Coatings);
+            if (Substrates.Count > 0) o.Set("substrates", Substrates);
             if (InputBeam != null) o.Set("inputBeam", InputBeam);
             var arr = new JsonArray();
             foreach (var e in Elements)

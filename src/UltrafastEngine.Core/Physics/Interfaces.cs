@@ -342,6 +342,8 @@ namespace UltrafastEngine.Physics
     /// </summary>
     public sealed class InterfaceTerm : JonesTerm
     {
+        /// <summary>Bare Fresnel surfaces are smooth; coatings (stacks, tables) can have structure finer than a short window.</summary>
+        public override bool IsSmooth => Coating is StackCoating st && st.Layers.Count == 0;
         public Material Before { get; } public Material After { get; } public ICoating Coating { get; }
         public string Mode { get; }  // "refract" | "reflect" | "diffract"
         public Func<double, double> Aoi { get; }

@@ -112,6 +112,7 @@ namespace UltrafastEngine.Engine
             public BasisTracker Basis = new BasisTracker();
             public Material EnvAir;
             public bool AirReferenced;
+            public bool EnvAirInGaps;
             public double Omega0;
             public Optics.BeamState Track;
         }
@@ -137,10 +138,12 @@ namespace UltrafastEngine.Engine
             c.EnvAir = new Material
             {
                 Name = "Air(environment)",
-                Index = airSpec != null ? registry.Create<IRefractiveIndex>("index", ModelSpec.FromJson(airSpec.Has("kind") ? airSpec : new JsonObject().Set("kind", "ciddor").Set("temperatureC", airSpec.GetDouble("temperatureC", 20)).Set("pressurePa", airSpec.GetDouble("pressurePa", 101325)).Set("humidity", airSpec.GetDouble("humidity", 0)).Set("co2ppm", airSpec.GetDouble("co2ppm", 450)), ModelSource.SystemData, "environment.air"))
-                                       : new CiddorAirIndex(),
+                Index = airSpec != null ? AirIndexFrom(c, airSpec, "environment.air") : new CiddorAirIndex(),
                 IsGas = true
             };
+            // opt-in: the environment's air (humidity, temperature, pressure, gas lines) is the "Air" of every gap
+            c.EnvAirInGaps = airSpec != null && airSpec.GetBool("applyToGaps", false);
+            if (c.EnvAirInGaps) c.Out.Notes.Add("environment.air is applied to every air gap: " + c.EnvAir.Index.Description + (c.EnvAir.Index is IAttenuation ? " (with absorption)" : "") + "; a gap's own \"air\" overrides it.");
 
             double lambda0 = run.Pulse.ResolveCenterWavelengthM();
             c.Omega0 = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / lambda0;
@@ -238,6 +241,34 @@ namespace UltrafastEngine.Engine
 
         // ================================================================================== materials
 
+        /// <summary>The index model of an air specification: any registered "index" kind (e.g. the hitran plugin's), else Ciddor
+        /// from temperatureC, pressurePa, humidity (0..1) and co2ppm.</summary>
+        private static IRefractiveIndex AirIndexFrom(Ctx c, JsonObject airSpec, string origin)
+        {
+            var js = airSpec.Has("kind") ? airSpec : new JsonObject().Set("kind", "ciddor").Set("temperatureC", airSpec.GetDouble("temperatureC", 20)).Set("pressurePa", airSpec.GetDouble("pressurePa", 101325)).Set("humidity", airSpec.GetDouble("humidity", 0)).Set("co2ppm", airSpec.GetDouble("co2ppm", 450));
+            return c.Reg.Create<IRefractiveIndex>("index", ModelSpec.FromJson(js, ModelSource.SystemData, origin));
+        }
+
+        private static void UseEnvironmentAir(Material m, IRefractiveIndex index)
+        {
+            m.Index = index;
+            if (index is IAttenuation att) m.Attenuation = att;
+            m.Provenance["index"] = (index.Description, ModelSource.SystemData, "system environment.air");
+        }
+
+        /// <summary>The air of one gap: environment.air (if any) with the gap's own "air" keys on top.</summary>
+        private static Material GapAir(Ctx c, SystemElement e)
+        {
+            var merged = new JsonObject();
+            var envAir = (c.Sys.Environment ?? new JsonObject()).GetObject("air");
+            if (envAir != null) foreach (var kv in envAir) if (kv.Key != "applyToGaps") merged.Set(kv.Key, kv.Value);
+            foreach (var kv in e.Json.GetObject("air")) merged.Set(kv.Key, kv.Value);
+            var m = MaterialLibrary.BuiltIn("Air"); m.Name = "Air";
+            UseEnvironmentAir(m, AirIndexFrom(c, merged, "element " + e.Id + ".air"));
+            m.Provenance["index"] = (m.Index.Description, ModelSource.SystemData, "element " + e.Id + ".air");
+            return m;
+        }
+
         private static Material GetMaterial(Ctx c, string name)
         {
             if (string.IsNullOrWhiteSpace(name)) name = "Air";
@@ -249,6 +280,7 @@ namespace UltrafastEngine.Engine
             {
                 m = MaterialLibrary.BuiltIn(name);
                 m.Name = name;
+                if (c.EnvAirInGaps && string.Equals(MaterialLibrary.Canonical(name), "Air", StringComparison.OrdinalIgnoreCase)) UseEnvironmentAir(m, c.EnvAir.Index);
             }
             // material-targeted overrides, lowest source first so higher sources win
             foreach (var r in c.Ov.Rules.Where(r => r.Matches("material", name, null)).OrderBy(r => r.Source))
@@ -581,6 +613,11 @@ namespace UltrafastEngine.Engine
             string matName = matOv != null ? matOv.RawValue.AsString() : e.Json.GetString("material", isGap ? "Air" : null);
             if (string.IsNullOrEmpty(matName)) throw new JsonException("bulk element needs a \"material\".");
             var m = GetMaterial(c, matName);
+            if (isGap && e.Json.Has("air") && e.Json["air"].Kind == JsonKind.Object && string.Equals(MaterialLibrary.Canonical(matName), "Air", StringComparison.OrdinalIgnoreCase))
+            {
+                m = GapAir(c, e);
+                ce.Notes.Add("air of this gap: " + m.Index.Description);
+            }
             ce.LengthM = Num(c, e, "lengthM", double.NaN, out var lenSrc);
             if (double.IsNaN(ce.LengthM) || ce.LengthM < 0) throw new JsonException("needs a non-negative \"lengthM\".");
 
@@ -821,7 +858,7 @@ namespace UltrafastEngine.Engine
                 coatingDesc = coating.Description;
                 c.Out.Provenance.Record("element:" + e.Id, "coating", coating.Description, cr?.Source ?? ModelSource.SystemData, cr?.Origin ?? "system file");
             }
-            else if (mode == "reflect" && !e.Json.Has("after"))
+            else if (mode == "reflect" && !e.Json.Has("after") && ResolveSubstrate(c, e) == null)
             {
                 coating = CoatingFactory.Create(new JsonObject().Set("kind", "ideal").Set("R", 1.0), n => GetMaterial(c, n), c.Omega0, "element " + e.Id);
                 ce.Notes.Add("mirror without coating or substrate: ideal R = 1");
@@ -851,9 +888,19 @@ namespace UltrafastEngine.Engine
             // clip first (at the surface), then the surface itself, then scatter
             ce.Surface = new SurfaceInfo { AoiRad = aoi0, Coating = coatingDesc ?? "bare" };
             AddClip(c, e, ce);
-            ce.Pre.Add(new InterfaceTerm(ce.Label, before, after, coating, mode, aoi, basis));
+            var substrateSpec = mode == "reflect" ? ResolveSubstrate(c, e) : null;
+            if (substrateSpec != null)
+                ce.Pre.Add(CompileMirrorSubstrate(c, e, ce, substrateSpec, before, coating, aoi, basis, out after));
+            else
+            {
+                if (ResolveSubstrate(c, e) != null) ce.Notes.Add("substrate: only a reflecting mirror has substrate echoes; ignored");
+                ce.Pre.Add(new InterfaceTerm(ce.Label, before, after, coating, mode, aoi, basis));
+            }
             double sigma = Num(c, e, "roughnessRmsM", 0);
             if (sigma > 0) ce.Pre.Add(new ScatterTerm(sigma, before, after, mode, aoi));
+            AddCoatingRipple(c, e, ce);
+            double scatterDelay = substrateSpec != null && ce.Satellites.Count > 0 ? ce.Satellites[0].DelayS : 0.0;
+            AddDelayedScatter(c, e, ce, scatterDelay, ce.Post, new SurfaceGeometry { Before = before, After = after, Aoi = aoi, Mode = mode });
             ce.Surface.Lidt = e.Json.Has("lidt") ? LidtSpec.FromJson(e.Json.GetObject("lidt")) : coating?.Lidt ?? (mode == "refract" ? after.Lidt : null) ?? before.Lidt;
             // curved mirror / focal length: acts on a carried transverse profile (spatial elements downstream)
             double roc = Num(c, e, "radiusOfCurvatureM", double.NaN);
@@ -1082,6 +1129,42 @@ namespace UltrafastEngine.Engine
             return room;
         }
 
+        /// <summary>
+        /// Which satellites (ghosts, echoes, replicas of elements) and pedestal replicas of the input pulse do not fit the
+        /// window: for each one above <paramref name="level"/> (relative intensity) that lies beyond half the window minus the
+        /// pulse extent, a sentence with its source, delay, level, energy and where it wraps to.
+        /// </summary>
+        private static List<string> WrapReport(Ctx c, double windowS, double pulseHalfExtentS, double pulseEnergyJ, double level)
+        {
+            var found = new List<(string What, double Delay, double Level)>();
+            foreach (var e in c.Out.Elements.Where(x => x.Enabled))
+            {
+                int k = 0;
+                foreach (var (d, lv) in e.Satellites) { k++; if (d != 0 && lv >= level) found.Add(("element '" + e.Id + "' satellite " + k, d, lv)); }
+                if (e.Satellites.Count == 0 && e.SatelliteDelayS != 0) found.Add(("element '" + e.Id + "' satellite", e.SatelliteDelayS, 1.0));
+            }
+            foreach (var p in c.Run.Pulse.Pedestal)
+            {
+                string kind = p.GetString("kind", "").ToLowerInvariant();
+                if (kind != "replica" && kind != "prepulse" && kind != "postpulse") continue;
+                double d = p.GetDouble("delayS", 0); if (kind == "prepulse") d = -Math.Abs(d);
+                double lv = p.GetDouble("relativeIntensity", p.GetDouble("relativeEnergy", 1.0));
+                if (d != 0 && lv >= level) found.Add(("pedestal " + kind, d, lv));
+            }
+            var res = new List<string>();
+            double half = 0.5 * windowS;
+            foreach (var f in found.OrderByDescending(x => x.Level))
+            {
+                if (Math.Abs(f.Delay) + pulseHalfExtentS <= half) continue;
+                double wrapped = ((f.Delay + half) % windowS + windowS) % windowS - half;
+                if (res.Count >= 8) { res.Add("(more satellites wrap; the list is cut at 8)"); break; }
+                res.Add(string.Format(CultureInfo.InvariantCulture,
+                    "Window: {0} at {1:+0.###;-0.###} ps (relative intensity {2:G3} = {3:F1} dB, about {4:G3} J of {5:G3} J) does not fit the +-{6:G4} ps window and wraps around to {7:+0.###;-0.###} ps. Give grid.windowS >= {8:G4} ps, set grid.extendForSatellites, or use grid.tail.",
+                    f.What, f.Delay * 1e12, f.Level, 10 * Math.Log10(Math.Max(f.Level, 1e-300)), f.Level * pulseEnergyJ, pulseEnergyJ, half * 1e12, wrapped * 1e12, 2 * 1.25 * (Math.Abs(f.Delay) + pulseHalfExtentS) * 1e12));
+            }
+            return res;
+        }
+
         private static void BuildGridAndPulse(Ctx c)
         {
             var run = c.Run;
@@ -1138,11 +1221,21 @@ namespace UltrafastEngine.Engine
             }
             double margin = double.IsNaN(run.Grid.SpectralMargin) ? (anyNl ? Math.Max(3.0, 1.0 + bEst) : 1.3) : run.Grid.SpectralMargin;
             if (anyNl) c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Estimated total B-integral (peak power after the dispersion before each element, no losses): {0:G3} rad; spectral margin {1:G3}.", bEst, margin));
-            var plan = GridPlanner.Plan(p0, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window0, run.Grid.ExplicitResolution ? run.Grid.N : n0, run.Grid.MaxN, run.Grid.Auto, run.Grid.ExplicitResolution, Results.PulseMetrics.Fwhm(g0.Time, Results.PulseMetrics.TransformLimitedPower(p0)) / run.Grid.MinPointsPerFwhm,
-                SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes) + run.Pulse.SatelliteHalfWindowS());
+            var plan = GridPlanner.Plan(p0, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window0, run.Grid.ExplicitResolution ? run.Grid.N : n0, run.Grid.MaxN, run.Grid.Auto || run.Grid.ExtendForSatellites, run.Grid.ExplicitResolution, Results.PulseMetrics.Fwhm(g0.Time, Results.PulseMetrics.TransformLimitedPower(p0)) / run.Grid.MinPointsPerFwhm,
+                (run.Grid.TailEnabled ? 0.0 : SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes)) + run.Pulse.SatelliteHalfWindowS());
+            if (run.Grid.TailEnabled) c.Out.Notes.Add("grid.tail: ghosts, echoes and other satellites are carried on the long tail grid; the main window is sized for the pulse only.");
             c.Out.GridPlan = plan;
             c.Out.Notes.AddRange(plan.Notes);
             c.Out.Warnings.AddRange(plan.Warnings);
+            if (!run.Grid.TailEnabled)
+            {
+                var wraps = WrapReport(c, plan.WindowS, 5 * tl, p0.TotalEnergyJ(), run.Grid.SatelliteLevel);
+                if (wraps.Count > 0)
+                {
+                    if (run.Grid.Strict) throw new JsonException("grid.strict: " + string.Join(" ", wraps));
+                    c.Out.Warnings.AddRange(wraps);
+                }
+            }
             var grid = GridPlanner.Create(plan.N, plan.WindowS, c.Omega0, run.Grid.SnapCarrier, out double w0s);
             if (w0s != c.Omega0)
                 c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Carrier snapped to the frequency grid: {0:F4} -> {1:F4} nm.",
@@ -1190,6 +1283,7 @@ namespace UltrafastEngine.Engine
     /// relative to air (OpticStudio's convention).</summary>
     public sealed class AirExcessTerm : PhaseTerm
     {
+        public override bool IsSmooth => true;
         private readonly Material _air; private readonly double _l;
         public AirExcessTerm(Material air, double lengthM) { _air = air; _l = lengthM; Mechanism = "dispersion"; }
         public override string Description => "air (absolute index), " + _l.ToString("G5", CultureInfo.InvariantCulture) + " m";
@@ -1204,8 +1298,19 @@ namespace UltrafastEngine.Engine
     /// transmission TIS = (2 pi sigma |n1 cos t1 - n2 cos t2| / lambda)^2; power transmission exp(-TIS).</summary>
     public sealed class ScatterTerm : PhaseTerm
     {
+        public override bool IsSmooth => true;
         private readonly double _s; private readonly Material _a, _b; private readonly string _mode; private readonly Func<double, double> _aoi;
         public ScatterTerm(double sigma, Material before, Material after, string mode, Func<double, double> aoi) { _s = sigma; _a = before; _b = after; _mode = mode; _aoi = aoi; Mechanism = "scatter"; }
+        /// <summary>Total integrated scatter of one surface: reflection (4 pi sigma n1 cos t1 / lambda)^2, refraction (2 pi sigma |n1 cos t1 - n2 cos t2| / lambda)^2.</summary>
+        public static double Tis(double sigmaM, double lambdaM, double n1, double theta1, double n2, string mode)
+        {
+            if (mode == "refract")
+            {
+                double s2 = n1 * Math.Sin(theta1) / n2, c2 = s2 < 1 ? Math.Sqrt(1 - s2 * s2) : 0;
+                return Math.Pow(2 * Math.PI * sigmaM * Math.Abs(n1 * Math.Cos(theta1) - n2 * c2) / lambdaM, 2);
+            }
+            return Math.Pow(4 * Math.PI * sigmaM * n1 * Math.Cos(theta1) / lambdaM, 2);
+        }
         public override string Description => "surface scatter, sigma = " + (_s * 1e9).ToString("G3", CultureInfo.InvariantCulture) + " nm rms";
         protected override void Phase(double[] omega, double[] phi) { for (int i = 0; i < omega.Length; i++) phi[i] = 0; }
         protected override void Amplitude(double[] omega, double[] amp)

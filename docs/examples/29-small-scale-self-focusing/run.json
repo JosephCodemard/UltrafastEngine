@@ -1,0 +1,6 @@
+{
+  "format": "ultrafast-run", "version": 2, "name": "small-scale self-focusing",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1030e-9, "durationFwhmS": 300e-15, "energyJ": 130e-6 },
+  "physics": { "raman": false, "selfSteepening": false },
+  "grid": { "n": 256 }
+}

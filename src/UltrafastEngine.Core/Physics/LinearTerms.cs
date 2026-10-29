@@ -70,6 +70,12 @@ namespace UltrafastEngine.Physics
         /// <summary>True if this term only removes energy uniformly (no phase, no spectral shape).</summary>
         public virtual bool IsFlat => false;
 
+        /// <summary>True if the spectral structure of the term is smooth by construction (dispersion, flat or power-law loss, bare Fresnel
+        /// surfaces, design waveplates): its impulse response is short against the time window, so applying it to the main field and to
+        /// the delayed-light tail separately is the same as applying it to their sum. Default false (conservative): the delayed-light ledger
+        /// then takes the exact long-grid step (docs/reference/delayed-light.md#cost-and-smooth-elements).</summary>
+        public virtual bool IsSmooth => false;
+
         internal static double SafeAmp(double a) => double.IsNaN(a) || a < 0 ? 0.0 : a;
     }
 
@@ -108,6 +114,15 @@ namespace UltrafastEngine.Physics
             return new DispersionPoint { GroupDelayS = d1, GddS2 = d2, TodS3 = d3 };
         }
 
+        /// <summary>Phase and group delay removed from the frame at the carrier. Default: those of the term itself.
+        /// Terms with narrow spectral features (gas lines) override it with their smooth part.</summary>
+        protected virtual void FrameReference(double w0, out double phi0, out double tau0)
+        {
+            tau0 = GroupDelayAt(w0);
+            var p0 = new double[1]; Phase(new[] { w0 }, p0);
+            phi0 = p0[0];
+        }
+
         private double[] FramePhase(OmegaAxis axis, Func<double[], double[], bool> phaseFn, double tau0, double phi0)
         {
             var phi = new double[axis.N];
@@ -119,10 +134,9 @@ namespace UltrafastEngine.Physics
         public override bool TryPhaseAmplitude(OmegaAxis axis, out double[] phX, out double[] ampX, out double[] phY, out double[] ampY)
         {
             double w0 = axis.Omega0;
-            double tau0 = GroupDelayAt(w0);
-            var p0 = new double[1]; Phase(new[] { w0 }, p0);
-            phX = FramePhase(axis, (w, o) => { Phase(w, o); return true; }, tau0, p0[0]);
-            phY = FramePhase(axis, PhaseY, tau0, p0[0]); // same reference -> relative x/y phase kept
+            FrameReference(w0, out double phi0, out double tau0);
+            phX = FramePhase(axis, (w, o) => { Phase(w, o); return true; }, tau0, phi0);
+            phY = FramePhase(axis, PhaseY, tau0, phi0); // same reference -> relative x/y phase kept
             ampX = new double[axis.N];
             Amplitude(axis.Omega, ampX);
             ampY = null;
@@ -243,14 +257,15 @@ namespace UltrafastEngine.Physics
     {
         protected abstract void Jones(double[] omega, Complex[] xx, Complex[] xy, Complex[] yx, Complex[] yy);
 
-        private Complex RefValue(double w)
+        /// <summary>The scalar whose phase defines the frame reference (carrier phase and group delay) of the term.</summary>
+        protected virtual Complex RefValue(double w)
         {
             var xx = new Complex[1]; var xy = new Complex[1]; var yx = new Complex[1]; var yy = new Complex[1];
             Jones(new[] { w }, xx, xy, yx, yy);
             return Reference(xx[0], xy[0], yx[0], yy[0]);
         }
 
-        private static Complex Reference(Complex xx, Complex xy, Complex yx, Complex yy)
+        protected static Complex Reference(Complex xx, Complex xy, Complex yx, Complex yy)
         {
             var tr = xx + yy;
             double scale = xx.Magnitude + yy.Magnitude + xy.Magnitude + yx.Magnitude;
@@ -295,6 +310,7 @@ namespace UltrafastEngine.Physics
     /// <summary>Propagation through a homogeneous material: phi = n(w) w L / c (lossless; see AttenuationTerm).</summary>
     public sealed class BulkTerm : PhaseTerm
     {
+        public override bool IsSmooth => !(Material.Index is Models.ISmoothIndex);
         public Material Material { get; }
         public double LengthM { get; }
         public BulkTerm(Material m, double lengthM) { Material = m; LengthM = lengthM; Mechanism = "dispersion"; }
@@ -305,6 +321,16 @@ namespace UltrafastEngine.Physics
             double k = LengthM / PhysicalConstants.SpeedOfLightMPerS;
             for (int i = 0; i < omega.Length; i++) phi[i] = phi[i] * omega[i] * k;
         }
+        protected override void FrameReference(double w0, out double phi0, out double tau0)
+        {
+            if (!(Material.Index is Models.ISmoothIndex si)) { base.FrameReference(w0, out phi0, out tau0); return; }
+            double h = w0 * 1e-4, k = LengthM / PhysicalConstants.SpeedOfLightMPerS;
+            var w = new[] { w0 - 2 * h, w0 - h, w0 + h, w0 + 2 * h, w0 };
+            var n = new double[5]; si.Smooth.Evaluate(w, n);
+            var p = new double[5]; for (int i = 0; i < 5; i++) p[i] = n[i] * w[i] * k;
+            tau0 = (p[0] - 8 * p[1] + 8 * p[2] - p[3]) / (12 * h); phi0 = p[4];
+        }
+
         // Attenuation is deliberately NOT applied here: the compiler adds a separate AttenuationTerm
         // (mechanism "absorption") so the loss budget can tell dispersion and absorption apart.
     }
@@ -313,6 +339,7 @@ namespace UltrafastEngine.Physics
     /// from dispersion when a bulk element is split into dispersion + absorption.</summary>
     public sealed class AttenuationTerm : PhaseTerm
     {
+        public override bool IsSmooth => !(_a is Models.ISmoothIndex);
         private readonly IAttenuation _a; private readonly double _l; private readonly string _name;
         public AttenuationTerm(IAttenuation a, double lengthM, string name) { _a = a; _l = lengthM; _name = name; Mechanism = "absorption"; }
         public override string Description => "absorption in " + _name;
@@ -390,6 +417,7 @@ namespace UltrafastEngine.Physics
     /// </summary>
     public sealed class GratingPairTerm : GroupDelayTerm
     {
+        public override bool IsSmooth => true;
         public double LinesPerM { get; } public double AoiRad { get; } public double SeparationM { get; } public int Order { get; } public int Passes { get; }
         public double EfficiencyPerGrating { get; }
         public GratingPairTerm(double linesPerM, double aoiRad, double separationM, int order, int passes, double efficiencyPerGrating)
@@ -430,6 +458,7 @@ namespace UltrafastEngine.Physics
     /// ideal "gdd" coatings.</summary>
     public sealed class PolynomialPhaseTerm : PhaseTerm
     {
+        public override bool IsSmooth => true;
         public double OmegaRef { get; } public double Gd { get; } public double Gdd { get; } public double Tod { get; } public double Fod { get; }
         public double PowerTransmissionValue { get; }
         private readonly string _label;
@@ -469,6 +498,7 @@ namespace UltrafastEngine.Physics
     /// <summary>A flat (wavelength-independent) power loss: clipping, scatter, a "transmission" number.</summary>
     public sealed class FlatLossTerm : PhaseTerm
     {
+        public override bool IsSmooth => true;
         public double PowerTransmissionValue { get; }
         private readonly string _d;
         public FlatLossTerm(double powerTransmission, string mechanism, string description) { PowerTransmissionValue = Math.Max(0, Math.Min(1, powerTransmission)); Mechanism = mechanism; _d = description; }
@@ -510,6 +540,7 @@ namespace UltrafastEngine.Physics
     /// not included -- add a bulk element for the plate material if its dispersion matters.</summary>
     public sealed class WaveplateTerm : JonesTerm
     {
+        public override bool IsSmooth => true;
         public double RetardanceWaves { get; } public double DesignOmega { get; } public double AxisAngleRad { get; }
         public WaveplateTerm(double retardanceWaves, double designOmega, double axisAngleRad) { RetardanceWaves = retardanceWaves; DesignOmega = designOmega; AxisAngleRad = axisAngleRad; Mechanism = "polarization"; }
         public override string Description => string.Format(System.Globalization.CultureInfo.InvariantCulture, "waveplate {0:G4} waves, axis {1:G4} deg", RetardanceWaves, AxisAngleRad * 180 / Math.PI);
@@ -527,6 +558,7 @@ namespace UltrafastEngine.Physics
     /// <summary>Linear polariser at angle theta with power extinction ratio ER (transmitted/blocked).</summary>
     public sealed class PolarizerTerm : JonesTerm
     {
+        public override bool IsSmooth => true;
         public double AxisAngleRad { get; } public double ExtinctionRatio { get; } public double Transmission { get; }
         public PolarizerTerm(double axisAngleRad, double extinctionRatio, double transmission) { AxisAngleRad = axisAngleRad; ExtinctionRatio = extinctionRatio; Transmission = transmission; Mechanism = "polarization"; }
         public override string Description => string.Format(System.Globalization.CultureInfo.InvariantCulture, "polarizer at {0:G4} deg, ER {1:G3}", AxisAngleRad * 180 / Math.PI, ExtinctionRatio);
@@ -542,6 +574,7 @@ namespace UltrafastEngine.Physics
     /// or a Faraday rotator: [[c, -s],[s, c]].</summary>
     public sealed class RotatorTerm : JonesTerm
     {
+        public override bool IsSmooth => true;
         public double AngleRad { get; }
         public RotatorTerm(double angleRad) { AngleRad = angleRad; Mechanism = "polarization"; }
         public override string Description => "polarization rotation " + (AngleRad * 180 / Math.PI).ToString("G4", System.Globalization.CultureInfo.InvariantCulture) + " deg";

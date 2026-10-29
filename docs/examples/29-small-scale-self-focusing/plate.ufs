@@ -1,0 +1,12 @@
+{
+  // A 10 mm fused-silica plate in a flat-top beam (w = 0.3 mm) at P / P_cr of about 100: small-scale self-focusing from seeded noise
+  "format": "ultrafast-system", "version": 2, "name": "small-scale self-focusing",
+  "elements": [
+    { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 10e-3,
+      "beam": { "kind": "gaussian", "w0M": 0.3e-3 },
+      "transverse": {
+        "model": "cartesian", "nx": 128, "ny": 128, "halfWidthM": 0.6e-3,          // 128 x 128 over 4 beam radii
+        "initialProfile": { "kind": "flatTop", "noise": { "relativeAmplitudeRms": 0.01, "correlationLengthM": 40e-6, "seed": 1 } }
+      } }
+  ]
+}

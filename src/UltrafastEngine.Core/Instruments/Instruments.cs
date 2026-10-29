@@ -18,6 +18,9 @@ namespace UltrafastEngine.Instruments
     public sealed class InstrumentContext
     {
         public PulseField Pulse { get; set; }
+        /// <summary>With a delayed-light tail: the main field alone on the same (long) grid as <see cref="Pulse"/> (= main + tail).
+        /// Instruments that gate with a nonlinear process (the cross-correlator's SHG gate) use it; null otherwise.</summary>
+        public PulseField GatePulse { get; set; }
         public string Location { get; set; }
         public RunResult Run { get; set; }
         public JsonObject Spec { get; set; }

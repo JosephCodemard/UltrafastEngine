@@ -66,6 +66,13 @@ for fit vector length), beyond a decayed edge compared with zero; coarser record
 equations + spectral Frantz-Nodvik (Gain/). Gases: electronic n2 + rotational Raman tensor; PPT/ADK ionisation +
 Drude plasma (envelope uses ω0 for Drude). Fibres: Taylor β or D(λ), γ(z), self-steepening, Raman (pyNLO-validated).
 
+## Delayed light (docs/reference/delayed-light.md, Engine/TailLedger.cs)
+
+`grid.tail`: U = embed(A_main) + tail on a long grid with the same dt and carrier; linear elements are applied to U exactly and split
+by a smooth window (energy conserved); the tail's own nonlinearity and main x tail interference are neglected. Echo / ghost delays
+come out of exp(i 2 n(w) w d cos(theta)/c) -- test against 2 n_g d / c (fused silica 1030 nm: n_g = 1.4635, 61.98 ps for 6.35 mm).
+Gas lines: one complex Voigt shape gives n and alpha (Kramers-Kronig); the frame removes the *smooth* group delay only.
+
 ## Known limits
 
 1-D runs above P_cr only warn (use `transverse`). Literature n2 spread 10-30 %. Carrier-resolved mode is scalar.
