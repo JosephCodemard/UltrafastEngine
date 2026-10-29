@@ -16,9 +16,12 @@ Included: dispersion to all orders, losses with exact energy accounting, Jones p
 self-steepening with full vector coupling, user time responses, ionisation, beam-size variation along each element
 (focusing inside a multipass-cell pass), carrier-resolved propagation, fluence and LIDT checks, every instrument.
 
-Not included: anything that changes the transverse profile -- self-focusing, Kerr lensing, spatial chirp,
-diffraction, the effect of aberrations on the focus. The engine reports `criticalPowerRatio` (peak power / critical
+Not included: anything that changes the transverse profile -- self-focusing, Kerr lensing, diffraction by apertures,
+the effect of aberrations on the focus. The engine reports `criticalPowerRatio` (peak power / critical
 power for self-focusing) for every nonlinear element and warns above 0.3; give the element a `"transverse"` model
 where it matters. Wavefront errors on a 1-D beam are reported as an rms and a Strehl estimate.
 
-Pulse-front tilt and spatial chirp from angular dispersion (Kostenbauder matrices) are not modelled.
+With a Gaussian `inputBeam` the beam is tracked through the system (q parameters, thermal lenses of gain media), and
+so are the spatio-temporal couplings of gratings, prisms and tilted plates: angular dispersion, spatial chirp,
+pulse-front tilt and the dispersion they add (Kostenbauder matrices; [Components](reference/components.md#spatio-temporal-couplings)).
+The tracked beam stays Gaussian; a carried transverse profile does not take the angular dispersion.

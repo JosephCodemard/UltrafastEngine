@@ -512,10 +512,13 @@ namespace UltrafastEngine.Engine
                     var medium = GetMaterial(c, Str(c, e, "medium", "Air"));
                     double n1 = medium.IndexAt(c.Omega0), n2 = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.5;
                     bool tx = BeamState.TangentialIsX(Angle(c, e, "planeOfIncidence", Math.PI / 2), out _);
-                    t.TiltedInterface(n1, n2, aoi, tx);
+                    // a tilted plate disperses inside and recombines at the exit face: spatial chirp ~ L sin / n, and a small GDD
+                    string mat = Str(c, e, "material", e.Json.GetString("material", null)), med = Str(c, e, "medium", "Air");
+                    double dn1 = IndexSlope(c, med), dn2 = IndexSlope(c, mat);
+                    t.TiltedInterface(n1, n2, aoi, tx, dn1, dn2);
                     t.Propagate(ce.LengthM, n2);
                     double th2 = Math.Asin(n1 * Math.Sin(aoi) / n2);
-                    t.TiltedInterface(n2, n1, th2, tx);
+                    t.TiltedInterface(n2, n1, th2, tx, dn2, dn1);
                     return true;
                 }
                 case "thinfilmpolarizer": case "tfp":

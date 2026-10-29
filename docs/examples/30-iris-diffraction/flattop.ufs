@@ -1,0 +1,17 @@
+{
+  // Example 30: a round flat-top beam (super-Gaussian of order 10, w = 1.5 mm) through a round iris of radius 1 mm.
+  // Grid shared by every element, so the profile is copied, not interpolated, from one element to the next.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "flattop",
+  "elements": [
+    { "id": "source", "type": "gap", "lengthM": 0, "material": "Vacuum", "transverse": { "model": "radial", "points": 1024, "radiusM": 12e-3, "absorbingBoundary": true,
+        "initialProfile": { "kind": "flatTop", "radiusM": 1.5e-3 } } },
+    { "id": "iris", "type": "aperture", "radiusM": 1e-3 },
+    { "id": "n3", "type": "gap", "lengthM": 0.323625, "material": "Vacuum", "transverse": { "model": "radial", "points": 1024, "radiusM": 12e-3, "absorbingBoundary": true } },   // N = 3: z = 0.3236 m
+    { "id": "n2", "type": "gap", "lengthM": 0.161812, "material": "Vacuum", "transverse": { "model": "radial", "points": 1024, "radiusM": 12e-3, "absorbingBoundary": true } },   // N = 2 (dark centre for a uniform beam): z = 0.4854 m
+    { "id": "n1", "type": "gap", "lengthM": 0.485437, "material": "Vacuum", "transverse": { "model": "radial", "points": 1024, "radiusM": 12e-3, "absorbingBoundary": true } },   // N = 1: z = 0.9709 m
+    { "id": "far", "type": "gap", "lengthM": 4.02913, "material": "Vacuum", "transverse": { "model": "radial", "points": 1024, "radiusM": 12e-3, "absorbingBoundary": true } }   // far zone, N = 0.19: z = 5.0000 m
+  ]
+}

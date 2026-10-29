@@ -11,6 +11,7 @@ using UltrafastEngine.Numerics;
 using UltrafastEngine.Physics;
 using UltrafastEngine.Pulses;
 using UltrafastEngine.Results;
+using UltrafastEngine.Serialization;
 
 namespace UltrafastEngine.Transverse
 {
@@ -347,7 +348,7 @@ namespace UltrafastEngine.Transverse
         public static TransverseProfile Initial(TransverseSpec spec, ITransverseBasis basis, PulseField p, IBeamModel beam, Func<double, double> indexAt, string elementId, List<string> notes)
         {
             var spectrum = p.SpectralIntensity();
-            var bins = TransverseOps.SampleBins(spectrum);
+            var bins = TransverseOps.SampleBins(spectrum, spec.SpectralSamples);
             var omegas = bins.Select(b => p.Grid.OmegaAbsolute[b]).ToArray();
             double wx = double.NaN, wy = double.NaN, R = double.PositiveInfinity;
             if (beam != null) (wx, wy, R) = TransverseOps.BeamAt(beam, 0);
@@ -368,7 +369,16 @@ namespace UltrafastEngine.Transverse
                 notes.Add(string.Format(CultureInfo.InvariantCulture, "transverse field: profile from '{0}' rescaled to this element's beam (w = {1:G4} mm, R = {2:G4} m)", p.Profile.Origin, wx * 1e3, R));
                 return TransverseOps.Rescale(p.Profile, basis, wx, wy, R, indexAt, p.Profile.Origin);
             }
-            if (double.IsNaN(wx)) throw new InvalidOperationException("element '" + elementId + "' is spatial but has neither a beam model (\"beam\" or inputBeam) nor a carried transverse profile.");
+            var ip = spec.InitialProfile;
+            if (ip != null)
+            {
+                // explicit size and curvature of the initial field win over the beam model
+                double r = ip.GetDouble("radiusM", double.NaN);
+                double rx = ip.GetDouble("radiusXM", double.IsNaN(r) ? wx : r), ry = ip.GetDouble("radiusYM", double.IsNaN(r) ? (ip.Has("radiusXM") ? rx : wy) : r);
+                wx = rx; wy = double.IsNaN(ry) ? rx : ry;
+                if (ip.Has("radiusOfCurvatureM")) R = ip.GetDouble("radiusOfCurvatureM", double.PositiveInfinity);
+            }
+            if (double.IsNaN(wx)) throw new InvalidOperationException("element '" + elementId + "' is spatial but has neither a beam model (\"beam\" or inputBeam), an initialProfile.radiusM nor a carried transverse profile.");
             notes.Add(string.Format(CultureInfo.InvariantCulture, "transverse field: from the beam model ({0}, w = {1:G4} mm, R = {2:G4} m)", spec.InitialProfile?.GetString("kind", "gaussian") ?? "gaussian", wx * 1e3, R));
             return TransverseOps.FromShape(basis, spec.InitialProfile, wx, wy, R, indexAt, omegas, elementId);
         }
@@ -376,11 +386,13 @@ namespace UltrafastEngine.Transverse
         private static TransverseProfile WithExact(this TransverseProfile p, bool exact) { p.Exact = exact; return p; }
 
         /// <summary>Largest beam radius expected in an element (grid sizing).</summary>
-        public static double ExpectedRadius(IBeamModel beam, double lengthM, PulseField p)
+        public static double ExpectedRadius(IBeamModel beam, double lengthM, PulseField p, JsonObject initial = null)
         {
             double w = 0;
             if (beam != null) for (int k = 0; k <= 20; k++) { double z = lengthM * k / 20; w = Math.Max(w, Math.Max(beam.RadiusX(z), beam.RadiusY(z))); }
             if (p.Profile != null) { var (a, b) = p.Profile.SecondMomentRadius(); if (!double.IsNaN(a)) w = Math.Max(w, Math.Max(a, b)); }
+            if (w == 0 && initial != null)
+                w = Math.Max(initial.GetDouble("radiusM", 0), Math.Max(initial.GetDouble("radiusXM", 0), initial.GetDouble("radiusYM", 0)));
             return w;
         }
     }
@@ -444,7 +456,7 @@ namespace UltrafastEngine.Transverse
         {
             var g = p.Grid; int n = g.N;
             Func<double, double> idx = w => Material.IndexAt(w);
-            double wexp = TransverseStart.ExpectedRadius(Beam, LengthM, p);
+            double wexp = TransverseStart.ExpectedRadius(Beam, LengthM, p, Spec.InitialProfile);
             if (!(wexp > 0)) throw new InvalidOperationException("element '" + ctx.Element.Id + "': cannot size the transverse grid (no beam model and no carried profile).");
             var basis = Spec.CreateBasis(wexp);
             var prof = TransverseStart.Initial(Spec, basis, p, Beam, idx, ctx.Element.Id, ctx.Record.Notes);
@@ -457,6 +469,8 @@ namespace UltrafastEngine.Transverse
             double e0 = p.TotalEnergyJ();
             double eyFrac = p.Ay.Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary) / Math.Max(1e-300, p.Ax.Concat(p.Ay).Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary));
             bool vector = Spec.Polarization == "vector" || (Spec.Polarization == "auto" && eyFrac > 1e-6) || (prof.DataY != null && Spec.Polarization != "scalar");
+            if (!vector && prof.DataY == null && (Medium == null || !Medium.IsActive) && (Properties == null || !Properties.Any))
+                return ExecuteLinear(ctx, p, prof, basis, idx, phX, ampX, phY, ampY, wexp, e0);
             var E = TransverseOps.Expand(p.Ax, g.OmegaAbsolute, prof);
             var fluIn = TransverseOps.Fluence(E, n, g, basis);          // the input fluence (before the transform to k space), for the small-scale diagnostics
             basis.ToK(E, n);
@@ -478,10 +492,10 @@ namespace UltrafastEngine.Transverse
             if (vector) { outK = new Complex[block]; outKy = new Complex[block]; Array.Copy(outS, 0, outK, 0, block); Array.Copy(outS, block, outKy, 0, block); basis.ToSpace(outKy, n); }
             basis.ToSpace(outK, n);
             Complex[] ax, ay; TransverseProfile profOut;
-            if (vector) { (ax, ay) = TransverseOps.CollapseVector(outK, outKy, basis, g.OmegaAbsolute, ctx.Element.Id, out profOut); ctx.Note("vector (Jones) propagation on the transverse grid" + (uppe ? ", UPPE coupling" : "")); }
+            if (vector) { (ax, ay) = TransverseOps.CollapseVector(outK, outKy, basis, g.OmegaAbsolute, ctx.Element.Id, out profOut, Spec.SpectralSamples); ctx.Note("vector (Jones) propagation on the transverse grid" + (uppe ? ", UPPE coupling" : "")); }
             else
             {
-                ax = TransverseOps.Collapse(outK, basis, g.OmegaAbsolute, ctx.Element.Id, out profOut);
+                ax = TransverseOps.Collapse(outK, basis, g.OmegaAbsolute, ctx.Element.Id, out profOut, Spec.SpectralSamples);
                 ay = p.Ay;
                 if (p.Ay.Any(c => c != Complex.Zero))
                 {
@@ -498,10 +512,7 @@ namespace UltrafastEngine.Transverse
             ctx.Record.Values["peakFluenceOutJPerM2"] = flu.Max();
             SmallScaleDiagnostics(ctx, basis, fluIn, flu, wexp, p, g);
             ctx.Record.Values["onAxisFluenceOutJPerM2"] = flu[Array.IndexOf(basis.Radius, basis.Radius.Min())];
-            double edge = 0, tot = 0; double rmax = basis.Extent;
-            for (int m = 0; m < basis.M; m++) { double e = flu[m] * basis.Weights[m]; tot += e; if (basis.Radius[m] > 0.85 * rmax) edge += e; }
-            if (tot > 0 && edge / tot > 1e-4)
-                ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': {1:P2} of the energy reached the edge of the transverse grid (reflection/aliasing) -- enlarge transverse.radiusM / halfWidthM or extentFactor.", ctx.Element.Id, edge / tot));
+            EdgeWarning(ctx, basis, flu);
             ctx.Record.Steps = stats; ctx.Record.BIntegralRad = stats.BIntegralRad;
             if (Medium != null) foreach (var rr in Medium.ExtraResponses.OfType<IReportingResponse>()) rr.Report(ctx.Record.Values);
             ctx.Record.Representation = basis.Describe() + " x " + n + " samples";
@@ -511,6 +522,119 @@ namespace UltrafastEngine.Transverse
             bool absorbs = Background.Any(b => b.Mechanism == "absorption") || (Medium?.ExtraResponses.Count ?? 0) > 0 || Properties?.Absorption != null;
             ctx.Energy(absorbs ? "absorption" : (Medium != null && Medium.EffectiveRamanFraction > 0 && Medium.IsActive ? "raman+numerical" : "numerical"), e0 - e1);
             return q;
+        }
+
+        /// <summary>
+        /// Linear propagation (no Kerr, no position-dependent properties, scalar field): the operator factorises into the
+        /// 1-D dispersion of the spectrum and the diffraction exp(i (k_z - k) L) of the profile, so only the profile's
+        /// stored frequencies (at most 48) are transformed instead of the whole field. Between them the change of the
+        /// spectrum (power lost to evanescent modes, area-weighted phase) is interpolated, as the profile itself is.
+        /// The result equals the full propagation at the stored frequencies.
+        /// </summary>
+        private PulseField ExecuteLinear(ActiveContext ctx, PulseField p, TransverseProfile prof, ITransverseBasis basis, Func<double, double> idx,
+            double[] phX, double[] ampX, double[] phY, double[] ampY, double wexp, double e0)
+        {
+            var g = p.Grid; int n = g.N, nf = prof.Omega.Length, M = basis.M;
+            var fluIn = TransverseOps.SampleFluence(prof, p);
+            var data = (Complex[])prof.Data.Clone();
+            // absorbing boundary: split the length so that the steepest mode on the grid crosses the absorber in one step
+            double width = Spec.AbsorbingBoundary;
+            int steps = 1;
+            if (width > 0 && LengthM > 0)
+            {
+                double kmin = prof.Omega.Min() * idx(prof.Omega.Min()) / PhysicalConstants.SpeedOfLightMPerS;
+                double theta = Math.Min(1.0, Math.Sqrt(basis.K2.Max()) / kmin);
+                steps = (int)Math.Min(400, Math.Max(1, Math.Ceiling(LengthM * theta / (width * basis.Extent))));
+            }
+            double dz = LengthM / steps;
+            var prop = new Complex[M * nf];
+            System.Threading.Tasks.Parallel.For(0, M, m =>
+            {
+                double k2 = basis.K2[m];
+                for (int f = 0; f < nf; f++)
+                {
+                    double w = prof.Omega[f], k = idx(w) * w / PhysicalConstants.SpeedOfLightMPerS;
+                    Complex d;
+                    if (Spec.Paraxial) d = new Complex(0, -k2 / (2 * k));
+                    else if (k2 < k * k) d = new Complex(0, Math.Sqrt(k * k - k2) - k);
+                    else d = new Complex(-Math.Sqrt(k2 - k * k), -k);
+                    prop[m * nf + f] = Complex.Exp(d * dz);
+                }
+            });
+            var absorber = width > 0 ? TransverseOps.AbsorberMask(basis, width) : null;
+            for (int s = 0; s < steps; s++)
+            {
+                basis.ToK(data, nf);
+                for (int k = 0; k < data.Length; k++) data[k] *= prop[k];
+                basis.ToSpace(data, nf);
+                if (absorber != null) for (int m = 0; m < M; m++) { double a = absorber[m]; if (a < 1) for (int f = 0; f < nf; f++) data[m * nf + f] *= a; }
+            }
+            if (absorber != null) ctx.Note(string.Format(CultureInfo.InvariantCulture, "absorbing boundary: outer {0:P0} of the grid, {1} step{2}", width, steps, steps == 1 ? "" : "s"));
+            // collapse each sample: power kept (evanescent modes are lost) and the area-weighted phase go to the spectrum
+            var keep = new Complex[nf];
+            for (int f = 0; f < nf; f++)
+            {
+                double s = 0; Complex c = Complex.Zero;
+                for (int m = 0; m < M; m++) { var v = data[m * nf + f]; s += basis.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary); c += basis.Weights[m] * v; }
+                var u = c.Magnitude > 0 ? c / c.Magnitude : Complex.One;
+                keep[f] = Math.Sqrt(s) * u;
+                if (s > 0) { var inv = 1 / keep[f]; for (int m = 0; m < M; m++) data[m * nf + f] *= inv; }
+            }
+            var ax = new Complex[n]; var ay = (Complex[])p.Ay.Clone();
+            bool hasY = p.Ay.Any(c => c != Complex.Zero);
+            for (int i = 0; i < n; i++)
+            {
+                double w = g.OmegaAbsolute[i];
+                Complex kf;
+                if (nf == 1 || w <= prof.Omega[0]) kf = keep[0];
+                else if (w >= prof.Omega[nf - 1]) kf = keep[nf - 1];
+                else
+                {
+                    int lo = 0, hi = nf - 1;
+                    while (hi - lo > 1) { int mid = (lo + hi) / 2; if (prof.Omega[mid] <= w) lo = mid; else hi = mid; }
+                    double t = (w - prof.Omega[lo]) / (prof.Omega[hi] - prof.Omega[lo]);
+                    var c = keep[lo] * (1 - t) + keep[hi] * t;
+                    double mag = keep[lo].Magnitude * (1 - t) + keep[hi].Magnitude * t;
+                    kf = c.Magnitude > 0 ? c / c.Magnitude * mag : Complex.Zero;
+                }
+                ax[i] = p.Ax[i] * Complex.FromPolarCoordinates(ampX[i], phX[i]) * kf;
+                if (hasY) ay[i] = p.Ay[i] * Complex.FromPolarCoordinates((ampY ?? ampX)[i], (phY ?? phX)[i]);
+            }
+            if (hasY) ctx.Note("transverse.polarization = scalar: the y component was propagated with the 1-D linear operator only");
+            var profOut = new TransverseProfile(basis, (double[])prof.Omega.Clone(), data, ctx.Element.Id);
+            var q = new PulseField(g, ax, ay, p.RepRateHz) { Profile = profOut };
+            profOut.SampleWeights = TransverseOps.SampleEnergies(profOut, q);
+            var flu = TransverseOps.SampleFluence(profOut, q);
+            ctx.Record.Values["peakFluenceOutJPerM2"] = flu.Max();
+            SmallScaleDiagnostics(ctx, basis, fluIn, flu, wexp, p, g);
+            ctx.Record.Values["onAxisFluenceOutJPerM2"] = flu[Array.IndexOf(basis.Radius, basis.Radius.Min())];
+            if (absorber == null) EdgeWarning(ctx, basis, flu);
+            ctx.Record.Steps = new StepStatistics { Method = "linear (exact exponential)", Accepted = LengthM > 0 ? steps : 0 };
+            if (LengthM > 0) { ctx.Record.Steps.MinStepM = dz; ctx.Record.Steps.MaxStepM = dz; }
+            ctx.Record.Representation = basis.Describe() + " x " + nf + " frequency samples (linear: the profile is propagated " + (steps == 1 ? "in one step)" : "in " + steps + " steps)");
+            ctx.Record.Steps.Representation = ctx.Record.Representation;
+            double e1 = q.TotalEnergyJ();
+            if (absorber != null)
+            {
+                // energy taken by the boundary = loss of the profile samples, weighted by the band energies
+                double eb = 0; var wIn = TransverseOps.SampleEnergies(prof, p);
+                for (int f = 0; f < nf; f++) eb += wIn[f] * (1 - keep[f].Magnitude * keep[f].Magnitude);
+                eb = Math.Max(0, Math.Min(eb, e0 - e1));
+                ctx.Record.Values["absorbedAtBoundaryJ"] = eb;
+                ctx.Record.Values["absorbedAtBoundaryFraction"] = eb / Math.Max(1e-300, e0);
+                ctx.Energy("grid boundary", eb);
+                e0 -= eb;
+            }
+            ctx.Energy(Background.Any(b => b.Mechanism == "absorption") ? "absorption" : "numerical", e0 - e1);
+            return q;
+        }
+
+        private static void EdgeWarning(ActiveContext ctx, ITransverseBasis basis, double[] flu)
+        {
+            double edge = 0, tot = 0; double rmax = basis.Extent;
+            for (int m = 0; m < basis.M; m++) { double e = flu[m] * basis.Weights[m]; tot += e; if (basis.Radius[m] > 0.85 * rmax) edge += e; }
+            if (tot > 0 && edge / tot > 1e-4)
+                ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': {1:P2} of the energy reached the edge of the transverse grid (reflection/aliasing) -- enlarge transverse.radiusM / halfWidthM or extentFactor.", ctx.Element.Id, edge / tot));
         }
     }
 }

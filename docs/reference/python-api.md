@@ -160,7 +160,13 @@ A reflecting surface. ``substrate``: a name ("FS-12.7mm", or one defined with ``
 
 Dispersive mirror (GDD/TOD per bounce). ``extra``: e.g. ``rippleGddFs2=30, ripplePeriodNm=25, complementaryPairs=True``.
 
-### `aperture(id: str, radius_m: float, beam_radius_m: float) -> 'T.ApertureElement'`
+### `aperture(id: str, radius_m: Optional[float] = None, beam_radius_m: Optional[float] = None, *, half_width_x_m: Optional[float] = None, half_width_y_m: Optional[float] = None, decenter_x_m: Optional[float] = None, decenter_y_m: Optional[float] = None) -> 'T.ApertureElement'`
+
+A hard aperture: round (``radius_m``) or rectangular (``half_width_x_m``, ``half_width_y_m``), optionally decentred. On a carried transverse profile it masks the field (edge cells transmit their area fraction) and the light diffracts in the spatial elements after it (docs/reference/transverse.md#diffraction-and-apertures); without one it clips the beam model of radius ``beam_radius_m``.
+
+### `grating(id: str, lines_per_mm: float, aoi_deg: float, order: int = -1, efficiency: Optional[float] = None, **extra) -> 'T.GratingElement'`
+
+One diffraction grating. With the beam tracked (an ``inputBeam``) it disperses the beam: sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam (a second grating that undoes it has ``aoi_deg`` = the first's diffraction angle and the opposite order), anamorphic magnification, angular dispersion, pulse-front tilt, and the group-delay dispersion of the spatio-temporal couplings (docs/reference/components.md#spatio-temporal-couplings).
 
 ### `waveplate(id: str, plate: str = 'half', axis_deg: float = 0.0, design_wavelength_m: Optional[float] = None, *, material: Optional[str] = None, order: Optional[int] = None, thickness_m: Optional[float] = None, construction: Optional[str] = None, plate_thickness_m: Optional[float] = None) -> 'T.WaveplateElement'`
 
@@ -260,13 +266,13 @@ Thin lens acting on a carried transverse profile (chromatic if a lens material i
 
 User element: ``callback`` is the name registered with ``Run.element(name, fn)``.
 
-### `transverse(model: str = 'radial', points: Optional[int] = None, radius_m: Optional[float] = None, nx: Optional[int] = None, ny: Optional[int] = None, half_width_m: Optional[float] = None, transport: Optional[str] = None, initial_profile: Optional[Mapping[str, Any]] = None, **extra) -> dict`
+### `transverse(model: str = 'radial', points: Optional[int] = None, radius_m: Optional[float] = None, nx: Optional[int] = None, ny: Optional[int] = None, half_width_m: Optional[float] = None, transport: Optional[str] = None, initial_profile: Optional[Mapping[str, Any]] = None, *, absorbing_boundary: Any = None, spectral_samples: Optional[int] = None, **extra) -> dict`
 
-Transverse (spatial) model for an element: "radial" (Hankel) or "cartesian" (x-y FFT).
+Transverse (spatial) model for an element: "radial" (Hankel) or "cartesian" (x-y FFT). ``absorbing_boundary`` (True, or {"widthFraction": 0.15}) absorbs light leaving the grid in linear elements instead of reflecting / wrapping it (booked as "grid boundary"); ``spectral_samples`` (48) is the number of frequencies at which the profile is stored -- fewer is faster for narrowband pulses.
 
-### `initial_profile(kind: str = 'gaussian', *, order: Optional[int] = None, radius_m: Optional[float] = None, ripple: Optional[Mapping[str, Any]] = None, noise: Optional[Mapping[str, Any]] = None, **extra) -> dict`
+### `initial_profile(kind: str = 'gaussian', *, order: Optional[int] = None, radius_m: Optional[float] = None, geometry: Optional[str] = None, radius_x_m: Optional[float] = None, radius_y_m: Optional[float] = None, radius_of_curvature_m: Optional[float] = None, ripple: Optional[Mapping[str, Any]] = None, noise: Optional[Mapping[str, Any]] = None, **extra) -> dict`
 
-The field at the first spatial element (``transverse(initial_profile=...)``): "gaussian", "superGaussian" (``order``) or "flatTop". ``ripple`` / ``noise`` (cartesian grids) seed small-scale self-focusing: :func:`profile_ripple`, :func:`profile_noise`.
+The field at the first spatial element (``transverse(initial_profile=...)``): "gaussian", "superGaussian" (``order``), "flatTop" (super-Gaussian of order 10) or "tophat" (hard edge). ``geometry`` "round" (default) or "square" (separable in x and y; cartesian grids). ``radius_m`` (or ``radius_x_m`` / ``radius_y_m``) is the 1/e^2 radius, or the edge radius / half-width of a tophat; it replaces the element's beam size, so no ``beam`` is needed. ``ripple`` / ``noise`` (cartesian grids) seed small-scale self-focusing: :func:`profile_ripple`, :func:`profile_noise`.
 
 ### `profile_ripple(period_m: float, relative_amplitude: float, angle_deg: float = 0.0, phase_rad: float = 0.0) -> dict`
 
@@ -291,6 +297,10 @@ A pump for gain / amplifier elements: kind "cw" (power_w) or "pulsed" (energy_j,
 ### `gain(id: str, medium: Any, length_m: float, pump: Optional[Mapping[str, Any]] = None, inversion: Optional[Mapping[str, Any]] = None, beam: Optional[Mapping[str, Any]] = None, mode_radius_m: Optional[float] = None, transverse: Optional[Mapping[str, Any]] = None, thermal_lens: Any = None, slices: Optional[int] = None, steady_state: Any = None, **extra) -> 'T.GainElement'`
 
 A pumped gain medium crossed once (docs/reference/gain.md). ``medium`` = "Yb:YAG" | "Ti:sapphire" | "Nd:YAG" or a gain-medium object ({"base": "Yb:YAG", "dopingDensityM3": ...} or a full definition); ``inversion`` = {"fraction": b} or {"smallSignalGain": G} instead of / on top of a pump; ``transverse`` for spatial gain.
+
+### `thermal_lens(*, rod_radius_m: Optional[float] = None, heat_fraction: Optional[float] = None, apply: Optional[bool] = None, track: Optional[bool] = None, focal_length_m: Optional[float] = None) -> dict`
+
+The thermal lens of a gain element (``gain(thermal_lens=...)``; docs/reference/gain.md#thermal-lens): heat = ``heat_fraction`` (default the quantum defect) x absorbed pump, conducted to a rod of radius ``rod_radius_m``. ``track`` (default True) also puts it on the tracked Gaussian beam (thin lenses per slice, fitted over the beam); ``focal_length_m`` is a measured focal length used instead of the heat model.
 
 ### `multipass_amplifier(id: str, medium: Any, length_m: float, passes: int, pump: Optional[Mapping[str, Any]] = None, between_passes: Optional[Mapping[str, Any]] = None, mode_radius_m: Optional[float] = None, beam: Optional[Mapping[str, Any]] = None, inversion: Optional[Mapping[str, Any]] = None, **extra) -> dict`
 
@@ -347,6 +357,10 @@ An instrument (docs/reference/instruments.md). Keyword arguments are its paramet
 Where a curve instrument takes its readings (docs/reference/instruments.md#axis-where-readings-are-taken): explicit ``values`` (e.g. your spectrometer's pixel wavelengths) or ``start``/``stop`` with ``step`` or ``points``, each reading integrating over ``bin_width`` (a number or "pixel") and blurred by a Gaussian ``resolution`` (FWHM). SI units of the axis (m for wavelengths, s for delays). Use as ``instrument("spectrometer", axis=axis(...))``.
 
 ### `override(target: str, prop: str, model: Any = None, value: Any = None, mode: str = 'replace') -> dict`
+
+### `physics(*, beam_tracking: Any = None, spatio_temporal: Any = None, transverse: Optional[Mapping[str, Any]] = None, **extra) -> 'T.Physics'`
+
+Physics switches of a run (``run_spec(physics=...)``). ``beam_tracking``: "auto" | "on" | "off" (Gaussian q tracking from the ``input_beam``); ``spatio_temporal``: "auto" | "on" | "track" | "off" -- angular / spatial dispersion and pulse-front tilt carried with the tracked beam, their group-delay dispersion applied to the pulse ("track": reported only); ``transverse``: the default spatial model. Other keys (``nonlinear``, ``raman``, ...) go through ``extra``.
 
 ### `run_spec(pulse: Mapping[str, Any], name: str = 'run', grid: Optional[Mapping[str, Any]] = None, physics: Optional[Mapping[str, Any]] = None, stepper: Optional[Mapping[str, Any]] = None, probes: Any = 'all', instruments: Optional[list] = None, overrides: Optional[list] = None, outputs: Optional[Mapping[str, Any]] = None, input_beam: Optional[Mapping[str, Any]] = None, compute: Optional[Mapping[str, Any]] = None, detectors: Optional[Mapping[str, Any]] = None, **extra) -> 'T.RunSpec'`
 

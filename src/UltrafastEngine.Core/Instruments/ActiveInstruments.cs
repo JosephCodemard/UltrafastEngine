@@ -173,10 +173,9 @@ namespace UltrafastEngine.Instruments
         {
             var p = ctx.Pulse;
             if (p.Profile == null) throw new InvalidOperationException("beamProfile: no transverse profile at \"" + ctx.Location + "\" (place it after an element with a radial/cartesian transverse model)");
-            var prof = p.Profile; var B = prof.Basis; int n = p.Grid.N;
-            var a = p.Ax.Zip(p.Ay, (x, y) => Math.Sqrt(x.Magnitude * x.Magnitude + y.Magnitude * y.Magnitude)).Select(v => new Complex(v, 0)).ToArray();
-            var E = TransverseOps.Expand(a, p.Grid.OmegaAbsolute, prof);
-            var flu = TransverseOps.Fluence(E, n, p.Grid, B);
+            var prof = p.Profile; var B = prof.Basis;
+            // fluence from the stored frequency samples, each carrying the energy of its spectral band (as the cameras do)
+            var flu = TransverseOps.SampleFluence(prof, p);
             var (wx, wy) = prof.SecondMomentRadius();
             Tools.Put(o, "radiusXM", wx); Tools.Put(o, "radiusYM", wy);
             Tools.Put(o, "m2", TransverseOps.BeamQuality(prof));

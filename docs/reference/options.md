@@ -117,6 +117,7 @@ Physics switches (docs/reference/run-spec.md#physics).
 | `polarization` | `"jones"` \| `"scalar"` |  | jones | Jones (two polarisations) or scalar |
 | `losses` | boolean |  | true | false removes flat loss terms |
 | `beamTracking` | any |  | "auto" | Gaussian beam (q) tracking: "auto" (on with a Gaussian inputBeam), "on", "off" |
+| `spatioTemporal` | any |  | "auto" | Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: "auto" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), "on", "track" (reported only), "off" (docs/reference/components.md#spatio-temporal-couplings) |
 | `transverse` | object (`transverse`) |  |  | Default spatial model for every bulk/gap/crystal without one |
 | `ionization` | any |  | false | Photo-ionisation and plasma in every nonlinear bulk element: true or an ionization object |
 
@@ -390,6 +391,9 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `ripple` | any |  |  | Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating |
 | `delayedScatter` | any |  |  | Scatter returned as delayed light: {fraction, delay: {kind: uniform\|exponential\|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter) |
 | `substrate` | any |  |  | mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating \| backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes) |
+| `linesPerMm` | number | 1/mm |  | grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam |
+| `linesPerM` | number | 1/m |  | grating: groove density (alternative) |
+| `order` | integer |  | -1 | grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam |
 | `efficiency` | number or array |  |  | Diffraction efficiency (grating, no coating) |
 | `efficiencyS` | number or array |  |  | s efficiency |
 | `efficiencyP` | number or array |  |  | p efficiency |
@@ -439,6 +443,9 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `ripple` | any |  |  | Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating |
 | `delayedScatter` | any |  |  | Scatter returned as delayed light: {fraction, delay: {kind: uniform\|exponential\|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter) |
 | `substrate` | any |  |  | mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating \| backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes) |
+| `linesPerMm` | number | 1/mm |  | grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam |
+| `linesPerM` | number | 1/m |  | grating: groove density (alternative) |
+| `order` | integer |  | -1 | grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam |
 | `efficiency` | number or array |  |  | Diffraction efficiency (grating, no coating) |
 | `efficiencyS` | number or array |  |  | s efficiency |
 | `efficiencyP` | number or array |  |  | p efficiency |
@@ -488,6 +495,9 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `ripple` | any |  |  | Phase / amplitude ripple of the coating: {phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)} -- a random ripple whose pedestal lies within +-maxDelayS (docs/reference/coatings.md#coating-ripple). Measured ripple: a table coating |
 | `delayedScatter` | any |  |  | Scatter returned as delayed light: {fraction, delay: {kind: uniform\|exponential\|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter) |
 | `substrate` | any |  |  | mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating \| backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes) |
+| `linesPerMm` | number | 1/mm |  | grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam |
+| `linesPerM` | number | 1/m |  | grating: groove density (alternative) |
+| `order` | integer |  | -1 | grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam |
 | `efficiency` | number or array |  |  | Diffraction efficiency (grating, no coating) |
 | `efficiencyS` | number or array |  |  | s efficiency |
 | `efficiencyP` | number or array |  |  | p efficiency |
@@ -995,7 +1005,7 @@ Keys of gain and amplifier elements.
 | `beam` | model (beam) |  |  | Signal beam |
 | `modeRadiusM` | number | m |  | Signal 1/e^2 radius (mode area pi w^2 / 2) |
 | `transverse` | object (`transverse`) |  |  | Spatial gain |
-| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply} |
+| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens) |
 | `slices` | integer |  | 24 | Slices along z |
 | `segments` | integer |  | auto | Time-ordered saturation groups |
 | `spm` | boolean |  | true | SPM of the host |
@@ -1422,14 +1432,17 @@ Initial transverse field.
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` |  | gaussian | Shape |
+| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` \| `"tophat"` |  | gaussian | Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform) |
+| `geometry` | `"round"` \| `"square"` |  | round | round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) |
 | `order` | integer |  | 4 | superGaussian order |
 | `decenterXM` | number | m |  | Decentre in x |
 | `decenterYM` | number | m |  | Decentre in y |
 | `tiltXRad` | number | rad |  | Tilt about y |
 | `tiltYRad` | number | rad |  | Tilt about x |
 | `radiusOfCurvatureM` | number | m |  | Wavefront radius of curvature (negative: converging) |
-| `radiusM` | number | m |  | 1/e^2 radius (default: from the element's beam) |
+| `radiusM` | number | m |  | 1/e^2 radius; tophat: edge radius or half-width (default: from the element's beam) |
+| `radiusXM` | number | m |  | Radius / half-width in x (default radiusM) |
+| `radiusYM` | number | m |  | Radius / half-width in y (default radiusXM) |
 | `ripple` | any |  |  | Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing) |
 | `noise` | any |  |  | Seeded random noise (cartesian): {relativeAmplitudeRms, phaseRmsRad, correlationLengthM, seed, components} |
 
@@ -1718,6 +1731,8 @@ Spatial model of an element (docs/reference/spatial-models.md).
 | `initialProfile` | object (`initialProfile`) |  |  | The field at the first spatial element |
 | `polarization` | `"auto"` \| `"scalar"` \| `"vector"` |  | auto | Jones (vector) fields on the grid: auto = when the beam carries a y component |
 | `equation` | `"envelope"` \| `"uppe"` |  | envelope | Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) |
+| `spectralSamples` | integer |  | 48 | Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses |
+| `absorbingBoundary` | any |  | false | Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) |
 
 ## Model kinds
 

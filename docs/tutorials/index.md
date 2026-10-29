@@ -1,7 +1,7 @@
 # Tutorials
 
-Five step-by-step tutorials. Each builds on the previous one, and every file they use is in
-`docs/examples/tutorial/`, ready to run.
+Six step-by-step tutorials. The first four build on each other and use the files in `docs/examples/tutorial/`;
+tutorials 5 and 6 use the files of examples 22 and 30. Every file is ready to run.
 
 | | what you learn | files |
 |---|---|---|
@@ -10,6 +10,7 @@ Five step-by-step tutorials. Each builds on the previous one, and every file the
 | [3. Larger systems](03-larger-systems.md) | stretcher, amplifier, compressor and SHG; probes and overrides; the same system from Python, with a parameter scan | `cpa.ufs`, `run-cpa.json`, `cpa.py` |
 | [4. Your own measured data](04-measured-data.md) | load CSV / NPZ / JSON recordings, compare them with the model, calibrate unknown parameters with error bars, predict what you did not measure | `make_data.py`, `data/`, `run-measured.json`, `run-fit.json` |
 | [5. Contrast of an amplifier chain](05-contrast.md) | ghosts, pedestals and a third-order cross-correlator; how a post-pulse becomes a pre-pulse; scanning a parameter with a study | `../22-contrast-chain/` |
+| [6. Diffraction by an iris](06-diffraction.md) | Gaussian, flat-top, uniform and square beams through an iris, imaged at several distances; choosing a grid for a hard aperture; checking against the Fresnel integral; the same from Python | `../30-iris-diffraction/` |
 
 Before you start: build the engine once (see [Getting started](../getting-started.md)):
 

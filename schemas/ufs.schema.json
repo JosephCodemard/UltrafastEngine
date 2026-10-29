@@ -515,6 +515,13 @@
           "enum": ["envelope", "uppe"],
           "description": "Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) Default: envelope."
         },
+        "spectralSamples": {
+          "type": "integer",
+          "description": "Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses Default: 48."
+        },
+        "absorbingBoundary": {
+          "description": "Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) Default: false."
+        },
         "comment": {
           "description": "Free text."
         },
@@ -536,8 +543,13 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["gaussian", "superGaussian", "flatTop"],
-          "description": "Shape Default: gaussian."
+          "enum": ["gaussian", "superGaussian", "flatTop", "tophat"],
+          "description": "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform) Default: gaussian."
+        },
+        "geometry": {
+          "type": "string",
+          "enum": ["round", "square"],
+          "description": "round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) Default: round."
         },
         "order": {
           "type": "integer",
@@ -565,7 +577,15 @@
         },
         "radiusM": {
           "type": "number",
-          "description": "1/e^2 radius (default: from the element's beam) [m]"
+          "description": "1/e^2 radius; tophat: edge radius or half-width (default: from the element's beam) [m]"
+        },
+        "radiusXM": {
+          "type": "number",
+          "description": "Radius / half-width in x (default radiusM) [m]"
+        },
+        "radiusYM": {
+          "type": "number",
+          "description": "Radius / half-width in y (default radiusXM) [m]"
         },
         "ripple": {
           "description": "Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing)"
@@ -724,7 +744,7 @@
           "description": "Spatial gain"
         },
         "thermalLens": {
-          "description": "true / false or {rodRadiusM, heatFraction, apply}"
+          "description": "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"
         },
         "slices": {
           "type": "integer",
@@ -3790,7 +3810,7 @@
           "description": "Spatial gain"
         },
         "thermalLens": {
-          "description": "true / false or {rodRadiusM, heatFraction, apply}"
+          "description": "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"
         },
         "slices": {
           "type": "integer",
@@ -4441,6 +4461,18 @@
         "substrate": {
           "description": "mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. \"FS-12.7mm\") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"
         },
+        "linesPerMm": {
+          "type": "number",
+          "description": "grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam [1/mm]"
+        },
+        "linesPerM": {
+          "type": "number",
+          "description": "grating: groove density (alternative) [1/m]"
+        },
+        "order": {
+          "type": "integer",
+          "description": "grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam Default: -1."
+        },
         "efficiency": {
           "anyOf": [
             {
@@ -5043,6 +5075,18 @@
         },
         "substrate": {
           "description": "mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. \"FS-12.7mm\") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"
+        },
+        "linesPerMm": {
+          "type": "number",
+          "description": "grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam [1/mm]"
+        },
+        "linesPerM": {
+          "type": "number",
+          "description": "grating: groove density (alternative) [1/m]"
+        },
+        "order": {
+          "type": "integer",
+          "description": "grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam Default: -1."
         },
         "efficiency": {
           "anyOf": [
@@ -5652,6 +5696,18 @@
         },
         "substrate": {
           "description": "mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. \"FS-12.7mm\") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"
+        },
+        "linesPerMm": {
+          "type": "number",
+          "description": "grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam [1/mm]"
+        },
+        "linesPerM": {
+          "type": "number",
+          "description": "grating: groove density (alternative) [1/m]"
+        },
+        "order": {
+          "type": "integer",
+          "description": "grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam Default: -1."
         },
         "efficiency": {
           "anyOf": [

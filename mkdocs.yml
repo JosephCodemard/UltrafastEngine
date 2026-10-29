@@ -17,6 +17,7 @@ nav:
       - 3. Larger systems: tutorials/03-larger-systems.md
       - 4. Your own measured data: tutorials/04-measured-data.md
       - 5. Contrast of an amplifier chain: tutorials/05-contrast.md
+      - 6. Diffraction by an iris: tutorials/06-diffraction.md
   - Examples: examples/README.md
   - Assets (synthetic data with answer keys): assets/README.md
   - Concepts: concepts.md

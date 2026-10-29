@@ -2,7 +2,42 @@
 
 ## Unreleased
 
+### Added (diffraction, thermal lens tracking, spatio-temporal couplings)
+- **Diffraction by apertures** ([docs](docs/reference/transverse.md#diffraction-and-apertures), [example 30](docs/examples/30-iris-diffraction/README.md),
+  [tutorial 6](docs/tutorials/06-diffraction.md)): hard apertures on a carried profile give each edge cell the fraction of its area inside
+  the opening (patterns converge with the grid; a 0/1 mask was off by up to a cell); a warning when an opening spans fewer than 10 samples
+  (`apertureSamples`); rectangular / decentred openings on a radial grid warn. `transverse.absorbingBoundary` (`true` or `{widthFraction}`)
+  absorbs light leaving the grid in linear elements (booked `grid boundary`, `absorbedAtBoundaryJ` / `Fraction`) instead of reflecting it onto
+  the axis (radial) or wrapping it (cartesian). Checked against the Fresnel integral (< 1 % of the peak), Fresnel zones on the axis, Airy and
+  sinc zeros (`DiffractionTests`, 8 tests).
+- **Beam shapes**: `initialProfile.kind` `tophat` (hard edge), `geometry: "square"` (separable square / rectangular beams, cartesian),
+  and the documented but unread keys `radiusM`, `radiusXM` / `radiusYM`, `radiusOfCurvatureM`, `tiltYRad` now work -- a spatial element
+  can set its beam without a `beam` model. Unknown kinds are errors (they silently became Gaussian).
+- `transverse.spectralSamples` (default 48): frequencies at which the profile is stored; fewer for narrowband pulses on 2-D grids.
+- **Thermal lens in the Gaussian beam tracking** ([docs](docs/reference/gain.md#thermal-lens)): a pumped `gain` element puts its thermal
+  lens on the tracked beam -- the heat model evaluated with the pump alone at compile time, one thin lens per slice, each the parabola fitted
+  with the beam's intensity as weight. `thermalLens.focalLengthM` (measured value) and `thermalLens.track`; `trackedThermalLensFocalLengthM`;
+  a note when the run's thermal lens differs by > 5 %. Gain elements take their mode radius from the tracked beam when they have no `beam`,
+  `modeRadiusM` or profile (before: the pump radius).
+- **Spatio-temporal couplings** ([docs](docs/reference/components.md#spatio-temporal-couplings)): with the tracked beam, spatial and angular
+  dispersion per axis (Kostenbauder ray-pulse matrices) through gratings (`grating` with `linesPerMm`, `order`: anamorphic magnification and
+  angular dispersion), tilted interfaces (signed angles; prisms from two interfaces), tilted plates and single-pass grating pairs, and the
+  group-delay dispersion they add (grating + gap + grating = Treacy to 0.1 %, 4f stretcher = 0). Reports `trackedAngularDispersionXRadPerM`,
+  `trackedSpatialChirpXMPerM`, `trackedPulseFrontTiltXSPerM` / `Deg` (from the pulse's spectrum: Hebling and spatial chirp x temporal chirp).
+  `physics.spatioTemporal` (`auto` | `on` | `track` | `off`). `BeamTrackingTests` (9 tests).
+- Python: `build.grating`, `build.thermal_lens`, `build.physics`; `build.aperture` takes rectangular / decentred openings and no longer
+  needs `beam_radius_m`; `build.transverse(absorbing_boundary=, spectral_samples=)`; `build.initial_profile(geometry=, radius_x_m=,
+  radius_y_m=, radius_of_curvature_m=)`.
+
 ### Changed
+- **Faster spatial propagation**: linear spatial elements propagate only the carried profile at its stored frequencies (≤ 48) instead
+  of the whole field (same result at those frequencies, 10⁻⁴); the radial (Hankel) transform matrix is built once per size with
+  cache-friendly products (2048 points: 85 s → 1 s per run, instead of per element). The `beamProfile` instrument computes the fluence
+  from the stored frequencies (as the cameras do) instead of expanding the whole field (a 512² run: 33 s / 8.8 GB → 3 s / 0.65 GB);
+  its values change at the 10⁻³ level.
+- The tracked beam now crosses gain elements at the host's index (it was treated as free space).
+- Tilted interfaces and plates now disperse the tracked beam; with `physics.spatioTemporal` = `auto` their small coupling GDD is applied
+  to the pulse (systems with traced `groupDelayS` are left alone).
 - **Faster CPU propagation**: the managed FFT for powers of two is now a radix-4 Stockham autosort (3-10x faster than
   the radix-2 code at 8192-65536 points), the 1-D envelope operator works in place without allocations, and the
   adaptive stepper reuses its buffers. The supercontinuum example went from 23.4 s to 8.8 s (managed FFT) or 5.7 s

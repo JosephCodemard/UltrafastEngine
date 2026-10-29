@@ -35,6 +35,10 @@ namespace UltrafastEngine.Gain
         public bool ApplyThermalLens = true;       // 1-D: apply f_th to a carried transverse profile
         public double RodRadiusM = double.NaN;
         public double HeatFraction = double.NaN;   // NaN = quantum defect 1 - lambda_p / lambda_s
+        public bool TrackThermalLens = true;       // apply the thermal lens to the tracked Gaussian beam
+        public double ThermalFocalLengthM = double.NaN;      // measured thermal focal length (replaces the heat model)
+        public double TrackedThermalFocalLengthM = double.NaN; // the compile-time lens used by the tracking (for the beam)
+        public double TrackedOnAxisFocalLengthM = double.NaN;  // the compile-time on-axis f_th (pump alone), to compare with the run
         public double RepRateHz = double.NaN;
         public bool SteadyState = true;
         public int MaxPulses = 400;
@@ -125,11 +129,12 @@ namespace UltrafastEngine.Gain
     /// <summary>Shared run-time machinery of the gain and amplifier elements.</summary>
     internal static class GainRun
     {
-        public static double ModeRadius(GainSetup s, PulseField p, List<string> notes)
+        public static double ModeRadius(GainSetup s, PulseField p, List<string> notes, Optics.BeamState tracked = null)
         {
             if (s.ModeRadiusM > 0) return s.ModeRadiusM;
             if (s.Beam != null) return 0.5 * (s.Beam.RadiusX(s.LengthM / 2) + s.Beam.RadiusY(s.LengthM / 2));
             if (p.Profile != null) { var (a, b) = p.Profile.SecondMomentRadius(); return Math.Sqrt(a * b); }
+            if (tracked != null && tracked.RadiusX > 0) { notes.Add("signal mode: the tracked Gaussian beam at the entrance (" + tracked.Describe() + ")"); return Math.Sqrt(tracked.RadiusX * tracked.RadiusY); }
             if (s.Pump.RadiusM > 0) { notes.Add("no beam given: the signal mode radius is taken equal to the pump radius"); return s.Pump.RadiusM; }
             throw new InvalidOperationException("element '" + s.Id + "' needs a \"beam\" (or \"modeRadiusM\") to know the signal mode area");
         }
@@ -288,7 +293,7 @@ namespace UltrafastEngine.Gain
         {
             var g = p.Grid; int n = g.N; var notes = ctx.Record.Notes; var r = ctx.Record;
             bool spatial = TransverseAware;
-            double w0 = g.OmegaCenter, wmode = GainRun.ModeRadius(S, p, notes);
+            double w0 = g.OmegaCenter, wmode = GainRun.ModeRadius(S, p, notes, ctx.Element.BeamIn);
             double e0 = p.TotalEnergyJ();
             // host dispersion (frame-referenced, as for a bulk element)
             var axis = OmegaAxis.FromGrid(g);
@@ -372,6 +377,13 @@ namespace UltrafastEngine.Gain
                     }
                 }
             }
+            if (!double.IsNaN(S.TrackedThermalFocalLengthM))
+            {
+                r.Values["trackedThermalLensFocalLengthM"] = S.TrackedThermalFocalLengthM;
+                if (!double.IsNaN(S.TrackedOnAxisFocalLengthM) && !double.IsInfinity(fth) && Math.Abs(S.TrackedOnAxisFocalLengthM / fth - 1) > 0.05)
+                    notes.Add(string.Format(CultureInfo.InvariantCulture, "beam tracking estimated the thermal lens with the pump alone (on-axis f_th = {0:G4} m); with the pulse train it is f_th = {1:G4} m -- the tracked beam after this element uses the estimate (give thermalLens.focalLengthM to set it)", S.TrackedOnAxisFocalLengthM, fth));
+            }
+            if (!double.IsNaN(S.ThermalFocalLengthM) && S.ThermalLens) fth = S.ThermalFocalLengthM;
             // ------------------------------------------------ amplification
             Complex[] ax, ay = p.Ay; GainCrystal.PassStats st; TransverseProfile profOut = p.Profile;
             double nonGainLoss = 0;
@@ -379,7 +391,7 @@ namespace UltrafastEngine.Gain
             {
                 ax = (Complex[])p.Ax.Clone(); ay = (Complex[])p.Ay.Clone();
                 st = gc.Pass1D(ax, ay, gd, S.Spm ? S.N2 : 0, K, false);
-                if (p.Profile != null && thermal != null && S.ApplyThermalLens && !double.IsInfinity(fth))
+                if (p.Profile != null && (thermal != null || (S.ThermalLens && !double.IsNaN(S.ThermalFocalLengthM))) && S.ApplyThermalLens && !double.IsInfinity(fth))
                 {
                     profOut = TransverseOps.ApplyLens(p.Profile, _ => fth, w => S.Host.IndexAt(w));
                     notes.Add("1-D: the thermal lens was applied as a thin lens to the carried transverse profile");
@@ -454,7 +466,7 @@ namespace UltrafastEngine.Gain
         public PulseField Execute(ActiveContext ctx, PulseField p)
         {
             var g = p.Grid; int n = g.N; var notes = ctx.Record.Notes; var r = ctx.Record;
-            double w0 = g.OmegaCenter, wmode = GainRun.ModeRadius(S, p, notes), e0 = p.TotalEnergyJ();
+            double w0 = g.OmegaCenter, wmode = GainRun.ModeRadius(S, p, notes, ctx.Element.BeamIn), e0 = p.TotalEnergyJ();
             var axis = OmegaAxis.FromGrid(g);
             var bulk = new BulkTerm(S.Host, S.LengthM);
             Executor.Combine(new LinearTerm[] { bulk }, axis, out var phHost, out _, out _, out _);
@@ -637,6 +649,7 @@ namespace UltrafastEngine.Gain
                     var t = tlv.AsObject();
                     s.ThermalLens = t.GetBool("enabled", true); s.ApplyThermalLens = t.GetBool("apply", true);
                     s.RodRadiusM = t.GetDouble("rodRadiusM", double.NaN); s.HeatFraction = t.GetDouble("heatFraction", double.NaN);
+                    s.TrackThermalLens = t.GetBool("track", true); s.ThermalFocalLengthM = t.GetDouble("focalLengthM", double.NaN);
                 }
             }
             s.RepRateHz = c.Num(e, "repRateHz", double.NaN);
@@ -654,6 +667,8 @@ namespace UltrafastEngine.Gain
             {
                 s.Transverse = TransverseSpec.FromJson(c.Find(e, "transverse")?.RawValue ?? (j.Has("transverse") ? j["transverse"] : c.Run.Physics.Transverse));
                 ce.Active = new GainElement { S = s };
+                ce.TrackingIndex = s.Host.IndexAt(c.Omega0);
+                TrackThermalLens(c, ce, s);
             }
             else
             {
@@ -676,9 +691,53 @@ namespace UltrafastEngine.Gain
                 }
                 s.Transverse = j.Has("transverse") ? TransverseSpec.FromJson(j["transverse"]) : null;
                 ce.Active = a;
+                if (c.Tracked != null && s.ThermalLens && s.Pump.Kind != "none") ce.Notes.Add("beam tracking: the amplifier's thermal lens is not applied to the tracked beam (the path between passes is not modelled)");
             }
             c.Provenance.Record("element:" + e.Id, amplifier ? "amplifier" : "gain", ce.Active.Description, ModelSource.SystemData, "system file");
             c.Provenance.Record("element:" + e.Id, "gainMedium", s.Medium.Describe() + (string.IsNullOrEmpty(s.Medium.References) ? "" : " [" + s.Medium.References + "]"), ModelSource.SystemData, "gain-medium library / system file");
+        }
+    
+        /// <summary>
+        /// The thermal lens on the tracked Gaussian beam (docs/reference/gain.md#thermal-lens): a measured
+        /// thermalLens.focalLengthM as one thin lens at the centre, or the heat model of the element evaluated at compile
+        /// time with the pump alone (cw pumping to equilibrium, or a pulsed pump repeated to steady state at the
+        /// repetition rate) -- one thin lens per slice, 1/f_j from the parabolic index profile of that slice. The signal's
+        /// extraction can change the absorbed pump: the run compares this estimate with the thermal lens it computes.
+        /// </summary>
+        private static void TrackThermalLens(CompilerServices c, CompiledElement ce, GainSetup s)
+        {
+            var t = c.Tracked;
+            if (t == null || !s.ThermalLens || !s.TrackThermalLens) return;
+            var ci = CultureInfo.InvariantCulture;
+            if (!double.IsNaN(s.ThermalFocalLengthM))
+            {
+                ce.TrackLenses = new List<(double, double)> { (s.LengthM / 2, 1 / s.ThermalFocalLengthM) };
+                s.TrackedThermalFocalLengthM = s.ThermalFocalLengthM;
+                ce.Notes.Add(string.Format(ci, "beam tracking: thermal lens f_th = {0:G4} m (thermalLens.focalLengthM) at the centre of the medium", s.ThermalFocalLengthM));
+                return;
+            }
+            if (s.Pump.Kind == "none") return;
+            double wmode = s.ModeRadiusM > 0 ? s.ModeRadiusM : s.Beam != null ? 0.5 * (s.Beam.RadiusX(s.LengthM / 2) + s.Beam.RadiusY(s.LengthM / 2)) : Math.Sqrt(t.RadiusX * t.RadiusY);
+            if (!(wmode > 0)) return;
+            var gc = new GainCrystal(s.Medium, s.LengthM, s.Slices, s.Pump, wmode, null, s.Doping);
+            GainRun.Initialise(gc, s, c.Omega0);
+            double rep = !double.IsNaN(s.RepRateHz) ? s.RepRateHz : (c.Run.Pulse?.RepRateHz ?? 0);
+            double scale;
+            if (s.Pump.Kind == "cw") scale = GainRun.SingleShot(gc, s);
+            else
+            {
+                if (!(rep > 0)) { ce.Notes.Add("beam tracking: pulsed pump without a repetition rate -- no thermal lens on the tracked beam"); return; }
+                for (int k = 0; k < 40; k++) GainRun.Between(gc, s, 1 / rep);    // pump-only steady state; the last pump pulse is tallied
+                scale = rep;
+            }
+            if (!(scale > 0)) return;
+            var inv = new double[gc.Nz];
+            var tl = gc.ThermalLens(scale, GainRun.HeatFraction(s, c.Omega0), s.RodRadiusM > 0 ? s.RodRadiusM : 3 * s.Pump.RadiusM, inv, wmode);
+            double sum = inv.Sum();
+            if (double.IsInfinity(tl.FocalLengthM) || sum == 0) return;
+            ce.TrackLenses = Enumerable.Range(0, gc.Nz).Select(j => ((j + 0.5) * gc.Dz, inv[j])).ToList();
+            s.TrackedThermalFocalLengthM = 1 / sum; s.TrackedOnAxisFocalLengthM = tl.FocalLengthM;
+            ce.Notes.Add(string.Format(ci, "beam tracking: thermal lens f = {0:G4} m for the {1:G4} mm beam (on-axis f_th = {2:G4} m; {3:G4} W of heat, pump alone), applied as {4} thin lenses through the medium", 1 / sum, wmode * 1e3, tl.FocalLengthM, tl.HeatW, gc.Nz));
         }
     }
 }

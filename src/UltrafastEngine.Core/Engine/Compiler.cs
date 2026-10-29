@@ -69,6 +69,10 @@ namespace UltrafastEngine.Engine
         public List<(double DelayS, double Level)> Satellites { get; } = new List<(double, double)>();
         /// <summary>Refractive index the beam sees inside the element (for Gaussian beam tracking); NaN = unknown (free space).</summary>
         public double TrackingIndex { get; set; } = double.NaN;
+        /// <summary>Thin lenses inside the element for Gaussian beam tracking: position from the entrance (m) and power
+        /// 1/f (1/m, vacuum-equivalent, from the optical path difference), e.g. the slices of a thermal lens. The tracker
+        /// crosses the element at <see cref="TrackingIndex"/> and applies each lens at its position.</summary>
+        public List<(double ZM, double InvFocalM)> TrackLenses { get; set; }
 
         public IEnumerable<LinearTerm> AllLinear => Pre.Concat(Nonlinear?.Background ?? Enumerable.Empty<LinearTerm>()).Concat(Post);
 
@@ -115,6 +119,8 @@ namespace UltrafastEngine.Engine
             public bool EnvAirInGaps;
             public double Omega0;
             public Optics.BeamState Track;
+            /// <summary>Track spatio-temporal couplings with the beam / apply their group-delay dispersion to the pulse.</summary>
+            public bool StcTrack, StcPhase;
         }
 
         public static CompiledRun Compile(SystemDescription sys, RunSpec run, ModelRegistry registry = null)
@@ -156,6 +162,14 @@ namespace UltrafastEngine.Engine
             {
                 c.Track = Optics.BeamState.FromGaussianSpec(ibj, lambda0);
                 if (c.Track != null) c.Out.Notes.Add("Gaussian beam tracking from the input beam: " + c.Track.Describe() + " (elements without a beam of their own use the tracked beam).");
+            }
+            string stMode = run.Physics.SpatioTemporal ?? "auto";
+            if (c.Track != null && stMode != "off")
+            {
+                c.StcTrack = true;
+                bool traced = sys.Elements.Any(el => el.Json.Has("groupDelayS"));
+                c.StcPhase = stMode == "on" || (stMode == "auto" && !traced);
+                if (stMode == "auto" && traced) c.Out.Notes.Add("spatio-temporal couplings are tracked but their group-delay dispersion is not applied: the system has traced group delays (groupDelayS), which already contain it (physics.spatioTemporal = \"on\" applies it).");
             }
             if ((btMode == "on" || btMode == "true") && c.Track == null)
                 c.Out.Warnings.Add("physics.beamTracking is on but there is no Gaussian inputBeam to start from (give inputBeam {\"kind\": \"gaussian\", \"w0M\": ..., \"zWaistM\": ...}).");
@@ -493,8 +507,37 @@ namespace UltrafastEngine.Engine
             try { double n = GetMaterial(c, name).IndexAt(c.Omega0); return n > 0 && !double.IsNaN(n) ? n : 1.0; } catch { return 1.0; }
         }
 
+        /// <summary>dn/dω (s) of a named material at the carrier (central difference), 0 when unknown.</summary>
+        private static double IndexSlope(Ctx c, string name)
+        {
+            if (string.IsNullOrEmpty(name)) return 0;
+            try
+            {
+                var m = GetMaterial(c, name); double h = 1e-4 * c.Omega0;
+                double d = (m.IndexAt(c.Omega0 + h) - m.IndexAt(c.Omega0 - h)) / (2 * h);
+                return double.IsNaN(d) ? 0 : d;
+            }
+            catch { return 0; }
+        }
+
+        /// <summary>The group-delay dispersion an element adds from the spatio-temporal couplings of the incoming beam
+        /// (docs/reference/components.md#spatio-temporal-couplings): applied to the pulse as a GDD term.</summary>
+        private static void AddCouplingGdd(Ctx c, CompiledElement ce, double gdd)
+        {
+            if (gdd == 0 || double.IsNaN(gdd) || !c.StcPhase) return;
+            ce.Post.Add(new PolynomialPhaseTerm(ce.Label + " (angular dispersion)", c.Omega0, 0, gdd, 0, 0));
+            ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "spatio-temporal coupling: {0:G4} fs^2 of group-delay dispersion from the angular / spatial dispersion of the beam (the spectrum stays the field on each frequency's chief ray)", gdd * 1e30));
+        }
+
         /// <summary>Advance the tracked Gaussian beam through one element (docs/reference/beam-tracking.md).</summary>
         private static void TrackBeam(Ctx c, SystemElement e, CompiledElement ce, string type)
+        {
+            TrackBeamCore(c, e, ce, type);
+            if (!c.StcTrack) c.Track.ClearCouplings();
+            else AddCouplingGdd(c, ce, c.Track.TakePendingGdd());
+        }
+
+        private static void TrackBeamCore(Ctx c, SystemElement e, CompiledElement ce, string type)
         {
             var t = c.Track;
             switch (type)
@@ -516,10 +559,11 @@ namespace UltrafastEngine.Engine
                 {
                     string mode = Str(c, e, "mode", type == "mirror" ? "reflect" : type == "grating" ? "diffract" : "refract").ToLowerInvariant();
                     double n1 = IndexOrOne(c, Str(c, e, "before", "Air"));
-                    double aoi = Math.Abs(Num(c, e, "aoiDeg", double.NaN) * Math.PI / 180);
-                    if (double.IsNaN(aoi)) aoi = Math.Abs(Num(c, e, "aoiRad", 0));
-                    if (e.Json.Has("aoiRad") && e.Json["aoiRad"].Kind == JsonKind.Array) aoi = Math.Abs(e.Json.GetDoubleArray("aoiRad").Average());
-                    if (e.Json.Has("aoiDeg") && e.Json["aoiDeg"].Kind == JsonKind.Array) aoi = Math.Abs(e.Json.GetDoubleArray("aoiDeg").Average()) * Math.PI / 180;
+                    double aoiSigned = Num(c, e, "aoiDeg", double.NaN) * Math.PI / 180;
+                    if (double.IsNaN(aoiSigned)) aoiSigned = Num(c, e, "aoiRad", 0);
+                    if (e.Json.Has("aoiRad") && e.Json["aoiRad"].Kind == JsonKind.Array) aoiSigned = e.Json.GetDoubleArray("aoiRad").Average();
+                    if (e.Json.Has("aoiDeg") && e.Json["aoiDeg"].Kind == JsonKind.Array) aoiSigned = e.Json.GetDoubleArray("aoiDeg").Average() * Math.PI / 180;
+                    double aoi = Math.Abs(aoiSigned);
                     bool tx = Optics.BeamState.TangentialIsX(Angle(c, e, "planeOfIncidence", Math.PI / 2), out bool snapped);
                     if (snapped && aoi > 1e-6) ce.Notes.Add("beam tracking: the plane of incidence is not along x or y; astigmatism is applied about the nearer axis (" + (tx ? "x" : "y") + ")");
                     double roc = Num(c, e, "radiusOfCurvatureM", double.NaN);
@@ -534,19 +578,63 @@ namespace UltrafastEngine.Engine
                             if (aoi > 1e-3) ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "off-axis mirror: f_t = {0:G5} m (tangential, {2}), f_s = {1:G5} m (sagittal)", ft, fs, tx ? "x" : "y"));
                         }
                     }
+                    else if (mode == "diffract" && (e.Json.Has("linesPerMm") || e.Json.Has("linesPerM") || Find(c, e, "linesPerMm") != null))
+                    {
+                        double lpm = e.Json.Has("linesPerM") && !e.Json.Has("linesPerMm") ? Num(c, e, "linesPerM", 0) : Num(c, e, "linesPerMm", 0) * 1e3;
+                        int order = (int)Num(c, e, "order", -1);
+                        double thOut = t.Grating(aoiSigned, 1 / lpm, order, tx);
+                        if (double.IsNaN(thOut)) ce.Notes.Add("beam tracking: diffraction order " + order + " is evanescent at the carrier -- the tracked beam is not diffracted");
+                        else
+                        {
+                            ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "grating: order {0} leaves at {1:F3} deg (incidence {2:F3} deg, unfolded and signed), angular dispersion {3:G4} urad/nm", order, thOut * 180 / Math.PI, aoiSigned * 180 / Math.PI,
+                                order * lpm / Math.Cos(thOut) * 1e-3));   // d theta / d lambda = m / (period cos theta_out), rad/m -> urad/nm
+                        }
+                    }
                     else
                     {
                         double n2 = IndexOrOne(c, Str(c, e, "after", mode == "refract" ? "Air" : Str(c, e, "before", "Air")));
-                        if (mode == "refract" && Math.Abs(n2 - n1) > 1e-12) t.TiltedInterface(n1, n2, aoi, tx);
+                        if (mode == "refract" && Math.Abs(n2 - n1) > 1e-12)
+                            t.TiltedInterface(n1, n2, aoiSigned, tx, IndexSlope(c, Str(c, e, "before", "Air")), IndexSlope(c, Str(c, e, "after", "Air")));
                         if (!double.IsNaN(fl)) t.LensInMedium(fl, fl, mode == "refract" ? n2 : n1);
                         else if (!double.IsNaN(roc) && mode == "refract") { double P = (n2 - n1) / roc; t.Apply(1, 0, -P, 1, 1, 0, -P, 1); }
                     }
                     break;
                 }
                 case "gratingpair":
+                {
                     t.Propagate(ce.LengthM, 1.0);
+                    // single pass: the output carries the pair's spatial dispersion G cos(alpha) / cos^2(beta) d beta / d omega
+                    if ((int)Num(c, e, "passes", 2) == 1)
+                    {
+                        double lpm = e.Json.Has("linesPerMm") ? Num(c, e, "linesPerMm", 0) * 1e3 : Num(c, e, "linesPerM", double.NaN);
+                        double al = Angle(c, e, "aoi", double.NaN), g = Num(c, e, "separationM", double.NaN);
+                        int order = Math.Abs((int)Num(c, e, "order", -1));   // as GratingPairTerm: sin(beta) = |m| lambda / d - sin(alpha)
+                        double sb = order * 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0 * lpm - Math.Sin(al);
+                        if (Math.Abs(sb) < 1 && !double.IsNaN(g))
+                        {
+                            double cb = Math.Sqrt(1 - sb * sb);
+                            double dbdw = -2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS * order * lpm / (c.Omega0 * c.Omega0 * cb);
+                            double eel = g * Math.Cos(al) / (cb * cb) * dbdw;
+                            bool tx = Optics.BeamState.TangentialIsX(Angle(c, e, "planeOfIncidence", Math.PI / 2), out _);
+                            t.AddSpatialDispersion(eel, tx);
+                            ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "single pass: spatial chirp {0:G4} mm/nm at the output", eel * (-c.Omega0 * c.Omega0 / (2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS)) * 1e3 * 1e-9));
+                        }
+                    }
                     break;
+                }
                 default:
+                    if (ce.TrackLenses != null && ce.LengthM > 0)
+                    {
+                        double n = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0, z = 0;
+                        foreach (var (zl, invF) in ce.TrackLenses.OrderBy(l => l.ZM))
+                        {
+                            double zc = Math.Max(z, Math.Min(ce.LengthM, zl));
+                            t.Propagate(zc - z, n); z = zc;
+                            if (invF != 0) t.Lens(1 / invF, 1 / invF);
+                        }
+                        t.Propagate(ce.LengthM - z, n);
+                        break;
+                    }
                     if (TrackComponent(c, e, ce, t, type)) break;
                     if (ce.LengthM > 0)
                     {

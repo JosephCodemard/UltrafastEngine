@@ -298,9 +298,13 @@ namespace UltrafastEngine.Gain
         /// Steady-state temperature rise Delta T(r, z) (K) from the heat load = heatFraction x absorbed pump power
         /// (per slice, distributed over the pump profile), in a rod of radius <paramref name="rodRadiusM"/> held at
         /// the sink temperature (radial conduction only). Returns the index change as a field Delta n(r, z) = dn/dT
-        /// Delta T and the thermal focal length (thin-lens equivalent of the parabolic part near the axis).
+        /// Delta T and the thermal focal length (thin-lens equivalent of the parabolic part near the axis); with
+        /// <paramref name="sliceInvF"/> (length Nz) also each slice's share 1/f_j (sum = 1/f_th). With
+        /// <paramref name="modeRadiusM"/> the slice shares are the lens a Gaussian beam of that 1/e^2 radius sees: the
+        /// parabola fitted with the beam's intensity as weight (least rms wavefront error over the beam), which is weaker
+        /// than the on-axis lens when the beam fills the pumped region.
         /// </summary>
-        public (ISpatialField Field, double FocalLengthM, double PeakDeltaTK, double HeatW) ThermalLens(double absorbedPowerScale, double heatFraction, double rodRadiusM)
+        public (ISpatialField Field, double FocalLengthM, double PeakDeltaTK, double HeatW) ThermalLens(double absorbedPowerScale, double heatFraction, double rodRadiusM, double[] sliceInvF = null, double modeRadiusM = double.NaN)
         {
             int nr = 400; double R = rodRadiusM, dr = R / nr;
             var rs = Enumerable.Range(0, nr + 1).Select(i => i * dr).ToArray();
@@ -331,6 +335,22 @@ namespace UltrafastEngine.Gain
                 for (int i = 0; i <= nr && rs[i] <= 0.3 * wp; i++) { double u = rs[i] * rs[i], v = vals[j * (nr + 1) + i]; s0 += 1; s1 += u; s2 += u * u; t0 += v; t1 += u * v; cnt++; }
                 double cfit = cnt > 2 ? (s0 * t1 - s1 * t0) / (s0 * s2 - s1 * s1) : 0;
                 invF += -2 * cfit * Dz;
+                if (sliceInvF != null)
+                {
+                    if (modeRadiusM > 0)
+                    {
+                        // intensity-weighted fit over the beam: weight exp(-2 r^2 / w^2) r dr
+                        s0 = s1 = s2 = t0 = t1 = 0;
+                        for (int i = 0; i <= nr; i++)
+                        {
+                            double u = rs[i] * rs[i], v = vals[j * (nr + 1) + i], wgt = Math.Exp(-2 * u / (modeRadiusM * modeRadiusM)) * rs[i];
+                            s0 += wgt; s1 += wgt * u; s2 += wgt * u * u; t0 += wgt * v; t1 += wgt * u * v;
+                        }
+                        double cb = s0 * s2 - s1 * s1 > 0 ? (s0 * t1 - s1 * t0) / (s0 * s2 - s1 * s1) : 0;
+                        sliceInvF[j] = -2 * cb * Dz;
+                    }
+                    else sliceInvF[j] = -2 * cfit * Dz;
+                }
             }
             var zs = Enumerable.Range(0, Nz).Select(j => (j + 0.5) * Dz).ToArray();
             var field = new RadialZTableField(rs, zs, vals, "thermal lens (dn/dT x Delta T, " + Medium.Name + ")");

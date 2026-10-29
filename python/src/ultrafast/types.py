@@ -48,7 +48,7 @@ class AmplifierElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply}"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int
@@ -638,7 +638,7 @@ class GainElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply}"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int
@@ -775,6 +775,12 @@ class GratingElement(TypedDict, total=False):
     """Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"""
     substrate: Any
     """mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"""
+    linesPerMm: float
+    """grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam [1/mm]"""
+    linesPerM: float
+    """grating: groove density (alternative) [1/m]"""
+    order: int
+    """grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam Default: -1."""
     efficiency: Union[float, List[float]]
     """Diffraction efficiency (grating, no coating)"""
     efficiencyS: Union[float, List[float]]
@@ -911,6 +917,12 @@ class InterfaceElement(TypedDict, total=False):
     """Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"""
     substrate: Any
     """mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"""
+    linesPerMm: float
+    """grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam [1/mm]"""
+    linesPerM: float
+    """grating: groove density (alternative) [1/m]"""
+    order: int
+    """grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam Default: -1."""
     efficiency: Union[float, List[float]]
     """Diffraction efficiency (grating, no coating)"""
     efficiencyS: Union[float, List[float]]
@@ -1047,6 +1059,12 @@ class MirrorElement(TypedDict, total=False):
     """Scatter returned as delayed light: {fraction, delay: {kind: uniform|exponential|table, minS, maxS, tauS, delaysS, weights}, spectralExponent, seed}, or the analytic surface model {model: "surface", roughnessRmsM, correlationLengthM, beamRadiusM, surfaces, delay} (docs/reference/coatings.md#delayed-scatter)"""
     substrate: Any
     """mirror: the substrate behind the coating -- a name (from the file's substrates or the built-in catalogue, e.g. "FS-12.7mm") or {material, thicknessM, backCoating | backReflectance, wedgeDeg, orders}. Light leaking through the coating reflects from the back face and returns as a delayed echo (docs/reference/coatings.md#substrate-echoes)"""
+    linesPerMm: float
+    """grating: groove density -- angular dispersion, anamorphic magnification and spatio-temporal couplings on the tracked beam [1/mm]"""
+    linesPerM: float
+    """grating: groove density (alternative) [1/m]"""
+    order: int
+    """grating: diffraction order m, sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam Default: -1."""
     efficiency: Union[float, List[float]]
     """Diffraction efficiency (grating, no coating)"""
     efficiencyS: Union[float, List[float]]
@@ -3071,8 +3089,10 @@ class Imaging(TypedDict, total=False):
 
 class InitialProfile(TypedDict, total=False):
     """Initial transverse field."""
-    kind: Literal["gaussian", "superGaussian", "flatTop"]
-    """Shape Default: gaussian."""
+    kind: Literal["gaussian", "superGaussian", "flatTop", "tophat"]
+    """Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform) Default: gaussian."""
+    geometry: Literal["round", "square"]
+    """round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) Default: round."""
     order: int
     """superGaussian order Default: 4."""
     decenterXM: float
@@ -3086,7 +3106,11 @@ class InitialProfile(TypedDict, total=False):
     radiusOfCurvatureM: float
     """Wavefront radius of curvature (negative: converging) [m]"""
     radiusM: float
-    """1/e^2 radius (default: from the element's beam) [m]"""
+    """1/e^2 radius; tophat: edge radius or half-width (default: from the element's beam) [m]"""
+    radiusXM: float
+    """Radius / half-width in x (default radiusM) [m]"""
+    radiusYM: float
+    """Radius / half-width in y (default radiusXM) [m]"""
     ripple: Any
     """Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing)"""
     noise: Any
@@ -3298,6 +3322,8 @@ class Physics(TypedDict, total=False):
     """false removes flat loss terms Default: true."""
     beamTracking: Any
     """Gaussian beam (q) tracking: "auto" (on with a Gaussian inputBeam), "on", "off" Default: "auto"."""
+    spatioTemporal: Any
+    """Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: "auto" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), "on", "track" (reported only), "off" (docs/reference/components.md#spatio-temporal-couplings) Default: "auto"."""
     transverse: Union["Transverse", str]
     """Default spatial model for every bulk/gap/crystal without one"""
     ionization: Any
@@ -3600,6 +3626,10 @@ class Transverse(TypedDict, total=False):
     """Jones (vector) fields on the grid: auto = when the beam carries a y component Default: auto."""
     equation: Literal["envelope", "uppe"]
     """Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) Default: envelope."""
+    spectralSamples: int
+    """Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses Default: 48."""
+    absorbingBoundary: Any
+    """Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) Default: false."""
     comment: Any
     """Free text."""
     description: Any

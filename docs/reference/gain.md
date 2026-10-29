@@ -114,9 +114,31 @@ distributed over the pump profile in each slice. The radial heat equation is sol
 * spatial gain: Δn(r, z) is applied as a position-dependent index, so aberrations of a non-parabolic profile
   appear (M², Strehl ratio, wavefront sensor);
 * 1-D gain: applied as a thin lens to a carried transverse profile (`"apply": false` to only report it);
-* amplifier: reported only.
+* amplifier: reported only;
+* the tracked Gaussian beam ([beam tracking](components.md#gaussian-beam-tracking), `"track": true`, the default):
+  see below.
 
 Check: top-hat pump f = 2πKw²/(P_h·dn/dT); Gaussian pump f = πKw²/(P_h·dn/dT) (tests).
+
+**On the tracked beam.** Elements after a gain element take its thermal lens through the tracked q parameters. The
+tracking happens when the system is compiled, before the pulse train has run, so the engine evaluates the same heat
+model with the pump alone (cw pumping to equilibrium, or a pulsed pump repeated to steady state at the repetition rate)
+and applies one thin lens per slice. Each slice's lens is the parabola fitted to its Δn(r) **with the beam's intensity as
+weight** (the lens of least rms wavefront error over the beam), using the tracked beam radius at the element (or
+`modeRadiusM` / `beam`). For a beam much smaller than the pump this is the on-axis lens; for a beam that fills the pumped
+region it is weaker, since the Δn of a Gaussian pump flattens off the axis. The element reports `trackedThermalLensFocalLengthM`
+(the sum of the slices) and a note with the on-axis value. If the run's own thermal lens, with the signal extracting energy,
+differs from the pump-alone estimate by more than 5 %, a note says so. A measured value replaces the model:
+
+```jsonc
+"thermalLens": { "focalLengthM": 0.45 }                   // one thin lens at the centre: tracking and the 1-D thin lens
+"thermalLens": { "rodRadiusM": 2e-3, "track": false }     // model, but leave the tracked beam alone
+```
+
+Checks (`BeamTrackingTests`): a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); a
+measured focal length focuses the tracked beam as a thin lens (waist radius 0.2 %); for a 0.5 mm beam in a rod pumped by a 0.6 mm
+Gaussian, the tracked radius 0.4 m behind the rod is within 7 % of the radial spatial model (which also shows M² = 1.08 from the
+lens's aberration, beyond a Gaussian beam parameter).
 
 The element also records the lens as a Gradient-1 GRIN (z-averaged): `thermalGrinNr2PerM2`,
 `thermalDnOnAxis`, `hostIndex`. `UltrafastEngine.Zemax thermal-lens` writes it into OpticStudio

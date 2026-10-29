@@ -109,6 +109,7 @@ error, and `tail` carries the satellites on a second, long, linear grid instead 
 | `polarization` | `jones` | or `scalar` (s/p averaged) |
 | `losses` | true | `false` removes flat loss terms (quick "what if lossless") |
 | `beamTracking` | `auto` | Gaussian beam (q) tracking through the system: `auto` (on when there is a Gaussian `inputBeam`), `on`, `off` ([Components](components.md#gaussian-beam-tracking)) |
+| `spatioTemporal` | `auto` | angular / spatial dispersion and pulse-front tilt carried with the tracked beam: `auto` (their group-delay dispersion applied unless an element has traced `groupDelayS`), `on`, `track` (reported only), `off` ([Components](components.md#spatio-temporal-couplings)) |
 | `ionization` | false | photo-ionisation and plasma in every nonlinear bulk element: `true` or `{ "model": "ppt", ... }` ([Ionisation](ionization.md)) |
 | `transverse` | none | default spatial model for every bulk/gap/crystal element that has none of its own: `{"model": "radial", "points": 48}` ([Spatial models](transverse.md)) |
 

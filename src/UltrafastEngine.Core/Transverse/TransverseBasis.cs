@@ -144,43 +144,60 @@ namespace UltrafastEngine.Transverse
                 Weights[m] = 4 * Math.PI * radiusM * radiusM / (S * S * j1[m] * j1[m]);
                 _scale[m] = radiusM / j1[m];
             }
-            var t = new double[M * M];
-            for (int a = 0; a < M; a++)
-                for (int b = 0; b < M; b++)
-                    t[a * M + b] = 2.0 * Bessel.J0(j[a] * j[b] / S) / (j1[a] * j1[b] * S);
-            _t = Orthogonalize(t, M);
+            _t = Matrices.GetOrAdd(M, _ =>
+            {
+                var t = new double[M * M];
+                Parallel.For(0, M, a =>
+                {
+                    for (int b = 0; b < M; b++)
+                        t[a * M + b] = 2.0 * Bessel.J0(j[a] * j[b] / S) / (j1[a] * j1[b] * S);
+                });
+                return Orthogonalize(t, M);
+            });
         }
 
-        /// <summary>Newton-Schulz iteration X &lt;- X (3 I - X^T X) / 2 (converges for near-orthogonal X).</summary>
+        // The orthogonal matrix depends only on the number of points (r_m and k_m scale with R, the matrix does not):
+        // built once per size and shared (2048 points: ~1 s instead of ~1 min per element).
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, double[]> Matrices = new System.Collections.Concurrent.ConcurrentDictionary<int, double[]>();
+
+        /// <summary>Newton-Schulz iteration X &lt;- X (3 I - X X) / 2 for the symmetric, near-orthogonal X (X stays
+        /// symmetric, so X^T X = X X). Row-major products with contiguous inner loops.</summary>
         private static double[] Orthogonalize(double[] x, int n)
         {
-            var xtx = new double[n * n]; var y = new double[n * n];
+            var xx = new double[n * n]; var y = new double[n * n];
             for (int it = 0; it < 8; it++)
             {
+                Multiply(x, x, xx, n);
                 double err = 0;
-                Parallel.For(0, n, a =>
-                {
-                    for (int b = 0; b < n; b++)
-                    {
-                        double s = 0;
-                        for (int k = 0; k < n; k++) s += x[k * n + a] * x[k * n + b];
-                        xtx[a * n + b] = s;
-                    }
-                });
-                for (int a = 0; a < n; a++) for (int b = 0; b < n; b++) err = Math.Max(err, Math.Abs(xtx[a * n + b] - (a == b ? 1 : 0)));
+                for (int a = 0; a < n; a++) for (int b = 0; b < n; b++) err = Math.Max(err, Math.Abs(xx[a * n + b] - (a == b ? 1 : 0)));
                 if (err < 1e-14) break;
-                Parallel.For(0, n, a =>
-                {
-                    for (int b = 0; b < n; b++)
-                    {
-                        double s = 0;
-                        for (int k = 0; k < n; k++) s += x[a * n + k] * ((k == b ? 3.0 : 0.0) - xtx[k * n + b]);
-                        y[a * n + b] = 0.5 * s;
-                    }
-                });
+                Multiply(x, xx, y, n);                                            // y = X (X X)
+                for (int k = 0; k < y.Length; k++) y[k] = 1.5 * x[k] - 0.5 * y[k]; // X (3 I - X X) / 2
                 Array.Copy(y, x, x.Length);
             }
             return x;
+        }
+
+        /// <summary>c = a b for n x n row-major matrices (rows in parallel, i-k-j order, four rows of a per pass over b).</summary>
+        private static void Multiply(double[] a, double[] b, double[] c, int n)
+        {
+            int blocks = (n + 3) / 4;
+            Parallel.For(0, blocks, blk =>
+            {
+                int r0 = blk * 4, rows = Math.Min(4, n - r0);
+                Array.Clear(c, r0 * n, rows * n);
+                for (int k = 0; k < n; k++)
+                {
+                    int ob = k * n;
+                    for (int r = 0; r < rows; r++)
+                    {
+                        double s = a[(r0 + r) * n + k];
+                        if (s == 0) continue;
+                        int oc = (r0 + r) * n;
+                        for (int j = 0; j < n; j++) c[oc + j] += s * b[ob + j];
+                    }
+                }
+            });
         }
 
         private void Apply(Complex[] data, int n, bool toK)

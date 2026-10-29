@@ -15,6 +15,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [3. Larger systems](docs/tutorials/03-larger-systems.md)
 - [4. Your own measured data](docs/tutorials/04-measured-data.md)
 - [5. Contrast of an amplifier chain](docs/tutorials/05-contrast.md)
+- [6. Diffraction by an iris](docs/tutorials/06-diffraction.md)
 
 ## Examples and concepts
 - [Examples](docs/examples/README.md)

@@ -35,11 +35,27 @@ Options (all optional):
 | `transport` | how a profile is brought in from before (below): `auto`, `exact`, `rescale`, `beam` | `auto` |
 | `polarization` | `auto` (vector when the beam carries a y component), `scalar`, `vector`: Jones fields on the grid ([below](#vector-fields-and-the-uppe-coupling)) | `auto` |
 | `equation` | nonlinear coupling: `envelope` (paraxial) or `uppe` (n ω / c k_z per plane wave) | `envelope` |
-| `initialProfile` | the field at the first spatial element: `{"kind": "gaussian"|"superGaussian"|"flatTop", "order": 4, "decenterXM": .., "tiltXRad": .., "radiusOfCurvatureM": ..}` | from the element's `beam` |
+| `initialProfile` | the field at the first spatial element ([below](#initial-profile)) | from the element's `beam` |
+| `absorbingBoundary` | linear elements: absorb the light that leaves the grid -- `true` (outer 15 %) or `{"widthFraction": 0.15}` ([below](#diffraction-and-apertures)) | `false` |
+| `spectralSamples` | frequencies at which the carried profile is stored (and linear elements propagate it); fewer is faster and smaller for narrowband pulses | 48 |
 
 Resolution rule of thumb: about 15-20 samples across the smallest beam radius the beam reaches, and an extent of
 3-4x the largest radius. The Hankel grid is not uniform (denser near the axis); its k-space extent is
-j_points/radius.
+j_points/radius. Its orthogonal transform matrix depends only on the number of points and is built once per size
+(about 1 s for 2048 points) and shared by every element and run in the process.
+
+### Initial profile
+
+`initialProfile` makes the field at the first spatial element (or at an element with `"transport": "beam"`):
+
+| key | meaning |
+|---|---|
+| `kind` | `gaussian` (default), `superGaussian` (field exp(−(r²/w²)^order), `order` 4), `flatTop` (super-Gaussian of order 10), `tophat` (hard edge: uniform inside r = w, or \|x\| ≤ w_x, \|y\| ≤ w_y; edge cells carry the area fraction inside) |
+| `geometry` | `round` (default: a function of x²/w_x² + y²/w_y²) or `square` (separable in x and y: square or rectangular beams; cartesian grids) |
+| `radiusM`, `radiusXM`, `radiusYM` | 1/e² radius (tophat: edge radius / half-width); replaces the size of the element's `beam`, so the element needs no `beam` |
+| `radiusOfCurvatureM` | wavefront radius of curvature (negative: converging); replaces the beam's |
+| `decenterXM`, `decenterYM`, `tiltXRad`, `tiltYRad` | offset and tilt of the field |
+| `ripple`, `noise` | seeds of small-scale structure (cartesian; [below](#small-scale-self-focusing)) |
 
 ## Physics in a spatial bulk element
 
@@ -55,7 +71,13 @@ dA/dz = [ L_1D(ω) + i (√(k(ω)² − k⊥²) − k(ω)) ] A  +  N(A)        A
 * Diffraction is unitary (the Hankel matrix is made exactly orthogonal): linear spatial propagation conserves
   energy to rounding. If more than 0.01 % of the output energy lies in the outer 15 % of the grid the engine warns
   ("reached the edge of the transverse grid -- enlarge transverse.radiusM"): beyond that the field would wrap
-  (cartesian) or reflect (radial).
+  (cartesian) or reflect (radial). `absorbingBoundary` removes that light instead ([below](#diffraction-and-apertures)).
+* **Linear elements** (no Kerr or other nonlinearity, no position-dependent properties, a scalar field) propagate
+  only the carried profile at its stored frequencies: the operator factorises into the 1-D dispersion of the
+  spectrum and the diffraction exp(i (k_z − k) L) of the profile. Between the stored frequencies the change of the
+  spectrum (power lost to evanescent waves or to the absorbing boundary, area-weighted phase) is interpolated, as the
+  profile is. At the stored frequencies the result equals the full propagation (`DiffractionTests`: 10⁻⁴ of the
+  peak). The element's `representation` says "linear: the profile is propagated in n steps".
 
 χ(2) crystals with a transverse model propagate all fields this way, each with its own index (and walk-off and
 non-collinear drift in the cartesian model), coupled locally ([Crystals](crystals.md#beams-and-coupling)).
@@ -88,14 +110,48 @@ spectrum A(ω) is exactly the integrated spectrum. The next element decides what
   replaced by that beam's); `exact` refuses to proceed through such elements (error), `beam` discards the profile
   and starts from the next element's `beam`.
 
-**Apertures** act on a carried profile: `{"type": "aperture", "radiusM": ...}` (hard circle),
-`halfWidthXM`/`halfWidthYM` (rectangle) or `softRadiusM` (+ `order`: field transmission exp(−(r/a)^2n)),
-with `decenterXM`/`decenterYM`. The profile is masked at every stored frequency and the spectrum is scaled by
-the frequency-resolved transmission (booked as `clip`). Without a profile, the aperture clips the beam model as before.
+**Apertures** act on a carried profile ([below](#diffraction-and-apertures)). Without a profile, the aperture clips the
+beam model as before.
 
 The per-element record then reports `beam.radiusXM`, `radiusYM` (second-moment, 1/e² equivalent) and `beam.m2`
 (M² from the second moments in space and spatial frequency, after removing the fitted wavefront curvature). The
 `beamProfile` instrument gives the fluence across the beam.
+
+## Diffraction and apertures
+
+An `aperture` on a carried profile cuts the field; the spatial elements after it diffract what passes:
+
+```jsonc
+{ "id": "source", "type": "gap", "lengthM": 0, "material": "Vacuum",
+  "transverse": { "model": "radial", "points": 1024, "radiusM": 12e-3, "absorbingBoundary": true,
+                  "initialProfile": { "kind": "tophat", "radiusM": 3e-3 } } },
+{ "id": "iris", "type": "aperture", "radiusM": 1e-3 },
+{ "id": "screen", "type": "gap", "lengthM": 0.97, "material": "Vacuum", "transverse": { ...the same grid... } }
+```
+
+* **Openings:** `radiusM` (round), `halfWidthXM` / `halfWidthYM` (rectangle; cartesian grids -- on a radial grid it becomes
+  a circle of radius min(half-widths), with a warning), `softRadiusM` + `order` (field transmission exp(−(r/a)^2n)), and
+  `decenterXM` / `decenterYM` (cartesian). The profile is masked at every stored frequency and the spectrum is scaled by
+  the frequency-resolved transmission, booked as `clip`; the element reports `transmission` and `apertureSamples`.
+* **Hard edges between samples:** each grid cell on the edge transmits the fraction of its area inside the opening
+  (annuli on a radial grid, pixels on a cartesian one). A 0/1 mask moves the edge by up to a cell; the averaged mask puts it
+  in the right place, and the patterns converge quickly with the sampling (`DiffractionTests`). Light diffracted beyond the
+  grid's largest angle is not represented, so the transmission converges to the geometric value from below, by about dx / 3a
+  times the edge fluence (0.2 % for a Gaussian cut at half its radius with 85 samples, 1.6 % for a square flat-top with 21).
+* **Resolution:** the engine warns when the opening spans fewer than 10 samples across its radius / half-width. The pattern's
+  finest feature is the outermost Fresnel zone at the edge, λz / 2a wide; the grid must be several times wider than the
+  pattern (the first dark ring of a round iris of radius a lies at r = 0.61 λz/a, and the rings beyond carry a few % of the energy).
+* **`absorbingBoundary`:** a hard edge sends light to large angles. On a radial grid it reflects at the edge and focuses back
+  onto the axis; on a cartesian one it wraps around. With `"absorbingBoundary": true` a layer in the outer 15 % of the grid
+  (`widthFraction`) multiplies the field by exp(−5 u⁴) (u from 0 at the layer's inner edge to 1 at the grid's edge) after each step,
+  and a linear element is split into steps short enough for the steepest wave on the grid to cross the layer within one. The absorbed
+  energy is booked as `grid boundary` and reported as `absorbedAtBoundaryJ` / `absorbedAtBoundaryFraction`; the edge warning is
+  not given. Nonlinear spatial elements do not use the layer.
+* **Narrowband pulses:** `spectralSamples` (default 48) sets how many frequencies the profile holds. A ps pulse needs a few;
+  a 2-D grid's memory scales with them.
+
+Worked example and checks: [Example 30](../examples/30-iris-diffraction/README.md) (Gaussian, round flat-top, uniform and square beams
+at N = 3, 2, 1 and in the far zone, against the Fresnel integral) and [Tutorial 6](../tutorials/06-diffraction.md).
 
 ## Small-scale self-focusing
 
@@ -146,4 +202,11 @@ spectra show up as a reduced temporal Strehl, not in the 1-D phase. The true pea
 | Bespalov-Talanov ripple growth (cosh(g z)), q = Delta and q = 3 Delta; Talbot ripple without Kerr | 6 % (observed < 1 %) | `SmallScaleTests.SmallScale_RippleGrowth_*`, `..._TheRippleDiffractsAsTheTalbotEffect` |
 | seeded noise reproducible and linear in its amplitude; P / P_cr | 2 % | `SmallScaleTests.SmallScale_Seeded*`, `..._ReportsPeakPowerOverCritical` |
 | beamProfile instrument vs w(z) | < 1 % | `Chi2Tests.BeamProfileInstrument_*` |
+| plane wave through a round iris: on-axis 4 F sin²(πN/2) at N = 3, 2, 1 | 1.5 % (dark centre < 0.4 % of 4 F) | `DiffractionTests.UniformBeamThroughRoundIris_*` |
+| Gaussian / flat-top through an iris vs the Fresnel integral, whole profile; transmission 1 − exp(−2a²/w²) | 1 % of the peak (observed 0.02-0.5 %); 0.3 % | `DiffractionTests.GaussianAndFlatTopThroughRoundIris_*` |
+| square flat-top through a square aperture vs the separable Fresnel integral (512²) | 2 % of the peak (observed 0.4-0.7 %) | `DiffractionTests.SquareBeamThroughSquareAperture_*` |
+| far zone: first Airy ring 0.61 λz/a, first sinc² zero λz/2a | 2 % | `DiffractionTests.FarField_*` |
+| hard edge on coarse / fine grids; warning under 10 samples | dx / 2a | `DiffractionTests.HardAperture_*` |
+| absorbing boundary: wrapped light removed, loss budget closes | 2 % / 1e-6 | `DiffractionTests.AbsorbingBoundary_*` |
+| linear profile-only path vs full-field path | 1e-4 of the peak | `DiffractionTests.LinearSpatialGap_*` |
 | radial χ(2) vs 1-D Gaussian overlap (low conversion) | < 1 % | `Chi2Tests.Shg_RadialModelAgrees*` |

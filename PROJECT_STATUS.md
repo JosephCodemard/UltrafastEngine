@@ -1,9 +1,19 @@
 # Validation status -- 2.1.8-beta
 
 What is verified, where, and what still needs checking on other machines. Capabilities and known limitations are
-described in [docs/capabilities.md](docs/capabilities.md).
+described in [docs/capabilities.md](docs/capabilities.md); what comes next is in [ROADMAP.md](ROADMAP.md) (T0 / T1 first).
 
-## Verified in the development environment (Linux x64, .NET 10, Mono 6, Python 3.13)
+## Current status (latest run per platform)
+
+| platform | C# tests (`--slow`) | other checks | date |
+|---|---|---|---|
+| macOS arm64, .NET 10 | **287 pass, 0 fail, 8 skipped** (7 `GpuTests`: no FP64 GPU device; the opt-in HAPI test) | Python 61 pass on the NativeAOT library (plugin and `uf.study` tests need the hosted engine); examples 08-29 strict, unchanged vs the previous engine; example 30 new | 2026-10-29 |
+| Linux x64, .NET 10 and Mono (net48) | 225 / 225 (release baseline; the 62 tests added since have not run on Linux) | Python 61 / 61 with pyNLO; all 31 CLI examples strict; release packages | 2.1.8-beta release |
+| Windows (net48 / OpticStudio) | not run | -- | -- |
+
+The sections below are the records of each verification, newest first after the baseline.
+
+## Baseline: release verification of 2.1.8-beta (Linux x64, .NET 10, Mono 6, Python 3.13)
 
 | | result |
 |---|---|
@@ -21,6 +31,18 @@ described in [docs/capabilities.md](docs/capabilities.md).
 | C header | `gcc -fsyntax-only` passes |
 | GPU plugin, OpenCL path | `ultrafast devices --selftest` on PoCL: FFT, 1-D scalar / vector, radial, cartesian all match the CPU to ~1e-15; the same through the NativeAOT library (`uf_devices_json`) and the C++ example `devices.cpp`; Python `uf.devices()` / runs on the device |
 
+## Verified for diffraction, thermal-lens tracking and spatio-temporal couplings (macOS arm64, .NET 10, 2026-10-29)
+
+| | result |
+|---|---|
+| `dotnet build UltrafastEngine.sln -c Release` (net10.0 and net48) | 0 errors (the expected ZOS-API warning) |
+| C# tests, .NET 10, incl. slow (`--slow`) | **287 pass, 0 fail, 8 skipped** (270 before + 8 `DiffractionTests` + 9 `BeamTrackingTests`; the 8 skips are the 7 `GpuTests` and the opt-in HAPI test, as before) |
+| Python tests, NativeAOT engine (no plugins, no pyNLO), `ULTRAFAST_SLOW` unset | 61 pass incl. the new `test_diffraction.py` (3); 4 failures + 1 error need the fitting plugin (`transform`, fits) or reflection that the AOT build trims (`uf.study`): environment, not code -- the hosted engine (needs `clr_loader`) was not available |
+| Examples 08, 11, 15, 16, 17, 18, 21, 23, 29 and the tutorial files, strict mode, old vs new engine | every `summary.json` number equal to 10⁻⁴ except round-off-level values (10⁻²⁰ m centroids, sub-fs³ TOD residuals), the `beamProfile` peak fluence of 08 radial (−0.27 %, not quoted), the new tracked-coupling keys of 23 (GDD 10⁻¹³ fs²) and the step statistics of linear spatial elements; no README number changed |
+| Example 30 (new, 4 runs, strict) and `compare.py` / `iris.py` | run; all 16 patterns within 1.3 % of the peak of the Fresnel integral (round beams < 0.6 %) |
+| Generated files | regenerated; `SchemaTests` pass |
+| Not run here | `mkdocs build --strict` (mkdocs not installed; a link / anchor check of the Markdown found no new problems), `mypy` (not installed), net48 tests under Mono, pyNLO cross-checks (propagation physics of 1-D elements unchanged), the hosted Python engine and plugin tests |
+
 ## Verified for the delayed-light / HITRAN work (macOS arm64, .NET 10, Python 3.12, 2026-10-29)
 
 | | result |
@@ -35,26 +57,27 @@ described in [docs/capabilities.md](docs/capabilities.md).
 
 ## Not verifiable here -- please check on your machines
 
-1. **Apple silicon (arm64)**: the SIMD kernels use `Vector128` (NEON on ARM64) on .NET 10 and fall back to scalar
-   code elsewhere; tests compare both paths, but they ran on x64 here. Run the C# tests once on the Mac.
+1. ~~**Apple silicon (arm64)**~~ -- verified 2026-10-29: the full C# suite passes on macOS arm64 (NEON `Vector128` path).
 2. **OpticStudio**: the binding compiled against the real ZOS-API (2025 R1) earlier but has not talked to a running OpticStudio. First
    test: `UltrafastEngine.Zemax.exe info`, then `export` on the stretcher and the MPC (docs/plugins/zemax.md).
-3. **NativeAOT library** on macOS / Windows (`dotnet publish src/UltrafastEngine.Native -r osx-arm64` / `win-x64`): needs
-   nuget.org runtime packs. On Linux x64 it was built (through `build.sh --cpp`), loaded by the C++ example and by
-   the native Python wheel.
+3. **NativeAOT library** on Windows (`dotnet publish src/UltrafastEngine.Native -r win-x64`): needs nuget.org runtime packs.
+   Built and used on Linux x64 (C++ example, native wheel) and on macOS arm64 (`python/tools/build_engine.py --aot`, Python tests,
+   2026-10-29).
 4. **Visual Studio 2026**: the solution targets .NET 10 + .NET Framework 4.8 and should open as is.
 5. **GPU plugin on real GPUs**: no GPU here. The OpenCL path was verified on PoCL (a CPU OpenCL runtime); the CUDA
    path (driver API, NVRTC, cuFFT, cuBLAS) shares the kernels and steppers but has not run. On an NVIDIA machine run
    `ultrafast devices --selftest --benchmark` (Windows and Linux), and on an AMD / Intel GPU with OpenCL; send the
    `--json` output if a check fails. The speed-ups in docs/reference/speed.md are expectations until measured.
-6. **Accelerate FFT on macOS**: written against vDSP's documented API, not run here (Linux only); the provider is
-   used only after it passes its self-check against the managed FFT, so a fault shows up as a note and a fall-back.
-   `ultrafast devices` on the Mac shows the provider in use.
+6. ~~**Accelerate FFT on macOS**~~ -- verified 2026-10-29: `ultrafast devices` on an M3 reports `FFT accelerate (vDSP)` (it passed its
+   self-check against the managed FFT) and the suite ran with it.
 7. **Release packages on macOS and Windows**: `./build.sh --all --platform osx-arm64` on the Mac and
    `build.bat --all --platform win-x64 --zos-api-dir ...` on Windows (NativeAOT parts must be built on their own OS).
 
 ## Known limitations (summary; full list in docs/capabilities.md)
-- Beam tracking: simple astigmatism (principal axes x / y); thermal lenses of gain media are not tracked.
+- Beam tracking: simple astigmatism (principal axes x / y); the tracked beam stays Gaussian (thermal lens as the best-fit
+  parabola, spatio-temporal coupling dispersion to second order); amplifier elements do not put their thermal lens on it.
+- One beam path: no splitters, arms or coherent recombination (T1 on the roadmap). Carried transverse profiles do not take
+  angular dispersion. Beam sources: Gaussian, super-Gaussian, flat-top, tophat (round / square) only.
 - Spatial models are per element; aberrations on 1-D beams are reported (Strehl), applied only on spatial grids.
 - Crystal surfaces are not recognised by the Zemax binding (add `crystal` elements to the exported file).
 - BiBO has no built-in d tensor; the MgO:LN temperature coefficient b4 is unverified. TGG index is approximate.

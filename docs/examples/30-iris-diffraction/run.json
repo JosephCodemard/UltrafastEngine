@@ -1,0 +1,19 @@
+{
+  // Example 30: a 1 ps pulse (narrowband: the Fresnel number varies by 0.15 % over its spectrum). One beam profile (radial fluence, or x / y
+  // cuts on a cartesian grid) and one camera image after the iris and at every distance.
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "iris diffraction",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1030e-9, "durationFwhmS": 1e-12, "energyJ": 1e-3 },
+  "instruments": [
+    { "kind": "beamProfile", "name": "p_iris", "at": "iris" },
+    { "kind": "beamProfile", "name": "p_n3", "at": "n3" },
+    { "kind": "beamProfile", "name": "p_n2", "at": "n2" },
+    { "kind": "beamProfile", "name": "p_n1", "at": "n1" },
+    { "kind": "beamProfile", "name": "p_far", "at": "far" },
+    { "kind": "camera", "name": "cam_n3", "at": "n3", "sensor": { "pixels": 201, "pixelSizeM": 25e-6 } },
+    { "kind": "camera", "name": "cam_n2", "at": "n2", "sensor": { "pixels": 201, "pixelSizeM": 25e-6 } },
+    { "kind": "camera", "name": "cam_n1", "at": "n1", "sensor": { "pixels": 201, "pixelSizeM": 25e-6 } },
+    { "kind": "camera", "name": "cam_far", "at": "far", "sensor": { "pixels": 201, "pixelSizeM": 60e-6 } }
+  ]
+}

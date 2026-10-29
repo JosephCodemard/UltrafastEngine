@@ -269,6 +269,7 @@ namespace UltrafastEngine.Engine
                     rec.Values["trackedBeamRadiusXM"] = el.BeamOut.RadiusX; rec.Values["trackedBeamRadiusYM"] = el.BeamOut.RadiusY;
                     rec.Values["trackedCurvatureXM"] = el.BeamOut.CurvatureX; rec.Values["trackedCurvatureYM"] = el.BeamOut.CurvatureY;
                     if (double.IsNaN(rec.BeamRadiusXM)) { rec.BeamRadiusXM = el.BeamOut.RadiusX; rec.BeamRadiusYM = el.BeamOut.RadiusY; }
+                    Optics.Couplings.Report(el.BeamOut, pulse, rec.Values);
                 }
                 if (el.Surface != null && !double.IsNaN(el.Surface.BeamRadiusXM))
                 {

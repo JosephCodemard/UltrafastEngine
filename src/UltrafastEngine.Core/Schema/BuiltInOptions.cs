@@ -125,6 +125,7 @@ namespace UltrafastEngine.Schema
                 .Enum("polarization", new[] { "jones", "scalar" }, "Jones (two polarisations) or scalar", "jones")
                 .Bool("losses", "false removes flat loss terms", "true")
                 .P("beamTracking", ParamType.Any, "", "Gaussian beam (q) tracking: \"auto\" (on with a Gaussian inputBeam), \"on\", \"off\"", "\"auto\"")
+                .P("spatioTemporal", ParamType.Any, "", "Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: \"auto\" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), \"on\", \"track\" (reported only), \"off\" (docs/reference/components.md#spatio-temporal-couplings)", "\"auto\"")
                 .Obj("transverse", "Default spatial model for every bulk/gap/crystal without one", "transverse")
                 .P("ionization", ParamType.Any, "", "Photo-ionisation and plasma in every nonlinear bulk element: true or an ionization object", "false"));
             add(new ComponentSpec("ionization", "", "Photo-ionisation and plasma (docs/reference/ionization.md).")
@@ -170,14 +171,18 @@ namespace UltrafastEngine.Schema
                 .Enum("transport", new[] { "auto", "exact", "rescale", "beam" }, "How a profile from before is brought in", "auto")
                 .Obj("initialProfile", "The field at the first spatial element", "initialProfile")
                 .Enum("polarization", new[] { "auto", "scalar", "vector" }, "Jones (vector) fields on the grid: auto = when the beam carries a y component", "auto")
-                .Enum("equation", new[] { "envelope", "uppe" }, "Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave)", "envelope"));
+                .Enum("equation", new[] { "envelope", "uppe" }, "Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave)", "envelope")
+                .Int("spectralSamples", "Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses", "48")
+                .P("absorbingBoundary", ParamType.Any, "", "Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures)", "false"));
             add(new ComponentSpec("initialProfile", "", "Initial transverse field.")
-                .Enum("kind", new[] { "gaussian", "superGaussian", "flatTop" }, "Shape", "gaussian")
+                .Enum("kind", new[] { "gaussian", "superGaussian", "flatTop", "tophat" }, "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform)", "gaussian")
+                .Enum("geometry", new[] { "round", "square" }, "round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids)", "round")
                 .Int("order", "superGaussian order", "4")
                 .Num("decenterXM", "m", "Decentre in x").Num("decenterYM", "m", "Decentre in y")
                 .Num("tiltXRad", "rad", "Tilt about y").Num("tiltYRad", "rad", "Tilt about x")
                 .Num("radiusOfCurvatureM", "m", "Wavefront radius of curvature (negative: converging)")
-                .Num("radiusM", "m", "1/e^2 radius (default: from the element's beam)")
+                .Num("radiusM", "m", "1/e^2 radius; tophat: edge radius or half-width (default: from the element's beam)")
+                .Num("radiusXM", "m", "Radius / half-width in x (default radiusM)").Num("radiusYM", "m", "Radius / half-width in y (default radiusXM)")
                 .P("ripple", ParamType.Any, "", "Seed ripple (cartesian): {periodM, relativeAmplitude, angleDeg, phaseRad}: amplitude x (1 + a cos(2 pi (x cos t + y sin t) / period + phase)). The Bespalov-Talanov seed (docs/reference/transverse.md#small-scale-self-focusing)")
                 .P("noise", ParamType.Any, "", "Seeded random noise (cartesian): {relativeAmplitudeRms, phaseRmsRad, correlationLengthM, seed, components}"));
             add(new ComponentSpec("material", "", "A material (docs/reference/materials.md).")

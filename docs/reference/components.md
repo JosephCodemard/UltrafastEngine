@@ -9,6 +9,7 @@ provenance, the loss budget and the transverse models all work for them too. Eve
 | element | what it models |
 |---|---|
 | [Gaussian beam tracking](#gaussian-beam-tracking) | q parameters (x and y) through the whole system, so later elements get the right beam |
+| [Spatio-temporal couplings](#spatio-temporal-couplings) | angular dispersion, spatial chirp and pulse-front tilt from gratings, prisms and tilted plates, carried with the tracked beam, and the dispersion they add |
 | [`mirror`](#curved-and-off-axis-mirrors) with `radiusOfCurvatureM` | focusing with off-axis astigmatism; `aberration`: Zernike / figure |
 | [`plate`](#plate) (`window`) | a plane-parallel plate: two surfaces, the bulk, optional ghost replicas |
 | [`ndFilter`](#ndfilter) | neutral density, absorptive or reflective, OD or OD(λ) |
@@ -30,14 +31,16 @@ through every element:
 
 The q parameters are kept in reduced form q/n (vacuum-equivalent distances), so the ABCD law needs no index
 bookkeeping: a length L in a medium of index n adds L/n, a thin lens subtracts 1/f, a mirror in a medium of index n
-subtracts 2n/R. A tilted flat interface magnifies the tangential axis by cos θ₂ / cos θ₁. Gratings pairs, crystals,
-gain media and plates are crossed with their own length and index (the crystal and gain compilers report the index
-they use).
+subtracts 2n/R. A tilted flat interface magnifies the tangential axis by cos θ₂ / cos θ₁; a grating with `linesPerMm`
+by cos θ_out / cos θ_in. Grating pairs, crystals, gain media and plates are crossed with their own length and index
+(the crystal and gain compilers report the index they use). The thermal lens of a pumped `gain` element is applied to
+the tracked beam ([Gain: thermal lens](gain.md#thermal-lens)).
 
 What uses the tracked beam:
 
 * every nonlinear `bulk` / `gap`, `crystal`, `plate` and spatial element **without a `beam` of its own** (a note
   says "beam: the tracked Gaussian beam"), so the intensity there follows the real focusing;
+* `gain` and `amplifier` elements without `beam`, `modeRadiusM` or a carried profile take their signal mode radius from it;
 * surfaces without `beamRadiusM`: fluence, peak intensity and LIDT margins, clipping on apertures;
 * cameras and sampled instruments on a 1-D beam (the camera images the tracked beam at its location);
 * the ghost-overlap estimate of plates.
@@ -47,7 +50,75 @@ Each element reports `trackedBeamRadiusXM`, `trackedBeamRadiusYM` and the wavefr
 tracking carries on unchanged.
 
 Simple astigmatism only: the principal axes are x and y. A fold plane at an arbitrary angle is snapped to the nearer
-axis (with a note). Thermal lenses of gain media are not included in the tracking.
+axis (with a note). The thermal lens of a gain element is included (amplifier elements: not; their path between passes is
+not modelled).
+
+## Spatio-temporal couplings
+
+With the beam tracked, the engine also follows how its colours separate: per axis, the **spatial dispersion**
+E = dx/dω (where each frequency's beam is) and the **angular dispersion** F = dθ/dω (where it goes), from the
+carrier's ray. This is the ray-pulse matrix formalism of Kostenbauder (IEEE J. Quantum Electron. 26, 1148 (1990)):
+every element with ABCD matrix and its own dispersion E_el, F_el maps
+
+E' = A E + B F + E_el,      F' = C E + D F + F_el
+
+(reduced angles n θ, as for q). The elements that disperse:
+
+| element | own dispersion |
+|---|---|
+| `grating` with `linesPerMm` (and `order`, default −1) | sin θ_out = sin θ_in + m λ / Λ; dθ_out/dλ = m / (Λ cos θ_out); magnification cos θ_out / cos θ_in |
+| `interface` / `surface` (refract) at an angle | Snell's law between dispersive media: n₂ dθ₂/dω = (sin θ₁ dn₁/dω − sin θ₂ dn₂/dω) / cos θ₂ |
+| `plate` / `window` at an angle | its two faces: spatial chirp ~ L sin θ / n, a little negative GDD |
+| `gratingPair` with `passes: 1` | the output's spatial chirp G cos α / cos²β · dβ/dω |
+
+Angles are **signed in the unfolded beam**: the same sign on both faces of a parallel plate, opposite signs on the faces of a
+prism (its exit face is tilted the other way). A grating that undoes the dispersion of a first one has `aoiDeg` = the first's
+diffraction angle and the opposite `order`:
+
+```jsonc
+{ "id": "g1", "type": "grating", "linesPerMm": 1200, "aoiDeg": -45,     "order": 1 },   // leaves at +31.93 deg
+{ "id": "gap", "type": "gap", "lengthM": 0.1178 },                                         // slant distance
+{ "id": "g2", "type": "grating", "linesPerMm": 1200, "aoiDeg": 31.9307, "order": -1 }    // back to -45 deg: no angular dispersion
+```
+
+A prism is two interfaces and the glass between them; for a 60° fused-silica prism entered at 55°:
+
+```jsonc
+{ "id": "f1", "type": "interface", "before": "Air", "after": "FusedSilica", "aoiDeg": 55 },
+{ "id": "glass", "type": "bulk", "material": "FusedSilica", "lengthM": 0.01 },
+{ "id": "f2", "type": "interface", "before": "FusedSilica", "after": "Air", "aoiDeg": -25.60 }   // internal angle 34.40 - 60 (n = 1.450 at 1030 nm)
+```
+
+**What the pulse gets.** The 1-D spectrum A(ω) is the field on each frequency's own (chief) ray; the beam is
+U(x, ω) = A(ω) u_q(x − E Δω) exp(i k₀ F Δω (x − E Δω)). Keeping A on the chief ray costs a group-delay dispersion, which the
+element applies to the pulse (a note gives it in fs²): k₀ B F² for a length B (reduced) of free space, −k₀ E² / f for a lens,
+k₀ (A C E² + 2 B C E F + B D F²) for a general ABCD step, and 2 k₀ F_el a E_in at a dispersing surface. After a system that cancels
+the couplings the sum is Kostenbauder's time element: −k₀ L F² for two gratings at slant distance L -- Treacy's GDD, to second
+order (`gratingPair` has the exact phase, all orders) -- and 0 for a 4f zero-dispersion stretcher. Higher orders of θ(ω) are not
+included: use `gratingPair` for compressors, and these elements for alignment, spatial chirp and pulse-front tilt.
+
+**Reports** (`summary.json → elements[].values`, per axis X / Y, when non-zero):
+
+| key | meaning |
+|---|---|
+| `trackedAngularDispersionXRadPerM` | dθ/dλ in the medium after the element (rad per m of wavelength; 1 µrad/nm = 1000) |
+| `trackedSpatialChirpXMPerM` | dx/dλ (m per m of wavelength; 1 mm/nm = 10⁶) |
+| `trackedPulseFrontTiltXSPerM`, `trackedPulseFrontTiltXDeg` | slope dt/dx of the intensity-weighted arrival time across the beam, and the tilt angle atan(c dt/dx / n) |
+
+The pulse-front tilt is computed from the pulse's actual spectrum: the Gaussian field above, its power-weighted group delay
+at 96 points across the beam (the first moment, exact and free of the time window), and a straight-line fit. It contains the
+tilt from angular dispersion (Hebling: tan γ = λ dθ/dλ) and the tilt from spatial chirp with temporal chirp (Akturk et al.,
+Opt. Express 13, 8642 (2005)).
+
+`physics.spatioTemporal`: `"auto"` (default) tracks the couplings and applies their dispersion -- unless an element has traced
+`groupDelayS` (a ray-traced system already contains it; a note says so); `"on"` always applies it; `"track"` only reports;
+`"off"` does neither. Couplings need beam tracking (a Gaussian `inputBeam`). Carried transverse profiles do not take the
+angular dispersion (a spatial element after a grating diffracts the profile it was given, without the per-colour tilt).
+
+Validated (`BeamTrackingTests`): angular dispersion and pulse-front tilt of a grating against the grating equation and
+Hebling (0.2 %); two gratings against `gratingPair` (Treacy GDD 0.1 %, spatial chirp 0.2 %); pulse-front tilt from spatial
+chirp and GDD against the Gaussian result 2 φ₂ E σ² / (w² + 2 E² σ²) (0.5 %); a prism against Snell's law at both faces
+(0.5 %); a 4f zero-dispersion stretcher (GDD < 10⁻⁶ of k₀ f F²).
 
 ## Curved and off-axis mirrors
 

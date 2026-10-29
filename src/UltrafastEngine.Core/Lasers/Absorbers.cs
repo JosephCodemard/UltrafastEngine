@@ -189,6 +189,37 @@ namespace UltrafastEngine.Lasers
             return 1;
         }
 
+        /// <summary>
+        /// Field mask of a hard aperture on a grid: the fraction of each cell inside the opening (the cell-averaged
+        /// transmission). A 0/1 mask moves the edge by up to one cell; the averaged mask puts it in the right place, so
+        /// diffraction patterns converge quickly with the sampling. The transmitted energy approaches the geometric value
+        /// from below (by ~ dx / 3a x the edge intensity: light diffracted beyond the grid's largest angle). Warns when
+        /// the opening spans fewer than 10 samples across its radius / half-width or does not fit on the grid. Null for
+        /// soft apertures.
+        /// </summary>
+        private double[] HardMask(ITransverseBasis B, ActiveContext ctx)
+        {
+            if (SoftRadiusM > 0 || !(RadiusM > 0 || HalfX > 0)) return null;
+            double size = RadiusM > 0 ? RadiusM : Math.Min(HalfX, HalfY);
+            double samples;
+            if (B is RadialBasis)
+            {
+                if (CenterX != 0 || CenterY != 0) ctx.Result.Warnings.Add("Element '" + ctx.Element.Id + "': a decentred aperture on a radial grid is applied as if centred -- use \"model\": \"cartesian\".");
+                if (!(RadiusM > 0)) ctx.Result.Warnings.Add("Element '" + ctx.Element.Id + "': a rectangular aperture on a radial grid is applied as a circle of radius min(halfWidthXM, halfWidthYM) -- use \"model\": \"cartesian\".");
+                samples = B.Radius.Count(r => r <= size);
+            }
+            else { var cb = (CartesianBasis)B; samples = size / Math.Max(cb.Dx, cb.Ny > 1 ? cb.Dy : 0); }
+            ctx.Record.Values["apertureSamples"] = samples;
+            if (samples < 10)
+                ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the aperture spans only {1:G3} grid samples across its radius / half-width -- its diffraction is under-resolved (use at least 10-20; more transverse points or a smaller grid).", ctx.Element.Id, samples));
+            if (size > B.Extent) ctx.Note("aperture: the opening is larger than the transverse grid (nothing is clipped on the grid)");
+            Func<double, double, bool> inside = RadiusM > 0
+                ? (x, y) => (x - CenterX) * (x - CenterX) + (y - CenterY) * (y - CenterY) <= RadiusM * RadiusM
+                : (Func<double, double, bool>)((x, y) => Math.Abs(x - CenterX) <= HalfX && Math.Abs(y - CenterY) <= HalfY);
+            var frac = TransverseOps.CellFractions(B, inside, B is RadialBasis ? size : double.NaN);
+            return frac;
+        }
+
         public PulseField Execute(ActiveContext ctx, PulseField p)
         {
             if (p.Profile == null)
@@ -199,7 +230,7 @@ namespace UltrafastEngine.Lasers
                 return p;
             }
             var prof = p.Profile.Clone(); var B = prof.Basis; int nf = prof.Omega.Length, M = B.M;
-            var mask = Enumerable.Range(0, M).Select(m => Mask(B.X[m], B.Y[m])).ToArray();
+            var mask = HardMask(B, ctx) ?? Enumerable.Range(0, M).Select(m => Mask(B.X[m], B.Y[m])).ToArray();
             var T = new double[nf];
             for (int f = 0; f < nf; f++)
             {

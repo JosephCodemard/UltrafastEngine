@@ -109,6 +109,9 @@ namespace UltrafastEngine.Specs
         /// <summary>Gaussian-beam (q-parameter) tracking through the system: "auto" (on when inputBeam is a Gaussian
         /// beam), "on" or "off". Elements without a beam of their own then use the tracked beam.</summary>
         public string BeamTracking { get; set; } = "auto";
+        /// <summary>Spatio-temporal couplings with the tracked beam: "auto" (tracked; their group-delay dispersion is applied
+        /// unless the system has traced group delays), "on", "track" (reported only), "off".</summary>
+        public string SpatioTemporal { get; set; } = "auto";
         /// <summary>Photo-ionisation and plasma in every nonlinear bulk element: null/false (default), true, or an object
         /// with model options (docs/reference/ionization.md). Elements can set their own "ionization".</summary>
         public JsonValue Ionization { get; set; }
@@ -128,6 +131,9 @@ namespace UltrafastEngine.Specs
             p.Transverse = o.Has("transverse") ? o["transverse"] : null;
             p.Ionization = o.Has("ionization") ? o["ionization"] : null;
             if (o.TryGet("beamTracking", out var bt)) p.BeamTracking = bt.Kind == JsonKind.Bool ? (bt.AsBool() ? "on" : "off") : bt.AsString();
+            if (o.TryGet("spatioTemporal", out var st)) p.SpatioTemporal = st.Kind == JsonKind.Bool ? (st.AsBool() ? "on" : "off") : st.AsString().ToLowerInvariant();
+            if (p.SpatioTemporal != "auto" && p.SpatioTemporal != "on" && p.SpatioTemporal != "track" && p.SpatioTemporal != "off")
+                throw new JsonException("physics.spatioTemporal must be \"auto\", \"on\", \"track\" or \"off\".");
             return p;
         }
     }

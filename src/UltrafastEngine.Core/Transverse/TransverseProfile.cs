@@ -40,6 +40,10 @@ namespace UltrafastEngine.Transverse
         /// <summary>"envelope" (paraxial nonlinear coupling) or "uppe" (unidirectional pulse propagation equation: the
         /// nonlinear drive of each plane-wave component scales with n omega / (c k_z)).</summary>
         public string Equation { get; set; } = "envelope";
+        /// <summary>Frequencies at which the carried profile is stored (and linear elements propagate it).</summary>
+        public int SpectralSamples { get; set; } = 48;
+        /// <summary>Width of the absorbing boundary layer as a fraction of the grid extent (0 = none; linear elements only).</summary>
+        public double AbsorbingBoundary { get; set; }
 
         public bool IsSpatial => Model == "radial" || Model == "cartesian";
 
@@ -66,6 +70,15 @@ namespace UltrafastEngine.Transverse
             if (s.Polarization != "auto" && s.Polarization != "scalar" && s.Polarization != "vector") throw new JsonException("transverse.polarization must be \"auto\", \"scalar\" or \"vector\".");
             s.Equation = o.GetString("equation", "envelope").ToLowerInvariant();
             if (s.Equation != "envelope" && s.Equation != "uppe") throw new JsonException("transverse.equation must be \"envelope\" or \"uppe\".");
+            s.SpectralSamples = o.GetInt("spectralSamples", 48);
+            if (s.SpectralSamples < 1) throw new JsonException("transverse.spectralSamples must be at least 1.");
+            var ab = o["absorbingBoundary"];
+            if (ab != null && !ab.IsNull)
+            {
+                if (ab.Kind == JsonKind.Bool) s.AbsorbingBoundary = ab.AsBool() ? 0.15 : 0;
+                else s.AbsorbingBoundary = ab.AsObject().GetDouble("widthFraction", 0.15);
+                if (!(s.AbsorbingBoundary >= 0 && s.AbsorbingBoundary < 0.5)) throw new JsonException("transverse.absorbingBoundary.widthFraction must be between 0 and 0.5.");
+            }
             return s;
         }
 
@@ -204,17 +217,37 @@ namespace UltrafastEngine.Transverse
         public static TransverseProfile FromShape(ITransverseBasis basis, JsonObject shape, double wx, double wy, double R, Func<double, double> indexAt, double[] omegas, string origin)
         {
             string kind = (shape?.GetString("kind", "gaussian") ?? "gaussian").ToLowerInvariant();
+            if (kind == "uniform") kind = "tophat";
+            if (kind != "gaussian" && kind != "supergaussian" && kind != "flattop" && kind != "tophat")
+                throw new InvalidOperationException("element " + origin + ": initialProfile.kind must be \"gaussian\", \"superGaussian\", \"flatTop\" or \"tophat\" (got \"" + kind + "\").");
             int order = kind == "flattop" ? 10 : kind == "supergaussian" ? Math.Max(1, shape.GetInt("order", 4)) : 1;
+            string geometry = (shape?.GetString("geometry", "round") ?? "round").ToLowerInvariant();
+            if (geometry == "rectangular") geometry = "square";
+            if (geometry != "round" && geometry != "square") throw new InvalidOperationException("element " + origin + ": initialProfile.geometry must be \"round\" or \"square\".");
+            bool square = geometry == "square";
+            if (square && basis.Kind == "radial") throw new InvalidOperationException("element " + origin + ": a square initialProfile needs a cartesian transverse grid (\"model\": \"cartesian\").");
             double dx = shape?.GetDouble("decenterXM", 0) ?? 0, dy = shape?.GetDouble("decenterYM", 0) ?? 0;
-            double tilt = shape?.GetDouble("tiltXRad", 0) ?? 0;
+            double tilt = shape?.GetDouble("tiltXRad", 0) ?? 0, tiltY = shape?.GetDouble("tiltYRad", 0) ?? 0;
             int M = basis.M, nf = omegas.Length;
             var amp = new double[M];
-            for (int m = 0; m < M; m++)
+            if (kind == "tophat")
             {
-                double x = basis.X[m] - dx, y = basis.Y[m] - dy;
-                double q = basis.Kind == "radial" ? Math.Pow(basis.Radius[m] / wx, 2) : x * x / (wx * wx) + y * y / (wy * wy);
-                amp[m] = Math.Exp(-Math.Pow(q, order));
+                // hard edge at radius w (round) or half-widths wx, wy (square); edge cells carry the fraction of their
+                // area inside (the cell-averaged field), which puts the edge in the right place between samples
+                Func<double, double, bool> inside = square
+                    ? (x, y) => Math.Abs(x - dx) <= wx && Math.Abs(y - dy) <= wy
+                    : (Func<double, double, bool>)((x, y) => (x - dx) * (x - dx) / (wx * wx) + (y - dy) * (y - dy) / (wy * wy) <= 1);
+                var frac = TransverseOps.CellFractions(basis, inside, basis.Kind == "radial" ? wx : double.NaN);
+                for (int m = 0; m < M; m++) amp[m] = frac[m];
             }
+            else
+                for (int m = 0; m < M; m++)
+                {
+                    double x = basis.X[m] - dx, y = basis.Y[m] - dy;
+                    if (basis.Kind == "radial") amp[m] = Math.Exp(-Math.Pow(Math.Pow(basis.Radius[m] / wx, 2), order));
+                    else if (square) amp[m] = Math.Exp(-Math.Pow(x * x / (wx * wx), order) - Math.Pow(y * y / (wy * wy), order));
+                    else amp[m] = Math.Exp(-Math.Pow(x * x / (wx * wx) + y * y / (wy * wy), order));
+                }
             var seedPhase = SeedNoise(basis, shape, amp, wx, origin);
             double norm = 0; for (int m = 0; m < M; m++) norm += basis.Weights[m] * amp[m] * amp[m];
             if (!(norm > 0)) throw new InvalidOperationException("transverse profile has no energy on the grid (beam larger than the grid or zero radius)");
@@ -228,6 +261,7 @@ namespace UltrafastEngine.Transverse
                     double r2 = basis.Radius[m] * basis.Radius[m];
                     double ph = double.IsInfinity(R) ? 0 : k * r2 / (2 * R);
                     if (tilt != 0) ph += k * Math.Sin(tilt) * basis.X[m];
+                    if (tiltY != 0) ph += k * Math.Sin(tiltY) * basis.Y[m];
                     if (seedPhase != null) ph += seedPhase[m];
                     data[m * nf + f] = Complex.FromPolarCoordinates(amp[m] * norm, ph);
                 }
@@ -292,6 +326,99 @@ namespace UltrafastEngine.Transverse
             return bins.ToArray();
         }
 
+        /// <summary>
+        /// Field transmission of an absorbing boundary layer in the outer <paramref name="width"/> fraction of the grid:
+        /// 1 inside, exp(-5 u^4) across the layer (u = 0 at its inner edge, 1 at the grid edge; per axis on cartesian grids).
+        /// Applied after each propagation step, it removes light leaving the window instead of letting it reflect (radial)
+        /// or wrap around (cartesian).
+        /// </summary>
+        public static double[] AbsorberMask(ITransverseBasis b, double width)
+        {
+            var mask = new double[b.M];
+            double Layer(double d, double ext)
+            {
+                double inner = (1 - width) * ext;
+                if (d <= inner) return 1;
+                double u = Math.Min(1, (d - inner) / (width * ext));
+                return Math.Exp(-5 * u * u * u * u);
+            }
+            for (int m = 0; m < b.M; m++)
+            {
+                if (b is CartesianBasis cb)
+                    mask[m] = Layer(Math.Abs(b.X[m]), cb.Nx * cb.Dx / 2) * (cb.Ny > 1 ? Layer(Math.Abs(b.Y[m]), cb.Ny * cb.Dy / 2) : 1);
+                else mask[m] = Layer(b.Radius[m], b.Extent);
+            }
+            return mask;
+        }
+
+        /// <summary>
+        /// Fraction of each basis point's cell (area element) inside a region: radial cells are the annuli with the
+        /// basis weights as areas, cartesian cells the pixels (sampled 16 x 16 where the boundary crosses them).
+        /// <paramref name="inside"/> tests a point (x, y). Used to anti-alias hard-edged apertures and beams.
+        /// </summary>
+        public static double[] CellFractions(ITransverseBasis b, Func<double, double, bool> inside, double radialEdge = double.NaN)
+        {
+            var frac = new double[b.M];
+            if (b is RadialBasis)
+            {
+                // annuli: r_lo(m)^2 = sum_{j<m} w_j / pi; a circle of radius radialEdge cuts one of them
+                double lo2 = 0;
+                for (int m = 0; m < b.M; m++)
+                {
+                    double hi2 = lo2 + b.Weights[m] / Math.PI;
+                    if (double.IsNaN(radialEdge)) frac[m] = inside(b.Radius[m], 0) ? 1 : 0;
+                    else frac[m] = Math.Max(0, Math.Min(1, (radialEdge * radialEdge - lo2) / (hi2 - lo2)));
+                    lo2 = hi2;
+                }
+                return frac;
+            }
+            var cb = (CartesianBasis)b; const int S = 16;
+            for (int m = 0; m < b.M; m++)
+            {
+                double x0 = b.X[m], y0 = b.Y[m], hx = cb.Dx / 2, hy = cb.Ny > 1 ? cb.Dy / 2 : 0;
+                bool c00 = inside(x0 - hx, y0 - hy), c01 = inside(x0 - hx, y0 + hy), c10 = inside(x0 + hx, y0 - hy), c11 = inside(x0 + hx, y0 + hy), cc = inside(x0, y0);
+                if (c00 == c01 && c00 == c10 && c00 == c11 && c00 == cc) { frac[m] = cc ? 1 : 0; continue; }
+                int cnt = 0;
+                for (int i = 0; i < S; i++)
+                    for (int j = 0; j < S; j++)
+                        if (inside(x0 + ((i + 0.5) / S - 0.5) * cb.Dx, cb.Ny > 1 ? y0 + ((j + 0.5) / S - 0.5) * cb.Dy : y0)) cnt++;
+                frac[m] = cnt / (double)(S * S);
+            }
+            return frac;
+        }
+
+        /// <summary>Pulse energy (J) of each stored frequency's spectral band (bins assigned to the nearest sample; x and y).</summary>
+        public static double[] SampleEnergies(TransverseProfile prof, PulseField p)
+        {
+            var g = p.Grid; int nf = prof.Omega.Length; var w = new double[nf];
+            for (int i = 0; i < g.N; i++)
+            {
+                double s = p.Ax[i].Real * p.Ax[i].Real + p.Ax[i].Imaginary * p.Ax[i].Imaginary + p.Ay[i].Real * p.Ay[i].Real + p.Ay[i].Imaginary * p.Ay[i].Imaginary;
+                if (s == 0) continue;
+                double om = g.OmegaAbsolute[i];
+                int lo = 0, hi = nf - 1;
+                while (hi - lo > 1) { int mid = (lo + hi) / 2; if (prof.Omega[mid] <= om) lo = mid; else hi = mid; }
+                int best = Math.Abs(prof.Omega[hi] - om) < Math.Abs(prof.Omega[lo] - om) ? hi : lo;
+                w[best] += s * g.DTime / g.N;
+            }
+            return w;
+        }
+
+        /// <summary>Fluence (J/m^2) at each basis point from the profile's stored frequencies, each weighted by the pulse
+        /// energy of its band (no full-field expansion: M x nf work).</summary>
+        public static double[] SampleFluence(TransverseProfile prof, PulseField p)
+        {
+            var W = SampleEnergies(prof, p); int nf = prof.Omega.Length, M = prof.Basis.M;
+            var F = new double[M];
+            for (int m = 0; m < M; m++)
+            {
+                double s = 0;
+                for (int f = 0; f < nf; f++) { var v = prof.Data[m * nf + f]; s += W[f] * (v.Real * v.Real + v.Imaginary * v.Imaginary); }
+                F[m] = s;
+            }
+            return F;
+        }
+
         /// <summary>Full field E (layout [m * n + i], sqrt(W/m^2)) from a 1-D spectrum and a profile.</summary>
         public static Complex[] Expand(Complex[] a, double[] omegaAbs, TransverseProfile p)
         {
@@ -311,7 +438,7 @@ namespace UltrafastEngine.Transverse
         }
 
         /// <summary>Collapse x and y fields: 1-D spectra (each exact in energy) and a profile with separate x and y shapes.</summary>
-        public static (Complex[] Ax, Complex[] Ay) CollapseVector(Complex[] ex, Complex[] ey, ITransverseBasis basis, double[] omegaAbs, string origin, out TransverseProfile profile)
+        public static (Complex[] Ax, Complex[] Ay) CollapseVector(Complex[] ex, Complex[] ey, ITransverseBasis basis, double[] omegaAbs, string origin, out TransverseProfile profile, int samples = 48)
         {
             int M = basis.M, n = omegaAbs.Length;
             var ax = Collapse(ex, basis, omegaAbs, origin, out var px);
@@ -324,7 +451,7 @@ namespace UltrafastEngine.Transverse
                 pwT[i] = s + ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary;
             }
             // re-sample both shapes at bins chosen from the total spectrum
-            var bins = SampleBins(pwT);
+            var bins = SampleBins(pwT, samples);
             var om = bins.Select(b => omegaAbs[b]).ToArray(); int nf = bins.Length;
             var dx = new Complex[M * nf]; var dy = new Complex[M * nf];
             for (int f = 0; f < nf; f++)
@@ -360,7 +487,7 @@ namespace UltrafastEngine.Transverse
         /// Collapse a full field to the 1-D envelope A (exact integrated spectrum |A|^2 = sum_m w_m |E_m|^2, phase =
         /// area-weighted coherent phase) and the profile E / A sampled at a reduced set of frequencies.
         /// </summary>
-        public static Complex[] Collapse(Complex[] e, ITransverseBasis basis, double[] omegaAbs, string origin, out TransverseProfile profile)
+        public static Complex[] Collapse(Complex[] e, ITransverseBasis basis, double[] omegaAbs, string origin, out TransverseProfile profile, int samples = 48)
         {
             int M = basis.M, n = omegaAbs.Length;
             var a = new Complex[n]; var pw = new double[n];
@@ -377,7 +504,7 @@ namespace UltrafastEngine.Transverse
                 double ph = c.Magnitude > 0 ? c.Phase : 0;
                 a[i] = Complex.FromPolarCoordinates(Math.Sqrt(s), ph);
             }
-            var bins = SampleBins(pw);
+            var bins = SampleBins(pw, samples);
             var om = bins.Select(b => omegaAbs[b]).ToArray();
             int nf = bins.Length;
             var data = new Complex[M * nf];
