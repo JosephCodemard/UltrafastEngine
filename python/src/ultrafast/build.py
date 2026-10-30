@@ -119,6 +119,26 @@ def mask(id: str, kind: str, *, cone_angle_rad: Optional[float] = None, focal_le
                    "heightM": height_m, "file": file, **extra})
 
 
+def prism(id: str, material: str, apex_deg: float, aoi_deg: float, path_m: float = 0.0, *, medium: str = "Air", fresnel: Optional[bool] = None, **extra) -> dict:
+    """A prism: two refracting faces and ``path_m`` of glass on the carrier's ray. ``aoi_deg`` is signed in the unfolded beam; a second prism that
+    undoes the angular dispersion takes the first's exit angle (see the note it writes) as its ``aoi_deg``. Disperses the tracked beam
+    (docs/reference/components.md#spatio-temporal-couplings)."""
+    return _clean({"id": id, "type": "prism", "material": material, "apexDeg": apex_deg, "aoiDeg": aoi_deg, "pathM": path_m or None, "medium": medium, "fresnel": fresnel, **extra})
+
+
+def resonator(id: str, elements: Sequence[Mapping[str, Any]], geometry: str = "ring", *, transverse: Optional[Mapping[str, Any]] = None,
+              round_trips: Optional[Mapping[str, Any]] = None) -> dict:
+    """A passive resonator around ``elements`` (docs/reference/oscillators.md#resonators): round-trip matrix, stability, eigenmode on the tracked beam;
+    with a ``transverse`` grid, the Fox-Li mode and its round-trip loss. ``geometry`` "ring" or "linear" (forward and back, end elements once)."""
+    return _clean({"id": id, "type": "resonator", "elements": list(elements), "geometry": geometry, "transverse": transverse, "roundTrips": round_trips})
+
+
+def coherence(m2: float, modes: Optional[int] = None, *, dimensions: Optional[int] = None, element: Optional[str] = None) -> dict:
+    """A partially coherent source (``run_spec(coherence=...)``; docs/reference/transverse.md#partial-coherence): a Gaussian-Schell beam of quality ``m2``
+    as an incoherent sum of Hermite-Gauss modes, one complete run each, on a cartesian grid."""
+    return _clean({"model": "gaussianSchell", "m2": m2, "modes": modes, "dimensions": dimensions, "element": element})
+
+
 def grating(id: str, lines_per_mm: float, aoi_deg: float, order: int = -1, efficiency: Optional[float] = None, **extra) -> "T.GratingElement":
     """One diffraction grating. With the beam tracked (an ``inputBeam``) it disperses the beam: sin(theta_out) = sin(theta_in) + m lambda / period
     with signed angles in the unfolded beam (a second grating that undoes it has ``aoi_deg`` = the first's diffraction angle and the opposite
@@ -417,11 +437,14 @@ def gain(id: str, medium: Any, length_m: float, pump: Optional[Mapping[str, Any]
 
 
 def thermal_lens(*, rod_radius_m: Optional[float] = None, heat_fraction: Optional[float] = None, apply: Optional[bool] = None,
-                 track: Optional[bool] = None, focal_length_m: Optional[float] = None) -> dict:
+                 track: Optional[bool] = None, focal_length_m: Optional[float] = None, pass_gap_m: Optional[float] = None, stress: Optional[bool] = None) -> dict:
     """The thermal lens of a gain element (``gain(thermal_lens=...)``; docs/reference/gain.md#thermal-lens): heat = ``heat_fraction`` (default
     the quantum defect) x absorbed pump, conducted to a rod of radius ``rod_radius_m``. ``track`` (default True) also puts it on the tracked
-    Gaussian beam (thin lenses per slice, fitted over the beam); ``focal_length_m`` is a measured focal length used instead of the heat model."""
-    return _clean({"rodRadiusM": rod_radius_m, "heatFraction": heat_fraction, "apply": apply, "track": track, "focalLengthM": focal_length_m})
+    Gaussian beam (thin lenses per slice, fitted over the beam; a multipass amplifier only when ``track`` or ``pass_gap_m``, the free path between
+    passes, is given); ``focal_length_m`` is a measured focal length used instead of the heat model; ``stress`` adds thermal birefringence (cubic
+    hosts): the depolarised fraction moves to y, and the two thermal lenses f_r, f_phi are reported."""
+    return _clean({"rodRadiusM": rod_radius_m, "heatFraction": heat_fraction, "apply": apply, "track": track, "focalLengthM": focal_length_m,
+                   "passGapM": pass_gap_m, "stress": stress})
 
 
 def multipass_amplifier(id: str, medium: Any, length_m: float, passes: int, pump: Optional[Mapping[str, Any]] = None,
@@ -497,6 +520,12 @@ def coating_quarter_wave(design: str, design_wavelength_m: float, H: str = "Ta2O
 
 
 # ------------------------------------------------------------------ run spec
+def cw(wavelength_m: float, power_w: float) -> dict:
+    """A cw source: one spectral bin at ``wavelength_m`` (docs/reference/run-spec.md#cw-sources). Fluences are intensity x the window (1 ns unless
+    ``grid.windowS`` is set); ``beamProfile`` also reports ``peakIntensityWPerM2``."""
+    return {"shape": "cw", "centerWavelengthM": wavelength_m, "powerW": power_w}
+
+
 def pulse(center_wavelength_m: float, duration_fwhm_s: Optional[float] = None, energy: Optional[float] = None,
           shape: str = "gaussian", rep_rate_hz: Optional[float] = None, average_power_w: Optional[float] = None,
           peak_power_w: Optional[float] = None, gdd_s2: float = 0.0, tod_s3: float = 0.0, polarization="x", **extra) -> "T.Pulse":
@@ -594,8 +623,9 @@ def override(target: str, prop: str, model: Any = None, value: Any = None, mode:
 
 def physics(*, beam_tracking: Any = None, spatio_temporal: Any = None, transverse: Optional[Mapping[str, Any]] = None, **extra: Any) -> "T.Physics":
     """Physics switches of a run (``run_spec(physics=...)``). ``beam_tracking``: "auto" | "on" | "off" (Gaussian q tracking from the
-    ``input_beam``); ``spatio_temporal``: "auto" | "on" | "track" | "off" -- angular / spatial dispersion and pulse-front tilt carried with the
-    tracked beam, their group-delay dispersion applied to the pulse ("track": reported only); ``transverse``: the default spatial model.
+    ``input_beam``); ``spatio_temporal``: "auto" | "on" | "track" | "profile" | "off" -- angular / spatial dispersion and pulse-front tilt carried with
+    the tracked beam, their dispersion applied to the pulse ("track": reported only; "profile": gratings and tilted surfaces tilt each frequency of
+    a carried cartesian profile instead); ``transverse``: the default spatial model.
     Other keys (``nonlinear``, ``raman``, ...) go through ``extra``."""
     return _clean({"beamTracking": beam_tracking, "spatioTemporal": spatio_temporal, "transverse": transverse, **extra})  # type: ignore[return-value]
 

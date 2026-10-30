@@ -47,7 +47,7 @@ namespace UltrafastEngine.Cli
         the CPU on standard problems, --benchmark also times both (docs/reference/speed.md).
   ultrafast study <study.json> [-o <dir>] [--parallel <n>] [--backend <name>]
         Parameter scan (grid, random, LHS, Sobol), optimisation or sensitivity study (docs/reference/studies.md).
-  ultrafast retrieve <pcgpa|epie|dscan> <trace.npz|trace.json> [--kind shg-frog|pg-frog|dscan] [--fundamental spectrum.csv]
+  ultrafast retrieve <pcgpa|epie|dscan|gerchbergSaxton> <trace.npz|trace.json> [--kind shg-frog|pg-frog|dscan] [--fundamental spectrum.csv]
                      [--material FusedSilica] [--instrument name] [--iterations n] [-o <dir>]
         Pulse retrieval from a FROG or d-scan trace (or a results folder's result.npz: --instrument picks the trace);
         writes retrieved_spectrum.csv (usable as a run-spec pulse).
@@ -197,6 +197,7 @@ Docs: docs/index.md   Examples: docs/examples/";
                 res = Simulation.Run(sys, run, null, fp);
                 if (showProgress) Console.WriteLine();
             }
+            else if (run.Raw != null && run.Raw.Has("coherence")) res = PartialCoherence.Run(sys, run, compiled.Registry, prog, default);
             else res = Executor.Execute(compiled, prog);
             if (showProgress) Console.WriteLine();
             res.WriteAll(outDir);
@@ -288,7 +289,7 @@ Docs: docs/index.md   Examples: docs/examples/";
         private static int RetrieveCommand(string[] a)
         {
             var p = Args(a);
-            if (p.Length < 2) { Console.Error.WriteLine("usage: ultrafast retrieve <pcgpa|epie|dscan> <trace.npz|trace.json> [--kind ...] [--fundamental spectrum.csv] [-o dir]"); return 1; }
+            if (p.Length < 2) { Console.Error.WriteLine("usage: ultrafast retrieve <pcgpa|epie|dscan|gerchbergSaxton> <trace.npz|trace.json> [--kind ...] [--fundamental spectrum.csv] [-o dir]"); return 1; }
             var req = new JsonObject().Set("command", "retrieve").Set("method", p[0]).Set("trace", Path.GetFullPath(p[1]));
             if (Opt(a, "--kind") != null) req.Set("kind", Opt(a, "--kind"));
             if (Opt(a, "--fundamental") != null) req.Set("fundamental", Path.GetFullPath(Opt(a, "--fundamental")));

@@ -157,7 +157,7 @@ namespace UltrafastEngine.Transverse
         }
 
         // The orthogonal matrix depends only on the number of points (r_m and k_m scale with R, the matrix does not):
-        // built once per size and shared (2048 points: ~1 s instead of ~1 min per element).
+        // built once per size and shared (2048 points: ~2 s, once per process).
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, double[]> Matrices = new System.Collections.Concurrent.ConcurrentDictionary<int, double[]>();
 
         /// <summary>Newton-Schulz iteration X &lt;- X (3 I - X X) / 2 for the symmetric, near-orthogonal X (X stays
@@ -178,7 +178,8 @@ namespace UltrafastEngine.Transverse
             return x;
         }
 
-        /// <summary>c = a b for n x n row-major matrices (rows in parallel, i-k-j order, four rows of a per pass over b).</summary>
+        /// <summary>c = a b for n x n row-major matrices whose product is symmetric (powers of one symmetric matrix): only the upper
+        /// triangle is computed and then mirrored (rows in parallel, i-k-j order, four rows of a per pass over b).</summary>
         private static void Multiply(double[] a, double[] b, double[] c, int n)
         {
             int blocks = (n + 3) / 4;
@@ -193,11 +194,12 @@ namespace UltrafastEngine.Transverse
                     {
                         double s = a[(r0 + r) * n + k];
                         if (s == 0) continue;
-                        int oc = (r0 + r) * n;
-                        for (int j = 0; j < n; j++) c[oc + j] += s * b[ob + j];
+                        int row = r0 + r, oc = row * n;
+                        for (int j = row; j < n; j++) c[oc + j] += s * b[ob + j];
                     }
                 }
             });
+            Parallel.For(0, n, r => { for (int j = 0; j < r; j++) c[r * n + j] = c[j * n + r]; });
         }
 
         private void Apply(Complex[] data, int n, bool toK)

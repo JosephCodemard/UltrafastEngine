@@ -24,4 +24,4 @@ where it matters. Wavefront errors on a 1-D beam are reported as an rms and a St
 With a Gaussian `inputBeam` the beam is tracked through the system (q parameters, thermal lenses of gain media), and
 so are the spatio-temporal couplings of gratings, prisms and tilted plates: angular dispersion, spatial chirp,
 pulse-front tilt and the dispersion they add (Kostenbauder matrices; [Components](reference/components.md#spatio-temporal-couplings)).
-The tracked beam stays Gaussian; a carried transverse profile does not take the angular dispersion.
+The tracked beam stays Gaussian; a carried cartesian profile takes the angular dispersion with `physics.spatioTemporal` = `"profile"`.

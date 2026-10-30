@@ -7,7 +7,7 @@ described in [docs/capabilities.md](docs/capabilities.md); what comes next is in
 
 | platform | C# tests (`--slow`) | other checks | date |
 |---|---|---|---|
-| macOS arm64, .NET 10 | **301 pass, 0 fail, 8 skipped** (7 `GpuTests`: no FP64 GPU device; the opt-in HAPI test) | Python 62 pass on the NativeAOT library (5 plugin and `uf.study` tests need the hosted engine); `build/example_check.py`: 35 examples and tutorials ok, 07 and the C++ example manual, pyNLO comparison of 10 not run; mkdocs and mypy not installed here | 2026-10-30 |
+| macOS arm64, .NET 10 | **320 pass, 0 fail, 8 skipped** (7 `GpuTests`: no FP64 GPU device; the opt-in HAPI test), net48 builds | Python 63 pass on the NativeAOT library (5 plugin and `uf.study` tests need the hosted engine); `build/example_check.py`: all examples and tutorials ok (07 and the C++ example manual, pyNLO comparison of 10 not run); mkdocs and mypy not installed here | 2026-10-30 |
 | Linux x64, .NET 10 and Mono (net48) | 225 / 225 (release baseline; the tests added since have not run on Linux -- the new CI will) | Python 61 / 61 with pyNLO; all 31 CLI examples strict; release packages | 2.1.8-beta release |
 | Windows (net48 / OpticStudio) | not run | -- | -- |
 
@@ -75,9 +75,9 @@ The sections below are the records of each verification, newest first after the 
 
 ## Known limitations (summary; full list in docs/capabilities.md)
 - Beam tracking: simple astigmatism (principal axes x / y); the tracked beam stays Gaussian (thermal lens as the best-fit
-  parabola, spatio-temporal coupling dispersion to second order); amplifier elements do not put their thermal lens on it.
-- One beam path: no splitters, arms or coherent recombination (T1 on the roadmap). Carried transverse profiles do not take
-  angular dispersion. Beam sources: Gaussian, super-Gaussian, flat-top, tophat (round / square) only.
+  parabola, spatio-temporal coupling dispersion to fourth order); a multipass amplifier puts its thermal lens on it only on request, a regenerative amplifier not at all.
+- One beam path: no splitters, arms or coherent recombination (the next large step). A `resonator` is a nested sequence; partial coherence is one run per mode.
+  Angular dispersion on profiles needs `physics.spatioTemporal: "profile"` and a cartesian grid. Stress birefringence is the beam average for a uniformly heated cubic rod.
 - Spatial models are per element; aberrations on 1-D beams are reported (Strehl), applied only on spatial grids.
 - Crystal surfaces are not recognised by the Zemax binding (add `crystal` elements to the exported file).
 - BiBO has no built-in d tensor; the MgO:LN temperature coefficient b4 is unverified. TGG index is approximate.

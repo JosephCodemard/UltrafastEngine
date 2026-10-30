@@ -104,7 +104,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test]
+        [Test(Reference = "T = 10^−OD(λ)", Tolerance = "1 %")]
         public void NdFilter_OdPerWavelengthShapesTheSpectrum()
         {
             var sys = SysWith(null, O("id", "nd", "type", "ndFilter", "od", new[] { 0.0, 2.0 }, "wavelengthsM", new[] { 1000e-9, 1060e-9 }, "material", "FusedSilica", "thicknessM", 1e-3));
@@ -166,7 +166,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>The Didenko mechanism: a post-pulse overlapping a stretched pulse in a Kerr medium makes a pre-pulse
         /// after compression, with intensity proportional to B^2.</summary>
-        [Test]
+        [Test(Reference = "pre-pulse from Kerr phase: level ∝ B² (Didenko et al., Opt. Express 16, 3178 (2008))", Tolerance = "25 %")]
         public void Ghost_KerrMediumCreatesPrePulsePartner()
         {
             double Pre(double n2)
@@ -380,7 +380,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>Nonlinear ellipse rotation resolved across the beam: on a radial grid the rotation follows the local
         /// intensity (exp(-2 r^2 / w^2)) and on axis it equals the 1-D vector model with the on-axis intensity.</summary>
-        [Test]
+        [Test(Reference = "nonlinear ellipse rotation B sin 2χ / 3, local across a Gaussian beam", Tolerance = "2 %, 4 %, 5 %")]
         public void VectorSpatial_NonlinearEllipseRotationAcrossTheBeam()
         {
             double w = 0.5e-3, L = 2e-3, n2 = 1e-19, E = 2e-5;

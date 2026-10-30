@@ -191,9 +191,20 @@ namespace UltrafastEngine.Instruments
     public sealed class SpaceTime : IInstrument
     {
         public string Kind => "spaceTime";
+        private static Optics.BeamState TrackedBeamAt(InstrumentContext ctx)
+        {
+            var cr = ctx.Run?.Compiled; if (cr == null) return null;
+            if (ctx.Location == "input") return cr.BeamAtInput;
+            var els = cr.Elements;
+            int k = ctx.Location == "end" ? els.Count - 1 : els.FindIndex(e => string.Equals(e.Id, ctx.Location, StringComparison.OrdinalIgnoreCase));
+            return k >= 0 ? els[k].BeamOut : null;
+        }
+
         public void Measure(InstrumentContext ctx, InstrumentOutput o)
         {
             var p = ctx.Pulse;
+            var tracked = p.Profile == null ? TrackedBeamAt(ctx) : null;
+            if (tracked != null && tracked.HasCouplings) p = Optics.Couplings.WithTrackedProfile(tracked, p, ctx.Spec.GetString("axis", "x") != "y");
             var prof = p.Profile ?? throw new InvalidOperationException("spaceTime: no transverse profile at \"" + ctx.Location + "\" (place it after an element with a radial/cartesian transverse model)");
             var cp = Tools.Compact(p, ctx.Spec.GetInt("points", 512), out var note); if (note != null) o.Notes.Add(note);
             var g = cp.Grid; int n = g.N;

@@ -45,6 +45,16 @@ that is not subtracted gives a warning, because a flat floor shortens the transf
 what the *system* does to a pulse and reuse that knowledge with other inputs, use transform elements and the fit of
 the [fitting plugin](../plugins/fitting.md), which can also propagate a measured output field backward to the input.
 
+### Cw sources
+
+```jsonc
+"pulse": { "shape": "cw", "centerWavelengthM": 1030e-9, "powerW": 2.0 }
+```
+
+One spectral bin on a small grid, so a linear spatial run carries a single frequency end to end: the fast path for monochromatic diffraction. `grid.windowS` (default 1 ns)
+only sets the energy: energies and fluences are power and intensity times the window; `beamProfile` also reports `peakIntensityWPerM2`. Kerr media give the phase of the constant
+intensity, with no spectral change. Other instruments see a constant field.
+
 ### `pedestal`
 
 Real pulses sit on a pedestal and come with replicas. `pulse.pedestal` adds them to the ideal input, so contrast
@@ -109,7 +119,7 @@ error, and `tail` carries the satellites on a second, long, linear grid instead 
 | `polarization` | `jones` | or `scalar` (s/p averaged) |
 | `losses` | true | `false` removes flat loss terms (quick "what if lossless") |
 | `beamTracking` | `auto` | Gaussian beam (q) tracking through the system: `auto` (on when there is a Gaussian `inputBeam`), `on`, `off` ([Components](components.md#gaussian-beam-tracking)) |
-| `spatioTemporal` | `auto` | angular / spatial dispersion and pulse-front tilt carried with the tracked beam: `auto` (their group-delay dispersion applied unless an element has traced `groupDelayS`), `on`, `track` (reported only), `off` ([Components](components.md#spatio-temporal-couplings)) |
+| `spatioTemporal` | `auto` | angular / spatial dispersion and pulse-front tilt carried with the tracked beam: `auto` (their group-delay dispersion applied unless an element has traced `groupDelayS`), `on`, `track` (reported only), `profile` (carried by a cartesian profile), `off` ([Components](components.md#spatio-temporal-couplings)) |
 | `ionization` | false | photo-ionisation and plasma in every nonlinear bulk element: `true` or `{ "model": "ppt", ... }` ([Ionisation](ionization.md)) |
 | `transverse` | none | default spatial model for every bulk/gap/crystal element that has none of its own: `{"model": "radial", "points": 48}` ([Spatial models](transverse.md)) |
 
@@ -137,6 +147,10 @@ A list of `{ "kind": ..., "at": "end" | "input" | element id, "name": ..., ...pa
   ([Measured data](measured-data.md)).
 
 See [Sampling](instruments.md#sampling-where-the-instrument-looks) and [Measured data](measured-data.md).
+
+## `coherence`
+
+A partially coherent source: a run over coherent modes ([Transverse](transverse.md#partial-coherence)).
 
 ## `fit` (fitting plugin)
 Calibrates parameters of the system or the run against every instrument with `"measured"` data, then predicts

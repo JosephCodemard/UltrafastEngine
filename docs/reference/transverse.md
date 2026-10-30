@@ -67,7 +67,8 @@ Structured beams (w is `radiusM` or the element's beam):
 | `airy` | Ai(x/x0) exp(a x/x0) x the same in y, x0 = `radiusM` | `truncation` (a, 0.1) | cartesian; `"ny": 1` for one transverse dimension |
 | `measured` | a near field from an NPZ: `x_m`, `y_m` ([x][y] maps) or `r_m`, with `fluence` or `amplitude`, optionally `phase_rad` | `file` (relative to the file that names it), `background` (a number, or `"auto"`: the median of the map's edge; fluence only) | both (x-y maps: cartesian) |
 
-A `measured` map is sampled bilinearly and is zero outside its axes; its size is the map's, so no `radiusM` is needed if the grid is explicit.
+A `measured` map is sampled bilinearly and is zero outside its axes; its size is the map's, so no `radiusM` is needed if the grid is explicit. It may also be
+an 8- or 16-bit grayscale PNG with `pixelSizeM`. `threshold` zeroes fluence below that fraction of the peak, and `center` moves the fluence centroid to the axis.
 Gouy phases are not added: the field is the mode at its waist (with `radiusOfCurvatureM`, the curvature of that plane).
 
 ## Physics in a spatial bulk element
@@ -159,7 +160,8 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
   (`widthFraction`) multiplies the field by exp(−5 u⁴) (u from 0 at the layer's inner edge to 1 at the grid's edge) after each step,
   and a linear element is split into steps short enough for the steepest wave on the grid to cross the layer within one. The absorbed
   energy is booked as `grid boundary` and reported as `absorbedAtBoundaryJ` / `absorbedAtBoundaryFraction`; the edge warning is
-  not given. Nonlinear spatial elements do not use the layer.
+  not given. In nonlinear elements the layer is an absorption in the same region (power 10 nepers across the layer for a wave at a third of the grid's
+  steepest angle), stepped with the propagation, booked the same way. Such an element stays on the CPU.
 * **Narrowband pulses:** `spectralSamples` (default 48) sets how many frequencies the profile holds. A ps pulse needs a few;
   a 2-D grid's memory scales with them.
 
@@ -187,6 +189,23 @@ Gaussian beam does not change.
 [apertures](#diffraction-and-apertures); pure phase masks keep unit magnitude. Lost energy is booked as `clip`, and the element reports `transmission`;
 a zone plate also reports `outerZoneWidthM` and warns below 3 samples per zone across the beam. Maps come from NPZ files: convert images in Python
 (`np.savez("mask.npz", x_m=x, y_m=y, amplitude=a)`).
+
+## Partial coherence
+
+A top-level `"coherence"` in the run spec makes the source a Gaussian-Schell beam: an incoherent sum of Hermite-Gauss modes with weights tⁿ, t = (M² − 1) / (M² + 1),
+and mode radius w₀ / √M² (Starikov & Wolf, J. Opt. Soc. Am. 72, 923 (1982)).
+
+```jsonc
+"coherence": { "m2": 2.5, "modes": 40 }      // also "dimensions": 1 | 2 (1 for a grid with ny = 1), "element": the element whose initialProfile they replace
+```
+
+* w₀ comes from `initialProfile.radiusM` (or the element's `beam`); the grid must be cartesian and wide enough for the highest mode (radius ~ w₀ √(2 n / M²)).
+* Each mode is one complete run with its share of the energy, so the run takes as many times longer as there are modes (modes below 10⁻⁴ of the energy are skipped). Element
+  energies and beam radii, and `beamProfile` fluences and radii, are the sums. The `coherence` entry among the instruments reports the modes and `capturedWeight`.
+  Other outputs, such as spectra and `result.npz` fields, belong to the lowest mode.
+* It is a run mode around the engine: elements know nothing of it. In a nonlinear element each mode propagates alone (a warning says so), so coupling between modes is missing.
+
+Example: [31 Cavity and coherence](../examples/31-cavity-and-coherence/README.md). Check: w(z) = w₀ √(1 + (M² z / z_R)²) to 2 %.
 
 ## Small-scale self-focusing
 

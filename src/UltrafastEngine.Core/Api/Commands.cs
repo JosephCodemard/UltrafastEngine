@@ -101,6 +101,8 @@ namespace UltrafastEngine
         public static JsonObject Retrieve(JsonObject r, string baseDirectory)
         {
             string method = r.GetString("method", "pcgpa");
+            if (string.Equals(method, "gerchbergSaxton", StringComparison.OrdinalIgnoreCase) || method == "gs")
+                return Retrieval.PhaseRetrieval.Command(r, Abs(r.GetString("trace"), baseDirectory), r.GetString("output") != null ? Abs(r.GetString("output"), baseDirectory) : null);
             string kind = r.GetString("kind", method == "dscan" ? "dscan" : "shg-frog");
             TraceData t;
             var tv = r["trace"] ?? throw new JsonException("retrieve: \"trace\" is required");

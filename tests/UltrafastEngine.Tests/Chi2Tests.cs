@@ -287,7 +287,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(1.0, pmc.Arrays.First(a => a.Name.EndsWith("efficiency_norm")).Data.Min(), 1e-9, 0, "dispersion-free crystal: phase matched everywhere");
         }
 
-        [Test(Category = "system")]
+        [Test(Category = "system", Reference = "Gaussian beam w(z)", Tolerance = "1 %, 2 %")]
         public void BeamProfileInstrument_ReportsRadiusAfterARadialElement()
         {
             double w0 = 300e-6;

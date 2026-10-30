@@ -73,6 +73,9 @@ namespace UltrafastEngine.Engine
         /// 1/f (1/m, vacuum-equivalent, from the optical path difference), e.g. the slices of a thermal lens. The tracker
         /// crosses the element at <see cref="TrackingIndex"/> and applies each lens at its position.</summary>
         public List<(double ZM, double InvFocalM)> TrackLenses { get; set; }
+        /// <summary>Passes through <see cref="TrackLenses"/> (a multipass amplifier) and the free path between them.</summary>
+        public int TrackPasses { get; set; } = 1;
+        public double TrackPassGapM { get; set; }
 
         public IEnumerable<LinearTerm> AllLinear => Pre.Concat(Nonlinear?.Background ?? Enumerable.Empty<LinearTerm>()).Concat(Post);
 
@@ -107,7 +110,7 @@ namespace UltrafastEngine.Engine
     {
         public static readonly string[] ElementTypes =
             { "dispersion", "bulk", "gap", "fiber", "interface", "mirror", "grating", "gratingPair", "chirpedMirror", "aperture", "filter", "waveplate", "polarizer", "rotator", "probe", "custom", "lens", "user", "crystal", "gain", "amplifier", "saturableAbsorber", "sesam", "oscillator",
-              "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront", "mask" };
+              "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront", "mask", "prism", "resonator" };
 
         private sealed class Ctx
         {
@@ -120,7 +123,7 @@ namespace UltrafastEngine.Engine
             public double Omega0;
             public Optics.BeamState Track;
             /// <summary>Track spatio-temporal couplings with the beam / apply their group-delay dispersion to the pulse.</summary>
-            public bool StcTrack, StcPhase;
+            public bool StcTrack, StcPhase, StcProfile;
         }
 
         public static CompiledRun Compile(SystemDescription sys, RunSpec run, ModelRegistry registry = null)
@@ -169,6 +172,7 @@ namespace UltrafastEngine.Engine
                 c.StcTrack = true;
                 bool traced = sys.Elements.Any(el => el.Json.Has("groupDelayS"));
                 c.StcPhase = stMode == "on" || (stMode == "auto" && !traced);
+                c.StcProfile = stMode == "profile";
                 if (stMode == "auto" && traced) c.Out.Notes.Add("spatio-temporal couplings are tracked but their group-delay dispersion is not applied: the system has traced group delays (groupDelayS), which already contain it (physics.spatioTemporal = \"on\" applies it).");
             }
             if ((btMode == "on" || btMode == "true") && c.Track == null)
@@ -236,14 +240,15 @@ namespace UltrafastEngine.Engine
             PropertiesFn = e => ReadSpatialProperties(c, e),
             TrackedFn = n => TrackedBeam(c, n),
             TrackFn = () => c.Track,
-            CompileFn = (e, prefix) =>
+            SetTrackFn = t => c.Track = t,
+            CompileFn = (e, prefix, onBeam) =>
             {
                 var se = new SystemElement { Type = e.GetRequiredString("type", prefix), Id = prefix + "." + (e.GetString("id") ?? "e"), Label = e.GetString("label"), Json = e };
                 CompiledElement ce;
-                var saved = c.Track; c.Track = null;   // nested (cavity) elements are not on the main beam path
+                var saved = c.Track; if (!onBeam) c.Track = null;   // nested (cavity) elements are not on the main beam path
                 try { ce = CompileElement(c, se); }
                 catch (JsonException ex) { throw new JsonException("cavity element '" + se.Id + "': " + ex.Message); }
-                finally { c.Track = saved; }
+                finally { if (!onBeam) c.Track = saved; }
                 if (ce.Nonlinear != null)
                 {
                     string fm = (c.Run.Physics.FieldMode ?? "auto").ToLowerInvariant();
@@ -383,6 +388,7 @@ namespace UltrafastEngine.Engine
                 case "chirpedmirror": CompileChirpedMirror(c, e, ce); break;
                 case "aperture": CompileAperture(c, e, ce); break;
                 case "mask": CompileMask(c, e, ce); break;
+                case "prism": CompilePrism(c, e, ce); break;
                 case "filter": case "custom":
                 {
                     var spec = Model(c, e, e.Json.Has("filter") ? "filter" : "model", out var src) ?? throw new JsonException("needs a \"filter\" (or \"model\") spectral-filter model.");
@@ -466,6 +472,9 @@ namespace UltrafastEngine.Engine
                 case "oscillator":
                     Lasers.OscillatorCompiler.Compile(Services(c), e, ce);
                     break;
+                case "resonator":
+                    Lasers.ResonatorCompiler.Compile(Services(c), e, ce);
+                    break;
                 default:
                     if (Plugins.PluginManager.TryGetElementCompiler(e.Type, out var pc)) { pc(Services(c), e, ce); break; }
                     if (string.Equals(e.Type, "transform", StringComparison.OrdinalIgnoreCase))
@@ -519,26 +528,26 @@ namespace UltrafastEngine.Engine
             try { double n = GetMaterial(c, name).IndexAt(c.Omega0); return n > 0 && !double.IsNaN(n) ? n : 1.0; } catch { return 1.0; }
         }
 
-        /// <summary>dn/dω (s) of a named material at the carrier (central difference), 0 when unknown.</summary>
-        private static double IndexSlope(Ctx c, string name)
+        /// <summary>n(ω) of a named material, or null when unknown (the surface then does not disperse).</summary>
+        private static Func<double, double> IndexOf(Ctx c, string name)
         {
-            if (string.IsNullOrEmpty(name)) return 0;
-            try
-            {
-                var m = GetMaterial(c, name); double h = 1e-4 * c.Omega0;
-                double d = (m.IndexAt(c.Omega0 + h) - m.IndexAt(c.Omega0 - h)) / (2 * h);
-                return double.IsNaN(d) ? 0 : d;
-            }
-            catch { return 0; }
+            if (string.IsNullOrEmpty(name)) return null;
+            try { var m = GetMaterial(c, name); return w => m.IndexAt(w); } catch { return null; }
         }
 
-        /// <summary>The group-delay dispersion an element adds from the spatio-temporal couplings of the incoming beam
-        /// (docs/reference/components.md#spatio-temporal-couplings): applied to the pulse as a GDD term.</summary>
-        private static void AddCouplingGdd(Ctx c, CompiledElement ce, double gdd)
+        private static void AddProfileDispersion(CompiledElement ce, bool tx, double magnification, Func<double, double> q)
         {
-            if (gdd == 0 || double.IsNaN(gdd) || !c.StcPhase) return;
-            ce.Post.Add(new PolynomialPhaseTerm(ce.Label + " (angular dispersion)", c.Omega0, 0, gdd, 0, 0));
-            ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "spatio-temporal coupling: {0:G4} fs^2 of group-delay dispersion from the angular / spatial dispersion of the beam (the spectrum stays the field on each frequency's chief ray)", gdd * 1e30));
+            if (ce.Active != null) { ce.Notes.Add("physics.spatioTemporal = profile: this surface already acts on the profile; its angular dispersion is tracked only"); return; }
+            ce.Active = new Optics.DispersiveSurfaceElement { TiltWavenumber = q, Magnification = magnification, TangentialIsX = tx };
+        }
+
+        /// <summary>The dispersion an element adds from the spatio-temporal couplings of the beam (docs/reference/components.md#spatio-temporal-couplings):
+        /// a polynomial phase term to fourth order, from the ray bundle of the tracked beam.</summary>
+        private static void AddCouplingDispersion(Ctx c, CompiledElement ce, (double Gdd, double Tod, double Fod) d)
+        {
+            if (!c.StcPhase || double.IsNaN(d.Gdd) || (Math.Abs(d.Gdd) < 1e-36 && Math.Abs(d.Tod) < 1e-50)) return;   // below 1e-6 fs^2: round-off of the bundle
+            ce.Post.Add(new PolynomialPhaseTerm(ce.Label + " (angular dispersion)", c.Omega0, 0, d.Gdd, d.Tod, d.Fod));
+            ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "spatio-temporal coupling: {0:G4} fs^2, {1:G4} fs^3 of dispersion from the angular / spatial dispersion of the beam (the spectrum stays the field on each frequency's chief ray)", d.Gdd * 1e30, d.Tod * 1e45));
         }
 
         /// <summary>Advance the tracked Gaussian beam through one element (docs/reference/beam-tracking.md).</summary>
@@ -546,7 +555,7 @@ namespace UltrafastEngine.Engine
         {
             TrackBeamCore(c, e, ce, type);
             if (!c.StcTrack) c.Track.ClearCouplings();
-            else AddCouplingGdd(c, ce, c.Track.TakePendingGdd());
+            else AddCouplingDispersion(c, ce, c.Track.TakePendingDispersion());
         }
 
         private static void TrackBeamCore(Ctx c, SystemElement e, CompiledElement ce, string type)
@@ -595,6 +604,11 @@ namespace UltrafastEngine.Engine
                         double lpm = e.Json.Has("linesPerM") && !e.Json.Has("linesPerMm") ? Num(c, e, "linesPerM", 0) : Num(c, e, "linesPerMm", 0) * 1e3;
                         int order = (int)Num(c, e, "order", -1);
                         double thOut = t.Grating(aoiSigned, 1 / lpm, order, tx);
+                        if (c.StcProfile && !double.IsNaN(thOut))
+                        {
+                            double si = Math.Sin(aoiSigned), cc = PhysicalConstants.SpeedOfLightMPerS;
+                            AddProfileDispersion(ce, tx, Math.Cos(thOut) / Math.Cos(aoiSigned), w => w / cc * Math.Sin(Math.Asin(Math.Max(-1, Math.Min(1, si + order * 2 * Math.PI * cc / w * lpm))) - thOut));
+                        }
                         if (double.IsNaN(thOut)) ce.Notes.Add("beam tracking: diffraction order " + order + " is evanescent at the carrier -- the tracked beam is not diffracted");
                         else
                         {
@@ -606,7 +620,15 @@ namespace UltrafastEngine.Engine
                     {
                         double n2 = IndexOrOne(c, Str(c, e, "after", mode == "refract" ? "Air" : Str(c, e, "before", "Air")));
                         if (mode == "refract" && Math.Abs(n2 - n1) > 1e-12)
-                            t.TiltedInterface(n1, n2, aoiSigned, tx, IndexSlope(c, Str(c, e, "before", "Air")), IndexSlope(c, Str(c, e, "after", "Air")));
+                        {
+                            var nBefore = IndexOf(c, Str(c, e, "before", "Air")); var nAfter = IndexOf(c, Str(c, e, "after", "Air"));
+                            t.TiltedInterface(n1, n2, aoiSigned, tx, nBefore, nAfter);
+                            if (c.StcProfile && nBefore != null && nAfter != null)
+                            {
+                                double th2 = Math.Asin(n1 * Math.Sin(aoiSigned) / n2), si = Math.Sin(aoiSigned);
+                                AddProfileDispersion(ce, tx, Math.Cos(th2) / Math.Cos(aoiSigned), w => w / PhysicalConstants.SpeedOfLightMPerS * nAfter(w) * Math.Sin(Math.Asin(nBefore(w) * si / nAfter(w)) - th2));
+                            }
+                        }
                         if (!double.IsNaN(fl)) t.LensInMedium(fl, fl, mode == "refract" ? n2 : n1);
                         else if (!double.IsNaN(roc) && mode == "refract") { double P = (n2 - n1) / roc; t.Apply(1, 0, -P, 1, 1, 0, -P, 1); }
                     }
@@ -637,14 +659,19 @@ namespace UltrafastEngine.Engine
                 default:
                     if (ce.TrackLenses != null && ce.LengthM > 0)
                     {
-                        double n = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0, z = 0;
-                        foreach (var (zl, invF) in ce.TrackLenses.OrderBy(l => l.ZM))
+                        double n = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0;
+                        for (int pass = 0; pass < ce.TrackPasses; pass++)
                         {
-                            double zc = Math.Max(z, Math.Min(ce.LengthM, zl));
-                            t.Propagate(zc - z, n); z = zc;
-                            if (invF != 0) t.Lens(1 / invF, 1 / invF);
+                            double z = 0;
+                            foreach (var (zl, invF) in ce.TrackLenses.OrderBy(l => l.ZM))
+                            {
+                                double zc = Math.Max(z, Math.Min(ce.LengthM, zl));
+                                t.Propagate(zc - z, n); z = zc;
+                                if (invF != 0) t.Lens(1 / invF, 1 / invF);
+                            }
+                            t.Propagate(ce.LengthM - z, n);
+                            if (pass < ce.TrackPasses - 1 && ce.TrackPassGapM > 0) t.Propagate(ce.TrackPassGapM, 1.0);
                         }
-                        t.Propagate(ce.LengthM - z, n);
                         break;
                     }
                     if (TrackComponent(c, e, ce, t, type)) break;
@@ -1103,6 +1130,22 @@ namespace UltrafastEngine.Engine
             }
         }
 
+        private static void CompilePrism(Ctx c, SystemElement e, CompiledElement ce)
+        {
+            var glass = GetMaterial(c, Str(c, e, "material", null)); var med = GetMaterial(c, Str(c, e, "medium", "Air"));
+            double aoi = Num(c, e, "aoiDeg", double.NaN) * Math.PI / 180, apex = Num(c, e, "apexDeg", double.NaN) * Math.PI / 180, path = Num(c, e, "pathM", 0);
+            if (double.IsNaN(aoi) || double.IsNaN(apex)) throw new JsonException("prism '" + e.Id + "' needs apexDeg and aoiDeg.");
+            double n1 = med.IndexAt(c.Omega0), n2 = glass.IndexAt(c.Omega0), t2 = Math.Asin(n1 * Math.Sin(aoi) / n2);
+            double inner = t2 - Math.Sign(aoi == 0 ? 1 : aoi) * apex;
+            if (Math.Abs(n2 * Math.Sin(inner) / n1) >= 1) throw new JsonException("prism '" + e.Id + "': total internal reflection at the exit face.");
+            ce.LengthM = path; ce.TrackingIndex = n2;
+            var basis = BasisTracker.FromPsi(Angle(c, e, "planeOfIncidence", Math.PI / 2));
+            if (Bool(c, e, "fresnel", true)) ce.Pre.Add(new InterfaceTerm(ce.Label + " entrance", med, glass, null, "refract", _ => aoi, basis));
+            if (path > 0) ce.Pre.Add(new BulkTerm(glass, path));
+            if (Bool(c, e, "fresnel", true)) ce.Pre.Add(new InterfaceTerm(ce.Label + " exit", glass, med, null, "refract", w => Math.Asin(n1 * Math.Sin(aoi) / glass.IndexAt(w)) - Math.Sign(aoi == 0 ? 1 : aoi) * apex, basis));
+            ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "prism: internal angle {0:F3} deg, exit-face incidence {1:F3} deg, leaves at {2:F3} deg (signed)", t2 * 180 / Math.PI, inner * 180 / Math.PI, Math.Asin(n2 * Math.Sin(inner) / n1) * 180 / Math.PI));
+        }
+
         private static void CompileMask(Ctx c, SystemElement e, CompiledElement ce)
         {
             string kind = Str(c, e, "kind", "").ToLowerInvariant();
@@ -1299,6 +1342,15 @@ namespace UltrafastEngine.Engine
         {
             var run = c.Run;
             var ps = run.Pulse;
+            if (ps.IsCw)
+            {
+                // one spectral bin: no pulse to fit, nothing to plan; the window only sets the energy (power x window)
+                double win = double.IsNaN(run.Grid.WindowS) ? Pulses.PulseSpec.CwWindowS : run.Grid.WindowS;
+                c.Out.Grid = GridPlanner.Create(64, win, c.Omega0, true, out double wc);
+                c.Out.Input = ps.Build(c.Out.Grid);
+                c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Cw source: {0:G4} W over a {1:G4} s window, one spectral bin at {2:F4} nm. Fluences are intensity x window.", c.Out.Input.TotalEnergyJ() / win, win, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / wc * 1e9));
+                return;
+            }
             var prep = ps.Shape.Equals("spectrum", StringComparison.OrdinalIgnoreCase) ? ps.Prepared() : null;
             if (prep != null) { c.Out.Notes.AddRange(prep.Notes); c.Out.Warnings.AddRange(prep.Warnings); }
             double tl = ps.ResolveDurationS();
@@ -1395,13 +1447,18 @@ namespace UltrafastEngine.Engine
         /// <summary>The element's position-dependent properties (indexProfile, absorptionProfile, n2Scale), or null.</summary>
         public SpatialProperties SpatialProperties(SystemElement e) => PropertiesFn(e);
         public double Num(SystemElement e, string key, double fallback) => NumFn(e, key, fallback);
-        internal Func<JsonObject, string, CompiledElement> CompileFn;
+        internal Func<JsonObject, string, bool, CompiledElement> CompileFn;
         /// <summary>Compile a nested element (e.g. inside an oscillator cavity); its id becomes "prefix.id".</summary>
-        public CompiledElement CompileNested(JsonObject element, string prefix) => CompileFn(element, prefix);
+        public CompiledElement CompileNested(JsonObject element, string prefix) => CompileFn(element, prefix, false);
+        /// <summary>Compile a nested element on the current tracked beam (the resonator's probe beam).</summary>
+        public CompiledElement CompileNestedOnBeam(JsonObject element, string prefix) => CompileFn(element, prefix, true);
         public string Str(SystemElement e, string key, string fallback) => StrFn(e, key, fallback);
         public OverrideRule Find(SystemElement e, string key) => FindFn(e, key);
         internal Func<double, IBeamModel> TrackedFn;
         internal Func<Optics.BeamState> TrackFn;
+        internal Action<Optics.BeamState> SetTrackFn;
+        /// <summary>Replace the tracked beam (the resonator's probe beam, then its eigenmode).</summary>
+        public void SetTracked(Optics.BeamState b) => SetTrackFn(b);
         /// <summary>The tracked Gaussian beam at the entrance of the element being compiled, as a beam model in a medium of
         /// index n (z from the element start); null when beam tracking is off.</summary>
         public IBeamModel TrackedBeam(double n) => TrackedFn?.Invoke(n);

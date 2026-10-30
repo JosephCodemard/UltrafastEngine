@@ -64,7 +64,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(b2, b.Records[0].Values["beta2S2PerM"], 0.01, 0, "beta2 from the curve");
         }
 
-        [Test]
+        [Test(Reference = "exponential loss and gain in dB", Tolerance = "0.01 %, 0.1 %")]
         public void LossGainAndGainGoal()
         {
             var lin = O("nonlinear", false);

@@ -77,7 +77,7 @@ namespace UltrafastEngine.Pulses
                 SuperGaussianOrder = o.GetInt("order", 2),
                 EnergyJ = o.GetDouble("energyJ", double.NaN),
                 AveragePowerW = o.GetDouble("averagePowerW", double.NaN),
-                PeakPowerW = o.GetDouble("peakPowerW", double.NaN),
+                PeakPowerW = o.GetDouble("peakPowerW", o.GetDouble("powerW", double.NaN)),
                 RepRateHz = o.GetDouble("repRateHz", 0),
                 DelayS = o.GetDouble("delayS", 0)
             };
@@ -235,8 +235,14 @@ namespace UltrafastEngine.Pulses
                 return tbp / dnu;
             }
             if (Shape.ToLowerInvariant() == "spectrum") return double.NaN;
+            if (IsCw) return CwWindowS;
             throw new JsonException("pulse: durationFwhmS (or bandwidthFwhmM) is required for shape \"" + Shape + "\".");
         }
+
+        /// <summary>A cw source: one spectral bin on a small fixed grid (docs/reference/run-spec.md#cw-sources).</summary>
+        public bool IsCw => Shape.Equals("cw", StringComparison.OrdinalIgnoreCase);
+        /// <summary>Default window of a cw run (s): fluences are intensity x window.</summary>
+        public const double CwWindowS = 1e-9;
 
         public double ResolveEnergyJ(double peakPowerFactor)
         {
@@ -256,7 +262,13 @@ namespace UltrafastEngine.Pulses
             int n = grid.N;
             var a = new Complex[n];
             string shape = Shape.ToLowerInvariant();
-            if (shape == "spectrum")
+            if (shape == "cw")
+            {
+                int best = 0;
+                for (int i = 1; i < n; i++) if (Math.Abs(grid.OmegaOffset[i]) < Math.Abs(grid.OmegaOffset[best])) best = i;
+                a[best] = Complex.One;
+            }
+            else if (shape == "spectrum")
             {
                 var (lamM, intenM, phM) = MeasuredSpectrum();
                 var order = Enumerable.Range(0, lamM.Length).OrderBy(i => -lamM[i]).ToArray();
@@ -318,7 +330,7 @@ namespace UltrafastEngine.Pulses
                             env = Math.Exp(-0.5 * Math.Pow(Math.Abs(t / t0), 2 * m));
                             break;
                         }
-                        default: throw new JsonException("pulse: unknown shape \"" + Shape + "\" (gaussian, sech2, superGaussian, spectrum).");
+                        default: throw new JsonException("pulse: unknown shape \"" + Shape + "\" (gaussian, sech2, superGaussian, spectrum, cw).");
                     }
                     at[i] = env;
                 }

@@ -130,6 +130,17 @@
       ],
       "description": "Compute back-end and threads"
     },
+    "coherence": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/obj.coherence"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Partially coherent beam: a run over coherent modes (docs/reference/transverse.md#partial-coherence)"
+    },
     "fit": {
       "anyOf": [
         {
@@ -164,8 +175,8 @@
       "properties": {
         "shape": {
           "type": "string",
-          "enum": ["gaussian", "sech2", "superGaussian", "spectrum"],
-          "description": "Pulse shape Default: gaussian."
+          "enum": ["gaussian", "sech2", "superGaussian", "spectrum", "cw"],
+          "description": "Pulse shape; cw: one spectral bin at centerWavelengthM, with powerW Default: gaussian."
         },
         "centerWavelengthM": {
           "type": "number",
@@ -206,6 +217,10 @@
         "peakPowerW": {
           "type": "number",
           "description": "Peak power (alternative) [W]"
+        },
+        "powerW": {
+          "type": "number",
+          "description": "Power of a cw source (shape cw) [W]"
         },
         "repRateHz": {
           "type": "number",
@@ -569,7 +584,7 @@
           "description": "Gaussian beam (q) tracking: \"auto\" (on with a Gaussian inputBeam), \"on\", \"off\" Default: \"auto\"."
         },
         "spatioTemporal": {
-          "description": "Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: \"auto\" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), \"on\", \"track\" (reported only), \"off\" (docs/reference/components.md#spatio-temporal-couplings) Default: \"auto\"."
+          "description": "Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: \"auto\" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), \"on\", \"track\" (reported only), \"profile\" (gratings and tilted surfaces tilt each frequency of a carried cartesian profile; the field holds the coupling), \"off\" (docs/reference/components.md#spatio-temporal-couplings) Default: \"auto\"."
         },
         "transverse": {
           "anyOf": [
@@ -736,6 +751,18 @@
         },
         "background": {
           "description": "measured: a number subtracted from the fluence, or \"auto\" (the median of the map's edge)"
+        },
+        "pixelSizeM": {
+          "type": "number",
+          "description": "measured: pixel size of a PNG image [m]"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "measured: fluence below this fraction of the peak is set to zero Default: 0."
+        },
+        "center": {
+          "type": "boolean",
+          "description": "measured: move the fluence centroid to the axis Default: false."
         },
         "geometry": {
           "type": "string",
@@ -972,6 +999,47 @@
           "description": "Free text."
         }
       },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "obj.coherence": {
+      "type": "object",
+      "description": "A Gaussian-Schell beam as an incoherent sum of Hermite-Gauss modes (docs/reference/transverse.md#partial-coherence).",
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": ["gaussianSchell"],
+          "description": "Coherence model Default: gaussianSchell."
+        },
+        "m2": {
+          "type": "number",
+          "description": "Beam quality M^2 >= 1"
+        },
+        "modes": {
+          "type": "integer",
+          "description": "Modes kept per axis Default: 12."
+        },
+        "dimensions": {
+          "type": "integer",
+          "description": "1 (x only) or 2 Default: 2; 1 for a grid with ny = 1."
+        },
+        "element": {
+          "type": "string",
+          "description": "Element whose transverse.initialProfile the modes replace Default: the first with a transverse object."
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["m2"],
       "patternProperties": {
         "^_": {}
       },

@@ -50,6 +50,7 @@ A run: the pulse, the instruments and numerical settings. More: [run-spec.md](ru
 | `inputBeam` | model (beam) |  |  | Default beam for nonlinear elements without one |
 | `outputs` | object (`outputs`) |  |  | Which files to write |
 | `compute` | object (`compute`) |  |  | Compute back-end and threads |
+| `coherence` | object (`coherence`) |  |  | Partially coherent beam: a run over coherent modes (docs/reference/transverse.md#partial-coherence) |
 
 ## Pulse
 
@@ -59,7 +60,7 @@ The input pulse (docs/reference/run-spec.md#pulse).
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `shape` | `"gaussian"` \| `"sech2"` \| `"superGaussian"` \| `"spectrum"` |  | gaussian | Pulse shape |
+| `shape` | `"gaussian"` \| `"sech2"` \| `"superGaussian"` \| `"spectrum"` \| `"cw"` |  | gaussian | Pulse shape; cw: one spectral bin at centerWavelengthM, with powerW |
 | `centerWavelengthM` | number | m |  | Carrier wavelength (for spectrum: default = intensity-weighted mean) |
 | `centerWavelengthNm` | number | nm |  | Carrier wavelength in nm (alternative) |
 | `durationFwhmS` | number | s |  | Transform-limited intensity FWHM |
@@ -70,6 +71,7 @@ The input pulse (docs/reference/run-spec.md#pulse).
 | `energyJ` | number | J |  | Pulse energy |
 | `averagePowerW` | number | W |  | Average power (with repRateHz) |
 | `peakPowerW` | number | W |  | Peak power (alternative) |
+| `powerW` | number | W |  | Power of a cw source (shape cw) |
 | `repRateHz` | number | Hz |  | Repetition rate |
 | `chirp` | object (`chirp`) |  |  | Spectral phase about the carrier: gddS2/todS3/fodS4 or gddFs2/todFs3/fodFs4 |
 | `polarization` | any |  | "x" | "x", "y", "45", "-45", "rcp", "lcp", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm] |
@@ -117,7 +119,7 @@ Physics switches (docs/reference/run-spec.md#physics).
 | `polarization` | `"jones"` \| `"scalar"` |  | jones | Jones (two polarisations) or scalar |
 | `losses` | boolean |  | true | false removes flat loss terms |
 | `beamTracking` | any |  | "auto" | Gaussian beam (q) tracking: "auto" (on with a Gaussian inputBeam), "on", "off" |
-| `spatioTemporal` | any |  | "auto" | Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: "auto" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), "on", "track" (reported only), "off" (docs/reference/components.md#spatio-temporal-couplings) |
+| `spatioTemporal` | any |  | "auto" | Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: "auto" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), "on", "track" (reported only), "profile" (gratings and tilted surfaces tilt each frequency of a carried cartesian profile; the field holds the coupling), "off" (docs/reference/components.md#spatio-temporal-couplings) |
 | `transverse` | object (`transverse`) |  |  | Default spatial model for every bulk/gap/crystal without one |
 | `ionization` | any |  | false | Photo-ionisation and plasma in every nonlinear bulk element: true or an ionization object |
 
@@ -624,11 +626,36 @@ A linear polariser. More: [elements.md#polarizer](system-file.md)
 | `extinctionRatio` | number |  | 1e5 | Extinction ratio |
 | `transmission` | number |  | 1 | Transmission along the axis |
 
+### `prism`
+
+A prism in air: two refracting faces and the glass on the chief ray; disperses the tracked beam. More: [components.md#spatio-temporal-couplings](components.md#spatio-temporal-couplings)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `material` | string |  |  | Prism glass **Required.** |
+| `apexDeg` | number | deg |  | Apex angle **Required.** |
+| `aoiDeg` | number | deg |  | Signed angle of incidence on the first face **Required.** |
+| `pathM` | number | m | 0 | Glass path of the carrier's ray |
+| `medium` | string |  | Air | Surrounding medium |
+| `planeOfIncidenceDeg` | number | deg | 90 | s-direction angle from local x Also: `planeOfIncidence`. |
+| `fresnel` | boolean |  | true | Fresnel losses of the two faces |
+
 ### `probe` (also `marker`)
 
 A named place in the beam (does nothing; snapshots and instruments). More: [elements.md#probe](system-file.md)
 
 No parameters of its own.
+
+### `resonator`
+
+A passive resonator around nested elements: round-trip matrix, stability, eigenmode on the tracked beam; with a transverse grid, the Fox-Li mode and diffraction loss. More: [oscillators.md#resonators](oscillators.md#resonators)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `elements` | any |  |  | The elements of one pass (gaps, lenses, mirrors, apertures ...) **Required.** |
+| `geometry` | `"ring"` \| `"linear"` |  | ring | ring: once per round trip; linear: forward and back, end elements once |
+| `transverse` | object (`transverse`) |  |  | Grid of the Fox-Li iteration (given to nested gaps and bulks without one) |
+| `roundTrips` | any |  |  | {max (400), tolerance (1e-6)} |
 
 ### `rotator`
 
@@ -1025,7 +1052,7 @@ Keys of gain and amplifier elements.
 | `beam` | model (beam) |  |  | Signal beam |
 | `modeRadiusM` | number | m |  | Signal 1/e^2 radius (mode area pi w^2 / 2) |
 | `transverse` | object (`transverse`) |  |  | Spatial gain |
-| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens) |
+| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens) |
 | `slices` | integer |  | 24 | Slices along z |
 | `segments` | integer |  | auto | Time-ordered saturation groups |
 | `spm` | boolean |  | true | SPM of the host |
@@ -1192,6 +1219,18 @@ Spectral phase coefficients about the carrier.
 | `gddFs2` | number | fs^2 |  | GDD in fs^2 |
 | `todFs3` | number | fs^3 |  | TOD in fs^3 |
 | `fodFs4` | number | fs^4 |  | FOD in fs^4 |
+
+### `coherence`
+
+A Gaussian-Schell beam as an incoherent sum of Hermite-Gauss modes (docs/reference/transverse.md#partial-coherence).
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `model` | `"gaussianSchell"` |  | gaussianSchell | Coherence model |
+| `m2` | number |  |  | Beam quality M^2 >= 1 **Required.** |
+| `modes` | integer |  | 12 | Modes kept per axis |
+| `dimensions` | integer |  | 2; 1 for a grid with ny = 1 | 1 (x only) or 2 |
+| `element` | string |  | the first with a transverse object | Element whose transverse.initialProfile the modes replace |
 
 ### `compute`
 
@@ -1462,6 +1501,9 @@ Initial transverse field.
 | `truncation` | number |  | 0.1 | airy: the exponential truncation a in Ai(x / x0) exp(a x / x0) |
 | `file` | string |  |  | measured: NPZ with x_m, y_m (or r_m), fluence or amplitude, and optionally phase_rad; relative to the file that names it |
 | `background` | any |  |  | measured: a number subtracted from the fluence, or "auto" (the median of the map's edge) |
+| `pixelSizeM` | number | m |  | measured: pixel size of a PNG image |
+| `threshold` | number |  | 0 | measured: fluence below this fraction of the peak is set to zero |
+| `center` | boolean |  | false | measured: move the fluence centroid to the axis |
 | `geometry` | `"round"` \| `"square"` |  | round | round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) |
 | `order` | integer |  | 4 | superGaussian order |
 | `decenterXM` | number | m |  | Decentre in x |

@@ -122,7 +122,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(bl * Math.Sin(2 * chi) * ((1 - fR) / 3 + fR * b / 2), RotOf(ani), 0.02, 0, "anisotropic Raman adds fR b / 2");
         }
 
-        [Test(Category = "ner")]
+        [Test(Category = "ner", Reference = "tensor Raman: (1 − f_R) 2/3 + f_R (1 − b/2)", Tolerance = "1e-09, 1 %")]
         public void CircularLight_SeesLessRamanThanLinear()
         {
             const double fR = 0.18, b = 0.25;

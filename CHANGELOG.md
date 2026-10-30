@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added (engine depth before branches; plan: docs/design/t0-t2-plan.md)
+- **Exact dispersion from angular dispersion**: a five-ray bundle in the tracker gives GDD, TOD and FOD per element, replacing the second-order formula (Treacy's TOD reproduced). `prism` element.
+  `physics.spatioTemporal: "profile"`: gratings and tilted interfaces tilt each frequency of a carried cartesian profile. `spaceTime` works from the tracked beam on 1-D runs.
+- **Cw sources** (`shape: "cw"`, `powerW`), one spectral bin end to end; `beamProfile` reports `peakIntensityWPerM2`.
+- **Absorbing boundary in nonlinear spatial elements**. Hankel matrix built with symmetric products (twice as fast).
+- **Gerchberg-Saxton** (`ultrafast retrieve gerchbergSaxton`), multi-start. `measured` profiles: grayscale PNG, `threshold`, `center`.
+- **`resonator` element**: round-trip matrix, stability, eigenmode on the tracked beam, Fox-Li mode and loss; ring or linear.
+- **Partial coherence**: `coherence` in the run spec, a Gaussian-Schell beam as coherent modes.
+- **Thermal stress birefringence** (`thermalLens.stress`): Koechner depolarisation, bifocal lens. Amplifier thermal lens on the tracked beam on request (`thermalLens.track`, `passGapM`).
+- Python: `build.cw`, `prism`, `resonator`, `coherence`; `thermal_lens(pass_gap_m=, stress=)`. Example 31. The validation matrix counts cross-checks inside the engine apart.
+
 ### Added (beam sources, masks, checks)
 - **Structured beams** ([docs](docs/reference/transverse.md#initial-profile)): `initialProfile.kind` `hermiteGauss`, `laguerreGauss`, `besselGauss`, `airy`, and `measured`
   (a near field from NPZ, with background subtraction). **`mask` element** ([docs](docs/reference/transverse.md#masks)): axicon, Fresnel zone plate (amplitude or binary

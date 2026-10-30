@@ -181,6 +181,7 @@ namespace UltrafastEngine.Instruments
             Tools.Put(o, "m2", TransverseOps.BeamQuality(prof));
             Tools.Put(o, "peakFluenceJPerM2", flu.Max());
             Tools.Put(o, "energyJ", p.TotalEnergyJ());
+            if (ctx.Run?.Compiled?.Run?.Pulse?.IsCw == true) Tools.Put(o, "peakIntensityWPerM2", flu.Max() / (p.Grid.DTime * p.Grid.N));   // cw: fluence = intensity x window
             if (B is RadialBasis)
             {
                 o.Add("radius_m", (double[])B.Radius.Clone(), "m", "radius");

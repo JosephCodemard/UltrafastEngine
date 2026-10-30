@@ -37,6 +37,20 @@ out["error"], out["fwhmS"]
 spec2 = b.run_spec(out["pulse"])              # the retrieved pulse as an input
 ```
 
+## Wavefront from two intensities: Gerchberg-Saxton
+
+A beam's phase from its near-field and far-field intensities (Gerchberg & Saxton, Optik 35, 237 (1972)):
+
+```bash
+ultrafast retrieve gerchbergSaxton pair.npz -o phase
+```
+
+`pair.npz` holds `near`, `far` (intensities, [x][y], even numbers of pixels), `x_m`, `y_m`. The far image must be centred and on the conjugate grid of the near field: far pixel = λ f / (N dx).
+Plain error reduction stalls in local minima, so the method starts from a flat phase and from `restarts` (12) seeded smooth random phases, and continues the best for `iterations` (500)
+(options, Python: `uf.retrieve("gerchbergSaxton", "pair.npz", output="phase", restarts=12)`). `phase/phase.npz` (`x_m`, `y_m`, `amplitude`, `phase_rad`) is ready for `initialProfile` kind `measured` or a `mask` of kind `file`.
+The piston is undetermined, and a symmetric near field cannot tell φ(x, y) from −φ(−x, −y): check the far-field error (`farFieldError`) and use an asymmetric near field where you can.
+Checked on a known phase (far-field error < 1 %, rms phase error < 0.1 rad, `FieldToolsTests`).
+
 ## C#
 
 ```csharp

@@ -104,6 +104,31 @@ Arrays (`el_<id>_*`):
 
 `ultrafast-plot` draws them in `oscillator.png`.
 
+## Resonators
+
+A `resonator` is a passive cavity around nested elements, for its modes rather than for a laser pulse:
+
+```jsonc
+{ "id": "cavity", "type": "resonator", "geometry": "ring",                     // "ring": once per round trip; "linear": forward and back, end elements once
+  "transverse": { "model": "radial", "points": 256, "radiusM": 3.5e-3, "spectralSamples": 1 },    // optional: the Fox-Li iteration
+  "roundTrips": { "max": 800, "tolerance": 1e-7 },
+  "elements": [ { "id": "half1", "type": "gap", "lengthM": 0.3 }, { "id": "lens", "type": "lens", "focalLengthM": 0.5 },
+                { "id": "stop", "type": "aperture", "radiusM": 1.1e-3 }, { "id": "half2", "type": "gap", "lengthM": 0.3 } ] }
+```
+
+* The tracker gives the round-trip matrix, and the element reports `stabilityX`, `stabilityY` ((A + D) / 2), `stable`, `modeRadiusXM`, `modeRadiusYM`, `modeCurvatureXPerM` at the
+  reference plane (the start of the first element), `roundTripOpticalLengthM` and `freeSpectralRangeHz`. An unstable cavity gives a warning. A curved end mirror of a linear cavity
+  is an element that acts once per round trip, like a lens of f = R / 2.
+* With a `transverse` grid (given to nested gaps and bulks without one) the Fox-Li iteration (Bell Syst. Tech. J. 40, 453 (1961)) starts from a Gaussian and runs the round trip until the
+  loss settles: `roundTripLoss`, `foxLiRadiusXM`, `foxLiRoundTrips`, `converged`. A cw source (`"shape": "cw"`) makes this one frequency.
+* The output beam takes the mode: the tracked beam becomes the eigenmode, and the pulse carries the Fox-Li profile. Its energy is unchanged: this is a mode calculation, not a cavity ring-down.
+  The `oscillator` element is the one for pulses building up in a cavity.
+
+Checks (`CavityAndCoherenceTests`): a lens guide's eigenmode (Kogelnik & Li), a two-mirror cavity, Fox-Li against the ABCD mode (3 %), and the diffraction loss of plane circular mirrors, near 20 %
+at N = 1 and falling as N^(−3/2).
+
+It is a nested sequence, not a graph: elements inside cannot be reached by a second beam. See [the plan](../design/t0-t2-plan.md#branching-impact).
+
 ## Python
 
 ```python

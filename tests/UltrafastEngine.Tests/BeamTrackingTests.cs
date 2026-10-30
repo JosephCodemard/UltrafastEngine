@@ -171,6 +171,88 @@ namespace UltrafastEngine.Tests
             Assert.False(v.ContainsKey("trackedSpatialChirpXMPerM") && Math.Abs(v["trackedSpatialChirpXMPerM"]) > 1e-6, "no spatial chirp at the output");
         }
 
+        [Test(Reference = "Treacy, IEEE JQE 5, 454 (1969): TOD of the exact grating-pair phase", Tolerance = "0.5 %")]
+        public void TwoGratings_ReproduceTreacysThirdOrderDispersion()
+        {
+            // the ray bundle has no knowledge of Treacy's formula: rays through two parallel gratings, phase from their optical paths
+            double G = 0.1, b = G / Math.Cos(Beta);
+            var two = Gratings(O("id", "g1", "type", "grating", "aoiDeg", -45.0, "linesPerMm", Lpm, "order", 1),
+                               O("id", "gap", "type", "gap", "lengthM", b, "material", "Vacuum"),
+                               O("id", "g2", "type", "grating", "aoiDeg", Beta * 180 / Math.PI, "linesPerMm", Lpm, "order", -1));
+            var pair = Gratings(O("id", "pair", "type", "gratingPair", "linesPerMm", Lpm, "aoiDeg", 45.0, "separationM", G, "passes", 1));
+            Assert.Close(pair.FinalSystem.TodS3, two.FinalSystem.TodS3, 0.005, 0, "TOD vs Treacy");
+            Assert.Close(pair.FinalSystem.GddS2, two.FinalSystem.GddS2, 0.001, 0, "GDD vs Treacy");
+        }
+
+        [Test(Reference = "angular-dispersion GDD -k0 L (d theta / d omega)^2; Snell's law at the prism faces", Tolerance = "1 %")]
+        public void PrismPair_InAir_GivesTheNegativeDispersionOfItsAngularDispersion()
+        {
+            // two opposed fused-silica prisms apex to apex (no glass path): the air path L gives -k0 L F^2 of negative GDD
+            var fs = MaterialLibrary.BuiltIn("FusedSilica");
+            double w0 = 2 * Math.PI * C / Lam, h = 1e-4 * w0, aoi = 55 * Math.PI / 180, apex = 60 * Math.PI / 180, L = 0.5;
+            Func<double, double> exit = w => { double n = fs.IndexAt(w), t2 = Math.Asin(Math.Sin(aoi) / n); return Math.Asin(n * Math.Sin(t2 - apex)); };
+            double F = (exit(w0 + h) - exit(w0 - h)) / (2 * h), t20 = Math.Asin(Math.Sin(aoi) / fs.IndexAt(w0)), out0 = exit(w0);
+            var r = Gratings(O("id", "p1", "type", "prism", "material", "FusedSilica", "apexDeg", 60.0, "aoiDeg", 55.0, "fresnel", false, "medium", "Vacuum"),
+                             O("id", "gap", "type", "gap", "lengthM", L, "material", "Vacuum"),
+                             O("id", "p2", "type", "prism", "material", "FusedSilica", "apexDeg", 60.0, "aoiDeg", out0 * 180 / Math.PI, "fresnel", false, "medium", "Vacuum"));
+            Assert.Close(-2 * Math.PI / Lam * L * F * F, r.FinalSystem.GddS2, 0.01, 0, "GDD");
+            var v = Rec(r, "p2").Values;
+            Assert.False(v.ContainsKey("trackedAngularDispersionXRadPerM") && Math.Abs(v["trackedAngularDispersionXRadPerM"]) > 1, "the second prism cancels the angular dispersion");
+            Assert.Close(1, r.Output.TotalEnergyJ() / r.Input.TotalEnergyJ(), 1e-9, 0, "no Fresnel loss when switched off");
+        }
+
+        [Test(Reference = "cross-model: spaceTime from the tracked beam vs the element's pulse-front tilt")]
+        public void SpaceTime_OnA1DBeam_ShowsTheTrackedPulseFrontTilt()
+        {
+            var r = Go(Sys(O("id", "g1", "type", "grating", "aoiDeg", -45.0, "linesPerMm", Lpm, "order", 1)),
+                       Spec(Gauss(Lam, 100e-15, 1e-6), O("inputBeam", O("kind", "gaussian", "w0M", 0.2e-3), "grid", O("windowS", 20e-12), "instruments", A(O("kind", "spaceTime", "name", "st", "at", "g1")))));
+            var o = r.Instruments.First(i => i.Name == "st");
+            var x = o.Arrays.First(a => a.Name.EndsWith("position_m")).Data; var t = o.Arrays.First(a => a.Name.EndsWith("arrival_s") || a.Name.Contains("arrival")).Data;
+            int lo = Array.FindIndex(x, v => v > -0.1e-3), hi = Array.FindIndex(x, v => v > 0.1e-3);
+            Assert.Close(Rec(r, "g1").Values["trackedPulseFrontTiltXSPerM"], (t[hi] - t[lo]) / (x[hi] - x[lo]), 0.03, 0, "slope of the arrival time");
+        }
+
+        [Test(Reference = "Treacy GDD and the tracker's spatial chirp, from a field propagated on a grid", Tolerance = "3 %")]
+        public void AngularDispersionOnTheProfile_TwoGratingsOnAGrid_GiveTheTrackersChirpAndTreacysGdd()
+        {
+            // physics.spatioTemporal = "profile": each stored frequency is tilted; the gap diffracts them apart; nothing comes from the tracker
+            double G = 0.02, b = G / Math.Cos(Beta), w = 1e-3;
+            var grid = O("model", "cartesian", "nx", 1024, "ny", 1, "halfWidthM", 15e-3, "spectralSamples", 256);
+            var src = (JsonObject)JsonValue.Parse(grid.ToJson(false)); src.Set("initialProfile", O("kind", "gaussian", "radiusM", w));
+            JsonObject Spc(string mode) => O("inputBeam", O("kind", "gaussian", "w0M", w), "physics", O("spatioTemporal", mode), "grid", O("windowS", 200e-12, "n", 2048, "auto", false));
+            var sys = Sys(O("id", "s", "type", "gap", "lengthM", 0.0, "material", "Vacuum", "transverse", src),
+                          O("id", "g1", "type", "grating", "aoiDeg", -45.0, "linesPerMm", Lpm, "order", 1),
+                          O("id", "gap", "type", "gap", "lengthM", b, "material", "Vacuum", "transverse", grid),
+                          O("id", "g2", "type", "grating", "aoiDeg", Beta * 180 / Math.PI, "linesPerMm", Lpm, "order", -1));
+            var r = Go(sys, Spec(Gauss(Lam, 1e-12, 1e-6), Spc("profile")));
+            Assert.False(r.Warnings.Any(x => x.Contains("raise transverse.spectralSamples")), "samples are close enough");
+            var p = r.Output.Profile; var B = p.Basis; int nf = p.Omega.Length, M = B.M;
+            // the centroid of each frequency across the beam and the field there
+            var om = new System.Collections.Generic.List<double>(); var xc = new System.Collections.Generic.List<double>(); var ph = new System.Collections.Generic.List<double>();
+            var ax = r.Output.Ax; var g = r.Output.Grid;
+            for (int f = 0; f < nf; f++)
+            {
+                double s = 0, sx = 0; int best = 0; double top = 0;
+                for (int m = 0; m < M; m++) { double i = Math.Pow(p.Data[m * nf + f].Magnitude, 2); s += i; sx += i * B.X[m]; if (i > top) { top = i; best = m; } }
+                if (Math.Abs(p.Omega[f] - g.OmegaCenter) > 4e12) continue;
+                int bin = Array.IndexOf(g.OmegaAbsolute, g.OmegaAbsolute.OrderBy(v => Math.Abs(v - p.Omega[f])).First());
+                om.Add(p.Omega[f] - g.OmegaCenter); xc.Add(sx / s); ph.Add((ax[bin] * p.Data[best * nf + f]).Phase);
+            }
+            double Slope(double[] u, double[] v) { double mu = u.Average(), mv = v.Average(); return u.Zip(v, (a, c) => (a - mu) * (c - mv)).Sum() / u.Sum(a => (a - mu) * (a - mu)); }
+            double dxdw = Slope(om.ToArray(), xc.ToArray());
+            double tracked = Rec(r, "g2").Values["trackedSpatialChirpXMPerM"] / (-(2 * Math.PI * C / Lam) / Lam);
+            Assert.Close(tracked, dxdw, 0.03, 0, "dx / d omega of the field vs the tracker");
+            var pair = Gratings(O("id", "pair", "type", "gratingPair", "linesPerMm", Lpm, "aoiDeg", 45.0, "separationM", G, "passes", 1));
+            Assert.Less(Math.Abs(r.FinalSystem.GddS2), 1e-33, "no phase came from the tracker (below 1e-3 fs^2)");
+            // the phase of the field on each colour's chief ray: a parabola of curvature GDD (group delay removed by the fit)
+            var u = new double[ph.Count]; double acc = 0; for (int i = 0; i < u.Length; i++) { if (i > 0) { double d = ph[i] - ph[i - 1]; d -= 2 * Math.PI * Math.Round(d / (2 * Math.PI)); acc += d; } u[i] = acc; }
+            double[,] A2 = new double[3, 4];
+            for (int i = 0; i < u.Length; i++) { double x = om[i] * 1e-12; var row = new[] { 1, x, x * x }; for (int a = 0; a < 3; a++) { for (int c = 0; c < 3; c++) A2[a, c] += row[a] * row[c]; A2[a, 3] += row[a] * u[i]; } }
+            for (int a = 0; a < 3; a++) { for (int k = a + 1; k < 3; k++) { double f = A2[k, a] / A2[a, a]; for (int c = a; c < 4; c++) A2[k, c] -= f * A2[a, c]; } }
+            double c2 = A2[2, 3] / A2[2, 2];
+            Assert.Close(pair.FinalSystem.GddS2, 2 * c2 * 1e-24, 0.03, 0, "GDD of the field vs Treacy");
+        }
+
         [Test]
         public void SpatioTemporalSwitch_TrackReportsWithoutPhase_OffForgetsTheCouplings()
         {

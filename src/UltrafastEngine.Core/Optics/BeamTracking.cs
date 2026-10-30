@@ -24,11 +24,13 @@ namespace UltrafastEngine.Optics
     /// of its frequency components, measured from the carrier's ray. An element with ABCD matrix and its own E_el, F_el
     /// maps them as E' = A E + B F + E_el, F' = C E + D F + F_el; the field is then
     /// U(x, ω) = A(ω) u_q(x - E Δω) exp(i k0 F Δω (x - E Δω)), with A(ω) the field on each frequency's own (chief) ray.
-    /// Keeping A on the chief ray costs a group-delay dispersion per element, collected in <see cref="PendingGdd"/>:
-    /// k0 (A C E^2 + 2 B C E F + B D F^2) for an ABCD step (k0 B F^2 for a gap, -k0 E^2 / f for a lens) and
-    /// 2 k0 a F_el E_in for a dispersive surface. After a system that cancels the couplings the total equals the
-    /// Kostenbauder time element (the G E + H F terms of its symplectic 4 x 4 matrix): -k0 L F^2 for a grating pair
-    /// (Treacy), 0 for a 4f zero-dispersion stretcher.
+    /// Keeping A on the chief ray costs a spectral phase per element. It is computed exactly: five rays at ω0 + j h (j = -2 .. 2)
+    /// are traced with the beam through gaps, thin lenses and tilted surfaces (Snell, grating equation), each collecting its
+    /// optical phase (excess path k n s, grating phase 2 π m y / Λ, lens phase). Differences across the bundle give the GDD, TOD and
+    /// FOD of each element (<see cref="TakePendingDispersion"/>), to all orders of θ(ω). To second order these are
+    /// k0 (A C E^2 + 2 B C E F + B D F^2) for an ABCD step (k0 B F^2 for a gap, -k0 E^2 / f for a lens) and 2 k0 a F_el E_in for a
+    /// dispersing surface; after a system that cancels the couplings the total equals the Kostenbauder time element: Treacy for a
+    /// grating pair, 0 for a 4f zero-dispersion stretcher.
     /// </para>
     /// </summary>
     public sealed class BeamState
@@ -39,10 +41,39 @@ namespace UltrafastEngine.Optics
         /// <summary>Angular dispersion dθ̂/dω (s, reduced angle n θ) in x and y.</summary>
         public double Fx { get; private set; }
         public double Fy { get; private set; }
-        /// <summary>Group-delay dispersion (s^2) accumulated by the steps since the last <see cref="TakePendingGdd"/>.</summary>
-        public double PendingGdd { get; private set; }
-        /// <summary>Returns and clears <see cref="PendingGdd"/>.</summary>
-        public double TakePendingGdd() { double g = PendingGdd; PendingGdd = 0; return g; }
+        // the ray bundle: position and real angle from the carrier's ray per axis, and the phase collected since the last take
+        private const int Rays = 5;
+        private double[] _xr = new double[Rays], _ar = new double[Rays], _yr = new double[Rays], _br = new double[Rays], _phase = new double[Rays];
+        private double Omega0 => K0 * PhysicalConstants.SpeedOfLightMPerS;
+        private double RayStep => 0.004 * Omega0;
+        private double RayOmega(int j) => Omega0 + (j - Rays / 2) * RayStep;
+        private double RayK(int j) => RayOmega(j) / PhysicalConstants.SpeedOfLightMPerS;
+
+        /// <summary>GDD, TOD (s^2, s^3) and FOD (s^4) of the phase collected by the steps since the last call; clears it.</summary>
+        public (double Gdd, double Tod, double Fod) TakePendingDispersion()
+        {
+            var p = _phase; double h = RayStep;
+            var r = ((-p[0] + 16 * p[1] - 30 * p[2] + 16 * p[3] - p[4]) / (12 * h * h),
+                     (p[4] - 2 * p[3] + 2 * p[1] - p[0]) / (2 * h * h * h),
+                     (p[4] - 4 * p[3] + 6 * p[2] - 4 * p[1] + p[0]) / (h * h * h * h));
+            _phase = new double[Rays];
+            return r;
+        }
+        /// <summary>The (reduced) ray matrix [A, B, C, D] accumulated since the beam was made, per axis.</summary>
+        public double[] MatrixX { get; private set; } = { 1, 0, 0, 1 };
+        public double[] MatrixY { get; private set; } = { 1, 0, 0, 1 };
+
+        /// <summary>Product a b of two [A, B, C, D] matrices.</summary>
+        public static double[] Multiply(double[] a, double[] b) => new[] { a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3], a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3] };
+
+        /// <summary>The matrix between two accumulated matrices of the same beam (unit determinant): after = segment x before.</summary>
+        public static double[] Segment(double[] before, double[] after) => Multiply(after, new[] { before[3], -before[1], -before[2], before[0] });
+
+        private void Step(bool x, double a, double b, double c, double d)
+        {
+            if (x) MatrixX = Multiply(new[] { a, b, c, d }, MatrixX); else MatrixY = Multiply(new[] { a, b, c, d }, MatrixY);
+        }
+
         /// <summary>True when the beam carries spatial or angular dispersion.</summary>
         public bool HasCouplings => Ex != 0 || Fx != 0 || Ey != 0 || Fy != 0;
         /// <summary>Vacuum wavenumber of the carrier (rad/m).</summary>
@@ -64,7 +95,10 @@ namespace UltrafastEngine.Optics
             Qx = qx; Qy = qy; Lambda0 = lambda0; M2x = m2x; M2y = m2y; MediumIndex = n;
         }
 
-        public BeamState Clone() => new BeamState(Qx, Qy, Lambda0, M2x, M2y, MediumIndex) { PathM = PathM, Ex = Ex, Ey = Ey, Fx = Fx, Fy = Fy };
+        public BeamState Clone() => new BeamState(Qx, Qy, Lambda0, M2x, M2y, MediumIndex)
+        {
+            PathM = PathM, MatrixX = MatrixX, MatrixY = MatrixY, Ex = Ex, Ey = Ey, Fx = Fx, Fy = Fy, _xr = (double[])_xr.Clone(), _ar = (double[])_ar.Clone(), _yr = (double[])_yr.Clone(), _br = (double[])_br.Clone(), _phase = (double[])_phase.Clone()
+        };
 
         /// <summary>Beam from an inputBeam / beam spec of kind "gaussian": w0M (or w0xM/w0yM), zWaistM (waist position
         /// measured from the system input, positive = waist downstream), n, m2, wavelengthM (default: the carrier).</summary>
@@ -100,31 +134,36 @@ namespace UltrafastEngine.Optics
         {
             if (!(n > 0)) n = 1;
             Qx += lengthM / n; Qy += lengthM / n; MediumIndex = n; PathM += lengthM;
-            PendingGdd += K0 * lengthM / n * (Fx * Fx + Fy * Fy);
+            Step(true, 1, lengthM / n, 0, 1); Step(false, 1, lengthM / n, 0, 1);
+            for (int j = 0; j < Rays; j++)
+            {
+                _phase[j] += RayK(j) * n * lengthM * (1 / Math.Cos(_ar[j]) + 1 / Math.Cos(_br[j]) - 2);
+                _xr[j] += lengthM * Math.Tan(_ar[j]); _yr[j] += lengthM * Math.Tan(_br[j]);
+            }
             Ex += lengthM / n * Fx; Ey += lengthM / n * Fy;
         }
 
         /// <summary>Thin lens (focal lengths in x and y; infinity = no power in that plane).</summary>
         public void Lens(double fx, double fy)
         {
-            if (!double.IsInfinity(fx) && fx != 0) { Qx = Abcd(Qx, 1, 0, -1 / fx, 1); Fx -= Ex / fx; PendingGdd -= K0 * Ex * Ex / fx; }
-            if (!double.IsInfinity(fy) && fy != 0) { Qy = Abcd(Qy, 1, 0, -1 / fy, 1); Fy -= Ey / fy; PendingGdd -= K0 * Ey * Ey / fy; }
+            if (!double.IsInfinity(fx) && fx != 0) { Qx = Abcd(Qx, 1, 0, -1 / fx, 1); Fx -= Ex / fx; RayLens(fx, 1, true); Step(true, 1, 0, -1 / fx, 1); }
+            if (!double.IsInfinity(fy) && fy != 0) { Qy = Abcd(Qy, 1, 0, -1 / fy, 1); Fy -= Ey / fy; RayLens(fy, 1, false); Step(false, 1, 0, -1 / fy, 1); }
         }
 
         /// <summary>Lens power in a medium of index n (curved mirror in that medium): reduced C = -n/f.</summary>
         public void LensInMedium(double fx, double fy, double n)
         {
-            if (!double.IsInfinity(fx) && fx != 0) { Qx = Abcd(Qx, 1, 0, -n / fx, 1); Fx -= n * Ex / fx; PendingGdd -= K0 * n * Ex * Ex / fx; }
-            if (!double.IsInfinity(fy) && fy != 0) { Qy = Abcd(Qy, 1, 0, -n / fy, 1); Fy -= n * Ey / fy; PendingGdd -= K0 * n * Ey * Ey / fy; }
+            if (!double.IsInfinity(fx) && fx != 0) { Qx = Abcd(Qx, 1, 0, -n / fx, 1); Fx -= n * Ex / fx; RayLens(fx, n, true); Step(true, 1, 0, -n / fx, 1); }
+            if (!double.IsInfinity(fy) && fy != 0) { Qy = Abcd(Qy, 1, 0, -n / fy, 1); Fy -= n * Ey / fy; RayLens(fy, n, false); Step(false, 1, 0, -n / fy, 1); }
         }
 
         /// <summary>Refraction at a flat surface at angle of incidence theta1 from n1 into n2: the tangential axis is
         /// magnified (reduced ABCD diag(cos θ2 / cos θ1, cos θ1 / cos θ2)); the sagittal axis is unchanged.
-        /// <para>With the index dispersions dn1/dω, dn2/dω (s) the refraction also disperses the beam in the plane of
-        /// incidence (Snell's law at fixed incidence): F_el = n2 dθ2/dω = (sin θ1 dn1/dω - sin θ2 dn2/dω) / cos θ2, with
+        /// <para>With the index functions <paramref name="n1Of"/>, <paramref name="n2Of"/> (of ω) the refraction also disperses the beam in
+        /// the plane of incidence (Snell's law at fixed incidence): F_el = n2 dθ2/dω = (sin θ1 dn1/dω - sin θ2 dn2/dω) / cos θ2, with
         /// the angles signed in the unfolded beam (the same sign on both faces of a plate, opposite signs on the faces of
-        /// a prism). The group-delay dispersion this adds goes to <see cref="PendingGdd"/>.</para></summary>
-        public void TiltedInterface(double n1, double n2, double theta1, bool tangentialIsX, double dn1 = 0, double dn2 = 0)
+        /// a prism), and the ray bundle crosses the tilted surface exactly.</para></summary>
+        public void TiltedInterface(double n1, double n2, double theta1, bool tangentialIsX, Func<double, double> n1Of = null, Func<double, double> n2Of = null)
         {
             MediumIndex = n2;
             if (Math.Abs(theta1) < 1e-12) return;
@@ -133,7 +172,11 @@ namespace UltrafastEngine.Optics
             double c1 = Math.Cos(theta1), c2 = Math.Sqrt(1 - s2 * s2);
             double a = c2 / c1, d = c1 / c2;
             if (tangentialIsX) Qx = Abcd(Qx, a, 0, 0, d); else Qy = Abcd(Qy, a, 0, 0, d);
+            Step(tangentialIsX, a, 0, 0, d);
+            if (n1Of == null || n2Of == null) { Disperse(a, d, 0, tangentialIsX); return; }
+            double h = 1e-4 * Omega0, dn1 = (n1Of(Omega0 + h) - n1Of(Omega0 - h)) / (2 * h), dn2 = (n2Of(Omega0 + h) - n2Of(Omega0 - h)) / (2 * h);
             Disperse(a, d, (s1 * dn1 - s2 * dn2) / c2, tangentialIsX);
+            RaySurface(theta1, Math.Asin(s2), tangentialIsX, j => (n1Of(RayOmega(j)), n2Of(RayOmega(j)), 0.0));
         }
 
         /// <summary>
@@ -150,10 +193,51 @@ namespace UltrafastEngine.Optics
             double to = Math.Asin(so), ci = Math.Cos(thetaIn), co = Math.Cos(to);
             double a = co / ci, d = ci / co;
             if (tangentialIsX) Qx = Abcd(Qx, a, 0, 0, d); else Qy = Abcd(Qy, a, 0, 0, d);
-            double w0 = K0 * PhysicalConstants.SpeedOfLightMPerS;
+            Step(tangentialIsX, a, 0, 0, d);
+            double w0 = Omega0;
             double fel = -2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS * order / (w0 * w0 * periodM * co);
             Disperse(a, d, fel, tangentialIsX);
+            RaySurface(thetaIn, to, tangentialIsX, j => (1.0, 1.0, order * 2 * Math.PI / periodM));
             return to;
+        }
+
+        /// <summary>
+        /// One ray per frequency through a flat surface whose normal makes the angle theta1 with the carrier's incoming ray and
+        /// theta2 with its outgoing ray. A ray is carried to the surface (position y along it), obeys n2 k sin(out) = n1 k sin(in) + G
+        /// (G: grating vector, 0 for refraction), collects the grating phase G y, and is carried to the plane normal to the outgoing
+        /// carrier; every leg is signed optical path, so a ray that meets the tilted surface early or late gets the right phase.
+        /// </summary>
+        private void RaySurface(double theta1, double theta2, bool x, Func<int, (double N1, double N2, double G)> medium)
+        {
+            var pos = x ? _xr : _yr; var ang = x ? _ar : _br;
+            double c1 = Math.Cos(theta1), s1 = Math.Sin(theta1), c2 = Math.Cos(theta2), s2 = Math.Sin(theta2);
+            for (int j = 0; j < Rays; j++)
+            {
+                var (n1, n2, g) = medium(j);
+                double k = RayK(j), d = ang[j], x0 = pos[j];
+                double t = x0 * s1 / Math.Cos(d + theta1);                               // along the ray to the surface
+                double y = x0 * c1 + t * Math.Sin(d) * c1 + t * Math.Cos(d) * s1;           // position along the surface
+                double sout = (n1 * k * Math.Sin(theta1 + d) + g) / (n2 * k);
+                if (Math.Abs(sout) >= 1) continue;
+                double dOut = Math.Asin(sout) - theta2;
+                double zOut = y * s2, xOut = y * c2;                                         // on the surface, in the outgoing frame
+                double t2 = -zOut / Math.Cos(dOut);                                          // back to the plane at the origin
+                _phase[j] += k * n1 * t + g * y + k * n2 * t2;
+                pos[j] = xOut + t2 * Math.Sin(dOut); ang[j] = dOut;
+            }
+        }
+
+        /// <summary>A thin lens on the bundle: phase -k n x^2 / 2 f_eff in reduced form, reduced angle changed by -n x / f.</summary>
+        private void RayLens(double f, double n, bool x)
+        {
+            var pos = x ? _xr : _yr; var ang = x ? _ar : _br;
+            double m = MediumIndex > 0 ? MediumIndex : 1;
+            for (int j = 0; j < Rays; j++)
+            {
+                double xx = pos[j];
+                _phase[j] -= RayK(j) * n * xx * xx / (2 * f);
+                ang[j] = Math.Atan(Math.Tan(ang[j]) - n / m * xx / f);
+            }
         }
 
         /// <summary>
@@ -165,7 +249,6 @@ namespace UltrafastEngine.Optics
         {
             double e = x ? Ex : Ey, f = x ? Fx : Fy;
             double e2 = a * e, f2 = d * f + fel;
-            PendingGdd += 2 * K0 * fel * e2;
             if (x) { Ex = e2; Fx = f2; } else { Ey = e2; Fy = f2; }
         }
 
@@ -177,17 +260,26 @@ namespace UltrafastEngine.Optics
         public void AddSpatialDispersion(double eel, bool x)
         {
             if (x) Ex += eel; else Ey += eel;
+            var pos = x ? _xr : _yr;
+            for (int j = 0; j < Rays; j++) pos[j] += eel * (RayOmega(j) - Omega0);
         }
 
         /// <summary>Forget the spatio-temporal couplings (physics.spatioTemporal = "off").</summary>
-        public void ClearCouplings() { Ex = Ey = Fx = Fy = 0; PendingGdd = 0; }
+        public void ClearCouplings() { Ex = Ey = Fx = Fy = 0; _xr = new double[Rays]; _ar = new double[Rays]; _yr = new double[Rays]; _br = new double[Rays]; _phase = new double[Rays]; }
 
         /// <summary>A general (reduced) ABCD matrix per axis (no dispersion of its own).</summary>
         public void Apply(double ax, double bx, double cx, double dx, double ay, double by, double cy, double dy)
         {
             Qx = Abcd(Qx, ax, bx, cx, dx); Qy = Abcd(Qy, ay, by, cy, dy);
+            Step(true, ax, bx, cx, dx); Step(false, ay, by, cy, dy);
             double ex = Ex, ey = Ey;
-            PendingGdd += K0 * (ax * cx * ex * ex + 2 * bx * cx * ex * Fx + bx * dx * Fx * Fx) + K0 * (ay * cy * ey * ey + 2 * by * cy * ey * Fy + by * dy * Fy * Fy);
+            for (int j = 0; j < Rays; j++)
+            {
+                double k = RayK(j), xx = _xr[j], aa = Math.Tan(_ar[j]), yy = _yr[j], bb = Math.Tan(_br[j]);
+                _phase[j] += k / 2 * (ax * cx * xx * xx + 2 * bx * cx * xx * aa + bx * dx * aa * aa + ay * cy * yy * yy + 2 * by * cy * yy * bb + by * dy * bb * bb);
+                _xr[j] = ax * xx + bx * aa; _ar[j] = Math.Atan(cx * xx + dx * aa);
+                _yr[j] = ay * yy + by * bb; _br[j] = Math.Atan(cy * yy + dy * bb);
+            }
             Ex = ax * ex + bx * Fx; Fx = cx * ex + dx * Fx;
             Ey = ay * ey + by * Fy; Fy = cy * ey + dy * Fy;
         }
@@ -309,6 +401,35 @@ namespace UltrafastEngine.Optics
             }
             double den = a0 * axx - ax * ax;
             return den > 0 ? (a0 * axt - ax * at) / den : double.NaN;
+        }
+
+        /// <summary>The pulse with a cartesian line profile built from the tracked beam's Gaussian field with its couplings (see
+        /// <see cref="PulseFrontTilt"/>), at every frequency bin of the pulse, for the spaceTime instrument.</summary>
+        public static PulseField WithTrackedProfile(BeamState b, PulseField p, bool x)
+        {
+            double E = x ? b.Ex : b.Ey, F = x ? b.Fx : b.Fy, w = x ? b.RadiusX : b.RadiusY; var q = x ? b.Qx : b.Qy;
+            var g = p.Grid; int n = g.N; double w0 = g.OmegaCenter;
+            var sp = p.SpectralIntensity(); double s0 = 0, s2 = 0;
+            for (int i = 0; i < n; i++) { double d = g.OmegaAbsolute[i] - w0; s0 += sp[i]; s2 += sp[i] * d * d; }
+            double half = 4 * Math.Sqrt(w * w + 4 * E * E * s2 / Math.Max(1e-300, s0));
+            const int NX = 128;
+            var basis = new Transverse.CartesianBasis(NX, 1, half, half);
+            var data = new Complex[NX * n]; var invq = 1 / q;
+            for (int i = 0; i < n; i++)
+            {
+                double dw = g.OmegaAbsolute[i] - w0, sum = 0;
+                for (int m = 0; m < NX; m++)
+                {
+                    double u = basis.X[m] - E * dw;
+                    var v = Complex.Exp(-Complex.ImaginaryOne * b.K0 * u * u * invq / 2 + Complex.ImaginaryOne * b.K0 * F * dw * u);
+                    data[m * n + i] = v; sum += basis.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary);
+                }
+                double sc = sum > 0 ? 1 / Math.Sqrt(sum) : 0;
+                for (int m = 0; m < NX; m++) data[m * n + i] *= sc;
+            }
+            var r = p.WithSpectrum(p.Ax, p.Ay);
+            r.Profile = new Transverse.TransverseProfile(basis, (double[])g.OmegaAbsolute.Clone(), data, "tracked beam");
+            return r;
         }
 
         /// <summary>Record the couplings of a tracked beam (summary values of an element; docs/reference/components.md#spatio-temporal-couplings).</summary>

@@ -102,6 +102,16 @@ compressor chain (energy-dependent pedestal, asymmetric post-pedestal), with eve
 - [ ] Prism pairs and Martinez stretchers with lens aberrations as analytic elements
 - [ ] Output basis vectors in results (lab-frame polarisation after folded paths)
 
+## Stage 4 -- engine depth before branches  (2026-10-29 to 30)
+
+Plan and branching impact: [t0-t2-plan.md](t0-t2-plan.md).
+
+- [x] Diffraction validated against the Fresnel integral; absorbing boundary (linear and nonlinear elements); profile-only linear path; cheaper Hankel matrix
+- [x] Beam tracking: thermal lenses, Kostenbauder couplings, ray bundle for dispersion to fourth order, `prism`, angular dispersion on carried profiles
+- [x] Sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel-Gauss, Airy, measured near fields (NPZ, PNG), cw; axicon, zone plate, vortex, slits, maps; Gerchberg-Saxton
+- [x] Cavities and coherence: `resonator` (eigenmode, Fox-Li), Gaussian-Schell partial coherence, stress birefringence, amplifier thermal lens
+- [x] Trust: `build/example_check.py`, Linux CI, generated validation matrix
+
 ## After 2.0 (plugins and breadth)
 - [ ] Live-data plugin (streamed recordings, a digital twin that re-fits as data arrive)
 - [ ] ML / PINN estimator and surrogate plugins

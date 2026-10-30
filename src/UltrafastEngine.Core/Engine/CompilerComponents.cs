@@ -514,11 +514,22 @@ namespace UltrafastEngine.Engine
                     bool tx = BeamState.TangentialIsX(Angle(c, e, "planeOfIncidence", Math.PI / 2), out _);
                     // a tilted plate disperses inside and recombines at the exit face: spatial chirp ~ L sin / n, and a small GDD
                     string mat = Str(c, e, "material", e.Json.GetString("material", null)), med = Str(c, e, "medium", "Air");
-                    double dn1 = IndexSlope(c, med), dn2 = IndexSlope(c, mat);
-                    t.TiltedInterface(n1, n2, aoi, tx, dn1, dn2);
+                    var n1Of = IndexOf(c, med); var n2Of = IndexOf(c, mat);
+                    t.TiltedInterface(n1, n2, aoi, tx, n1Of, n2Of);
                     t.Propagate(ce.LengthM, n2);
                     double th2 = Math.Asin(n1 * Math.Sin(aoi) / n2);
-                    t.TiltedInterface(n2, n1, th2, tx, dn2, dn1);
+                    t.TiltedInterface(n2, n1, th2, tx, n2Of, n1Of);
+                    return true;
+                }
+                case "prism":
+                {
+                    double aoi = Num(c, e, "aoiDeg", 0) * Math.PI / 180, apex = Num(c, e, "apexDeg", 0) * Math.PI / 180;
+                    string med = Str(c, e, "medium", "Air"), mat = Str(c, e, "material", null);
+                    double n1 = IndexOrOne(c, med), n2 = IndexOrOne(c, mat), th2 = Math.Asin(n1 * Math.Sin(aoi) / n2);
+                    bool tx = BeamState.TangentialIsX(Angle(c, e, "planeOfIncidence", Math.PI / 2), out _);
+                    t.TiltedInterface(n1, n2, aoi, tx, IndexOf(c, med), IndexOf(c, mat));
+                    t.Propagate(ce.LengthM, n2);
+                    t.TiltedInterface(n2, n1, th2 - Math.Sign(aoi == 0 ? 1 : aoi) * apex, tx, IndexOf(c, mat), IndexOf(c, med));
                     return true;
                 }
                 case "thinfilmpolarizer": case "tfp":

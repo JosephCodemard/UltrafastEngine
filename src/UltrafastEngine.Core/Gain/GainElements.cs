@@ -39,6 +39,7 @@ namespace UltrafastEngine.Gain
         public double ThermalFocalLengthM = double.NaN;      // measured thermal focal length (replaces the heat model)
         public double TrackedThermalFocalLengthM = double.NaN; // the compile-time lens used by the tracking (for the beam)
         public double TrackedOnAxisFocalLengthM = double.NaN;  // the compile-time on-axis f_th (pump alone), to compare with the run
+        public bool Stress;                        // thermal stress birefringence (cubic hosts)
         public double RepRateHz = double.NaN;
         public bool SteadyState = true;
         public int MaxPulses = 400;
@@ -289,6 +290,30 @@ namespace UltrafastEngine.Gain
         public double OutputOmega0 => double.NaN;
         public bool TransverseAware => S.Transverse != null && S.Transverse.Model != "none";
 
+        /// <summary>
+        /// Thermal stress birefringence of a uniformly heated rod (Koechner, Solid-State Laser Engineering, ch. 7): the retardation
+        /// between radial and tangential polarisation is delta = C (r / r0)^2, C = n0^3 alpha C_B P_h / (lambda K) with
+        /// C_B = C_r - C_phi. An x-polarised beam filling the rod loses to y the fraction D = (1 - sin C / C) / 4, which tends to 1/4;
+        /// this moves that fraction of the energy, and reports D and the two thermal lenses f_r, f_phi.
+        /// </summary>
+        private void ApplyStress(ActiveContext ctx, Complex[] ax, ref Complex[] ay, double w0)
+        {
+            var r = ctx.Record; var m = S.Medium;
+            if (double.IsNaN(m.StressCr) || double.IsNaN(m.ThermalExpansionPerK)) { ctx.Result.Warnings.Add("Element '" + S.Id + "': no stress coefficients for " + m.Name + " (thermalExpansionPerK, stressCr, stressCphi): thermal birefringence is not applied."); return; }
+            if (!r.Values.TryGetValue("heatW", out double heat) || !(heat > 0)) return;
+            double n0 = S.Host.IndexAt(w0), lam = 2 * Math.PI * GainMedium.C / w0, a = m.ThermalExpansionPerK, K = m.ThermalConductivity;
+            double r0 = S.RodRadiusM > 0 ? S.RodRadiusM : 3 * S.Pump.RadiusM, area = Math.PI * r0 * r0;
+            double C = n0 * n0 * n0 * a * (m.StressCr - m.StressCphi) * heat / (lam * K);
+            double D = (1 - (Math.Abs(C) < 1e-9 ? 1 : Math.Sin(C) / C)) / 4;
+            double F(double cs) => K * area / heat / (0.5 * m.DnDT + a * cs * n0 * n0 * n0 + a * r0 * (n0 - 1) / S.LengthM);
+            r.Values["depolarizationFraction"] = D; r.Values["stressRetardationRad"] = C;
+            r.Values["stressFocalLengthRadialM"] = F(m.StressCr); r.Values["stressFocalLengthTangentialM"] = F(m.StressCphi);
+            ctx.Note(string.Format(CultureInfo.InvariantCulture, "thermal stress: retardation {0:G4} rad at the rod edge, depolarised fraction {1:P2}, f_r = {2:G4} m, f_phi = {3:G4} m", C, D, F(m.StressCr), F(m.StressCphi)));
+            var ny = new Complex[ax.Length]; double tx = Math.Sqrt(1 - D), ty = Math.Sqrt(D);
+            for (int i = 0; i < ax.Length; i++) { ny[i] = ay[i] * tx + ax[i] * ty; ax[i] *= tx; }
+            ay = ny;
+        }
+
         public PulseField Execute(ActiveContext ctx, PulseField p)
         {
             var g = p.Grid; int n = g.N; var notes = ctx.Record.Notes; var r = ctx.Record;
@@ -420,6 +445,7 @@ namespace UltrafastEngine.Gain
             }
             if (r.Representation == null) r.Representation = "1-D (mode area " + (gc.CellArea[0] * 1e6).ToString("G4", CultureInfo.InvariantCulture) + " mm^2), " + S.Slices + " slices, " + K + " time segments";
             r.BIntegralRad = st.BIntegralRad;
+            if (S.Stress) ApplyStress(ctx, ax, ref ay, w0);
             var q = new PulseField(g, ax, ay, rep > 0 ? rep : p.RepRateHz) { Profile = profOut };
             double e1 = q.TotalEnergyJ();
             GainRun.RecordAfter(ctx, gc, st.EnergyGainedJ);
@@ -650,6 +676,7 @@ namespace UltrafastEngine.Gain
                     s.ThermalLens = t.GetBool("enabled", true); s.ApplyThermalLens = t.GetBool("apply", true);
                     s.RodRadiusM = t.GetDouble("rodRadiusM", double.NaN); s.HeatFraction = t.GetDouble("heatFraction", double.NaN);
                     s.TrackThermalLens = t.GetBool("track", true); s.ThermalFocalLengthM = t.GetDouble("focalLengthM", double.NaN);
+                    s.Stress = t.GetBool("stress", false);
                 }
             }
             s.RepRateHz = c.Num(e, "repRateHz", double.NaN);
@@ -691,7 +718,15 @@ namespace UltrafastEngine.Gain
                 }
                 s.Transverse = j.Has("transverse") ? TransverseSpec.FromJson(j["transverse"]) : null;
                 ce.Active = a;
-                if (c.Tracked != null && s.ThermalLens && s.Pump.Kind != "none") ce.Notes.Add("beam tracking: the amplifier's thermal lens is not applied to the tracked beam (the path between passes is not modelled)");
+                var tlo = tlv != null && tlv.Kind == JsonKind.Object ? tlv.AsObject() : null;
+                if (a.Geometry == "multipass" && tlo != null && (tlo.Has("track") || tlo.Has("passGapM")))
+                {
+                    // on request: the path between passes is only known if it is given
+                    ce.TrackingIndex = s.Host.IndexAt(c.Omega0);
+                    TrackThermalLens(c, ce, s);
+                    ce.TrackPasses = a.Passes; ce.TrackPassGapM = tlo.GetDouble("passGapM", 0);
+                }
+                else if (c.Tracked != null && s.ThermalLens && s.Pump.Kind != "none") ce.Notes.Add("beam tracking: the amplifier's thermal lens is not applied to the tracked beam (multipass: give thermalLens.track and passGapM)");
             }
             c.Provenance.Record("element:" + e.Id, amplifier ? "amplifier" : "gain", ce.Active.Description, ModelSource.SystemData, "system file");
             c.Provenance.Record("element:" + e.Id, "gainMedium", s.Medium.Describe() + (string.IsNullOrEmpty(s.Medium.References) ? "" : " [" + s.Medium.References + "]"), ModelSource.SystemData, "gain-medium library / system file");

@@ -1,0 +1,12 @@
+{
+  // Example 31: a beam of 0.5 mm waist, one Rayleigh range of free space. The run spec's "coherence" makes it partially coherent.
+  "$schema": "../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system", "version": 2, "name": "gaussian schell",
+  "elements": [
+    { "id": "waist", "type": "gap", "lengthM": 0, "material": "Vacuum",
+      "transverse": { "model": "cartesian", "nx": 512, "ny": 1, "halfWidthM": 8e-3, "spectralSamples": 2,
+                      "initialProfile": { "kind": "gaussian", "radiusM": 0.5e-3 } } },
+    { "id": "screen", "type": "gap", "lengthM": 0.7624, "material": "Vacuum",
+      "transverse": { "model": "cartesian", "nx": 512, "ny": 1, "halfWidthM": 8e-3, "spectralSamples": 2 } }
+  ]
+}

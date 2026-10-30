@@ -68,7 +68,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "laser")]
+        [Test(Category = "laser", Reference = "unsaturated fast absorber 1 − exp(−q0)", Tolerance = "1 %")]
         public void FastAbsorbers_LoseLessAtHighPower()
         {
             foreach (var spec in new[] { O("kind", "fast", "modulationDepth", 0.05, "saturationPowerW", 1e5), O("kind", "kerrLens", "modulationDepth", 0.05, "kappaPerW", 1e-6) })
@@ -204,7 +204,7 @@ namespace UltrafastEngine.Tests
             Assert.Greater(bF, 0, "running fluence F available");
         }
 
-        [Test(Category = "zemax")]
+        [Test(Category = "zemax", Reference = "GRIN thin lens n_r2 = −1 / (2 f L)", Tolerance = "1e-09")]
         public void ThermalLens_ExportsAsGradient1()
         {
             var sys = Sys(O("id", "g", "type", "gain", "medium", "Yb:YAG", "lengthM", 0.004, "slices", 8, "modeRadiusM", 0.3e-3,

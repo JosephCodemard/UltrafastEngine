@@ -1,0 +1,5 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2, "name": "lens guide",
+  "pulse": { "shape": "cw", "centerWavelengthM": 1030e-9, "powerW": 1.0 }
+}

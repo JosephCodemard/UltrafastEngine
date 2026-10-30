@@ -283,7 +283,7 @@ namespace UltrafastEngine.Tests
             Assert.Throws<JsonException>(() => t.At(350.0));
         }
 
-        [Test]
+        [Test(Reference = "HITRAN strength scaling with Q(T) (Rothman et al.)", Tolerance = "1e-09, 0.2 %")]
         public void LineStrength_UsesThePartitionTable_WhenThereIsOne()
         {
             double nu0 = 9708.0, S = 1e-22, E = 300.0, p = 5 * 101325, T1 = 296, T2 = 330;

@@ -135,7 +135,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "G = exp((σ_e β − σ_a (1 − β)) N L)", Tolerance = "1e-09, 0.1 %")]
         public void GainElement_SmallSignalGainSpec_IsReproduced()
         {
             var sys = Sys(O("id", "g", "type", "gain", "medium", "Yb:YAG", "lengthM", 0.003, "inversion", O("smallSignalGain", 3.0), "spm", false, "modeRadiusM", 1e-3));

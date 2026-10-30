@@ -71,6 +71,7 @@ nav:
   - Design notes:
       - Development history: design/history.md
       - Phase 2 proposal (active media): design/phase2-active-media.md
+      - Plan before branches: design/t0-t2-plan.md
 markdown_extensions:
   - admonition
   - tables

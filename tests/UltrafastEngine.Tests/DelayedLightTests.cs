@@ -142,7 +142,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>A ghost uses the coating's reflectance at each wavelength: with a table coating of R(lambda) on both faces the
         /// ghost amplitude is R_front R_back = R(lambda)^2 -- no flat value anywhere.</summary>
-        [Test]
+        [Test(Reference = "ghost level R(λ)²", Tolerance = "1 %, 2 %")]
         public void Plate_Ghost_FollowsTheWavelengthDependentCoatingTable()
         {
             double l1 = 1000e-9, l2 = 1060e-9, r1 = 0.002, r2 = 0.0005;
@@ -188,7 +188,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(61.9e-12, 2 * ng * 6.35e-3 / C, 0.01, 0, "about 61.9 ps for 6.35 mm");
         }
 
-        [Test]
+        [Test(Reference = "echo amplitude T r_b / r from Stokes reciprocity", Tolerance = "1 %")]
         public void MirrorEcho_LeakageFollowsTheCoatingTransmissionAndTheBackFace()
         {
             double l1 = 1000e-9, l2 = 1060e-9;
@@ -576,7 +576,7 @@ namespace UltrafastEngine.Tests
             Assert.True(det.Instruments.Single().Notes.Any(x => x.Contains("spectral response")), "note");
         }
 
-        [Test]
+        [Test(Reference = "photon number ∝ λ x energy", Tolerance = "1e-09")]
         public void Detector_PhotonCounting_WeightsTheEnergySpectrumByLambda()
         {
             var plain = SpectrumRun(null); var ph = SpectrumRun(O("counting", "photons"));

@@ -130,7 +130,7 @@ namespace UltrafastEngine.Tests
             Assert.Equal(r.Arrays().Count(a => a.Name.StartsWith("spectrometer_a_2_wavelength")), 1, "own arrays (2)");
         }
 
-        [Test(Category = "instruments")]
+        [Test(Category = "instruments", Reference = "far-field radius λf/(πw0)", Tolerance = "1e-09, 0.5 %, 3 %")]
         public void Camera_UnifiedImaging_MatchesTheOldCameras()
         {
             var sys = Sys(O("id", "g", "type", "gap", "material", "Vacuum", "lengthM", 0.1, "beam", O("kind", "gaussian", "w0M", 300e-6, "wavelengthM", 1030e-9),

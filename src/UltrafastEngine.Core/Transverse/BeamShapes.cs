@@ -72,12 +72,24 @@ namespace UltrafastEngine.Transverse
         public bool Radial => R != null;
 
         /// <summary>Load a map. <paramref name="background"/>: a number subtracted from the fluence, or "auto" (the median of the map's edge).</summary>
-        public static TransverseMap Load(string path, JsonValue background, string origin)
+        public static TransverseMap Load(string path, JsonValue background, string origin, double pixelSizeM = double.NaN)
         {
-            if (string.IsNullOrEmpty(path)) throw new InvalidOperationException(origin + ": \"file\" is needed (an NPZ with x_m, y_m or r_m, and fluence or amplitude).");
+            if (string.IsNullOrEmpty(path)) throw new InvalidOperationException(origin + ": \"file\" is needed (an NPZ with x_m, y_m or r_m, and fluence or amplitude, or a grayscale PNG).");
             if (!File.Exists(path)) throw new InvalidOperationException(origin + ": file not found: " + path);
-            var a = NpzWriter.Read(path).ToDictionary(n => n.Name, n => n, StringComparer.OrdinalIgnoreCase);
             var map = new TransverseMap();
+            if (path.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!(pixelSizeM > 0)) throw new InvalidOperationException(origin + ": a PNG needs pixelSizeM.");
+                var (w, h, px) = PngReader.ReadGray(path);
+                double[] Axis(int n) => Enumerable.Range(0, n).Select(i => (i - (n - 1) / 2.0) * pixelSizeM).ToArray();
+                map.X = Axis(w); map.Y = Axis(h);
+                var img = new double[w * h];     // image rows run down y: [x][y] with y upwards
+                for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) img[x * h + (h - 1 - y)] = px[y * w + x];
+                double b0 = background == null || background.IsNull ? 0 : background.Kind == JsonKind.Number ? background.AsDouble() : map.EdgeMedian(img);
+                map.Amplitude = img.Select(v => Math.Sqrt(Math.Max(0, v - b0))).ToArray();
+                return map;
+            }
+            var a = NpzWriter.Read(path).ToDictionary(n => n.Name, n => n, StringComparer.OrdinalIgnoreCase);
             NdArray Opt(string k) => a.TryGetValue(k, out var v) ? v : null;
             var fl = Opt("fluence"); var am = Opt("amplitude") ?? Opt("transmission");
             if (fl == null && am == null) throw new InvalidOperationException(origin + ": the file has neither \"fluence\" nor \"amplitude\" (found: " + string.Join(", ", a.Keys) + ").");
@@ -106,6 +118,25 @@ namespace UltrafastEngine.Transverse
             map.Phase = Opt("phase_rad")?.Data;
             if (map.Phase != null && map.Phase.Length != data.Length) throw new InvalidOperationException(origin + ": phase_rad must have the shape of the map.");
             return map;
+        }
+
+        /// <summary>Zero the map where its fluence is below a fraction of the peak (noise floor).</summary>
+        public void Threshold(double fraction)
+        {
+            if (!(fraction > 0)) return;
+            double lim = Amplitude.Max() * Math.Sqrt(fraction);
+            for (int i = 0; i < Amplitude.Length; i++) if (Amplitude[i] < lim) Amplitude[i] = 0;
+        }
+
+        /// <summary>Shift the axes so that the fluence centroid is at the origin.</summary>
+        public void Center()
+        {
+            double s = 0, sx = 0, sy = 0; int ny = Y.Length;
+            for (int i = 0; i < X.Length; i++)
+                for (int j = 0; j < ny; j++) { double f = Amplitude[i * ny + j] * Amplitude[i * ny + j]; s += f; sx += f * X[i]; sy += f * Y[j]; }
+            if (!(s > 0)) return;
+            double cx = sx / s, cy = sy / s;
+            X = X.Select(v => v - cx).ToArray(); Y = Y.Select(v => v - cy).ToArray();
         }
 
         private double EdgeMedian(double[] d)
@@ -143,6 +174,60 @@ namespace UltrafastEngine.Transverse
             if (!Locate(X, x, out int ix, out double u) || !Locate(Y, y, out int iy, out double v)) return 0;
             int ny = Y.Length, ix1 = Math.Min(ix + 1, X.Length - 1), iy1 = Math.Min(iy + 1, ny - 1);
             return d[ix * ny + iy] * (1 - u) * (1 - v) + d[ix1 * ny + iy] * u * (1 - v) + d[ix * ny + iy1] * (1 - u) * v + d[ix1 * ny + iy1] * u * v;
+        }
+    }
+
+    /// <summary>Reads 8- and 16-bit grayscale PNG images (non-interlaced), the usual output of beam cameras. No colour: a profile is one channel.</summary>
+    public static class PngReader
+    {
+        public static (int Width, int Height, double[] Pixels) ReadGray(string path)
+        {
+            var b = File.ReadAllBytes(path);
+            byte[] sig = { 137, 80, 78, 71, 13, 10, 26, 10 };
+            if (b.Length < 33 || !sig.SequenceEqual(b.Take(8))) throw new InvalidOperationException(path + " is not a PNG file.");
+            int Be32(int p) => (b[p] << 24) | (b[p + 1] << 16) | (b[p + 2] << 8) | b[p + 3];
+            int w = 0, h = 0, depth = 0, pos = 8; var idat = new MemoryStream();
+            while (pos + 8 <= b.Length)
+            {
+                int len = Be32(pos); string type = System.Text.Encoding.ASCII.GetString(b, pos + 4, 4);
+                if (type == "IHDR")
+                {
+                    w = Be32(pos + 8); h = Be32(pos + 12); depth = b[pos + 16];
+                    if (b[pos + 17] != 0 || (depth != 8 && depth != 16)) throw new InvalidOperationException(path + ": only 8- or 16-bit grayscale PNGs are read (save the image as grayscale).");
+                    if (b[pos + 20] != 0) throw new InvalidOperationException(path + ": interlaced PNGs are not read.");
+                }
+                else if (type == "IDAT") idat.Write(b, pos + 8, len);
+                else if (type == "IEND") break;
+                pos += 12 + len;
+            }
+            idat.Position = 2;    // zlib header
+            var raw = new MemoryStream();
+            using (var z = new System.IO.Compression.DeflateStream(idat, System.IO.Compression.CompressionMode.Decompress)) z.CopyTo(raw);
+            var d = raw.ToArray();
+            int bpp = depth / 8, stride = w * bpp;
+            if (d.Length < h * (stride + 1)) throw new InvalidOperationException(path + ": truncated image data.");
+            var prev = new byte[stride]; var row = new byte[stride]; var px = new double[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                int o = y * (stride + 1), f = d[o];
+                for (int i = 0; i < stride; i++)
+                {
+                    int a = i >= bpp ? row[i - bpp] : 0, c = i >= bpp ? prev[i - bpp] : 0, up = prev[i], v = d[o + 1 + i], pred;
+                    switch (f)
+                    {
+                        case 0: pred = 0; break;
+                        case 1: pred = a; break;
+                        case 2: pred = up; break;
+                        case 3: pred = (a + up) / 2; break;
+                        case 4: { int q = a + up - c, pa = Math.Abs(q - a), pb = Math.Abs(q - up), pc = Math.Abs(q - c); pred = pa <= pb && pa <= pc ? a : pb <= pc ? up : c; break; }
+                        default: throw new InvalidOperationException(path + ": bad PNG filter.");
+                    }
+                    row[i] = (byte)(v + pred);
+                }
+                for (int x = 0; x < w; x++) px[y * w + x] = depth == 8 ? row[x] : row[2 * x] * 256.0 + row[2 * x + 1];
+                var t = prev; prev = row; row = t;
+            }
+            return (w, h, px);
         }
     }
 
@@ -213,7 +298,9 @@ namespace UltrafastEngine.Transverse
                 }
                 case "measured":
                 {
-                    var map = TransverseMap.Load(s.GetString("file", null), s["background"], "element " + origin + ".initialProfile");
+                    var map = TransverseMap.Load(s.GetString("file", null), s["background"], "element " + origin + ".initialProfile", s.GetDouble("pixelSizeM", double.NaN));
+                    map.Threshold(s.GetDouble("threshold", 0));
+                    if (s.GetBool("center", false)) { if (map.Radial) throw new InvalidOperationException("element " + origin + ": center needs an x-y map."); map.Center(); }
                     if (radial && !map.Radial) throw new InvalidOperationException("element " + origin + ": an x-y map needs a cartesian transverse grid (or give r_m for a radial one).");
                     if (map.Phase != null) phase = new double[M];
                     for (int m = 0; m < M; m++)

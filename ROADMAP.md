@@ -20,33 +20,35 @@ needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Z
 - [x] Roadmap: GPU line corrected, `ROADMAP.md` and `docs/roadmap.md` in step; `PROJECT_STATUS.md` split into current status and history
 - [x] Stale statements: test count no longer hard-coded; `docs/capabilities.md` covers delayed light, the hitran and gpu plugins, detector presets
 - [x] Example check as a script (`build/example_check.py`): every README and tutorial command in strict mode, quoted output and key tables checked, `--against` diffs every `summary.json` number against a git ref -- *left:* prose and prose tables are checked by hand; example 07 and the C++ example are manual
-- [x] Validation matrix generated from the tests (`docs/reference/validation-matrix.md`, checked like the schemas) -- *left:* 179 of 309 tests name no external reference; review which of them should
-- [ ] Independent oracle: a LightPipes cross-check in a scratch venv, dev-time only and never shipped (iris, Fresnel propagation, lens focus, Talbot self-imaging, Young's slits), opt-in like the HAPI test; audit the tests that compare the engine only with itself (physics-reviewer)
+- [x] Validation matrix generated from the tests (`docs/reference/validation-matrix.md`, checked like the schemas) -- *left:* the rest are behaviour and bookkeeping tests, reviewed 2026-10-30
+- [x] Audit of tests that compare the engine only with itself: the matrix counts them apart (references starting with "cross-")
+- [ ] Independent oracle: a LightPipes cross-check in a scratch venv, dev-time only and never shipped (iris, Fresnel propagation, lens focus, Talbot self-imaging, Young's slits), opt-in like the HAPI test
 
 ## T1 -- core table-top capability (next)
 1. **Narrowband and monochromatic fast path**
    - [x] Linear spatial elements propagate only the stored frequencies of the profile; `transverse.spectralSamples`; absorbing boundary for linear elements; Hankel matrix built once per size (2048 points: 85 s → 4 s)
-   - [ ] A cw / single-frequency source that skips the time grid (one spectral sample end to end)
-   - [ ] Absorbing boundary in nonlinear spatial elements (stepper)
-   - [ ] Benchmark against LightPipes on the same cases; a faster Hankel orthogonalisation or a cached basis on disk for > 2048 points
+   - [x] A cw / single-frequency source: `shape: "cw"`, one spectral bin end to end
+   - [x] Absorbing boundary in nonlinear spatial elements (an absorption in the layer)
+   - [x] Faster Hankel matrix (symmetric products) -- *left:* a timing benchmark against LightPipes, with the cross-check
 2. **Branches: splitters, arms, coherent recombination** -- the largest architectural limit (Michelson, Mach-Zehnder, pump-probe, OPA with its own pump arm). **Deferred by the owner until the existing engine is settled.**
    - [ ] Design first (`docs/design/`): a graph of elements with named ports; `beamSplitter` / `combiner` elements; per-arm delay and phase; arms recombined on a shared grid; how instruments, probes, studies and the loss budget see branches; reuse of the χ(2) aux beams
    - [ ] Implementation, a Michelson and a Mach-Zehnder example with analytic fringes, a pump-probe example
 3. **Spatio-temporal couplings**
    - [x] Kostenbauder couplings with the tracked beam: gratings, tilted interfaces (prisms), plates, single-pass grating pairs; pulse-front tilt (Hebling, Akturk); the GDD they add (Treacy, 4f = 0)
-   - [ ] Angular dispersion on carried transverse profiles (a frequency-dependent tilt on cartesian grids), checked against the tracker
-   - [ ] `spaceTime` instrument from the tracked beam's couplings when no profile is carried; a `prism` helper that computes the signed face angles
-   - [ ] Dispersion beyond second order from θ(ω) (for compressors built from single gratings / prisms)
+   - [x] Angular dispersion on carried cartesian profiles (`physics.spatioTemporal: "profile"`), checked against the tracker and Treacy
+   - [x] `spaceTime` instrument from the tracked beam's couplings; `prism` element
+   - [x] Dispersion to fourth order from θ(ω): an exact ray bundle (Treacy's TOD reproduced)
 4. **Beam sources and masks**
    - [x] Hermite-Gauss, Laguerre-Gauss, Bessel-Gauss and Airy beams as `initialProfile` kinds, with analytic propagation tests
-   - [x] `mask` element: axicon, zone plate, vortex plate, slits, amplitude / phase maps from NPZ -- *left:* reading image files directly
-   - [x] Measured near field and wavefront as input (`initialProfile` kind `measured`: NPZ, background, resampling) -- *left:* cleaning beyond the background (centring, noise floor)
-   - [ ] Gerchberg-Saxton phase retrieval from near / far-field images (`Retrieval/`)
+   - [x] `mask` element: axicon, zone plate, vortex plate, slits, amplitude / phase maps from NPZ 
+   - [x] Measured near field and wavefront as input (`initialProfile` kind `measured`: NPZ, background, resampling) 
+   - [x] Gerchberg-Saxton phase retrieval from near / far-field images (`retrieve gerchbergSaxton`), PNG input, near-field centring and threshold
 
 ## T2 -- after T1
-- [x] Thermal lenses of gain media in the Gaussian beam tracking -- *left:* amplifier elements (path between passes), thermal stress birefringence and depolarisation
-- [ ] Partial coherence (coherent-mode decomposition or Gaussian-Schell beams): M² > 1 beams as sources, coherence through the system
-- [ ] General resonators between arbitrary elements (builds on branches)
+- [x] Thermal lenses of gain media in the Gaussian beam tracking -- *left:* regenerative amplifiers
+- [x] Thermal stress birefringence and depolarisation (Koechner, uniformly heated cubic rods) -- *left:* the spatial (four-lobed) pattern
+- [x] Partial coherence: Gaussian-Schell beams as coherent modes -- *left:* coupling between modes in nonlinear elements; other source models
+- [x] Resonators around a nested sequence: stability, eigenmode, Fox-Li -- *left:* a cycle in the element graph, with branches
 
 ## Engineering
 - [x] GitHub Actions on pushes and pull requests (`.github/workflows/ci.yml`, Linux): build net10.0 and net48, CLI compiled for every platform, C# tests, Python tests with pyNLO, `mkdocs build --strict`, the example check -- *left:* first run on GitHub

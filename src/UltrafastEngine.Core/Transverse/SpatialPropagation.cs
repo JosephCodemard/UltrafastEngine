@@ -486,7 +486,16 @@ namespace UltrafastEngine.Transverse
                 Array.Copy(E, 0, state, 0, block); Array.Copy(Ey, 0, state, block, block);
             }
             bool uppe = Spec.Equation == "uppe";
-            var prob = new SpatialEnvelopeProblem(g, basis, Medium, LengthM, phX, ampX, idx, Spec.Paraxial, ctx.ArrivalS, tauEl, ctx.Element.Id, Properties, vector, phY, ampY, uppe);
+            // the absorbing boundary of a nonlinear element: an absorption in the outer layer, for waves up to a third of the grid's steepest angle
+            var props = Properties;
+            bool boundary = Spec.AbsorbingBoundary > 0;
+            if (boundary)
+            {
+                double theta = Math.Min(1.0, Math.Sqrt(basis.K2.Max()) * PhysicalConstants.SpeedOfLightMPerS / (g.OmegaCenter * idx(g.OmegaCenter))) / 3;
+                props = SpatialProperties.Combine(Properties, new SpatialProperties { Absorption = new PointValuesField(TransverseOps.AbsorberAlpha(basis, Spec.AbsorbingBoundary, theta), "absorbing boundary") });
+                ctx.Note(string.Format(CultureInfo.InvariantCulture, "absorbing boundary: outer {0:P0} of the grid, as an absorption", Spec.AbsorbingBoundary));
+            }
+            var prob = new SpatialEnvelopeProblem(g, basis, Medium, LengthM, phX, ampX, idx, Spec.Paraxial, ctx.ArrivalS, tauEl, ctx.Element.Id, props, vector, phY, ampY, uppe);
             if (Properties != null && Properties.Any) ctx.Note("position-dependent properties: " + Properties.Describe());
             var stats = new StepStatistics();
             var outS = LengthM > 0 ? Steppers.Propagate(prob, state, ctx.Run.Run.Stepper, stats, ctx.Progress) : state;
@@ -514,7 +523,7 @@ namespace UltrafastEngine.Transverse
             ctx.Record.Values["peakFluenceOutJPerM2"] = flu.Max();
             SmallScaleDiagnostics(ctx, basis, fluIn, flu, wexp, p, g);
             ctx.Record.Values["onAxisFluenceOutJPerM2"] = flu[Array.IndexOf(basis.Radius, basis.Radius.Min())];
-            EdgeWarning(ctx, basis, flu);
+            if (!boundary) EdgeWarning(ctx, basis, flu);
             ctx.Record.Steps = stats; ctx.Record.BIntegralRad = stats.BIntegralRad;
             if (Medium != null) foreach (var rr in Medium.ExtraResponses.OfType<IReportingResponse>()) rr.Report(ctx.Record.Values);
             ctx.Record.Representation = basis.Describe() + " x " + n + " samples";
@@ -522,7 +531,7 @@ namespace UltrafastEngine.Transverse
             foreach (var s in stats.Notes) ctx.Note(s);
             double e1 = q.TotalEnergyJ();
             bool absorbs = Background.Any(b => b.Mechanism == "absorption") || (Medium?.ExtraResponses.Count ?? 0) > 0 || Properties?.Absorption != null;
-            ctx.Energy(absorbs ? "absorption" : (Medium != null && Medium.EffectiveRamanFraction > 0 && Medium.IsActive ? "raman+numerical" : "numerical"), e0 - e1);
+            ctx.Energy(boundary && !absorbs ? "grid boundary" : absorbs ? "absorption" : (Medium != null && Medium.EffectiveRamanFraction > 0 && Medium.IsActive ? "raman+numerical" : "numerical"), e0 - e1);
             return q;
         }
 

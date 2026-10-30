@@ -168,6 +168,18 @@ A hard aperture: round (``radius_m``) or rectangular (``half_width_x_m``, ``half
 
 A thin mask on the carried transverse profile (docs/reference/transverse.md#masks): "axicon" (``cone_angle_rad``), "zonePlate" (``focal_length_m``, ``binary_phase``), "vortex" (``charge``), "slits" (``count``, ``width_m``, ``separation_m``, ``height_m``) or "file" (an NPZ with x_m, y_m or r_m, amplitude, optionally phase_rad). Vortex and slits need a cartesian grid.
 
+### `prism(id: str, material: str, apex_deg: float, aoi_deg: float, path_m: float = 0.0, *, medium: str = 'Air', fresnel: Optional[bool] = None, **extra) -> dict`
+
+A prism: two refracting faces and ``path_m`` of glass on the carrier's ray. ``aoi_deg`` is signed in the unfolded beam; a second prism that undoes the angular dispersion takes the first's exit angle (see the note it writes) as its ``aoi_deg``. Disperses the tracked beam (docs/reference/components.md#spatio-temporal-couplings).
+
+### `resonator(id: str, elements: Sequence[Mapping[str, Any]], geometry: str = 'ring', *, transverse: Optional[Mapping[str, Any]] = None, round_trips: Optional[Mapping[str, Any]] = None) -> dict`
+
+A passive resonator around ``elements`` (docs/reference/oscillators.md#resonators): round-trip matrix, stability, eigenmode on the tracked beam; with a ``transverse`` grid, the Fox-Li mode and its round-trip loss. ``geometry`` "ring" or "linear" (forward and back, end elements once).
+
+### `coherence(m2: float, modes: Optional[int] = None, *, dimensions: Optional[int] = None, element: Optional[str] = None) -> dict`
+
+A partially coherent source (``run_spec(coherence=...)``; docs/reference/transverse.md#partial-coherence): a Gaussian-Schell beam of quality ``m2`` as an incoherent sum of Hermite-Gauss modes, one complete run each, on a cartesian grid.
+
 ### `grating(id: str, lines_per_mm: float, aoi_deg: float, order: int = -1, efficiency: Optional[float] = None, **extra) -> 'T.GratingElement'`
 
 One diffraction grating. With the beam tracked (an ``inputBeam``) it disperses the beam: sin(theta_out) = sin(theta_in) + m lambda / period with signed angles in the unfolded beam (a second grating that undoes it has ``aoi_deg`` = the first's diffraction angle and the opposite order), anamorphic magnification, angular dispersion, pulse-front tilt, and the group-delay dispersion of the spatio-temporal couplings (docs/reference/components.md#spatio-temporal-couplings).
@@ -302,9 +314,9 @@ A pump for gain / amplifier elements: kind "cw" (power_w) or "pulsed" (energy_j,
 
 A pumped gain medium crossed once (docs/reference/gain.md). ``medium`` = "Yb:YAG" | "Ti:sapphire" | "Nd:YAG" or a gain-medium object ({"base": "Yb:YAG", "dopingDensityM3": ...} or a full definition); ``inversion`` = {"fraction": b} or {"smallSignalGain": G} instead of / on top of a pump; ``transverse`` for spatial gain.
 
-### `thermal_lens(*, rod_radius_m: Optional[float] = None, heat_fraction: Optional[float] = None, apply: Optional[bool] = None, track: Optional[bool] = None, focal_length_m: Optional[float] = None) -> dict`
+### `thermal_lens(*, rod_radius_m: Optional[float] = None, heat_fraction: Optional[float] = None, apply: Optional[bool] = None, track: Optional[bool] = None, focal_length_m: Optional[float] = None, pass_gap_m: Optional[float] = None, stress: Optional[bool] = None) -> dict`
 
-The thermal lens of a gain element (``gain(thermal_lens=...)``; docs/reference/gain.md#thermal-lens): heat = ``heat_fraction`` (default the quantum defect) x absorbed pump, conducted to a rod of radius ``rod_radius_m``. ``track`` (default True) also puts it on the tracked Gaussian beam (thin lenses per slice, fitted over the beam); ``focal_length_m`` is a measured focal length used instead of the heat model.
+The thermal lens of a gain element (``gain(thermal_lens=...)``; docs/reference/gain.md#thermal-lens): heat = ``heat_fraction`` (default the quantum defect) x absorbed pump, conducted to a rod of radius ``rod_radius_m``. ``track`` (default True) also puts it on the tracked Gaussian beam (thin lenses per slice, fitted over the beam; a multipass amplifier only when ``track`` or ``pass_gap_m``, the free path between passes, is given); ``focal_length_m`` is a measured focal length used instead of the heat model; ``stress`` adds thermal birefringence (cubic hosts): the depolarised fraction moves to y, and the two thermal lenses f_r, f_phi are reported.
 
 ### `multipass_amplifier(id: str, medium: Any, length_m: float, passes: int, pump: Optional[Mapping[str, Any]] = None, between_passes: Optional[Mapping[str, Any]] = None, mode_radius_m: Optional[float] = None, beam: Optional[Mapping[str, Any]] = None, inversion: Optional[Mapping[str, Any]] = None, **extra) -> dict`
 
@@ -338,6 +350,10 @@ A soft (Gaussian, or super-Gaussian of ``order``) aperture acting on a carried t
 
 ### `coating_quarter_wave(design: str, design_wavelength_m: float, H: str = 'Ta2O5', L: str = 'SiO2_film') -> dict`
 
+### `cw(wavelength_m: float, power_w: float) -> dict`
+
+A cw source: one spectral bin at ``wavelength_m`` (docs/reference/run-spec.md#cw-sources). Fluences are intensity x the window (1 ns unless ``grid.windowS`` is set); ``beamProfile`` also reports ``peakIntensityWPerM2``.
+
 ### `pulse(center_wavelength_m: float, duration_fwhm_s: Optional[float] = None, energy: Optional[float] = None, shape: str = 'gaussian', rep_rate_hz: Optional[float] = None, average_power_w: Optional[float] = None, peak_power_w: Optional[float] = None, gdd_s2: float = 0.0, tod_s3: float = 0.0, polarization = 'x', **extra) -> 'T.Pulse'`
 
 ### `measured_spectrum(wavelengths_m: Sequence[float], intensity: Sequence[float], energy: Optional[float] = None, phase_rad: Optional[Sequence[float]] = None, *, background: Any = None, threshold: Optional[float] = None, resolution_m: Optional[float] = None, deconvolve: Optional[bool] = None, extrapolate: Optional[str] = None, center_wavelength_m: Optional[float] = None, **extra) -> 'T.Pulse'`
@@ -364,7 +380,7 @@ Where a curve instrument takes its readings (docs/reference/instruments.md#axis-
 
 ### `physics(*, beam_tracking: Any = None, spatio_temporal: Any = None, transverse: Optional[Mapping[str, Any]] = None, **extra) -> 'T.Physics'`
 
-Physics switches of a run (``run_spec(physics=...)``). ``beam_tracking``: "auto" | "on" | "off" (Gaussian q tracking from the ``input_beam``); ``spatio_temporal``: "auto" | "on" | "track" | "off" -- angular / spatial dispersion and pulse-front tilt carried with the tracked beam, their group-delay dispersion applied to the pulse ("track": reported only); ``transverse``: the default spatial model. Other keys (``nonlinear``, ``raman``, ...) go through ``extra``.
+Physics switches of a run (``run_spec(physics=...)``). ``beam_tracking``: "auto" | "on" | "off" (Gaussian q tracking from the ``input_beam``); ``spatio_temporal``: "auto" | "on" | "track" | "profile" | "off" -- angular / spatial dispersion and pulse-front tilt carried with the tracked beam, their dispersion applied to the pulse ("track": reported only; "profile": gratings and tilted surfaces tilt each frequency of a carried cartesian profile instead); ``transverse``: the default spatial model. Other keys (``nonlinear``, ``raman``, ...) go through ``extra``.
 
 ### `run_spec(pulse: Mapping[str, Any], name: str = 'run', grid: Optional[Mapping[str, Any]] = None, physics: Optional[Mapping[str, Any]] = None, stepper: Optional[Mapping[str, Any]] = None, probes: Any = 'all', instruments: Optional[list] = None, overrides: Optional[list] = None, outputs: Optional[Mapping[str, Any]] = None, input_beam: Optional[Mapping[str, Any]] = None, compute: Optional[Mapping[str, Any]] = None, detectors: Optional[Mapping[str, Any]] = None, **extra) -> 'T.RunSpec'`
 

@@ -28,6 +28,10 @@ namespace UltrafastEngine.Gain
         public double ZeroLineM { get; set; } = double.NaN;
         public double ThermalConductivity { get; set; } = 10;   // W / (m K)
         public double DnDT { get; set; } = 7.8e-6;              // 1/K
+        /// <summary>Stress birefringence of a cubic host (Koechner): thermal expansion (1/K) and photo-elastic coefficients C_r, C_phi; NaN = not available.</summary>
+        public double ThermalExpansionPerK { get; set; } = double.NaN;
+        public double StressCr { get; set; } = double.NaN;
+        public double StressCphi { get; set; } = double.NaN;
         public string References { get; set; } = "";
         public List<string> Notes { get; } = new List<string>();
         /// <summary>Explicit band shapes: emission (lasing band) and absorption (pump band) in m^2 vs omega.</summary>
@@ -98,7 +102,7 @@ namespace UltrafastEngine.Gain
                     g = new GainMedium
                     {
                         Name = "Yb:YAG", Host = "YAG", LifetimeS = 0.95e-3, DopingDensityM3 = 1.38e26 * 2, ZeroLineM = 968.8e-9,
-                        ThermalConductivity = 9.5, DnDT = 7.8e-6,
+                        ThermalConductivity = 9.5, DnDT = 7.8e-6, ThermalExpansionPerK = 7.5e-6, StressCr = 0.017, StressCphi = -0.0025,
                         // emission in the lasing band (room temperature): main line 1030 nm, shoulder ~1048 nm, broad base
                         EmissionBand = Bands((1030.0e-9, 2.1e-20 * cm2, 8.5e-9), (1048.5e-9, 0.32e-20 * cm2, 16e-9), (1015e-9, 0.35e-20 * cm2, 30e-9)),
                         // absorption in the pump band: 940 nm (broad) and the 969 nm zero-phonon line
@@ -126,7 +130,7 @@ namespace UltrafastEngine.Gain
                     g = new GainMedium
                     {
                         Name = "Nd:YAG", Host = "YAG", LifetimeS = 230e-6, DopingDensityM3 = 1.38e26,
-                        ThermalConductivity = 10.5, DnDT = 7.8e-6,
+                        ThermalConductivity = 10.5, DnDT = 7.8e-6, ThermalExpansionPerK = 7.5e-6, StressCr = 0.017, StressCphi = -0.0025,
                         EmissionBand = Bands((1064.2e-9, 2.8e-19 * cm2, 0.6e-9)),
                         AbsorptionBand = Bands((808.5e-9, 7.0e-20 * cm2, 2.5e-9)),
                         EmissionDescription = "Gaussian fit: 2.8e-19 cm^2 at 1064.2 nm, 0.6 nm FWHM",
@@ -162,6 +166,8 @@ namespace UltrafastEngine.Gain
             if (o.Has("zeroLineWavelengthM")) g.ZeroLineM = o.GetDouble("zeroLineWavelengthM", double.NaN);
             if (o.Has("thermalConductivity")) g.ThermalConductivity = o.GetDouble("thermalConductivity", g.ThermalConductivity);
             if (o.Has("dnDT")) g.DnDT = o.GetDouble("dnDT", g.DnDT);
+            g.ThermalExpansionPerK = o.GetDouble("thermalExpansionPerK", g.ThermalExpansionPerK);
+            g.StressCr = o.GetDouble("stressCr", g.StressCr); g.StressCphi = o.GetDouble("stressCphi", g.StressCphi);
             if (o.Has("references")) g.References = o.GetString("references");
             if (o.Has("emission")) { g.EmissionBand = CrossSection(o["emission"], reg, origin + ".emission", out var d); g.EmissionDescription = d; }
             if (o.Has("absorption")) { g.AbsorptionBand = CrossSection(o["absorption"], reg, origin + ".absorption", out var d); g.AbsorptionDescription = d; }

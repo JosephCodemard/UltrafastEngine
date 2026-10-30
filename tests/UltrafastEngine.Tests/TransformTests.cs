@@ -147,7 +147,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "transform")]
+        [Test(Category = "transform", Reference = "Maréchal exp(−(2π σ)²)", Tolerance = "1e-12, 1e-09")]
         public void Transform_Wavefront_ActsOnTheSpatialProfile()
         {
             var sys = Sys(O("id", "g1", "type", "gap", "material", "Vacuum", "lengthM", 0.01, "beam", O("kind", "gaussian", "w0M", 1e-3, "wavelengthM", Lam),

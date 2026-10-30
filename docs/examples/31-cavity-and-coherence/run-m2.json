@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2, "name": "M2 = 2.5",
+  "pulse": { "shape": "cw", "centerWavelengthM": 1030e-9, "powerW": 1.0 },
+  "coherence": { "m2": 2.5, "modes": 40 },
+  "instruments": [ { "kind": "beamProfile", "name": "screen", "at": "screen" } ]
+}

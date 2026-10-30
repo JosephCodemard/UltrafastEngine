@@ -284,7 +284,7 @@ namespace UltrafastEngine.Engine
                     rec.LidtMargin = rec.LidtFluenceJPerM2 / rec.PeakFluenceJPerM2;
                     if (rec.LidtMargin < 1) res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak fluence {1:G3} J/cm^2 exceeds the scaled LIDT {2:G3} J/cm^2.", el.Id, rec.PeakFluenceJPerM2 * 1e-4, rec.LidtFluenceJPerM2 * 1e-4));
                 }
-                if (rec.Out.EdgeEnergyFraction > 1e-3)
+                if (rec.Out.EdgeEnergyFraction > 1e-3 && cr.Run?.Pulse?.IsCw != true)
                 {
                     string w = string.Format(CultureInfo.InvariantCulture, "After element '{0}' {1:P2} of the energy is near the time-window edge (wrap-around likely).", el.Id, rec.Out.EdgeEnergyFraction);
                     if (!res.Warnings.Any(x => x.Contains("time-window edge"))) res.Warnings.Add(w);

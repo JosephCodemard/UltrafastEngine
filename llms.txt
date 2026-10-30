@@ -73,6 +73,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 
 ## Design notes
 - [Phase 2 proposal (active media)](docs/design/phase2-active-media.md)
+- [Plan before branches](docs/design/t0-t2-plan.md)
 
 
 ## Optional

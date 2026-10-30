@@ -84,7 +84,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(Math.Sqrt(w0 * w0 + res * res), wr, 0.05, 0, "resolution broadens it");
         }
 
-        [Test]
+        [Test(Reference = "AC width √2 FWHM, quadrature resolution sum", Tolerance = "2 %, 3 %")]
         public void Autocorrelator_ResolutionAndAcceptance()
         {
             var chirped = Gauss(Lam, 30e-15, 1e-9); chirped.Set("chirp", O("gddFs2", 600));
@@ -136,7 +136,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(1e-6, r.Output.TotalEnergyJ(), 1e-6, 0, "the pulse itself is unchanged");
         }
 
-        [Test]
+        [Test(Reference = "Malus: S1 = (ER − 1) / (ER + 1)", Tolerance = "1e-09")]
         public void Polarimeter_ExtinctionRatioScalesStokes()
         {
             var r = Measure(Gauss(Lam, 100e-15, 1e-6), O("kind", "polarimeter", "name", "p0"), O("kind", "polarimeter", "name", "p1", "extinctionRatio", 0.01));

@@ -90,12 +90,16 @@ A prism is two interfaces and the glass between them; for a 60° fused-silica pr
 ```
 
 **What the pulse gets.** The 1-D spectrum A(ω) is the field on each frequency's own (chief) ray; the beam is
-U(x, ω) = A(ω) u_q(x − E Δω) exp(i k₀ F Δω (x − E Δω)). Keeping A on the chief ray costs a group-delay dispersion, which the
-element applies to the pulse (a note gives it in fs²): k₀ B F² for a length B (reduced) of free space, −k₀ E² / f for a lens,
-k₀ (A C E² + 2 B C E F + B D F²) for a general ABCD step, and 2 k₀ F_el a E_in at a dispersing surface. After a system that cancels
-the couplings the sum is Kostenbauder's time element: −k₀ L F² for two gratings at slant distance L -- Treacy's GDD, to second
-order (`gratingPair` has the exact phase, all orders) -- and 0 for a 4f zero-dispersion stretcher. Higher orders of θ(ω) are not
-included: use `gratingPair` for compressors, and these elements for alignment, spatial chirp and pulse-front tilt.
+U(x, ω) = A(ω) u_q(x − E Δω) exp(i k₀ F Δω (x − E Δω)). Keeping A on the chief ray costs a spectral phase, which the element applies
+to the pulse (a note gives it in fs² and fs³). It is computed exactly: five rays around the carrier are traced with the beam through
+gaps, lenses and tilted surfaces (Snell's law, the grating equation, the tilt of the surface), each collecting its optical phase, and
+differences across the bundle give GDD, TOD and FOD of each element. To second order this is k₀ B F² for a length B (reduced) of free space,
+−k₀ E² / f for a lens, k₀ (A C E² + 2 B C E F + B D F²) for a general ABCD step and 2 k₀ F_el a E_in at a dispersing surface. After a
+system that cancels the couplings the sum is Kostenbauder's time element: Treacy's phase for two gratings (GDD −k₀ L F², and the TOD comes
+out too) and 0 for a 4f zero-dispersion stretcher. Fifth and higher orders are not applied; `gratingPair` remains the exact phase.
+
+A `prism` element is the two faces and the glass in one element (`material`, `apexDeg`, signed `aoiDeg`, `pathM` for the glass on the
+carrier's ray, `fresnel`); its note gives the exit angle, which is the `aoiDeg` of a second prism that undoes the dispersion.
 
 **Reports** (`summary.json → elements[].values`, per axis X / Y, when non-zero):
 
@@ -112,13 +116,18 @@ Opt. Express 13, 8642 (2005)).
 
 `physics.spatioTemporal`: `"auto"` (default) tracks the couplings and applies their dispersion -- unless an element has traced
 `groupDelayS` (a ray-traced system already contains it; a note says so); `"on"` always applies it; `"track"` only reports;
-`"off"` does neither. Couplings need beam tracking (a Gaussian `inputBeam`). Carried transverse profiles do not take the
-angular dispersion (a spatial element after a grating diffracts the profile it was given, without the per-colour tilt).
+`"off"` does neither. `"profile"` puts the coupling in the field itself: on a cartesian grid, each grating or tilted interface tilts every
+stored frequency of the carried profile by its exact deviation and applies the magnification, the spatial elements after it spread the
+colours, and no phase comes from the tracker (the two descriptions must not be added). It needs a fine sampling: the tilt may change
+by less than π/2 across the beam between stored frequencies (`profileTiltStepRad`; a warning says so), which takes a long time
+window and a large `spectralSamples`, and a grid wide enough for the spread beam. Couplings need beam tracking (a Gaussian `inputBeam`).
+A `spaceTime` instrument on a 1-D beam shows I(x, t) and S(x, λ) of the tracked Gaussian field with its couplings.
 
 Validated (`BeamTrackingTests`): angular dispersion and pulse-front tilt of a grating against the grating equation and
 Hebling (0.2 %); two gratings against `gratingPair` (Treacy GDD 0.1 %, spatial chirp 0.2 %); pulse-front tilt from spatial
 chirp and GDD against the Gaussian result 2 φ₂ E σ² / (w² + 2 E² σ²) (0.5 %); a prism against Snell's law at both faces
-(0.5 %); a 4f zero-dispersion stretcher (GDD < 10⁻⁶ of k₀ f F²).
+(0.5 %); a 4f zero-dispersion stretcher (GDD < 10⁻⁶ of k₀ f F²); Treacy's TOD from the ray bundle (0.5 %); a prism pair's −k₀ L F² (1 %);
+two gratings on a grid in `"profile"` mode against the tracker's spatial chirp and Treacy's GDD (3 %): a wave-optics check of the rays.
 
 ## Curved and off-axis mirrors
 

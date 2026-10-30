@@ -78,8 +78,8 @@ Gas lines: one complex Voigt shape gives n and alpha (Kramers-Kronig); the frame
 Apertures: edge cells transmit their area fraction (amplitude), so patterns converge fast and T converges from below (~dx/3a).
 Linear spatial elements propagate only the profile's stored frequencies (`ExecuteLinear`); `absorbingBoundary` splits them into steps.
 Reference: Fresnel integral; plane wave on the axis 4 sin²(πN/2). Tracking (Optics/BeamTracking.cs): reduced q̂ = q/n; per axis E = dx/dω,
-F = dθ̂/dω; the 1-D spectrum is the field on each frequency's chief ray, so steps add GDD k0 (A C E² + 2 B C E F + B D F²) and a dispersing
-surface 2 k0 a F_el E_in (sum = Kostenbauder's time element after cancellation: Treacy for a pair, 0 for a 4f stretcher). Signed angles
+F = dθ̂/dω; the 1-D spectrum is the field on each frequency's chief ray. A 5-ray bundle in `BeamState` gives GDD, TOD, FOD exactly (second order: k0 (A C E² + 2 B C E F + B D F²)
+per step, 2 k0 a F_el E_in at a surface; Treacy for a pair, 0 for a 4f stretcher). `physics.spatioTemporal: "profile"` puts the tilt in the profile instead: never add both. Signed angles
 in the unfolded beam. Thermal lens on q: compile-time pump-alone heat model, beam-weighted parabola per slice (GainElements.TrackThermalLens).
 
 ## Known limits

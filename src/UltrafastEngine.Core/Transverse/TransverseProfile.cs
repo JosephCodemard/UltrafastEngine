@@ -355,6 +355,17 @@ namespace UltrafastEngine.Transverse
         }
 
         /// <summary>
+        /// Power absorption alpha (1/m) of the boundary layer for elements stepped by the nonlinear solver: alpha_max u^4 across the
+        /// layer (the exponent of <see cref="AbsorberMask"/>), with alpha_max set so that a wave at angle
+        /// <paramref name="angleRad"/> loses about 10 nepers of power crossing the layer.
+        /// </summary>
+        public static double[] AbsorberAlpha(ITransverseBasis b, double width, double angleRad)
+        {
+            double alphaMax = 50 * angleRad / (width * b.Extent);
+            return AbsorberMask(b, width).Select(a => -Math.Log(a) / 5 * alphaMax).ToArray();
+        }
+
+        /// <summary>
         /// Fraction of each basis point's cell (area element) inside a region: radial cells are the annuli with the
         /// basis weights as areas, cartesian cells the pixels (sampled 16 x 16 where the boundary crosses them).
         /// <paramref name="inside"/> tests a point (x, y). Used to anti-alias hard-edged apertures and beams.

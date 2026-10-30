@@ -48,7 +48,7 @@ namespace UltrafastEngine.Tests
             Assert.Less(Math.Abs(y[50]), 1e-9 * Math.Abs(y[110]), "causal (FFT round-off only)");
         }
 
-        [Test]
+        [Test(Reference = "rotational n2 of circular light = 1/4 of linear (tensor Raman, Hellwarth)", Tolerance = "3 %, 5 %")]
         public void RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter()
         {
             SystemDescription S(JsonObject material)
@@ -75,7 +75,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.25, circ.Records[0].BIntegralRad / lin.Records[0].BIntegralRad, 0.03, 0, "circular / linear orientational Kerr");
         }
 
-        [Test]
+        [Test(Reference = "published refractivities of the gases", Tolerance = "1e-09, 2 %")]
         public void Gases_IndicesOfNewSpecies()
         {
             double w = W(633e-9);

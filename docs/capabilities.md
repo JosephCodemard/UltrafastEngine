@@ -30,7 +30,8 @@ carrier-resolved field.
 | **Contrast** | pedestal models of the input (replicas, pre/post-pulses, ASE, spectral phase noise, exponential); third-order cross-correlator with noise floor, resolution, SHG acceptance | correlator artefacts, pedestal levels |
 | **Instruments** | energy meter, spectrometer, scope, intensity / interferometric autocorrelator, FROG, d-scan, contrast, cross-correlator, polarimeter, cameras (imaging + sensor), wavefront sensor, ideal compressor, conversion, phase-matching curve, delay scan; virtual Wigner, field and space–time probes. Every instrument has its resolution / range parameters, a spectral `filter`, a `detector` (calibration, noise, floor, bit depth) and near / far-field `sampling` through pinholes, fibres or slits, and reports the settings it used. Detectors have spectral response tables, photon counting, saturation and stitched segments, and reusable presets ([Detector presets](reference/instruments.md#detector-presets)) | AC deconvolution, IAC 8:1, FROG marginals with acceptance and resolution, detector reproducibility, pinhole / slit transmissions |
 | **Measured data** | measured input spectra (CSV or arrays; sorted, repeated wavelengths merged, background and threshold, recording resolution deconvolved, Gaussian tails beyond the recorded range); any instrument compared with a recording (CSV / NPZ / JSON curves, 2-D traces, scalar readings; linear or dB) on the recording's own axis and range, at its resolution | digitised spectra with out-of-order and repeated rows; floor restores the transform limit; overlap-only comparison; resolution matching |
-| **Analysis** | scans (grid, random, Latin hypercube, Sobol), Nelder–Mead optimisation, local and Sobol sensitivities with a frozen grid and prefix caching; FROG (PCGPA, ePIE) and d-scan retrieval; fits of transforms and parameters to measured data, backward propagation (fitting plugin) | B ∝ L scans, elasticities, Sobol indices; retrieval of chirped pulses (duration, GDD) |
+| **Cavities and coherence** | `resonator`: round-trip matrix, stability, eigenmode, Fox-Li mode and loss; Gaussian-Schell partial coherence as coherent modes; cw sources | Kogelnik & Li eigenmode, Fox-Li vs ABCD, N^(−3/2) loss, M² law |
+| **Analysis** | scans (grid, random, Latin hypercube, Sobol), Nelder–Mead optimisation, local and Sobol sensitivities with a frozen grid and prefix caching; FROG (PCGPA, ePIE) and d-scan retrieval; Gerchberg-Saxton wavefront retrieval; fits of transforms and parameters to measured data, backward propagation (fitting plugin) | B ∝ L scans, elasticities, Sobol indices; retrieval of chirped pulses (duration, GDD) |
 
 Test details: [Testing and validation](testing.md). Synthetic measurements with known answers to try the analysis
 tools: [Assets](assets/README.md).
@@ -79,10 +80,12 @@ the same way ([Plugin system](reference/plugins.md)).
 
 * Beam tracking handles simple astigmatism (principal axes x and y). The tracked beam stays Gaussian: a thermal lens is
   applied as the parabola that fits it best over the beam (its aberration needs a spatial model), and the dispersion of
-  spatio-temporal couplings is applied to second order (GDD; use `gratingPair` for a compressor's exact phase). Amplifier
-  elements do not put their thermal lens on the tracked beam.
+  spatio-temporal couplings is applied to fourth order. A multipass amplifier puts its thermal lens on the tracked beam only when given the path between passes;
+  a regenerative amplifier does not.
 * One-dimensional elements do not change the beam shape: self-focusing above the critical power and aberration effects
-  need a spatial model (the engine warns). Carried transverse profiles do not take the angular dispersion of gratings and prisms.
+  need a spatial model (the engine warns). Carried profiles take angular dispersion only with `physics.spatioTemporal` = `"profile"`, on cartesian grids.
+* There is one beam path: no splitters or arms. A `resonator` is a nested sequence; partial coherence is one run per mode, with no coupling between modes in nonlinear elements.
+  Thermal stress birefringence is the beam-averaged result for a uniformly heated rod of a cubic host.
 * Fibres are single-mode with a frequency-independent effective area; within one `fiber` element the dispersion is
   z-independent (use several elements for a taper's dispersion; γ(z) is supported). Fibre gain is unsaturated.
 * The carrier-resolved field mode is scalar (one polarisation).

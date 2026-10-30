@@ -581,6 +581,18 @@
         "background": {
           "description": "measured: a number subtracted from the fluence, or \"auto\" (the median of the map's edge)"
         },
+        "pixelSizeM": {
+          "type": "number",
+          "description": "measured: pixel size of a PNG image [m]"
+        },
+        "threshold": {
+          "type": "number",
+          "description": "measured: fluence below this fraction of the peak is set to zero Default: 0."
+        },
+        "center": {
+          "type": "boolean",
+          "description": "measured: move the fluence centroid to the axis Default: false."
+        },
         "geometry": {
           "type": "string",
           "enum": ["round", "square"],
@@ -779,7 +791,7 @@
           "description": "Spatial gain"
         },
         "thermalLens": {
-          "description": "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"
+          "description": "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"
         },
         "slices": {
           "type": "integer",
@@ -1788,8 +1800,8 @@
       "properties": {
         "shape": {
           "type": "string",
-          "enum": ["gaussian", "sech2", "superGaussian", "spectrum"],
-          "description": "Pulse shape Default: gaussian."
+          "enum": ["gaussian", "sech2", "superGaussian", "spectrum", "cw"],
+          "description": "Pulse shape; cw: one spectral bin at centerWavelengthM, with powerW Default: gaussian."
         },
         "centerWavelengthM": {
           "type": "number",
@@ -1830,6 +1842,10 @@
         "peakPowerW": {
           "type": "number",
           "description": "Peak power (alternative) [W]"
+        },
+        "powerW": {
+          "type": "number",
+          "description": "Power of a cw source (shape cw) [W]"
         },
         "repRateHz": {
           "type": "number",
@@ -3845,7 +3861,7 @@
           "description": "Spatial gain"
         },
         "thermalLens": {
-          "description": "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"
+          "description": "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"
         },
         "slices": {
           "type": "integer",
@@ -7458,6 +7474,173 @@
       },
       "additionalProperties": false
     },
+    "element.prism": {
+      "type": "object",
+      "description": "A prism in air: two refracting faces and the glass on the chief ray; disperses the tracked beam. (docs/reference/components.md#spatio-temporal-couplings)",
+      "properties": {
+        "material": {
+          "type": "string",
+          "description": "Prism glass"
+        },
+        "apexDeg": {
+          "type": "number",
+          "description": "Apex angle [deg]"
+        },
+        "aoiDeg": {
+          "type": "number",
+          "description": "Signed angle of incidence on the first face [deg]"
+        },
+        "pathM": {
+          "type": "number",
+          "description": "Glass path of the carrier's ray [m] Default: 0."
+        },
+        "medium": {
+          "type": "string",
+          "description": "Surrounding medium Default: Air."
+        },
+        "planeOfIncidenceDeg": {
+          "type": "number",
+          "description": "s-direction angle from local x [deg] Default: 90."
+        },
+        "planeOfIncidence": {
+          "$ref": "#/definitions/_any",
+          "description": "Alias of planeOfIncidenceDeg."
+        },
+        "fresnel": {
+          "type": "boolean",
+          "description": "Fresnel losses of the two faces Default: true."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["material", "apexDeg", "aoiDeg"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.probe": {
       "type": "object",
       "description": "A named place in the beam (does nothing; snapshots and instruments). (docs/reference/elements.md#probe)",
@@ -7587,6 +7770,163 @@
           "description": "Free text."
         }
       },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.resonator": {
+      "type": "object",
+      "description": "A passive resonator around nested elements: round-trip matrix, stability, eigenmode on the tracked beam; with a transverse grid, the Fox-Li mode and diffraction loss. (docs/reference/oscillators.md#resonators)",
+      "properties": {
+        "elements": {
+          "description": "The elements of one pass (gaps, lenses, mirrors, apertures ...)"
+        },
+        "geometry": {
+          "type": "string",
+          "enum": ["ring", "linear"],
+          "description": "ring: once per round trip; linear: forward and back, end elements once Default: ring."
+        },
+        "transverse": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.transverse"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Grid of the Fox-Li iteration (given to nested gaps and bulks without one)"
+        },
+        "roundTrips": {
+          "description": "{max (400), tolerance (1e-6)}"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["elements"],
       "patternProperties": {
         "^_": {}
       },
@@ -9755,7 +10095,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "mask", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "probe", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
+          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "mask", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "prism", "probe", "resonator", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
           "description": "Element type."
         }
       },
@@ -10050,6 +10390,19 @@
           "if": {
             "properties": {
               "type": {
+                "enum": ["prism"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.prism"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
                 "enum": ["probe", "marker"]
               }
             },
@@ -10057,6 +10410,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.probe"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["resonator"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.resonator"
           }
         },
         {

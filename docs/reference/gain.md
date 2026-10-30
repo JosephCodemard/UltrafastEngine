@@ -135,6 +135,15 @@ differs from the pump-alone estimate by more than 5 %, a note says so. A measure
 "thermalLens": { "rodRadiusM": 2e-3, "track": false }     // model, but leave the tracked beam alone
 ```
 
+In a **multipass amplifier** the tracked beam takes the lens only on request, since the path between passes is otherwise unknown: `"thermalLens": {"track": true, "passGapM": 0.2}`
+applies the lens once per pass with that free path between them. Regenerative amplifiers do not put it on the tracked beam.
+
+**Stress birefringence.** `"thermalLens": {"stress": true}` adds the thermal birefringence of a uniformly heated rod of a cubic host (Koechner, *Solid-State Laser Engineering*, ch. 7;
+built in for YAG hosts, `thermalExpansionPerK`, `stressCr`, `stressCphi` on a medium of your own). The radial and tangential polarisations differ by the retardation
+δ = C (r/r₀)², C = n₀³ α C_B P_h / (λ K), C_B = C_r − C_φ. An x-polarised beam filling the rod loses to y the fraction D = (1 − sin C / C) / 4, tending to 1/4. The gain element moves
+that fraction of the energy to y (the beam-averaged result, not the four-lobed pattern) and reports `depolarizationFraction`, `stressRetardationRad`, and the two lenses
+`stressFocalLengthRadialM`, `stressFocalLengthTangentialM` (dn/dT, stress and end-face bulging). The formula assumes uniform heating over the rod: an end-pumped rod is only roughly described.
+
 Checks (`BeamTrackingTests`): a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); a
 measured focal length focuses the tracked beam as a thin lens (waist radius 0.2 %); for a 0.5 mm beam in a rod pumped by a 0.6 mm
 Gaussian, the tracked radius 0.4 m behind the rod is within 7 % of the radial spatial model (which also shows M² = 1.08 from the

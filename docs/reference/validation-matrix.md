@@ -2,43 +2,45 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **309 tests** in 35 classes. **130** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required; the others test behaviour, bookkeeping and consistency between parts of the engine. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **328 tests** in 37 classes. **159** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **13** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
 | [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 12 | 11 |
-| [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 9 | 8 |
-| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 6 |
-| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 20 | 11 |
+| [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 13 | 12 |
+| [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
+| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
+| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 20 | 14 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
-| [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 32 | 7 |
-| [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 3 |
+| [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 32 | 10 |
+| [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
-| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 8 | 7 |
+| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 8 | 8 |
+| [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
-| [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 5 |
-| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 3 |
+| [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
+| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 7 | 4 |
-| [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 17 | 8 |
-| [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 1 |
+| [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 17 | 9 |
+| [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 3 | 2 |
 | [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 5 | 5 |
-| [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 5 |
-| [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 0 |
+| [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
+| [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
 | [Measured input spectra, comparisons and satellite room](#measuredspectrumtests) | `MeasuredSpectrumTests` | 13 | 0 |
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
-| [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 7 | 6 |
-| [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 7 | 0 |
+| [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 7 | 7 |
+| [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 7 | 1 |
 | [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 3 | 2 |
-| [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 5 |
-| [Instrument axes, resolution and measured-data resolution](#resolutiontests) | `ResolutionTests` | 7 | 0 |
+| [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 7 |
+| [Instrument axes, resolution and measured-data resolution](#resolutiontests) | `ResolutionTests` | 7 | 1 |
 | [Pulse retrieval (FROG, d-scan)](#retrievaltests) | `RetrievalTests` | 2 | 2 |
 | [Schemas, validation and migrations](#schematests) | `SchemaTests` | 5 | 0 |
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
-| [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 1 |
-| [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 20 | 2 |
+| [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
+| [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 20 | 3 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
 
@@ -67,15 +69,35 @@ Gaussian beam tracking: thermal lenses and spatio-temporal couplings.
 
 | test | reference | tolerance |
 |---|---|---|
+| `AngularDispersionOnTheProfile_TwoGratingsOnAGrid_GiveTheTrackersChirpAndTreacysGdd` | Treacy GDD and the tracker's spatial chirp, from a field propagated on a grid | 3 % |
 | `Grating_AngularDispersionAndPulseFrontTilt_FollowTheGratingEquationAndHebling` | grating equation; Hebling, Opt. Quantum Electron. 28, 1759 (1996) | 0.2 % |
+| `PrismPair_InAir_GivesTheNegativeDispersionOfItsAngularDispersion` | angular-dispersion GDD -k0 L (d theta / d omega)^2; Snell's law at the prism faces | 1 % |
 | `Prism_AngularDispersion_MatchesSnellsLawThroughBothFaces` | Snell's law at both prism faces (finite difference of n(λ)) | 0.5 % |
 | `PulseFrontTilt_FromSpatialChirpAndGdd_MatchesTheGaussianResult` | Akturk et al., Opt. Express 13, 8642 (2005): 2 φ2 E σ² / (w² + 2 E² σ²) | 0.5 % |
+| `SpaceTime_OnA1DBeam_ShowsTheTrackedPulseFrontTilt` | cross-model: spaceTime from the tracked beam vs the element's pulse-front tilt | -- |
 | `SpatioTemporalSwitch_TrackReportsWithoutPhase_OffForgetsTheCouplings` | -- | -- |
 | `ThermalLens_MeasuredFocalLength_FocusesTheTrackedBeamLikeAThinLens` | Gaussian-beam thin-lens law (Self, Appl. Opt. 22, 658 (1983)) | 1e-12, 0.2 % |
 | `ThermalLens_SmallBeam_TrackedFocalLengthIsInnocenzis` | Innocenzi et al., Appl. Phys. Lett. 56, 1831 (1990): f = πK w_p² / (P_h dn/dT) | 5 % |
 | `ThermalLens_TrackedBeam_AgreesWithTheSpatialGainModel` | cross-model: the radial spatial gain model | 7 % (aberrated lens) |
 | `TwoGratings_GiveTreacysGdd_AndTheGratingPairsSpatialChirp` | Treacy grating pair (IEEE JQE 5, 454 (1969)), Kostenbauder ray-pulse matrices | 0.1 %, 0.2 % |
+| `TwoGratings_ReproduceTreacysThirdOrderDispersion` | Treacy, IEEE JQE 5, 454 (1969): TOD of the exact grating-pair phase | 0.5 % |
 | `ZeroDispersionStretcher_4f_LeavesNoGddAndNoCouplings` | Martinez zero-dispersion stretcher: GDD = 0 | < 10⁻⁶ of k0 f F² |
+
+## CavityAndCoherenceTests
+
+Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens.
+
+| test | reference | tolerance |
+|---|---|---|
+| `AmplifierThermalLens_OnRequest_ActsOncePerPass` | N thin lenses in contact: 1 / f_total = N / f; Gaussian lens law (Self 1983) | 0.3 % |
+| `PartialCoherence_GaussianSchellBeam_SpreadsWithItsM2` | Gaussian-Schell beam: w(z) = w0 sqrt(1 + (M^2 z / z_R)^2) (Starikov & Wolf 1982; Siegman M^2 law) | 2 % |
+| `PartialCoherence_M2OfOne_IsTheCoherentBeam_AndNeedsACartesianGrid` | -- | -- |
+| `Resonator_FoxLi_ConvergesToTheGaussianEigenmode` | cross-model: Fox-Li wave iteration vs the ABCD eigenmode | 3 % |
+| `Resonator_FoxLi_PlaneMirrors_LossFallsAsNToTheMinusThreeHalves` (slow) | Fox & Li (1961), Vainshtein: loss per transit of plane circular mirrors falls as N^-3/2 at large N; loss near 20 % at N = 1 | 25 % |
+| `Resonator_LensGuide_HasTheAbcdEigenmode_AndPutsItOnTheTrackedBeam` | ABCD eigenmode of a periodic lens guide: w0^2 = (lambda / pi) sqrt(L (4 f - L)) / 2 at the waist between lenses (Kogelnik & Li, Appl. Opt. 5, 1550 (1966)) | 1e-3 |
+| `Resonator_LinearTwoMirrorCavity_MatchesTheMirrorFormulas` | two-mirror cavity: (A + D) / 2 = 2 g1 g2 - 1, g = 1 - L / R; w^2 at a mirror of a symmetric cavity = (lambda L / pi) sqrt(1 / (1 - g^2)) | 1e-3 |
+| `Resonator_Unstable_WarnsAndHasNoMode` | stability \|(A + D) / 2\| < 1: L > 4 f is unstable | -- |
+| `ThermalStress_DepolarisedFraction_MatchesKoechner_AndTendsToAQuarter` | Koechner, Solid-State Laser Engineering, ch. 7: D = (1 - sin C / C) / 4, C = n0^3 alpha C_B P_h / (lambda K) | 1e-3 |
 
 ## Chi2Tests
 
@@ -85,7 +107,7 @@ Gaussian beam tracking: thermal lenses and spatio-temporal couplings.
 |---|---|---|
 | `ActiveInstruments_ConversionDelayScanAndPhaseMatchingCurve` | -- | -- |
 | `AuxBeam_FromSavedResults_PumpsAnOpa` | -- | -- |
-| `BeamProfileInstrument_ReportsRadiusAfterARadialElement` | -- | -- |
+| `BeamProfileInstrument_ReportsRadiusAfterARadialElement` | Gaussian beam w(z) | 1 %, 2 % |
 | `CarrierChange_ShgThenGlass_ReplansTheGridAndKeepsEnergy` | -- | -- |
 | `CascadedChi2_PhaseMatchesEffectiveKerrFormula` | cascaded χ(2): φ = κ² P / Δk (L − sin(Δk L)/Δk) | 2 % |
 | `GridPlanner_StronglyChirpedInputIsNotWrapped` | -- | -- |
@@ -111,10 +133,10 @@ Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday ro
 | `ChirpedMirror_GddRippleAndComplementaryPairs` | -- | -- |
 | `CrossCorrelator_PostPulseArtefactAndNoiseFloor` | -- | -- |
 | `FaradayRotator_RotatesNonReciprocallyWithVerdetDispersion` | Faraday rotation V(λ) B L, non-reciprocal | 1e-09, 0.01 %, 0.1 % |
-| `Ghost_KerrMediumCreatesPrePulsePartner` | -- | -- |
+| `Ghost_KerrMediumCreatesPrePulsePartner` | pre-pulse from Kerr phase: level ∝ B² (Didenko et al., Opt. Express 16, 3178 (2008)) | 25 % |
 | `Ghosts_OfBulkCrystalAndLensEndFaces` | ghost delay 2 n_g L / c, level R² | 2 % |
 | `NdFilter_AbsorptiveAndReflectiveOd` | T = 10^−OD | 0.2 % |
-| `NdFilter_OdPerWavelengthShapesTheSpectrum` | -- | -- |
+| `NdFilter_OdPerWavelengthShapesTheSpectrum` | T = 10^−OD(λ) | 1 % |
 | `Pedestal_AseLevelAndPhaseNoiseConservesEnergy` | -- | -- |
 | `Pedestal_ReplicaPostPulseAndPrePulse` | -- | -- |
 | `Plate_GhostReplicaDelayAndIntensity` | ghost delay 2 n_g d / c, level R² | 0.2 %, 3 % |
@@ -122,7 +144,7 @@ Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday ro
 | `ThickWaveplate_RetardanceFromMaterialDispersion` | retardance 2π Δn(λ) d / λ from the crystal's indices | 1e-09, 0.01 %, 0.1 %, 5 % |
 | `ThickWaveplate_SplitsPulseByGroupDelayDifference` | group-delay difference Δn_g d / c | 5 % |
 | `ThinFilmPolarizer_TransmitsPReflectsS` | thin-film transfer matrix at the design angle | -- |
-| `VectorSpatial_NonlinearEllipseRotationAcrossTheBeam` | -- | -- |
+| `VectorSpatial_NonlinearEllipseRotationAcrossTheBeam` | nonlinear ellipse rotation B sin 2χ / 3, local across a Gaussian beam | 2 %, 4 %, 5 % |
 | `Zernike_NollOrderingAndOrthonormality` | Noll, J. Opt. Soc. Am. 66, 207 (1976): ordering and orthonormality | -- |
 
 ## ComputeTests
@@ -149,7 +171,7 @@ Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detecto
 | `DelayedScatter_OfAPlate_DefaultsToTheBulkBackscatterDelay` | -- | -- |
 | `DelayedScatter_ReturnsTheFractionAfterTheGivenDelays_AndConservesEnergy` | -- | -- |
 | `DelayedScatter_SpectralWeightFollowsALambdaPowerLaw` | λ^−n spectral weight | 25 % |
-| `Detector_PhotonCounting_WeightsTheEnergySpectrumByLambda` | -- | -- |
+| `Detector_PhotonCounting_WeightsTheEnergySpectrumByLambda` | photon number ∝ λ x energy | 1e-09 |
 | `Detector_Preset_FillsTheInstrumentAndTheReadout_FromTheRunSpecOrAFile` | -- | -- |
 | `Detector_Saturation_ClipsThePeak_AndStitchingRestoresTheContrast` | -- | -- |
 | `Detector_SpectralResponse_MultipliesTheSpectrumByTheTable` | -- | -- |
@@ -164,9 +186,9 @@ Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detecto
 | `Ledger_WarnsWhenTheTailIsAFewPercentOfTheEnergy` | -- | -- |
 | `MirrorEcho_AWedgedSubstrateSendsTheEchoOutOfTheBeam` | -- | -- |
 | `MirrorEcho_DelayIsTwoGroupIndexThicknessOverC` | echo delay 2 n_g d / c (fused silica n_g = 1.4635 at 1030 nm) | 0.3 %, 1 %, 8 % |
-| `MirrorEcho_LeakageFollowsTheCoatingTransmissionAndTheBackFace` | -- | -- |
+| `MirrorEcho_LeakageFollowsTheCoatingTransmissionAndTheBackFace` | echo amplitude T r_b / r from Stokes reciprocity | 1 % |
 | `MirrorEcho_NeedsTheTailOrTheWindow_AndTheLedgerCarriesIt` | -- | -- |
-| `Plate_Ghost_FollowsTheWavelengthDependentCoatingTable` | -- | -- |
+| `Plate_Ghost_FollowsTheWavelengthDependentCoatingTable` | ghost level R(λ)² | 1 %, 2 % |
 | `SurfaceScatter_InAnEngineRun_BooksTheLossAndNeedsItsInputs` | -- | -- |
 | `SurfaceScatter_LossIsTheTisOutsideTheMode_AndFollowsLambdaMinusTwo` | total integrated scatter TIS = (4π σ cos θ / λ)² | 1e-12, 0.1 % |
 | `SurfaceScatter_WithADelay_ReturnsTheInModePartAfterTheKernel` | -- | -- |
@@ -182,7 +204,7 @@ Cameras, wavefront sensor, Wigner and space-time probes.
 
 | test | reference | tolerance |
 |---|---|---|
-| `Camera_On1DElement_ImagesTheBeamModelAndSaysSo` | -- | -- |
+| `Camera_On1DElement_ImagesTheBeamModelAndSaysSo` | Gaussian beam w(z) | 2 % |
 | `Cameras_GaussianBeam_NearFarFieldAndWavefrontMatchGaussianOptics` | Gaussian optics: w(z), far field λf/(πw0), R(z) | 0.5 %, 1 % |
 | `SpaceTime_LinearGaussian_HasNoSpatioTemporalCoupling` | -- | -- |
 | `Wigner_MarginalIsThePowerAndFieldProbeRecoversTheChirp` | Wigner time marginal = \|A(t)\|²; known linear chirp | 1 % |
@@ -213,10 +235,23 @@ Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence.
 | `DispersionCurve_EqualsTaylorCoefficients` | D(λ) = −(2πc/λ²) β2 | 1 % |
 | `DispersiveWave_ResonanceMatchesPhaseMatching` | dispersive-wave phase matching (Akhmediev & Karlsson 1995) | 0.3 %, 1 % |
 | `FundamentalSoliton_PropagatesUnchanged_AndMetricsAreRight` | fundamental soliton sech shape (NLSE) | 1 % |
-| `LossGainAndGainGoal` | -- | -- |
+| `LossGainAndGainGoal` | exponential loss and gain in dB | 0.01 %, 0.1 % |
 | `QuantumNoise_OnePhotonPerMode_AndCoherentSoliton` | one photon per mode: N ħω of energy | 5 % |
 | `RamanModels_NormalisedAndHollenbeckPeaksAt13THz` | Hollenbeck & Cantrell, JOSA B 19, 2886 (2002): gain peak 13.2 THz | 1 %, 3 % |
 | `TaperedGamma_BIntegralFollowsTheIntegral` | B = ∫ γ(z) P dz | 1 % |
+
+## FieldToolsTests
+
+Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps.
+
+| test | reference | tolerance |
+|---|---|---|
+| `AbsorbingBoundary_InANonlinearElement_RemovesTheWrappedLight` | separable Fresnel integral on the axis: same pattern as the linear absorber | 3 % |
+| `CwSource_InAKerrPlate_PicksUpOnlyAPhase` | B = k n2 I L of a constant intensity; no spectral change | 1e-3 |
+| `CwSource_IsOneFrequency_AndThroughAnIrisGivesTheFresnelIntensity` | Fresnel integral on the axis, 4 I0 at N = 1 (Born & Wolf 8.8); power = I x area | 1.5 % |
+| `GerchbergSaxton_Command_WritesAPhaseMapTheEngineReads` | -- | -- |
+| `GerchbergSaxton_RecoversAKnownWavefront` | Gerchberg & Saxton, Optik 35, 237 (1972): a known phase recovered from two intensities | far field 1 %, phase rms 0.1 rad over the beam |
+| `MeasuredPng_WithBackgroundCentreAndThreshold_GivesTheBeam` | Gaussian beam w = 2 sigma of a sampled image | -- |
 
 ## FoundationTests
 
@@ -241,7 +276,7 @@ Gain media, pumping, thermal lens and position-dependent properties.
 | test | reference | tolerance |
 |---|---|---|
 | `GainElement_FrantzNodvik_SaturatedEnergyGain` | Frantz & Nodvik, J. Appl. Phys. 34, 2346 (1963) | 1e-12, 1e-09, 0.03 % |
-| `GainElement_SmallSignalGainSpec_IsReproduced` | -- | -- |
+| `GainElement_SmallSignalGainSpec_IsReproduced` | G = exp((σ_e β − σ_a (1 − β)) N L) | 1e-09, 0.1 % |
 | `GainMedia_LibraryPeaksAndMcCumber` | McCumber relation; published Yb:YAG σ_e(1030 nm) ≈ 2.1e-24 m² and emission peaks | 1e-09, 0.02 %, 0.15 %, 2 %, 15 % |
 | `Pumping_CwThinCrystal_RateEquationSteadyState` | rate-equation steady state N2/Nt = σ_ap Φ / ((σ_ap + σ_ep) Φ + 1/τ) | 1 % |
 | `Regen_AutoRoundTrips_EjectsAtTheEnergyMaximum_AndConservesEnergy` | -- | -- |
@@ -257,11 +292,11 @@ Gases: rotational Raman, indices, the refractiveindex.info database.
 
 | test | reference | tolerance |
 |---|---|---|
-| `Gases_IndicesOfNewSpecies` | -- | -- |
+| `Gases_IndicesOfNewSpecies` | published refractivities of the gases | 1e-09, 2 % |
 | `RefractiveIndexInfo_AsAMaterialInARun` | -- | -- |
 | `RefractiveIndexInfo_FormulasAndTablesMatchTheLibrary` | refractiveindex.info formulas and tables | 1e-12, 1e-09, 2 % |
 | `RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory` | isolated-molecule alignment, high-T limit: n2 = N Δα² / (4 c ε0² 15 kT) | 3 % |
-| `RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter` | -- | -- |
+| `RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter` | rotational n2 of circular light = 1/4 of linear (tensor Raman, Hellwarth) | 3 %, 5 % |
 | `RotationalRaman_RevivalsAtTheRotationalPeriod` | rotational revival period 1 / (2 B c) | 5 % |
 
 ## GpuTests
@@ -292,7 +327,7 @@ HITRAN plugin: line shapes, files, partition sums, absorption in air.
 | `Faddeeva_MatchesKnownValues` | Faddeeva function: w(0) = 1, erfcx, Dawson values | 1e-10, 1e-09 |
 | `GapAir_OverridesTheEnvironmentForOneGap` | -- | -- |
 | `LineStrength_ScalesWithDensityAndTemperature` | -- | -- |
-| `LineStrength_UsesThePartitionTable_WhenThereIsOne` | -- | -- |
+| `LineStrength_UsesThePartitionTable_WhenThereIsOne` | HITRAN strength scaling with Q(T) (Rothman et al.) | 1e-09, 0.2 % |
 | `LorentzLine_PeakAbsorptionAndDispersion_MatchTheAnalyticResult` | Lorentz line: peak n S / (π γ), dispersion extremum | 1 % |
 | `ParFile_RoundTripsAHitranRecord` | -- | -- |
 | `PartitionFile_NextToTheLineFile_IsFoundAndNamed` | -- | -- |
@@ -308,12 +343,12 @@ Instrument device models: resolution, acceptance, detectors, filters.
 
 | test | reference | tolerance |
 |---|---|---|
-| `Autocorrelator_ResolutionAndAcceptance` | -- | -- |
+| `Autocorrelator_ResolutionAndAcceptance` | AC width √2 FWHM, quadrature resolution sum | 2 %, 3 % |
 | `Detector_CalibrationNoiseFloorAndBits_AreReproducible` | -- | -- |
 | `EveryInstrumentEnum_RunsWithEachValue` | -- | -- |
 | `Filter_InFrontOfTheInstrument_ActsOnTheMeasuredField` | -- | -- |
 | `Frog_SpectralResolutionAndAcceptance_NarrowAndSmoothTheTrace` | SH bandwidth of a 60 fs pulse (~4.4 nm) | 3 %, 5 % |
-| `Polarimeter_ExtinctionRatioScalesStokes` | -- | -- |
+| `Polarimeter_ExtinctionRatioScalesStokes` | Malus: S1 = (ER − 1) / (ER + 1) | 1e-09 |
 | `Settings_ListEveryParameterWithItsValueOrDefault` | -- | -- |
 | `Spectrometer_NormalizeModes_IncludingLegacyBooleans` | -- | -- |
 
@@ -352,11 +387,11 @@ Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved �
 | `Chi2Response_CarrierResolvedShg_MatchesLowConversionFormula` | low-conversion SHG P = K P² | 0.1 %, 5 % |
 | `Diagnostics_CountPulsesAndBackground` | -- | -- |
 | `ExpressionResponse_SeesPositionAndFluence` | -- | -- |
-| `FastAbsorbers_LoseLessAtHighPower` | -- | -- |
+| `FastAbsorbers_LoseLessAtHighPower` | unsaturated fast absorber 1 − exp(−q0) | 1 % |
 | `Haus_CwLaser_GainClampsAtTheLoss` | cw laser: E = E_sat (g0 / L − 1) | 0.2 % |
 | `Haus_SolitonModeLocking_ObeysTheAreaTheorem` | soliton area theorem (Haus master equation) | 1e-12, 10 % |
 | `Sesam_SlowAbsorber_SaturatesAsTheEnergyIntegral` | slow absorber: q0 (1 − e^−S) / S | 1e-09, 2 % |
-| `ThermalLens_ExportsAsGradient1` | -- | -- |
+| `ThermalLens_ExportsAsGradient1` | GRIN thin lens n_r2 = −1 / (2 f L) | 1e-09 |
 
 ## LossAndOverrideTests
 
@@ -364,7 +399,7 @@ Loss budget and overrides.
 
 | test | reference | tolerance |
 |---|---|---|
-| `LossBudget_ClipFresnelScatterAddUp` | -- | -- |
+| `LossBudget_ClipFresnelScatterAddUp` | clip 1 − exp(−2a²/w²), Fresnel 4 % | 1e-12, 1e-09, 3 % |
 | `Overrides_MaterialIndexOverrideBeatsTracedData` | -- | -- |
 | `Overrides_PriorityAndProvenance` | -- | -- |
 | `SystemFile_RoundTripAndValidation` | -- | -- |
@@ -416,7 +451,7 @@ Nonlinear ellipse rotation and the vector Kerr / Raman tensor.
 | test | reference | tolerance |
 |---|---|---|
 | `BIntegral_CircularIsTwoThirdsOfLinear_EllipticalInBetween` | isotropic χ(3): circular light sees 2/3 of the linear phase | 0.5 % |
-| `CircularLight_SeesLessRamanThanLinear` | -- | -- |
+| `CircularLight_SeesLessRamanThanLinear` | tensor Raman: (1 − f_R) 2/3 + f_R (1 − b/2) | 1e-09, 1 % |
 | `Circular_AtOneAndAHalfTimesTheEnergy_MatchesLinear` | isotropic χ(3): 3/2 energy compensates 2/3 | 0.5 % |
 | `LinAgrawal_AnisotropicPart_IsFcHaPlusFbHb` | Lin & Agrawal, Opt. Lett. 31, 3086 (2006) | 1e-12, 1 % |
 | `Rotation_InstantaneousKerr_IsBsin2chiOverThree` | nonlinear ellipse rotation B sin 2χ / 3 (Maker, Terhune & Savage 1964) | 1 % |
@@ -429,7 +464,7 @@ Plugins: registration, installation, versions, cameras.
 
 | test | reference | tolerance |
 |---|---|---|
-| `Camera_UnifiedImaging_MatchesTheOldCameras` | -- | -- |
+| `Camera_UnifiedImaging_MatchesTheOldCameras` | far-field radius λf/(πw0) | 1e-09, 0.5 %, 3 % |
 | `FirstPartyPlugins_AreRegistered_AndDiscoveryReusesThem` | -- | -- |
 | `Install_AndRemove_InTheUserFolder` | -- | -- |
 | `Plugin_RegistersElementAndInstrument_AndTheyRun` | -- | -- |
@@ -453,7 +488,7 @@ Nonlinear envelope propagation.
 
 | test | reference | tolerance |
 |---|---|---|
-| `ChirpedMirrorCoating_GddAccumulatesPerBounce` | -- | -- |
+| `ChirpedMirrorCoating_GddAccumulatesPerBounce` | GDD and reflectance add per bounce | 1e-09, 0.1 % |
 | `FieldMode_AgreesWithEnvelopeForSpm` | cross-model: the envelope model | 0.1 %, 2 % |
 | `MaterialAttenuation_BeerLambert` | Beer-Lambert law | 1e-09 |
 | `Raman_RedShiftsTheSpectrum` | -- | -- |
@@ -461,7 +496,7 @@ Nonlinear envelope propagation.
 | `Soliton_FundamentalSolitonKeepsItsShape` | fundamental soliton of the NLSE | 1 % |
 | `Spm_GaussianBroadeningMatchesAnalyticAndBIntegral` | SPM: analytic phase γ P L, spectral broadening of a Gaussian (Agrawal) | 1e-06, 1 % |
 | `Steppers_AdaptiveAgreesWithFixedRk4Ip` (slow) | -- | -- |
-| `Stretcher_SampledGroupDelayStretchesAndReportsArrival` | -- | -- |
+| `Stretcher_SampledGroupDelayStretchesAndReportsArrival` | linear chirp τ = τ0 + GDD Δω | 1e-09, 0.1 %, 1 %, 2 % |
 | `TimeResponse_CallbackAndExpressionReproduceBuiltInKerr` | -- | -- |
 | `TimeResponse_LabTimeModulationCreatesBesselSidebands` | phase modulation: Bessel sidebands J_n(m) | -- |
 
@@ -475,7 +510,7 @@ Instrument axes, resolution and measured-data resolution.
 | `Axis_DbArraysFollowTheirLinearCurves` | -- | -- |
 | `Axis_ExplicitPixels_WithPixelBins` | -- | -- |
 | `Axis_Resolution_EqualsTheSpectrometerResolution` | -- | -- |
-| `InputSpectrum_Deconvolution_RemovesTheRecordingResolution` | -- | -- |
+| `InputSpectrum_Deconvolution_RemovesTheRecordingResolution` | Gaussian widths add in quadrature (√8 nm recording of 2 nm) | 2 %, 6 % |
 | `InputSpectrum_GaussianTails_ReplaceTheTruncatedWings` | -- | -- |
 | `MeasuredData_ResolutionMismatch_IsReported` | -- | -- |
 
@@ -546,7 +581,7 @@ FFTs, SIMD kernels and studies.
 | `Simd_KernelsAgreeWithScalar` | -- | -- |
 | `Sobol_SequenceIsStratified` | -- | -- |
 | `Study_OptimizeAndSensitivities` | -- | -- |
-| `Study_ScanWithPrefixCacheMatchesFullRuns` | -- | -- |
+| `Study_ScanWithPrefixCacheMatchesFullRuns` | B = γ P L | 1e-09, 1 % |
 
 ## TransformTests
 
@@ -573,7 +608,7 @@ Fitting plugin: transforms, backward propagation, fits.
 | `Transform_Schema_AcceptsFitObjects_AndFlagsTypos` | -- | -- |
 | `Transform_SpectralPhase_EqualsDispersionElement` | -- | -- |
 | `Transform_Spline_InterpolatesKnots` | -- | -- |
-| `Transform_Wavefront_ActsOnTheSpatialProfile` | -- | -- |
+| `Transform_Wavefront_ActsOnTheSpatialProfile` | Maréchal exp(−(2π σ)²) | 1e-12, 1e-09 |
 
 ## ValidationMatrixTests
 

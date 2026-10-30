@@ -173,7 +173,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test]
+        [Test(Reference = "linear chirp τ = τ0 + GDD Δω", Tolerance = "1e-09, 0.1 %, 1 %, 2 %")]
         public void Stretcher_SampledGroupDelayStretchesAndReportsArrival()
         {
             double gdd = 5e-24, tod = 0, tau0 = 1e-9;
@@ -193,7 +193,7 @@ namespace UltrafastEngine.Tests
             Assert.Less(outS.EdgeEnergyFraction, 1e-6, "auto-sized window holds the pulse");
         }
 
-        [Test]
+        [Test(Reference = "GDD and reflectance add per bounce", Tolerance = "1e-09, 0.1 %")]
         public void ChirpedMirrorCoating_GddAccumulatesPerBounce()
         {
             var els = Enumerable.Range(0, 4).Select(i => O("id", "m" + i, "type", "mirror", "coating", O("kind", "gdd", "R", 0.995, "gddS2", -100e-30))).ToArray();

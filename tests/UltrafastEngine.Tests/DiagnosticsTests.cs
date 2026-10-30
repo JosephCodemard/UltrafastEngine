@@ -44,7 +44,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "instruments")]
+        [Test(Category = "instruments", Reference = "Gaussian beam w(z)", Tolerance = "2 %")]
         public void Camera_On1DElement_ImagesTheBeamModelAndSaysSo()
         {
             var sys = Sys(O("id", "plate", "type", "bulk", "material", "FusedSilica", "lengthM", 0.01, "nonlinear", false, "beam", O("kind", "gaussian", "w0M", 200e-6, "zWaistM", 0.0)));

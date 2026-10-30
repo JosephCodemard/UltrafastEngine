@@ -48,7 +48,7 @@ class AmplifierElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int
@@ -638,7 +638,7 @@ class GainElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int
@@ -1478,11 +1478,93 @@ class PolarizerElement(TypedDict, total=False):
     """Free text."""
 
 
+class PrismElement(TypedDict, total=False):
+    """A prism in air: two refracting faces and the glass on the chief ray; disperses the tracked beam. (docs/reference/components.md#spatio-temporal-couplings)"""
+    id: str
+    """Unique id"""
+    type: str
+    material: str
+    """Prism glass"""
+    apexDeg: float
+    """Apex angle [deg]"""
+    aoiDeg: float
+    """Signed angle of incidence on the first face [deg]"""
+    pathM: float
+    """Glass path of the carrier's ray [m] Default: 0."""
+    medium: str
+    """Surrounding medium Default: Air."""
+    planeOfIncidenceDeg: float
+    """s-direction angle from local x [deg] Default: 90."""
+    planeOfIncidence: Any
+    """Alias of planeOfIncidenceDeg."""
+    fresnel: bool
+    """Fresnel losses of the two faces Default: true."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class ProbeElement(TypedDict, total=False):
     """A named place in the beam (does nothing; snapshots and instruments). (docs/reference/elements.md#probe)"""
     id: str
     """Unique id"""
     type: str
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class ResonatorElement(TypedDict, total=False):
+    """A passive resonator around nested elements: round-trip matrix, stability, eigenmode on the tracked beam; with a transverse grid, the Fox-Li mode and diffraction loss. (docs/reference/oscillators.md#resonators)"""
+    id: str
+    """Unique id"""
+    type: str
+    elements: Any
+    """The elements of one pass (gaps, lenses, mirrors, apertures ...)"""
+    geometry: Literal["ring", "linear"]
+    """ring: once per round trip; linear: forward and back, end elements once Default: ring."""
+    transverse: Union["Transverse", str]
+    """Grid of the Fox-Li iteration (given to nested gaps and bulks without one)"""
+    roundTrips: Any
+    """{max (400), tolerance (1e-6)}"""
     label: str
     """Display name"""
     enabled: bool
@@ -2737,6 +2819,26 @@ class Chirp(TypedDict, total=False):
     """Free text."""
 
 
+class Coherence(TypedDict, total=False):
+    """A Gaussian-Schell beam as an incoherent sum of Hermite-Gauss modes (docs/reference/transverse.md#partial-coherence)."""
+    model: Literal["gaussianSchell"]
+    """Coherence model Default: gaussianSchell."""
+    m2: float
+    """Beam quality M^2 >= 1"""
+    modes: int
+    """Modes kept per axis Default: 12."""
+    dimensions: int
+    """1 (x only) or 2 Default: 2; 1 for a grid with ny = 1."""
+    element: str
+    """Element whose transverse.initialProfile the modes replace Default: the first with a transverse object."""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class Compute(TypedDict, total=False):
     """Compute back-end (docs/reference/speed.md)."""
     backend: str
@@ -3164,6 +3266,12 @@ class InitialProfile(TypedDict, total=False):
     """measured: NPZ with x_m, y_m (or r_m), fluence or amplitude, and optionally phase_rad; relative to the file that names it"""
     background: Any
     """measured: a number subtracted from the fluence, or "auto" (the median of the map's edge)"""
+    pixelSizeM: float
+    """measured: pixel size of a PNG image [m]"""
+    threshold: float
+    """measured: fluence below this fraction of the peak is set to zero Default: 0."""
+    center: bool
+    """measured: move the fluence centroid to the axis Default: false."""
     geometry: Literal["round", "square"]
     """round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) Default: round."""
     order: int
@@ -3396,7 +3504,7 @@ class Physics(TypedDict, total=False):
     beamTracking: Any
     """Gaussian beam (q) tracking: "auto" (on with a Gaussian inputBeam), "on", "off" Default: "auto"."""
     spatioTemporal: Any
-    """Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: "auto" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), "on", "track" (reported only), "off" (docs/reference/components.md#spatio-temporal-couplings) Default: "auto"."""
+    """Spatio-temporal couplings (angular / spatial dispersion, pulse-front tilt) with the tracked beam: "auto" (tracked, and their group-delay dispersion applied unless an element has traced groupDelayS), "on", "track" (reported only), "profile" (gratings and tilted surfaces tilt each frequency of a carried cartesian profile; the field holds the coupling), "off" (docs/reference/components.md#spatio-temporal-couplings) Default: "auto"."""
     transverse: Union["Transverse", str]
     """Default spatial model for every bulk/gap/crystal without one"""
     ionization: Any
@@ -3411,8 +3519,8 @@ class Physics(TypedDict, total=False):
 
 class Pulse(TypedDict, total=False):
     """The input pulse (docs/reference/run-spec.md#pulse)."""
-    shape: Literal["gaussian", "sech2", "superGaussian", "spectrum"]
-    """Pulse shape Default: gaussian."""
+    shape: Literal["gaussian", "sech2", "superGaussian", "spectrum", "cw"]
+    """Pulse shape; cw: one spectral bin at centerWavelengthM, with powerW Default: gaussian."""
     centerWavelengthM: float
     """Carrier wavelength (for spectrum: default = intensity-weighted mean) [m]"""
     centerWavelengthNm: float
@@ -3433,6 +3541,8 @@ class Pulse(TypedDict, total=False):
     """Average power (with repRateHz) [W]"""
     peakPowerW: float
     """Peak power (alternative) [W]"""
+    powerW: float
+    """Power of a cw source (shape cw) [W]"""
     repRateHz: float
     """Repetition rate [Hz]"""
     chirp: Union["Chirp", str]
@@ -3711,7 +3821,7 @@ class Transverse(TypedDict, total=False):
     """Free text."""
 
 
-Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MaskElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "ProbeElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
+Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MaskElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "PrismElement", "ProbeElement", "ResonatorElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
 """Any element dictionary (the typed forms first; a plain dict for plugin elements)."""
 
 
@@ -3749,6 +3859,7 @@ RunSpec = TypedDict('RunSpec', {
     'inputBeam': Union[float, str, Dict[str, Any], List[Any]],  # Default beam for nonlinear elements without one A model: a number, a name / "@callback" / expression
     'outputs': Union["Outputs", str],  # Which files to write
     'compute': Union["Compute", str],  # Compute back-end and threads
+    'coherence': Union["Coherence", str],  # Partially coherent beam: a run over coherent modes (docs/reference/transverse.md#partial-coherence)
     'fit': Union["Fitting_fit", str],  # Fit transform parameters (and any listed number) to every instrument with measured data (fitting plu
     'backward': Union["Fitting_backward", str],  # Backward propagation: the pulse is the field measured downstream; find the field at every plane upst
     '$schema': str,  # Path or URL of this schema (editor support).
@@ -3756,4 +3867,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']

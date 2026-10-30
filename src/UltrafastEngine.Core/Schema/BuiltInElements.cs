@@ -74,6 +74,17 @@ namespace UltrafastEngine.Schema
                 .Num("radiusM", "m", "Circular radius").Num("halfWidthXM", "m", "Rectangular half-width x").Num("halfWidthYM", "m", "Rectangular half-width y")
                 .Num("softRadiusM", "m", "Soft (Gaussian / super-Gaussian) aperture radius").Int("order", "Super-Gaussian order of the soft aperture", "1")
                 .Model("aperture", "aperture", "Aperture model"));
+            add(new ComponentSpec("element", "prism", "A prism in air: two refracting faces and the glass on the chief ray; disperses the tracked beam.").DocAt("reference/components.md#spatio-temporal-couplings")
+                .Str("material", "Prism glass", null, required: true)
+                .Num("apexDeg", "deg", "Apex angle", required: true).Num("aoiDeg", "deg", "Signed angle of incidence on the first face", required: true)
+                .Num("pathM", "m", "Glass path of the carrier's ray", "0").Str("medium", "Surrounding medium", "Air")
+                .Num("planeOfIncidenceDeg", "deg", "s-direction angle from local x", "90").Also("planeOfIncidence")
+                .Bool("fresnel", "Fresnel losses of the two faces", "true"));
+            add(new ComponentSpec("element", "resonator", "A passive resonator around nested elements: round-trip matrix, stability, eigenmode on the tracked beam; with a transverse grid, the Fox-Li mode and diffraction loss.").DocAt("reference/oscillators.md#resonators")
+                .P("elements", ParamType.Any, "", "The elements of one pass (gaps, lenses, mirrors, apertures ...)", null, required: true)
+                .Enum("geometry", new[] { "ring", "linear" }, "ring: once per round trip; linear: forward and back, end elements once", "ring")
+                .Obj("transverse", "Grid of the Fox-Li iteration (given to nested gaps and bulks without one)", "transverse")
+                .P("roundTrips", ParamType.Any, "", "{max (400), tolerance (1e-6)}"));
             add(new ComponentSpec("element", "mask", "A thin mask on the carried transverse profile: axicon, Fresnel zone plate, vortex phase plate, slits, or an amplitude / phase map from a file.").DocAt("reference/transverse.md#masks")
                 .Enum("kind", new[] { "axicon", "zonePlate", "vortex", "slits", "file" }, "Mask", null, required: true)
                 .Num("coneAngleRad", "rad", "axicon: deflection angle (phase -k r sin(angle))")
@@ -248,7 +259,7 @@ namespace UltrafastEngine.Schema
                 .Obj("inversion", "fraction or smallSignalGain (instead of / before a pump)", "inversion")
                 .Model("beam", "beam", "Signal beam").Num("modeRadiusM", "m", "Signal 1/e^2 radius (mode area pi w^2 / 2)")
                 .Obj("transverse", "Spatial gain", "transverse")
-                .P("thermalLens", ParamType.Any, "", "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM}: track (default true) puts the thermal lens on the tracked Gaussian beam; focalLengthM is a measured thermal focal length used instead of the heat model (docs/reference/gain.md#thermal-lens)")
+                .P("thermalLens", ParamType.Any, "", "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)")
                 .Int("slices", "Slices along z", "24").Int("segments", "Time-ordered saturation groups", "auto")
                 .Bool("spm", "SPM of the host", "true").Str("host", "Host material (dispersion, n2)")
                 .Num("repRateHz", "Hz", "Repetition rate (overrides the pulse's)")

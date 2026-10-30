@@ -77,3 +77,16 @@ def test_zone_plate_and_structured_source_through_the_builders():
     assert v["onAxisFluenceOutJPerM2"] == pytest.approx(100 * e / (math.pi * a * a), rel=0.08)
     lg = b.initial_profile("laguerreGauss", mode_p=1, radius_m=1e-3)
     assert lg == {"kind": "laguerreGauss", "modeP": 1, "radiusM": 1e-3}
+
+
+@requires_engine
+def test_cw_resonator_and_coherence_through_the_builders():
+    # a lens-guide eigenmode; a Gaussian-Schell beam of M^2 = 2 at one Rayleigh range; both as cw sources
+    res = uf.run(b.system("cav", [b.resonator("c", [b.gap("g", 0.6, medium="Vacuum"), b.lens("l", 0.5, medium="Vacuum")])]), b.run_spec(b.cw(LAM, 1.0)))
+    assert res.elements()[0]["values"]["stabilityX"] == pytest.approx(0.4, rel=1e-6)
+    w0, zr = 0.5e-3, math.pi * (0.5e-3) ** 2 / LAM
+    grid = dict(nx=256, ny=1, half_width_m=6e-3, spectral_samples=2)
+    sys_ = b.system("m2", [b.gap("s", 0.0, medium="Vacuum", transverse=b.transverse("cartesian", **grid, initial_profile=b.initial_profile("gaussian", radius_m=w0))),
+                           b.gap("z", zr, medium="Vacuum", transverse=b.transverse("cartesian", **grid))])
+    res = uf.run(sys_, b.run_spec(b.cw(LAM, 1.0), coherence=b.coherence(2.0, 30)))
+    assert res.elements()[-1]["beam"]["radiusXM"] == pytest.approx(w0 * math.sqrt(5), rel=0.03)

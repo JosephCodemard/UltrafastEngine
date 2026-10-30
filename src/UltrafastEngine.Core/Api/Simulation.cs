@@ -33,6 +33,7 @@ namespace UltrafastEngine
                 foreach (var k in new[] { "fit", "backward" })
                     if (run.Raw.Has(k)) throw new JsonException("the run spec has \"" + k + "\", which needs the fitting plugin (not installed: see `ultrafast plugins list` and docs/plugins/installing.md).");
             }
+            if (run.Raw != null && run.Raw.Has("coherence")) return PartialCoherence.Run(system, run, registry, progress, cancel);
             var compiled = Compiler.Compile(system, run, registry);
             return Executor.Execute(compiled, progress, cancel);
         }

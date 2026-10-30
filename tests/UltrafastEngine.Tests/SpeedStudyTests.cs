@@ -105,7 +105,7 @@ namespace UltrafastEngine.Tests
             return (SystemDescription.FromJson(o), Specs.RunSpec.FromJson(r));
         }
 
-        [Test]
+        [Test(Reference = "B = γ P L", Tolerance = "1e-09, 1 %")]
         public void Study_ScanWithPrefixCacheMatchesFullRuns()
         {
             var (s, r) = KerrPair();

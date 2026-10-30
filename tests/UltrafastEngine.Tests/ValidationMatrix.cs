@@ -14,6 +14,7 @@ namespace UltrafastEngine.Tests
     /// </summary>
     public static class ValidationMatrix
     {
+        private static bool IsInternal(string reference) => reference != null && reference.StartsWith("cross-", StringComparison.Ordinal);
         private static string Cell(string s) => string.IsNullOrEmpty(s) ? "--" : s.Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
 
         public static string Markdown()
@@ -26,15 +27,16 @@ namespace UltrafastEngine.Tests
                 .Select(g => (type: g.Key, area: g.Key.GetCustomAttribute<TestAreaAttribute>()?.Name ?? g.Key.Name, tests: g.OrderBy(x => x.m.Name, StringComparer.Ordinal).ToList()))
                 .OrderBy(g => g.type.Name, StringComparer.Ordinal)
                 .ToList();
-            int total = tests.Sum(g => g.tests.Count), external = tests.Sum(g => g.tests.Count(x => !string.IsNullOrEmpty(x.a.Reference)));
+            int total = tests.Sum(g => g.tests.Count), referenced = tests.Sum(g => g.tests.Count(x => !string.IsNullOrEmpty(x.a.Reference)));
+            int internalChecks = tests.Sum(g => g.tests.Count(x => IsInternal(x.a.Reference))), external = referenced - internalChecks;
             var sb = new StringBuilder();
             sb.AppendLine("# Validation matrix");
             sb.AppendLine();
             sb.AppendLine("<!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->");
             sb.AppendLine();
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "Every C# test of the engine: **{0} tests** in {1} classes. **{2}** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required; the others test behaviour, bookkeeping and consistency between parts of the engine. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = \"...\", Tolerance = \"...\")]`.",
-                total, tests.Count, external));
+                "Every C# test of the engine: **{0} tests** in {1} classes. **{2}** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **{3}** are cross-checks between two parts of the engine (a reference starting with \"cross-\"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = \"...\", Tolerance = \"...\")]`.",
+                total, tests.Count, external, internalChecks));
             sb.AppendLine();
             sb.AppendLine("| area | class | tests | with an external reference |");
             sb.AppendLine("|---|---|---|---|");

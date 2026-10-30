@@ -20,6 +20,16 @@ namespace UltrafastEngine.Models
         void Evaluate(double[] x, double[] y, double[] z, double[] valueOut);
     }
 
+    /// <summary>Values already sampled on a grid's points (the absorbing boundary layer).</summary>
+    public sealed class PointValuesField : ISpatialField
+    {
+        private readonly double[] _v;
+        public PointValuesField(double[] values, string description) { _v = values; Description = description; }
+        public string Description { get; }
+        public bool DependsOnZ => false;
+        public void Evaluate(double[] x, double[] y, double[] z, double[] valueOut) => System.Array.Copy(_v, valueOut, _v.Length);
+    }
+
     /// <summary>f(x, y, z) from a registered callback (C#, Python or C).</summary>
     public delegate void FieldCallback(double[] x, double[] y, double[] z, double[] valueOut);
 

@@ -66,7 +66,7 @@ namespace UltrafastEngine.Tests
     [TestArea("Loss budget and overrides")]
     public class LossAndOverrideTests
     {
-        [Test]
+        [Test(Reference = "clip 1 − exp(−2a²/w²), Fresnel 4 %", Tolerance = "1e-12, 1e-09, 3 %")]
         public void LossBudget_ClipFresnelScatterAddUp()
         {
             var mats = O("glass", O("index", 1.5));

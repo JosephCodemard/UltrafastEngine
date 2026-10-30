@@ -73,7 +73,7 @@ namespace UltrafastEngine.Tests
             return O("wavelengthsNm", l, "intensity", y);
         }
 
-        [Test(Category = "instruments")]
+        [Test(Category = "instruments", Reference = "Gaussian widths add in quadrature (√8 nm recording of 2 nm)", Tolerance = "2 %, 6 %")]
         public void InputSpectrum_Deconvolution_RemovesTheRecordingResolution()
         {
             var sp = MeasuredGaussianSpectrum(2.0, 2.0, 15);
