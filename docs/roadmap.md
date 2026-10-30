@@ -31,7 +31,7 @@ needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Z
    - [x] Absorbing boundary in nonlinear spatial elements (an absorption in the layer)
    - [x] Faster Hankel matrix (symmetric products) -- *left:* a timing benchmark against LightPipes, with the cross-check
 2. **Branches: splitters, arms, coherent recombination** -- the largest architectural limit (Michelson, Mach-Zehnder, pump-probe, OPA with its own pump arm). **Deferred by the owner until the existing engine is settled.**
-   - [ ] Design first (`docs/design/`): a graph of elements with named ports; `beamSplitter` / `combiner` elements; per-arm delay and phase; arms recombined on a shared grid; how instruments, probes, studies and the loss budget see branches; reuse of the χ(2) aux beams
+   - [x] Design: [docs/design/branching.md](design/branching.md) (final plan, stages 0-8: ports on all elements, jumps, graph compiler, virtual inputs, loops) -- *left:* the stages
    - [ ] Implementation, a Michelson and a Mach-Zehnder example with analytic fringes, a pump-probe example
 3. **Spatio-temporal couplings**
    - [x] Kostenbauder couplings with the tracked beam: gratings, tilted interfaces (prisms), plates, single-pass grating pairs; pulse-front tilt (Hebling, Akturk); the GDD they add (Treacy, 4f = 0)
