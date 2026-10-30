@@ -14,6 +14,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>The hitran plugin: Faddeeva function, line files, Voigt lines (absorption + Kramers-Kronig dispersion), the
     /// air in the gaps (environment.air) and the water-line tail against a brute-force big window.</summary>
+    [TestArea("HITRAN plugin: line shapes, files, partition sums, absorption in air")]
     public class HitranTests
     {
         private const double Lam = 1030e-9;
@@ -26,7 +27,7 @@ namespace UltrafastEngine.Tests
 
         private static GasSpecies Water(double x, params HitranLine[] lines) => new GasSpecies { Name = "H2O", Lines = lines.ToList(), MoleFraction = x, PartitionExponent = 1.5 };
 
-        [Test]
+        [Test(Reference = "Faddeeva function: w(0) = 1, erfcx, Dawson values", Tolerance = "1e-10, 1e-09")]
         public void Faddeeva_MatchesKnownValues()
         {
             var w0 = Faddeeva.W(Complex.Zero);
@@ -84,7 +85,7 @@ namespace UltrafastEngine.Tests
             finally { File.Delete(path); }
         }
 
-        [Test]
+        [Test(Reference = "Doppler HWHM ν/c √(2kT ln2 / m)", Tolerance = "0.01 %, 1 %, 2 %")]
         public void Doppler_WidthMatchesTheKineticFormula()
         {
             // HWHM = nu / c sqrt(2 k T ln2 / m); H2O, 296 K, 9708 cm-1: about 0.0141 cm-1 (0.42 GHz), FWHM about 0.85 GHz
@@ -96,7 +97,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.85, fwhmGhz, 0.02, 0, "FWHM in GHz");
         }
 
-        [Test]
+        [Test(Reference = "saturation vapour pressure of water, 2339 Pa at 20 °C", Tolerance = "1e-12, 0.5 %")]
         public void WaterVapour_FractionFollowsTheSaturationPressure()
         {
             // saturation vapour pressure of water at 20 C: 2339 Pa
@@ -107,7 +108,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>A line pressure-broadened far beyond the Doppler width is a Lorentzian: peak absorption n_d S / (pi gamma_L)
         /// and dispersion extremum n_d S / (8 pi^2 nu gamma_L) at nu0 -+ gamma_L (normal dispersion below the line).</summary>
-        [Test]
+        [Test(Reference = "Lorentz line: peak n S / (π γ), dispersion extremum", Tolerance = "1 %")]
         public void LorentzLine_PeakAbsorptionAndDispersion_MatchTheAnalyticResult()
         {
             double nu0 = 9708.0, S = 1e-22, T = 296, p = 5 * 101325, x = 0.01;
@@ -123,7 +124,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.0, r.Dn[1], 0, 0.01 * dnMax, "no dispersion at the centre");
         }
 
-        [Test]
+        [Test(Reference = "Kramers-Kronig (numerical Hilbert transform)")]
         public void VoigtLine_DispersionIsTheHilbertTransformOfTheAbsorption()
         {
             // Kramers-Kronig: Dn(nu) = (1/pi) PV integral kappa(nu') / (nu' - nu) dnu' for a line far from nu = 0
@@ -214,7 +215,7 @@ namespace UltrafastEngine.Tests
             Assert.True(b.Records.Single().Notes.Any(n => n.StartsWith("air of this gap")), "note names the gap's air");
         }
 
-        [Test]
+        [Test(Reference = "Beer-Lambert: 1 − exp(−α L)", Tolerance = "1 %")]
         public void WaterLines_InAGap_AbsorbAsBeerLambertOnTheGrid()
         {
             double nu0 = 1e7 / (Lam * 1e9) , S = 3e-21;
@@ -241,7 +242,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>The motivating case: lines a few GHz wide ring for hundreds of ps. The ledger (main window of a few ps, tail 2 ns)
         /// must reproduce the same system on one 2 ns grid.</summary>
-        [Test]
+        [Test(Reference = "cross-check: one 2 ns window", Tolerance = "1e-05, 0.1 %, 2 %")]
         public void WaterLines_TailLedger_ReproducesTheBruteForce2nsWindow()
         {
             double nu0 = 1e7 / (Lam * 1e9);
@@ -324,7 +325,7 @@ namespace UltrafastEngine.Tests
         /// Opt-in (set ULTRAFAST_HITRAN_VALIDATE_DIR to a folder made by plugins/hitran/tools/make_hapi_reference.py; needs the network once):
         /// real H2O, CO2 and O2 lines at 250, 296 and 350 K against HAPI's Voigt absorption coefficient (TIPS partition sums). Skipped otherwise.
         /// </summary>
-        [Test]
+        [Test(Reference = "HAPI (HITRAN reference code), H2O / CO2 / O2 at 250-350 K", Tolerance = "0.7 % integrated, 3.9 % worst point")]
         public void AgainstHapi_RealLines_AgreeWithTheReferenceImplementation()
         {
             string dir = Environment.GetEnvironmentVariable("ULTRAFAST_HITRAN_VALIDATE_DIR");

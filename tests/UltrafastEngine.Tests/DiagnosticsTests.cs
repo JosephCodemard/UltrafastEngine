@@ -8,6 +8,7 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Cameras, wavefront sensor and virtual instruments against Gaussian-beam and pulse analytics.</summary>
+    [TestArea("Cameras, wavefront sensor, Wigner and space-time probes")]
     public class DiagnosticsTests
     {
         private const double Lam = 1030e-9;
@@ -23,7 +24,7 @@ namespace UltrafastEngine.Tests
 
         private static JsonObject V(RunResult r, string name) => r.Instruments.First(i => i.Name == name).Values;
 
-        [Test(Category = "instruments")]
+        [Test(Category = "instruments", Reference = "Gaussian optics: w(z), far field λf/(πw0), R(z)", Tolerance = "0.5 %, 1 %")]
         public void Cameras_GaussianBeam_NearFarFieldAndWavefrontMatchGaussianOptics()
         {
             double w0 = 300e-6, L = 0.1, zr = Math.PI * w0 * w0 / Lam;
@@ -55,7 +56,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(10, ins.Values.GetDouble("bitDepth", 0), 0, 0, "sensor bit depth recorded");
         }
 
-        [Test]
+        [Test(Reference = "known Zernike coefficients")]
         public void Zernike_FitRecoversKnownCoefficients()
         {
             int n = 64; double a = 1e-3;
@@ -72,7 +73,7 @@ namespace UltrafastEngine.Tests
             for (int k = 0; k < 15; k++) Assert.Close(truth[k], c[k], 0, 1e-9, "Z" + (k + 1));
         }
 
-        [Test(Category = "instruments")]
+        [Test(Category = "instruments", Reference = "Wigner time marginal = |A(t)|²; known linear chirp", Tolerance = "1 %")]
         public void Wigner_MarginalIsThePowerAndFieldProbeRecoversTheChirp()
         {
             var pulse = Gauss(800e-9, 20e-15, 1e-9); pulse.Set("chirp", O("gddFs2", 500));

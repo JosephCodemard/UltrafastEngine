@@ -13,6 +13,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>Finite resolution and sampling of measurements: the common instrument "axis", measured input spectra
     /// (resolution, deconvolution, extrapolation) and the resolution check of recorded data.</summary>
+    [TestArea("Instrument axes, resolution and measured-data resolution")]
     public class ResolutionTests
     {
         private const double Lam = 1030e-9;

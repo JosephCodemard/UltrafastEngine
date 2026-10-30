@@ -16,6 +16,7 @@ namespace UltrafastEngine.Tests
     /// paths, which stay available (ComplexFft.Radix2InPlace, EnvelopeProblem.UseFastPath = false); agreement is
     /// required to rounding level (1e-12 relative), because the arithmetic is the same up to summation order.
     /// </summary>
+    [TestArea("CPU FFTs and compute back-ends")]
     public class ComputeTests
     {
         private static Complex[] Random(int n, int seed)
@@ -31,7 +32,7 @@ namespace UltrafastEngine.Tests
             return e / Math.Max(m, 1e-300);
         }
 
-        [Test(Category = "compute")]
+        [Test(Category = "compute", Reference = "direct DFT")]
         public void Stockham_MatchesRadix2AndTheDft_ForEveryPowerOfTwo()
         {
             for (int log = 1; log <= 17; log++)

@@ -18,6 +18,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>Stage 2: transform elements, backward propagation, fits with transforms, estimators, priors, layers
     /// (docs/plugins/fitting.md).</summary>
+    [TestArea("Fitting plugin: transforms, backward propagation, fits")]
     public class TransformTests
     {
         private const double Lam = 1030e-9;
@@ -94,7 +95,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(1, Math.Abs(r2.Instruments.First().Values.GetDouble("s3", 0)), 1e-6, 1e-6, "quarter-wave at 45 deg: circular");
         }
 
-        [Test(Category = "transform")]
+        [Test(Category = "transform", Reference = "minimum-phase filter of a Lorentzian: one-sided exponential")]
         public void Transform_MinimumPhase_IsCausal()
         {
             // a Lorentzian power transmission: the minimum-phase filter is a one-sided exponential response
@@ -369,7 +370,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(8.0, f.Parameters[0].Value, 0.01, 0, "FWHM");
         }
 
-        [Test(Category = "transform")]
+        [Test(Category = "transform", Reference = "known truth inside the 95 % intervals")]
         public void Fit_Mcmc_GivesCredibleIntervalsAroundTheTruth()
         {
             var dir = TempDir();

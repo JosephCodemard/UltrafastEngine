@@ -11,6 +11,7 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Stage 1.2 optical components and Stage 1.3 pedestals: each pinned to an analytic result.</summary>
+    [TestArea("Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals")]
     public class ComponentTests
     {
         private const double Lam = 1030e-9;
@@ -35,7 +36,7 @@ namespace UltrafastEngine.Tests
 
         // ------------------------------------------------------------------------------------------ beam tracking
 
-        [Test]
+        [Test(Reference = "Gaussian optics (ABCD law)", Tolerance = "1e-12, 0.05 %, 1 %")]
         public void BeamTracking_LensFocusMatchesGaussianOptics()
         {
             double w0 = 1e-3, f = 0.5;
@@ -55,7 +56,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(rec.Values["trackedBeamRadiusXM"], rec.Values["trackedBeamRadiusYM"], 1e-12, 0, "round beam stays round");
         }
 
-        [Test]
+        [Test(Reference = "off-axis mirror: f_t = R cos θ / 2, f_s = R / (2 cos θ)", Tolerance = "0.05 %")]
         public void BeamTracking_OffAxisMirrorIsAstigmatic()
         {
             double w0 = 1e-3, R = 1.0, aoi = 10.0, d = 0.5;
@@ -89,7 +90,7 @@ namespace UltrafastEngine.Tests
 
         private static double Fresnel(double n) => Math.Pow((n - 1) / (n + 1), 2);
 
-        [Test]
+        [Test(Reference = "T = 10^−OD", Tolerance = "0.2 %")]
         public void NdFilter_AbsorptiveAndReflectiveOd()
         {
             foreach (var kind in new[] { "absorptive", "reflective" })
@@ -136,7 +137,7 @@ namespace UltrafastEngine.Tests
             return (t[best] - t[ip], pw[best] / pw[ip]);
         }
 
-        [Test]
+        [Test(Reference = "ghost delay 2 n_g d / c, level R²", Tolerance = "0.2 %, 3 %")]
         public void Plate_GhostReplicaDelayAndIntensity()
         {
             double d = 5e-3;
@@ -187,7 +188,7 @@ namespace UltrafastEngine.Tests
 
         private static PulseSummary Out(RunResult r) => PulseMetrics.Summarize(r.Output);
 
-        [Test]
+        [Test(Reference = "thin-film transfer matrix at the design angle")]
         public void ThinFilmPolarizer_TransmitsPReflectsS()
         {
             double T(string pol, string output)
@@ -204,7 +205,7 @@ namespace UltrafastEngine.Tests
             Assert.Greater(tp / ts, 100, "extinction");
         }
 
-        [Test]
+        [Test(Reference = "Faraday rotation V(λ) B L, non-reciprocal", Tolerance = "1e-09, 0.01 %, 0.1 %")]
         public void FaradayRotator_RotatesNonReciprocallyWithVerdetDispersion()
         {
             var sys = SysWith(null, O("id", "f1", "type", "faradayRotator", "rotationDeg", 45.0), O("id", "f2", "type", "faradayRotator", "rotationDeg", 45.0));
@@ -216,7 +217,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(Math.PI / 4 * (1.064 * 1.064 - 0.258 * 0.258) / (0.8 * 0.8 - 0.258 * 0.258), t.AngleAt(W(800e-9)), 1e-9, 0, "V ~ 1/(lambda^2 - lambda0^2)");
         }
 
-        [Test]
+        [Test(Reference = "retardance 2π Δn(λ) d / λ from the crystal's indices", Tolerance = "1e-09, 0.01 %, 0.1 %, 5 %")]
         public void ThickWaveplate_RetardanceFromMaterialDispersion()
         {
             var mo = Materials.MaterialLibrary.BuiltIn("Quartz"); var me = Materials.MaterialLibrary.BuiltIn("Quartz-e");
@@ -240,7 +241,7 @@ namespace UltrafastEngine.Tests
             Assert.Greater(1 + S1At(10, 1060e-9), 10 * (1 + S1At(0, 1060e-9)), "multi-order plate departs faster off design");
         }
 
-        [Test]
+        [Test(Reference = "group-delay difference Δn_g d / c", Tolerance = "5 %")]
         public void ThickWaveplate_SplitsPulseByGroupDelayDifference()
         {
             var mo = Materials.MaterialLibrary.BuiltIn("Quartz"); var me = Materials.MaterialLibrary.BuiltIn("Quartz-e");
@@ -270,7 +271,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(-100, Gdd(true), 1e-3, 0.05, "complementary pair cancels the ripple");
         }
 
-        [Test]
+        [Test(Reference = "Noll, J. Opt. Soc. Am. 66, 207 (1976): ordering and orthonormality")]
         public void Zernike_NollOrderingAndOrthonormality()
         {
             Assert.Equal((2, 0), Zernike.Noll(4), "Z4 defocus");
@@ -292,7 +293,7 @@ namespace UltrafastEngine.Tests
                 }
         }
 
-        [Test]
+        [Test(Reference = "Maréchal approximation S = exp(−(2π σ)²)", Tolerance = "1 %")]
         public void Aberration_StrehlOnOneDBeamAndPhaseOnSpatialBeam()
         {
             // 1-D: Marechal estimate, defocus is not removed (only piston/tilt)
@@ -410,7 +411,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(Math.Exp(-2 * rr * rr / (w * w)), Rot(mh) / Rot(m0), 0.04, 0, "rotation follows the local intensity");
         }
 
-        [Test]
+        [Test(Reference = "ghost delay 2 n_g L / c, level R²", Tolerance = "2 %")]
         public void Ghosts_OfBulkCrystalAndLensEndFaces()
         {
             // a 20 mm YAG rod (Fresnel ghost), an AR-coated BBO crystal and a thick lens: delay 2 n_g L / c, level R^2

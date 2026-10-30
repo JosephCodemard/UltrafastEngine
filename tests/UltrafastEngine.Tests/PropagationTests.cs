@@ -10,6 +10,7 @@ using static UltrafastEngine.Tests.U;
 
 namespace UltrafastEngine.Tests
 {
+    [TestArea("Nonlinear envelope propagation")]
     public class PropagationTests
     {
         private const double Lam = 1030e-9;
@@ -28,7 +29,7 @@ namespace UltrafastEngine.Tests
         private static JsonObject Physics(bool ss = false, bool raman = true, string field = "envelope") =>
             O("physics", O("selfSteepening", ss, "raman", raman, "fieldMode", field));
 
-        [Test]
+        [Test(Reference = "SPM: analytic phase γ P L, spectral broadening of a Gaussian (Agrawal)", Tolerance = "1e-06, 1 %")]
         public void Spm_GaussianBroadeningMatchesAnalyticAndBIntegral()
         {
             double L = 0.01, phi = 5.0, p0 = phi / (Gamma * L);
@@ -48,7 +49,7 @@ namespace UltrafastEngine.Tests
                 "params", O("k0", n0 * w0 / C, "k1", n0 / C, "b2", beta2, "w0", w0)), "n2", n2);
         }
 
-        [Test]
+        [Test(Reference = "fundamental soliton of the NLSE", Tolerance = "1 %")]
         public void Soliton_FundamentalSolitonKeepsItsShape()
         {
             double beta2 = -2e-26, t0 = 50e-15;
@@ -111,7 +112,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(SpectralCentroid(off.Input), SpectralCentroid(off.Output), 1e-6, 0, "no shift without Raman");
         }
 
-        [Test]
+        [Test(Reference = "cross-model: the envelope model", Tolerance = "0.1 %, 2 %")]
         public void FieldMode_AgreesWithEnvelopeForSpm()
         {
             var mat = O("base", "FusedSilica", "n2", N2);
@@ -153,7 +154,7 @@ namespace UltrafastEngine.Tests
             Assert.True(ex.Compiled.Provenance.Entries.Any(p => p.Property.Contains("replaces Kerr") && p.Source == ModelSource.RunOverride), "provenance records the replacement");
         }
 
-        [Test]
+        [Test(Reference = "phase modulation: Bessel sidebands J_n(m)")]
         public void TimeResponse_LabTimeModulationCreatesBesselSidebands()
         {
             double L = 1e-3, beta = 0.5, k0 = W(Lam) / C, delta = beta / (k0 * L), fm = 3e12;
@@ -201,7 +202,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(Math.Pow(0.995, 4), r.Output.TotalEnergyJ() / r.Input.TotalEnergyJ(), 1e-9, 0, "reflectance^4");
         }
 
-        [Test]
+        [Test(Reference = "Beer-Lambert law", Tolerance = "1e-09")]
         public void MaterialAttenuation_BeerLambert()
         {
             var s = O("format", "ultrafast-system", "materials", O("lossy", O("index", 1.5, "attenuation", 10.0)));

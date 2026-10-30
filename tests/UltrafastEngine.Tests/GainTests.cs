@@ -10,12 +10,13 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Position-dependent material properties (docs/spatial-properties.md).</summary>
+    [TestArea("Position-dependent properties of spatial elements")]
     public class SpatialPropertyTests
     {
         private const double Lam = 1030e-9;
         private static JsonObject Beam(double w0) => O("kind", "gaussian", "w0M", w0, "wavelengthM", Lam);
 
-        [Test(Category = "spatial")]
+        [Test(Category = "spatial", Reference = "GRIN thin lens f = 1 / (n0 g² L); waist λf/(πw0)", Tolerance = "3 %")]
         public void IndexProfile_ParabolicGrin_FocusesLikeAThinLens()
         {
             // Delta n = -1/2 n0 g^2 r^2 over L: thin lens f = 1 / (n0 g^2 L); waist at f is lambda f / (pi w0)
@@ -32,7 +33,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "spatial")]
+        [Test(Category = "spatial", Reference = "T = (1 − exp(−α0 L)) / (α0 L) for a matched Gaussian", Tolerance = "0.3 %, 1 %")]
         public void AbsorptionProfile_GaussianAlpha_ExactSpatialTransmissionAndBeamAveraged1D()
         {
             // alpha(r) = alpha0 exp(-2 r^2 / w^2) on a beam of the same radius: T = (1 - exp(-alpha0 L)) / (alpha0 L)
@@ -95,12 +96,13 @@ namespace UltrafastEngine.Tests
     }
 
     /// <summary>Gain media, pumping, the gain and amplifier elements (docs/gain.md).</summary>
+    [TestArea("Gain media, pumping, thermal lens and position-dependent properties")]
     public class GainTests
     {
         private const double Lam = 1030e-9;
         private static ElementRecord Rec(RunResult r, string id) => r.Records.First(x => x.Id == id);
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "McCumber relation; published Yb:YAG σ_e(1030 nm) ≈ 2.1e-24 m² and emission peaks", Tolerance = "1e-09, 0.02 %, 0.15 %, 2 %, 15 %")]
         public void GainMedia_LibraryPeaksAndMcCumber()
         {
             var yb = GainMedium.Get("Yb:YAG");
@@ -116,7 +118,7 @@ namespace UltrafastEngine.Tests
             Assert.Throws<JsonException>(() => GainMedium.Get("unobtainium"), "unknown medium");
         }
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "Frantz & Nodvik, J. Appl. Phys. 34, 2346 (1963)", Tolerance = "1e-12, 1e-09, 0.03 %")]
         public void GainElement_FrantzNodvik_SaturatedEnergyGain()
         {
             double w = 0.5e-3, A = Math.PI * w * w / 2;
@@ -142,7 +144,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(3.0, r.Output.TotalEnergyJ() / r.Input.TotalEnergyJ(), 1e-3, 0, "weak-signal gain");
         }
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "rate-equation steady state N2/Nt = σ_ap Φ / ((σ_ap + σ_ep) Φ + 1/τ)", Tolerance = "1 %")]
         public void Pumping_CwThinCrystal_RateEquationSteadyState()
         {
             // weakly absorbing (low doping): N2 / N_t = sigma_ap Phi / ((sigma_ap + sigma_ep) Phi + 1 / tau)
@@ -157,7 +159,7 @@ namespace UltrafastEngine.Tests
             Assert.True(r.Records[0].Notes.Any(n => n.Contains("single shot")), "single-shot note without a repetition rate");
         }
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "f = 2πK w²/(P_h dn/dT) (top hat), πK w²/(P_h dn/dT) (Gaussian; Innocenzi 1990)", Tolerance = "1e-09")]
         public void ThermalLens_TophatAndGaussianPump_MatchAnalyticFocalLengths()
         {
             foreach (var profile in new[] { "tophat", "gaussian" })
@@ -176,7 +178,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "small-signal regen growth (G0² (1 − L))^N", Tolerance = "0.2 %")]
         public void Regen_SmallSignal_GrowsAsGainSquaredTimesCavityTransmission()
         {
             int N = 5; double loss = 0.05;

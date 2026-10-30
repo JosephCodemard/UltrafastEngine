@@ -11,6 +11,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>The delayed-light ledger (grid.tail): a second, long, linear grid next to the main nonlinear grid.
     /// The reference is always the same system on one big grid without a tail (brute force).</summary>
+    [TestArea("Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors")]
     public class DelayedLightTests
     {
         private const double Lam = 1030e-9;
@@ -52,7 +53,7 @@ namespace UltrafastEngine.Tests
                 "coating", O("kind", "ar", "R", r), "ghosts", true));
 
         /// <summary>Reference: the ledger must reproduce a run of the same system on a single window that holds the ghost.</summary>
-        [Test]
+        [Test(Reference = "cross-check: one large grid holding the whole window", Tolerance = "1e-05, 0.1 %")]
         public void Ledger_GhostOfAPlate_MatchesTheBruteForceBigWindow()
         {
             var sys = GhostPlate();
@@ -168,7 +169,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>The echo delay is the group delay of exp(i 2 n(w) w d cos(theta)/c): 2 n_g d / c. For fused silica near 1030 nm
         /// n_g is about 1.46, so a 6.35 mm substrate gives about 62 ps (not the 61.4 ps of the phase index 1.45).</summary>
-        [Test]
+        [Test(Reference = "echo delay 2 n_g d / c (fused silica n_g = 1.4635 at 1030 nm)", Tolerance = "0.3 %, 1 %, 8 %")]
         public void MirrorEcho_DelayIsTwoGroupIndexThicknessOverC()
         {
             var fs = Materials.MaterialLibrary.BuiltIn("FusedSilica");
@@ -303,7 +304,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>First order in a small phase ripple phi = sigma N(w): each cos component makes two replicas at +-tau_k, together sigma^2
         /// of the pulse energy (analytic). The structure lives within +-maxDelay, so nothing (to first order) is further out.</summary>
-        [Test]
+        [Test(Reference = "first-order phase-noise pedestal energy σ²", Tolerance = "1e-09, 30 %")]
         public void CoatingRipple_FirstOrderPedestal_HasEnergySigmaSquaredWithinTheMaxDelay()
         {
             double sigma = 0.03;
@@ -315,7 +316,7 @@ namespace UltrafastEngine.Tests
             Assert.Greater(EnergyOutside(r.Output, 5.5e-12), 0, "the second-order tail exists");
         }
 
-        [Test]
+        [Test(Reference = "amplitude-ripple energy 1 − √(2/π) σ + σ²/2", Tolerance = "0.5 %")]
         public void CoatingRipple_AmplitudeRippleOnlyTakesLightAway()
         {
             var r = Go(RippleMirror(O("amplitudeRms", 0.05, "maxDelayS", 5e-12, "seed", 5)), Gauss(Lam, 20e-15, 1e-6));
@@ -355,7 +356,7 @@ namespace UltrafastEngine.Tests
             Assert.True(r.Records.Single().LossJ.Count == 0 || Math.Abs(r.Records.Single().LossJ.Values.Sum() / r.Input.TotalEnergyJ()) < 0.03, "loss budget small");
         }
 
-        [Test]
+        [Test(Reference = "λ^−n spectral weight", Tolerance = "25 %")]
         public void DelayedScatter_SpectralWeightFollowsALambdaPowerLaw()
         {
             var cr = Compiler.Compile(ScatterMirror(O("fraction", 0.02, "delay", O("kind", "uniform", "maxS", 40e-12), "spectralExponent", 8.0, "seed", 2)),
@@ -446,7 +447,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>TIS = (4 pi sigma / lambda)^2 at normal incidence; the share of it inside the mode (radius w) for a Gaussian roughness
         /// correlation l is 1 - exp(-(l/w)^2), obtained by integrating S(f) = pi sigma^2 l^2 exp(-pi^2 l^2 f^2) over f &lt; 1 / (pi w).</summary>
-        [Test]
+        [Test(Reference = "total integrated scatter TIS = (4π σ cos θ / λ)²", Tolerance = "1e-12, 0.1 %")]
         public void SurfaceScatter_LossIsTheTisOutsideTheMode_AndFollowsLambdaMinusTwo()
         {
             double sigma = 2e-9, ell = 500e-6, w = 1e-3;
@@ -515,7 +516,7 @@ namespace UltrafastEngine.Tests
         /// <summary>First order in a weak tail that overlaps the main pulse: A = A_m + A_t in a Kerr medium gives the tail the change
         /// i gamma (2 |A_m|^2 A_t + A_m^2 A_t*). The reference is the full nonlinear solution of main + tail on one grid, minus that of the
         /// main pulse alone (which is the tail's output to first order in A_t).</summary>
-        [Test]
+        [Test(Reference = "cross-check: the full nonlinear difference field", Tolerance = "10 %")]
         public void Ledger_CrossPhase_MatchesTheFullNonlinearSolutionToFirstOrder()
         {
             double n2 = 1e-20, area = 1e-8, len = 0.01;

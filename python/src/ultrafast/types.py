@@ -1036,6 +1036,61 @@ class LensElement(TypedDict, total=False):
     """Free text."""
 
 
+class MaskElement(TypedDict, total=False):
+    """A thin mask on the carried transverse profile: axicon, Fresnel zone plate, vortex phase plate, slits, or an amplitude / phase map from a file. (docs/reference/transverse.md#masks)"""
+    id: str
+    """Unique id"""
+    type: str
+    kind: Literal["axicon", "zonePlate", "vortex", "slits", "file"]
+    """Mask"""
+    coneAngleRad: float
+    """axicon: deflection angle (phase -k r sin(angle)) [rad]"""
+    focalLengthM: float
+    """zonePlate: first-order focal length at the design wavelength [m]"""
+    binaryPhase: bool
+    """zonePlate: closed zones shift by pi instead of blocking Default: false."""
+    designWavelengthM: float
+    """zonePlate: design wavelength; file: wavelength of phase_rad [m] Default: the carrier."""
+    charge: int
+    """vortex: topological charge l (phase l phi) Default: 1."""
+    count: int
+    """slits: number of slits Default: 2."""
+    widthM: float
+    """slits: slit width [m]"""
+    separationM: float
+    """slits: centre-to-centre distance [m]"""
+    heightM: float
+    """slits: height in y [m] Default: unlimited."""
+    file: str
+    """file: NPZ with x_m, y_m (or r_m), amplitude, and optionally phase_rad; relative to the system file"""
+    decenterXM: float
+    """Decentre in x [m]"""
+    decenterYM: float
+    """Decentre in y [m]"""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class MirrorElement(TypedDict, total=False):
     """A reflecting surface: coating, AOI, s/p phases, curvature. (docs/reference/elements.md#surfaces)"""
     id: str
@@ -3089,8 +3144,26 @@ class Imaging(TypedDict, total=False):
 
 class InitialProfile(TypedDict, total=False):
     """Initial transverse field."""
-    kind: Literal["gaussian", "superGaussian", "flatTop", "tophat"]
-    """Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform) Default: gaussian."""
+    kind: Literal["gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured"]
+    """Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) Default: gaussian."""
+    modeX: int
+    """hermiteGauss: order in x Default: 0."""
+    modeY: int
+    """hermiteGauss: order in y Default: 0."""
+    modeP: int
+    """laguerreGauss: radial index p Default: 0."""
+    modeL: int
+    """laguerreGauss: azimuthal index l (helical phase, cartesian grids) Default: 0."""
+    coneAngleRad: float
+    """besselGauss: cone angle of the plane waves, k_r = k sin(angle) [rad]"""
+    radialWavenumberPerM: float
+    """besselGauss: k_r (alternative) [rad/m]"""
+    truncation: float
+    """airy: the exponential truncation a in Ai(x / x0) exp(a x / x0) Default: 0.1."""
+    file: str
+    """measured: NPZ with x_m, y_m (or r_m), fluence or amplitude, and optionally phase_rad; relative to the file that names it"""
+    background: Any
+    """measured: a number subtracted from the fluence, or "auto" (the median of the map's edge)"""
     geometry: Literal["round", "square"]
     """round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) Default: round."""
     order: int
@@ -3638,7 +3711,7 @@ class Transverse(TypedDict, total=False):
     """Free text."""
 
 
-Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "ProbeElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
+Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MaskElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "ProbeElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
 """Any element dictionary (the typed forms first; a plain dict for plugin elements)."""
 
 
@@ -3683,4 +3756,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']

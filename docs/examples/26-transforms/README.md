@@ -58,8 +58,8 @@ transform numbers are found automatically. The levels are in dB because contrast
   fit (levenbergMarquardt):
   fit: chi^2 9.264E+04 -> 4164 (5344 points, reduced 0.78), 5 iterations, 54 runs
   lab.spectralPhase.gddFs2                  817.811 +- 34.5         (start 0)
-  lab.spectralPhase.todFs3                 -16495.1 +- 6.57E+03     (start 0)
-  lab.spectralPhase.fodFs4                  8349.17 +- 8.91E+05     (start 0)
+  lab.spectralPhase.todFs3                 -16526.4 +- 6.57E+03     (start 0)
+  lab.spectralPhase.fodFs4                 -1847.88 +- 8.9E+05      (start 0)
   lab.spectralAmplitude.fwhmNm              13.0161 +- 0.0229       (start 20)
   lab.spectralAmplitude.centerWavelengthNm  1031.51 +- 0.00745      (start 1030)
   lab.energy.transmission                  0.419743 +- 0.00841      (start 0.5)
@@ -71,7 +71,7 @@ transform numbers are found automatically. The levels are in dB because contrast
 |---|---|---|
 | GDD | 800 fs² | 818 ± 34 fs² |
 | TOD | −15 000 fs³ | −16 500 ± 6 600 fs³ |
-| FOD | 400 000 fs⁴ | 8 000 ± 890 000 fs⁴ (half from the prior) |
+| FOD | 400 000 fs⁴ | −2 000 ± 890 000 fs⁴ (half from the prior; the value moves with tiny changes of the data or the engine, inside its error bar) |
 | gain narrowing | 13.0 nm at 1031.5 nm | 13.02 ± 0.02 nm at 1031.51 ± 0.01 nm |
 | transmission | 0.42 | 0.420 ± 0.008 |
 | post-pulse | −46 dB | −45.9 ± 0.3 dB |

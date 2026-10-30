@@ -16,6 +16,7 @@ namespace UltrafastEngine.Tests
     /// whose anisotropic share is b, Bcoef = (1 - fR) / 3 + fR b / 2, and circular light sees
     /// (1 - fR) 2/3 + fR (1 - b/2) of the linear index.
     /// </summary>
+    [TestArea("Nonlinear ellipse rotation and the vector Kerr / Raman tensor")]
     public class NerTests
     {
         private const double Lam = 1030e-9, N2 = 3e-20;
@@ -70,7 +71,7 @@ namespace UltrafastEngine.Tests
 
         private static double B(RunResult r) => r.Records.Sum(x => x.BIntegralRad);
 
-        [Test(Category = "ner")]
+        [Test(Category = "ner", Reference = "isotropic χ(3): circular light sees 2/3 of the linear phase", Tolerance = "0.5 %")]
         public void BIntegral_CircularIsTwoThirdsOfLinear_EllipticalInBetween()
         {
             var sys = Plate();
@@ -82,7 +83,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(1 - Math.Pow(Math.Sin(0.6), 2) / 3, be / bl, 0.005, 0, "elliptical B");
         }
 
-        [Test(Category = "ner")]
+        [Test(Category = "ner", Reference = "isotropic χ(3): 3/2 energy compensates 2/3", Tolerance = "0.5 %")]
         public void Circular_AtOneAndAHalfTimesTheEnergy_MatchesLinear()
         {
             var sys = Plate();
@@ -95,7 +96,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(B(lin), B(cir), 0.005, 0, "same B");
         }
 
-        [Test(Category = "ner")]
+        [Test(Category = "ner", Reference = "nonlinear ellipse rotation B sin 2χ / 3 (Maker, Terhune & Savage 1964)", Tolerance = "1 %")]
         public void Rotation_InstantaneousKerr_IsBsin2chiOverThree()
         {
             var sys = Plate();
@@ -108,7 +109,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "ner")]
+        [Test(Category = "ner", Reference = "steady-state Raman tensor (Hellwarth)", Tolerance = "2 %")]
         public void Rotation_WithAnisotropicRaman_UsesTheAnisotropicShare()
         {
             // a 1 ps pulse: the silica Raman response (~100 fs) follows the intensity, so the steady-state tensor applies
@@ -135,7 +136,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(RmsSpectralWidth(linIso.Output), RmsSpectralWidth(lin.Output), 1e-9, 0, "linear spectrum unchanged");
         }
 
-        [Test(Category = "ner")]
+        [Test(Category = "ner", Reference = "Lin & Agrawal, Opt. Lett. 31, 3086 (2006)", Tolerance = "1e-12, 1 %")]
         public void LinAgrawal_AnisotropicPart_IsFcHaPlusFbHb()
         {
             var la = new UltrafastEngine.Materials.LinAgrawalRamanResponse();
@@ -147,7 +148,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.25, sb / sh, 0.01, 0, "anisotropic share of the integral");
         }
 
-        [Test(Category = "ner", Slow = true)]
+        [Test(Category = "ner", Slow = true, Reference = "cross-model: the 1-D vector model", Tolerance = "5 %")]
         public void SpatialModel_OnAxisRotationWithAnisotropicRaman_MatchesTheOneDModel()
         {
             // a radial grid with the anisotropic silica Raman response: on axis the rotation equals the 1-D vector

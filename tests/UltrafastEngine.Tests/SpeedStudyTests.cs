@@ -11,9 +11,10 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Stage 1.6: FFTs of any length, SIMD kernels, compute back-ends, parameter studies.</summary>
+    [TestArea("FFTs, SIMD kernels and studies")]
     public class SpeedStudyTests
     {
-        [Test]
+        [Test(Reference = "direct DFT")]
         public void Fft_MixedRadixAndBluesteinMatchTheDft()
         {
             var rnd = new Random(3);

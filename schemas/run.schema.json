@@ -699,8 +699,43 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["gaussian", "superGaussian", "flatTop", "tophat"],
-          "description": "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform) Default: gaussian."
+          "enum": ["gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured"],
+          "description": "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) Default: gaussian."
+        },
+        "modeX": {
+          "type": "integer",
+          "description": "hermiteGauss: order in x Default: 0."
+        },
+        "modeY": {
+          "type": "integer",
+          "description": "hermiteGauss: order in y Default: 0."
+        },
+        "modeP": {
+          "type": "integer",
+          "description": "laguerreGauss: radial index p Default: 0."
+        },
+        "modeL": {
+          "type": "integer",
+          "description": "laguerreGauss: azimuthal index l (helical phase, cartesian grids) Default: 0."
+        },
+        "coneAngleRad": {
+          "type": "number",
+          "description": "besselGauss: cone angle of the plane waves, k_r = k sin(angle) [rad]"
+        },
+        "radialWavenumberPerM": {
+          "type": "number",
+          "description": "besselGauss: k_r (alternative) [rad/m]"
+        },
+        "truncation": {
+          "type": "number",
+          "description": "airy: the exponential truncation a in Ai(x / x0) exp(a x / x0) Default: 0.1."
+        },
+        "file": {
+          "type": "string",
+          "description": "measured: NPZ with x_m, y_m (or r_m), fluence or amplitude, and optionally phase_rad; relative to the file that names it"
+        },
+        "background": {
+          "description": "measured: a number subtracted from the fluence, or \"auto\" (the median of the map's edge)"
         },
         "geometry": {
           "type": "string",

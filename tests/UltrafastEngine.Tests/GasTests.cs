@@ -9,11 +9,12 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Stage 1.4: molecular gases (rotational Raman), gas indices, the refractiveindex.info reader.</summary>
+    [TestArea("Gases: rotational Raman, indices, the refractiveindex.info database")]
     public class GasTests
     {
         private const double Lam = 1030e-9, Kb = 1.380649e-23, Eps0 = 8.8541878128e-12;
 
-        [Test]
+        [Test(Reference = "isolated-molecule alignment, high-T limit: n2 = N Δα² / (4 c ε0² 15 kT)", Tolerance = "3 %")]
         public void RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory()
         {
             // high-temperature limit of the isolated-molecule alignment: d<cos^2> = F / (15 kT) -> n2 = N da^2 / (4 c eps0^2 15 kT)
@@ -30,7 +31,7 @@ namespace UltrafastEngine.Tests
             Assert.Greater(n2.Rotational.AdiabaticN2 / n2.N2, 2.0, "N2: rotational > electronic for long pulses");
         }
 
-        [Test]
+        [Test(Reference = "rotational revival period 1 / (2 B c)", Tolerance = "5 %")]
         public void RotationalRaman_RevivalsAtTheRotationalPeriod()
         {
             var r = RotationalRamanResponse.For(new[] { ("N2", 1.0) }, 1.0, 293.15);
@@ -87,7 +88,7 @@ namespace UltrafastEngine.Tests
             Assert.True(MaterialLibrary.BuiltIn("Air").Rotational != null, "air: N2 + O2 rotational");
         }
 
-        [Test]
+        [Test(Reference = "refractiveindex.info formulas and tables", Tolerance = "1e-12, 1e-09, 2 %")]
         public void RefractiveIndexInfo_FormulasAndTablesMatchTheLibrary()
         {
             var pages = RefractiveIndexInfoPage.Bundled.ToList();

@@ -11,12 +11,13 @@ using static UltrafastEngine.Tests.U;
 
 namespace UltrafastEngine.Tests
 {
+    [TestArea("Polarisation: waveplates, Brewster windows, basis transport")]
     public class PolarizationTests
     {
         private static RunResult Through(string pol, params JsonObject[] els) =>
             Go(Sys(els), Spec(O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 50e-15, "energyJ", 1e-9, "polarization", pol)));
 
-        [Test]
+        [Test(Reference = "Jones calculus", Tolerance = "1e-09, 1e-06, 0.1 %")]
         public void Waveplates_RotateAndCirculariseAsExpected()
         {
             var hwp = Through("x", O("id", "hwp", "type", "waveplate", "plate", "half", "axisDeg", 22.5));
@@ -31,7 +32,7 @@ namespace UltrafastEngine.Tests
             Assert.True(pol.Records[0].LossJ.ContainsKey("polarization"), "loss attributed to polarization");
         }
 
-        [Test]
+        [Test(Reference = "Fresnel equations at Brewster's angle", Tolerance = "1e-10, 1e-09")]
         public void BrewsterWindow_TransmitsPOnly()
         {
             double th = Math.Atan(1.5);
@@ -62,6 +63,7 @@ namespace UltrafastEngine.Tests
         }
     }
 
+    [TestArea("Loss budget and overrides")]
     public class LossAndOverrideTests
     {
         [Test]
@@ -135,6 +137,7 @@ namespace UltrafastEngine.Tests
         }
     }
 
+    [TestArea("Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan")]
     public class InstrumentTests
     {
         private static InstrumentOutput Measure(string kind, RunResult r, JsonObject spec = null)
@@ -148,7 +151,7 @@ namespace UltrafastEngine.Tests
 
         private static RunResult Free(JsonObject pulse) => Go(Sys(O("id", "p", "type", "probe")), Spec(pulse));
 
-        [Test]
+        [Test(Reference = "autocorrelation widths: √2 x FWHM (Gaussian), sech² deconvolution; interferometric AC peak-to-background 8:1", Tolerance = "1 %, 2 %")]
         public void Autocorrelator_DeconvolutionFactors()
         {
             var g = Measure("autocorrelator", Free(Gauss(800e-9, 40e-15, 1e-9)));
@@ -176,7 +179,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.2, em.Values.GetDouble("averagePowerW", 0), 1e-9, 0, "average power");
         }
 
-        [Test]
+        [Test(Reference = "GDD of 1.5 mm fused silica at 800 nm", Tolerance = "2 %, 5 %")]
         public void DScan_FindsGlassThatCompensatesTheChirp()
         {
             // pre-chirp equal to -(GDD of 1.5 mm fused silica at 800 nm): the optimum insertion is +1.5 mm

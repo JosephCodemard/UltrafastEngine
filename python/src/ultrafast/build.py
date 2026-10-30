@@ -108,6 +108,17 @@ def aperture(id: str, radius_m: Optional[float] = None, beam_radius_m: Optional[
                    "halfWidthYM": half_width_y_m, "decenterXM": decenter_x_m, "decenterYM": decenter_y_m})
 
 
+def mask(id: str, kind: str, *, cone_angle_rad: Optional[float] = None, focal_length_m: Optional[float] = None, binary_phase: Optional[bool] = None,
+         design_wavelength_m: Optional[float] = None, charge: Optional[int] = None, count: Optional[int] = None, width_m: Optional[float] = None,
+         separation_m: Optional[float] = None, height_m: Optional[float] = None, file: Optional[str] = None, **extra) -> "T.MaskElement":
+    """A thin mask on the carried transverse profile (docs/reference/transverse.md#masks): "axicon" (``cone_angle_rad``), "zonePlate"
+    (``focal_length_m``, ``binary_phase``), "vortex" (``charge``), "slits" (``count``, ``width_m``, ``separation_m``, ``height_m``) or "file" (an NPZ
+    with x_m, y_m or r_m, amplitude, optionally phase_rad). Vortex and slits need a cartesian grid."""
+    return _clean({"id": id, "type": "mask", "kind": kind, "coneAngleRad": cone_angle_rad, "focalLengthM": focal_length_m, "binaryPhase": binary_phase,
+                   "designWavelengthM": design_wavelength_m, "charge": charge, "count": count, "widthM": width_m, "separationM": separation_m,
+                   "heightM": height_m, "file": file, **extra})
+
+
 def grating(id: str, lines_per_mm: float, aoi_deg: float, order: int = -1, efficiency: Optional[float] = None, **extra) -> "T.GratingElement":
     """One diffraction grating. With the beam tracked (an ``inputBeam``) it disperses the beam: sin(theta_out) = sin(theta_in) + m lambda / period
     with signed angles in the unfolded beam (a second grating that undoes it has ``aoi_deg`` = the first's diffraction angle and the opposite
@@ -318,14 +329,20 @@ def transverse(model: str = "radial", points: Optional[int] = None, radius_m: Op
 
 def initial_profile(kind: str = "gaussian", *, order: Optional[int] = None, radius_m: Optional[float] = None, geometry: Optional[str] = None,
                     radius_x_m: Optional[float] = None, radius_y_m: Optional[float] = None, radius_of_curvature_m: Optional[float] = None,
+                    mode_x: Optional[int] = None, mode_y: Optional[int] = None, mode_p: Optional[int] = None, mode_l: Optional[int] = None,
+                    cone_angle_rad: Optional[float] = None, truncation: Optional[float] = None, file: Optional[str] = None, background: Any = None,
                     ripple: Optional[Mapping[str, Any]] = None, noise: Optional[Mapping[str, Any]] = None, **extra) -> dict:
     """The field at the first spatial element (``transverse(initial_profile=...)``): "gaussian", "superGaussian" (``order``), "flatTop"
-    (super-Gaussian of order 10) or "tophat" (hard edge). ``geometry`` "round" (default) or "square" (separable in x and y; cartesian
+    (super-Gaussian of order 10), "tophat" (hard edge), "hermiteGauss" (``mode_x``, ``mode_y``), "laguerreGauss" (``mode_p``, ``mode_l``),
+    "besselGauss" (``cone_angle_rad``, Gaussian envelope of ``radius_m``), "airy" (scale ``radius_m``, ``truncation``) or "measured" (``file``: an
+    NPZ with x_m, y_m or r_m, fluence or amplitude, optionally phase_rad; ``background``: a number or "auto"). ``geometry`` "round" (default) or "square" (separable in x and y; cartesian
     grids). ``radius_m`` (or ``radius_x_m`` / ``radius_y_m``) is the 1/e^2 radius, or the edge radius / half-width of a tophat; it replaces
     the element's beam size, so no ``beam`` is needed. ``ripple`` / ``noise`` (cartesian grids) seed small-scale self-focusing:
     :func:`profile_ripple`, :func:`profile_noise`."""
     return _clean({"kind": kind, "order": order, "radiusM": radius_m, "geometry": geometry, "radiusXM": radius_x_m, "radiusYM": radius_y_m,
-                   "radiusOfCurvatureM": radius_of_curvature_m, "ripple": ripple, "noise": noise, **extra})
+                   "radiusOfCurvatureM": radius_of_curvature_m, "modeX": mode_x, "modeY": mode_y, "modeP": mode_p, "modeL": mode_l,
+                   "coneAngleRad": cone_angle_rad, "truncation": truncation, "file": file, "background": background,
+                   "ripple": ripple, "noise": noise, **extra})
 
 
 def profile_ripple(period_m: float, relative_amplitude: float, angle_deg: float = 0.0, phase_rad: float = 0.0) -> dict:

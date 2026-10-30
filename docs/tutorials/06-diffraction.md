@@ -141,6 +141,10 @@ system = b.system("iris", [b.gap("source", 0.0, medium="Vacuum", transverse=sour
                            b.gap("screen", a * a / 1030e-9, medium="Vacuum", transverse=grid)])   # N = 1
 ```
 
+```bash
+python iris.py
+```
+
 ```
  a (mm)   z (m)   T engine   T analytic   F(0) engine   F(0) Fresnel
   0.50    0.243     0.1162       0.1175         595.5          598.4

@@ -12,6 +12,20 @@ namespace UltrafastEngine.Tests
     {
         public string Category { get; set; } = "unit";
         public bool Slow { get; set; }
+        /// <summary>What the result is checked against when that is outside the engine: an analytic result, a published
+        /// value or another code (with the citation). Empty for behaviour and consistency tests. Listed in the generated
+        /// validation matrix (docs/reference/validation-matrix.md).</summary>
+        public string Reference { get; set; }
+        /// <summary>The agreement required, in words (e.g. "1 % of the peak"), when it is not one relative tolerance.</summary>
+        public string Tolerance { get; set; }
+    }
+
+    /// <summary>The area a test class covers, as the validation matrix names it.</summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public sealed class TestAreaAttribute : Attribute
+    {
+        public string Name { get; }
+        public TestAreaAttribute(string name) { Name = name; }
     }
 
     public sealed class AssertionException : Exception { public AssertionException(string m) : base(m) { } }
@@ -52,6 +66,14 @@ namespace UltrafastEngine.Tests
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Zemax.ZemaxPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Gpu.GpuPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Hitran.HitranPlugin());
+            int mi = Array.IndexOf(args, "--matrix");
+            if (mi >= 0)
+            {
+                string path = mi + 1 < args.Length ? args[mi + 1] : "docs/reference/validation-matrix.md";
+                System.IO.File.WriteAllText(path, ValidationMatrix.Markdown());
+                Console.WriteLine("wrote " + path);
+                return 0;
+            }
             var filters = args.Where(a => !a.StartsWith("--")).ToArray();
             bool includeSlow = args.Contains("--slow") || filters.Length > 0;
             bool verbose = args.Contains("--verbose");

@@ -107,7 +107,7 @@ namespace UltrafastEngine.Engine
     {
         public static readonly string[] ElementTypes =
             { "dispersion", "bulk", "gap", "fiber", "interface", "mirror", "grating", "gratingPair", "chirpedMirror", "aperture", "filter", "waveplate", "polarizer", "rotator", "probe", "custom", "lens", "user", "crystal", "gain", "amplifier", "saturableAbsorber", "sesam", "oscillator",
-              "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront" };
+              "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront", "mask" };
 
         private sealed class Ctx
         {
@@ -369,6 +369,8 @@ namespace UltrafastEngine.Engine
         {
             var ce = new CompiledElement { Source = e, Id = e.Id, Type = e.Type, Label = e.Label ?? e.Id };
             ce.Enabled = Bool(c, e, "enabled", true);
+            ResolveProfileFile(e.Json["transverse"], c.Sys.BaseDirectory ?? c.Run.BaseDirectory);
+            ResolveProfileFile(c.Run.Physics.Transverse, c.Run.BaseDirectory ?? c.Sys.BaseDirectory);
             ce.BeamIn = c.Track?.Clone();
             if (!ce.Enabled) { ce.Notes.Add("disabled"); ce.BeamOut = ce.BeamIn; return ce; }
             string type = e.Type.ToLowerInvariant();
@@ -380,6 +382,7 @@ namespace UltrafastEngine.Engine
                 case "gratingpair": CompileGratingPair(c, e, ce); break;
                 case "chirpedmirror": CompileChirpedMirror(c, e, ce); break;
                 case "aperture": CompileAperture(c, e, ce); break;
+                case "mask": CompileMask(c, e, ce); break;
                 case "filter": case "custom":
                 {
                     var spec = Model(c, e, e.Json.Has("filter") ? "filter" : "model", out var src) ?? throw new JsonException("needs a \"filter\" (or \"model\") spectral-filter model.");
@@ -494,6 +497,15 @@ namespace UltrafastEngine.Engine
             if (c.Track != null) TrackBeam(c, e, ce, type);
             ce.BeamOut = c.Track?.Clone();
             return ce;
+        }
+
+        /// <summary>A relative initialProfile.file is relative to the file that names it.</summary>
+        private static void ResolveProfileFile(JsonValue transverse, string dir)
+        {
+            if (transverse == null || transverse.Kind != JsonKind.Object || dir == null) return;
+            var ip = transverse.AsObject().GetObject("initialProfile");
+            string f = ip?.GetString("file", null);
+            if (f != null && !System.IO.Path.IsPathRooted(f)) ip.Set("file", System.IO.Path.Combine(dir, f));
         }
 
         /// <summary>The tracked Gaussian beam at the entrance of the element being compiled, as a beam model for a
@@ -1089,6 +1101,36 @@ namespace UltrafastEngine.Engine
                 ce.Pre.Add(rt);
                 c.Out.Provenance.Record("element:" + e.Id, "ripple", rt.Description, ModelSource.SystemData, "system file");
             }
+        }
+
+        private static void CompileMask(Ctx c, SystemElement e, CompiledElement ce)
+        {
+            string kind = Str(c, e, "kind", "").ToLowerInvariant();
+            var m = new Optics.MaskElement
+            {
+                MaskKind = kind, ConeAngleRad = Num(c, e, "coneAngleRad", double.NaN), FocalLengthM = Num(c, e, "focalLengthM", double.NaN),
+                DesignOmega = e.Json.Has("designWavelengthM") ? 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / Num(c, e, "designWavelengthM", 0) : c.Omega0,
+                SlitWidthM = Num(c, e, "widthM", double.NaN), SlitSeparationM = Num(c, e, "separationM", 0), SlitHeightM = Num(c, e, "heightM", double.PositiveInfinity),
+                SlitCount = (int)Num(c, e, "count", 2), Charge = (int)Num(c, e, "charge", 1), BinaryPhase = Bool(c, e, "binaryPhase", false),
+                CenterX = Num(c, e, "decenterXM", 0), CenterY = Num(c, e, "decenterYM", 0)
+            };
+            switch (kind)
+            {
+                case "axicon": if (!(m.ConeAngleRad > 0)) throw new JsonException("mask '" + e.Id + "': an axicon needs coneAngleRad (the angle by which it deflects the beam)."); break;
+                case "zoneplate": if (!(m.FocalLengthM > 0)) throw new JsonException("mask '" + e.Id + "': a zone plate needs focalLengthM."); break;
+                case "vortex": break;
+                case "slits": if (!(m.SlitWidthM > 0) || (m.SlitCount > 1 && !(m.SlitSeparationM > 0))) throw new JsonException("mask '" + e.Id + "': slits need widthM and, for more than one, separationM."); break;
+                case "file":
+                {
+                    string file = Str(c, e, "file", null), dir = c.Sys.BaseDirectory ?? c.Run.BaseDirectory;
+                    if (file != null && dir != null && !System.IO.Path.IsPathRooted(file)) file = System.IO.Path.Combine(dir, file);
+                    m.Map = Transverse.TransverseMap.Load(file, null, "mask '" + e.Id + "'");
+                    break;
+                }
+                default: throw new JsonException("mask '" + e.Id + "': kind must be \"axicon\", \"zonePlate\", \"vortex\", \"slits\" or \"file\".");
+            }
+            ce.Active = m;
+            ce.Notes.Add("mask: acts on the carried transverse profile; the tracked Gaussian beam does not change");
         }
 
         private static void CompileAperture(Ctx c, SystemElement e, CompiledElement ce)

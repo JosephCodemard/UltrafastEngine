@@ -83,7 +83,7 @@ spec = b.run_spec(b.pulse(1.03e-6, 220e-15, energy=200e-6),
                   overrides=[b.override("element:pass*", "timeResponse", "@mymodel", mode="add")])
 ```
 
-Helpers: `system, bulk, gap, interface, mirror, dispersion, grating, grating_pair, chirped_mirror, aperture, waveplate,
+Helpers: `system, bulk, gap, interface, mirror, dispersion, grating, grating_pair, mask, chirped_mirror, aperture, waveplate,
 polarizer, filter_element, probe, gaussian_beam, constant_beam, sampled_beam, material, sellmeier, gas,
 coating_gdd, coating_quarter_wave, pulse, instrument, override, run_spec, save`, and for active elements:
 `crystal` (χ(2) element: `process`, `type`, `cut`, `noncollinear`, `qpm`, `aux`, `output`, `main_role`, `record`,

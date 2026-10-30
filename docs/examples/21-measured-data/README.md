@@ -82,8 +82,8 @@ file:
 The fit (Levenberg–Marquardt) minimises the total χ² over every measured instrument:
 
 ```
-fit: calibrating 3 parameters against the measured instruments ...
-  chi^2 9324 -> 1612 (4354 points, reduced 0.371), 9 iterations, 52 runs
+fit: calibrate parameters against the measured instruments ...
+  fit: chi^2 9324 -> 1612 (4354 points, reduced 0.371), 9 iterations, 52 runs
   input chirp                               458.023 +- 8.97         (start 300)
   input energy                          1.41728E-07 +- 3.72E-09     (start 1.2E-07)
   compressor GDD                           -527.997 +- 8.08         (start -300)

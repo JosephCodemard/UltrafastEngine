@@ -10,6 +10,7 @@ using static UltrafastEngine.Tests.U;
 
 namespace UltrafastEngine.Tests
 {
+    [TestArea("Zemax plugin: export and replay")]
     public class ZemaxTests
     {
         private static ZemaxSample SampleFake(IOpticStudio os, ExportConfig cfg)
@@ -24,7 +25,7 @@ namespace UltrafastEngine.Tests
 
         private static ExportConfig Cfg(string json) => ExportConfig.FromJson(JsonValue.Parse(json).AsObject());
 
-        [Test]
+        [Test(Reference = "Treacy, IEEE JQE 5, 454 (1969)", Tolerance = "0.5 %")]
         public void Treacy_GroupPathMatchesTreacyAndBeatsPhasePath()
         {
             var os = new FakeOpticStudio("treacy", 100);

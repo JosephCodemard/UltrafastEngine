@@ -18,6 +18,7 @@ namespace UltrafastEngine.Tests
     /// The CUDA back-end shares the kernels and the steppers; it is exercised by `ultrafast devices --selftest` on
     /// NVIDIA machines.
     /// </summary>
+    [TestArea("GPU back-ends (CUDA / OpenCL) against the CPU")]
     public class GpuTests
     {
         private static GpuBackend Device()
@@ -54,7 +55,7 @@ namespace UltrafastEngine.Tests
             return (Simulation.Run(sys, cpuRun), Simulation.Run(sys, devRun));
         }
 
-        [Test(Category = "gpu")]
+        [Test(Category = "gpu", Reference = "cross-check: the managed CPU FFT")]
         public void Fft_BuiltInAndVendor_MatchTheManagedFft()
         {
             var b = Device();
@@ -65,7 +66,7 @@ namespace UltrafastEngine.Tests
             Assert.Less(GpuSelfTest.StridedFftCheck(s), 1e-13, "strided axis (cartesian transverse FFT)");
         }
 
-        [Test(Category = "gpu")]
+        [Test(Category = "gpu", Reference = "cross-check: the CPU solver", Tolerance = "1e-09")]
         public void Envelope_ScalarAndVector_MatchTheCpu_AdaptiveAndFixed()
         {
             var b = Device();
@@ -81,7 +82,7 @@ namespace UltrafastEngine.Tests
                 }
         }
 
-        [Test(Category = "gpu")]
+        [Test(Category = "gpu", Reference = "cross-check: the CPU solver", Tolerance = "1e-09")]
         public void Spatial_RadialAndCartesian_MatchTheCpu()
         {
             var b = Device();
@@ -95,7 +96,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "gpu")]
+        [Test(Category = "gpu", Reference = "cross-check: the CPU solver")]
         public void Spatial_UppeCoupling_MatchesTheCpu()
         {
             var b = Device();

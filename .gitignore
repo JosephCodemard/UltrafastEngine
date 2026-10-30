@@ -34,3 +34,10 @@ dist/
 # personal Claude Code files
 CLAUDE.local.md
 .claude/settings.local.json
+
+# outputs of the example commands (build/example_check.py)
+cpa_results/
+study-results/
+coherence-results/
+retrieved/
+docs/examples/12-user-element/dazzler.png

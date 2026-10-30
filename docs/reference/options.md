@@ -478,6 +478,26 @@ Thin lens on a carried transverse profile (chromatic with a material). More: [el
 | `focalLengthYM` | number | m |  | Focal length in y |
 | `aberration` | object (`aberration`) |  |  | Wavefront error |
 
+### `mask`
+
+A thin mask on the carried transverse profile: axicon, Fresnel zone plate, vortex phase plate, slits, or an amplitude / phase map from a file. More: [transverse.md#masks](transverse.md#masks)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `kind` | `"axicon"` \| `"zonePlate"` \| `"vortex"` \| `"slits"` \| `"file"` |  |  | Mask **Required.** |
+| `coneAngleRad` | number | rad |  | axicon: deflection angle (phase -k r sin(angle)) |
+| `focalLengthM` | number | m |  | zonePlate: first-order focal length at the design wavelength |
+| `binaryPhase` | boolean |  | false | zonePlate: closed zones shift by pi instead of blocking |
+| `designWavelengthM` | number | m | the carrier | zonePlate: design wavelength; file: wavelength of phase_rad |
+| `charge` | integer |  | 1 | vortex: topological charge l (phase l phi) |
+| `count` | integer |  | 2 | slits: number of slits |
+| `widthM` | number | m |  | slits: slit width |
+| `separationM` | number | m |  | slits: centre-to-centre distance |
+| `heightM` | number | m | unlimited | slits: height in y |
+| `file` | string |  |  | file: NPZ with x_m, y_m (or r_m), amplitude, and optionally phase_rad; relative to the system file |
+| `decenterXM` | number | m |  | Decentre in x |
+| `decenterYM` | number | m |  | Decentre in y |
+
 ### `mirror`
 
 A reflecting surface: coating, AOI, s/p phases, curvature. More: [elements.md#surfaces](system-file.md)
@@ -1432,7 +1452,16 @@ Initial transverse field.
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` \| `"tophat"` |  | gaussian | Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform) |
+| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` \| `"tophat"` \| `"hermiteGauss"` \| `"laguerreGauss"` \| `"besselGauss"` \| `"airy"` \| `"measured"` |  | gaussian | Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) |
+| `modeX` | integer |  | 0 | hermiteGauss: order in x |
+| `modeY` | integer |  | 0 | hermiteGauss: order in y |
+| `modeP` | integer |  | 0 | laguerreGauss: radial index p |
+| `modeL` | integer |  | 0 | laguerreGauss: azimuthal index l (helical phase, cartesian grids) |
+| `coneAngleRad` | number | rad |  | besselGauss: cone angle of the plane waves, k_r = k sin(angle) |
+| `radialWavenumberPerM` | number | rad/m |  | besselGauss: k_r (alternative) |
+| `truncation` | number |  | 0.1 | airy: the exponential truncation a in Ai(x / x0) exp(a x / x0) |
+| `file` | string |  |  | measured: NPZ with x_m, y_m (or r_m), fluence or amplitude, and optionally phase_rad; relative to the file that names it |
+| `background` | any |  |  | measured: a number subtracted from the fluence, or "auto" (the median of the map's edge) |
 | `geometry` | `"round"` \| `"square"` |  | round | round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) |
 | `order` | integer |  | 4 | superGaussian order |
 | `decenterXM` | number | m |  | Decentre in x |

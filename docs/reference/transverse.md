@@ -50,12 +50,25 @@ j_points/radius. Its orthogonal transform matrix depends only on the number of p
 
 | key | meaning |
 |---|---|
-| `kind` | `gaussian` (default), `superGaussian` (field exp(−(r²/w²)^order), `order` 4), `flatTop` (super-Gaussian of order 10), `tophat` (hard edge: uniform inside r = w, or \|x\| ≤ w_x, \|y\| ≤ w_y; edge cells carry the area fraction inside) |
+| `kind` | `gaussian` (default), `superGaussian` (field exp(−(r²/w²)^order), `order` 4), `flatTop` (super-Gaussian of order 10), `tophat` (hard edge: uniform inside r = w, or \|x\| ≤ w_x, \|y\| ≤ w_y; edge cells carry the area fraction inside), or a structured beam below |
 | `geometry` | `round` (default: a function of x²/w_x² + y²/w_y²) or `square` (separable in x and y: square or rectangular beams; cartesian grids) |
 | `radiusM`, `radiusXM`, `radiusYM` | 1/e² radius (tophat: edge radius / half-width); replaces the size of the element's `beam`, so the element needs no `beam` |
 | `radiusOfCurvatureM` | wavefront radius of curvature (negative: converging); replaces the beam's |
 | `decenterXM`, `decenterYM`, `tiltXRad`, `tiltYRad` | offset and tilt of the field |
 | `ripple`, `noise` | seeds of small-scale structure (cartesian; [below](#small-scale-self-focusing)) |
+
+Structured beams (w is `radiusM` or the element's beam):
+
+| `kind` | field | keys | grid |
+|---|---|---|---|
+| `hermiteGauss` | H_m(√2 x/w) H_n(√2 y/w) exp(−(x² + y²)/w²) | `modeX`, `modeY` | cartesian (radial only for 0, 0) |
+| `laguerreGauss` | u^(\|l\|/2) L_p^\|l\|(u) exp(−u/2) exp(i l φ), u = 2r²/w² | `modeP`, `modeL` | cartesian; radial for `modeL` = 0 |
+| `besselGauss` | J0(k_r r) exp(−r²/w²), k_r = k sin(angle) at the centre of the spectrum | `coneAngleRad` or `radialWavenumberPerM` | both |
+| `airy` | Ai(x/x0) exp(a x/x0) x the same in y, x0 = `radiusM` | `truncation` (a, 0.1) | cartesian; `"ny": 1` for one transverse dimension |
+| `measured` | a near field from an NPZ: `x_m`, `y_m` ([x][y] maps) or `r_m`, with `fluence` or `amplitude`, optionally `phase_rad` | `file` (relative to the file that names it), `background` (a number, or `"auto"`: the median of the map's edge; fluence only) | both (x-y maps: cartesian) |
+
+A `measured` map is sampled bilinearly and is zero outside its axes; its size is the map's, so no `radiusM` is needed if the grid is explicit.
+Gouy phases are not added: the field is the mode at its waist (with `radiusOfCurvatureM`, the curvature of that plane).
 
 ## Physics in a spatial bulk element
 
@@ -153,6 +166,28 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
 Worked example and checks: [Example 30](../examples/30-iris-diffraction/README.md) (Gaussian, round flat-top, uniform and square beams
 at N = 3, 2, 1 and in the far zone, against the Fresnel integral) and [Tutorial 6](../tutorials/06-diffraction.md).
 
+## Masks
+
+A `mask` element multiplies the carried profile at every stored frequency. Without a profile it warns and does nothing; the tracked
+Gaussian beam does not change.
+
+```jsonc
+{ "id": "zp", "type": "mask", "kind": "zonePlate", "focalLengthM": 0.1, "binaryPhase": true }
+```
+
+| `kind` | transmission | keys | grid |
+|---|---|---|---|
+| `axicon` | exp(−i k r sin(angle)): a Bessel core of first zero 2.405 / (k sin(angle)) behind it | `coneAngleRad` (the deflection) | both |
+| `zonePlate` | Fresnel zones r² / (λ f): even zones open, odd zones closed, or shifted by π with `binaryPhase` | `focalLengthM`, `designWavelengthM` (default the carrier), `binaryPhase` | both |
+| `vortex` | exp(i l φ) | `charge` | cartesian |
+| `slits` | `count` slits along x | `widthM`, `separationM`, `heightM` (default unlimited) | cartesian |
+| `file` | an NPZ map: `x_m`, `y_m` or `r_m`, `amplitude`, optionally `phase_rad` (at `designWavelengthM`; the phase scales with the frequency, as an optical path does) | `file` | both (x-y maps: cartesian) |
+
+`decenterXM`, `decenterYM` move the mask (cartesian). Each cell takes the average of the mask over the cell, so edges fall between samples as for
+[apertures](#diffraction-and-apertures); pure phase masks keep unit magnitude. Lost energy is booked as `clip`, and the element reports `transmission`;
+a zone plate also reports `outerZoneWidthM` and warns below 3 samples per zone across the beam. Maps come from NPZ files: convert images in Python
+(`np.savez("mask.npz", x_m=x, y_m=y, amplitude=a)`).
+
 ## Small-scale self-focusing
 
 A beam above the critical power breaks up into filaments from its small-scale structure. The cartesian model (`"model": "cartesian"`) follows
@@ -209,4 +244,7 @@ spectra show up as a reduced temporal Strehl, not in the 1-D phase. The true pea
 | hard edge on coarse / fine grids; warning under 10 samples | dx / 2a | `DiffractionTests.HardAperture_*` |
 | absorbing boundary: wrapped light removed, loss budget closes | 2 % / 1e-6 | `DiffractionTests.AbsorbingBoundary_*` |
 | linear profile-only path vs full-field path | 1e-4 of the peak | `DiffractionTests.LinearSpatialGap_*` |
+| Hermite-Gauss and Laguerre-Gauss radii w(z) √(2m + 1), dark vortex axis, LG node | 0.5-5 % | `BeamSourceTests.HermiteGauss_*`, `LaguerreGauss_*` |
+| Bessel-Gauss core unchanged over 6 Rayleigh ranges of its spot (Durnin); Airy lobe on x = z² / 4k²x0³ (Siviloglou & Christodoulides) | 2 %, 3 % | `BeamSourceTests.BesselGauss_*`, `AiryBeam_*` |
+| zone plate on the axis 4 N² I0 (amplitude), 16 N² I0 (binary phase); axicon core; Young's fringes | 5 %, 2 %, 2 % | `BeamSourceTests.ZonePlate_*`, `Axicon_*`, `DoubleSlit_*` |
 | radial χ(2) vs 1-D Gaussian overlap (low conversion) | < 1 % | `Chi2Tests.Shg_RadialModelAgrees*` |

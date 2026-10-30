@@ -2,7 +2,7 @@
 description: Regenerate the five generated files (schemas, options.md, Python types and API docs) and check them
 allowed-tools: Bash(dotnet build:*), Bash(dotnet src/UltrafastEngine.Cli/bin/*), Bash(python3 python/tools/*), Bash(git diff:*), Bash(mypy:*)
 ---
-Regenerate everything derived from the schema declarations and the Python docstrings:
+Regenerate everything derived from the schema declarations, the Python docstrings and the test attributes:
 
 ```bash
 dotnet build src/UltrafastEngine.Cli -c Release -f net10.0 2>&1 | grep -E "rror\(s\)"
@@ -12,6 +12,8 @@ $U schema run -o schemas/run.schema.json
 $U reference -o docs/reference/options.md
 python3 python/tools/gen_types.py
 python3 python/tools/gen_api_docs.py
+dotnet build tests/UltrafastEngine.Tests -c Release -f net10.0 2>&1 | grep -E "rror\(s\)"
+dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md
 (cd python && mypy --follow-imports=silent src/ultrafast/build.py src/ultrafast/types.py)
 ```
 

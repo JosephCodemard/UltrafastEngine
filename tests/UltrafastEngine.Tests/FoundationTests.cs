@@ -12,6 +12,7 @@ using UltrafastEngine.Serialization;
 
 namespace UltrafastEngine.Tests
 {
+    [TestArea("Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy")]
     public class FoundationTests
     {
         [Test]
@@ -54,7 +55,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(Math.PI, back.First(x => x.Name == "vec").Data[2], 0);
         }
 
-        [Test]
+        [Test(Reference = "Parseval's theorem", Tolerance = "1e-12, 0.1 %")]
         public void Fft_RoundTripParsevalAndSignConvention()
         {
             int n = 1024;
@@ -74,7 +75,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(tau, U.TemporalCentroid(q) - U.TemporalCentroid(p), 1e-3, 0, "delay");
         }
 
-        [Test]
+        [Test(Reference = "known polynomial phase", Tolerance = "1e-09, 1e-06, 0.01 %")]
         public void DispersionMath_RecoversPolynomialPhase()
         {
             var g = FrequencyGrid.Create(4096, 2e-15, U.W(1030e-9));
@@ -84,7 +85,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(gd, r.GdAtCarrierS, 1e-9); Assert.Close(gdd, r.GddAtCarrierS2, 1e-6); Assert.Close(tod, r.TodAtCarrierS3, 1e-4);
         }
 
-        [Test]
+        [Test(Reference = "Ciddor (1996) air at 633 nm; Schott N-BK7 and Malitson fused silica n_d", Tolerance = "2e-05, 1 %, 3 %")]
         public void Materials_IndicesMatchReferenceValues()
         {
             // Ciddor at its standard conditions (15 C, 101325 Pa, dry, 450 ppm), 633 nm: 2.76533e-4
@@ -109,7 +110,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(2.8e-4, n[0] - 1, 0.03, 0, "Ar");
         }
 
-        [Test]
+        [Test(Reference = "Fresnel equations: R + T = 1, Brewster angle", Tolerance = "1e-12")]
         public void Fresnel_EnergyConservationNormalIncidenceAndBrewster()
         {
             var air = MaterialLibrary.BuiltIn("Vacuum");
@@ -133,7 +134,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(1.0, tir.Rp.Magnitude, 1e-12, 0, "TIR |rp|");
         }
 
-        [Test]
+        [Test(Reference = "quarter-wave AR and Bragg mirror (analytic thin-film results)", Tolerance = "1e-10, 1e-09")]
         public void ThinFilm_QuarterWaveArAndBraggMirror()
         {
             double lam = 1030e-9, w = U.W(lam);
@@ -159,7 +160,7 @@ namespace UltrafastEngine.Tests
             Assert.Less(gd, 20e-15, "Bragg mirror group delay magnitude");
         }
 
-        [Test]
+        [Test(Reference = "Treacy, IEEE JQE 5, 454 (1969)", Tolerance = "0.01 %")]
         public void GratingPair_GroupDelayMatchesTreacy()
         {
             double lpm = 1500e3, aoi = 50 * Math.PI / 180, G = 0.2;

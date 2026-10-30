@@ -543,8 +543,43 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["gaussian", "superGaussian", "flatTop", "tophat"],
-          "description": "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform) Default: gaussian."
+          "enum": ["gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured"],
+          "description": "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) Default: gaussian."
+        },
+        "modeX": {
+          "type": "integer",
+          "description": "hermiteGauss: order in x Default: 0."
+        },
+        "modeY": {
+          "type": "integer",
+          "description": "hermiteGauss: order in y Default: 0."
+        },
+        "modeP": {
+          "type": "integer",
+          "description": "laguerreGauss: radial index p Default: 0."
+        },
+        "modeL": {
+          "type": "integer",
+          "description": "laguerreGauss: azimuthal index l (helical phase, cartesian grids) Default: 0."
+        },
+        "coneAngleRad": {
+          "type": "number",
+          "description": "besselGauss: cone angle of the plane waves, k_r = k sin(angle) [rad]"
+        },
+        "radialWavenumberPerM": {
+          "type": "number",
+          "description": "besselGauss: k_r (alternative) [rad/m]"
+        },
+        "truncation": {
+          "type": "number",
+          "description": "airy: the exponential truncation a in Ai(x / x0) exp(a x / x0) Default: 0.1."
+        },
+        "file": {
+          "type": "string",
+          "description": "measured: NPZ with x_m, y_m (or r_m), fluence or amplitude, and optionally phase_rad; relative to the file that names it"
+        },
+        "background": {
+          "description": "measured: a number subtracted from the fluence, or \"auto\" (the median of the map's edge)"
         },
         "geometry": {
           "type": "string",
@@ -5621,6 +5656,194 @@
       },
       "additionalProperties": false
     },
+    "element.mask": {
+      "type": "object",
+      "description": "A thin mask on the carried transverse profile: axicon, Fresnel zone plate, vortex phase plate, slits, or an amplitude / phase map from a file. (docs/reference/transverse.md#masks)",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["axicon", "zonePlate", "vortex", "slits", "file"],
+          "description": "Mask"
+        },
+        "coneAngleRad": {
+          "type": "number",
+          "description": "axicon: deflection angle (phase -k r sin(angle)) [rad]"
+        },
+        "focalLengthM": {
+          "type": "number",
+          "description": "zonePlate: first-order focal length at the design wavelength [m]"
+        },
+        "binaryPhase": {
+          "type": "boolean",
+          "description": "zonePlate: closed zones shift by pi instead of blocking Default: false."
+        },
+        "designWavelengthM": {
+          "type": "number",
+          "description": "zonePlate: design wavelength; file: wavelength of phase_rad [m] Default: the carrier."
+        },
+        "charge": {
+          "type": "integer",
+          "description": "vortex: topological charge l (phase l phi) Default: 1."
+        },
+        "count": {
+          "type": "integer",
+          "description": "slits: number of slits Default: 2."
+        },
+        "widthM": {
+          "type": "number",
+          "description": "slits: slit width [m]"
+        },
+        "separationM": {
+          "type": "number",
+          "description": "slits: centre-to-centre distance [m]"
+        },
+        "heightM": {
+          "type": "number",
+          "description": "slits: height in y [m] Default: unlimited."
+        },
+        "file": {
+          "type": "string",
+          "description": "file: NPZ with x_m, y_m (or r_m), amplitude, and optionally phase_rad; relative to the system file"
+        },
+        "decenterXM": {
+          "type": "number",
+          "description": "Decentre in x [m]"
+        },
+        "decenterYM": {
+          "type": "number",
+          "description": "Decentre in y [m]"
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["kind"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.mirror": {
       "type": "object",
       "description": "A reflecting surface: coating, AOI, s/p phases, curvature. (docs/reference/elements.md#surfaces)",
@@ -9532,7 +9755,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "probe", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
+          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "mask", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "probe", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
           "description": "Element type."
         }
       },
@@ -9743,6 +9966,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.lens"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["mask"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.mask"
           }
         },
         {

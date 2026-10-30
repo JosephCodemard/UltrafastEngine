@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added (beam sources, masks, checks)
+- **Structured beams** ([docs](docs/reference/transverse.md#initial-profile)): `initialProfile.kind` `hermiteGauss`, `laguerreGauss`, `besselGauss`, `airy`, and `measured`
+  (a near field from NPZ, with background subtraction). **`mask` element** ([docs](docs/reference/transverse.md#masks)): axicon, Fresnel zone plate (amplitude or binary
+  phase), vortex plate, slits, amplitude / phase maps. Python: `build.mask`, more `build.initial_profile` keys. `BeamSourceTests` (12 tests).
+- `build/example_check.py` runs every example and tutorial command and checks the numbers they quote; `--against <ref>` diffs every `summary.json`. `.github/workflows/ci.yml`:
+  Linux CI, with the CLI compiled for every platform.
+- `docs/reference/validation-matrix.md`, generated from `[Test(Reference = ..., Tolerance = ...)]` and `[TestArea]`.
+
+### Fixed
+- `docs/examples/10-ppln-dfg/compare_pynlo.py` could not import its test module (wrong relative path).
+- Apertures now also mask the y polarisation's profile of a vector field.
+- Stale documentation found by the check: example 18 (B = 0.416 rad), 21 and 26 (fit output), tutorials 1, 3 and 4 (tutorial 4's recordings regenerated, its fit numbers
+  refreshed; the autocorrelation now compares all 201 points, those beyond the simulated range against zero).
+
 ### Added (diffraction, thermal lens tracking, spatio-temporal couplings)
 - **Diffraction by apertures** ([docs](docs/reference/transverse.md#diffraction-and-apertures), [example 30](docs/examples/30-iris-diffraction/README.md),
   [tutorial 6](docs/tutorials/06-diffraction.md)): hard apertures on a carried profile give each edge cell the fraction of its area inside

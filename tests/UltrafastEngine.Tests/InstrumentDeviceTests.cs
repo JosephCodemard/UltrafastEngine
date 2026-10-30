@@ -11,6 +11,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>Device parameters of instruments: normalisation, resolution, SHG acceptance, detector read-out, filters,
     /// and the settings block every instrument output carries.</summary>
+    [TestArea("Instrument device models: resolution, acceptance, detectors, filters")]
     public class InstrumentDeviceTests
     {
         private const double Lam = 1030e-9;
@@ -65,7 +66,7 @@ namespace UltrafastEngine.Tests
             Assert.True(Inst(r, "f").ToJson().Has("settings"), "written to summary.json");
         }
 
-        [Test]
+        [Test(Reference = "SH bandwidth of a 60 fs pulse (~4.4 nm)", Tolerance = "3 %, 5 %")]
         public void Frog_SpectralResolutionAndAcceptance_NarrowAndSmoothTheTrace()
         {
             // a 60 fs pulse at 1030 nm: SH bandwidth ~ 4.4 nm; a 3 nm acceptance clearly narrows the frequency marginal

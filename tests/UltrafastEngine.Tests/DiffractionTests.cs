@@ -16,6 +16,7 @@ namespace UltrafastEngine.Tests
     /// beams of different shapes through a round iris and a square aperture, against the Fresnel diffraction integral
     /// (Born &amp; Wolf, Principles of Optics, ch. 8) and its Fraunhofer limit.
     /// </summary>
+    [TestArea("Diffraction by apertures")]
     public class DiffractionTests
     {
         private const double Lam = 1030e-9, A = 1e-3, E = 1e-3;
@@ -85,7 +86,7 @@ namespace UltrafastEngine.Tests
             return (R, F);
         }
 
-        [Test]
+        [Test(Reference = "Born & Wolf 8.8: on-axis 4 I0 sin²(πN/2)", Tolerance = "0.3 %, 1.5 %")]
         public void UniformBeamThroughRoundIris_OnAxisFluenceFollowsFresnelZones()
         {
             // Plane wave through a round aperture: on the axis I(z) = 4 I0 sin^2(pi N / 2), N = a^2 / (lambda z) (Born & Wolf
@@ -98,7 +99,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(4 * f0, Rec(r, "z2").Values["onAxisFluenceOutJPerM2"], 0.015, 0, "N = 1: bright");
         }
 
-        [Test]
+        [Test(Reference = "Fresnel diffraction integral (quadrature); T = 1 − exp(−2a²/w²)", Tolerance = "1 % of the peak")]
         public void GaussianAndFlatTopThroughRoundIris_ProfilesMatchTheFresnelIntegral()
         {
             // Round beams clipped by a 1 mm iris, at the N = 1 distance: the radial fluence against the Fresnel integral of
@@ -130,7 +131,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test]
+        [Test(Reference = "separable Fresnel integral of a rectangular aperture", Tolerance = "2 % of the peak")]
         public void SquareBeamThroughSquareAperture_CutMatchesTheSeparableFresnelIntegral()
         {
             // A square flat-top (separable super-Gaussian of order 10) through a 2 x 2 mm aperture on a 512^2 grid: the cut
@@ -161,7 +162,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test]
+        [Test(Reference = "Fraunhofer: Airy zero 0.6098 λz/a, sinc² zero λz/2a", Tolerance = "2 %")]
         public void FarField_AiryAndSincZerosAreWhereFraunhoferPutsThem()
         {
             // Fraunhofer limit (N = 0.05): the first dark ring of a round aperture of radius a at r = 0.6098 lambda z / a
@@ -188,7 +189,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(Lam * z / (2 * a), xk, 0.02, 0, "first sinc^2 zero");
         }
 
-        [Test]
+        [Test(Reference = "T = 1 − exp(−2a²/w²)", Tolerance = "dx / 2a")]
         public void HardAperture_EdgeCellsCarryTheirAreaFraction_AndCoarseIrisesWarn()
         {
             // Gaussian w = 2 mm through a = 0.5 mm: T = 1 - exp(-2 a^2 / w^2) = 0.1175. Area-averaged edge cells keep T within
@@ -205,7 +206,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test]
+        [Test(Reference = "separable Fresnel integral on the axis", Tolerance = "2 %")]
         public void AbsorbingBoundary_RemovesTheWrappedLight_AndTheLossBudgetCloses()
         {
             // Without the absorber the light diffracted to large angles wraps around the cartesian window and lands on the

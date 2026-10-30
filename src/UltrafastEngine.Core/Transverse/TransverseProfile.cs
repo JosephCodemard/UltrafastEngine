@@ -218,8 +218,8 @@ namespace UltrafastEngine.Transverse
         {
             string kind = (shape?.GetString("kind", "gaussian") ?? "gaussian").ToLowerInvariant();
             if (kind == "uniform") kind = "tophat";
-            if (kind != "gaussian" && kind != "supergaussian" && kind != "flattop" && kind != "tophat")
-                throw new InvalidOperationException("element " + origin + ": initialProfile.kind must be \"gaussian\", \"superGaussian\", \"flatTop\" or \"tophat\" (got \"" + kind + "\").");
+            if (kind != "gaussian" && kind != "supergaussian" && kind != "flattop" && kind != "tophat" && !BeamShapes.IsStructured(kind))
+                throw new InvalidOperationException("element " + origin + ": initialProfile.kind must be \"gaussian\", \"superGaussian\", \"flatTop\", \"tophat\", \"hermiteGauss\", \"laguerreGauss\", \"besselGauss\", \"airy\" or \"measured\" (got \"" + kind + "\").");
             int order = kind == "flattop" ? 10 : kind == "supergaussian" ? Math.Max(1, shape.GetInt("order", 4)) : 1;
             string geometry = (shape?.GetString("geometry", "round") ?? "round").ToLowerInvariant();
             if (geometry == "rectangular") geometry = "square";
@@ -230,7 +230,9 @@ namespace UltrafastEngine.Transverse
             double tilt = shape?.GetDouble("tiltXRad", 0) ?? 0, tiltY = shape?.GetDouble("tiltYRad", 0) ?? 0;
             int M = basis.M, nf = omegas.Length;
             var amp = new double[M];
-            if (kind == "tophat")
+            double[] shapePhase = null;
+            if (BeamShapes.IsStructured(kind)) BeamShapes.Fill(kind, basis, shape, wx, wy, omegas[nf / 2], dx, dy, origin, amp, out shapePhase);
+            else if (kind == "tophat")
             {
                 // hard edge at radius w (round) or half-widths wx, wy (square); edge cells carry the fraction of their
                 // area inside (the cell-averaged field), which puts the edge in the right place between samples
@@ -263,6 +265,7 @@ namespace UltrafastEngine.Transverse
                     if (tilt != 0) ph += k * Math.Sin(tilt) * basis.X[m];
                     if (tiltY != 0) ph += k * Math.Sin(tiltY) * basis.Y[m];
                     if (seedPhase != null) ph += seedPhase[m];
+                    if (shapePhase != null) ph += shapePhase[m];
                     data[m * nf + f] = Complex.FromPolarCoordinates(amp[m] * norm, ph);
                 }
             }

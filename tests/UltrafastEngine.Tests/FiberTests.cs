@@ -12,6 +12,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>The fiber element, the silica Raman models, quantum noise and the coherence study, each against an
     /// analytic result (pyNLO cross-checks are in python/tests/test_pynlo.py).</summary>
+    [TestArea("Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence")]
     public class FiberTests
     {
         private const double Lam = 1550e-9;
@@ -34,7 +35,7 @@ namespace UltrafastEngine.Tests
             return Go(s, Spec(pulse, e));
         }
 
-        [Test]
+        [Test(Reference = "fundamental soliton sech shape (NLSE)", Tolerance = "1 %")]
         public void FundamentalSoliton_PropagatesUnchanged_AndMetricsAreRight()
         {
             double b2 = -20e-27, gamma = 2e-3, fw = 200e-15, t0 = fw / 1.763;
@@ -49,7 +50,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(p0, Out(r).PeakPowerW, 0.01, 0, "peak power kept");
         }
 
-        [Test]
+        [Test(Reference = "D(λ) = −(2πc/λ²) β2", Tolerance = "1 %")]
         public void DispersionCurve_EqualsTaylorCoefficients()
         {
             double b2 = -20e-27, b3 = 0.1e-39, w0 = W(Lam);
@@ -78,7 +79,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(20e-9, Out(goal).EnergyJ, 1e-3, 0, "gain spectrum scaled to the requested output");
         }
 
-        [Test]
+        [Test(Reference = "B = ∫ γ(z) P dz", Tolerance = "1 %")]
         public void TaperedGamma_BIntegralFollowsTheIntegral()
         {
             double g0 = 1e-3, L = 2.0, e = 1e-9, fw = 10e-12;
@@ -88,7 +89,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(g0 * p0 * (L + L * L / 2), r.Records[0].BIntegralRad, 0.01, 0, "B = P0 int gamma(z) dz");
         }
 
-        [Test]
+        [Test(Reference = "Hollenbeck & Cantrell, JOSA B 19, 2886 (2002): gain peak 13.2 THz", Tolerance = "1 %, 3 %")]
         public void RamanModels_NormalisedAndHollenbeckPeaksAt13THz()
         {
             int n = 1 << 16; double dt = 0.5e-15;
@@ -111,7 +112,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.245, MaterialLibrary.DefaultRamanFraction("linAgrawal"), 0, 0, "Lin-Agrawal fR");
         }
 
-        [Test]
+        [Test(Reference = "dispersive-wave phase matching (Akhmediev & Karlsson 1995)", Tolerance = "0.3 %, 1 %")]
         public void DispersiveWave_ResonanceMatchesPhaseMatching()
         {
             double b2 = -10e-27, b3 = 0.08e-39, gamma = 0.1, fw = 50e-15, t0 = fw / 1.763;
@@ -131,7 +132,7 @@ namespace UltrafastEngine.Tests
             Assert.Less(v["dispersiveWaveWavelengthM"], Lam, "blue of the soliton for beta3 > 0");
         }
 
-        [Test]
+        [Test(Reference = "one photon per mode: N ħω of energy", Tolerance = "5 %")]
         public void QuantumNoise_OnePhotonPerMode_AndCoherentSoliton()
         {
             // one photon per mode adds N hbar w of energy in total
@@ -149,7 +150,7 @@ namespace UltrafastEngine.Tests
             Assert.True(co.GetDoubleArray("g12").Length == co.GetDoubleArray("wavelength_m").Length, "g12(lambda) exported");
         }
 
-        [Test(Slow = true)]
+        [Test(Slow = true, Reference = "Dudley, Genty & Coen, Rev. Mod. Phys. 78, 1135 (2006): coherence of MI supercontinuum")]
         public void Coherence_LostInLongPulseSupercontinuum()
         {
             // a 1 ps pulse at N ~ 30 broadens through modulation instability seeded by the quantum noise: shot-to-shot

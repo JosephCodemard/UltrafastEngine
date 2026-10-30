@@ -7,8 +7,8 @@ described in [docs/capabilities.md](docs/capabilities.md); what comes next is in
 
 | platform | C# tests (`--slow`) | other checks | date |
 |---|---|---|---|
-| macOS arm64, .NET 10 | **287 pass, 0 fail, 8 skipped** (7 `GpuTests`: no FP64 GPU device; the opt-in HAPI test) | Python 61 pass on the NativeAOT library (plugin and `uf.study` tests need the hosted engine); examples 08-29 strict, unchanged vs the previous engine; example 30 new | 2026-10-29 |
-| Linux x64, .NET 10 and Mono (net48) | 225 / 225 (release baseline; the 62 tests added since have not run on Linux) | Python 61 / 61 with pyNLO; all 31 CLI examples strict; release packages | 2.1.8-beta release |
+| macOS arm64, .NET 10 | **301 pass, 0 fail, 8 skipped** (7 `GpuTests`: no FP64 GPU device; the opt-in HAPI test) | Python 62 pass on the NativeAOT library (5 plugin and `uf.study` tests need the hosted engine); `build/example_check.py`: 35 examples and tutorials ok, 07 and the C++ example manual, pyNLO comparison of 10 not run; mkdocs and mypy not installed here | 2026-10-30 |
+| Linux x64, .NET 10 and Mono (net48) | 225 / 225 (release baseline; the tests added since have not run on Linux -- the new CI will) | Python 61 / 61 with pyNLO; all 31 CLI examples strict; release packages | 2.1.8-beta release |
 | Windows (net48 / OpticStudio) | not run | -- | -- |
 
 The sections below are the records of each verification, newest first after the baseline.

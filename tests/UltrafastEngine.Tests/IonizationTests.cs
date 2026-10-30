@@ -10,9 +10,10 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Stage 1.5: ionisation rates (PPT, ADK, Keldysh) and the plasma response.</summary>
+    [TestArea("Photo-ionisation and plasma")]
     public class IonizationTests
     {
-        [Test]
+        [Test(Reference = "tabulated Dawson and elliptic-integral values", Tolerance = "1e-12, 1e-07, 1e-06")]
         public void SpecialFunctions_DawsonAndElliptic()
         {
             Assert.Close(0.5380795069127684, IonizationMath.Dawson(1.0), 1e-7, 0, "D(1)");
@@ -25,7 +26,7 @@ namespace UltrafastEngine.Tests
 
         private static double Slope(IIonizationRate r, double i) => Math.Log(r.Rate(1.1 * i) / r.Rate(i)) / Math.Log(1.1);
 
-        [Test]
+        [Test(Reference = "PPT rate: multiphoton I^K and tunnelling (ADK) limits", Tolerance = "3 %, 15 %")]
         public void Ppt_MultiphotonAndTunnelLimits()
         {
             double w800 = W(800e-9);
@@ -42,7 +43,7 @@ namespace UltrafastEngine.Tests
             Assert.True(w > 1e9 && w < 1e13, "argon rate at 1e14 W/cm^2: " + w.ToString("G3") + " /s");
         }
 
-        [Test]
+        [Test(Reference = "Keldysh: K = ceil(U_g / ħω)", Tolerance = "8 %")]
         public void Keldysh_MultiphotonOrderForFusedSilica()
         {
             var k = new KeldyshRate(9.0, 0.635, W(800e-9), 2.1e28, 1.45);
@@ -50,7 +51,7 @@ namespace UltrafastEngine.Tests
             Assert.Greater(k.Rate(1e17), k.Rate(1e16) * 1e3, "steep");
         }
 
-        [Test]
+        [Test(Reference = "ρ = ∫ W dt; Drude blue shift", Tolerance = "3 %")]
         public void Plasma_ElectronDensityBlueshiftAndAbsorption()
         {
             double lam = 800e-9, E = 1e-3, area = 1e-7, tau = 50e-15;
@@ -81,7 +82,7 @@ namespace UltrafastEngine.Tests
             return Simulation.Run(SystemDescription.FromJson(o), Specs.RunSpec.FromJson(run));
         }
 
-        [Test(Slow = true)]
+        [Test(Slow = true, Reference = "cross-check: the envelope model for paraxial beams", Tolerance = "1e-06, 1 %")]
         public void Uppe_AgreesWithEnvelopeForParaxialBeams_AndPlasmaClampsTheFocus()
         {
             var env = SpatialCell("envelope", false, 2e-5); var up = SpatialCell("uppe", false, 2e-5);

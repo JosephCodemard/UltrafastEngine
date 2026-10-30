@@ -9,6 +9,7 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Stage 1.7: pulse retrieval from simulated FROG and d-scan traces.</summary>
+    [TestArea("Pulse retrieval (FROG, d-scan)")]
     public class RetrievalTests
     {
         private const double Lam = 800e-9;
@@ -42,7 +43,7 @@ namespace UltrafastEngine.Tests
             return 2 * cc;
         }
 
-        [Test]
+        [Test(Reference = "known chirped pulse", Tolerance = "3 %, 5 %")]
         public void Frog_PcgpaAndEpieRecoverAChirpedPulse()
         {
             double gdd = 300;
@@ -58,7 +59,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test]
+        [Test(Reference = "known spectral phase", Tolerance = "5 %, 6 %")]
         public void DScan_RecoversPhaseAndFeedsARun()
         {
             double gdd = -40, tod = 400;

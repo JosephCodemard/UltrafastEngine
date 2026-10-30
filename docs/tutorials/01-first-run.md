@@ -76,13 +76,12 @@ ultrafast run plate.ufs run.json -o results-1
 
 ```
 system: tutorial-plate (2 elements, 1 nonlinear)
-  Estimated total B-integral (input peak power, no losses): 0.844 rad; spectral margin 3.
+  Estimated total B-integral (peak power after the dispersion before each element, no losses): 0.844 rad; spectral margin 3.
   Grid auto-sized: N = 512, window = 1.707 ps, dt = 3.333 fs.
   ...
 done in 0.08 s -> results-1
-  energy 1.998E-07 J (T = 99.91 %), FWHM 51.1 fs (TL 29.29 fs), peak 3.837E+06 W, B = 0.766 rad
-  WARNING: Element 'plate': peak power is 1.85 x the critical power for self-focusing; spatial effects (Kerr
-  lensing, filamentation) are not modelled in 1-D -- use "transverse": {"model": "radial"} on this element.
+  energy 1.998E-07 J (T = 99.91 %), FWHM 51.1 fs (TL 29.29 fs), peak 3.836E+06 W, B = 0.767 rad
+  WARNING: Element 'plate': peak power is 1.85 x the critical power for self-focusing; spatial effects (Kerr lensing, ...
 ```
 
 What it says:

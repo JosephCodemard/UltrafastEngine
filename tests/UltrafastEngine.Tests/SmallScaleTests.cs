@@ -9,6 +9,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>Small-scale self-focusing in a spatial (cartesian) plate: seeded ripple / noise on a flat-top beam and the
     /// Bespalov-Talanov growth rate as the analytic reference.</summary>
+    [TestArea("Small-scale self-focusing")]
     public class SmallScaleTests
     {
         private const double Lam = 1030e-9, L = 3e-3, Half = 3.5e-3, Tau = 100e-15, N0 = 1.45;
@@ -82,7 +83,7 @@ namespace UltrafastEngine.Tests
             return (F0, delta0 / (2 * Math.PI / Lam * i0));
         }
 
-        [Test]
+        [Test(Reference = "Bespalov & Talanov, JETP Lett. 3, 307 (1966): cosh(g z)", Tolerance = "6 %")]
         public void SmallScale_RippleGrowth_MatchesBespalovTalanov()
         {
             double k = N0 * 2 * Math.PI / Lam, delta0 = 500.0, eps = 0.01;
@@ -102,7 +103,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test]
+        [Test(Reference = "Talbot: 2 ε |cos(q L)|", Tolerance = "8 %")]
         public void SmallScale_WithoutKerr_TheRippleDiffractsAsTheTalbotEffect()
         {
             // Delta = 0: u = eps cos(q L): the same formula, no nonlinearity
@@ -128,7 +129,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(2 * 0.01, c1, 0.5, 0, "fluence contrast ~ 2 x the relative amplitude rms (few correlation cells in the core: loose)");
         }
 
-        [Test]
+        [Test(Reference = "P_cr = 3.77 λ² / (8π n0 n2) (Marburger)", Tolerance = "2 %")]
         public void SmallScale_ReportsPeakPowerOverCritical()
         {
             // P_cr = 3.77 lambda^2 / (8 pi n0 n2)

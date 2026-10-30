@@ -229,16 +229,30 @@ namespace UltrafastEngine.Lasers
                 if (Fallback.Count == 0) ctx.Note("aperture: no transverse profile and no beam size -- nothing clipped");
                 return p;
             }
+            var B = p.Profile.Basis;
+            var mask = HardMask(B, ctx) ?? Enumerable.Range(0, B.M).Select(m => Mask(B.X[m], B.Y[m])).ToArray();
+            return ApplyProfileMask(ctx, p, (m, f) => mask[m]);
+        }
+
+        /// <summary>
+        /// Multiply the carried profile by a transmission t(point m, stored frequency f) and scale the spectrum by the
+        /// frequency-resolved transmission, booked as <c>clip</c> (also used by <see cref="Optics.MaskElement"/>).
+        /// </summary>
+        public static PulseField ApplyProfileMask(ActiveContext ctx, PulseField p, Func<int, int, Complex> mask)
+        {
             var prof = p.Profile.Clone(); var B = prof.Basis; int nf = prof.Omega.Length, M = B.M;
-            var mask = HardMask(B, ctx) ?? Enumerable.Range(0, M).Select(m => Mask(B.X[m], B.Y[m])).ToArray();
             var T = new double[nf];
-            for (int f = 0; f < nf; f++)
+            foreach (var data in new[] { prof.Data, prof.DataY })
             {
-                double s = 0;
-                for (int m = 0; m < M; m++) { var v = prof.Data[m * nf + f] * mask[m]; prof.Data[m * nf + f] = v; s += B.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary); }
-                T[f] = s;
-                double norm = s > 0 ? 1 / Math.Sqrt(s) : 0;
-                for (int m = 0; m < M; m++) prof.Data[m * nf + f] *= norm;
+                if (data == null) continue;
+                for (int f = 0; f < nf; f++)
+                {
+                    double s = 0;
+                    for (int m = 0; m < M; m++) { var v = data[m * nf + f] * mask(m, f); data[m * nf + f] = v; s += B.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary); }
+                    if (ReferenceEquals(data, prof.Data)) T[f] = s;
+                    double norm = s > 0 ? 1 / Math.Sqrt(s) : 0;
+                    for (int m = 0; m < M; m++) data[m * nf + f] *= norm;
+                }
             }
             var g = p.Grid; var ax = (Complex[])p.Ax.Clone(); var ay = (Complex[])p.Ay.Clone();
             for (int i = 0; i < g.N; i++)

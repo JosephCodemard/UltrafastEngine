@@ -15,6 +15,7 @@ namespace UltrafastEngine.Tests
 {
     /// <summary>Phase 2.5: instrument sampling (near / far field, apertures), measured-data comparison and the
     /// calibration fit (docs/measurements.md).</summary>
+    [TestArea("Sampling apertures, measured data and fits")]
     public class MeasurementTests
     {
         private const double Lam = 1030e-9;
@@ -51,7 +52,7 @@ namespace UltrafastEngine.Tests
             Assert.True(V(r, "whole").GetString("sampling").Contains("whole beam"), "described as the whole beam");
         }
 
-        [Test(Category = "instruments")]
+        [Test(Category = "instruments", Reference = "Gaussian through a pinhole / slit: analytic transmitted fraction", Tolerance = "1e-06, 2 %, 5 %")]
         public void Sampling_GaussianApertures_TransmitTheAnalyticFraction()
         {
             double w0 = 300e-6, L = 0.1, f = 0.5, zr = Math.PI * w0 * w0 / Lam;
@@ -238,7 +239,7 @@ namespace UltrafastEngine.Tests
             Assert.Throws<JsonException>(() => Fitter.Get(sys, run, "element:nope/x"), "unknown element");
         }
 
-        [Test(Category = "fit")]
+        [Test(Category = "fit", Reference = "known truth: 260 nJ, +120 fs²", Tolerance = "1 %")]
         public void Fit_RecoversEnergyAndChirp_FromSpectrumAndAutocorrelation()
         {
             // the tutorial-4 problem without noise: data simulated at 260 nJ and +120 fs^2; the fit starts at 200 nJ, 0 fs^2

@@ -1,0 +1,97 @@
+# Continuous integration: every platform is compiled here with dotnet, the tests run on Linux.
+# OpticStudio cannot run in CI: the Zemax binding is built against its stubs and checked by hand on Windows.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  build-and-test:
+    name: Build (net10.0, net48) and C# tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Install Mono (net48 reference assemblies and runtime)
+        run: sudo apt-get update && sudo apt-get install -y mono-complete
+      - name: Build everything
+        run: dotnet build UltrafastEngine.sln -c Release
+      - name: C# tests, .NET 10, including slow
+        run: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --slow
+      - name: C# tests, .NET Framework 4.8 build on Mono, including slow
+        run: mono tests/UltrafastEngine.Tests/bin/Release/net48/UltrafastEngine.Tests.exe --slow
+
+  compile-platforms:
+    name: Compile CLI for ${{ matrix.rid }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [linux-x64, linux-arm64, win-x64, osx-arm64, osx-x64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Publish the CLI (framework-dependent; NativeAOT needs its own OS and is built at release)
+        run: dotnet publish src/UltrafastEngine.Cli -c Release -f net10.0 -r ${{ matrix.rid }} --self-contained false -p:NoPluginBuild=true -o out/${{ matrix.rid }}
+
+  python:
+    name: Python tests (hosted engine, pyNLO)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the package
+        run: pip install -e "python[hosted,plot,test]"
+      - name: Build the engine for Python
+        run: python python/tools/build_engine.py
+      - name: Fetch pyNLO (dev-time cross-check, never shipped)
+        run: python python/tools/get_pynlo.py
+      - name: Python tests
+        working-directory: python
+        run: PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python -m pytest -q tests
+
+  docs-and-examples:
+    name: Docs and example check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the package and mkdocs
+        run: pip install -e "python[hosted,plot,test]" mkdocs
+      - name: Docs, 0 warnings
+        run: python -m mkdocs build --strict
+      - name: Build the CLI and the engine for Python
+        run: |
+          dotnet build src/UltrafastEngine.Cli -c Release -f net10.0
+          python python/tools/build_engine.py
+      - name: Run every example and tutorial, check the quoted numbers
+        run: python build/example_check.py --report example-check.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: example-check
+          path: example-check.json

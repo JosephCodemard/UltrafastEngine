@@ -4,8 +4,12 @@ argument-hint: "[example folder names, e.g. 21-measured-data 26-transforms; empt
 ---
 Re-check examples: $ARGUMENTS
 
-For each example (`docs/examples/<name>`), run its commands exactly as the README states (with
-`ULTRAFAST_STRICT_OPTIONS=1`; pairings in docs/CLAUDE.md), compare every number quoted in the README (and in the
-tutorial that uses it) with the fresh output, and update the text where it changed. If a change is larger than
-noise, explain the cause (a physics fix, a new default) in one sentence in the README or CHANGELOG. Hand long runs to
-the `test-runner` subagent.
+```bash
+dotnet build src/UltrafastEngine.Cli -c Release -f net10.0 2>&1 | grep -E "rror\(s\)"
+python3 build/example_check.py $ARGUMENTS                  # add --against HEAD to diff every summary.json against a git ref
+```
+
+The script (`build/example_check.py`, read its docstring) runs every command of the example READMEs and tutorials in strict mode and
+checks the quoted output blocks and `key | number` table rows. Examples 07 and cpp are manual. Prose and prose tables are not
+checked: when `--against` shows a change, update them by hand and explain any change larger than noise in the README or CHANGELOG.
+Plain ``` blocks count as expected output: use ```text for anything else.

@@ -12,6 +12,7 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>The plugin system (docs/reference/plugins.md): registration, discovery, install, extension points.</summary>
+    [TestArea("Plugins: registration, installation, versions, cameras")]
     public class PluginTests
     {
         /// <summary>A test plugin: an element type ("halfEnergy": a flat 50 % loss) and an instrument ("peakCounter").</summary>

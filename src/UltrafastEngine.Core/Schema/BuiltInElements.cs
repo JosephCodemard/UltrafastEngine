@@ -74,6 +74,15 @@ namespace UltrafastEngine.Schema
                 .Num("radiusM", "m", "Circular radius").Num("halfWidthXM", "m", "Rectangular half-width x").Num("halfWidthYM", "m", "Rectangular half-width y")
                 .Num("softRadiusM", "m", "Soft (Gaussian / super-Gaussian) aperture radius").Int("order", "Super-Gaussian order of the soft aperture", "1")
                 .Model("aperture", "aperture", "Aperture model"));
+            add(new ComponentSpec("element", "mask", "A thin mask on the carried transverse profile: axicon, Fresnel zone plate, vortex phase plate, slits, or an amplitude / phase map from a file.").DocAt("reference/transverse.md#masks")
+                .Enum("kind", new[] { "axicon", "zonePlate", "vortex", "slits", "file" }, "Mask", null, required: true)
+                .Num("coneAngleRad", "rad", "axicon: deflection angle (phase -k r sin(angle))")
+                .Num("focalLengthM", "m", "zonePlate: first-order focal length at the design wavelength").Bool("binaryPhase", "zonePlate: closed zones shift by pi instead of blocking", "false")
+                .Num("designWavelengthM", "m", "zonePlate: design wavelength; file: wavelength of phase_rad", "the carrier")
+                .Int("charge", "vortex: topological charge l (phase l phi)", "1")
+                .Int("count", "slits: number of slits", "2").Num("widthM", "m", "slits: slit width").Num("separationM", "m", "slits: centre-to-centre distance").Num("heightM", "m", "slits: height in y", "unlimited")
+                .Str("file", "file: NPZ with x_m, y_m (or r_m), amplitude, and optionally phase_rad; relative to the system file")
+                .Num("decenterXM", "m", "Decentre in x").Num("decenterYM", "m", "Decentre in y"));
             foreach (var t in new[] { "filter", "custom" })
                 add(new ComponentSpec("element", t, "A spectral filter: any filter model (transmission and phase).").DocAt(D + "filter")
                     .Model("filter", "filter", "Filter model").Model("model", "filter", "Filter model (alternative key)")

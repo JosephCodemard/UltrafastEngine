@@ -19,6 +19,7 @@ namespace UltrafastEngine.Tests
     /// detuning, cascaded phase), the phase-matching calculator against literature angles, QPM models, carrier
     /// changes and resampling, aux beams from saved results, the active instruments and user elements.
     /// </summary>
+    [TestArea("χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams")]
     public class Chi2Tests
     {
         private const double Eps0 = 8.8541878128e-12;
@@ -48,7 +49,7 @@ namespace UltrafastEngine.Tests
 
         // ------------------------------------------------------------------------------------------ closed forms
 
-        [Test(Category = "physics")]
+        [Test(Category = "physics", Reference = "Armstrong et al., Phys. Rev. 127, 1918 (1962): tanh² SHG", Tolerance = "1e-09, 0.02 %")]
         public void Shg_PlaneWave_MatchesArmstrongTanhSquared()
         {
             double lam = 1030e-9, fwhm = 1e-12, w = 100e-6, L = 5e-3;
@@ -77,7 +78,7 @@ namespace UltrafastEngine.Tests
             return Go(Sys(el), NoSteep(Gauss(1550e-9, 1e-12, signalEnergy)));
         }
 
-        [Test(Category = "physics")]
+        [Test(Category = "physics", Reference = "OPA cosh² small-signal gain; Manley-Rowe", Tolerance = "0.1 %")]
         public void Opa_SmallSignalGain_MatchesCoshSquared_AndConservesPhotons()
         {
             double w = 100e-6, L = 5e-3, ep = 1e-6, es = 1e-15;
@@ -98,7 +99,7 @@ namespace UltrafastEngine.Tests
             Assert.True(r.Records[0].LossJ["from pump (aux)"] < 0, "aux energy enters the budget as a negative (gain) entry");
         }
 
-        [Test(Category = "physics")]
+        [Test(Category = "physics", Reference = "sinc²(Δk L / 2) phase-mismatch law", Tolerance = "1 %")]
         public void Shg_AngleDetuning_FollowsSincSquared()
         {
             double eta0 = double.NaN;
@@ -115,7 +116,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "physics")]
+        [Test(Category = "physics", Reference = "cascaded χ(2): φ = κ² P / Δk (L − sin(Δk L)/Δk)", Tolerance = "2 %")]
         public void CascadedChi2_PhaseMatchesEffectiveKerrFormula()
         {
             // strongly mismatched SHG (QPM grating on a phase-matched crystal: dk = -K_G): the fundamental picks up
@@ -167,7 +168,7 @@ namespace UltrafastEngine.Tests
             return PhaseMatchCalculator.Solve(req).GetObject("best") ?? throw new AssertionException("no phase matching for " + crystal);
         }
 
-        [Test(Category = "physics")]
+        [Test(Category = "physics", Reference = "SNLO: BBO type-I SHG 29.2° (800 nm), 23.4° (1030 nm)", Tolerance = "1 %, 5 %, 10 %")]
         public void PhaseMatchCalculator_ReproducesLiteratureAngles()
         {
             // BBO type-I SHG 800 nm: 29.2 deg; 1030 nm: 23.4 deg (SNLO)
@@ -322,7 +323,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(r.Input.TotalEnergyJ(), r.Output.TotalEnergyJ(), 1e-12, 0, "energy");
         }
 
-        [Test(Category = "physics")]
+        [Test(Category = "physics", Reference = "Gaussian-mode overlap of low-conversion SHG", Tolerance = "1 %")]
         public void Shg_RadialModelAgreesWithGaussianOverlapAtLowConversion()
         {
             double Eta(JsonObject tv)

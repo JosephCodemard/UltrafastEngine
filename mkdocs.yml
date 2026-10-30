@@ -61,7 +61,9 @@ nav:
       - Zemax OpticStudio: plugins/zemax.md
       - GPU (CUDA, OpenCL): plugins/gpu.md
       - HITRAN (gas lines in air): plugins/hitran.md
-  - Testing & validation: testing.md
+  - Testing & validation:
+      - Overview: testing.md
+      - Validation matrix (generated): reference/validation-matrix.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md
   - Claude Code: claude-code.md

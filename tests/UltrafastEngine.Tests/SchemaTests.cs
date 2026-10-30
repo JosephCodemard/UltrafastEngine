@@ -11,6 +11,7 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Option registry, JSON Schemas, unknown-key checks and migrations (docs/reference/schema.md).</summary>
+    [TestArea("Schemas, validation and migrations")]
     public class SchemaTests
     {
         internal static string RepoRoot()

@@ -18,10 +18,10 @@ needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Z
 - [x] Diffraction through an iris validated against the Fresnel integral (round / square, Gaussian / flat-top / uniform beams; Fresnel zones on the axis, Airy and sinc zeros), an under-resolved-aperture warning, area-averaged hard edges, the axis spike removed (absorbing boundary); [example 30](examples/30-iris-diffraction/README.md), [tutorial 6](tutorials/06-diffraction.md)
 - [x] `mkdocs build --strict` passes (owner's machine)
 - [x] Roadmap: GPU line corrected, `ROADMAP.md` and `docs/roadmap.md` in step; `PROJECT_STATUS.md` split into current status and history
-- [ ] Stale statements: the test count in `CLAUDE.md` (213; now 287 -- better not hard-coded); `docs/capabilities.md` lacks the tail ledger, the hitran plugin, detector presets and photon counting
-- [ ] Example check as a script: run every command in every example README with `ULTRAFAST_STRICT_OPTIONS=1`, compare the numbers the README quotes with `summary.json`, and diff old vs new engine on every `summary.json` number (the comparison used for the 2026-10-29 changes); the dependent examples (07, 09, 26) get their inputs
-- [ ] Validation matrix generated from the tests: reference and tolerance as attributes on `[Test]`, `docs/testing.md` written from them (and checked, like the schemas)
-- [ ] Independent oracle: a LightPipes cross-check in a scratch venv, dev-time only (iris, Fresnel propagation, lens focus, Talbot self-imaging, Young's slits), opt-in like the HAPI test; audit the tests that compare the engine only with itself (physics-reviewer)
+- [x] Stale statements: test count no longer hard-coded; `docs/capabilities.md` covers delayed light, the hitran and gpu plugins, detector presets
+- [x] Example check as a script (`build/example_check.py`): every README and tutorial command in strict mode, quoted output and key tables checked, `--against` diffs every `summary.json` number against a git ref -- *left:* prose and prose tables are checked by hand; example 07 and the C++ example are manual
+- [x] Validation matrix generated from the tests (`docs/reference/validation-matrix.md`, checked like the schemas) -- *left:* 179 of 309 tests name no external reference; review which of them should
+- [ ] Independent oracle: a LightPipes cross-check in a scratch venv, dev-time only and never shipped (iris, Fresnel propagation, lens focus, Talbot self-imaging, Young's slits), opt-in like the HAPI test; audit the tests that compare the engine only with itself (physics-reviewer)
 
 ## T1 -- core table-top capability (next)
 1. **Narrowband and monochromatic fast path**
@@ -29,7 +29,7 @@ needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Z
    - [ ] A cw / single-frequency source that skips the time grid (one spectral sample end to end)
    - [ ] Absorbing boundary in nonlinear spatial elements (stepper)
    - [ ] Benchmark against LightPipes on the same cases; a faster Hankel orthogonalisation or a cached basis on disk for > 2048 points
-2. **Branches: splitters, arms, coherent recombination** -- the largest architectural limit (Michelson, Mach-Zehnder, pump-probe, OPA with its own pump arm)
+2. **Branches: splitters, arms, coherent recombination** -- the largest architectural limit (Michelson, Mach-Zehnder, pump-probe, OPA with its own pump arm). **Deferred by the owner until the existing engine is settled.**
    - [ ] Design first (`docs/design/`): a graph of elements with named ports; `beamSplitter` / `combiner` elements; per-arm delay and phase; arms recombined on a shared grid; how instruments, probes, studies and the loss budget see branches; reuse of the χ(2) aux beams
    - [ ] Implementation, a Michelson and a Mach-Zehnder example with analytic fringes, a pump-probe example
 3. **Spatio-temporal couplings**
@@ -38,9 +38,9 @@ needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Z
    - [ ] `spaceTime` instrument from the tracked beam's couplings when no profile is carried; a `prism` helper that computes the signed face angles
    - [ ] Dispersion beyond second order from θ(ω) (for compressors built from single gratings / prisms)
 4. **Beam sources and masks**
-   - [ ] Hermite-Gauss, Laguerre-Gauss, Bessel and Airy beams as `initialProfile` kinds (analytic propagation tests)
-   - [ ] Amplitude / phase masks from arrays or images (axicon, zone plate, phase plates, Young's slits) as an element acting on the carried profile
-   - [ ] Measured near field and wavefront as input (as the measured spectrum: cleaning, background, resampling)
+   - [x] Hermite-Gauss, Laguerre-Gauss, Bessel-Gauss and Airy beams as `initialProfile` kinds, with analytic propagation tests
+   - [x] `mask` element: axicon, zone plate, vortex plate, slits, amplitude / phase maps from NPZ -- *left:* reading image files directly
+   - [x] Measured near field and wavefront as input (`initialProfile` kind `measured`: NPZ, background, resampling) -- *left:* cleaning beyond the background (centring, noise floor)
    - [ ] Gerchberg-Saxton phase retrieval from near / far-field images (`Retrieval/`)
 
 ## T2 -- after T1
@@ -49,9 +49,9 @@ needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Z
 - [ ] General resonators between arbitrary elements (builds on branches)
 
 ## Engineering
-- [ ] GitHub Actions on every merge to `main`: build (net10.0 and net48), C# tests, Python tests (hosted engine, pyNLO), `mkdocs build --strict`, the example check
+- [x] GitHub Actions on pushes and pull requests (`.github/workflows/ci.yml`, Linux): build net10.0 and net48, CLI compiled for every platform, C# tests, Python tests with pyNLO, `mkdocs build --strict`, the example check -- *left:* first run on GitHub
 - [ ] Release workflow: a version tag builds the packages per platform (`build.sh`; NativeAOT on its own OS), runs smoke tests and publishes a GitHub release; the ZOS-API assemblies never packaged (checked)
-- [ ] Choose the GPU back-end at install (`pip install ultrafast[cuda]` / `[opencl]`, plugin packages), reported by `ultrafast devices`
+- [ ] Choose the GPU back-end at install (`pip install ultrafast[cuda]` / `[opencl]`, plugin packages), reported by `ultrafast devices` (agreed)
 - [ ] GPU coverage: user responses as device kernels, χ(2), gain and carrier-resolved propagation on the device
 - [ ] Metal / Vulkan single-precision back-end, only after a study of which propagation steps tolerate FP32 (Apple GPUs have no FP64)
 - [ ] Speed: profile the hot paths (Hankel O(M² N), cartesian FFTs, instruments) and keep them allocation-free

@@ -11,11 +11,12 @@ using static UltrafastEngine.Tests.U;
 
 namespace UltrafastEngine.Tests
 {
+    [TestArea("Spatial (transverse) models")]
     public class SpatialTests
     {
         private const double Lam = 1030e-9;
 
-        [Test]
+        [Test(Reference = "∫ Gaussian = π w²/2; transform round trip", Tolerance = "1e-06")]
         public void RadialBasis_QuadratureAndTransformAreExact()
         {
             var b = new RadialBasis(64, 3e-3);
@@ -43,7 +44,7 @@ namespace UltrafastEngine.Tests
             return r.Records[0].BeamRadiusXM;
         }
 
-        [Test]
+        [Test(Reference = "Gaussian beam w(z) = w0 √(1 + (z/z_R)²)", Tolerance = "0.5 %")]
         public void Diffraction_GaussianBeamRadiusMatchesAnalytic_Radial()
         {
             double w0 = 100e-6, zr = Math.PI * w0 * w0 / Lam;
@@ -51,7 +52,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(w0 * Math.Sqrt(5), w, 0.005, 0, "w(2 zR)");
         }
 
-        [Test]
+        [Test(Reference = "Gaussian beam w(z) = w0 √(1 + (z/z_R)²)", Tolerance = "1 %")]
         public void Diffraction_GaussianBeamRadiusMatchesAnalytic_Cartesian()
         {
             double w0 = 100e-6, zr = Math.PI * w0 * w0 / Lam;
@@ -59,7 +60,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(w0 * Math.Sqrt(1 + 2.25), w, 0.01, 0, "w(1.5 zR)");
         }
 
-        [Test]
+        [Test(Reference = "Gaussian optics: waist λf/(πw)", Tolerance = "2 %")]
         public void LensAndGap_FocusAGaussianBeamAsGaussianOpticsPredicts()
         {
             // collimated w = 1 mm -> f = 0.5 m lens -> 0.5 m: waist w_f = lambda f / (pi w)
@@ -91,7 +92,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(r.Records[0].EnergyOutJ, r.Output.TotalEnergyJ(), 1e-9, 0, "free space conserves energy");
         }
 
-        [Test]
+        [Test(Reference = "thin Kerr lens: k0 n2 I0 L exp(−2r²/w²)", Tolerance = "0.2 %")]
         public void ThinKerrLens_PhaseProfileMatchesAnalytic()
         {
             // L << zR: phase(r, t=0) - phase_linear(r, t=0) = k0 n2 I0 L exp(-2 r^2/w^2); the linear reference removes

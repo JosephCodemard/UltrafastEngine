@@ -23,7 +23,7 @@ folder-level `CLAUDE.md` files (loaded only when you work in that folder), in th
 dotnet build UltrafastEngine.sln -c Release                                  # everything (~1 min)
 dotnet build tests/UltrafastEngine.Tests -c Release -f net10.0               # just the tests + what they need
 dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll NerTests Measured   # filter: substring of Class.Method
-dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --slow              # all 213 (~4 min)
+dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --slow              # all tests incl. slow (~5 min)
 python3 python/tools/build_engine.py        # after ANY C# or plugin-Python change, before Python tests
 cd python && PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python3 -m pytest -q tests   # (get pyNLO: python3 tools/get_pynlo.py)
 python3 -m mkdocs build --strict            # docs: 0 warnings required
@@ -38,8 +38,8 @@ after a code change.
 ## Token economy
 
 * **Do not read generated files** -- they are large and derived: `schemas/*.json` (440 kB), `python/src/ultrafast/types.py`
-  (180 kB), `docs/reference/options.md` (95 kB), `docs/reference/python-api.md`. Read the source instead
-  (`src/UltrafastEngine.Core/Schema/BuiltIn*.cs`, `python/src/ultrafast/build.py`) and regenerate with `/regen`.
+  (180 kB), `docs/reference/options.md` (95 kB), `docs/reference/python-api.md`, `docs/reference/validation-matrix.md`. Read the source instead
+  (`src/UltrafastEngine.Core/Schema/BuiltIn*.cs`, `python/src/ultrafast/build.py`, the test attributes) and regenerate with `/regen`.
   Edits to them are blocked by a hook.
 * Never read `bin/`, `obj/`, `artifacts/`, `dist/`, `site/`, `results*/`, `*.npz`, `CHANGELOG.md` history.
 * Grep before reading; read line ranges of the big files (`Engine/Compiler.cs` 1.3k lines, `Physics/Nonlinear.cs`,

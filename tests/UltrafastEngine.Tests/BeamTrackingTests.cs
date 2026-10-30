@@ -14,6 +14,7 @@ namespace UltrafastEngine.Tests
     /// Gaussian beam tracking: the thermal lens of gain media (docs/reference/gain.md#thermal-lens) and spatio-temporal
     /// couplings from angular dispersion (docs/reference/components.md#spatio-temporal-couplings).
     /// </summary>
+    [TestArea("Gaussian beam tracking: thermal lenses and spatio-temporal couplings")]
     public class BeamTrackingTests
     {
         private const double Lam = 1030e-9, C = 2.99792458e8;
@@ -22,7 +23,7 @@ namespace UltrafastEngine.Tests
 
         // =============================================================================================== thermal lens
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "Innocenzi et al., Appl. Phys. Lett. 56, 1831 (1990): f = πK w_p² / (P_h dn/dT)", Tolerance = "5 %")]
         public void ThermalLens_SmallBeam_TrackedFocalLengthIsInnocenzis()
         {
             // Gaussian pump of 1/e^2 radius wp: f = pi K wp^2 / (P_h dn/dT) on the axis (Innocenzi et al., Appl. Phys. Lett.
@@ -38,7 +39,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(f, v["trackedThermalLensFocalLengthM"], 0.05, 0, "tracked thermal focal length");
         }
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "Gaussian-beam thin-lens law (Self, Appl. Opt. 22, 658 (1983))", Tolerance = "1e-12, 0.2 %")]
         public void ThermalLens_MeasuredFocalLength_FocusesTheTrackedBeamLikeAThinLens()
         {
             // thermalLens.focalLengthM = 0.5 m on a collimated 1 mm beam (z_R = 3.05 m) in a 1 mm thick rod: the new waist
@@ -57,7 +58,7 @@ namespace UltrafastEngine.Tests
             Assert.True(Math.Abs(Rec(r, "gap").Values["trackedCurvatureXM"]) > 100, "flat wavefront at the waist");
         }
 
-        [Test(Category = "gain")]
+        [Test(Category = "gain", Reference = "cross-model: the radial spatial gain model", Tolerance = "7 % (aberrated lens)")]
         public void ThermalLens_TrackedBeam_AgreesWithTheSpatialGainModel()
         {
             // Cross-model: a 0.5 mm beam in an end-pumped Yb:YAG rod (Gaussian pump 0.6 mm, 60 W) and 0.4 m of free space.
@@ -89,7 +90,7 @@ namespace UltrafastEngine.Tests
 
         private static RunResult Gratings(params JsonObject[] elements) => Go(Sys(elements), Tracked(2e-3, Gauss(Lam, 100e-15, 1e-6)));
 
-        [Test]
+        [Test(Reference = "grating equation; Hebling, Opt. Quantum Electron. 28, 1759 (1996)", Tolerance = "0.2 %")]
         public void Grating_AngularDispersionAndPulseFrontTilt_FollowTheGratingEquationAndHebling()
         {
             // d theta / d lambda = m / (period cos beta); pulse-front tilt tan(gamma) = lambda d theta / d lambda (Hebling,
@@ -101,7 +102,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(Math.Atan(Lam * ad) * 180 / Math.PI, Math.Abs(v["trackedPulseFrontTiltXDeg"]), 0.002, 0, "tilt angle");
         }
 
-        [Test]
+        [Test(Reference = "Treacy grating pair (IEEE JQE 5, 454 (1969)), Kostenbauder ray-pulse matrices", Tolerance = "0.1 %, 0.2 %")]
         public void TwoGratings_GiveTreacysGdd_AndTheGratingPairsSpatialChirp()
         {
             // grating - slant gap b - parallel grating (opposite order) vs the gratingPair element (Treacy's exact phase,
@@ -118,7 +119,7 @@ namespace UltrafastEngine.Tests
             Assert.Less(Math.Abs(v2["trackedAngularDispersionXRadPerM"]), 1e-6, "no angular dispersion after the pair");
         }
 
-        [Test]
+        [Test(Reference = "Akturk et al., Opt. Express 13, 8642 (2005): 2 φ2 E σ² / (w² + 2 E² σ²)", Tolerance = "0.5 %")]
         public void PulseFrontTilt_FromSpatialChirpAndGdd_MatchesTheGaussianResult()
         {
             // A collimated Gaussian beam (radius w) with spatial dispersion E = dx/d omega and GDD phi2: the mean arrival time
@@ -131,7 +132,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(2 * phi2 * E * s2 / (w * w + 2 * E * E * s2), v["trackedPulseFrontTiltXSPerM"], 0.005, 0, "pulse-front tilt");
         }
 
-        [Test]
+        [Test(Reference = "Snell's law at both prism faces (finite difference of n(λ))", Tolerance = "0.5 %")]
         public void Prism_AngularDispersion_MatchesSnellsLawThroughBothFaces()
         {
             // A 60 deg fused-silica prism at 55 deg incidence, built from two interfaces (signed angles: the exit face is
@@ -148,7 +149,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(ad, Rec(r, "f2").Values["trackedAngularDispersionXRadPerM"], 0.005, 0, "prism angular dispersion");
         }
 
-        [Test]
+        [Test(Reference = "Martinez zero-dispersion stretcher: GDD = 0", Tolerance = "< 10⁻⁶ of k0 f F²")]
         public void ZeroDispersionStretcher_4f_LeavesNoGddAndNoCouplings()
         {
             // Martinez stretcher at zero dispersion: grating - f - lens - 2f - lens - f - grating (mirror image). The

@@ -7,7 +7,7 @@ Files: `docs/examples/tutorial/cpa.ufs`, `run-cpa.json`, `cpa.py`.
 
 ## 1. The system
 
-```
+```text
 1 µJ, 250 fs seed → stretcher → 8-pass Yb:YAG amplifier (150 W diode pump, 10 kHz) → compressor → LBO SHG → 515 nm
 ```
 
@@ -124,7 +124,11 @@ for p in (60, 100, 150):                       # a scan is just a loop
     print(p, r.instrument("P_amp")["averagePowerW"], r.summary["output"]["energyJ"] * 10e3)
 ```
 
-`python docs/examples/tutorial/cpa.py` prints:
+```bash
+python docs/examples/tutorial/cpa.py
+```
+
+It prints:
 
 ```
 amplified: 14.58 W, compressible to 535 fs, SHG efficiency 41.9%

@@ -59,3 +59,21 @@ def test_two_gratings_give_the_grating_pairs_gdd():
     assert gdd(two) == pytest.approx(gdd(pair), rel=2e-3)
     v = two.summary["elements"][-1]["values"]
     assert v["trackedSpatialChirpXMPerM"] == pytest.approx(pair.summary["elements"][-1]["values"]["trackedSpatialChirpXMPerM"], rel=2e-3)
+
+
+@requires_engine
+def test_zone_plate_and_structured_source_through_the_builders():
+    # a uniform beam on a 10-zone amplitude plate: 4 N_open^2 = 100 x the incident fluence at the focus
+    f, zones, e = 0.1, 10, 1e-3
+    a = math.sqrt(zones * LAM * f)
+    grid = dict(points=1024, radius_m=5e-3, absorbing_boundary=True)
+    sys_ = b.system("zp", [
+        b.gap("source", 0.0, medium="Vacuum", transverse=b.transverse("radial", **grid, initial_profile=b.initial_profile("tophat", radius_m=a))),
+        b.mask("zp", "zonePlate", focal_length_m=f),
+        b.gap("focus", f, medium="Vacuum", transverse=b.transverse("radial", **grid)),
+    ])
+    res = uf.run(sys_, b.run_spec(b.pulse(LAM, 1e-12, energy=e)))
+    v = next(x for x in res.elements() if x["id"] == "focus")["values"]
+    assert v["onAxisFluenceOutJPerM2"] == pytest.approx(100 * e / (math.pi * a * a), rel=0.08)
+    lg = b.initial_profile("laguerreGauss", mode_p=1, radius_m=1e-3)
+    assert lg == {"kind": "laguerreGauss", "modeP": 1, "radiusM": 1e-3}

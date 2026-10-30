@@ -65,6 +65,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 
 ## Testing, roadmap, agents
 - [Testing & validation](docs/testing.md)
+- [Validation matrix (generated: every test and its reference)](docs/reference/validation-matrix.md)
 - [Roadmap](docs/roadmap.md)
 - [For AI agents](docs/agents.md)
 - [Claude Code setup](docs/claude-code.md): CLAUDE.md files, commands, subagents, skills, hooks

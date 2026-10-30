@@ -9,6 +9,7 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>Phase 2.3: oscillators, saturable absorbers, apertures on profiles, broadband chi(2), ASE, thermal lens export.</summary>
+    [TestArea("Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)")]
     public class LaserTests
     {
         private static JsonObject Grid(int n, double window) => O("grid", O("auto", false, "n", n, "windowS", window));
@@ -21,7 +22,7 @@ namespace UltrafastEngine.Tests
 
         private static JsonObject Sech(double lam, double fwhm, double e) => O("shape", "sech2", "centerWavelengthM", lam, "durationFwhmS", fwhm, "energyJ", e);
 
-        [Test(Category = "laser")]
+        [Test(Category = "laser", Reference = "soliton area theorem (Haus master equation)", Tolerance = "1e-12, 10 %")]
         public void Haus_SolitonModeLocking_ObeysTheAreaTheorem()
         {
             var osc = O("id", "laser", "type", "oscillator", "model", "haus", "repRateHz", 80e6, "outputCoupler", 0.05,
@@ -38,7 +39,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(v["outputEnergyJ"] * 80e6, v["averagePowerW"], 1e-12, 0, "average power");
         }
 
-        [Test(Category = "laser")]
+        [Test(Category = "laser", Reference = "cw laser: E = E_sat (g0 / L − 1)", Tolerance = "0.2 %")]
         public void Haus_CwLaser_GainClampsAtTheLoss()
         {
             // no absorber, no dispersion: E (at the gain) = E_sat (g0 / L - 1), L = -ln((1 - l)(1 - T_oc))
@@ -51,7 +52,7 @@ namespace UltrafastEngine.Tests
             Assert.Close(L, r.Records[0].Values["netGainPerRoundTrip"], 2e-3, 0, "saturated gain = loss");
         }
 
-        [Test(Category = "laser")]
+        [Test(Category = "laser", Reference = "slow absorber: q0 (1 − e^−S) / S", Tolerance = "1e-09, 2 %")]
         public void Sesam_SlowAbsorber_SaturatesAsTheEnergyIntegral()
         {
             // short pulse on a slow absorber (no recovery during the pulse): absorbed fraction = q0 (1 - e^-S) / S, S = E / E_sat
@@ -105,7 +106,7 @@ namespace UltrafastEngine.Tests
             Assert.True(r.Records[0].Arrays.Any(a => a.Name.EndsWith("evolutionPower")), "evolution recorded");
         }
 
-        [Test(Category = "laser")]
+        [Test(Category = "laser", Reference = "ABCD eigenmode z_R = f, w0 = √(λf/π)", Tolerance = "8 %")]
         public void Cavity_SpatialLensGuide_ReproducesTheEigenmode()
         {
             // unfolded period: crystal, gap f, lens f, gap f -> ABCD [[0, f], [-1/f, 0]]: eigenmode z_R = f, w0 = sqrt(lambda f / pi)
@@ -151,7 +152,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Category = "nonlinear")]
+        [Test(Category = "nonlinear", Reference = "low-conversion SHG P = K P²", Tolerance = "0.1 %, 5 %")]
         public void Chi2Response_CarrierResolvedShg_MatchesLowConversionFormula()
         {
             // dispersionless material (n = 2): phase matched; P_SH = K P^2 with K = 8 pi^2 d^2 L^2 / (eps0 c n^3 lambda^2 A)

@@ -17,6 +17,7 @@ namespace UltrafastEngine.Tests
     /// background subtraction, comparisons restricted to the overlap of recording and simulation and matched to the
     /// recording's resolution, and the satellite (ghost) room of the time window.
     /// </summary>
+    [TestArea("Measured input spectra, comparisons and satellite room")]
     public class MeasuredSpectrumTests
     {
         private const double Lam = 1030e-9;

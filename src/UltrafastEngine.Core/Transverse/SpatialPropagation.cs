@@ -378,6 +378,7 @@ namespace UltrafastEngine.Transverse
                 wx = rx; wy = double.IsNaN(ry) ? rx : ry;
                 if (ip.Has("radiusOfCurvatureM")) R = ip.GetDouble("radiusOfCurvatureM", double.PositiveInfinity);
             }
+            if (double.IsNaN(wx) && string.Equals(ip?.GetString("kind", null), "measured", StringComparison.OrdinalIgnoreCase)) wx = wy = 1;   // the map sets the size
             if (double.IsNaN(wx)) throw new InvalidOperationException("element '" + elementId + "' is spatial but has neither a beam model (\"beam\" or inputBeam), an initialProfile.radiusM nor a carried transverse profile.");
             notes.Add(string.Format(CultureInfo.InvariantCulture, "transverse field: from the beam model ({0}, w = {1:G4} mm, R = {2:G4} m)", spec.InitialProfile?.GetString("kind", "gaussian") ?? "gaussian", wx * 1e3, R));
             return TransverseOps.FromShape(basis, spec.InitialProfile, wx, wy, R, indexAt, omegas, elementId);
@@ -457,6 +458,7 @@ namespace UltrafastEngine.Transverse
             var g = p.Grid; int n = g.N;
             Func<double, double> idx = w => Material.IndexAt(w);
             double wexp = TransverseStart.ExpectedRadius(Beam, LengthM, p, Spec.InitialProfile);
+            if (!(wexp > 0)) wexp = !double.IsNaN(Spec.RadiusM) ? Spec.RadiusM : Spec.HalfWidthXM;      // a measured map: the explicit grid
             if (!(wexp > 0)) throw new InvalidOperationException("element '" + ctx.Element.Id + "': cannot size the transverse grid (no beam model and no carried profile).");
             var basis = Spec.CreateBasis(wexp);
             var prof = TransverseStart.Initial(Spec, basis, p, Beam, idx, ctx.Element.Id, ctx.Record.Notes);

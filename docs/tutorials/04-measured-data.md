@@ -21,7 +21,7 @@ copy your exports into `data/`.
 **CSV.** One header row of column names, then numbers. Comment lines starting with `#` are fine, and the separator
 is detected (comma, semicolon, tab, spaces). **Put the unit in the column name**:
 
-```
+```text
 # exported by MySpectrometer, integration 10 ms
 wavelength_nm,counts
 740.00,13.2
@@ -29,7 +29,7 @@ wavelength_nm,counts
 ...
 ```
 
-```
+```text
 delay_ps,signal
 -0.3,-0.00031
 -0.297,0.0016
@@ -83,17 +83,18 @@ ultrafast run plate.ufs run-measured.json -o results-4a
 
 ```
   measured data:
-    spectrum               spectrometer   chi^2 2.457E+04  (481 points)  rms error 3.57 %
-    ac                     autocorrelator chi^2 748.5      (101 points)  rms error 2.72 %
-    power                  energyMeter    chi^2 63.11      (1 points)
+    spectrum               spectrometer   chi^2 2.474E+04  (481 points)  rms error 3.59 %
+    ac                     autocorrelator chi^2 837.3      (201 points)  rms error 2.04 %
+    power                  energyMeter    chi^2 63.1       (1 points)
       energyJ: measured 2.623E-07 +- 7.9E-09, simulated 1.998E-07 (-7.9 sigma)
 ```
 
 **Reading it:** χ² is the sum of ((simulated − measured)/σ)². A model that agrees within the noise has χ² close to
 the number of points, i.e. a reduced χ² of about 1. Here the spectrum's χ² is 50 times too large and the power
 meter disagrees by 8σ, so our assumed 200 nJ is wrong. The autocorrelation was recorded over ±300 fs, the simulated
-autocorrelator covers ±150 fs: only the 101 points both cover are compared, and the comparison's notes say so
-(`summary.json → comparisons[].notes`). Widen the instrument's range to use them all. `ultrafast-plot results-4a` draws `measurements.png`: the
+autocorrelator covers ±150 fs. Beyond that its reading has decayed to zero, so the 100 recorded points outside are
+compared with zero, and the comparison's notes say so (`summary.json → comparisons[].notes`). Widen the instrument's
+range to simulate them. `ultrafast-plot results-4a` draws `measurements.png`: the
 data with the simulation on top, the residuals, and the scalar readings in units of σ.
 
 ## 3. Calibrating: `run-fit.json`
@@ -117,24 +118,23 @@ ultrafast-plot results-4b
 ```
 
 ```
-fit: calibrating 2 parameters against the measured instruments ...
-  chi^2 2.54E+04 -> 494.4 (573 points, reduced 0.857), 4 iterations, 16 runs
-  energy                                2.64087E-07 +- 1.29E-09     (start 2E-07)
-  chirp                                     116.278 +- 3.09         (start 0)
-  spectrum                           rms error 3.57 % -> 0.46 %
-  ac                                 rms error 2.89 % -> 0.91 %
-  power                              chi^2 63.1 -> 0.0354
-done in 0.76 s
+fit: calibrate parameters against the measured instruments ...
+  fit: chi^2 2.567E+04 -> 582.9 (683 points, reduced 0.856), 4 iterations, 16 runs
+  energy                                 2.6476E-07 +- 1.29E-09     (start 2E-07)
+  chirp                                     115.456 +- 3.08         (start 0)
+  spectrum                           rms error 3.59 % -> 0.46 %
+  ac                                 rms error 2.06 % -> 0.92 %
+  power                              chi^2 63.1 -> 0.0749
 ```
 
 | | true (used to make the data) | fitted |
 |---|---|---|
-| energy | 260 nJ | 264.1 ± 1.3 nJ |
-| chirp | +120 fs² | +116 ± 3 fs² |
+| energy | 260 nJ | 264.8 ± 1.3 nJ |
+| chirp | +120 fs² | +115 ± 3 fs² |
 
-The reduced χ² is 0.86, so the model explains the data down to the noise. The chirp is found within 1.3 error bars.
-The energy is 1.6 % high: the spectrum alone constrains it to 0.5 %, and the power meter, whose reading in the data
-is itself 1 % high, pulls it up slightly. Error bars describe random noise, not a miscalibrated instrument.
+The reduced χ² is 0.86, so the model explains the data down to the noise. The chirp is found within 1.5 error bars.
+The energy is 1.8 % high, with an error bar of 0.5 %: the power meter's reading in the data is itself about 1 % high
+(262.3 nJ), and the energy and chirp are correlated, so a lower chirp is paid for with more energy. Error bars describe random noise, not a miscalibrated instrument.
 
 `fit.png` shows the cost per iteration, the correlation between the two parameters (−0.87: more energy and more
 chirp both change the SPM, so they are partly interchangeable) and χ² per instrument before and after.
@@ -154,10 +154,10 @@ That includes instruments without data, like `summary` here:
 
 | prediction (`fit.json → predictions`) | value ± 1σ |
 |---|---|
-| output FWHM (`summary.fwhmS`) | 56.51 ± 0.05 fs |
-| transform limit (`summary.transformLimitFwhmS`) | 26.71 ± 0.05 fs |
-| peak power (`summary.peakPowerW`) | 4.59 ± 0.03 MW |
-| B-integral in the plate (`plate.bIntegralRad`) | 0.960 ± 0.006 rad |
+| output FWHM (`summary.fwhmS`) | 56.53 ± 0.05 fs |
+| transform limit (`summary.transformLimitFwhmS`) | 26.65 ± 0.05 fs |
+| peak power (`summary.peakPowerW`) | 4.62 ± 0.03 MW |
+| B-integral in the plate (`plate.bIntegralRad`) | 0.966 ± 0.006 rad |
 
 To predict what another instrument would show (a FROG before the plate, a camera somewhere else), add it to the
 run without `"measured"`. The prediction can be upstream of the data, at the input, or downstream.
