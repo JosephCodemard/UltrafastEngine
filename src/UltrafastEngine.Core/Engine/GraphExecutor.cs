@@ -53,6 +53,23 @@ namespace UltrafastEngine.Engine
             var sysJson = cr.System.ToJson(); sysJson.Remove("elements");
             var runJson = (JsonObject)JsonValue.Parse(cr.Run.Raw.ToJson(false));
             foreach (var k in new[] { "instruments", "outputs", "name" }) runJson.Remove(k);
+            // a study varies an element through an override in the run: it belongs to that element's key, or a change anywhere would
+            // change every key. Overrides of a material or a type can reach any element, so they stay global.
+            var own = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var overrides = runJson.GetArray("overrides");
+            if (overrides != null)
+            {
+                var shared = new JsonArray();
+                foreach (var entry in overrides)
+                {
+                    var target = entry.AsObject().GetString("target") ?? "";
+                    string id = target.StartsWith("element:", StringComparison.OrdinalIgnoreCase) ? target.Substring("element:".Length) : null;
+                    if (id != null && cr.System.Elements.Any(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)))
+                        own[id] = (own.TryGetValue(id, out var before) ? before : "") + entry.ToJson(false);
+                    else shared.Add(entry);
+                }
+                runJson.Set("overrides", shared);
+            }
             string global = sysJson.ToJson(false) + runJson.ToJson(false);
             foreach (var stage in cr.Graph.Stages)
             {
@@ -61,7 +78,7 @@ namespace UltrafastEngine.Engine
                 var sources = cr.Graph.Edges.Where(e => string.Equals(e.To, id, StringComparison.OrdinalIgnoreCase)).OrderBy(e => e.ToPort, StringComparer.Ordinal).ToList();
                 if (sources.Any(e => !keys.ContainsKey(e.From))) continue;
                 var el = cr.System.Elements.First(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
-                string text = global + el.Json.ToJson(false) + string.Join("|", sources.Select(e => e.ToPort + "<" + e.FromPort + keys[e.From]));
+                string text = global + el.Json.ToJson(false) + (own.TryGetValue(id, out var mine) ? mine : "") + string.Join("|", sources.Select(e => e.ToPort + "<" + e.FromPort + keys[e.From]));
                 using (var sha = System.Security.Cryptography.SHA256.Create())
                     keys[id] = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text)));
             }
@@ -221,6 +238,8 @@ namespace UltrafastEngine.Engine
                         kv.Key.Supplied = kv.Value.Pulse;
                         kv.Key.DelayS = kv.Value.Path.FrameDelayS - packet.Path.FrameDelayS;
                         kv.Key.SuppliedPhaseRad = kv.Value.Path.PhaseRad - packet.Path.PhaseRad;
+                        if (kv.Value.Path.TiltXRad != packet.Path.TiltXRad || kv.Value.Path.TiltYRad != packet.Path.TiltYRad)
+                            st.Res.Warnings.Add("Element '" + id + "': the beams on its ports have different tilts, but a crystal treats them as collinear: the angle does not change the phase matching or the overlap.");
                     }
                     st.Tail = path.Tail;
                     var outPulse = RunElement(st, run.Index[id], el, packet.Pulse, path);

@@ -382,4 +382,5 @@ The engine is about to gain its largest structural change, so its structure gets
 * Tails travel in the path ledger, so a branch's copy is automatic.
 * A `steadyState` loop settles when both the field's shape and its energy repeat. Shape alone is not enough: a passive loop keeps its shape from the first pass while it decays. Unitarity means a lossless linear network cannot hold light, so a steady state needs gain.
 * `graph.energyOutJ` counts every packet at `end`; the field in `RunResult.Output` is the strongest. A crystal's fed ports interact with one main packet, and other packets are booked, so fed energy is not used twice.
-* Not built: the speed-up of the node cache was measured only on example 33 ([history](history.md)); beams crossing at an angle in a crystal; a driven loop with the source fed every round trip.
+* Node cache speed-up, 81-point delay scan: 58.2 s to 9.6 s with 0.3 m of nonlinear glass upstream; 0.65 s to 0.60 s with 5 mm, where the crystal dominates. Rows are identical. The scanned parameter must be an `element:<id>` override, which only that element's key contains.
+* Not built: beams crossing at an angle in a crystal; a driven loop with the source fed every round trip.

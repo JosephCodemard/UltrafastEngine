@@ -49,6 +49,8 @@ namespace UltrafastEngine.Engine
         public bool FromPort { get; set; }
         /// <summary>Set by the scheduler for each run: the pulse on the port, and its phase relative to the main beam.</summary>
         public PulseField Supplied { get; set; }
+        /// <summary>Carrier of a <see cref="FromPort"/> beam at compile time, from the link feeding it (rad/s); NaN when no compiled element feeds it yet (a loop).</summary>
+        public double NominalOmega { get; set; } = double.NaN;
         public double SuppliedPhaseRad { get; set; }
 
         public static AuxBeamSpec FromJson(JsonObject o, string baseDirectory, string origin)
@@ -76,6 +78,9 @@ namespace UltrafastEngine.Engine
         /// <summary>Nominal carrier (rad/s).</summary>
         public double CenterOmega()
         {
+            // the exact nominal carrier, not the fed grid's snapped one; but what actually arrived wins if they really differ
+            if (Supplied != null && (double.IsNaN(NominalOmega) || Math.Abs(Supplied.Grid.OmegaCenter - NominalOmega) > 1e-3 * NominalOmega)) return Supplied.Grid.OmegaCenter;
+            if (!double.IsNaN(NominalOmega)) return NominalOmega;
             if (Pulse != null) return 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / Pulse.ResolveCenterWavelengthM();
             var s = LoadSaved();
             return s.Grid.OmegaCenter;
@@ -84,6 +89,7 @@ namespace UltrafastEngine.Engine
         /// <summary>Transform-limited duration estimate (s), for grid sizing.</summary>
         public double DurationEstimateS()
         {
+            if (Supplied != null) return PulseMetrics.Summarize(Supplied).FwhmS;
             if (Pulse != null) { double d = Pulse.ResolveDurationS(); return double.IsNaN(d) ? 1e-12 : d; }
             var s = LoadSaved();
             return PulseMetrics.Summarize(s).FwhmS;
@@ -92,7 +98,7 @@ namespace UltrafastEngine.Engine
         /// <summary>Approximate temporal extent including chirp (s), for grid sizing.</summary>
         public double ExtentEstimateS()
         {
-            if (Pulse == null) { var s = LoadSaved(); var pw = PulseMetrics.TemporalPower(s); var (lo, hi) = PulseMetrics.SupportRange(pw, 1e-4); return (hi - lo) * s.Grid.DTime; }
+            if (Pulse == null || Supplied != null) { var s = Supplied ?? LoadSaved(); var pw = PulseMetrics.TemporalPower(s); var (lo, hi) = PulseMetrics.SupportRange(pw, 1e-4); return (hi - lo) * s.Grid.DTime; }
             double tl = DurationEstimateS(), w0 = CenterOmega();
             double dw = 0.441 * 2 * Math.PI / tl; // FWHM spectral width
             double stretch = Math.Abs(Pulse.Gdd) * dw * 2 + Math.Abs(Pulse.Tod) * dw * dw;

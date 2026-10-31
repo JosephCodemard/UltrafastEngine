@@ -42,6 +42,7 @@ Each example is a folder with a README, its commands and its expected output. **
 | [35-tilt-fringes](35-tilt-fringes/README.md) | CLI | a Michelson with a tilted mirror in a Branched `.ufs`: fringes at lambda / angle from carried profiles | `ultrafast run michelson.ufs run.json -o results`, `python report.py` |
 | [36-structured-beams](36-structured-beams/README.md) | Python | Hermite-Gauss and Laguerre-Gauss M², a Bessel core from an axicon, a zone-plate focus | `python structured.py` |
 | [37-f2f-cep](37-f2f-cep/README.md) | Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
+| [39-third-order-cross-correlator](39-third-order-cross-correlator/README.md) | Python | SHG, a delay and THG in a Branched system: the layout of a SEQUOIA or TOCC | `python tocc.py` |
 | [38-four-grating-compressor](38-four-grating-compressor/README.md) | CLI | a compressor grating by grating: spatial chirp opens and closes, GDD against Treacy | `ultrafast run compressor.ufs run.json -o results`, `python report.py` |
 | [cpp](cpp/README.md) | C++ | the C API from C++: run a system with callbacks, list compute devices (CMake / Visual Studio) | see README |
 

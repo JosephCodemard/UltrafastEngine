@@ -132,6 +132,31 @@ def test_iris_and_decentred_rectangle():
     assert distance(f, L.Forvard(L.RectAperture(begin(2e-3), 2e-3, 1e-3, 0.7e-3, -0.3e-3), 0.5)) < 0.06
 
 
+def _slits(field, count, width, period):
+    open_ = np.zeros_like(XX)
+    for k in range(count):
+        open_ = np.maximum(open_, np.abs(XX - (k - (count - 1) / 2) * period) <= width / 2)
+    return L.MultIntensity(field, open_)
+
+
+def test_young_double_slit():
+    # 0/1 slits on 62 um cells against area-weighted ones; the exact integral is the reference for the engine (test_diffraction.py)
+    width, separation = 0.6e-3, 2e-3
+    _, f = fluence([source(radius_m=3e-3), b.mask("s", "slits", count=2, width_m=width, separation_m=separation), screen(1.0)])
+    assert distance(f, L.Forvard(_slits(begin(3e-3), 2, width, separation), 1.0)) < 0.1
+
+
+def test_talbot_self_image():
+    # a grating of period p images itself at z = 2 p^2 / lambda
+    period, count = 0.64e-3, 15
+    z = 2 * period ** 2 / LAM
+    _, f = fluence([source(radius_m=4e-3), b.mask("s", "slits", count=count, width_m=0.32e-3, separation_m=period), screen(z)])
+    assert distance(f, L.Forvard(_slits(begin(4e-3), count, 0.32e-3, period), z)) < 0.1
+    cut = f[:, N // 2]
+    spectrum = np.abs(np.fft.rfft(cut - cut.mean()))
+    assert spectrum[2:].argmax() + 2 == pytest.approx(SIZE / period, abs=1.5), "the period survives at the Talbot distance"
+
+
 @pytest.mark.parametrize("medium,bulk", [("FusedSilica", False), ("FusedSilica", True)])
 def test_diffraction_in_glass_uses_the_wavelength_in_the_medium(medium, bulk):
     um = LAM * 1e6

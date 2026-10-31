@@ -28,9 +28,10 @@ for e in (2e-6, 4e-6, 8e-6, 16e-6):
     r = uf.run(system, b.run_spec(b.pulse(1.03e-6, 180e-15, energy=e)))
     print(f"  E = {e * 1e6:5.1f} uJ -> TL {r.summary['output']['transformLimitFwhmS'] * 1e15:6.1f} fs")
 
-res.write("quickstart_results")
+here = os.path.dirname(os.path.abspath(__file__))
+res.write(os.path.join(here, "results"))
 try:
-    uf.plot(res).savefig("quickstart.png", dpi=120)
+    uf.plot(res).savefig(os.path.join(here, "quickstart.png"), dpi=120)
     print("saved quickstart.png")
 except ImportError:
     print("(pip install matplotlib for plots)")

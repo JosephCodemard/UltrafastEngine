@@ -87,7 +87,8 @@ namespace UltrafastEngine.Tests
             var withCache = Studies.Run(sys, run, StudySpec.FromJson(St(true)));
             var without = Studies.Run(sys, run, StudySpec.FromJson(St(false)));
             for (int i = 0; i < 5; i++) Assert.Close(without.Outputs[i][0], withCache.Outputs[i][0], 1e-12, 0, "point " + i);
-            Assert.True(withCache.Notes.Any(n => n.Contains("reused")), "the cache was used: " + string.Join("; ", withCache.Notes));
+            // glass, bs and fixed at each of the 5 points, and stage and x at the point equal to the nominal
+            Assert.True(withCache.Notes.Any(n => n.Contains("17 element runs reused")), "the cache was used: " + string.Join("; ", withCache.Notes));
         }
     }
 }

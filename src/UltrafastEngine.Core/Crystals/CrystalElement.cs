@@ -76,6 +76,8 @@ namespace UltrafastEngine.Crystals
             Type, ThetaRad * 180 / Math.PI, PhiRad * 180 / Math.PI, Qpm ? ", QPM " + (QpmPeriodM * 1e6).ToString("G5", CultureInfo.InvariantCulture) + " um" : "",
             Transverse.IsSpatial ? ", " + Transverse.Model : "");
         public double OutputOmega0 { get; set; } = double.NaN;
+        /// <summary>Nominal carrier of each output port (rad/s), so that a link from a by-product port continues at its own colour.</summary>
+        public Dictionary<string, double> PortOmega { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         public bool TransverseAware => Transverse.IsSpatial;
 
         private const double C = PhysicalConstants.SpeedOfLightMPerS;
@@ -647,7 +649,7 @@ namespace UltrafastEngine.Crystals
             }
             var auxArr = c.Find(e, "aux")?.RawValue?.AsArray() ?? j.GetArray("aux") ?? new JsonArray();
             foreach (var a in auxArr) el.Aux.Add(AuxBeamSpec.FromJson(a.AsObject(), c.System.BaseDirectory ?? c.Run.BaseDirectory, "element " + e.Id + ".aux"));
-            foreach (var a in el.Aux.Where(x => x.FromPort)) a.Pulse = c.Run.Pulse;
+            foreach (var a in el.Aux.Where(x => x.FromPort)) { a.Pulse = c.Run.Pulse; a.NominalOmega = c.FedCarrier(e.Id, a.Role); }
             // polarisations
             var pol = it.GetObject("polarizations");
             // beam
@@ -764,8 +766,12 @@ namespace UltrafastEngine.Crystals
                 double wp = mr == "pump" ? wMain : el.Aux.First(a => a.Role == "pump").CenterOmega();
                 double ws = mr == "signal" ? wMain : mr == "idler" ? wp - wMain : (el.Aux.FirstOrDefault(a => a.Role == "signal")?.CenterOmega() ?? wp - el.Aux.First(a => a.Role == "idler").CenterOmega());
                 wOut = outName == "pump" ? wp : outName == "signal" ? ws : wp - ws;
+                el.PortOmega["pump"] = wp; el.PortOmega["signal"] = ws; el.PortOmega["idler"] = wp - ws;
             }
             el.OutputOmega0 = Math.Abs(wOut - wMain) > 1e-6 * wMain ? wOut : double.NaN;
+            el.PortOmega["out"] = wOut;
+            if (el.Process == "shg") { el.PortOmega["fundamental"] = wMain; el.PortOmega["sh"] = 2 * wMain; }
+            else if (el.Process == "sfg") { el.PortOmega["a"] = wMain; el.PortOmega["b"] = wAuxN; el.PortOmega["sum"] = wMain + wAuxN; }
             el.NominalOmegaMain = wMain;
             ce.Active = el;
             c.Provenance.Record("element:" + e.Id, "crystal", crystal.Describe() + "; " + crystal.References, ModelSource.MaterialDefault, "crystal library");

@@ -47,6 +47,26 @@ def test_gaussian_through_an_iris_matches_the_fresnel_integral_on_the_axis():
 
 
 @requires_engine
+def test_double_slit_matches_the_fresnel_integral():
+    # one transverse dimension: a Gaussian on two slits, the pattern at 1 m against a direct sum of the Fresnel kernel
+    import numpy as np
+    w, slit, sep, z, k = 3e-3, 0.2e-3, 1e-3, 1.0, 2 * math.pi / LAM
+    grid = dict(nx=4096, ny=1, half_width_m=16e-3, spectral_samples=2, absorbing_boundary=True)
+    sys_ = b.system("slits", [
+        b.gap("source", 0.0, medium="Vacuum", transverse=b.transverse("cartesian", **grid, initial_profile=b.initial_profile("gaussian", radius_m=w))),
+        b.mask("s", "slits", count=2, width_m=slit, separation_m=sep),
+        b.gap("screen", z, medium="Vacuum", transverse=b.transverse("cartesian", **grid)),
+    ])
+    p = uf.run(sys_, b.run_spec(b.pulse(LAM, 1e-12, energy=1e-3), instruments=[b.instrument("beamProfile", at="end", name="p")])).instrument("p")
+    x, f = np.array(p["x_m"]), np.array(p["fluence_x_j_m2"])
+    keep = np.abs(x) < 4e-3
+    src = np.linspace(-1.5e-3, 1.5e-3, 20001)
+    field = np.exp(-src ** 2 / w ** 2) * ((np.abs(src - sep / 2) < slit / 2) | (np.abs(src + sep / 2) < slit / 2))
+    exact = np.array([abs(np.sum(field * np.exp(1j * k * (xo - src) ** 2 / (2 * z)))) ** 2 for xo in x[keep]])
+    assert 0.5 * np.abs(f[keep] / f[keep].sum() - exact / exact.sum()).sum() < 0.005
+
+
+@requires_engine
 def test_two_gratings_give_the_grating_pairs_gdd():
     # grating - slant gap - grating = Treacy (gratingPair, single pass) to second order
     beta = math.asin(LAM * 1.2e6 - math.sin(math.pi / 4))

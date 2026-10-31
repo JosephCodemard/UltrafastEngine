@@ -7,7 +7,7 @@ described in [docs/capabilities.md](docs/capabilities.md); what comes next is in
 
 | platform | C# tests (`--slow`) | other checks | date |
 |---|---|---|---|
-| macOS arm64, .NET 10 | **362 pass, 0 fail, 8 skipped** (7 `GpuTests`: no FP64 GPU device; the opt-in HAPI test), net48 builds | Python 64 pass on the NativeAOT library (5 plugin and `uf.study` tests need the hosted engine); `build/example_check.py`: all examples and tutorials ok (07 and the C++ example manual, pyNLO comparison of 10 not run); mkdocs --strict and mypy on `build.py` pass in a scratch venv; pyNLO cross-checks cannot run here (Python 2 only) | 2026-10-30 |
+| macOS arm64, .NET 10 | **378 pass, 0 fail, 8 skipped** (7 `GpuTests`: no FP64 GPU device; the opt-in HAPI test), net48 builds | Python 110 pass, 1 skipped, on the hosted library, with pyNLO and LightPipes; `build/example_check.py`: all examples and tutorials ok (07 and the C++ example manual); mkdocs --strict passes | 2026-10-31 |
 | Linux x64, .NET 10 and Mono (net48) | 225 / 225 (release baseline; the tests added since have not run on Linux -- the new CI will) | Python 61 / 61 with pyNLO; all 31 CLI examples strict; release packages | 2.1.8-beta release |
 | Windows (net48 / OpticStudio) | not run | -- | -- |
 
@@ -30,6 +30,19 @@ The sections below are the records of each verification, newest first after the 
 | `mypy` on `ultrafast.build` + `ultrafast.types` and `ultrafast_fitting.build` | no issues; a misspelt element key is reported |
 | C header | `gcc -fsyntax-only` passes |
 | GPU plugin, OpenCL path | `ultrafast devices --selftest` on PoCL: FFT, 1-D scalar / vector, radial, cartesian all match the CPU to ~1e-15; the same through the NativeAOT library (`uf_devices_json`) and the C++ example `devices.cpp`; Python `uf.devices()` / runs on the device |
+
+## Verified for the review of T0 to T2 and branches (macOS arm64, .NET 10, Python 3.12, 2026-10-31)
+
+| | result |
+|---|---|
+| C# (`--slow`) | 378 pass, 0 fail, 8 skipped |
+| Python | 110 pass, 1 skipped; pyNLO runs on Python 3.12 with jsonpickle, so its cross-checks are available |
+| CLI examples vs the engine of d6fb4e9 | 40 outputs of 29 examples: 27 identical. The other 13: numerical noise (centroids near 1e-21 m, edge fractions from 1e-20 to 1e-12), M² of beams with hard edges (below 0.4 %; 25 % for the square iris, where it now holds between planes), and example 08's radial run, 3.4e-4 in GDD of the output. Energy, duration and peak power unchanged within 1e-4 |
+| CLI examples vs f22b59f, after the fix for fed crystal ports | 50 outputs of 35 examples: all identical (before the last change, which keeps the exact nominal carrier) |
+| Phase matching | sinc² against angle; efficiency as L² then L; SH bandwidth 0.886 / (GVM L); Manley-Rowe through SHG and THG; `shg` and `sfg` are collinear only |
+| Not compared | Python examples (they use the current library), and 35 and 38 (version 3 files) |
+| Node cache | 81-point delay scan: 58.2 s to 9.6 s with 0.3 m of nonlinear glass upstream, identical rows |
+| Not run | net48 tests on Mono, CI, Windows, an independent physics review |
 
 ## Verified for diffraction, thermal-lens tracking and spatio-temporal couplings (macOS arm64, .NET 10, 2026-10-29)
 

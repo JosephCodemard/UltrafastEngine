@@ -92,7 +92,7 @@ crystal) overrides the tensor contraction.
   aux carriers), in the best plane (`interaction.plane`: `XY`, `XZ`, `YZ` for biaxial crystals; found automatically
   by largest |deff| otherwise). `{"thetaDeg": .., "phiDeg": ..}` fixes it; `"detuneDeg"` (in `cut` or on the element)
   tilts it away -- useful for scans.
-* **Non-collinear** (`opa`/`dfg`/`sfg`): `noncollinearDeg` is the angle between pump and signal inside the crystal;
+* **Non-collinear** (`opa`/`dfg` only; `shg` and `sfg` refuse it): `noncollinearDeg` is the angle between pump and signal inside the crystal;
   `"magic"` solves for the angle at which the idler's group velocity projected on the signal equals the signal's
   (broadest gain bandwidth). The cut is then the pump's angle to the optic axis (reported as `pumpThetaDeg`).
 * **Main-beam polarisation.** The main beam's Jones vector is projected on the crystal's axis for its role
@@ -225,3 +225,23 @@ given), the magic angle, and the QPM period.
 | calculator vs handbook angles (BBO, LBO, KDP, KTP, NC magic angle, PPLN periods) | < 0.15-0.8° | `Chi2Tests.PhaseMatchCalculator_*` |
 | radial vs 1-D Gaussian overlap, low conversion | < 1 % | `Chi2Tests.Shg_RadialModelAgrees*` |
 | DFG in MgO:PPLN vs pyNLO | 0.1-0.7 % (small signal), 0.5 % at gain 50 | `python/tests/test_pynlo_dfg.py` |
+
+## Phase matching and bandwidth
+
+Each wave has its own k(ω) from the Sellmeier equations at the crystal's angle, so the limits below follow from the solver rather than from a formula. They are tested in `Chi2Tests` and `CrystalChainTests`.
+
+| quantity | behaviour | checked against |
+|---|---|---|
+| angle | efficiency follows sinc²(Δk L / 2); `detuneDeg` tilts the cut | sinc², and Δk from independent Sellmeier arithmetic |
+| narrowband, L much less than τ / GVM | efficiency grows as L² | L² to 2 % |
+| broadband, L much more than τ / GVM | efficiency grows as L: extra length only adds walk-off | L to 2 % |
+| acceptance | SH bandwidth 0.886 / (GVM L) | to 3 % |
+
+So a thick crystal suits a narrow spectrum, and a broad spectrum needs a thin one. The walk-off length τ / GVM is about 0.3 mm for 30 fs in BBO at 1030 nm.
+
+## What a crystal does not model
+
+* **Angles between beams, except in `opa` and `dfg`.** `shg` and `sfg` are collinear, and `noncollinearDeg` is refused. In `opa` and `dfg` the angle sets Δk and the lateral drift, but comes from the element, not from the arms.
+* **A tilt on a linked arm.** It changes neither phase matching nor overlap, and raises a warning.
+* **Output directions.** Output beams carry no angle. `angleToSignalDeg` from the phase-matching solver is the only record, and only for `opa` and `dfg`.
+* **Polarisation between crystals.** Each wave takes the role its process needs. The waveplate between type I stages is assumed.

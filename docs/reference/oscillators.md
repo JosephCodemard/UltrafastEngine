@@ -127,7 +127,7 @@ A `resonator` is a passive cavity around nested elements, for its modes rather t
 Checks (`CavityAndCoherenceTests`): a lens guide's eigenmode (Kogelnik & Li), a two-mirror cavity, Fox-Li against the ABCD mode (3 %), and the diffraction loss of plane circular mirrors, near 20 %
 at N = 1 and falling as N^(−3/2).
 
-It is a nested sequence, not a graph: elements inside cannot be reached by a second beam. See [the plan](../design/t0-t2-plan.md#branching-impact).
+It is a nested sequence, not a graph: elements inside cannot be reached by a second beam. A graph loop is the alternative: see [Branched systems](branches.md#loops).
 
 ## Python
 

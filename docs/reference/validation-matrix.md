@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **378 tests** in 42 classes. **189** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **14** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **386 tests** in 43 classes. **197** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **14** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -14,6 +14,7 @@ Every C# test of the engine: **378 tests** in 42 classes. **189** of them check 
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
 | [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 20 | 14 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
+| [Crystal chains and phase-matching limits: SHG to THG, length against bandwidth](#crystalchaintests) | `CrystalChainTests` | 8 | 8 |
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 32 | 10 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
@@ -207,6 +208,21 @@ CPU FFTs and compute back-ends.
 | `EnvelopeFastPath_GivesTheGeneralPathResult_ScalarAndVectorWithRaman` | -- | -- |
 | `FftProviders_ManagedAlwaysWorks_NativeOnesPassTheSelfCheckOrSayWhy` | -- | -- |
 | `Stockham_MatchesRadix2AndTheDft_ForEveryPowerOfTwo` | direct DFT | -- |
+
+## CrystalChainTests
+
+Crystal chains and phase-matching limits: SHG to THG, length against bandwidth.
+
+| test | reference | tolerance |
+|---|---|---|
+| `AutoCut_OfAFedThirdHarmonicStage_IsPhaseMatched` | BBO type I THG of 1064 nm: theta = 31.3 deg (Dmitriev, Handbook of Nonlinear Optical Crystals) | 0.3 deg |
+| `Conversion_GrowsAsLengthSquared_ThenLinearlyOnceWalkOffLimitsIt` | Weiner, Ultrafast Optics: efficiency grows as L^2 for L << tau / GVM, as L beyond it | 2 % |
+| `DelayScanOfTheThirdHarmonic_IsTheCrossCorrelation` | third-order cross-correlation of Gaussians: FWHM = sqrt(tau^2 + (tau / sqrt 2)^2) | 1 % |
+| `NoncollinearSfg_IsRefusedNotIgnored` | only opa and dfg have a non-collinear geometry | exact |
+| `SecondHarmonicBandwidth_IsSetByTheCrystal` | sinc^2 phase-matching bandwidth: 0.886 / (GVM L); GVM from the crystal's group indices | 3 % |
+| `ShgThenSfg_ConservesPhotonsAtTheThirdHarmonic` | Manley-Rowe: one photon each of w and 2w per photon of 3w | 1e-3 |
+| `ShgThenSfg_MainAndFedBeamsCanSwap` | the crystal does not care which beam is called main | 1e-3 |
+| `TiltedArmIntoACrystal_Warns` | a crystal treats its beams as collinear: a tilted arm must say so | exact |
 
 ## DelayedLightTests
 

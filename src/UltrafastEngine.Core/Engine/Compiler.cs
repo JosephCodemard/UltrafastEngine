@@ -127,6 +127,7 @@ namespace UltrafastEngine.Engine
             public bool AirReferenced;
             public bool EnvAirInGaps;
             public double Omega0;
+            public readonly Dictionary<string, double> PortOmega = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             public Optics.BeamState Track;
             /// <summary>Track spatio-temporal couplings with the beam / apply their group-delay dispersion to the pulse.</summary>
             public bool StcTrack, StcPhase, StcProfile;
@@ -294,8 +295,10 @@ namespace UltrafastEngine.Engine
                 if (c.Out.Graph.IsBranched)
                 {
                     // each element continues from the beam on its first linked input
-                    var edge = c.Out.Graph.Edges.FirstOrDefault(x => string.Equals(x.To, e.Id, StringComparison.OrdinalIgnoreCase) && beamAfter.ContainsKey(x.From));
-                    if (edge != null) { c.Track = beamAfter[edge.From].track?.Clone(); c.Omega0 = beamAfter[edge.From].omega0; }
+                    var linked = c.Out.Graph.Edges.Where(x => string.Equals(x.To, e.Id, StringComparison.OrdinalIgnoreCase) && beamAfter.ContainsKey(x.From)).ToList();
+                    string mainPort = Ports.Inputs(e).FirstOrDefault();
+                    var edge = linked.FirstOrDefault(x => string.Equals(x.ToPort, mainPort, StringComparison.OrdinalIgnoreCase)) ?? linked.FirstOrDefault();
+                    if (edge != null) { c.Track = beamAfter[edge.From].track?.Clone(); c.Omega0 = c.PortOmega[edge.From + ":" + edge.FromPort]; }
                     else if (i > 0) { c.Track = c.Out.BeamAtInput?.Clone(); c.Omega0 = c.Out.RequestedOmega0; }
                 }
                 CompiledElement ce;
@@ -306,6 +309,9 @@ namespace UltrafastEngine.Engine
                 // nominal carrier after this element (SHG, idler output...): later elements default to it
                 if (ce.Active != null && !double.IsNaN(ce.Active.OutputOmega0) && ce.Active.OutputOmega0 > 0) c.Omega0 = ce.Active.OutputOmega0;
                 beamAfter[e.Id] = (c.Track, c.Omega0);
+                // each output port's carrier: a crystal's outputs differ, every other element has one
+                foreach (var port in Ports.Outputs(e)) c.PortOmega[e.Id + ":" + port] = c.Omega0;
+                if (ce.Active is Crystals.CrystalElement crystal) foreach (var kv in crystal.PortOmega) c.PortOmega[e.Id + ":" + kv.Key] = kv.Value;
             }
             foreach (var loop in c.Out.Graph.Stages.Where(s => s.Loop != null).Select(s => s.Loop))
                 if (loop.Members.All(id => c.Out.Elements.First(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)).GroupDelayAt(c.Out.RequestedOmega0) == 0))
@@ -354,6 +360,11 @@ namespace UltrafastEngine.Engine
         private static CompilerServices Services(Ctx c) => new CompilerServices
         {
             System = c.Sys, Run = c.Run, Registry = c.Reg, Provenance = c.Out.Provenance, Omega0 = c.Omega0, Warnings = c.Out.Warnings,
+            FedCarrier = (id, port) =>
+            {
+                var edge = c.Out.Graph.Edges.FirstOrDefault(x => string.Equals(x.To, id, StringComparison.OrdinalIgnoreCase) && string.Equals(x.ToPort, port, StringComparison.OrdinalIgnoreCase));
+                return edge != null && c.PortOmega.TryGetValue(edge.From + ":" + edge.FromPort, out double w) ? w : double.NaN;
+            },
             MaterialLookup = n => GetMaterial(c, n),
             NumFn = (e, k, f) => Num(c, e, k, f), StrFn = (e, k, f) => Str(c, e, k, f), FindFn = (e, k) => Find(c, e, k),
             PropertiesFn = e => ReadSpatialProperties(c, e),
@@ -1569,6 +1580,8 @@ namespace UltrafastEngine.Engine
         public ProvenanceLog Provenance { get; internal set; }
         public double Omega0 { get; internal set; }
         public List<string> Warnings { get; internal set; }
+        /// <summary>Carrier arriving on an element's input port, from what feeds it (rad/s); NaN if that is not compiled yet.</summary>
+        internal Func<string, string, double> FedCarrier;
         internal Func<SystemElement, string, double, double> NumFn;
         internal Func<SystemElement, string, string, string> StrFn;
         internal Func<SystemElement, string, OverrideRule> FindFn;

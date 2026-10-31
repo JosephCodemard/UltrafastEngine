@@ -138,7 +138,7 @@ A `steadyState` loop needs gain. The input enters once, so a passive loop only d
 
 ## Crystals
 
-An `aux` beam with `"fromPort": true` comes from a link to the port named by its `role`. Its timing and phase come from the paths, so `delayS` is not used.
+An `aux` beam with `"fromPort": true` comes from a link to the port named by its `role`. Its timing, phase and carrier come from the paths, so `delayS` is not used, and `cut: "auto"` solves for the colours that arrive: a fundamental and a second harmonic give the third-harmonic cut. Example [39](../examples/39-third-order-cross-correlator/README.md) is such a chain.
 
 ```jsonc
 { "id": "x", "type": "crystal", "crystal": "BBO", "lengthM": 20e-6, "interaction": { "process": "sfg", "type": "I" }, "cut": "auto",
@@ -175,5 +175,5 @@ ultrafast validate system.ufs --graph --mermaid    # a Mermaid diagram
 * Mode overlap assumes simple Gaussian beams at one plane and ignores M².
 * A linked crystal port takes the strongest packet only, and only the strongest main packet meets it. Other packets are booked as `packets not overlapping in crystal`, with a warning.
 * `gddFs2` of a `leakMirror` acts on the field, but is not in the `system` dispersion the element reports.
-* Beams crossing at an angle in a crystal are collinear in the model; `noncollinearDeg` still comes from the element, not the arms.
+* Beams crossing at an angle in a crystal are collinear in the model, with a warning if their arms are tilted. `noncollinearDeg` works for `opa` and `dfg` only and comes from the element, not the arms. See [Crystals](crystals.md#what-a-crystal-does-not-model).
 * Merged carried profiles share one transverse shape per stored frequency, so spectral fringes finer than `spectralSamples` are averaged.

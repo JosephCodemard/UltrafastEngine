@@ -178,7 +178,7 @@ def match(line, output_lines, rtol):
 
 def run_line(line, example_dir, cli, env, timeout):
     """Run one README line with bash; ultrafast / python point at the chosen engine and this interpreter."""
-    rooted = "docs/examples/" in line or re.search(r"(^|\s)python/", line)
+    rooted = "docs/examples/" in line or "docs/tutorials/" in line or re.search(r"(^|\s)python/", line)
     cwd = ROOT if rooted else example_dir
     prelude = 'export ULTRAFAST_CLI="%s"\n' % cli + 'ultrafast() { dotnet "%s" "$@"; }\npython() { "%s" "$@"; }\npython3() { "%s" "$@"; }\n' % (cli, sys.executable, sys.executable)
     t = time.time()
@@ -239,7 +239,12 @@ def baseline_cli(spec, scratch):
     subprocess.run(["git", "worktree", "add", "--detach", wt, spec], cwd=ROOT, check=True, capture_output=True)
     subprocess.run(["dotnet", "build", os.path.join(wt, "src", "UltrafastEngine.Cli"), "-c", "Release", "-f", "net10.0"],
                    check=True, capture_output=True)
-    return os.path.join(wt, "src", "UltrafastEngine.Cli", "bin", "Release", "net10.0", "ultrafast.dll")
+    cli = os.path.join(wt, "src", "UltrafastEngine.Cli", "bin", "Release", "net10.0", "ultrafast.dll")
+    # stop now rather than run every example against an engine that cannot start
+    p = subprocess.run(["dotnet", cli, "schema", "run"], capture_output=True, text=True)
+    if p.returncode != 0:
+        sys.exit("the %s engine does not start (exit %d), try --scratch in another folder:\n%s" % (spec, p.returncode, (p.stdout + p.stderr)[-400:]))
+    return cli
 
 
 def main():
@@ -310,7 +315,9 @@ def main():
                 shutil.copy(f, os.path.join(snap, rel, "summary.json"))
             t1 = time.time()
             for line in cmds:
-                run_line(line, d, other, env, args.timeout)
+                rc, out, _ = run_line(line, d, other, env, args.timeout)
+                if rc != 0:
+                    entry.setdefault("baselineFailed", []).append({"line": line, "rc": rc, "tail": out.strip().splitlines()[-1:]})
             for rel, f in summaries(d, t1).items():
                 mine = os.path.join(snap, rel, "summary.json")
                 if not os.path.exists(mine):
@@ -318,6 +325,8 @@ def main():
                 changed, added, removed = diff_summaries(f, mine, args.diff_rtol)
                 entry["diffs"].append({"output": rel, "changed": [{"key": k, "against": x, "now": y, "rel": r} for r, k, x, y in changed],
                                        "added": added, "removed": removed})
+            if new_summaries and not entry["diffs"]:
+                entry["notCompared"] = True
             # leave the example folders with this engine's results
             for line in cmds:
                 run_line(line, d, CLI, env, args.timeout)
@@ -327,6 +336,10 @@ def main():
               len(entry["quoted"]), len(bad), ", %d table keys not in summary.json" % len(unchecked) if unchecked else "", time.time() - t0))
         for q, got in bad:
             print("       README: %s\n       output: %s" % (q, got or "(no line with this text)"))
+        for bf in entry.get("baselineFailed", []):
+            print("       vs %s: exit %d on: %s\n         %s" % (args.against, bf["rc"], bf["line"], " ".join(bf["tail"])[:160]))
+        if entry.get("notCompared"):
+            print("       vs %s: NOT COMPARED, no summary.json from that engine" % args.against)
         for dd in entry["diffs"]:
             if dd["changed"] or dd["added"] or dd["removed"]:
                 print("       vs %s, %s: %d numbers changed, %d keys added, %d removed" % (args.against, dd["output"], len(dd["changed"]), len(dd["added"]), len(dd["removed"])))
