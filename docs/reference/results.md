@@ -29,7 +29,7 @@ list of linear terms applied, and notes. Active elements add:
 
 * `carrierWavelengthM` -- the main beam's carrier after the element (changes at crystals with another `output`);
 * `representation` -- "1-D coupled waves, 3 fields x 1024 samples", "radial Hankel 96 points x 512 samples", ...;
-* `beam` -- `radiusXM`, `radiusYM`, `m2` after elements that produce a transverse profile;
+* `beam` -- `radiusXM`, `radiusYM` (about the centroid), `m2` (along x) after elements that produce a transverse profile;
 * `values` -- element-specific numbers (crystal: angles, deff, Δk, QPM period, `conversionEfficiency`,
   `energy_<field>_J`, `manleyRoweResidual`; spatial bulk: `peakFluenceOutJPerM2`, `onAxisFluenceOutJPerM2`);
 * `byproducts` -- pulse metrics of every recorded by-product (`idler`, `pump`, ...).

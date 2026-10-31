@@ -74,6 +74,7 @@ The input pulse (docs/reference/run-spec.md#pulse).
 | `powerW` | number | W |  | Power of a cw source (shape cw) |
 | `repRateHz` | number | Hz |  | Repetition rate |
 | `chirp` | object (`chirp`) |  |  | Spectral phase about the carrier: gddS2/todS3/fodS4 or gddFs2/todFs3/fodFs4 |
+| `cepRad` | number | rad | 0 | Carrier-envelope phase |
 | `polarization` | any |  | "x" | "x", "y", "45", "-45", "rcp", "lcp", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm] |
 | `spectrum` | object (`pulseSpectrum`) |  |  | Measured spectrum (shape: spectrum): wavelengthsM + intensity (+ phaseRad), or csv |
 | `delayS` | number | s | 0 | Time offset |
@@ -189,6 +190,19 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `order` | integer |  | 1 | Super-Gaussian order of the soft aperture |
 | `aperture` | model (aperture) |  |  | Aperture model |
 
+### `beamSplitter`
+
+Lossless 2x2 splitter: c = t a - r b, d = r a + t b. More: [branches.md#beam-splitters](branches.md#beam-splitters)
+
+Also accepts: `elementCommon` (see *Common key groups*).
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `reflectivity` | number |  | 0.5 | Power reflectivity R |
+| `output` | string |  | c | Port that continues in a Sequential system (c, d; also transmitted, reflected) |
+| `sameAs` | string |  |  | Take the settings of this splitter: the same plate, passed a second time |
+| `side` | integer |  | 1 | Side the light meets: 2 reverses the sign of r (Michelson return) |
+
 ### `bulk` (also `medium`)
 
 Propagation in a material, nonlinear when it has a beam and n2. More: [elements.md#bulk](system-file.md)
@@ -267,6 +281,34 @@ A spectral filter: any filter model (transmission and phase). More: [elements.md
 | `filter` | model (filter) |  |  | Filter model |
 | `model` | model (filter) |  |  | Filter model (alternative key) |
 | `mechanism` | string |  | filter | Name of the loss in the budget |
+
+### `delay`
+
+A pure delay on a stage: a path in vacuum, or a time. More: [branches.md#delays](branches.md#delays)
+
+Also accepts: `elementCommon` (see *Common key groups*).
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `delayS` | number | s |  | Delay |
+| `lengthM` | number | m |  | ... or the vacuum path giving it |
+| `tiltXRad` | number | rad | 0 | Tilt of the beam against the axis |
+| `tiltYRad` | number | rad | 0 | Tilt in y |
+| `offsetXM` | number | m | 0 | Offset of the beam from the axis |
+| `offsetYM` | number | m | 0 | Offset in y |
+
+### `dichroic`
+
+A spectral splitter: reflects one side of an edge, transmits the other. More: [branches.md#beam-splitters](branches.md#beam-splitters)
+
+Also accepts: `elementCommon` (see *Common key groups*).
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `edgeWavelengthM` | number | m |  | Wavelength of R = 1/2 **Required.** |
+| `edgeWidthM` | number | m | 10e-9 | 10-90 % width of the edge |
+| `reflectLong` | boolean |  | true | Reflect wavelengths above the edge (else below) |
+| `output` | string |  | c | Port that continues in a Sequential system (c, d) |
 
 ### `dispersion`
 
@@ -465,6 +507,21 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `focalLengthM` | number | m |  | Focal length (mirror, alternative to the radius) |
 | `aberration` | object (`aberration`) |  |  | Wavefront error / surface figure (Zernike, random figure) |
 
+### `leakMirror`
+
+A mirror that leaks: reflected light continues, the leak is a port. More: [branches.md#beam-splitters](branches.md#beam-splitters)
+
+Also accepts: `elementCommon` (see *Common key groups*).
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `transmission` | number |  | 0.01 | Power transmission |
+| `wavelengthsM` | number or array | m |  | Wavelengths of transmissionSpectrum |
+| `transmissionSpectrum` | number or array |  |  | Power transmission at each wavelength (instead of transmission) |
+| `gddFs2` | number | fs^2 | 0 | GDD of the reflected beam |
+| `leakGddFs2` | number | fs^2 | 0 | GDD of the leak (substrate) |
+| `output` | string |  | out | Port that continues in a Sequential system (out, leak) |
+
 ### `lens`
 
 Thin lens on a carried transverse profile (chromatic with a material). More: [elements.md#lens](system-file.md)
@@ -625,6 +682,20 @@ A linear polariser. More: [elements.md#polarizer](system-file.md)
 | `axisRad` | number | rad |  | Transmission axis |
 | `extinctionRatio` | number |  | 1e5 | Extinction ratio |
 | `transmission` | number |  | 1 | Transmission along the axis |
+
+### `polarizingSplitter`
+
+A polarising splitter: p (x) mostly transmitted, s (y) mostly reflected. More: [branches.md#beam-splitters](branches.md#beam-splitters)
+
+Also accepts: `elementCommon` (see *Common key groups*).
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `transmissionP` | number |  | 1 | Power transmission of x |
+| `reflectivityS` | number |  | 1 | Power reflectivity of y |
+| `output` | string |  | c | Port that continues in a Sequential system (c, d) |
+| `sameAs` | string |  |  | Take the settings of this splitter |
+| `side` | integer |  | 1 | 2 reverses the sign of r |
 
 ### `prism`
 
@@ -1032,6 +1103,9 @@ Keys every element accepts.
 | `type` | string |  |  | Element type **Required.** |
 | `label` | string |  |  | Display name |
 | `enabled` | boolean |  | true | false skips the element |
+| `next` | any |  |  | Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md) |
+| `inputs` | any |  |  | Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md) |
+| `loop` | any |  |  | Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md) |
 | `surfaces` | number or array |  |  | [first, last] source surfaces (OpticStudio rows), informational |
 | `wavelengthsM` | number or array | m |  | Wavelengths of this element's per-wavelength arrays (default: the file's sampling) |
 | `indexProfile` | model (field) |  |  | Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) |
@@ -1175,6 +1249,7 @@ An auxiliary beam entering an active element (docs/reference/active-elements.md#
 | `from` | string |  |  | Results folder of a previous run (its output field) |
 | `energyJ` | number | J |  | Rescale a 'from' field to this energy |
 | `beam` | object (`auxBeamShape`) |  |  | Transverse shape of the aux beam |
+| `fromPort` | boolean |  |  | Take this beam from a link to the port named by role (Branched systems; docs/reference/branches.md) |
 | `delayS` | any | s | 0 | Delay relative to the main beam, or "auto" (centroids coincide) |
 
 ### `auxBeamShape`

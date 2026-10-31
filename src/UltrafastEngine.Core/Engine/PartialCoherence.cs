@@ -41,7 +41,11 @@ namespace UltrafastEngine.Engine
             var list = new List<(int Mx, int My, double Weight)>();
             for (int a = 0; a < modes; a++)
                 for (int b = 0; b < (dims == 2 ? modes - a : 1); b++) list.Add((a, b, Math.Pow(t, a + b)));
-            double full = dims == 2 ? 1 / ((1 - t) * (1 - t)) : 1 / (1 - t), sum = list.Sum(x => x.Weight);
+            double full = dims == 2 ? 1 / ((1 - t) * (1 - t)) : 1 / (1 - t);
+            // modes too weak to matter are skipped, and the shares of the others renormalised, so the energy is the source's
+            double all = list.Sum(x => x.Weight);
+            list = list.Where(x => x.Weight / all >= 1e-4).ToList();
+            double sum = list.Sum(x => x.Weight);
             var saved = (JsonObject)JsonValue.Parse(tv.ToJson(false)).AsObject();
             double e0 = run.Pulse.EnergyJ, p0 = run.Pulse.PeakPowerW, a0 = run.Pulse.AveragePowerW;
             RunResult first = null;
@@ -51,7 +55,6 @@ namespace UltrafastEngine.Engine
                 foreach (var (mx, my, w) in list)
                 {
                     double share = w / sum;
-                    if (share < 1e-4) continue;
                     var prof = new JsonObject().Set("kind", "hermiteGauss").Set("modeX", mx).Set("modeY", my).Set("radiusM", w0 / Math.Sqrt(m2));
                     tv.Set("initialProfile", prof);
                     run.Pulse.EnergyJ = e0 * share; run.Pulse.PeakPowerW = p0 * share; run.Pulse.AveragePowerW = a0 * share;
@@ -71,6 +74,7 @@ namespace UltrafastEngine.Engine
             o.Values.Set("m2", m2).Set("modes", results.Count).Set("t", t).Set("capturedWeight", sum / full).Set("virtual", true);
             o.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Gaussian-Schell beam of M^2 = {0:G4}: {1} coherent modes, {2:P2} of the weight of the full series, each one complete run; intensities add.", m2, results.Count, sum / full));
             first.Instruments.Add(o);
+            if (sum / full < 0.99) first.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "coherence: {0} modes hold {1:P1} of the weight of M^2 = {2:G4}, so the beam comes out too small: raise \"modes\".", modes, sum / full, m2));
             if (results.Any(x => x.R.Records.Any(q => q.BIntegralRad > 0.01))) first.Warnings.Add("coherence: an element is nonlinear; each mode was propagated alone, so the coupling between modes is not included.");
             first.Notes.AddRange(o.Notes);
             return first;

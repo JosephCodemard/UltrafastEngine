@@ -57,6 +57,8 @@ namespace UltrafastEngine.Engine
         public bool Probe { get; set; }
         public List<string> Notes { get; } = new List<string>();
         /// <summary>Tracked Gaussian beam at the entrance and exit (null when beam tracking is off).</summary>
+        /// <summary>Virtual beams on this element's input ports, by port.</summary>
+        public Dictionary<string, VirtualInput> VirtualInputs { get; } = new Dictionary<string, VirtualInput>(StringComparer.OrdinalIgnoreCase);
         public Optics.BeamState BeamIn { get; set; }
         public Optics.BeamState BeamOut { get; set; }
         /// <summary>Largest delay (s, either sign) of satellite pulses the element creates (ghost replicas): the grid
@@ -99,6 +101,10 @@ namespace UltrafastEngine.Engine
         public double RequestedOmega0 { get; set; }
         /// <summary>Tracked Gaussian beam at the system input (null when beam tracking is off).</summary>
         public Optics.BeamState BeamAtInput { get; set; }
+        /// <summary>The connected form of the system.</summary>
+        public SystemGraph Graph { get; set; }
+        /// <summary>Branched systems in a study: element outputs shared between points.</summary>
+        public GraphCache GraphCache { get; set; }
     }
 
     /// <summary>
@@ -109,7 +115,7 @@ namespace UltrafastEngine.Engine
     public static partial class Compiler
     {
         public static readonly string[] ElementTypes =
-            { "dispersion", "bulk", "gap", "fiber", "interface", "mirror", "grating", "gratingPair", "chirpedMirror", "aperture", "filter", "waveplate", "polarizer", "rotator", "probe", "custom", "lens", "user", "crystal", "gain", "amplifier", "saturableAbsorber", "sesam", "oscillator",
+            { "beamSplitter", "polarizingSplitter", "leakMirror", "dichroic", "delay", "dispersion", "bulk", "gap", "fiber", "interface", "mirror", "grating", "gratingPair", "chirpedMirror", "aperture", "filter", "waveplate", "polarizer", "rotator", "probe", "custom", "lens", "user", "crystal", "gain", "amplifier", "saturableAbsorber", "sesam", "oscillator",
               "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront", "mask", "prism", "resonator" };
 
         private sealed class Ctx
@@ -124,6 +130,100 @@ namespace UltrafastEngine.Engine
             public Optics.BeamState Track;
             /// <summary>Track spatio-temporal couplings with the beam / apply their group-delay dispersion to the pulse.</summary>
             public bool StcTrack, StcPhase, StcProfile;
+        }
+
+        /// <summary>The splitter family: one element with the coefficients and port names of each type.</summary>
+        private static void CompileSplitter(Ctx c, SystemElement e, CompiledElement ce, string type)
+        {
+            var src = e;
+            string same = e.Json.GetString("sameAs");
+            if (same != null)
+            {
+                src = c.Sys.Find(same) ?? throw new JsonException("sameAs names '" + same + "', which is not an element id");
+                if (!string.Equals(src.Type, e.Type, StringComparison.OrdinalIgnoreCase)) throw new JsonException("sameAs needs an element of the same type");
+            }
+            double Key(string name, double def) => Num(c, src, name, def);
+            Func<double, (double Rx, double Ry)> reflect;
+            Func<double, double> phaseR = null, phaseT = null;
+            string a = "a", b = "b", cPort = "c", dPort = "d", keep = "c";
+            switch (type)
+            {
+                case "beamsplitter":
+                {
+                    double R = Key("reflectivity", 0.5);
+                    if (R < 0 || R > 1) throw new JsonException("reflectivity must be between 0 and 1");
+                    reflect = w => (R, R);
+                    break;
+                }
+                case "polarizingsplitter":
+                {
+                    double tp = Key("transmissionP", 1), rs = Key("reflectivityS", 1);
+                    if (tp < 0 || tp > 1 || rs < 0 || rs > 1) throw new JsonException("transmissionP and reflectivityS must be between 0 and 1");
+                    reflect = w => (1 - tp, rs);
+                    break;
+                }
+                case "leakmirror":
+                {
+                    a = "in"; b = "back"; cPort = "leak"; dPort = "out"; keep = "out";
+                    double T = Key("transmission", 0.01);
+                    var wl = src.Json.GetDoubleArray("wavelengthsM"); var ts = src.Json.GetDoubleArray("transmissionSpectrum");
+                    if (ts != null && (wl == null || wl.Length != ts.Length)) throw new JsonException("transmissionSpectrum needs wavelengthsM of the same length");
+                    var order = wl == null ? null : Enumerable.Range(0, wl.Length).OrderBy(i => wl[i]).ToArray();
+                    double TAt(double w)
+                    {
+                        if (ts == null) return T;
+                        double l = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w;
+                        if (l <= wl[order[0]]) return ts[order[0]];
+                        for (int i = 1; i < order.Length; i++)
+                            if (l <= wl[order[i]]) { double f = (l - wl[order[i - 1]]) / (wl[order[i]] - wl[order[i - 1]]); return ts[order[i - 1]] + f * (ts[order[i]] - ts[order[i - 1]]); }
+                        return ts[order[order.Length - 1]];
+                    }
+                    reflect = w => { double r = 1 - TAt(w); return (r, r); };
+                    double w0 = c.Omega0, gddR = Key("gddFs2", 0) * 1e-30, gddT = Key("leakGddFs2", 0) * 1e-30;
+                    if (gddR != 0) phaseR = w => 0.5 * gddR * (w - w0) * (w - w0);
+                    if (gddT != 0) phaseT = w => 0.5 * gddT * (w - w0) * (w - w0);
+                    break;
+                }
+                default: // dichroic
+                {
+                    double edge = Key("edgeWavelengthM", double.NaN), width = Key("edgeWidthM", 10e-9);
+                    if (double.IsNaN(edge)) throw new JsonException("a dichroic needs edgeWavelengthM");
+                    bool longR = src.Json.GetBool("reflectLong", true);
+                    reflect = w =>
+                    {
+                        // logistic edge: 10-90 % in ln(81) widths of the scale
+                        double l = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w, u = (l - edge) / (width / Math.Log(81));
+                        double r = 1 / (1 + Math.Exp(longR ? -u : u));
+                        return (r, r);
+                    };
+                    break;
+                }
+            }
+            string port = e.Json.GetString("output", keep);
+            port = port == "transmitted" ? cPort : port == "reflected" ? dPort : port;
+            if (port != cPort && port != dPort) throw new JsonException("output must be " + cPort + " or " + dPort);
+            ReadVirtualInputs(c, e, ce);
+            VirtualInput onB = null;
+            if (!c.Out.Graph.IsBranched && ce.VirtualInputs.TryGetValue(b, out onB) && onB.CoherentWith == null)
+                throw new JsonException("in a Sequential system the virtual beam on port " + b + " must give coherentWith: \"input\" (only one pulse continues, so an incoherent sum cannot be held)");
+            ce.Active = new BeamSplitterElement(e.Type, reflect, phaseR, phaseT, e.Json.GetInt("side", 1) == 2 ? -1 : 1, a, b, cPort, dPort, port, c.Out.Graph.IsBranched ? null : onB);
+        }
+
+        /// <summary>Read an element's "inputs": virtual beams by port.</summary>
+        private static void ReadVirtualInputs(Ctx c, SystemElement e, CompiledElement ce)
+        {
+            var inputs = e.Json.GetObject("inputs");
+            if (inputs == null) return;
+            var ports = Ports.Inputs(e);
+            foreach (var kv in inputs)
+            {
+                var o = kv.Value.AsObject();
+                if (o.GetBool("virtual", false)) continue;
+                string port = int.TryParse(kv.Key, out int n) && n >= 1 && n <= ports.Length ? ports[n - 1] : kv.Key;
+                var aux = AuxBeamSpec.FromJson(o, c.Sys.BaseDirectory, "element " + e.Id + ".inputs." + kv.Key);
+                aux.Role = port;
+                ce.VirtualInputs[port] = new VirtualInput { Spec = aux, PhaseRad = o.GetDouble("phaseRad", 0), CoherentWith = o.GetString("coherentWith") };
+            }
         }
 
         public static CompiledRun Compile(SystemDescription sys, RunSpec run, ModelRegistry registry = null)
@@ -179,10 +279,25 @@ namespace UltrafastEngine.Engine
                 c.Out.Warnings.Add("physics.beamTracking is on but there is no Gaussian inputBeam to start from (give inputBeam {\"kind\": \"gaussian\", \"w0M\": ..., \"zWaistM\": ...}).");
             c.Out.BeamAtInput = c.Track?.Clone();
 
+            // ---- graph: order, ports, alerts
+            c.Out.Graph = SystemGraph.Build(sys);
+            c.Out.Warnings.AddRange(c.Out.Graph.Warnings);
+            var order = c.Out.Graph.IsBranched
+                ? c.Out.Graph.Stages.SelectMany(s => s.Ids).Select(id => sys.Elements.First(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase))).ToList()
+                : sys.Elements;
+            var beamAfter = new Dictionary<string, (Optics.BeamState track, double omega0)>(StringComparer.OrdinalIgnoreCase);
+
             // ---- elements
-            for (int i = 0; i < sys.Elements.Count; i++)
+            for (int i = 0; i < order.Count; i++)
             {
-                var e = sys.Elements[i];
+                var e = order[i];
+                if (c.Out.Graph.IsBranched)
+                {
+                    // each element continues from the beam on its first linked input
+                    var edge = c.Out.Graph.Edges.FirstOrDefault(x => string.Equals(x.To, e.Id, StringComparison.OrdinalIgnoreCase) && beamAfter.ContainsKey(x.From));
+                    if (edge != null) { c.Track = beamAfter[edge.From].track?.Clone(); c.Omega0 = beamAfter[edge.From].omega0; }
+                    else if (i > 0) { c.Track = c.Out.BeamAtInput?.Clone(); c.Omega0 = c.Out.RequestedOmega0; }
+                }
                 CompiledElement ce;
                 try { ce = CompileElement(c, e); }
                 catch (JsonException ex) { throw new ModelException("Element '" + e.Id + "' (" + e.Type + "): " + ex.Message, ex); }
@@ -190,7 +305,11 @@ namespace UltrafastEngine.Engine
                 c.Out.Elements.Add(ce);
                 // nominal carrier after this element (SHG, idler output...): later elements default to it
                 if (ce.Active != null && !double.IsNaN(ce.Active.OutputOmega0) && ce.Active.OutputOmega0 > 0) c.Omega0 = ce.Active.OutputOmega0;
+                beamAfter[e.Id] = (c.Track, c.Omega0);
             }
+            foreach (var loop in c.Out.Graph.Stages.Where(s => s.Loop != null).Select(s => s.Loop))
+                if (loop.Members.All(id => c.Out.Elements.First(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)).GroupDelayAt(c.Out.RequestedOmega0) == 0))
+                    throw new JsonException("The loop entered at '" + loop.Entry + "' has no delay around it: give it a path.");
             var ids = c.Out.Elements.GroupBy(x => x.Id, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
             if (ids.Count > 0) c.Out.Warnings.Add("Duplicate element ids: " + string.Join(", ", ids) + " (overrides and probes address the first match).");
 
@@ -204,7 +323,7 @@ namespace UltrafastEngine.Engine
                 ce.Probe = ce.Enabled && (run.IsProbe(ce.Id, last) || instrumentAt.Contains(ce.Id));
             }
             foreach (var at in instrumentAt)
-                if (at != "end" && at != "input" && c.Out.Elements.All(x => !string.Equals(x.Id, at, StringComparison.OrdinalIgnoreCase)))
+                if (at != "end" && at != "input" && at.IndexOf('#') < 0 && at.IndexOf(':') < 0 && c.Out.Elements.All(x => !string.Equals(x.Id, at, StringComparison.OrdinalIgnoreCase)))
                     c.Out.Warnings.Add("Instrument location \"" + at + "\" matches no element id.");
 
             // ---- grid & pulse (at the run pulse's own carrier, not the nominal carrier at the end of the system)
@@ -446,6 +565,17 @@ namespace UltrafastEngine.Engine
                     c.Out.Provenance.Record("element:" + e.Id, "lens", ce.Active.Description, ModelSource.SystemData, "system file");
                     break;
                 }
+                case "beamsplitter": case "polarizingsplitter": case "leakmirror": case "dichroic":
+                    CompileSplitter(c, e, ce, type);
+                    break;
+                case "delay":
+                {
+                    double tau = e.Json.Has("delayS") ? Num(c, e, "delayS", 0) : Num(c, e, "lengthM", 0) / PhysicalConstants.SpeedOfLightMPerS;
+                    ce.Pre.Add(new DelayTerm(tau));
+                    double tx = Num(c, e, "tiltXRad", 0), ty = Num(c, e, "tiltYRad", 0), ox = Num(c, e, "offsetXM", 0), oy = Num(c, e, "offsetYM", 0);
+                    if (tx != 0 || ty != 0 || ox != 0 || oy != 0) ce.Active = new BeamTiltElement(tx, ty, ox, oy);
+                    break;
+                }
                 case "user":
                 {
                     var spec = Model(c, e, "callback", out var src) ?? throw new JsonException("user element needs \"callback\": \"@name\" (a registered element callback).");
@@ -566,7 +696,7 @@ namespace UltrafastEngine.Engine
                 case "bulk": case "gap": case "medium":
                 {
                     string mat = Find(c, e, "material")?.RawValue?.AsString() ?? e.Json.GetString("material", type == "gap" ? "Air" : null);
-                    t.Propagate(ce.LengthM, IndexOrOne(c, mat));
+                    t.Propagate(ce.LengthM, IndexOrOne(c, mat), IndexOf(c, mat));
                     break;
                 }
                 case "lens":

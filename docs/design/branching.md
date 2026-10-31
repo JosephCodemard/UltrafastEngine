@@ -1,8 +1,7 @@
 # Design: branched systems
 
-Status: **final plan, not implemented** (2026-10-30, second revision, after the owner's review). Nothing here changes the engine yet.
-Background: [the plan that came before](t0-t2-plan.md#branching-impact) and [the active-media proposal](phase2-active-media.md), which made auxiliary beams
-"ports with a pluggable source, so a later branch layer only connects ports". This design is that layer.
+Status: **built** (stages 1 to 8, 2026-10-30; reviewed 2026-10-31). This page records the design and why it took this form. Where the plan and the code differ, the code and [what changed in building it](#15-what-changed-in-building-it) are right. User reference: [Branched systems](../reference/branches.md). Code: [Architecture](../architecture/index.md).
+Background: auxiliary beams were built as "ports with a pluggable source, so a later branch layer only connects ports". This design is that layer.
 
 ## 1. The plan in brief
 
@@ -271,7 +270,6 @@ output: packets leaving the loop on all passes, with their ledgers
 | `polarizingSplitter` | `a`, `b` → `c`, `d` | the `thinFilmPolarizer` model with both ports kept | Malus; extinction |
 | `dichroic` | `in` → `c`, `d` | spectral R(λ) | sum of outputs = input at each λ |
 | `delay` | `in` → `out` | a path or `delayS` on a stage | Michelson fringes of period λ/2 |
-| `source` | → `out` | a second laser in a branched system | -- |
 
 These are variants of one definition, so reflection signs live in one place: side 2 has r' = −r\* t / t\* and t' = t. All work in sequential systems through `output` and virtual inputs.
 
@@ -368,3 +366,20 @@ The engine is about to gain its largest structural change, so its structure gets
 * **`docs/architecture/`**: what the main folders, files and classes do, and the key processes (compile, execute, grids, studies, the graph).
 * **File headers.** Every new or substantially changed source file starts with a short summary: what it does, its main classes, and their key signatures. This is a rule in `AGENTS.md`.
 * Both are kept current with each stage.
+
+## 15. What changed in building it
+
+* **No `source` element.** A virtual beam on any input port is a source, so a separate element was not needed.
+* **No `dump` element.** Unused outputs are virtual outputs.
+* **No segments as objects.** The scheduler works element by element through `RunElement`, with the sequential loop kept as it was.
+* **No cut edges.** Packets sent back wait in their target's queue for the next pass.
+* **Pairing at a splitter was not needed.** It runs once per packet, which is exact for a linear element; interference happens when packets merge.
+* **No window pre-pass.** Packets that do not fit a window stay separate.
+* A virtual beam at a Sequential splitter must be coherent, since only one pulse continues.
+* `leakMirror` has ports `in`, `back`, `out`, `leak`, and the splitter family is one class with coefficients and port names per type.
+* The cache's nominal run stores and the others only read, so nothing depending on a scanned parameter accumulates.
+* Tilts and offsets live on `delay`: arms need a way to be misaligned, and no other element owned that.
+* Tails travel in the path ledger, so a branch's copy is automatic.
+* A `steadyState` loop settles when both the field's shape and its energy repeat. Shape alone is not enough: a passive loop keeps its shape from the first pass while it decays. Unitarity means a lossless linear network cannot hold light, so a steady state needs gain.
+* `graph.energyOutJ` counts every packet at `end`; the field in `RunResult.Output` is the strongest. A crystal's fed ports interact with one main packet, and other packets are booked, so fed energy is not used twice.
+* Not built: the speed-up of the node cache was measured only on example 33 ([history](history.md)); beams crossing at an angle in a crystal; a driven loop with the source fed every round trip.

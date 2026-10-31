@@ -32,11 +32,24 @@ uf_release(res); uf_release(run); uf_release(sys);
 * Different handles may be used from different threads; one handle must not be used concurrently.
 * `uf_capabilities` returns the built-in model kinds, materials, element types and instruments (JSON).
 
+## All functions
+
+| group | functions |
+|---|---|
+| library | `uf_version()`, `uf_last_error()`, `uf_free(p)`, `uf_release(h)`, `uf_capabilities(&json)`, `uf_command(request, &json)`, `uf_devices_json(options, &json)`, `uf_set_default_backend(name)`, `uf_crystal_phase_match(request, &json)` |
+| system | `uf_system_load_file(path, &sys)`, `uf_system_load_json(json, &sys)`, `uf_system_to_json(sys, &json)`, `uf_system_validate(sys, &report)` |
+| run | `uf_run_create(sys, json, &run)`, `uf_run_create_file(sys, path, &run)`, the `uf_run_set_*_callback` functions below, `uf_run_execute(run, &res)` |
+| result | `uf_result_summary_json(res, &json)`, `uf_result_provenance_json(res, &json)`, `uf_result_array_names(res, &json)`, `uf_result_array_info(res, name, &ndim, shape4, &length)`, `uf_result_array_copy(res, name, dest, capacity)`, `uf_result_write(res, directory)` |
+
+`uf_version` and `uf_last_error` return strings owned by the library: do not free them. A Branched system is the same file with `"topology": "branched"`, so the C API has no calls of its own for it: `uf_system_load_*` takes either form, and `uf_result_summary_json` gains `graph` ([Branched systems](branches.md)).
+
 ## Callbacks
 
 All callbacks are vectorised (whole arrays per call) and return 0 for success (non-zero aborts the run with
 `UF_E_CALLBACK`). They are registered under a name and referenced from JSON as `{"kind": "callback", "name": ...}`
 or `"@name"`.
+
+The header names these types `uf_time_response_fn`, `uf_index_fn`, `uf_filter_fn`, `uf_beam_fn`, `uf_array_fn`, `uf_element_fn`, `uf_field_fn` and `uf_progress_fn`.
 
 | registration | signature | used as |
 |---|---|---|

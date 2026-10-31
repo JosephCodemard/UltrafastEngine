@@ -96,16 +96,18 @@ generation in PPLN to better than 1 % in the converted energies. See [Capabiliti
 * **One engine, every interface.** The same core runs from the CLI, from Python (in-process), from C/C++ through a
   C API (NativeAOT library), and from any .NET language.
 
+* **Beams that split and meet.** A system is `Sequential` or `Branched`: splitters, interferometers, loops and crystals fed by arms, with the carrier phase of each path, so interference needs no separate model. Instruments such as an autocorrelator or FROG can be built from elements ([Branched systems](docs/reference/branches.md)).
+
 ## Documentation
 
 | | |
 |---|---|
 | [Getting started](docs/getting-started.md) | build on Windows, macOS (including Apple silicon) and Linux; Python setup |
-| [Tutorials](docs/tutorials/index.md) | five step-by-step tutorials: first run, diagnostics, a CPA chain, measured data, contrast |
-| [Examples](docs/examples/README.md) | 27 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier, OPCPA and a fitted CPA line |
+| [Tutorials](docs/tutorials/index.md) | six step-by-step tutorials: first run, diagnostics, a CPA chain, measured data, contrast, diffraction |
+| [Examples](docs/examples/README.md) | 39 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier, OPCPA, interferometers and instruments built from elements, each marked CLI, Python or both |
 | [Reference](docs/reference/system-file.md) | system file, run spec, every element and instrument, models, results |
 | [Capabilities and limitations](docs/capabilities.md) | what is modelled, how it is validated, and what is not modelled |
-| [Plugins](docs/plugins/index.md) | the fitting and zemax plugins, [installing plugins](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
+| [Plugins](docs/plugins/index.md) | the fitting, zemax, gpu and hitran plugins, [installing plugins](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
 | [For AI agents](docs/agents.md) | how to drive and extend the engine programmatically ([`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt)) |
 | [Claude Code](docs/claude-code.md) | the Claude Code setup: `CLAUDE.md` files, project commands, subagents, skills and hooks |
 | [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages (CLI, Python wheel, C API, C# libraries, OpticStudio extension) for each platform, with only the plugins you choose |
@@ -119,7 +121,7 @@ src/UltrafastEngine.Core     the engine (C#, net10.0 + net48, no NuGet dependenc
 src/UltrafastEngine.Cli      the `ultrafast` command
 src/UltrafastEngine.Native   C API (include/ultrafast.h)
 python/                      the `ultrafast` Python package
-plugins/fitting, plugins/zemax
+plugins/                     fitting, zemax, gpu, hitran
 schemas/                     JSON Schemas of system files and run specs
 docs/                        documentation, tutorials, examples, synthetic test data
 tests/                       C# test suite (no external framework)

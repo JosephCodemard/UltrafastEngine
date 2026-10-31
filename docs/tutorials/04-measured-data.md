@@ -10,7 +10,7 @@ We use the plate of tutorial 1. Imagine you put it in your beam and recorded, af
 * a power-meter reading.
 
 You know the laser's centre wavelength and bandwidth, but not exactly its pulse energy at the plate or its residual
-chirp. Files: `docs/examples/tutorial/make_data.py`, `data/`, `run-measured.json`, `run-fit.json`.
+chirp. Files: `docs/tutorials/files/make_data.py`, `data/`, `run-measured.json`, `run-fit.json`.
 
 ## 1. Preparing the files
 

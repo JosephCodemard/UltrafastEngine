@@ -187,6 +187,32 @@ namespace UltrafastEngine.Engine
         }
 
         /// <summary>For tests and tools: add a field (on the long grid) to the tail.</summary>
+        /// <summary>An independent copy, for a new branch.</summary>
+        public TailLedger Clone()
+        {
+            var c = (TailLedger)MemberwiseClone();
+            c._tx = (Complex[])_tx.Clone(); c._ty = (Complex[])_ty.Clone();
+            return c;
+        }
+
+        /// <summary>Multiply the tail by a factor of absolute frequency, on both polarisations.</summary>
+        public void Multiply(Func<double, Complex> factor) => MultiplyPolarized(w => { var f = factor(w); return (f, f); });
+
+        public void MultiplyPolarized(Func<double, (Complex X, Complex Y)> factor)
+        {
+            for (int i = 0; i < _tx.Length; i++)
+            {
+                var (x, y) = factor(Long.OmegaAbsolute[i]);
+                _tx[i] *= x; _ty[i] *= y;
+            }
+        }
+
+        /// <summary>Add another path's tail, on the same grid.</summary>
+        public void Add(TailLedger other)
+        {
+            for (int i = 0; i < _tx.Length; i++) { _tx[i] += other._tx[i]; _ty[i] += other._ty[i]; }
+        }
+
         public void AddToTail(PulseField f) { for (int i = 0; i < _tx.Length; i++) { _tx[i] += f.Ax[i]; _ty[i] += f.Ay[i]; } }
 
         /// <summary>Fraction of the tail energy in the outer 5 % of each side of the long window (a tail that wraps).</summary>

@@ -58,6 +58,8 @@ namespace UltrafastEngine
             }
             if (system.WavelengthsM != null && system.WavelengthsM.Any(l => !(l > 0))) rep.Errors.Add("sampling wavelengths must be positive");
             if (rep.Errors.Count > 0) return rep;
+            try { rep.Warnings.AddRange(SystemGraph.Build(system).Warnings.Where(w => run == null)); }
+            catch (JsonException ex) { rep.Errors.Add(ex.Message); return rep; }
             try
             {
                 if (run == null)

@@ -12,8 +12,13 @@ namespace UltrafastEngine.Physics
     public struct DispersionPoint
     {
         public double GroupDelayS, GddS2, TodS3;
+        /// <summary>Carrier phase and group delay this term takes out of the field, for <see cref="Engine.PathLedger"/>.</summary>
+        public double FramePhaseRad, FrameDelayS;
+        /// <summary>The term removed a carrier phase it cannot state (traced group-delay data).</summary>
+        public bool PhaseUnknown;
         public static DispersionPoint operator +(DispersionPoint a, DispersionPoint b) =>
-            new DispersionPoint { GroupDelayS = a.GroupDelayS + b.GroupDelayS, GddS2 = a.GddS2 + b.GddS2, TodS3 = a.TodS3 + b.TodS3 };
+            new DispersionPoint { GroupDelayS = a.GroupDelayS + b.GroupDelayS, GddS2 = a.GddS2 + b.GddS2, TodS3 = a.TodS3 + b.TodS3,
+                FramePhaseRad = a.FramePhaseRad + b.FramePhaseRad, FrameDelayS = a.FrameDelayS + b.FrameDelayS, PhaseUnknown = a.PhaseUnknown || b.PhaseUnknown };
     }
 
     /// <summary>
@@ -57,7 +62,7 @@ namespace UltrafastEngine.Physics
         {
             double h = omega * 2e-4;
             double g0 = GroupDelayAt(omega), gp = GroupDelayAt(omega + h), gm = GroupDelayAt(omega - h);
-            return new DispersionPoint { GroupDelayS = g0, GddS2 = (gp - gm) / (2 * h), TodS3 = (gp - 2 * g0 + gm) / (h * h) };
+            return new DispersionPoint { GroupDelayS = g0, GddS2 = (gp - gm) / (2 * h), TodS3 = (gp - 2 * g0 + gm) / (h * h), FrameDelayS = g0, PhaseUnknown = g0 != 0 };
         }
 
         /// <summary>Power transmission (unpolarised average) at omega -- for reports.</summary>
@@ -111,7 +116,8 @@ namespace UltrafastEngine.Physics
             double d1 = (-p[0] + 9 * p[1] - 45 * p[2] + 45 * p[4] - 9 * p[5] + p[6]) / (60 * h);
             double d2 = (2 * p[0] - 27 * p[1] + 270 * p[2] - 490 * p[3] + 270 * p[4] - 27 * p[5] + 2 * p[6]) / (180 * h * h);
             double d3 = (p[0] - 8 * p[1] + 13 * p[2] - 13 * p[4] + 8 * p[5] - p[6]) / (8 * h * h * h);
-            return new DispersionPoint { GroupDelayS = d1, GddS2 = d2, TodS3 = d3 };
+            FrameReference(omega, out double phi0, out double tau0);
+            return new DispersionPoint { GroupDelayS = d1, GddS2 = d2, TodS3 = d3, FramePhaseRad = phi0, FrameDelayS = tau0 };
         }
 
         /// <summary>Phase and group delay removed from the frame at the carrier. Default: those of the term itself.
@@ -197,7 +203,8 @@ namespace UltrafastEngine.Physics
             {
                 GroupDelayS = t[2],
                 GddS2 = (t[0] - 8 * t[1] + 8 * t[3] - t[4]) / (12 * h),
-                TodS3 = (-t[0] + 16 * t[1] - 30 * t[2] + 16 * t[3] - t[4]) / (12 * h * h)
+                TodS3 = (-t[0] + 16 * t[1] - 30 * t[2] + 16 * t[3] - t[4]) / (12 * h * h),
+                FrameDelayS = t[2], PhaseUnknown = t[2] != 0 // data give the delay; the carrier phase is not in them
             };
         }
 
@@ -274,6 +281,13 @@ namespace UltrafastEngine.Physics
             var det = xx * yy - xy * yx;
             if (det.Magnitude > 1e-6 * scale * scale) return Complex.Sqrt(det);
             return xx.Magnitude >= yy.Magnitude ? xx : yy;
+        }
+
+        public override DispersionPoint DispersionAt(double omega)
+        {
+            var d = base.DispersionAt(omega);
+            d.FramePhaseRad = RefValue(omega).Phase; d.PhaseUnknown = false;
+            return d;
         }
 
         public override double GroupDelayAt(double omega)

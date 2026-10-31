@@ -11,7 +11,7 @@ Keeping them apart lets you run the same system with many pulses, and the same p
 
 ## 1. The system file
 
-`docs/examples/tutorial/plate.ufs`:
+`docs/tutorials/files/plate.ufs`:
 
 ```jsonc
 {
@@ -41,7 +41,7 @@ The full list of element types is in [System file](../reference/system-file.md).
 
 ## 2. The run spec
 
-`docs/examples/tutorial/run.json`:
+`docs/tutorials/files/run.json`:
 
 ```jsonc
 {
@@ -69,7 +69,7 @@ The full list of element types is in [System file](../reference/system-file.md).
 ## 3. Check and run
 
 ```bash
-cd docs/examples/tutorial
+cd docs/tutorials/files
 ultrafast validate plate.ufs run.json          # checks the files; prints what the engine plans to do
 ultrafast run plate.ufs run.json -o results-1
 ```

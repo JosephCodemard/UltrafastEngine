@@ -1,0 +1,14 @@
+// A Michelson interferometer with one mirror tilted: straight fringes on the carried profile.
+// The plate is met twice, so its return is a second element ("sameAs", "side": 2). Port d of the return goes to the screen.
+{ "format": "ultrafast-system", "version": 3, "name": "tilted Michelson", "topology": "branched",
+  "elements": [
+    { "id": "source", "type": "gap", "material": "Vacuum", "lengthM": 0, "next": "bs",
+      "transverse": { "model": "cartesian", "nx": 128, "ny": 128, "halfWidthM": 8e-3, "spectralSamples": 2,
+                      "initialProfile": { "kind": "gaussian", "radiusM": 3e-3 } } },
+    { "id": "bs", "type": "beamSplitter", "reflectivity": 0.5, "next": { "c": "fixed", "d": "tilted" }, "inputs": { "b": { "virtual": true } } },
+    { "id": "fixed", "type": "delay", "delayS": 0, "next": "return:1" },
+    { "id": "tilted", "type": "delay", "delayS": 0, "tiltXRad": 2e-3, "next": "return:2" },
+    { "id": "return", "type": "beamSplitter", "sameAs": "bs", "side": 2, "next": { "c": "virtual", "d": "screen" } },
+    { "id": "screen", "type": "gap", "material": "Vacuum", "lengthM": 0.05, "next": "end",
+      "transverse": { "model": "cartesian", "nx": 128, "ny": 128, "halfWidthM": 8e-3, "spectralSamples": 2 } }
+  ] }

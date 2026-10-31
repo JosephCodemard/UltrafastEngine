@@ -16,7 +16,7 @@ namespace UltrafastEngine.Optics
     /// plate, slits, or an amplitude / phase map from a file. The field is multiplied at every stored frequency; a phase in
     /// optical path (axicon, map) scales with the frequency. Each grid cell gets the average of the mask over the cell.
     /// </summary>
-    public sealed class MaskElement : IActiveElement
+    public sealed class MaskElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         public string MaskKind;
         public double ConeAngleRad = double.NaN, FocalLengthM = double.NaN, DesignOmega = double.NaN;

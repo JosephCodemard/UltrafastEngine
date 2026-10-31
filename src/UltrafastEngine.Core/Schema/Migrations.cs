@@ -12,7 +12,7 @@ namespace UltrafastEngine.Schema
     public static class Migrations
     {
         /// <summary>Current format version of system files.</summary>
-        public const int SystemVersion = 2;
+        public const int SystemVersion = 3;
         /// <summary>Current format version of run specs.</summary>
         public const int RunVersion = 2;
 

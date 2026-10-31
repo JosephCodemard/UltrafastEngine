@@ -282,7 +282,7 @@ namespace UltrafastEngine.Gain
     /// (mode-area cell) or spatial (radial / cartesian, with diffraction, per-point inversion and the thermal lens
     /// as a position-dependent index).
     /// </summary>
-    public sealed class GainElement : IActiveElement
+    public sealed class GainElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         public GainSetup S;
         public string Kind => "gain";
@@ -296,7 +296,7 @@ namespace UltrafastEngine.Gain
         /// C_B = C_r - C_phi. An x-polarised beam filling the rod loses to y the fraction D = (1 - sin C / C) / 4, which tends to 1/4;
         /// this moves that fraction of the energy, and reports D and the two thermal lenses f_r, f_phi.
         /// </summary>
-        private void ApplyStress(ActiveContext ctx, Complex[] ax, ref Complex[] ay, double w0)
+        private void ApplyStress(ActiveContext ctx, Complex[] ax, ref Complex[] ay, double wmode, double w0)
         {
             var r = ctx.Record; var m = S.Medium;
             if (double.IsNaN(m.StressCr) || double.IsNaN(m.ThermalExpansionPerK)) { ctx.Result.Warnings.Add("Element '" + S.Id + "': no stress coefficients for " + m.Name + " (thermalExpansionPerK, stressCr, stressCphi): thermal birefringence is not applied."); return; }
@@ -304,14 +304,27 @@ namespace UltrafastEngine.Gain
             double n0 = S.Host.IndexAt(w0), lam = 2 * Math.PI * GainMedium.C / w0, a = m.ThermalExpansionPerK, K = m.ThermalConductivity;
             double r0 = S.RodRadiusM > 0 ? S.RodRadiusM : 3 * S.Pump.RadiusM, area = Math.PI * r0 * r0;
             double C = n0 * n0 * n0 * a * (m.StressCr - m.StressCphi) * heat / (lam * K);
-            double D = (1 - (Math.Abs(C) < 1e-9 ? 1 : Math.Sin(C) / C)) / 4;
+            double D = StressDepolarization(C, wmode, r0);
             double F(double cs) => K * area / heat / (0.5 * m.DnDT + a * cs * n0 * n0 * n0 + a * r0 * (n0 - 1) / S.LengthM);
             r.Values["depolarizationFraction"] = D; r.Values["stressRetardationRad"] = C;
             r.Values["stressFocalLengthRadialM"] = F(m.StressCr); r.Values["stressFocalLengthTangentialM"] = F(m.StressCphi);
             ctx.Note(string.Format(CultureInfo.InvariantCulture, "thermal stress: retardation {0:G4} rad at the rod edge, depolarised fraction {1:P2}, f_r = {2:G4} m, f_phi = {3:G4} m", C, D, F(m.StressCr), F(m.StressCphi)));
+            // a rotation, so the energy is kept and y input depolarises as x does
             var ny = new Complex[ax.Length]; double tx = Math.Sqrt(1 - D), ty = Math.Sqrt(D);
-            for (int i = 0; i < ax.Length; i++) { ny[i] = ay[i] * tx + ax[i] * ty; ax[i] *= tx; }
+            for (int i = 0; i < ax.Length; i++) { var x = ax[i]; ny[i] = ay[i] * tx + x * ty; ax[i] = x * tx - ay[i] * ty; }
             ay = ny;
+        }
+
+        /// <summary>Depolarised fraction of a Gaussian beam (1/e^2 radius w) in a rod of radius r0 with edge retardation C:
+        /// D = (1/2) &lt;sin^2(delta/2)&gt; over the beam inside the rod, delta = C r^2 / r0^2. A beam much wider than the rod gives
+        /// Koechner's filled-rod (1 - sin C / C) / 4; a small beam gives (x^2 / (1 + x^2)) / 4, x = C w^2 / (2 r0^2).</summary>
+        internal static double StressDepolarization(double C, double w, double r0)
+        {
+            if (!(w > 0) || !(r0 > 0)) return (1 - (Math.Abs(C) < 1e-9 ? 1 : Math.Sin(C) / C)) / 4;
+            double U = r0 * r0, s = 2 / (w * w), beta = C / U;           // in u = r^2 the weight is exp(-s u), the phase cos(beta u)
+            var z = new Complex(s, -beta);
+            double mean = s < 1e-9 / U ? (Math.Abs(C) < 1e-9 ? 1 : Math.Sin(C) / C) : ((1 - Complex.Exp(-z * U)) / z).Real * s / (1 - Math.Exp(-s * U));
+            return (1 - mean) / 4;
         }
 
         public PulseField Execute(ActiveContext ctx, PulseField p)
@@ -445,7 +458,7 @@ namespace UltrafastEngine.Gain
             }
             if (r.Representation == null) r.Representation = "1-D (mode area " + (gc.CellArea[0] * 1e6).ToString("G4", CultureInfo.InvariantCulture) + " mm^2), " + S.Slices + " slices, " + K + " time segments";
             r.BIntegralRad = st.BIntegralRad;
-            if (S.Stress) ApplyStress(ctx, ax, ref ay, w0);
+            if (S.Stress) ApplyStress(ctx, ax, ref ay, wmode, w0);
             var q = new PulseField(g, ax, ay, rep > 0 ? rep : p.RepRateHz) { Profile = profOut };
             double e1 = q.TotalEnergyJ();
             GainRun.RecordAfter(ctx, gc, st.EnergyGainedJ);
@@ -476,7 +489,7 @@ namespace UltrafastEngine.Gain
     /// material passes. Regenerative: a fixed number of round trips or "auto" (eject at the energy maximum).
     /// The pumping between pulses and the steady state at the repetition rate are those of the gain element.
     /// </summary>
-    public sealed class AmplifierElement : IActiveElement
+    public sealed class AmplifierElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         public GainSetup S;
         public string Geometry = "multipass";
@@ -495,6 +508,8 @@ namespace UltrafastEngine.Gain
             double w0 = g.OmegaCenter, wmode = GainRun.ModeRadius(S, p, notes, ctx.Element.BeamIn), e0 = p.TotalEnergyJ();
             var axis = OmegaAxis.FromGrid(g);
             var bulk = new BulkTerm(S.Host, S.LengthM);
+            // the host's carrier phase and delay, per pass; a regenerative amplifier's count is not known yet, so its phase is not stated
+            { var host = bulk.DispersionAt(p.Grid.OmegaCenter); ctx.Own = new DispersionPoint { FramePhaseRad = host.FramePhaseRad * Passes, FrameDelayS = host.FrameDelayS * Passes }; ctx.PhaseLost = Geometry == "regenerative"; }
             Executor.Combine(new LinearTerm[] { bulk }, axis, out var phHost, out _, out _, out _);
             var gc = new GainCrystal(S.Medium, S.LengthM, S.Slices, S.Pump, wmode, null, S.Doping);
             if (S.Ase) gc.Ase = new Random(S.AseSeed);

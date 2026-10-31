@@ -21,6 +21,10 @@ nav:
   - Examples: examples/README.md
   - Assets (synthetic data with answer keys): assets/README.md
   - Concepts: concepts.md
+  - Architecture:
+      - Overview: architecture/index.md
+      - Code map: architecture/code-map.md
+      - Key processes: architecture/processes.md
   - Model levels: model-levels.md
   - Reference:
       - System file: reference/system-file.md
@@ -38,6 +42,7 @@ nav:
       - Crystals (χ(2)): reference/crystals.md
       - Gain media & amplifiers: reference/gain.md
       - Oscillators & saturable absorbers: reference/oscillators.md
+      - Branched systems: reference/branches.md
       - Position-dependent properties: reference/spatial-properties.md
       - Spatial models: reference/transverse.md
       - Instruments: reference/instruments.md
@@ -70,9 +75,7 @@ nav:
   - Releasing (build.sh): releasing.md
   - Design notes:
       - Development history: design/history.md
-      - Phase 2 proposal (active media): design/phase2-active-media.md
-      - Plan before branches: design/t0-t2-plan.md
-      - Branched systems (plan): design/branching.md
+      - Branched systems (design): design/branching.md
 markdown_extensions:
   - admonition
   - tables

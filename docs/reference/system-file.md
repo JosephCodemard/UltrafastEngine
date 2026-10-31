@@ -8,8 +8,9 @@ start with `"$schema": ".../schemas/ufs.schema.json"` get completion and checkin
 {
   "$schema": "schemas/ufs.schema.json",   // optional: editor completion
   "format": "ultrafast-system",          // required
-  "version": 2,
+  "version": 3,                           // 2 still loads; `topology` and `next` need 3
   "name": "stretcher",
+  "topology": "sequential",               // or "branched": every element says where its light goes
   "description": "optional text",
   "source": { "kind": "zemax", ... },     // provenance of the file (written by exporters; free-form)
   "sampling": { "wavelengthsM": [ ... ] }, // wavelengths of all per-wavelength arrays below
@@ -26,6 +27,8 @@ start with `"$schema": ".../schemas/ufs.schema.json"` get completion and checkin
 ```
 
 Unknown top-level keys are preserved when a system file is loaded and saved again.
+
+`"topology": "sequential"` (the default) runs the elements in order. With `"branched"`, elements carry `next`, `inputs` and, where light enters a loop, `loop`: see [Branched systems](branches.md). A Sequential system can use splitters too, with `output` choosing the port that continues.
 
 ## Per-wavelength values
 

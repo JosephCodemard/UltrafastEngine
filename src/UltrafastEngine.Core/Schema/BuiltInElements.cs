@@ -168,6 +168,31 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("fiberGain", "", "Fibre gain spectrum, optionally scaled at run time to reach an output.")
                 .Arr("wavelengthsM", "m", "Wavelengths").Arr("wavelengthsNm", "nm", "Wavelengths in nm").Arr("dbPerM", "dB/m", "Gain (or a relative shape when an output target is given)")
                 .Num("outputEnergyJ", "J", "Scale the gain so the output has this energy").Num("outputPowerW", "W", "... or this average power (needs repRateHz)"));
+            add(new ComponentSpec("element", "beamSplitter", "Lossless 2x2 splitter: c = t a - r b, d = r a + t b.").DocAt("reference/branches.md#beam-splitters")
+                .Include("elementCommon").Ports(new[] { "a", "b" }, new[] { "c", "d" })
+                .Num("reflectivity", "", "Power reflectivity R", "0.5")
+                .Str("output", "Port that continues in a Sequential system (c, d; also transmitted, reflected)", "c")
+                .Str("sameAs", "Take the settings of this splitter: the same plate, passed a second time").Int("side", "Side the light meets: 2 reverses the sign of r (Michelson return)", "1"));
+            add(new ComponentSpec("element", "polarizingSplitter", "A polarising splitter: p (x) mostly transmitted, s (y) mostly reflected.").DocAt("reference/branches.md#beam-splitters")
+                .Include("elementCommon").Ports(new[] { "a", "b" }, new[] { "c", "d" })
+                .Num("transmissionP", "", "Power transmission of x", "1").Num("reflectivityS", "", "Power reflectivity of y", "1")
+                .Str("output", "Port that continues in a Sequential system (c, d)", "c").Str("sameAs", "Take the settings of this splitter").Int("side", "2 reverses the sign of r", "1"));
+            add(new ComponentSpec("element", "leakMirror", "A mirror that leaks: reflected light continues, the leak is a port.").DocAt("reference/branches.md#beam-splitters")
+                .Include("elementCommon").Ports(new[] { "in", "back" }, new[] { "out", "leak" })
+                .Num("transmission", "", "Power transmission", "0.01")
+                .Arr("wavelengthsM", "m", "Wavelengths of transmissionSpectrum").Arr("transmissionSpectrum", "", "Power transmission at each wavelength (instead of transmission)")
+                .Num("gddFs2", "fs^2", "GDD of the reflected beam", "0").Num("leakGddFs2", "fs^2", "GDD of the leak (substrate)", "0")
+                .Str("output", "Port that continues in a Sequential system (out, leak)", "out"));
+            add(new ComponentSpec("element", "dichroic", "A spectral splitter: reflects one side of an edge, transmits the other.").DocAt("reference/branches.md#beam-splitters")
+                .Include("elementCommon").Ports(new[] { "a", "b" }, new[] { "c", "d" })
+                .Num("edgeWavelengthM", "m", "Wavelength of R = 1/2", required: true).Num("edgeWidthM", "m", "10-90 % width of the edge", "10e-9")
+                .Bool("reflectLong", "Reflect wavelengths above the edge (else below)", "true")
+                .Str("output", "Port that continues in a Sequential system (c, d)", "c"));
+            add(new ComponentSpec("element", "delay", "A pure delay on a stage: a path in vacuum, or a time.").DocAt("reference/branches.md#delays")
+                .Include("elementCommon")
+                .Num("delayS", "s", "Delay").Num("lengthM", "m", "... or the vacuum path giving it")
+                .Num("tiltXRad", "rad", "Tilt of the beam against the axis", "0").Num("tiltYRad", "rad", "Tilt in y", "0")
+                .Num("offsetXM", "m", "Offset of the beam from the axis", "0").Num("offsetYM", "m", "Offset in y", "0"));
             add(new ComponentSpec("element", "thinFilmPolarizer", "Thin-film polariser at its design angle: physical quarter-wave stack (TMM) or ideal, transmitted (p) or reflected (s) port.").Alias("tfp")
                 .DocAt("reference/components.md#thin-film-polarisers").Include("nonlinearMedium", "beamSize")
                 .Enum("model", new[] { "stack", "ideal" }, "Coating model", "stack").Enum("output", new[] { "transmitted", "reflected" }, "Port that continues", "transmitted")
@@ -236,7 +261,7 @@ namespace UltrafastEngine.Schema
                 .Str("from", "Results folder of a previous run (its output field)")
                 .Num("energyJ", "J", "Rescale a 'from' field to this energy")
                 .Obj("beam", "Transverse shape of the aux beam", "auxBeamShape")
-                .P("delayS", ParamType.Any, "s", "Delay relative to the main beam, or \"auto\" (centroids coincide)", "0"));
+                .Bool("fromPort", "Take this beam from a link to the port named by role (Branched systems; docs/reference/branches.md)").P("delayS", ParamType.Any, "s", "Delay relative to the main beam, or \"auto\" (centroids coincide)", "0"));
             add(new ComponentSpec("auxBeamShape", "", "Transverse shape of an auxiliary beam.")
                 .Enum("kind", new[] { "gaussian", "superGaussian", "flatTop" }, "Shape", "gaussian")
                 .Num("radiusM", "m", "1/e^2 radius (edge radius for flatTop)", required: false).Num("radiusXM", "m", "x radius").Num("radiusYM", "m", "y radius")

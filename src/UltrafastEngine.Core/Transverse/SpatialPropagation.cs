@@ -403,7 +403,7 @@ namespace UltrafastEngine.Transverse
     /// responses on a radial or cartesian grid; vector (Jones) fields when the beam carries a y component
     /// (transverse.polarization), optionally with the UPPE nonlinear coupling (transverse.equation).
     /// </summary>
-    public sealed class SpatialBulkElement : IActiveElement
+    public sealed class SpatialBulkElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         /// <summary>
         /// Small-scale self-focusing diagnostics on a cartesian grid: the fluence contrast (rms / mean) over the beam core (r &lt; w / 2) at the

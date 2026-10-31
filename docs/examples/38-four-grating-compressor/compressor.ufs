@@ -1,0 +1,12 @@
+// A four-grating compressor written ray by ray: each grating and slant path is its own element. The tracker follows the
+// beam's spatial chirp through the system: it opens after the first pair and closes after the second.
+{ "format": "ultrafast-system", "version": 3, "name": "four gratings",
+  "elements": [
+    { "id": "g1", "type": "grating", "linesPerMm": 1200, "aoiDeg": -45, "order": 1 },
+    { "id": "a", "type": "gap", "material": "Vacuum", "lengthM": 0.2 },
+    { "id": "g2", "type": "grating", "linesPerMm": 1200, "aoiDeg": 31.930705, "order": -1 },
+    { "id": "mid", "type": "gap", "material": "Vacuum", "lengthM": 0.05 },
+    { "id": "g3", "type": "grating", "linesPerMm": 1200, "aoiDeg": 45, "order": -1 },
+    { "id": "b", "type": "gap", "material": "Vacuum", "lengthM": 0.2 },
+    { "id": "g4", "type": "grating", "linesPerMm": 1200, "aoiDeg": -31.930705, "order": 1 }
+  ] }

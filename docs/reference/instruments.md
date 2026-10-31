@@ -34,7 +34,7 @@ warning when a name you gave is used twice.
 | `conversion` | `at`: an active element (crystal) | energy and photon number of the main output and every by-product, aux energy in, efficiencies (vs input, vs all energy in), by-product centroids |
 | `phaseMatchingCurve` | `at`: a crystal; `scan`: `angle` (`rangeDeg`), `wavelength` (`rangeM`), `temperature` (`rangeK`), `period` (`rangeM`); `points` | low-conversion sinc²(ΔkL/2) and Δk vs the scan variable, peak, FWHM ([Crystals](crystals.md)) |
 | `delayScan` | `at`: a crystal with aux beams; `fromS`, `toS`, `points` | re-runs the crystal on the pulse that entered it for each aux delay: output energy vs delay, optimum |
-| `beamProfile` | `at`: after an element with a transverse model | fluence vs radius (radial) or x / y cuts and map (cartesian); second-moment radius, M², true peak fluence ([Spatial models](transverse.md)) |
+| `beamProfile` | `at`: after an element with a transverse model | fluence vs radius (radial) or x / y cuts and map (cartesian); second-moment radius about the centroid, M² (`m2`, and `m2Y` on 2-D grids), true peak fluence ([Spatial models](transverse.md)) |
 | `crossCorrelator` (`thirdOrderCorrelator`) | `rangeS`, `stepS` / `points`, `fineStepS` + `fineRangeS`, `dynamicRangeDb` (110), `noise`, `resolutionS`, `shgAcceptanceFwhmM`, `polarization`, `probeDelaysS` | third-order correlation vs delay (linear and dB, with and without noise), pre/post-pulse contrast and their delays, contrast at chosen delays ([below](#crosscorrelator)) |
 
 <!-- anchors for links from the generated option reference -->

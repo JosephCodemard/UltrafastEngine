@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tutorial 3: the CPA + SHG system of cpa.ufs, built in Python, then a scan of the pump power.
 
-    python docs/examples/tutorial/cpa.py
+    python docs/tutorials/files/cpa.py
 """
 import os
 import sys

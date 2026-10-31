@@ -28,7 +28,7 @@ namespace UltrafastEngine.Crystals
     ///   "deffPmPerV": 2.0, "beam": {...}, "transverse": {...}, "seedNoise": false, "chi3": true }
     /// </code>
     /// </summary>
-    public sealed class CrystalElement : IActiveElement
+    public sealed class CrystalElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         public string Id;
         public CrystalModel Crystal;
@@ -522,7 +522,14 @@ namespace UltrafastEngine.Crystals
                 var f = fields[ko]; var gq = f.Grid; int c = gq.CarrierIndex;
                 double dwq = gq.DOmega, k1 = (f.Kz[c + 1] - f.Kz[c - 1]) / (2 * dwq), k2 = (f.Kz[c + 1] - 2 * f.Kz[c] + f.Kz[c - 1]) / (dwq * dwq);
                 double k3 = (f.Kz[c + 2] - 2 * f.Kz[c + 1] + 2 * f.Kz[c - 1] - f.Kz[c - 2]) / (2 * dwq * dwq * dwq);
-                ctx.Own = new DispersionPoint { GroupDelayS = vRefInv * LengthM, GddS2 = k2 * LengthM, TodS3 = k3 * LengthM };
+                ctx.Own = new DispersionPoint { GroupDelayS = vRefInv * LengthM, GddS2 = k2 * LengthM, TodS3 = k3 * LengthM, FramePhaseRad = f.Kz[c] * LengthM, FrameDelayS = vRefInv * LengthM };
+                // a harmonic or sum carries the phases of what made it; an idler's depends on the pump's, which is not on this path
+                if (ko != mainIdx)
+                {
+                    if (Process == "shg") ctx.PathPhaseFactor = 2;
+                    else if (Process == "sfg") ctx.PathPhaseFactor = Aux.Any(a => a.Supplied != null) ? 2 : 1;
+                    else ctx.PhaseLost = true;
+                }
             }
             var downstream = ctx.DownstreamGrid?.Invoke(outP) ?? outP.Grid;
             var final = GridResampler.Resample(outP, downstream, out double lostOut);
@@ -640,6 +647,7 @@ namespace UltrafastEngine.Crystals
             }
             var auxArr = c.Find(e, "aux")?.RawValue?.AsArray() ?? j.GetArray("aux") ?? new JsonArray();
             foreach (var a in auxArr) el.Aux.Add(AuxBeamSpec.FromJson(a.AsObject(), c.System.BaseDirectory ?? c.Run.BaseDirectory, "element " + e.Id + ".aux"));
+            foreach (var a in el.Aux.Where(x => x.FromPort)) a.Pulse = c.Run.Pulse;
             // polarisations
             var pol = it.GetObject("polarizations");
             // beam

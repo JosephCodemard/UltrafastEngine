@@ -42,8 +42,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXAMPLES = os.path.join(ROOT, "docs", "examples")
 CLI = os.path.join(ROOT, "src", "UltrafastEngine.Cli", "bin", "Release", "net10.0", "ultrafast.dll")
 # examples that need software or files a plain checkout does not have
-MANUAL = {"07-zemax-workflow": "needs an OpticStudio export", "cpp": "C++ / CMake build", "python": "run separately",
-          "tutorial": "its commands are in docs/tutorials"}
+MANUAL = {"07-zemax-workflow": "needs an OpticStudio export", "cpp": "C++ / CMake build"}
 NUM = re.compile(r"(?<![\w.])[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?(?![\w])")
 TIMING = re.compile(r"done in|elapsed|took |\bms\b|seconds|laptop|minutes?\b|~\d", re.I)
 SKIP_LINE = re.compile(r"^\s*(ultrafast-plot\b|cd\s+docs/examples)|#.*\b(optional|once)\b", re.I)
@@ -181,7 +180,7 @@ def run_line(line, example_dir, cli, env, timeout):
     """Run one README line with bash; ultrafast / python point at the chosen engine and this interpreter."""
     rooted = "docs/examples/" in line or re.search(r"(^|\s)python/", line)
     cwd = ROOT if rooted else example_dir
-    prelude = 'ultrafast() { dotnet "%s" "$@"; }\npython() { "%s" "$@"; }\npython3() { "%s" "$@"; }\n' % (cli, sys.executable, sys.executable)
+    prelude = 'export ULTRAFAST_CLI="%s"\n' % cli + 'ultrafast() { dotnet "%s" "$@"; }\npython() { "%s" "$@"; }\npython3() { "%s" "$@"; }\n' % (cli, sys.executable, sys.executable)
     t = time.time()
     p = subprocess.run(["bash", "-c", prelude + line], cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
     return p.returncode, p.stdout + p.stderr, time.time() - t
@@ -260,7 +259,7 @@ def main():
     other = baseline_cli(args.against, scratch) if args.against else None
     env = dict(os.environ, ULTRAFAST_STRICT_OPTIONS="1")
     # (name, folder the commands run in, the Markdown page): the examples, then the tutorials (in the folder their "Files:"
-    # line names, else docs/examples/tutorial)
+    # line names, else docs/tutorials/files)
     pages = [(d, os.path.join(EXAMPLES, d), os.path.join(EXAMPLES, d, "README.md"))
              for d in sorted(os.listdir(EXAMPLES)) if os.path.isfile(os.path.join(EXAMPLES, d, "README.md"))]
     tut = os.path.join(ROOT, "docs", "tutorials")
@@ -268,7 +267,7 @@ def main():
         if not re.match(r"\d\d-.*\.md$", f):
             continue
         m = re.search(r"Files: `docs/examples/([\w.-]+)/", open(os.path.join(tut, f), encoding="utf-8").read())
-        pages.append(("tutorials/" + f[:-3], os.path.join(EXAMPLES, m.group(1) if m else "tutorial"), os.path.join(tut, f)))
+        pages.append(("tutorials/" + f[:-3], os.path.join(EXAMPLES, m.group(1)) if m else os.path.join(tut, "files"), os.path.join(tut, f)))
     if args.only:
         pages = [p for p in pages if any(p[0].startswith(o) or p[0].startswith("tutorials/" + o) for o in args.only)]
     report, failures = [], 0

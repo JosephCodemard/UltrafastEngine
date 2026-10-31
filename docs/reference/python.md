@@ -32,7 +32,12 @@ then a repository build. `uf._native.library().mode` says which back-end is in u
 | `uf.run(system, spec, callbacks={name: fn}, elements={name: fn})` | one call; with `"fit"` in the spec it runs the calibration and returns the best run (`result.summary["fit"]`, [Fitting plugin](../plugins/fitting.md#calibration-fit)) |
 | `uf.crystal.phase_match(crystal, process, type=None, fundamental=, pump=, signal=, idler=, noncollinear=, qpm=, length=, temperature_c=, ...)` | phase-matching calculator ([Crystals](crystals.md#phase-matching-calculator)) |
 | `uf.crystal.crystals()` | built-in crystal names |
-| `result.summary` | the `summary.json` dict |
+| `b.system(name, elements)` | a list (or `b.Sequential([...])`) runs in order; `b.Branched([...])` says where each element's light goes ([Branched systems](branches.md)) |
+| `b.link(element, next, inputs=, loop=)` | an element of a Branched system: `next` is `"bs:1"`, `{"id": "bs", "port": 1}`, `"end"`, `"virtual"`, or a dict of those by output port |
+| `b.virtual_input(pulse=, delay_s=, phase_rad=, coherent_with=)`, `b.loop(kind, max_round_trips=, tolerance=)` | a beam on an input port with no beamline; the settings of a loop |
+| `b.beam_splitter`, `b.polarizing_splitter`, `b.leak_mirror`, `b.dichroic`, `b.delay` | the multi-port elements; the same builders work in a Sequential system with `output=` |
+| `b.aux_beam(role, from_port=True, radius_m=)` | a crystal input fed by a link in a Branched system |
+| `result.summary` | the `summary.json` dict; a Branched run adds `summary["graph"]` |
 | `result["output_spectrum"]`, `result.arrays`, `result.names()` | NumPy arrays (copied, cached) |
 | `result.instrument("spectrometer")` | values + arrays of one instrument |
 | `result.provenance`, `result.write(dir)` | |
@@ -135,7 +140,7 @@ res = uf.run(sysd, b.run_spec(b.pulse(800e-9, 15e-15, energy=50e-9)))
 res.elements()[0]["values"]["conversionEfficiency"]
 ```
 
-Examples: `docs/examples/python/quickstart.py`, `docs/examples/04-custom-index-python`, `docs/examples/03-mpc-argon/make_mpc.py`,
+Examples: `docs/examples/00-quickstart/quickstart.py`, `docs/examples/04-custom-index-python`, `docs/examples/03-mpc-argon/make_mpc.py`,
 `docs/examples/12-user-element/dazzler.py`, `docs/examples/10-ppln-dfg/compare_pynlo.py`.
 
 ## Performance notes

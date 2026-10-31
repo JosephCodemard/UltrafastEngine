@@ -75,6 +75,8 @@ namespace UltrafastEngine.Schema
         public List<string> Includes = new List<string>();
         /// <summary>Unknown keys are allowed (the component reads free-form data).</summary>
         public bool AllowAdditional;
+        /// <summary>Beam ports of an element type, in order; the first of each is the default. Null means in and out.</summary>
+        public string[] InputPorts, OutputPorts;
 
         public ComponentSpec(string category, string name, string summary = "") { Category = category; Name = name ?? ""; Summary = summary ?? ""; }
 
@@ -84,6 +86,7 @@ namespace UltrafastEngine.Schema
         public ComponentSpec Describe(string markdown) { Description = markdown; return this; }
         public ComponentSpec DocAt(string page) { Doc = page; return this; }
         public ComponentSpec Open() { AllowAdditional = true; return this; }
+        public ComponentSpec Ports(string[] inputs, string[] outputs) { InputPorts = inputs; OutputPorts = outputs; return this; }
 
         public ComponentSpec P(string name, ParamType type, string unit, string description, string def = null, bool required = false, string[] enumValues = null)
         {

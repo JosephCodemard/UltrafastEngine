@@ -12,6 +12,15 @@ using UltrafastEngine.Serialization;
 
 namespace UltrafastEngine.Engine
 {
+    /// <summary>A beam described in place on an input port, feeding it without any beamline (docs/reference/branches.md).</summary>
+    public sealed class VirtualInput
+    {
+        public AuxBeamSpec Spec;
+        public double PhaseRad;
+        /// <summary>The source this beam is coherent with ("input"); null if it is an independent source.</summary>
+        public string CoherentWith;
+    }
+
     /// <summary>
     /// An auxiliary beam that an active element makes the main beam interact with (an OPA pump, an SFG
     /// partner). It is a PORT with a pluggable source:
@@ -36,11 +45,17 @@ namespace UltrafastEngine.Engine
         public double DelayS { get; set; }
         public bool DelayAuto { get; set; }
         public string Origin { get; set; }
+        /// <summary>The beam comes from a link to the port named <see cref="Role"/>. <see cref="Pulse"/> is then the run's pulse, for planning only.</summary>
+        public bool FromPort { get; set; }
+        /// <summary>Set by the scheduler for each run: the pulse on the port, and its phase relative to the main beam.</summary>
+        public PulseField Supplied { get; set; }
+        public double SuppliedPhaseRad { get; set; }
 
         public static AuxBeamSpec FromJson(JsonObject o, string baseDirectory, string origin)
         {
             var a = new AuxBeamSpec { Role = o.GetString("role", "pump").ToLowerInvariant(), Origin = origin };
-            if (o.Has("from"))
+            if (o.GetBool("fromPort", false)) a.FromPort = true;
+            else if (o.Has("from"))
             {
                 string p = o.GetString("from");
                 if (!Path.IsPathRooted(p) && baseDirectory != null) p = Path.Combine(baseDirectory, p);
@@ -138,7 +153,17 @@ namespace UltrafastEngine.Engine
         public PulseField Build(FrequencyGrid grid, double mainCentroidS, List<string> notes)
         {
             PulseField p;
-            if (Pulse != null) p = Pulse.Build(grid);
+            if (Supplied != null)
+            {
+                p = GridResampler.Resample(Supplied, grid, out double lostP);
+                if (lostP > 1e-3) notes?.Add(string.Format(CultureInfo.InvariantCulture, "port '{0}': {1:P2} of its energy fell outside the crystal's grid", Role, lostP));
+                if (SuppliedPhaseRad != 0)
+                {
+                    var f = Complex.FromPolarCoordinates(1, SuppliedPhaseRad);
+                    p = p.WithSpectrum(p.Ax.Select(z => z * f).ToArray(), p.Ay.Select(z => z * f).ToArray());
+                }
+            }
+            else if (Pulse != null) p = Pulse.Build(grid);
             else
             {
                 var s = LoadSaved();

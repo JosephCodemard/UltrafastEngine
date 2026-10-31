@@ -45,6 +45,10 @@ ultrafast run system.ufs run.json -o results      # exit 0 on success; warnings 
 Python: `res = uf.run(system, spec)`; `res.summary`, `res["name_array"]`, `res.instrument("name")`;
 `uf.load("results")` opens a folder without the engine.
 
+## Branched systems
+
+For beam splitters, interferometers and loops, set `"topology": "branched"`, and give every element `next` ([Branched systems](reference/branches.md)). Check the layout with `ultrafast validate system.ufs --graph`. Read the budget from `summary["graph"]`: `energyClosureJ` should be at rounding level.
+
 ## Many runs
 
 Use a **study**, not a loop: it freezes the grid (comparable results), reuses the unchanged part of the system and
@@ -57,6 +61,10 @@ or list paths; results in `fit.json` (layers, influence, provenance) and `fitted
 measured field to the input ([Fitting](plugins/fitting.md)).
 
 ## Facts that are easy to get wrong
+
+* `steadyState` loops need gain. A passive cavity is a `ringDown` loop, with `tolerance` near the square of the accuracy you want.
+* `beam.m2` is along x on a cartesian grid; `beamProfile` also gives `m2Y`.
+* Port c of a 50:50 Mach-Zehnder with equal arms is dark: all the light leaves by d.
 
 * SI units everywhere, with the unit in the key (`lengthM`, `durationFwhmS`, `gddFs2` is the explicit exception
   in fs²). Wavelengths in metres: `1.03e-6`, not `1030`.

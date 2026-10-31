@@ -4,7 +4,7 @@
 They are simulated with values the run files do not know (energy 260 nJ, input chirp +120 fs^2), with noise
 added. In your own work these files come from your instruments.
 
-    python docs/examples/tutorial/make_data.py
+    python docs/tutorials/files/make_data.py
 """
 import json
 import os

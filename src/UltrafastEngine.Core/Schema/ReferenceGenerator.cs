@@ -105,7 +105,7 @@ namespace UltrafastEngine.Schema
         };
         /// <summary>Every reference page lives in docs/reference (Stage 1.8).</summary>
         private static readonly HashSet<string> InReference = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
+        { "branches",
             "plugins", "schema", "options", "system-file", "run-spec", "models", "materials", "coatings", "nonlinear", "active-elements", "crystals", "gain",
             "oscillators", "spatial-properties", "transverse", "instruments", "results", "c-api", "python", "extending", "components", "gases", "ionization", "fibers",
             "retrieval", "studies", "speed", "python-api", "measured-data"

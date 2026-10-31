@@ -90,3 +90,16 @@ def test_cw_resonator_and_coherence_through_the_builders():
                            b.gap("z", zr, medium="Vacuum", transverse=b.transverse("cartesian", **grid))])
     res = uf.run(sys_, b.run_spec(b.cw(LAM, 1.0), coherence=b.coherence(2.0, 30)))
     assert res.elements()[-1]["beam"]["radiusXM"] == pytest.approx(w0 * math.sqrt(5), rel=0.03)
+
+
+@requires_engine
+def test_branched_mach_zehnder_through_the_builders():
+    # equal arms: all the light leaves by port d of the second splitter, none by c
+    s = b.system("mz", b.Branched([
+        b.link(b.beam_splitter("bs1"), {"c": "a", "d": "b"}),
+        b.link(b.delay("a", delay_s=0.0), "bs2:1"),
+        b.link(b.delay("b", delay_s=0.0), {"id": "bs2", "port": 2}),
+        b.link(b.beam_splitter("bs2"), {"c": "virtual", "d": "end"}),
+    ]))
+    res = uf.run(s, b.run_spec(b.cw(LAM, 1.0)))
+    assert res.summary["graph"]["energyOutJ"] == pytest.approx(res.summary["graph"]["energyInJ"], rel=1e-9)

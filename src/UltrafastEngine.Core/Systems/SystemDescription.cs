@@ -53,6 +53,8 @@ namespace UltrafastEngine.Systems
         /// <summary>Mirror substrates defined in the file, by name (material, thicknessM, back face, wedge): used by the mirror's "substrate".</summary>
         public JsonObject Substrates { get; set; } = new JsonObject();
         public JsonObject InputBeam { get; set; }
+        /// <summary>"sequential" (the default) or "branched": see <see cref="SystemGraph"/>.</summary>
+        public string Topology { get; set; }
         public List<SystemElement> Elements { get; } = new List<SystemElement>();
         public List<OverrideRule> Overrides { get; } = new List<OverrideRule>();
         /// <summary>Unknown top-level keys are preserved on round trip.</summary>
@@ -89,6 +91,7 @@ namespace UltrafastEngine.Systems
                 Coatings = o.GetObject("coatings") ?? new JsonObject(),
                 Substrates = o.GetObject("substrates") ?? new JsonObject(),
                 InputBeam = o.GetObject("inputBeam"),
+                Topology = o.GetString("topology"),
                 BaseDirectory = baseDirectory
             };
             s.MigrationNotes.AddRange(migrationNotes);
@@ -113,7 +116,7 @@ namespace UltrafastEngine.Systems
                 k++;
             }
             s.Overrides.AddRange(OverrideSet.Parse(o.GetArray("overrides"), ModelSource.SystemOverride, "system file"));
-            var known = new HashSet<string> { "format", "version", "name", "description", "source", "sampling", "environment", "materials", "coatings", "inputBeam", "elements", "overrides" };
+            var known = new HashSet<string> { "topology", "format", "version", "name", "description", "source", "sampling", "environment", "materials", "coatings", "inputBeam", "elements", "overrides" };
             foreach (var kv in o) if (!known.Contains(kv.Key)) s.Extra.Set(kv.Key, kv.Value);
             return s;
         }
@@ -123,6 +126,7 @@ namespace UltrafastEngine.Systems
             var o = new JsonObject()
                 .Set("format", FormatName).Set("version", Version).Set("name", Name);
             if (Description != null) o.Set("description", Description);
+            if (Topology != null) o.Set("topology", Topology);
             o.Set("source", Source);
             if (WavelengthsM != null) o.Set("sampling", new JsonObject().Set("wavelengthsM", JsonValue.FromArray(WavelengthsM)));
             if (Environment.Count > 0) o.Set("environment", Environment);

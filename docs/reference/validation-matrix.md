@@ -2,12 +2,14 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **328 tests** in 37 classes. **159** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **13** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **378 tests** in 42 classes. **189** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **14** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
 | [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 12 | 11 |
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 13 | 12 |
+| [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
+| [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
 | [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 20 | 14 |
@@ -29,12 +31,15 @@ Every C# test of the engine: **328 tests** in 37 classes. **159** of them check 
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
 | [Measured input spectra, comparisons and satellite room](#measuredspectrumtests) | `MeasuredSpectrumTests` | 13 | 0 |
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
+| [Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs](#modelledinstrumentstests) | `ModelledInstrumentsTests` | 4 | 3 |
 | [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 7 | 7 |
+| [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
 | [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 7 | 1 |
 | [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 3 | 2 |
 | [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 7 |
 | [Instrument axes, resolution and measured-data resolution](#resolutiontests) | `ResolutionTests` | 7 | 1 |
 | [Pulse retrieval (FROG, d-scan)](#retrievaltests) | `RetrievalTests` | 2 | 2 |
+| [Regressions from the review: M^2, second moments, packets at ports, steady-state loops](#reviewregressiontests) | `ReviewRegressionTests` | 8 | 8 |
 | [Schemas, validation and migrations](#schematests) | `SchemaTests` | 5 | 0 |
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
@@ -83,6 +88,50 @@ Gaussian beam tracking: thermal lenses and spatio-temporal couplings.
 | `TwoGratings_ReproduceTreacysThirdOrderDispersion` | Treacy, IEEE JQE 5, 454 (1969): TOD of the exact grating-pair phase | 0.5 % |
 | `ZeroDispersionStretcher_4f_LeavesNoGddAndNoCouplings` | Martinez zero-dispersion stretcher: GDD = 0 | < 10⁻⁶ of k0 f F² |
 
+## BranchedElementsTests
+
+Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports.
+
+| test | reference | tolerance |
+|---|---|---|
+| `BeamState_GouyPhase_FollowsTheArctangent` | Gouy phase of a Gaussian beam: -atan(z / z_R), from -z_R to +z_R is -pi / 2 | 1e-9 |
+| `CarriedProfiles_Meet_WithTiltFringes` | two beams at an angle: fringe period lambda / theta | 2 % |
+| `CrystalByproduct_IsAPort_AndTheBudgetCloses` | -- | -- |
+| `Crystal_HarmonicPhase_DoublesThePathsPhase` | carrier phase of a harmonic: twice the fundamental's, plus the crystal's | 1e-6 |
+| `DelayedTail_FollowsEachBranch` | linear superposition: the tail splits and is booked with the main field | 1e-9 |
+| `Dichroic_OutputsAddUpAtEachWavelength` | -- | -- |
+| `F2f_FringesFollowTheCep` | f-2f: the fringe phase at the overlap moves with the CEP one to one | 3 % |
+| `LeakMirror_PassesItsTransmission_ToThePort` | -- | -- |
+| `Michelson_EqualArms_AreDarkAtTheOutput_AndFringeWithPeriodHalfLambda` | Michelson with a symmetric splitter: equal arms send all the light back, none to the output | 1e-9 |
+| `PolarizingSplitter_SplitsByPolarisation` | Malus: an input at 30 deg sends cos^2 to p and sin^2 to s | 1e-9 |
+| `TiltWithNoTrackedBeam_IsAnError_NotAPerfectOverlap` | -- | -- |
+| `TrackedBeams_MeetWithTheirModeOverlap` | overlap of Gaussians in a tilt: exp(-(k theta w)^2 / 8), and in an offset: exp(-d^2 / (2 w^2)) | 1e-6 |
+
+## BranchingTests
+
+Branched systems: ports, graph compiler, interference, loops.
+
+| test | reference | tolerance |
+|---|---|---|
+| `ArmsFurtherApartThanTheWindow_StaySeparatePackets_AndDoNotInterfere` | -- | -- |
+| `CrystalPort_FedFromABranch_MatchesTheSameBeamGivenAsAux` | cross-check: a branch-fed port against the same pulse as an aux beam | 1e-6 |
+| `FabryPerot_LoopGivesTheAiryFunction` | Airy transmission of a Fabry-Perot, (1-R)^2 / (1 + R^2 - 2 R cos delta) | 1e-5 |
+| `GraphErrors_AreReported_AllAtOnce` | -- | -- |
+| `MachZehnder_FringesFollowThePathDifference` | Mach-Zehnder: output (1 - cos phi) / 2 of the input | 1e-9 |
+| `MachZehnder_SpectralFringes_PinTheSignOfPhaseAgainstDelay` | spectral interference, \|1 - exp(i omega tau)\|^2 / 4 | 1e-6 |
+| `MissingNext_IsAnAlert_NotASilentFallThrough` | -- | -- |
+| `ModelledAutocorrelator_ThinCrystal_GivesTheIdealWidth` | intensity autocorrelation of a Gaussian: FWHM sqrt 2 tau | 1 % |
+| `PathLedger_KeepsTheCarrierPhaseTheFieldDoesNotCarry` | carrier phase of glass, n omega L / c | 1e-9 |
+| `Ring_RoundTripLongerThanTheWindow_GivesAPulseTrain` | ring ring-down: pass n carries R^(n-1) T^2 | 1e-9 |
+| `SequentialFile_WithNext_IsRejected_WithAPointer` | -- | -- |
+| `Sequential_SplitterKeepsOnePort_AndBooksTheOther` | -- | -- |
+| `Sequential_VirtualBeam_InterferesAtTheSplitter` | 2x2 unitary: c = t a - r b | 1e-9 |
+| `SteadyStateLoop_SettlesOnlyWhenShapeAndEnergyRepeat` | -- | -- |
+| `Targets_ByNumberNameAndDict_AreTheSame` | -- | -- |
+| `TwoSourcesOnOnePort_AreAnError_NamingThePort` | -- | -- |
+| `UnusedPorts_RaiseAlerts_AndBecomeVirtual_UnlessDeclared` | -- | -- |
+| `Validate_PrintsTheGraph` | -- | -- |
+
 ## CavityAndCoherenceTests
 
 Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens.
@@ -97,7 +146,7 @@ Resonators, partial coherence, thermal stress birefringence, amplifier thermal l
 | `Resonator_LensGuide_HasTheAbcdEigenmode_AndPutsItOnTheTrackedBeam` | ABCD eigenmode of a periodic lens guide: w0^2 = (lambda / pi) sqrt(L (4 f - L)) / 2 at the waist between lenses (Kogelnik & Li, Appl. Opt. 5, 1550 (1966)) | 1e-3 |
 | `Resonator_LinearTwoMirrorCavity_MatchesTheMirrorFormulas` | two-mirror cavity: (A + D) / 2 = 2 g1 g2 - 1, g = 1 - L / R; w^2 at a mirror of a symmetric cavity = (lambda L / pi) sqrt(1 / (1 - g^2)) | 1e-3 |
 | `Resonator_Unstable_WarnsAndHasNoMode` | stability \|(A + D) / 2\| < 1: L > 4 f is unstable | -- |
-| `ThermalStress_DepolarisedFraction_MatchesKoechner_AndTendsToAQuarter` | Koechner, Solid-State Laser Engineering, ch. 7: D = (1 - sin C / C) / 4, C = n0^3 alpha C_B P_h / (lambda K) | 1e-3 |
+| `ThermalStress_DepolarisedFraction_MatchesKoechner_AndTendsToAQuarter` | Koechner, Solid-State Laser Engineering, ch. 7: D = (1 - sin C / C) / 4, C = n0^3 alpha C_B P_h / (lambda K) | 2 % |
 
 ## Chi2Tests
 
@@ -444,6 +493,17 @@ Sampling apertures, measured data and fits.
 | `Sampling_IgnoredByImagingInstruments_AndBadPlaneRejected` | -- | -- |
 | `Sampling_Integrated_IsTheWholeBeam` | -- | -- |
 
+## ModelledInstrumentsTests
+
+Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Frog_FromElements_HasTheAutocorrelationMarginal` | delay marginal of an SHG FROG trace: the autocorrelation, FWHM sqrt 2 tau | 2 % |
+| `Fts_FromElements_RecoversTheSpectrum` | Wiener-Khinchin: the interferogram's transform is the spectrum | 0.2 % centroid, 2 % width |
+| `Iac_FromElements_HasTheEightToOneRatio` | interferometric autocorrelation: peak to background 8:1 | 1 % |
+| `NodeCache_RerunsOnlyWhatFollowsTheChange_WithTheSameResult` | -- | -- |
+
 ## NerTests
 
 Nonlinear ellipse rotation and the vector Kerr / Raman tensor.
@@ -457,6 +517,21 @@ Nonlinear ellipse rotation and the vector Kerr / Raman tensor.
 | `Rotation_InstantaneousKerr_IsBsin2chiOverThree` | nonlinear ellipse rotation B sin 2χ / 3 (Maker, Terhune & Savage 1964) | 1 % |
 | `Rotation_WithAnisotropicRaman_UsesTheAnisotropicShare` | steady-state Raman tensor (Hellwarth) | 2 % |
 | `SpatialModel_OnAxisRotationWithAnisotropicRaman_MatchesTheOneDModel` (slow) | cross-model: the 1-D vector model | 5 % |
+
+## PhysicsReviewTests
+
+Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Coherence_TooFewModes_Warns_AndKeepsTheEnergy` | -- | -- |
+| `CurvedBeam_ActsOnTheTrackedSpatialChirp_WithTheProfilesSign` | -- | -- |
+| `DispersedBeamInGlass_ActsAsTheReducedDistance` | paraxial reduced distance: a glass path L acts as L / n for angular dispersion | 1 % |
+| `FoxLi_WithNoAperture_DoesNotClaimAMode` | -- | -- |
+| `LinearCavity_ReturnPass_ReversesAnAnamorphicElement` | Linear-cavity round trip with element matrices reversed on the return (A, B, C, D) -> (D, B, C, A) | 0.3 % |
+| `ProfileMode_APrismTiltsTheProfile_ByItsExitAngle` | Snell's law at both faces, exit-angle dispersion by finite difference | 1 % |
+| `ProfileMode_WithoutACarriedProfile_Warns` | -- | -- |
+| `StressDepolarization_DependsOnTheBeam` | gaussian average: D = x^2 / (1 + x^2) / 4, x = C w^2 / (2 r0^2); filled rod (1 - sin C / C) / 4 (Koechner) | 1e-6 |
 
 ## PluginTests
 
@@ -522,6 +597,21 @@ Pulse retrieval (FROG, d-scan).
 |---|---|---|
 | `DScan_RecoversPhaseAndFeedsARun` | known spectral phase | 5 %, 6 % |
 | `Frog_PcgpaAndEpieRecoverAChirpedPulse` | known chirped pulse | 3 %, 5 % |
+
+## ReviewRegressionTests
+
+Regressions from the review: M^2, second moments, packets at ports, steady-state loops.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CurvedBeam_KeepsUnitBeamQuality` | Gaussian beam: curvature does not change M^2 | 1e-6 |
+| `HermiteGauss_HasItsAnalyticBeamQualityOnEachAxis` | Hermite-Gauss M^2 = 2m + 1 | 1e-6 |
+| `PacketsTooFarApartForOneWindow_AllCountAsOutput` | energy conservation: 1/4 + 1/4 leaves by c | 1e-12 |
+| `RingDownRing_IsAllPassAtEveryLength` | all-pass ring: \|r + t^2 q / (1 + r q)\|^2 = 1 | 1e-6 |
+| `SeparatePacketsAtACrystalPort_AreBooked` | energy conservation at a crystal port | 1e-6 of the input |
+| `SteadyStateLoop_DoesNotClaimConvergenceWhileTheLightDecays` | a passive loop decays, so it has no steady state | exact |
+| `TiltAndDecentre_DoNotDegradeBeamQualityOrSize` | Siegman, Proc. SPIE 1224, 2 (1990): M^2 from central moments | 1e-6 |
+| `Vortex_HasItsAnalyticBeamQuality` | Laguerre-Gauss M^2 = 2p + \|l\| + 1 | 1e-6 |
 
 ## SchemaTests
 

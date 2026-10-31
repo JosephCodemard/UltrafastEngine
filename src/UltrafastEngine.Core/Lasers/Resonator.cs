@@ -27,7 +27,7 @@ namespace UltrafastEngine.Lasers
         public List<CompiledElement> RoundTrip = new List<CompiledElement>();
         public TransverseSpec Grid;
         public int MaxRoundTrips = 400; public double Tolerance = 1e-6;
-        public double StabilityX, StabilityY, RadiusXM = double.NaN, RadiusYM = double.NaN, RoundTripOpticalM;
+        public double StabilityX, StabilityY, RadiusXM = double.NaN, RadiusYM = double.NaN, RoundTripOpticalM, RoundTripGroupDelayS;
         public Complex Qx, Qy; public bool Stable;
 
         public string Kind => "resonator";
@@ -41,7 +41,7 @@ namespace UltrafastEngine.Lasers
             r.Values["stabilityX"] = StabilityX; r.Values["stabilityY"] = StabilityY;
             r.Values["stable"] = Stable ? 1 : 0;
             r.Values["roundTripOpticalLengthM"] = RoundTripOpticalM;
-            if (RoundTripOpticalM > 0) r.Values["freeSpectralRangeHz"] = PhysicalConstants.SpeedOfLightMPerS / RoundTripOpticalM;
+            if (RoundTripGroupDelayS > 0) r.Values["freeSpectralRangeHz"] = 1 / RoundTripGroupDelayS;
             if (Stable) { r.Values["modeRadiusXM"] = RadiusXM; r.Values["modeRadiusYM"] = RadiusYM; r.Values["modeCurvatureXPerM"] = (1 / Qx).Real; }
             if (Grid == null) return p;
             double w = Stable ? Math.Sqrt(RadiusXM * RadiusYM) : (Grid.Model == "radial" ? Grid.RadiusM : Grid.HalfWidthXM) / 3;
@@ -61,7 +61,7 @@ namespace UltrafastEngine.Lasers
                 var next = new PulseField(g, sub.Output.Ax.Select(z => z * sc).ToArray(), sub.Output.Ay.Select(z => z * sc).ToArray(), p.RepRateHz) { Profile = sub.Output.Profile };
                 double change = Math.Abs(1 - t - loss);
                 loss = 1 - t; cur = next;
-                if (it > 8 && change < Tolerance) { conv = true; break; }
+                if (it > 8 && change < Tolerance && Executor.Mismatch(prev.Data, next.Profile.Data) < Tolerance) { conv = true; break; }
             }
             r.Values["foxLiRoundTrips"] = Math.Min(it, MaxRoundTrips);
             r.Values["roundTripLoss"] = loss;
@@ -110,8 +110,17 @@ namespace UltrafastEngine.Lasers
             if (geo == "linear") order.AddRange(Enumerable.Range(1, Math.Max(0, el.Elements.Count - 2)).Select(k => el.Elements.Count - 1 - k));
             el.RoundTrip = order.Select(k => el.Elements[k]).ToList();
             var mx = new[] { 1.0, 0, 0, 1 }; var my = new[] { 1.0, 0, 0, 1 };
-            foreach (int k in order) { mx = BeamState.Multiply(seg[k].X, mx); my = BeamState.Multiply(seg[k].Y, my); }
+            for (int i = 0; i < order.Count; i++)
+            {
+                // on the way back an element acts with its matrix reversed: (A, B, C, D) becomes (D, B, C, A)
+                bool back = i >= el.Elements.Count;
+                double[] Pass(double[] m) => back ? new[] { m[3], m[1], m[2], m[0] } : m;
+                mx = BeamState.Multiply(Pass(seg[order[i]].X), mx); my = BeamState.Multiply(Pass(seg[order[i]].Y), my);
+            }
             el.RoundTripOpticalM = order.Sum(k => el.Elements[k].LengthM * (el.Elements[k].TrackingIndex > 0 ? el.Elements[k].TrackingIndex : 1.0));
+            // the group delay where the material gives one; an air gap's is relative to air, so its optical path counts
+            el.RoundTripGroupDelayS = order.Sum(k => Math.Max(el.Elements[k].GroupDelayAt(2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / lam),
+                el.Elements[k].LengthM * (el.Elements[k].TrackingIndex > 0 ? el.Elements[k].TrackingIndex : 1.0) / PhysicalConstants.SpeedOfLightMPerS));
             el.StabilityX = (mx[0] + mx[3]) / 2; el.StabilityY = (my[0] + my[3]) / 2;
             el.Stable = Math.Abs(el.StabilityX) < 1 && Math.Abs(el.StabilityY) < 1 && mx[1] != 0 && my[1] != 0;
             if (el.Stable)

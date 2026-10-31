@@ -24,6 +24,8 @@ namespace UltrafastEngine.Results
         public CompiledRun Compiled { get; set; }
         public PulseField Input { get; set; }
         public PulseField Output { get; set; }
+        /// <summary>Branched systems: links, loops, virtual ports and the energy budget of the whole graph.</summary>
+        public JsonObject Graph { get; set; }
         public List<ElementRecord> Records { get; } = new List<ElementRecord>();
         public List<ProbeSnapshot> Snapshots { get; } = new List<ProbeSnapshot>();
         /// <summary>Full pulses kept at "input", "end", and every element id (references, not copies).</summary>
@@ -136,6 +138,7 @@ namespace UltrafastEngine.Results
                 els.Add(eo);
             }
             o.Set("elements", els);
+            if (Graph != null) o.Set("graph", Graph);
             var ins = new JsonArray();
             foreach (var i in Instruments) ins.Add(i.ToJson());
             o.Set("instruments", ins);

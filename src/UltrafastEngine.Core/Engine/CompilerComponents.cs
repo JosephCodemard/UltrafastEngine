@@ -516,8 +516,9 @@ namespace UltrafastEngine.Engine
                     string mat = Str(c, e, "material", e.Json.GetString("material", null)), med = Str(c, e, "medium", "Air");
                     var n1Of = IndexOf(c, med); var n2Of = IndexOf(c, mat);
                     t.TiltedInterface(n1, n2, aoi, tx, n1Of, n2Of);
-                    t.Propagate(ce.LengthM, n2);
+                    t.Propagate(ce.LengthM, n2, n2Of);
                     double th2 = Math.Asin(n1 * Math.Sin(aoi) / n2);
+                    if (c.StcProfile) c.Out.Warnings.Add("Element '" + e.Id + "': physics.spatioTemporal = profile does not put a tilted plate's spatial chirp on the carried profile.");
                     t.TiltedInterface(n2, n1, th2, tx, n2Of, n1Of);
                     return true;
                 }
@@ -528,8 +529,17 @@ namespace UltrafastEngine.Engine
                     double n1 = IndexOrOne(c, med), n2 = IndexOrOne(c, mat), th2 = Math.Asin(n1 * Math.Sin(aoi) / n2);
                     bool tx = BeamState.TangentialIsX(Angle(c, e, "planeOfIncidence", Math.PI / 2), out _);
                     t.TiltedInterface(n1, n2, aoi, tx, IndexOf(c, med), IndexOf(c, mat));
-                    t.Propagate(ce.LengthM, n2);
-                    t.TiltedInterface(n2, n1, th2 - Math.Sign(aoi == 0 ? 1 : aoi) * apex, tx, IndexOf(c, mat), IndexOf(c, med));
+                    t.Propagate(ce.LengthM, n2, IndexOf(c, mat));
+                    double thIn = th2 - Math.Sign(aoi == 0 ? 1 : aoi) * apex;
+                    t.TiltedInterface(n2, n1, thIn, tx, IndexOf(c, mat), IndexOf(c, med));
+                    var nOut = IndexOf(c, med); var nGlass = IndexOf(c, mat);
+                    if (c.StcProfile && nOut != null && nGlass != null)
+                    {
+                        // both faces at one plane: the glass between them is short against the distances that follow
+                        double th3 = Math.Asin(n2 * Math.Sin(thIn) / n1), si = Math.Sin(aoi), sgn = Math.Sign(aoi == 0 ? 1 : aoi);
+                        Func<double, double> exit = w => { double a2 = Math.Asin(nOut(w) * si / nGlass(w)) - sgn * apex; return Math.Asin(nGlass(w) * Math.Sin(a2) / nOut(w)); };
+                        AddProfileDispersion(ce, tx, Math.Cos(th2) / Math.Cos(aoi) * Math.Cos(th3) / Math.Cos(thIn), w => w / PhysicalConstants.SpeedOfLightMPerS * nOut(w) * Math.Sin(exit(w) - th3));
+                    }
                     return true;
                 }
                 case "thinfilmpolarizer": case "tfp":

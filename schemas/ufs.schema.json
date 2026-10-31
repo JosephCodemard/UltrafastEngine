@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ultrafastengine.dev/schemas/ufs-2.schema.json",
+  "$id": "https://ultrafastengine.dev/schemas/ufs-3.schema.json",
   "title": "UltrafastEngine system file (.ufs)",
   "description": "An optical system as a chain of elements (docs/reference/system-file.md). SI units: the key suffix names the unit (lengthM: metres).",
   "type": "object",
@@ -13,7 +13,7 @@
     "version": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 2,
+      "maximum": 3,
       "description": "Format version (older versions are migrated on load)."
     },
     "name": {
@@ -870,6 +870,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -1098,6 +1107,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -1208,6 +1226,166 @@
           "description": "Free text."
         }
       },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.beamSplitter": {
+      "type": "object",
+      "description": "Lossless 2x2 splitter: c = t a - r b, d = r a + t b. (docs/reference/branches.md#beam-splitters)",
+      "properties": {
+        "reflectivity": {
+          "type": "number",
+          "description": "Power reflectivity R Default: 0.5."
+        },
+        "output": {
+          "type": "string",
+          "description": "Port that continues in a Sequential system (c, d; also transmitted, reflected) Default: c."
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Take the settings of this splitter: the same plate, passed a second time"
+        },
+        "side": {
+          "type": "integer",
+          "description": "Side the light meets: 2 reverses the sign of r (Michelson return) Default: 1."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["id", "type"],
       "patternProperties": {
         "^_": {}
       },
@@ -1379,6 +1557,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -1579,6 +1766,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -1776,6 +1972,10 @@
           ],
           "description": "Transverse shape of the aux beam"
         },
+        "fromPort": {
+          "type": "boolean",
+          "description": "Take this beam from a link to the port named by role (Branched systems; docs/reference/branches.md)"
+        },
         "delayS": {
           "description": "Delay relative to the main beam, or \"auto\" (centroids coincide) [s] Default: 0."
         },
@@ -1861,6 +2061,10 @@
             }
           ],
           "description": "Spectral phase about the carrier: gddS2/todS3/fodS4 or gddFs2/todFs3/fodFs4"
+        },
+        "cepRad": {
+          "type": "number",
+          "description": "Carrier-envelope phase [rad] Default: 0."
         },
         "polarization": {
           "description": "\"x\", \"y\", \"45\", \"-45\", \"rcp\", \"lcp\", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm] Default: \"x\"."
@@ -2306,6 +2510,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -2491,6 +2704,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -2601,6 +2823,334 @@
           "description": "Free text."
         }
       },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.delay": {
+      "type": "object",
+      "description": "A pure delay on a stage: a path in vacuum, or a time. (docs/reference/branches.md#delays)",
+      "properties": {
+        "delayS": {
+          "type": "number",
+          "description": "Delay [s]"
+        },
+        "lengthM": {
+          "type": "number",
+          "description": "... or the vacuum path giving it [m]"
+        },
+        "tiltXRad": {
+          "type": "number",
+          "description": "Tilt of the beam against the axis [rad] Default: 0."
+        },
+        "tiltYRad": {
+          "type": "number",
+          "description": "Tilt in y [rad] Default: 0."
+        },
+        "offsetXM": {
+          "type": "number",
+          "description": "Offset of the beam from the axis [m] Default: 0."
+        },
+        "offsetYM": {
+          "type": "number",
+          "description": "Offset in y [m] Default: 0."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["id", "type"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.dichroic": {
+      "type": "object",
+      "description": "A spectral splitter: reflects one side of an edge, transmits the other. (docs/reference/branches.md#beam-splitters)",
+      "properties": {
+        "edgeWavelengthM": {
+          "type": "number",
+          "description": "Wavelength of R = 1/2 [m]"
+        },
+        "edgeWidthM": {
+          "type": "number",
+          "description": "10-90 % width of the edge [m] Default: 10e-9."
+        },
+        "reflectLong": {
+          "type": "boolean",
+          "description": "Reflect wavelengths above the edge (else below) Default: true."
+        },
+        "output": {
+          "type": "string",
+          "description": "Port that continues in a Sequential system (c, d) Default: c."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["edgeWavelengthM", "id", "type"],
       "patternProperties": {
         "^_": {}
       },
@@ -2724,6 +3274,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -2982,6 +3541,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -3467,6 +4035,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -3651,6 +4228,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -3940,6 +4526,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -4222,6 +4817,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -4769,6 +5373,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -4934,6 +5547,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -5384,6 +6006,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -5499,6 +6130,180 @@
       },
       "additionalProperties": false
     },
+    "element.leakMirror": {
+      "type": "object",
+      "description": "A mirror that leaks: reflected light continues, the leak is a port. (docs/reference/branches.md#beam-splitters)",
+      "properties": {
+        "transmission": {
+          "type": "number",
+          "description": "Power transmission Default: 0.01."
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of transmissionSpectrum [m]"
+        },
+        "transmissionSpectrum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Power transmission at each wavelength (instead of transmission)"
+        },
+        "gddFs2": {
+          "type": "number",
+          "description": "GDD of the reflected beam [fs^2] Default: 0."
+        },
+        "leakGddFs2": {
+          "type": "number",
+          "description": "GDD of the leak (substrate) [fs^2] Default: 0."
+        },
+        "output": {
+          "type": "string",
+          "description": "Port that continues in a Sequential system (out, leak) Default: out."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["id", "type"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.lens": {
       "type": "object",
       "description": "Thin lens on a carried transverse profile (chromatic with a material). (docs/reference/elements.md#lens)",
@@ -5555,6 +6360,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -5743,6 +6557,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -6193,6 +7016,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -6579,6 +7411,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -6820,6 +7661,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -7208,6 +8058,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -7359,6 +8218,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -7474,6 +8342,170 @@
       },
       "additionalProperties": false
     },
+    "element.polarizingSplitter": {
+      "type": "object",
+      "description": "A polarising splitter: p (x) mostly transmitted, s (y) mostly reflected. (docs/reference/branches.md#beam-splitters)",
+      "properties": {
+        "transmissionP": {
+          "type": "number",
+          "description": "Power transmission of x Default: 1."
+        },
+        "reflectivityS": {
+          "type": "number",
+          "description": "Power reflectivity of y Default: 1."
+        },
+        "output": {
+          "type": "string",
+          "description": "Port that continues in a Sequential system (c, d) Default: c."
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Take the settings of this splitter"
+        },
+        "side": {
+          "type": "integer",
+          "description": "2 reverses the sign of r Default: 1."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["id", "type"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.prism": {
       "type": "object",
       "description": "A prism in air: two refracting faces and the glass on the chief ray; disperses the tracked beam. (docs/reference/components.md#spatio-temporal-couplings)",
@@ -7524,6 +8556,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -7659,6 +8700,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -7816,6 +8866,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -7958,6 +9017,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -8182,6 +9250,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -8541,6 +9618,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -9387,6 +10473,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -9550,6 +10645,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -9747,6 +10851,15 @@
         "enabled": {
           "type": "boolean",
           "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
         },
         "surfaces": {
           "anyOf": [
@@ -9970,6 +11083,15 @@
           "type": "boolean",
           "description": "false skips the element Default: true."
         },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
         "surfaces": {
           "anyOf": [
             {
@@ -10095,7 +11217,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["aberration", "amplifier", "aperture", "bulk", "chirpedMirror", "crystal", "custom", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "lens", "marker", "mask", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "prism", "probe", "resonator", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
+          "enum": ["aberration", "amplifier", "aperture", "beamSplitter", "bulk", "chirpedMirror", "crystal", "custom", "delay", "dichroic", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "leakMirror", "lens", "marker", "mask", "medium", "mirror", "ndFilter", "oscillator", "plate", "polarizer", "polarizingSplitter", "prism", "probe", "resonator", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
           "description": "Element type."
         }
       },
@@ -10124,6 +11246,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.aperture"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["beamSplitter"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.beamSplitter"
           }
         },
         {
@@ -10176,6 +11311,32 @@
           },
           "then": {
             "$ref": "#/definitions/element.custom"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["delay"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.delay"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["dichroic"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.dichroic"
           }
         },
         {
@@ -10299,6 +11460,19 @@
           "if": {
             "properties": {
               "type": {
+                "enum": ["leakMirror"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.leakMirror"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
                 "enum": ["lens"]
               }
             },
@@ -10384,6 +11558,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.polarizer"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["polarizingSplitter"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.polarizingSplitter"
           }
         },
         {

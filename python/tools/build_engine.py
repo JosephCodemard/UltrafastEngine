@@ -48,6 +48,10 @@ def main():
     else:
         out = PKG / "bin" / "hosted"
         cmd = ["dotnet", "build", str(NATIVE), "-c", a.configuration, "-o", str(out), "-p:UF_NO_AOT=true"]
+        if any((PKG / "bin" / "native").glob("*ultrafast.*")):
+            print("WARNING: bin/native holds a NativeAOT library, which loads before this hosted build and has no plugins. It is not\n"
+                  "         rebuilt here, so Python may run an old engine. Delete src/ultrafast/bin/native, rerun with --aot, or set\n"
+                  "         ULTRAFAST_LIBRARY=" + str(out / "UltrafastEngine.Native.dll"), file=sys.stderr)
         print(" ".join(cmd)); subprocess.check_call(cmd)
         # first-party plugins (fitting, zemax): build them and copy their installable folders next to the engine
         for proj in (REPO / "plugins").glob("*/src/*.csproj"):

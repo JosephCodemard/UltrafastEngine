@@ -44,6 +44,8 @@ namespace UltrafastEngine.Pulses
         public double[] SpectrumWavelengthsM { get; set; }
         public double[] SpectrumIntensity { get; set; }
         public double[] SpectrumPhaseRad { get; set; }
+        /// <summary>Carrier-envelope phase (rad): added to the phase of the whole field.</summary>
+        public double CepRad { get; set; }
         /// <summary>Resolution (Gaussian FWHM, m) of the spectrometer that recorded the measured spectrum; 0 = unknown / ideal.</summary>
         public double SpectrumResolutionM { get; set; }
         /// <summary>Remove the recording resolution by Richardson-Lucy deconvolution before use.</summary>
@@ -71,6 +73,7 @@ namespace UltrafastEngine.Pulses
             var p = new PulseSpec
             {
                 Shape = o.GetString("shape", "gaussian"),
+                CepRad = o.GetDouble("cepRad", 0),
                 CenterWavelengthM = o.GetDouble("centerWavelengthM", o.Has("centerWavelengthNm") ? o.GetDouble("centerWavelengthNm", 0) * 1e-9 : double.NaN),
                 DurationFwhmS = o.GetDouble("durationFwhmS", o.Has("durationFwhmFs") ? o.GetDouble("durationFwhmFs", 0) * 1e-15 : double.NaN),
                 BandwidthFwhmM = o.GetDouble("bandwidthFwhmM", o.Has("bandwidthFwhmNm") ? o.GetDouble("bandwidthFwhmNm", 0) * 1e-9 : double.NaN),
@@ -257,6 +260,14 @@ namespace UltrafastEngine.Pulses
 
         /// <summary>The pulse on a grid; <paramref name="withNoise"/> false leaves out the quantum noise (grid planning).</summary>
         public PulseField Build(FrequencyGrid grid, bool withNoise)
+        {
+            var p = BuildField(grid, withNoise);
+            if (CepRad == 0) return p;
+            var f = Complex.FromPolarCoordinates(1, CepRad);
+            return p.WithSpectrum(p.Ax.Select(z => z * f).ToArray(), p.Ay.Select(z => z * f).ToArray());
+        }
+
+        private PulseField BuildField(FrequencyGrid grid, bool withNoise)
         {
             var pol = Polarization.Normalized();
             int n = grid.N;

@@ -30,6 +30,7 @@ editors complete and check run specs that start with `"$schema": ".../schemas/ru
 | `shape` | `gaussian`, `sech2`, `superGaussian` (+ `order`), `spectrum` |
 | `centerWavelengthM` | carrier (for `spectrum`: default = intensity-weighted mean) |
 | `durationFwhmS` | transform-limited intensity FWHM (or `bandwidthFwhmM`) |
+| `cepRad` | carrier-envelope phase, rad (default 0) |
 | `energyJ` / `averagePowerW` + `repRateHz` / `peakPowerW` | pulse energy (one of) |
 | `chirp` | `{ "gddS2", "todS3", "fodS4" }` spectral phase about the carrier (or `gddFs2`, `todFs3`, `fodFs4` in fs units) |
 | `polarization` | `"x"`, `"y"`, `"45"`, `"-45"`, `"rcp"`, `"lcp"`, `{ "angleDeg", "ellipticity" }`, or `[exRe, exIm, eyRe, eyIm]` |

@@ -15,6 +15,15 @@ namespace UltrafastEngine.Engine
     /// <summary>Per-element diagnostics row (one line of elements.csv).</summary>
     public sealed class ElementRecord
     {
+        /// <summary>A copy whose energies and losses can change without touching this one.</summary>
+        public ElementRecord Copy()
+        {
+            var c = (ElementRecord)MemberwiseClone();
+            c.LossJ = new Dictionary<string, double>(LossJ, StringComparer.OrdinalIgnoreCase);
+            c.Values = new Dictionary<string, double>(Values);
+            return c;
+        }
+
         public int Index; public string Id, Type, Label;
         public double LengthM, CumulativeLengthM;
         public double EnergyInJ, EnergyOutJ;
@@ -65,7 +74,7 @@ namespace UltrafastEngine.Engine
     /// accounting), integrates nonlinear segments, records diagnostics and probe snapshots, then runs the
     /// instruments.
     /// </summary>
-    public static class Executor
+    public static partial class Executor
     {
         public static RunResult Execute(CompiledRun cr, ProgressCallback progress = null, CancellationToken cancel = default)
         {
@@ -135,170 +144,28 @@ namespace UltrafastEngine.Engine
                     if (tail.WindowS < wTail * 0.999) res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "grid.maxN limits the tail window to {0:G4} ps (wanted {1:G4} ps).", tail.WindowS * 1e12, wTail * 1e12));
                 }
             }
-            double arrival = 0, cumLen = 0, cumB = 0;
-            var system = new DispersionPoint();
+            var path = new PathLedger();
             int count = cr.Elements.Count;
             int first = 0;
-            if (resumeBase != null && resumeIndex > 0 && resumeBase.Output.Grid.N == cr.Grid.N && Math.Abs(resumeBase.Output.Grid.DTime - cr.Grid.DTime) < 1e-12 * cr.Grid.DTime)
+            if (resumeBase != null && resumeIndex > 0 && cr.Graph?.IsBranched != true && resumeBase.Output.Grid.N == cr.Grid.N && Math.Abs(resumeBase.Output.Grid.DTime - cr.Grid.DTime) < 1e-12 * cr.Grid.DTime)
             {
                 first = Math.Min(resumeIndex, count);
-                foreach (var rr in resumeBase.Records.Where(x => x.Index < first)) { res.Records.Add(rr); res.At[rr.Id] = resumeBase.At[rr.Id]; arrival = rr.ArrivalS; cumLen = rr.CumulativeLengthM; cumB = rr.CumulativeBIntegralRad; system = rr.System; pulse = resumeBase.At[rr.Id]; }
+                foreach (var rr in resumeBase.Records.Where(x => x.Index < first)) { res.Records.Add(rr); res.At[rr.Id] = resumeBase.At[rr.Id]; path.ArrivalS = rr.ArrivalS; path.CumulativeLengthM = rr.CumulativeLengthM; path.CumulativeBIntegralRad = rr.CumulativeBIntegralRad; path.System = rr.System; pulse = resumeBase.At[rr.Id]; }
                 foreach (var sn in resumeBase.Snapshots.Where(x => res.At.ContainsKey(x.Id) && x.Id != "end")) res.Snapshots.Add(sn);
                 res.Notes.Add("prefix cache: elements before #" + first + " reused from the nominal run");
             }
-            for (int ei = first; ei < count; ei++)
+            var st = new ExecutionState { Cr = cr, Res = res, Tail = tail, TailKeys = tailKeys, SnapPoints = snapPoints, AxisOf = AxisOf, Progress = progress, Cancel = cancel, Count = count };
+            bool branched = cr.Graph?.IsBranched == true;
+            if (branched) RunGraph(st);
+            for (int ei = first; ei < count && !branched; ei++)
             {
                 cancel.ThrowIfCancellationRequested();
                 var el = cr.Elements[ei];
                 if (!el.Enabled) continue;
-                progress?.Invoke(el.Id, ei, count, 0.0);
-                var rec = new ElementRecord { Index = ei, Id = el.Id, Type = el.Type, Label = el.Label, LengthM = el.LengthM, Probe = el.Probe, EnergyInJ = pulse.TotalEnergyJ() };
-                rec.Notes.AddRange(el.Notes);
-                var own = new DispersionPoint();
-                double omegaIn = pulse.Grid.OmegaCenter;
-
-                // outside-data check (sampled terms)
-                foreach (var t in el.AllLinear.OfType<SampledGroupDelayTerm>())
-                {
-                    double f = OutsideFraction(pulse, t.MinOmega, t.MaxOmega);
-                    rec.OutsideDataFraction = double.IsNaN(rec.OutsideDataFraction) ? f : Math.Max(rec.OutsideDataFraction, f);
-                }
-
-                el.Prepare?.Invoke(pulse, rec);
-                pulse = ApplyLinear(tail, pulse, el.Pre, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
-                Action<double> prog = progress == null && !cancel.CanBeCanceled ? (Action<double>)null : f => { progress?.Invoke(el.Id, ei, count, f); cancel.ThrowIfCancellationRequested(); };
-                if (el.Active != null)
-                {
-                    int eiCopy = ei;
-                    var actx = new ActiveContext
-                    {
-                        Run = cr, Element = el, Record = rec, Result = res, Index = ei, ArrivalS = arrival, Progress = prog, Cancel = cancel,
-                        DownstreamGrid = p => PlanDownstreamGrid(cr, p, eiCopy + 1, rec.Notes)
-                    };
-                    pulse = el.Active.Execute(actx, pulse);
-                    if (tail != null) rec.Notes.Add("delayed-light tail: this active element acts on the main field only; the tail passes through its Pre/Post linear terms");
-                    own += actx.Own;
-                    rec.Terms.Add(el.Active.Description);
-                    foreach (var kv in actx.Byproducts)
-                    {
-                        rec.Byproducts[kv.Key] = PulseMetrics.Summarize(kv.Value);
-                        string key = el.Id + "#" + kv.Key;
-                        res.At[key] = kv.Value;
-                        res.Snapshots.Add(Snapshot(key, kv.Value, snapPoints));
-                    }
-                    if (pulse.Profile != null && pulse.Profile.Origin == el.Id)
-                    {
-                        var (bx, by) = pulse.Profile.SecondMomentRadius();
-                        rec.BeamRadiusXM = bx; rec.BeamRadiusYM = by;
-                        try { rec.BeamQualityM2 = Transverse.TransverseOps.BeamQuality(pulse.Profile); } catch { }
-                    }
-                }
-                else if (el.Nonlinear != null)
-                {
-                    var seg = el.Nonlinear;
-                    var grid = pulse.Grid;
-                    double eBefore = pulse.TotalEnergyJ();
-                    if (!seg.Medium.ReplaceKerr && seg.Medium.N2 > 0)
-                    {
-                        double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / grid.OmegaCenter, n0 = seg.Material.IndexAt(grid.OmegaCenter);
-                        double pcr = 3.77 * lam * lam / (8 * Math.PI * n0 * seg.Medium.N2);
-                        rec.CriticalPowerRatio = PulseMetrics.TemporalPower(pulse).Max() / pcr;
-                        if (rec.CriticalPowerRatio > 0.3 && !res.Warnings.Any(w => w.Contains("critical power")))
-                            res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));
-                    }
-                    var stats = new StepStatistics();
-                    var pulseBefore = pulse;
-                    double tauEl = seg.Background.Sum(b => b.GroupDelayAt(grid.OmegaCenter));
-                    pulse = seg.CarrierResolved
-                        ? PropagateField(cr, pulse, seg, arrival, tauEl, el.Id, stats, rec, prog)
-                        : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog);
-                    foreach (var b in seg.Background) { var d = b.DispersionAt(grid.OmegaCenter); own += d; rec.Terms.Add(b.Description); }
-                    tail?.PropagateTail(seg.Background, (m, dE) => AddLoss(rec, m, dE));
-                    if (tail != null && cr.Run.Grid.TailCrossPhase && !seg.CarrierResolved && !seg.Medium.ReplaceKerr && seg.Medium.N2 > 0 && ReferenceEquals(pulseBefore.Grid, pulse.Grid))
-                    {
-                        double inv = 0; int ns = 100;
-                        for (int k = 0; k < ns; k++) inv += seg.LengthM / ns / seg.Beam.EffectiveArea(seg.LengthM * (k + 0.5) / ns);
-                        tail.CrossPhase(pulseBefore, pulse, grid.OmegaCenter / PhysicalConstants.SpeedOfLightMPerS * seg.Medium.N2 * inv);
-                    }
-                    double eAfter = pulse.TotalEnergyJ();
-                    // energy change inside a nonlinear segment: absorption if the medium absorbs (linear attenuation or
-                    // an imaginary index response); otherwise Raman (energy given to the medium) plus solver error
-                    bool absorbs = seg.Background.Any(b => b.Mechanism == "absorption") || seg.Medium.ExtraResponses.Count > 0;
-                    AddLoss(rec, absorbs ? "absorption" : (seg.Medium.EffectiveRamanFraction > 0 ? "raman+numerical" : "numerical"), eBefore - eAfter);
-                    rec.Steps = stats; rec.BIntegralRad = stats.BIntegralRad;
-                    foreach (var rr in seg.Medium.ExtraResponses.OfType<IReportingResponse>()) rr.Report(rec.Values);
-                    double minA = double.PositiveInfinity;
-                    for (int k = 0; k <= 200; k++) minA = Math.Min(minA, seg.Beam.EffectiveArea(seg.LengthM * k / 200.0));
-                    rec.PeakIntensityWPerM2 = Math.Max(Results.PulseMetrics.TemporalPower(pulse).Max(), 0) / minA;
-                    foreach (var n in stats.Notes) rec.Notes.Add(n);
-                }
-                pulse = ApplyLinear(tail, pulse, el.Post, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
-                if (tail != null && !ReferenceEquals(pulse.Grid, tail.Main))
-                {
-                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}' changed the grid or carrier: the delayed-light tail ({1:G3} J) is dropped from here on.", el.Id, tail.TailEnergyJ));
-                    tail = null;
-                }
-
-                // a carried transverse profile goes stale through elements that propagate without knowing about it
-                if (pulse.Profile != null && pulse.Profile.Exact && !(el.Active?.TransverseAware ?? false) && el.LengthM > 0)
-                {
-                    var q = pulse.WithSpectrum(pulse.Ax, pulse.Ay);
-                    q.Profile = pulse.Profile.Clone(); q.Profile.Exact = false;
-                    pulse = q;
-                    rec.Notes.Add("1-D element with length: the transverse profile carried from '" + q.Profile.Origin + "' will be rescaled (not propagated) at the next spatial element");
-                }
-
-                bool carrierChanged = Math.Abs(pulse.Grid.OmegaCenter - omegaIn) > 1e-3 * omegaIn;
-                arrival += own.GroupDelayS;
-                if (carrierChanged)
-                {
-                    system = new DispersionPoint();
-                    rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "carrier changed {0:F2} -> {1:F2} nm: system dispersion is accumulated afresh from here (new field)",
-                        2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / omegaIn * 1e9, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.OmegaCenter * 1e9));
-                }
-                else system += own;
-                cumLen += el.LengthM;
-                cumB += rec.BIntegralRad;
-                rec.Own = own; rec.System = system; rec.ArrivalS = arrival; rec.CumulativeLengthM = cumLen; rec.CumulativeBIntegralRad = cumB;
-                rec.EnergyOutJ = pulse.TotalEnergyJ();
-                rec.Out = PulseMetrics.Summarize(pulse);
-                rec.CarrierWavelengthM = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.OmegaCenter;
-                if (el.BeamOut != null)
-                {
-                    // Gaussian beam tracking: 1/e^2 radii and wavefront curvature at the exit
-                    rec.Values["trackedBeamRadiusXM"] = el.BeamOut.RadiusX; rec.Values["trackedBeamRadiusYM"] = el.BeamOut.RadiusY;
-                    rec.Values["trackedCurvatureXM"] = el.BeamOut.CurvatureX; rec.Values["trackedCurvatureYM"] = el.BeamOut.CurvatureY;
-                    if (double.IsNaN(rec.BeamRadiusXM)) { rec.BeamRadiusXM = el.BeamOut.RadiusX; rec.BeamRadiusYM = el.BeamOut.RadiusY; }
-                    Optics.Couplings.Report(el.BeamOut, pulse, rec.Values);
-                }
-                if (el.Surface != null && !double.IsNaN(el.Surface.BeamRadiusXM))
-                {
-                    double wx = el.Surface.BeamRadiusXM, wy = double.IsNaN(el.Surface.BeamRadiusYM) ? wx : el.Surface.BeamRadiusYM;
-                    double eSurf = Math.Max(rec.EnergyInJ, rec.EnergyOutJ);
-                    rec.PeakFluenceJPerM2 = 2 * eSurf / (Math.PI * wx * wy);
-                    rec.PeakIntensityWPerM2 = 2 * Math.Max(rec.Out.PeakPowerW, 0) / (Math.PI * wx * wy);
-                }
-                if (el.Surface?.Lidt != null && !double.IsNaN(rec.PeakFluenceJPerM2))
-                {
-                    rec.LidtFluenceJPerM2 = el.Surface.Lidt.FluenceAt(double.IsNaN(rec.Out.FwhmS) ? 1e-12 : rec.Out.FwhmS);
-                    rec.LidtMargin = rec.LidtFluenceJPerM2 / rec.PeakFluenceJPerM2;
-                    if (rec.LidtMargin < 1) res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak fluence {1:G3} J/cm^2 exceeds the scaled LIDT {2:G3} J/cm^2.", el.Id, rec.PeakFluenceJPerM2 * 1e-4, rec.LidtFluenceJPerM2 * 1e-4));
-                }
-                if (rec.Out.EdgeEnergyFraction > 1e-3 && cr.Run?.Pulse?.IsCw != true)
-                {
-                    string w = string.Format(CultureInfo.InvariantCulture, "After element '{0}' {1:P2} of the energy is near the time-window edge (wrap-around likely).", el.Id, rec.Out.EdgeEnergyFraction);
-                    if (!res.Warnings.Any(x => x.Contains("time-window edge"))) res.Warnings.Add(w);
-                }
-                if (rec.OutsideDataFraction > 1e-3)
-                    rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "{0:P2} of the spectral energy lies outside the sampled data range (extrapolated dispersion)", rec.OutsideDataFraction));
-                res.Records.Add(rec);
-                if (el.Probe) res.Snapshots.Add(Snapshot(el.Id, pulse, snapPoints));
-                res.At[el.Id] = pulse;
-                if (tail != null && tailKeys.Contains(el.Id)) res.TailAt[el.Id] = tail.TailField(pulse.RepRateHz);
-                progress?.Invoke(el.Id, ei, count, 1.0);
+                pulse = RunElement(st, ei, el, pulse, path);
             }
-            res.Output = pulse;
-            res.At["end"] = pulse;
+            if (!branched) tail = st.Tail; else tail = null;
+            if (!branched) { res.Output = pulse; res.At["end"] = pulse; }
             if (tail != null && ReferenceEquals(pulse.Grid, tail.Main))
             {
                 res.TailLedger = tail;
@@ -310,11 +177,189 @@ namespace UltrafastEngine.Engine
                 if (edge > 1e-3 && eTail > 1e-9 * eMain)
                     res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "{0:P2} of the tail energy is near the edge of the tail window ({1:G4} ps): the tail wraps around; raise grid.tail.windowS.", edge, tail.WindowS * 1e12));
             }
-            res.FinalArrivalS = arrival; res.FinalSystem = system;
+            if (!branched) { res.FinalArrivalS = path.ArrivalS; res.FinalSystem = path.System; }
 
             if (measure) MeasureInstruments(cr, res, cancel);
             res.ElapsedS = sw.Elapsed.TotalSeconds;
             return res;
+        }
+
+        /// <summary>What every element of a run shares while it executes.</summary>
+        private sealed class ExecutionState
+        {
+            public CompiledRun Cr; public RunResult Res; public TailLedger Tail; public HashSet<string> TailKeys;
+            public int SnapPoints, Count; public Func<FrequencyGrid, OmegaAxis> AxisOf;
+            public ProgressCallback Progress; public CancellationToken Cancel;
+            /// <summary>Branched systems: the input port of this run of an element, and the by-products it gave.</summary>
+            public string InputPort; public Dictionary<string, PulseField> LastOutputs;
+        }
+
+        /// <summary>Run one element on one pulse, record it, and advance <paramref name="path"/>. A sequential system calls this
+        /// for each element in turn.</summary>
+        private static PulseField RunElement(ExecutionState st, int ei, CompiledElement el, PulseField pulse, PathLedger path)
+        {
+            var cr = st.Cr; var res = st.Res; var tail = st.Tail; var tailKeys = st.TailKeys; var AxisOf = st.AxisOf;
+            var progress = st.Progress; var cancel = st.Cancel; int snapPoints = st.SnapPoints, count = st.Count;
+            st.LastOutputs = null;
+            double arrival = path.ArrivalS, cumLen = path.CumulativeLengthM, cumB = path.CumulativeBIntegralRad;
+            var system = path.System;
+            progress?.Invoke(el.Id, ei, count, 0.0);
+            var rec = new ElementRecord { Index = ei, Id = el.Id, Type = el.Type, Label = el.Label, LengthM = el.LengthM, Probe = el.Probe, EnergyInJ = pulse.TotalEnergyJ() };
+            rec.Notes.AddRange(el.Notes);
+            var own = new DispersionPoint();
+            double omegaIn = pulse.Grid.OmegaCenter;
+
+            // outside-data check (sampled terms)
+            foreach (var t in el.AllLinear.OfType<SampledGroupDelayTerm>())
+            {
+                double f = OutsideFraction(pulse, t.MinOmega, t.MaxOmega);
+                rec.OutsideDataFraction = double.IsNaN(rec.OutsideDataFraction) ? f : Math.Max(rec.OutsideDataFraction, f);
+            }
+
+            el.Prepare?.Invoke(pulse, rec);
+            pulse = ApplyLinear(tail, pulse, el.Pre, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
+            Action<double> prog = progress == null && !cancel.CanBeCanceled ? (Action<double>)null : f => { progress?.Invoke(el.Id, ei, count, f); cancel.ThrowIfCancellationRequested(); };
+            if (el.Active != null)
+            {
+                int eiCopy = ei;
+                var actx = new ActiveContext
+                {
+                    Run = cr, Element = el, Record = rec, Result = res, Index = ei, Path = path, InputPort = st.InputPort, InGraph = cr.Graph?.IsBranched == true, ArrivalS = arrival, Progress = prog, Cancel = cancel,
+                    DownstreamGrid = p => PlanDownstreamGrid(cr, p, eiCopy + 1, rec.Notes)
+                };
+                pulse = el.Active.Execute(actx, pulse);
+                st.LastOutputs = actx.Byproducts;
+                if (!(el.Active is IReportsCarrierPhase) || actx.PhaseLost) path.PhaseKnown = false;
+                path.PhaseRad *= actx.PathPhaseFactor;
+                if (tail != null) rec.Notes.Add("delayed-light tail: this active element acts on the main field only; the tail passes through its Pre/Post linear terms");
+                own += actx.Own;
+                rec.Terms.Add(el.Active.Description);
+                foreach (var kv in actx.Byproducts)
+                {
+                    rec.Byproducts[kv.Key] = PulseMetrics.Summarize(kv.Value);
+                    string key = el.Id + "#" + kv.Key;
+                    res.At[key] = kv.Value;
+                    res.Snapshots.Add(Snapshot(key, kv.Value, snapPoints));
+                }
+                if (pulse.Profile != null && pulse.Profile.Origin == el.Id)
+                {
+                    var (bx, by) = pulse.Profile.SecondMomentRadius();
+                    rec.BeamRadiusXM = bx; rec.BeamRadiusYM = by;
+                    try { rec.BeamQualityM2 = Transverse.TransverseOps.BeamQuality(pulse.Profile); } catch { }
+                }
+            }
+            else if (el.Nonlinear != null)
+            {
+                var seg = el.Nonlinear;
+                var grid = pulse.Grid;
+                double eBefore = pulse.TotalEnergyJ();
+                if (!seg.Medium.ReplaceKerr && seg.Medium.N2 > 0)
+                {
+                    double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / grid.OmegaCenter, n0 = seg.Material.IndexAt(grid.OmegaCenter);
+                    double pcr = 3.77 * lam * lam / (8 * Math.PI * n0 * seg.Medium.N2);
+                    rec.CriticalPowerRatio = PulseMetrics.TemporalPower(pulse).Max() / pcr;
+                    if (rec.CriticalPowerRatio > 0.3 && !res.Warnings.Any(w => w.Contains("critical power")))
+                        res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));
+                }
+                var stats = new StepStatistics();
+                var pulseBefore = pulse;
+                double tauEl = seg.Background.Sum(b => b.GroupDelayAt(grid.OmegaCenter));
+                pulse = seg.CarrierResolved
+                    ? PropagateField(cr, pulse, seg, arrival, tauEl, el.Id, stats, rec, prog)
+                    : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog);
+                foreach (var b in seg.Background) { var d = b.DispersionAt(grid.OmegaCenter); own += d; rec.Terms.Add(b.Description); }
+                tail?.PropagateTail(seg.Background, (m, dE) => AddLoss(rec, m, dE));
+                if (tail != null && cr.Run.Grid.TailCrossPhase && !seg.CarrierResolved && !seg.Medium.ReplaceKerr && seg.Medium.N2 > 0 && ReferenceEquals(pulseBefore.Grid, pulse.Grid))
+                {
+                    double inv = 0; int ns = 100;
+                    for (int k = 0; k < ns; k++) inv += seg.LengthM / ns / seg.Beam.EffectiveArea(seg.LengthM * (k + 0.5) / ns);
+                    tail.CrossPhase(pulseBefore, pulse, grid.OmegaCenter / PhysicalConstants.SpeedOfLightMPerS * seg.Medium.N2 * inv);
+                }
+                double eAfter = pulse.TotalEnergyJ();
+                // energy change inside a nonlinear segment: absorption if the medium absorbs (linear attenuation or
+                // an imaginary index response); otherwise Raman (energy given to the medium) plus solver error
+                bool absorbs = seg.Background.Any(b => b.Mechanism == "absorption") || seg.Medium.ExtraResponses.Count > 0;
+                AddLoss(rec, absorbs ? "absorption" : (seg.Medium.EffectiveRamanFraction > 0 ? "raman+numerical" : "numerical"), eBefore - eAfter);
+                rec.Steps = stats; rec.BIntegralRad = stats.BIntegralRad;
+                foreach (var rr in seg.Medium.ExtraResponses.OfType<IReportingResponse>()) rr.Report(rec.Values);
+                double minA = double.PositiveInfinity;
+                for (int k = 0; k <= 200; k++) minA = Math.Min(minA, seg.Beam.EffectiveArea(seg.LengthM * k / 200.0));
+                rec.PeakIntensityWPerM2 = Math.Max(Results.PulseMetrics.TemporalPower(pulse).Max(), 0) / minA;
+                foreach (var n in stats.Notes) rec.Notes.Add(n);
+            }
+            pulse = ApplyLinear(tail, pulse, el.Post, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
+            if (tail != null && !ReferenceEquals(pulse.Grid, tail.Main))
+            {
+                res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}' changed the grid or carrier: the delayed-light tail ({1:G3} J) is dropped from here on.", el.Id, tail.TailEnergyJ));
+                tail = null; st.Tail = null;
+            }
+
+            // a carried transverse profile goes stale through elements that propagate without knowing about it
+            if (pulse.Profile != null && pulse.Profile.Exact && !(el.Active?.TransverseAware ?? false) && el.LengthM > 0)
+            {
+                var q = pulse.WithSpectrum(pulse.Ax, pulse.Ay);
+                q.Profile = pulse.Profile.Clone(); q.Profile.Exact = false;
+                pulse = q;
+                rec.Notes.Add("1-D element with length: the transverse profile carried from '" + q.Profile.Origin + "' will be rescaled (not propagated) at the next spatial element");
+            }
+
+            bool carrierChanged = Math.Abs(pulse.Grid.OmegaCenter - omegaIn) > 1e-3 * omegaIn;
+            arrival += own.GroupDelayS;
+            path.Add(own);
+            if (carrierChanged)
+            {
+                system = new DispersionPoint();
+                rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "carrier changed {0:F2} -> {1:F2} nm: system dispersion is accumulated afresh from here (new field)",
+                    2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / omegaIn * 1e9, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.OmegaCenter * 1e9));
+            }
+            else system += own;
+            cumLen += el.LengthM;
+            cumB += rec.BIntegralRad;
+            rec.Own = own; rec.System = system; rec.ArrivalS = arrival; rec.CumulativeLengthM = cumLen; rec.CumulativeBIntegralRad = cumB;
+            rec.EnergyOutJ = pulse.TotalEnergyJ();
+            rec.Out = PulseMetrics.Summarize(pulse);
+            rec.CarrierWavelengthM = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.OmegaCenter;
+            if (el.BeamOut != null)
+            {
+                // Gaussian beam tracking: 1/e^2 radii and wavefront curvature at the exit
+                rec.Values["trackedBeamRadiusXM"] = el.BeamOut.RadiusX; rec.Values["trackedBeamRadiusYM"] = el.BeamOut.RadiusY;
+                rec.Values["trackedCurvatureXM"] = el.BeamOut.CurvatureX; rec.Values["trackedCurvatureYM"] = el.BeamOut.CurvatureY;
+                if (double.IsNaN(rec.BeamRadiusXM)) { rec.BeamRadiusXM = el.BeamOut.RadiusX; rec.BeamRadiusYM = el.BeamOut.RadiusY; }
+                Optics.Couplings.Report(el.BeamOut, pulse, rec.Values);
+            }
+            if (el.Surface != null && !double.IsNaN(el.Surface.BeamRadiusXM))
+            {
+                double wx = el.Surface.BeamRadiusXM, wy = double.IsNaN(el.Surface.BeamRadiusYM) ? wx : el.Surface.BeamRadiusYM;
+                double eSurf = Math.Max(rec.EnergyInJ, rec.EnergyOutJ);
+                rec.PeakFluenceJPerM2 = 2 * eSurf / (Math.PI * wx * wy);
+                rec.PeakIntensityWPerM2 = 2 * Math.Max(rec.Out.PeakPowerW, 0) / (Math.PI * wx * wy);
+            }
+            if (el.Surface?.Lidt != null && !double.IsNaN(rec.PeakFluenceJPerM2))
+            {
+                rec.LidtFluenceJPerM2 = el.Surface.Lidt.FluenceAt(double.IsNaN(rec.Out.FwhmS) ? 1e-12 : rec.Out.FwhmS);
+                rec.LidtMargin = rec.LidtFluenceJPerM2 / rec.PeakFluenceJPerM2;
+                if (rec.LidtMargin < 1) res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak fluence {1:G3} J/cm^2 exceeds the scaled LIDT {2:G3} J/cm^2.", el.Id, rec.PeakFluenceJPerM2 * 1e-4, rec.LidtFluenceJPerM2 * 1e-4));
+            }
+            if (rec.Out.EdgeEnergyFraction > 1e-3 && cr.Run?.Pulse?.IsCw != true)
+            {
+                string w = string.Format(CultureInfo.InvariantCulture, "After element '{0}' {1:P2} of the energy is near the time-window edge (wrap-around likely).", el.Id, rec.Out.EdgeEnergyFraction);
+                if (!res.Warnings.Any(x => x.Contains("time-window edge"))) res.Warnings.Add(w);
+            }
+            if (rec.OutsideDataFraction > 1e-3)
+                rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "{0:P2} of the spectral energy lies outside the sampled data range (extrapolated dispersion)", rec.OutsideDataFraction));
+            res.Records.Add(rec);
+            if (el.Probe) res.Snapshots.Add(Snapshot(el.Id, pulse, snapPoints));
+            res.At[el.Id] = pulse;
+            if (tail != null && tailKeys.Contains(el.Id)) res.TailAt[el.Id] = tail.TailField(pulse.RepRateHz);
+            progress?.Invoke(el.Id, ei, count, 1.0);
+            if (el.BeamOut != null)
+            {
+                path.Beam = el.BeamOut;
+                // diffraction of a carried profile holds the Gouy phase already; a tracked beam has it only here
+                if (pulse.Profile == null && el.BeamIn != null) path.PhaseRad += el.BeamOut.GouyRad - el.BeamIn.GouyRad;
+            }
+            path.ArrivalS = arrival; path.CumulativeLengthM = cumLen; path.CumulativeBIntegralRad = cumB; path.System = system;
+            return pulse;
         }
 
         /// <summary>
@@ -333,7 +378,7 @@ namespace UltrafastEngine.Engine
             {
                 cancel.ThrowIfCancellationRequested();
                 var ispec = ispec0;
-                string at = ispec.GetString("at", "end");
+                string at = ispec.GetString("at", "end").Replace(':', '#');
                 try { ispec = Instruments.InstrumentDevice.ResolveDetector(ispec, cr.Run); }
                 catch (Exception ex) when (!(ex is OperationCanceledException)) { res.Warnings.Add("Instrument " + ispec.GetString("kind", "?") + " at " + at + ": " + ex.Message); continue; }
                 if (!res.At.TryGetValue(at, out var p)) { res.Warnings.Add("Instrument at \"" + at + "\": no pulse recorded there."); continue; }

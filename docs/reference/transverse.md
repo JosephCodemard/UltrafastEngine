@@ -128,8 +128,8 @@ spectrum A(ω) is exactly the integrated spectrum. The next element decides what
 beam model as before.
 
 The per-element record then reports `beam.radiusXM`, `radiusYM` (second-moment, 1/e² equivalent) and `beam.m2`
-(M² from the second moments in space and spatial frequency, after removing the fitted wavefront curvature). The
-`beamProfile` instrument gives the fluence across the beam.
+(M² from the second moments in space and spatial frequency, along x on a cartesian grid). Moments are central: a tilted or decentred
+beam keeps its size and M². The `beamProfile` instrument gives the fluence across the beam, `m2`, and on a 2-D grid `m2Y`.
 
 ## Diffraction and apertures
 

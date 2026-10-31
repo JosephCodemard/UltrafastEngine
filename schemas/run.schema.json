@@ -237,6 +237,10 @@
           ],
           "description": "Spectral phase about the carrier: gddS2/todS3/fodS4 or gddFs2/todFs3/fodFs4"
         },
+        "cepRad": {
+          "type": "number",
+          "description": "Carrier-envelope phase [rad] Default: 0."
+        },
         "polarization": {
           "description": "\"x\", \"y\", \"45\", \"-45\", \"rcp\", \"lcp\", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm] Default: \"x\"."
         },

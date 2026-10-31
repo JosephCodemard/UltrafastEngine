@@ -75,6 +75,12 @@ class AmplifierElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -126,6 +132,55 @@ class ApertureElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class BeamSplitterElement(TypedDict, total=False):
+    """Lossless 2x2 splitter: c = t a - r b, d = r a + t b. (docs/reference/branches.md#beam-splitters)"""
+    id: str
+    """Unique id"""
+    type: str
+    reflectivity: float
+    """Power reflectivity R Default: 0.5."""
+    output: str
+    """Port that continues in a Sequential system (c, d; also transmitted, reflected) Default: c."""
+    sameAs: str
+    """Take the settings of this splitter: the same plate, passed a second time"""
+    side: int
+    """Side the light meets: 2 reverses the sign of r (Michelson return) Default: 1."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -193,6 +248,12 @@ class BulkElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -254,6 +315,12 @@ class ChirpedMirrorElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -325,6 +392,12 @@ class CrystalElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -360,6 +433,102 @@ class CustomElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class DelayElement(TypedDict, total=False):
+    """A pure delay on a stage: a path in vacuum, or a time. (docs/reference/branches.md#delays)"""
+    id: str
+    """Unique id"""
+    type: str
+    delayS: float
+    """Delay [s]"""
+    lengthM: float
+    """... or the vacuum path giving it [m]"""
+    tiltXRad: float
+    """Tilt of the beam against the axis [rad] Default: 0."""
+    tiltYRad: float
+    """Tilt in y [rad] Default: 0."""
+    offsetXM: float
+    """Offset of the beam from the axis [m] Default: 0."""
+    offsetYM: float
+    """Offset in y [m] Default: 0."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class DichroicElement(TypedDict, total=False):
+    """A spectral splitter: reflects one side of an edge, transmits the other. (docs/reference/branches.md#beam-splitters)"""
+    id: str
+    """Unique id"""
+    type: str
+    edgeWavelengthM: float
+    """Wavelength of R = 1/2 [m]"""
+    edgeWidthM: float
+    """10-90 % width of the edge [m] Default: 10e-9."""
+    reflectLong: bool
+    """Reflect wavelengths above the edge (else below) Default: true."""
+    output: str
+    """Port that continues in a Sequential system (c, d) Default: c."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -419,6 +588,12 @@ class DispersionElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -488,6 +663,12 @@ class FaradayRotatorElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -561,6 +742,12 @@ class FiberElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -596,6 +783,12 @@ class FilterElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -665,6 +858,12 @@ class GainElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -732,6 +931,12 @@ class GapElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -829,6 +1034,12 @@ class GratingElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -874,6 +1085,12 @@ class GratingPairElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -971,10 +1188,61 @@ class InterfaceElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
     """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class LeakMirrorElement(TypedDict, total=False):
+    """A mirror that leaks: reflected light continues, the leak is a port. (docs/reference/branches.md#beam-splitters)"""
+    id: str
+    """Unique id"""
+    type: str
+    transmission: float
+    """Power transmission Default: 0.01."""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of transmissionSpectrum [m]"""
+    transmissionSpectrum: Union[float, List[float]]
+    """Power transmission at each wavelength (instead of transmission)"""
+    gddFs2: float
+    """GDD of the reflected beam [fs^2] Default: 0."""
+    leakGddFs2: float
+    """GDD of the leak (substrate) [fs^2] Default: 0."""
+    output: str
+    """Port that continues in a Sequential system (out, leak) Default: out."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
     indexProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
@@ -1016,6 +1284,12 @@ class LensElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1071,6 +1345,12 @@ class MaskElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1168,6 +1448,12 @@ class MirrorElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1255,6 +1541,12 @@ class NdFilterElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1334,6 +1626,12 @@ class OscillatorElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1421,6 +1719,12 @@ class PlateElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1458,6 +1762,57 @@ class PolarizerElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class PolarizingSplitterElement(TypedDict, total=False):
+    """A polarising splitter: p (x) mostly transmitted, s (y) mostly reflected. (docs/reference/branches.md#beam-splitters)"""
+    id: str
+    """Unique id"""
+    type: str
+    transmissionP: float
+    """Power transmission of x Default: 1."""
+    reflectivityS: float
+    """Power reflectivity of y Default: 1."""
+    output: str
+    """Port that continues in a Sequential system (c, d) Default: c."""
+    sameAs: str
+    """Take the settings of this splitter"""
+    side: int
+    """2 reverses the sign of r Default: 1."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1503,6 +1858,12 @@ class PrismElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1532,6 +1893,12 @@ class ProbeElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1569,6 +1936,12 @@ class ResonatorElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1602,6 +1975,12 @@ class RotatorElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1657,6 +2036,12 @@ class SaturableAbsorberElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1752,6 +2137,12 @@ class ThinFilmPolarizerElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1785,6 +2176,12 @@ class TransformElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1820,6 +2217,12 @@ class UserElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1871,6 +2274,12 @@ class WavefrontElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -1924,6 +2333,12 @@ class WaveplateElement(TypedDict, total=False):
     """Display name"""
     enabled: bool
     """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
     surfaces: Union[float, List[float]]
     """[first, last] source surfaces (OpticStudio rows), informational"""
     wavelengthsM: Union[float, List[float]]
@@ -2737,6 +3152,7 @@ AuxBeam = TypedDict('AuxBeam', {
     'from': str,  # Results folder of a previous run (its output field)
     'energyJ': float,  # Rescale a 'from' field to this energy [J]
     'beam': Union["AuxBeamShape", str],  # Transverse shape of the aux beam
+    'fromPort': bool,  # Take this beam from a link to the port named by role (Branched systems; docs/reference/branches.md)
     'delayS': Any,  # Delay relative to the main beam, or "auto" (centroids coincide) [s] Default: 0.
     'comment': Any,  # Free text.
     'description': Any,  # Free text.
@@ -3547,6 +3963,8 @@ class Pulse(TypedDict, total=False):
     """Repetition rate [Hz]"""
     chirp: Union["Chirp", str]
     """Spectral phase about the carrier: gddS2/todS3/fodS4 or gddFs2/todFs3/fodFs4"""
+    cepRad: float
+    """Carrier-envelope phase [rad] Default: 0."""
     polarization: Any
     """"x", "y", "45", "-45", "rcp", "lcp", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm] Default: "x"."""
     spectrum: Union["PulseSpectrum", str]
@@ -3821,7 +4239,7 @@ class Transverse(TypedDict, total=False):
     """Free text."""
 
 
-Element = Union["AmplifierElement", "ApertureElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LensElement", "MaskElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "PrismElement", "ProbeElement", "ResonatorElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
+Element = Union["AmplifierElement", "ApertureElement", "BeamSplitterElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DelayElement", "DichroicElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LeakMirrorElement", "LensElement", "MaskElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "PolarizingSplitterElement", "PrismElement", "ProbeElement", "ResonatorElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
 """Any element dictionary (the typed forms first; a plain dict for plugin elements)."""
 
 
@@ -3867,4 +4285,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayScanInstrument', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BeamSplitterElement', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayElement', 'DelayScanInstrument', 'DichroicElement', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LeakMirrorElement', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PolarizingSplitterElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']

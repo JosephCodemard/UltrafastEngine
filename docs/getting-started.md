@@ -75,7 +75,7 @@ pip install -e "python[hosted,plot,test]"
 python python/tools/build_engine.py            # hosted build (needs the .NET 10 SDK; uses clr_loader at run time)
 python python/tools/build_engine.py --aot      # or: NativeAOT library, no .NET needed at run time
 python -m pytest python/tests
-python docs/examples/python/quickstart.py
+python docs/examples/00-quickstart/quickstart.py
 ```
 
 See [Python](reference/python.md).

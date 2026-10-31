@@ -350,12 +350,17 @@ Docs: docs/index.md   Examples: docs/examples/";
         private static int Validate(string[] a)
         {
             var p = Positional(a);
-            if (p.Length < 1) { Console.Error.WriteLine("usage: ultrafast validate <system.ufs> [run.json]"); return 1; }
+            if (p.Length < 1) { Console.Error.WriteLine("usage: ultrafast validate <system.ufs> [run.json] [--graph [--mermaid]]"); return 1; }
             var sys = SystemDescription.Load(p[0]);
             var rep = Simulation.Validate(sys, p.Length > 1 ? RunSpec.Load(p[1]) : null);
             foreach (var e in rep.Errors) Console.WriteLine("ERROR: " + e);
             foreach (var w in rep.Warnings) Console.WriteLine("WARNING: " + w);
             foreach (var n in rep.Notes) Console.WriteLine("note: " + n);
+            if (rep.Ok && a.Contains("--graph"))
+            {
+                var graph = SystemGraph.Build(sys);
+                Console.Write(a.Contains("--mermaid") ? graph.ToMermaid() : graph.ToText());
+            }
             Console.WriteLine(rep.Ok ? "OK: " + rep.ElementCount + " elements (" + rep.NonlinearElements + " nonlinear)" : "INVALID");
             return rep.Ok ? 0 : 3;
         }

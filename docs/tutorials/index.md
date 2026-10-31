@@ -1,6 +1,6 @@
 # Tutorials
 
-Six step-by-step tutorials. The first four build on each other and use the files in `docs/examples/tutorial/`;
+Six step-by-step tutorials. The first four build on each other and use the files in `docs/tutorials/files/`;
 tutorials 5 and 6 use the files of examples 22 and 30. Every file is ready to run.
 
 | | what you learn | files |
@@ -27,4 +27,4 @@ alias ultrafast="dotnet $PWD/src/UltrafastEngine.Cli/bin/Release/net10.0/ultrafa
 ```
 
 On Windows, use `dotnet run --project src\UltrafastEngine.Cli -c Release --` or publish the CLI (see
-[Getting started](../getting-started.md#macos-linux)). Run the commands from `docs/examples/tutorial/`.
+[Getting started](../getting-started.md#macos-linux)). Run the commands from `docs/tutorials/files/`.

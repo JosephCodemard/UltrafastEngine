@@ -84,7 +84,7 @@ the same way ([Plugin system](reference/plugins.md)).
   a regenerative amplifier does not.
 * One-dimensional elements do not change the beam shape: self-focusing above the critical power and aberration effects
   need a spatial model (the engine warns). Carried profiles take angular dispersion only with `physics.spatioTemporal` = `"profile"`, on cartesian grids.
-* There is one beam path: no splitters or arms. A `resonator` is a nested sequence; partial coherence is one run per mode, with no coupling between modes in nonlinear elements.
+* [Branched systems](reference/branches.md) cover splitters, arms, interference and loops, with mode overlap of tracked beams and carried profiles meeting. Beams crossing in a crystal remain collinear in the model. A `resonator` is a nested sequence; partial coherence is one run per mode, with no coupling between modes in nonlinear elements.
   Thermal stress birefringence is the beam-averaged result for a uniformly heated rod of a cubic host.
 * Fibres are single-mode with a frequency-independent effective area; within one `fiber` element the dispersion is
   z-independent (use several elements for a taper's dispersion; γ(z) is supported). Fibre gain is unsaturated.

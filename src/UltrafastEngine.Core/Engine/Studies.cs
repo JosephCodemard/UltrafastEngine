@@ -61,6 +61,8 @@ namespace UltrafastEngine.Engine
         public bool FreezeGrid = true, PrefixCache = true;
         public List<StudyParameter> Parameters = new List<StudyParameter>();
         public List<string> Outputs = new List<string>();
+        /// <summary>Whole arrays to keep per point, as "instrument/array": written to study.npz (one row per point).</summary>
+        public List<string> ArrayOutputs = new List<string>();
         // optimisation
         public string Objective; public string Goal = "min"; public double Target = double.NaN; public int MaxEvaluations = 200; public double Tolerance = 1e-4;
         // sensitivity
@@ -85,6 +87,7 @@ namespace UltrafastEngine.Engine
             }
             foreach (var p in o.GetArray("parameters") ?? (s.Mode == "coherence" ? new JsonArray() : throw new JsonException("study needs \"parameters\""))) s.Parameters.Add(StudyParameter.FromJson(p.AsObject()));
             foreach (var x in o.GetArray("outputs") ?? new JsonArray()) s.Outputs.Add(x.AsString());
+            foreach (var x in o.GetArray("arrayOutputs") ?? new JsonArray()) s.ArrayOutputs.Add(x.AsString());
             var ob = o.GetObject("objective");
             if (ob != null)
             {
@@ -106,6 +109,8 @@ namespace UltrafastEngine.Engine
         public List<string> ParameterNames = new List<string>(), OutputNames = new List<string>();
         public List<double[]> Parameters = new List<double[]>(), Outputs = new List<double[]>();
         public List<string> Errors = new List<string>();
+        /// <summary>Kept arrays by name: one row per point, in the order of <see cref="Parameters"/>.</summary>
+        public Dictionary<string, List<double[]>> Arrays = new Dictionary<string, List<double[]>>();
         public JsonObject Analysis = new JsonObject();
         public List<string> Notes = new List<string>();
         public double ElapsedS;
@@ -135,6 +140,18 @@ namespace UltrafastEngine.Engine
             for (int i = 0; i < Parameters.Count; i++)
                 sb.Append(string.Join(",", Parameters[i].Concat(Outputs[i]).Select(v => double.IsNaN(v) ? "" : v.ToString("G9", CultureInfo.InvariantCulture)))).Append(',').Append((Errors[i] ?? "").Replace(",", ";").Replace("\n", " ")).Append('\n');
             File.WriteAllText(Path.Combine(dir, "study.csv"), sb.ToString());
+            if (Arrays.Count > 0)
+            {
+                var list = new List<NdArray>();
+                foreach (var kv in Arrays.Where(a => a.Value.Count > 0))
+                {
+                    int rows = kv.Value.Count, cols = kv.Value[0].Length;
+                    var flat = new double[rows * cols];
+                    for (int r = 0; r < rows; r++) Array.Copy(kv.Value[r], 0, flat, r * cols, cols);
+                    list.Add(new NdArray(kv.Key.Replace('/', '_'), flat, rows, cols) { Description = "one row per study point" });
+                }
+                NpzWriter.Write(Path.Combine(dir, "study.npz"), list);
+            }
             var co = Analysis.GetObject("coherence");
             if (co != null)
             {
@@ -168,6 +185,8 @@ namespace UltrafastEngine.Engine
             // nominal run (and the frozen grid)
             var nomVals = spec.Parameters.Select(p => p.NominalValue).ToArray();
             var (s0, r0) = Build(sysJson, runJson, spec.Parameters, nomVals, system.BaseDirectory, run.BaseDirectory);
+            bool branched = string.Equals(system.Topology, SystemGraph.Branched, StringComparison.OrdinalIgnoreCase);
+            var cache = branched && spec.PrefixCache && spec.FreezeGrid ? new GraphCache() : null;
             var nominal = Simulation.Run(s0, r0, registry);
             if (spec.FreezeGrid)
             {
@@ -177,9 +196,17 @@ namespace UltrafastEngine.Engine
                 runJson.Set("grid", gridObj);
                 (s0, r0) = Build(sysJson, runJson, spec.Parameters, nomVals, system.BaseDirectory, run.BaseDirectory);
                 nominal = Simulation.Run(s0, r0, registry);
+                if (cache != null)
+                {
+                    var c0 = Compiler.Compile(s0, r0, registry);
+                    c0.GraphCache = cache; cache.Store = true;
+                    Executor.Execute(c0, null, cancel);
+                    cache.Store = false;
+                }
                 res.Notes.Add(string.Format(CultureInfo.InvariantCulture, "grid frozen at N = {0}, window {1:G4} ps", nominal.Compiled.Grid.N, nominal.Compiled.Grid.N * nominal.Compiled.Grid.DTime * 1e12));
             }
-            int first = spec.PrefixCache && spec.FreezeGrid ? FirstAffected(system, spec.Parameters) : 0;
+            int first = spec.PrefixCache && spec.FreezeGrid && !branched ? FirstAffected(system, spec.Parameters) : 0;
+            var kept = new System.Collections.Concurrent.ConcurrentDictionary<double[], double[][]>();
             if (first > 0) res.Notes.Add("prefix cache: every point restarts at element #" + first + " (" + system.Elements[first].Id + ")");
             int done = 0, total = 0;
             var lockObj = new object();
@@ -192,13 +219,20 @@ namespace UltrafastEngine.Engine
                 double[] outv;
                 try
                 {
-                    if (first > 0 && !(r.Raw?.Has("fit") ?? false))
+                    if (cache != null)
+                    {
+                        var c = Compiler.Compile(s, r, registry);
+                        c.GraphCache = cache;
+                        rr = Executor.Execute(c, null, cancel);
+                    }
+                    else if (first > 0 && !(r.Raw?.Has("fit") ?? false))
                     {
                         var c = Compiler.Compile(s, r, registry);
                         rr = Executor.ExecuteFrom(c, nominal, first, cancel);
                     }
                     else rr = Simulation.Run(s, r, registry, null, cancel);
                     outv = spec.Outputs.Select(o => Extract(rr, o)).ToArray();
+                    if (spec.ArrayOutputs.Count > 0) kept[values] = spec.ArrayOutputs.Select(a => ExtractArray(rr, a)).ToArray();
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException)) { err = ex.Message; outv = spec.Outputs.Select(_ => double.NaN).ToArray(); }
                 lock (lockObj) progress?.Invoke(++done, total);
@@ -211,6 +245,13 @@ namespace UltrafastEngine.Engine
                 var po = new ParallelOptions { MaxDegreeOfParallelism = spec.Parallel, CancellationToken = cancel };
                 System.Threading.Tasks.Parallel.For(0, points.Count, po, i => { var e = Eval(points[i]); outs[i] = e.Out; errs[i] = e.Err; });
                 // rows in the order of the points (not of completion), so parallel studies are reproducible
+                for (int i = 0; i < points.Count; i++)
+                    if (kept.TryGetValue(points[i], out var rows))
+                        for (int k = 0; k < rows.Length; k++)
+                        {
+                            if (!res.Arrays.TryGetValue(spec.ArrayOutputs[k], out var list)) res.Arrays[spec.ArrayOutputs[k]] = list = new List<double[]>();
+                            list.Add(rows[k]);
+                        }
                 for (int i = 0; i < points.Count; i++) { res.Parameters.Add((double[])points[i].Clone()); res.Outputs.Add(outs[i]); res.Errors.Add(errs[i]); }
                 return outs;
             }
@@ -249,6 +290,7 @@ namespace UltrafastEngine.Engine
                     break;
                 default: throw new JsonException("study mode must be scan, optimize or sensitivity");
             }
+            if (cache != null) res.Notes.Add("node cache: " + cache.Hits + " element runs reused from the nominal run");
             res.ElapsedS = sw.Elapsed.TotalSeconds;
             return res;
         }
@@ -416,6 +458,17 @@ namespace UltrafastEngine.Engine
         /// "record:ID/field" (per-element record: BIntegralRad, EnergyOutJ, ... or a value key), "instrument:NAME/key",
         /// "energy:ID".
         /// </summary>
+        /// <summary>A whole array of an instrument, "name/array".</summary>
+        public static double[] ExtractArray(RunResult r, string spec)
+        {
+            int s = spec.IndexOf('/');
+            if (s < 0) throw new JsonException("array output \"" + spec + "\": expected instrument/array");
+            string name = spec.Substring(0, s), array = spec.Substring(s + 1);
+            var inst = r.Instruments.FirstOrDefault(i => string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase)) ?? throw new JsonException("array output " + spec + ": no instrument " + name);
+            var a = inst.Arrays.FirstOrDefault(x => string.Equals(x.Name, array, StringComparison.OrdinalIgnoreCase) || string.Equals(x.Name, RunResult.Sanitize(name) + "_" + array, StringComparison.OrdinalIgnoreCase)) ?? throw new JsonException("array output " + spec + ": arrays are " + string.Join(", ", inst.Arrays.Select(x => x.Name)));
+            return a.Data;
+        }
+
         public static double Extract(RunResult r, string spec)
         {
             int c = spec.IndexOf(':'); if (c < 0) throw new JsonException("output \"" + spec + "\": expected kind:location/key");

@@ -246,6 +246,7 @@ namespace UltrafastEngine.Transverse
         public double[] X { get; }
         public double[] Y { get; }
         public double[] Kx { get; }
+        public double[] Ky { get; }
 
         public CartesianBasis(int nx, int ny, double halfWidthXM, double halfWidthYM)
         {
@@ -254,7 +255,7 @@ namespace UltrafastEngine.Transverse
             Dx = 2 * halfWidthXM / nx; Dy = ny > 1 ? 2 * halfWidthYM / ny : 1.0;
             Extent = Math.Max(halfWidthXM, halfWidthYM);
             Weights = Enumerable.Repeat(Dx * Dy, M).ToArray();
-            X = new double[M]; Y = new double[M]; Radius = new double[M]; K2 = new double[M]; Kx = new double[M];
+            X = new double[M]; Y = new double[M]; Radius = new double[M]; K2 = new double[M]; Kx = new double[M]; Ky = new double[M];
             for (int ix = 0; ix < nx; ix++)
                 for (int iy = 0; iy < ny; iy++)
                 {
@@ -264,7 +265,7 @@ namespace UltrafastEngine.Transverse
                     // wavevector modes in standard FFT order (index 0 = DC), matching ToK's output
                     double kx = 2 * Math.PI * (ix < nx / 2 ? ix : ix - nx) / (nx * Dx);
                     double ky = ny > 1 ? 2 * Math.PI * (iy < ny / 2 ? iy : iy - ny) / (ny * Dy) : 0;
-                    Kx[m] = kx;
+                    Kx[m] = kx; Ky[m] = ky;
                     K2[m] = kx * kx + ky * ky;
                 }
         }

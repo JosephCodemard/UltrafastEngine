@@ -2,7 +2,42 @@
 
 ## Unreleased
 
-### Added (engine depth before branches; plan: docs/design/t0-t2-plan.md)
+### Added (branched systems; plan: docs/design/branching.md)
+- **Branched systems**: `"topology": "branched"`, `next` naming input ports (`"bs:1"`, `{"id": "bs", "port": 1}`), ports on every element type, a graph compiler with verification (`ultrafast validate --graph`), alerts and virtual ports for unused ports.
+- **Interference**: a carrier-phase ledger per path; packets; `beamSplitter`, `delay`; virtual input beams, also in Sequential systems.
+- **Loops**: `ringDown` and `steadyState`. **Crystal ports**: `aux` beams with `fromPort`.
+- Python: `Sequential`, `Branched`, `link`, `virtual_input`, `loop`, `beam_splitter`, `delay`. Examples 32 and 33. System file version 3.
+- Architecture docs (`docs/architecture/`), and file headers as a rule.
+- **More elements**: `polarizingSplitter`, `leakMirror`, `dichroic`; `sameAs` and `side` for Michelson folding; tilts and offsets on `delay`. `cepRad` on pulses.
+- **Space**: mode overlap of tracked beams (q, tilt, offset), carried profiles meeting, beams of different carriers meeting. Crystal waves are ports.
+- **Phase**: crystals, gain media and spatial elements report carrier phase; harmonics scale it; tracked beams accumulate a Gouy phase.
+- **Delayed light** follows each branch. **Studies**: a node cache for Branched systems, and `arrayOutputs` written to `study.npz`.
+- Example 34. Python: `polarizing_splitter`, `leak_mirror`, `dichroic`.
+
+### Fixed (review of T0 to T2 and branches, 2026-10-31)
+- **M² and beam radius of off-axis and higher-order beams.** Moments were not central, and the curvature fit unwrapped phase along radius: a 1 mrad tilt read M² = 41, a vortex 84 to 155, HG₃₀ 76, and a 1 mm decentre w = 2.24 mm. All now match 2p + |l| + 1, 2m + 1 and 1 to 1e-6. Reported `beam.radiusXM` and `m2` change for such beams; centred Gaussians do not. Size-dependent settings derived from these radii (crystal overlap, gain mode) are affected the same way.
+- **`steadyState` loops** claimed convergence after two passes, because only the shape was compared and a passive loop keeps its shape while it decays. Energy must repeat too; a decaying loop now warns and points to `ringDown`.
+- **`graph.energyOutJ`** counted only the strongest packet at `end` and booked the others as a loss. It counts all of them; `packetsAtEnd` is new.
+- **Crystal ports**: other packets at a fed port vanished from the budget (12.5 % in the test case), and fed energy was used once per main packet. Only the strongest packets now interact, and the rest are booked with a warning.
+- Merging carried profiles lost the second arm's delayed-light tail.
+- `python/tools/build_engine.py` warns when a stale `bin/native` would shadow the hosted build. `aux_beam` gained `from_port`, without which a branch-fed crystal could not be written with builders.
+- Plugins: the `GetTargetPath` error (MSB4057) shown in VS Code on each plugin project.
+
+### Added (review)
+- `python/tests/test_lightpipes.py` and `test_pynlo_branched.py` (cross-checks); `ReviewRegressionTests`; `m2Y` from `beamProfile` on 2-D grids.
+- Examples 32, 33 and 34 use the Python API, with figures; 34 adds a FROG. New: 35 (CLI), 36 (Python), 37 (Python), 38 (CLI), 00-quickstart. The examples list says which interface each uses.
+- Moved: tutorial files to `docs/tutorials/files/`. Removed: finished design plans, folded into `docs/design/history.md`.
+
+### Fixed (physics review of the T1 and T2 work, 2026-10-30)
+- Dispersed rays did not refract at normal incidence: glass between gratings counted as n L, not L / n, in GDD, TOD and FOD. Curved surfaces had the same flaw.
+- `physics.spatioTemporal: "profile"`: a prism had no effect (and lost its dispersion); now it tilts the profile. A plate warns. A run with no profile warns. Grid checks added.
+- Stress depolarisation ignored the beam size (0.26 against 0.025 for w = r₀/3, C = 6) and was not a rotation, so y input lost energy.
+- `resonator`, linear: the return pass used forward matrices, wrong for anamorphic elements.
+- Tracked curvature had the opposite sign to carried profiles, in pulse-front tilt and `spaceTime`.
+- Fox-Li claimed convergence from the loss alone; it now also needs the shape to settle. `freeSpectralRangeHz` uses the group delay.
+- `coherence`: too few modes now warns, and shares are renormalised so the energy is the source's.
+
+### Added (engine depth before branches)
 - **Exact dispersion from angular dispersion**: a five-ray bundle in the tracker gives GDD, TOD and FOD per element, replacing the second-order formula (Treacy's TOD reproduced). `prism` element.
   `physics.spatioTemporal: "profile"`: gratings and tilted interfaces tilt each frequency of a carried cartesian profile. `spaceTime` works from the tracked beam on 1-D runs.
 - **Cw sources** (`shape: "cw"`, `powerW`), one spectral bin end to end; `beamProfile` reports `peakIntensityWPerM2`.

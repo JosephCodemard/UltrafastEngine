@@ -32,7 +32,7 @@ loaded through public interfaces, never required by the core.
 - [x] pyNLO cross-check
 - [x] Zemax export: AOI (RAID), normals (RENA/B/C), coating rules (+ optional operand read-out), semi-diameters, beam radii, environment
 
-## Phase 2 -- active media and spatial physics  (plan: docs/design/phase2-active-media.md)
+## Phase 2 -- active media and spatial physics
 - [x] **2.1** foundations: per-pulse grids with exact carrier change, internal multi-field propagation, auxiliary beam ports (parameters / previous run / callback), by-products, signed energy budget, user elements
 - [x] **2.1** spatial: radial (Hankel) and cartesian transverse models with diffraction per element, profiles carried between elements, lenses and curved mirrors, beam diagnostics (M2, true peak fluence)
 - [x] **2.1** χ(2) / OPCPA: `crystal` element (SHG/SFG/DFG/OPA, non-collinear, type 0/I/II, QPM), crystal library, phase-matching calculator, superfluorescence seeding, pyNLO cross-check
@@ -104,7 +104,7 @@ compressor chain (energy-dependent pedestal, asymmetric post-pedestal), with eve
 
 ## Stage 4 -- engine depth before branches  (2026-10-29 to 30)
 
-Plan and branching impact: [t0-t2-plan.md](t0-t2-plan.md).
+Done in this order, each stage building on the one before: review of tests with no external reference (T0); absorbing boundary, Hankel cache and cw source (T1.1); Gerchberg-Saxton and near fields (T1.4); ray-traced dispersion, `prism`, `spaceTime`, angular dispersion on profiles (T1.3); thermal lens, stress birefringence, partial coherence, resonators (T2). New tracker state stayed inside `BeamState`, so each edge of a graph could later own a clone, and partial coherence stayed a run mode around the executor, so branches do not depend on it.
 
 - [x] Diffraction validated against the Fresnel integral; absorbing boundary (linear and nonlinear elements); profile-only linear path; cheaper Hankel matrix
 - [x] Beam tracking: thermal lenses, Kostenbauder couplings, ray bundle for dispersion to fourth order, `prism`, angular dispersion on carried profiles
@@ -112,10 +112,26 @@ Plan and branching impact: [t0-t2-plan.md](t0-t2-plan.md).
 - [x] Cavities and coherence: `resonator` (eigenmode, Fox-Li), Gaussian-Schell partial coherence, stress birefringence, amplifier thermal lens
 - [x] Trust: `build/example_check.py`, Linux CI, generated validation matrix
 
+## Stage 5 -- branched systems  (from 2026-10-30)
+
+Plan: [branching.md](branching.md).
+
+- [x] Ports on all element types, `PathLedger`, `SystemGraph` with verification, Sequential and Branched forms
+- [x] Interference in 1-D, packets, loops, crystal ports, `beamSplitter`, `delay`, virtual inputs
+- [x] An independent physics review of the T1 and T2 work, with its findings fixed
+- [x] Space, the splitter family, Gouy and crystal phases, tail per path, node cache, array studies, modelled instruments
+
+## Stage 6 -- review of T0 to T2 and branches  (2026-10-31)
+
+Every spatial model and the branched interferometers were compared with LightPipes (an independent Fresnel code, development use only), and branched arms with pyNLO, which turned out to run on Python 3.12 once `jsonpickle` is installed.
+
+- [x] Found and fixed: M² and second-moment radius of tilted, decentred and higher-order beams; `steadyState` loops claiming convergence while decaying; `graph.energyOutJ` hiding separate packets; unbooked packets at crystal ports; the second arm's tail lost when carried profiles merged
+- [x] Tests: `test_lightpipes.py`, `test_pynlo_branched.py`, `ReviewRegressionTests`
+- [x] Examples 32 to 34 moved to the Python API; 35 to 38 added; tutorial files moved to `docs/tutorials/files/`
+
 ## After 2.0 (plugins and breadth)
 - [ ] Live-data plugin (streamed recordings, a digital twin that re-fits as data arrive)
 - [ ] ML / PINN estimator and surrogate plugins
-- [ ] Branches (splitters, parallel paths, coherent recombination)
 - [ ] Wheels for Windows/macOS/Linux on PyPI, NuGet package for the core
 - [ ] OpticStudio User Extension (menu-integrated) in addition to the Interactive Extension
 

@@ -12,9 +12,9 @@ pulse with a spectrum in media with real physics: dispersion to all orders, χ(2
 contrast diagnostics, measured-data comparison, validated against analytic and cross-code references. The others do
 monochromatic beams through apertures and lenses with more breadth (beam sources, masks, demos), and TorchOptics has partial
 coherence and autodiff. We do not chase their breadth for its own sake; we close the gaps that table-top ultrafast optics
-needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Zemax moves after T1.
+needs. T0 and the branch stages of T1 are done. **Next: the remaining T1 items, then the Zemax plugin.**
 
-## T0 -- accuracy and trust (now)
+## T0 -- accuracy and trust (done)
 - [x] Diffraction through an iris validated against the Fresnel integral (round / square, Gaussian / flat-top / uniform beams; Fresnel zones on the axis, Airy and sinc zeros), an under-resolved-aperture warning, area-averaged hard edges, the axis spike removed (absorbing boundary); [example 30](examples/30-iris-diffraction/README.md), [tutorial 6](tutorials/06-diffraction.md)
 - [x] `mkdocs build --strict` passes (owner's machine)
 - [x] Roadmap: GPU line corrected, `ROADMAP.md` and `docs/roadmap.md` in step; `PROJECT_STATUS.md` split into current status and history
@@ -22,17 +22,21 @@ needs. **Next: T0 (accuracy and trust), then T1 (core table-top capability).** Z
 - [x] Example check as a script (`build/example_check.py`): every README and tutorial command in strict mode, quoted output and key tables checked, `--against` diffs every `summary.json` number against a git ref -- *left:* prose and prose tables are checked by hand; example 07 and the C++ example are manual
 - [x] Validation matrix generated from the tests (`docs/reference/validation-matrix.md`, checked like the schemas) -- *left:* the rest are behaviour and bookkeeping tests, reviewed 2026-10-30
 - [x] Audit of tests that compare the engine only with itself: the matrix counts them apart (references starting with "cross-")
-- [ ] Independent oracle: a LightPipes cross-check in a scratch venv, dev-time only and never shipped (iris, Fresnel propagation, lens focus, Talbot self-imaging, Young's slits), opt-in like the HAPI test
+- [x] Independent oracle: LightPipes cross-check (`python/tests/test_lightpipes.py`), dev-time only and never shipped: free space, lenses, mirrors, apertures, tilt, Zernike terms, vortex, axicon, slits, Talbot, glass, and branched interferometers against `BeamMix`
+- [x] pyNLO runs on Python 3.12 (`pip install jsonpickle`), so its cross-checks are available again; branched arms against it in `test_pynlo_branched.py`
+- [x] Review of T0 to T2 and branches (2026-10-31): five bugs found by these cross-checks and fixed (see `CHANGELOG.md`)
 
 ## T1 -- core table-top capability (next)
 1. **Narrowband and monochromatic fast path**
    - [x] Linear spatial elements propagate only the stored frequencies of the profile; `transverse.spectralSamples`; absorbing boundary for linear elements; Hankel matrix built once per size (2048 points: 85 s → 4 s)
    - [x] A cw / single-frequency source: `shape: "cw"`, one spectral bin end to end
    - [x] Absorbing boundary in nonlinear spatial elements (an absorption in the layer)
-   - [x] Faster Hankel matrix (symmetric products) -- *left:* a timing benchmark against LightPipes, with the cross-check
-2. **Branches: splitters, arms, coherent recombination** -- the largest architectural limit (Michelson, Mach-Zehnder, pump-probe, OPA with its own pump arm). **Deferred by the owner until the existing engine is settled.**
-   - [x] Design: [docs/design/branching.md](design/branching.md) (final plan, stages 0-8: ports on all elements, jumps, graph compiler, virtual inputs, loops) -- *left:* the stages
-   - [ ] Implementation, a Michelson and a Mach-Zehnder example with analytic fringes, a pump-probe example
+   - [x] Faster Hankel matrix (symmetric products) -- *left:* a timing benchmark against LightPipes
+2. **Branches: splitters, arms, coherent recombination** -- the largest architectural limit (Michelson, Mach-Zehnder, pump-probe, OPA with its own pump arm). **Built; open items below.**
+   - [x] Design: [docs/design/branching.md](design/branching.md) (final plan, stages 0-8: ports on all elements, jumps, graph compiler, virtual inputs, loops)
+   - [x] Ports, path ledger, graph compiler and alerts, 1-D interference, loops, crystal ports, `beamSplitter`, `delay`, virtual inputs -- stages 1-6 of the plan
+   - [x] Space (tracked-beam overlap, profiles meeting), `sameAs` folding, `leakMirror`, `polarizingSplitter`, `dichroic`, crystal wave ports, tail per path, carrier phase from active elements, Gouy phase, study node cache, array studies, modelled IAC, FTS, FROG, f-2f -- stages 7-8
+   - [ ] A pump-probe example; beams crossing at an angle in a crystal, from the arms
 3. **Spatio-temporal couplings**
    - [x] Kostenbauder couplings with the tracked beam: gratings, tilted interfaces (prisms), plates, single-pass grating pairs; pulse-front tilt (Hebling, Akturk); the GDD they add (Treacy, 4f = 0)
    - [x] Angular dispersion on carried cartesian profiles (`physics.spatioTemporal: "profile"`), checked against the tracker and Treacy

@@ -24,12 +24,69 @@ def _clean(d: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ------------------------------------------------------------------ system file
+class Sequential(list):
+    """The elements of a system in order: each continues into the next (the default for a plain list)."""
+
+
+class Branched(list):
+    """The elements of a branched system: each states where its light goes, with :func:`link`. Pass it to :func:`system`."""
+
+
+def link(element: Mapping[str, Any], next: Any = None, inputs: Optional[Mapping[str, Any]] = None, loop: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+    """An element of a :class:`Branched` system, with where its light goes. ``next`` is ``"bs:1"``, ``{"id": "bs", "port": 1}``, ``"end"``,
+    ``"virtual"``, or a dict of those by output port. ``inputs`` holds virtual beams by input port (:func:`virtual_input`);
+    ``loop`` is :func:`loop` on the element where light enters a loop."""
+    return _clean({**element, "next": next, "inputs": inputs, "loop": loop})
+
+
+def virtual_input(pulse: Optional[Mapping[str, Any]] = None, delay_s: Optional[float] = None, phase_rad: Optional[float] = None,
+                  coherent_with: Optional[str] = None, **extra) -> Dict[str, Any]:
+    """A beam on an input port with no beamline behind it. With no ``pulse``, the port is empty on purpose."""
+    if pulse is None and not extra:
+        return {"virtual": True}
+    return _clean({"pulse": pulse, "delayS": delay_s, "phaseRad": phase_rad, "coherentWith": coherent_with, **extra})
+
+
+def loop(kind: str = "ringDown", max_round_trips: Optional[int] = None, tolerance: Optional[float] = None) -> Dict[str, Any]:
+    """Settings of a loop: ``"ringDown"`` keeps every pass that leaves, ``"steadyState"`` runs until the shape repeats."""
+    return _clean({"kind": kind, "maxRoundTrips": max_round_trips, "tolerance": tolerance})
+
+
+def beam_splitter(id: str, reflectivity: float = 0.5, output: Optional[str] = None, **extra) -> Dict[str, Any]:
+    """A lossless 2x2 splitter, c = t a - r b, d = r a + t b. ``output`` is the port a Sequential system keeps."""
+    return _clean({"id": id, "type": "beamSplitter", "reflectivity": reflectivity, "output": output, **extra})
+
+
+def polarizing_splitter(id: str, transmission_p: Optional[float] = None, reflectivity_s: Optional[float] = None, output: Optional[str] = None, **extra) -> Dict[str, Any]:
+    """A polarising splitter: x mostly to port c, y mostly to port d."""
+    return _clean({"id": id, "type": "polarizingSplitter", "transmissionP": transmission_p, "reflectivityS": reflectivity_s, "output": output, **extra})
+
+
+def leak_mirror(id: str, transmission: float = 0.01, gdd_fs2: Optional[float] = None, leak_gdd_fs2: Optional[float] = None, output: Optional[str] = None, **extra) -> Dict[str, Any]:
+    """A mirror whose leak is a port (``out``, ``leak``)."""
+    return _clean({"id": id, "type": "leakMirror", "transmission": transmission, "gddFs2": gdd_fs2, "leakGddFs2": leak_gdd_fs2, "output": output, **extra})
+
+
+def dichroic(id: str, edge_wavelength_m: float, edge_width_m: Optional[float] = None, reflect_long: Optional[bool] = None, output: Optional[str] = None, **extra) -> Dict[str, Any]:
+    """A spectral splitter: port d reflects one side of the edge, port c transmits the other."""
+    return _clean({"id": id, "type": "dichroic", "edgeWavelengthM": edge_wavelength_m, "edgeWidthM": edge_width_m, "reflectLong": reflect_long, "output": output, **extra})
+
+
+def delay(id: str, delay_s: Optional[float] = None, length_m: Optional[float] = None, tilt_x_rad: Optional[float] = None, tilt_y_rad: Optional[float] = None,
+          offset_x_m: Optional[float] = None, offset_y_m: Optional[float] = None, **extra) -> Dict[str, Any]:
+    """A pure delay on a stage: a time, or a path in vacuum. Tilts and offsets misalign the arm, for mode overlap and tilt fringes."""
+    return _clean({"id": id, "type": "delay", "delayS": delay_s, "lengthM": length_m, "tiltXRad": tilt_x_rad, "tiltYRad": tilt_y_rad, "offsetXM": offset_x_m, "offsetYM": offset_y_m, **extra})
+
+
 def system(name: str, elements: Sequence[Mapping[str, Any]], materials: Optional[Mapping[str, Any]] = None, coatings: Optional[Mapping[str, Any]] = None,
            wavelengths_m: Optional[Sequence[float]] = None, overrides: Optional[list] = None, environment: Optional[Mapping[str, Any]] = None,
            description: Optional[str] = None, substrates: Optional[Mapping[str, Any]] = None) -> "T.System":
     """A system file. ``substrates`` defines mirror substrates by name (see :func:`substrate`); ``environment`` is the lab
     air (:func:`environment`)."""
     d = {"format": "ultrafast-system", "version": 2, "name": name}
+    if isinstance(elements, Branched):
+        d["version"] = 3
+        d["topology"] = "branched"
     if description:
         d["description"] = description
     if wavelengths_m is not None:
@@ -282,7 +339,7 @@ def detector_response(wavelengths_m: Sequence[float], values: Sequence[float]) -
 def detector(*, calibration: Optional[float] = None, noise: Optional[float] = None, noise_floor: Optional[float] = None,
              dynamic_range_db: Optional[float] = None, saturation_level: Optional[float] = None, bit_depth: Optional[int] = None,
              response: Optional[Mapping[str, Any]] = None, counting: Optional[str] = None, seed: Optional[int] = None,
-             preset: Optional[str] = None) -> "T.Detector":
+             preset: Optional[str] = None) -> Dict[str, Any]:
     """The read-out of an instrument (``instrument(..., detector=detector(...))``). ``response`` (:func:`detector_response`) is the spectral
     response of a spectral instrument; ``counting="photons"`` converts the energy spectrum to photon counts first. ``preset`` names an entry
     of ``run_spec(detectors=...)`` (or a JSON file) that the other keys override."""
@@ -381,9 +438,12 @@ def profile_noise(relative_amplitude_rms: float = 0.0, correlation_length_m: flo
 
 def aux_beam(role: str, pulse: Optional[Mapping[str, Any]] = None, *, from_results: Optional[str] = None, energy: Optional[float] = None,
              radius_m: Optional[float] = None, profile: str = "gaussian", order: Optional[int] = None,
-             delay_s: Any = "auto", radius_of_curvature_m: Optional[float] = None) -> dict:
-    """Auxiliary beam for a crystal: a pulse spec (see :func:`pulse`) or ``from_results`` (a results folder)."""
+             delay_s: Any = "auto", radius_of_curvature_m: Optional[float] = None, from_port: bool = False) -> dict:
+    """Auxiliary beam for a crystal: a pulse spec (see :func:`pulse`), ``from_results`` (a results folder), or ``from_port=True`` in a
+    Branched system: the beam arriving at the input port named ``role`` (docs/reference/branches.md#crystals)."""
     beam = _clean({"kind": profile, "radiusM": radius_m, "order": order, "radiusOfCurvatureM": radius_of_curvature_m})
+    if from_port:
+        return {"role": role, "beam": beam, "fromPort": True}
     d = {"role": role, "beam": beam, "delayS": delay_s}
     if from_results is not None:
         d["from"] = from_results

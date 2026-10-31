@@ -20,7 +20,7 @@ python report.py
 mode radius (mm) 0.3876   analytic 0.3876
 Fox-Li radius    0.3877   round-trip loss 0.003 %, 29 round trips
 waist (mm)       0.4998   analytic 0.5000
-at z_R (mm)      1.3455   analytic 1.3463
+at z_R (mm)      1.3456   analytic 1.3463
 ```
 
 The Fox-Li mode has the radius of the ABCD eigenmode, and the aperture, 2.8 mode radii, costs 0.003 % per round trip. The Gaussian-Schell beam has the same waist as a coherent one but

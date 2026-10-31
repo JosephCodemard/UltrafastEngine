@@ -64,6 +64,7 @@ middle) for the reference run and local sensitivities.
 
 * The grid is frozen at the nominal run's plan (`freezeGrid`, default true), so every point uses the same samples and
   results are comparable.
+* **Whole arrays** (`arrayOutputs`): `["spec/spectrum"]` keeps an instrument's array per point in `study.npz`, with one row per point. Give `output` to write it. [Example 34](../examples/34-modelled-instruments/README.md) builds a FROG trace this way.
 * **Prefix caching** (`prefixCache`, default true): when every varied parameter acts on elements after some index,
   each point restarts there from the nominal run's pulse instead of recomputing the elements before.
 * `parallel` runs points at the same time (each run also uses multiple cores for its FFTs).

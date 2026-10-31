@@ -35,6 +35,8 @@ skills, hooks) -- see [docs/claude-code.md](docs/claude-code.md).
   warning; do not remove old names.
 * New physics comes with a test against an analytic result or a published value, and a docs page section.
 * Examples live in `docs/examples/`; they must run with `ULTRAFAST_STRICT_OPTIONS=1` (unknown keys are errors).
+* New or substantially changed source files start with a header comment: what the file does, its main classes, their key
+  signatures (see `Systems/SystemGraph.cs`). `docs/architecture/` describes files, classes and key processes: keep it current.
 * Do not commit `bin/`, `obj/`, `artifacts/`, `site/`. Never overwrite, modify or redistribute the ZOS-API DLLs in
   `plugins/zemax/src/UltrafastEngine.Zemax/lib/` (Ansys property, supplied by the user's OpticStudio installation).
 

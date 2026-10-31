@@ -18,7 +18,7 @@ namespace UltrafastEngine.Optics
     /// terms are dropped, each with a note. On a 1-D beam nothing changes; the element reports the Maréchal Strehl
     /// estimate of its aberrations for the tracked (or given) Gaussian beam.
     /// </summary>
-    public sealed class SurfaceOpticsElement : IActiveElement
+    public sealed class SurfaceOpticsElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         private readonly double _fx, _fy, _w0; private readonly Material _lensMat, _medium;
         public Aberration Aberration { get; }

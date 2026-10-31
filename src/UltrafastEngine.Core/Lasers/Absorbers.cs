@@ -113,7 +113,7 @@ namespace UltrafastEngine.Lasers
     }
 
     /// <summary>The `saturableAbsorber` / `sesam` element.</summary>
-    public sealed class SaturableAbsorberElement : IActiveElement
+    public sealed class SaturableAbsorberElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         public SaturableAbsorber A;
         public string Kind => "saturableAbsorber";
@@ -161,7 +161,7 @@ namespace UltrafastEngine.Lasers
     /// order n): the profile is masked at every stored frequency, the spectrum scaled by the frequency-resolved
     /// transmission. Without a profile it falls back to the 1-D clip loss on the beam model.
     /// </summary>
-    public sealed class ApertureElement : IActiveElement
+    public sealed class ApertureElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         public double RadiusM = double.NaN, HalfX = double.NaN, HalfY = double.NaN, SoftRadiusM = double.NaN, CenterX, CenterY;
         public int SoftOrder = 1;

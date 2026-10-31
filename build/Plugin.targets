@@ -13,6 +13,13 @@
   <PropertyGroup>
     <PluginOut>$(RepoRoot)artifacts/plugins/$(PluginId)/</PluginOut>
   </PropertyGroup>
+  <!--
+    Hosts reference plugins without a target framework (build/CopyPlugins.targets), so that a build makes every
+    framework. Design-time builds (VS Code, Visual Studio) then call GetTargetPath on the multi-targeted outer
+    project, which does not define it (MSB4057, shown on the Project line). This empty target answers them; the SDK's
+    real target, imported later, replaces it in the per-framework builds.
+  -->
+  <Target Name="GetTargetPath" />
   <Target Name="LayoutPlugin" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
     <ItemGroup>
       <_PluginLib Include="$(TargetDir)$(TargetName).dll" />

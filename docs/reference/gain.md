@@ -140,8 +140,8 @@ applies the lens once per pass with that free path between them. Regenerative am
 
 **Stress birefringence.** `"thermalLens": {"stress": true}` adds the thermal birefringence of a uniformly heated rod of a cubic host (Koechner, *Solid-State Laser Engineering*, ch. 7;
 built in for YAG hosts, `thermalExpansionPerK`, `stressCr`, `stressCphi` on a medium of your own). The radial and tangential polarisations differ by the retardation
-δ = C (r/r₀)², C = n₀³ α C_B P_h / (λ K), C_B = C_r − C_φ. An x-polarised beam filling the rod loses to y the fraction D = (1 − sin C / C) / 4, tending to 1/4. The gain element moves
-that fraction of the energy to y (the beam-averaged result, not the four-lobed pattern) and reports `depolarizationFraction`, `stressRetardationRad`, and the two lenses
+δ = C (r/r₀)², C = n₀³ α C_B P_h / (λ K), C_B = C_r − C_φ. The depolarised fraction is the average of sin²(2φ) sin²(δ/2) over a Gaussian beam of radius w inside the rod. A beam filling the rod gives Koechner's D = (1 − sin C / C) / 4, tending to 1/4; a beam well inside it gives D = x² / (1 + x²) / 4 with x = C w² / (2 r₀²). The gain element rotates
+that fraction of the field between x and y, which keeps the energy (the beam-averaged result, not the four-lobed pattern) and reports `depolarizationFraction`, `stressRetardationRad`, and the two lenses
 `stressFocalLengthRadialM`, `stressFocalLengthTangentialM` (dn/dT, stress and end-face bulging). The formula assumes uniform heating over the rod: an end-pumped rod is only roughly described.
 
 Checks (`BeamTrackingTests`): a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); a

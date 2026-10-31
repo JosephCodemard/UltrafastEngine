@@ -1,0 +1,3 @@
+{ "format": "ultrafast-run", "version": 2, "name": "fringes",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1030e-9, "durationFwhmS": 1e-12, "energyJ": 1e-3 },
+  "instruments": [ { "kind": "beamProfile", "name": "screen", "at": "end" } ] }

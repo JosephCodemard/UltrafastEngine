@@ -162,18 +162,20 @@ namespace UltrafastEngine.Transverse
         public (double Wx, double Wy) SecondMomentRadius()
         {
             int M = Basis.M, nf = Omega.Length;
-            double sx = 0, sy = 0, s0 = 0;
+            double sx = 0, sy = 0, s0 = 0, cx = 0, cy = 0;
             for (int m = 0; m < M; m++)
             {
                 double p = 0; for (int f = 0; f < nf; f++) p += (SampleWeights?[f] ?? 1.0) * (Data[m * nf + f].Real * Data[m * nf + f].Real + Data[m * nf + f].Imaginary * Data[m * nf + f].Imaginary);
                 p *= Basis.Weights[m];
                 s0 += p;
                 if (Basis.Kind == "radial") sx += p * Basis.Radius[m] * Basis.Radius[m];
-                else { sx += p * Basis.X[m] * Basis.X[m]; sy += p * Basis.Y[m] * Basis.Y[m]; }
+                else { sx += p * Basis.X[m] * Basis.X[m]; sy += p * Basis.Y[m] * Basis.Y[m]; cx += p * Basis.X[m]; cy += p * Basis.Y[m]; }
             }
             if (s0 <= 0) return (double.NaN, double.NaN);
             if (Basis.Kind == "radial") { double w = Math.Sqrt(2 * sx / s0); return (w, w); }
-            return (2 * Math.Sqrt(sx / s0), 2 * Math.Sqrt(sy / s0));
+            // about the centroid: a decentred or tilted beam keeps its size
+            cx /= s0; cy /= s0;
+            return (2 * Math.Sqrt(Math.Max(0, sx / s0 - cx * cx)), 2 * Math.Sqrt(Math.Max(0, sy / s0 - cy * cy)));
         }
 
         public string Describe()
@@ -544,31 +546,52 @@ namespace UltrafastEngine.Transverse
         /// <summary>Weighted quadratic-phase coefficient a (phase ~ a r^2) of each stored frequency of a profile.</summary>
         public static double[] Curvature(TransverseProfile p)
         {
-            var B = p.Basis; int M = B.M, nf = p.Omega.Length;
+            int nf = p.Omega.Length;
             var res = new double[nf];
-            // order points by radius, unwrap along r
-            var order = Enumerable.Range(0, M).OrderBy(m => B.Radius[m]).ToArray();
-            for (int f = 0; f < nf; f++)
-            {
-                var ph = new double[M]; double prev = 0, acc = 0; bool first = true;
-                foreach (int m in order)
-                {
-                    double v = p.Data[m * nf + f].Phase;
-                    if (first) { acc = v; first = false; }
-                    else { double d = v - prev; d -= 2 * Math.PI * Math.Round(d / (2 * Math.PI)); acc += d; }
-                    prev = v; ph[m] = acc;
-                }
-                // weighted least squares ph = b + a r^2
-                double sw = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
-                for (int m = 0; m < M; m++)
-                {
-                    double w = B.Weights[m] * p.Data[m * nf + f].Magnitude * p.Data[m * nf + f].Magnitude, x = B.Radius[m] * B.Radius[m];
-                    sw += w; sx += w * x; sy += w * ph[m]; sxx += w * x * x; sxy += w * x * ph[m];
-                }
-                double det = sw * sxx - sx * sx;
-                res[f] = Math.Abs(det) > 0 ? (sw * sxy - sx * sy) / det : 0;
-            }
+            for (int f = 0; f < nf; f++) res[f] = p.Basis is CartesianBasis cb ? CurvatureCartesian(p, cb, f) : CurvatureRadial(p, f);
             return res;
+        }
+
+        // Least-squares slope of the phase gradient, g = 2 a (x - x0), from the phase step between neighbouring samples. Steps
+        // are local, so a vortex or the sign change between lobes (where the phase has no continuous unwrapping along r) does
+        // not disturb the fit, and fitting about the weighted mean position and gradient leaves out decentre and tilt.
+        private static double CurvatureCartesian(TransverseProfile p, CartesianBasis cb, int f)
+        {
+            int nf = p.Omega.Length, nx = cb.Nx, ny = cb.Ny;
+            double num = 0, den = 0;
+            for (int axis = 0; axis < (ny > 1 ? 2 : 1); axis++)
+            {
+                int outer = axis == 0 ? ny : nx, inner = axis == 0 ? nx : ny;
+                double d = axis == 0 ? cb.Dx : cb.Dy, start = -(inner / 2) * d;
+                double sw = 0, sx = 0, sg = 0, sxx = 0, sxg = 0;
+                for (int o = 0; o < outer; o++)
+                    for (int i = 0; i + 1 < inner; i++)
+                    {
+                        int m0 = axis == 0 ? i * ny + o : o * ny + i, m1 = axis == 0 ? (i + 1) * ny + o : o * ny + i + 1;
+                        var c = Complex.Conjugate(p.Data[m0 * nf + f]) * p.Data[m1 * nf + f];
+                        double w = c.Magnitude; if (w <= 0) continue;
+                        double x = start + (i + 0.5) * d, g = c.Phase / d;
+                        sw += w; sx += w * x; sg += w * g; sxx += w * x * x; sxg += w * x * g;
+                    }
+                if (sw > 0) { num += sxg - sx * sg / sw; den += sxx - sx * sx / sw; }
+            }
+            return den > 0 ? num / (2 * den) : 0;
+        }
+
+        private static double CurvatureRadial(TransverseProfile p, int f)
+        {
+            var B = p.Basis; int M = B.M, nf = p.Omega.Length;
+            var order = Enumerable.Range(0, M).OrderBy(m => B.Radius[m]).ToArray();
+            double num = 0, den = 0;
+            for (int j = 0; j + 1 < M; j++)
+            {
+                int a = order[j], b = order[j + 1];
+                double dr = B.Radius[b] - B.Radius[a]; if (dr <= 0) continue;
+                var c = Complex.Conjugate(p.Data[a * nf + f]) * p.Data[b * nf + f];
+                double r = 0.5 * (B.Radius[a] + B.Radius[b]), w = 0.5 * (B.Weights[a] + B.Weights[b]) * c.Magnitude;
+                num += w * r * c.Phase / dr; den += w * r * r;
+            }
+            return den > 0 ? num / (2 * den) : 0;
         }
 
         /// <summary>True if both bases sample the same points.</summary>
@@ -680,7 +703,7 @@ namespace UltrafastEngine.Transverse
         /// (exact) and the residual position-momentum cross moment by finite differences:
         /// radial M^2 = sqrt(&lt;r^2&gt;&lt;k^2&gt; - &lt;r k_r&gt;^2); cartesian (x) M^2 = 2 sqrt(&lt;x^2&gt;&lt;kx^2&gt; - &lt;x kx&gt;^2).
         /// </summary>
-        public static double BeamQuality(TransverseProfile p, int f = -1)
+        public static double BeamQuality(TransverseProfile p, int f = -1, bool yAxis = false)
         {
             int nf = p.Omega.Length; var B = p.Basis; int M = B.M;
             if (f < 0) f = p.MainSample;
@@ -689,12 +712,17 @@ namespace UltrafastEngine.Transverse
             for (int m = 0; m < M; m++) v[m] = p.Data[m * nf + f] * Complex.FromPolarCoordinates(1, -a * B.Radius[m] * B.Radius[m]);
             var g = (Complex[])v.Clone();
             B.ToK(g, 1);
-            double sk = 0, sk0 = 0;
+            double sk = 0, sk0 = 0, sk1 = 0;
             bool radial = B is RadialBasis;
-            for (int m = 0; m < M; m++) { double q = g[m].Real * g[m].Real + g[m].Imaginary * g[m].Imaginary; sk0 += q; sk += q * (radial ? B.K2[m] : B.Kx[m] * B.Kx[m]); }
+            var kAxis = yAxis && B is CartesianBasis ky ? ky.Ky : B.Kx;
+            for (int m = 0; m < M; m++)
+            {
+                double q = g[m].Real * g[m].Real + g[m].Imaginary * g[m].Imaginary;
+                sk0 += q; sk += q * (radial ? B.K2[m] : kAxis[m] * kAxis[m]); if (!radial) sk1 += q * kAxis[m];
+            }
             if (sk0 <= 0) return double.NaN;
-            double k2 = sk / sk0;
-            double s0 = 0, x2 = 0, xk = 0;
+            double k2 = sk / sk0, k1 = sk1 / sk0;
+            double s0 = 0, x1 = 0, x2 = 0, xk = 0;
             if (radial)
             {
                 var order = Enumerable.Range(0, M).OrderBy(m => B.Radius[m]).ToArray();
@@ -711,17 +739,24 @@ namespace UltrafastEngine.Transverse
                 return Math.Sqrt(Math.Max(0, x2 * k2 - xk * xk));
             }
             var cb = (CartesianBasis)B;
-            for (int ix = 0; ix < cb.Nx; ix++)
-                for (int iy = 0; iy < cb.Ny; iy++)
+            int n = yAxis ? cb.Ny : cb.Nx, step = yAxis ? 1 : cb.Ny, rows = yAxis ? cb.Nx : cb.Ny, rowStep = yAxis ? cb.Ny : 1;
+            double dx = yAxis ? cb.Dy : cb.Dx;
+            var pos = yAxis ? cb.Y : cb.X;
+            // the mean tilt comes out first: a finite difference would underestimate its steep phase, giving M^2 < 1
+            for (int m = 0; m < M; m++) v[m] *= Complex.FromPolarCoordinates(1, -k1 * pos[m]);
+            for (int row = 0; row < rows; row++)
+                for (int i = 0; i < n; i++)
                 {
-                    int m = ix * cb.Ny + iy;
-                    int ia = Math.Max(0, ix - 1), ib = Math.Min(cb.Nx - 1, ix + 1);
-                    var d = (v[ib * cb.Ny + iy] - v[ia * cb.Ny + iy]) / (cb.Dx * (ib - ia));
-                    double i2 = v[m].Real * v[m].Real + v[m].Imaginary * v[m].Imaginary, x = cb.X[m];
-                    s0 += i2; x2 += x * x * i2; xk += x * (Complex.Conjugate(v[m]) * d).Imaginary;
+                    int m = row * rowStep + i * step;
+                    int ia = Math.Max(0, i - 1), ib = Math.Min(n - 1, i + 1);
+                    var d = (v[row * rowStep + ib * step] - v[row * rowStep + ia * step]) / (dx * (ib - ia));
+                    double i2 = v[m].Real * v[m].Real + v[m].Imaginary * v[m].Imaginary;
+                    s0 += i2; x1 += pos[m] * i2; x2 += pos[m] * pos[m] * i2; xk += pos[m] * (Complex.Conjugate(v[m]) * d).Imaginary;
                 }
-            x2 /= s0; xk /= s0;
-            return 2 * Math.Sqrt(Math.Max(0, x2 * k2 - xk * xk));
+            x1 /= s0; x2 /= s0; xk /= s0;
+            // central moments: tilt (mean k) and decentre (mean x) do not degrade beam quality
+            double vx = x2 - x1 * x1, vk = k2 - k1 * k1;
+            return 2 * Math.Sqrt(Math.Max(0, vx * vk - xk * xk));
         }
 
         /// <summary>Fluence (J/m^2) at each spatial point of a full spectral field (layout [m * n + i]).</summary>

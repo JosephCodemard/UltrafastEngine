@@ -41,6 +41,16 @@ namespace UltrafastEngine.Engine
         public ElementRecord Record { get; set; }
         public RunResult Result { get; set; }
         public int Index { get; set; }
+        /// <summary>The input port the pulse is on (null: the default port).</summary>
+        public string InputPort { get; set; }
+        /// <summary>The path this pulse is on; null outside the graph scheduler is not used, the executor always sets it.</summary>
+        public PathLedger Path { get; set; }
+        /// <summary>The carrier phase of the output is this multiple of the input's (2 for a second harmonic).</summary>
+        public double PathPhaseFactor { get; set; } = 1;
+        /// <summary>The output's carrier phase cannot be stated on this path.</summary>
+        public bool PhaseLost { get; set; }
+        /// <summary>True in a Branched system, where the scheduler routes by-products and books unused ports.</summary>
+        public bool InGraph { get; set; }
         /// <summary>Lab arrival time of the co-moving frame at the element entrance (s).</summary>
         public double ArrivalS { get; set; }
         public Action<double> Progress { get; set; }
@@ -124,7 +134,7 @@ namespace UltrafastEngine.Engine
     /// lens material the focal length follows (n(omega0) - 1) / (n(omega) - 1) (chromatic focal shift). Without
     /// a carried profile it only records a note (1-D elements take their beam size from their own beam models).
     /// </summary>
-    public sealed class LensElement : IActiveElement
+    public sealed class LensElement : IActiveElement, IReportsCarrierPhase
     {
         private readonly double _f, _w0; private readonly Material _lensMat, _medium;
         public LensElement(double focalLengthM, Material lensMaterial, Material medium, double referenceOmega)

@@ -3,7 +3,7 @@
 **Goal:** build a complete laser chain, a Yb chirped-pulse amplifier (CPA) with frequency doubling. Then change it
 without editing it (overrides), and drive it from Python for a parameter study.
 
-Files: `docs/examples/tutorial/cpa.ufs`, `run-cpa.json`, `cpa.py`.
+Files: `docs/tutorials/files/cpa.ufs`, `run-cpa.json`, `cpa.py`.
 
 ## 1. The system
 
@@ -125,7 +125,7 @@ for p in (60, 100, 150):                       # a scan is just a loop
 ```
 
 ```bash
-python docs/examples/tutorial/cpa.py
+python docs/tutorials/files/cpa.py
 ```
 
 It prints:

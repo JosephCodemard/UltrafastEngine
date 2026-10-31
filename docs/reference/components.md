@@ -93,7 +93,7 @@ A prism is two interfaces and the glass between them; for a 60° fused-silica pr
 U(x, ω) = A(ω) u_q(x − E Δω) exp(i k₀ F Δω (x − E Δω)). Keeping A on the chief ray costs a spectral phase, which the element applies
 to the pulse (a note gives it in fs² and fs³). It is computed exactly: five rays around the carrier are traced with the beam through
 gaps, lenses and tilted surfaces (Snell's law, the grating equation, the tilt of the surface), each collecting its optical phase, and
-differences across the bundle give GDD, TOD and FOD of each element. To second order this is k₀ B F² for a length B (reduced) of free space,
+differences across the bundle give GDD, TOD and FOD of each element. Inside a medium each ray has refracted by its own index, also at normal incidence, so a glass path L counts as L / n. To second order this is k₀ B F² for a length B (reduced) of free space,
 −k₀ E² / f for a lens, k₀ (A C E² + 2 B C E F + B D F²) for a general ABCD step and 2 k₀ F_el a E_in at a dispersing surface. After a
 system that cancels the couplings the sum is Kostenbauder's time element: Treacy's phase for two gratings (GDD −k₀ L F², and the TOD comes
 out too) and 0 for a 4f zero-dispersion stretcher. Fifth and higher orders are not applied; `gratingPair` remains the exact phase.

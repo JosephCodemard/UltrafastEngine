@@ -46,6 +46,8 @@ namespace UltrafastEngine.Optics
         private double[] _xr = new double[Rays], _ar = new double[Rays], _yr = new double[Rays], _br = new double[Rays], _phase = new double[Rays];
         private double Omega0 => K0 * PhysicalConstants.SpeedOfLightMPerS;
         private double RayStep => 0.004 * Omega0;
+        /// <summary>Index against frequency of the present medium; null means <see cref="MediumIndex"/> at all frequencies.</summary>
+        private Func<double, double> _mediumOf;
         private double RayOmega(int j) => Omega0 + (j - Rays / 2) * RayStep;
         private double RayK(int j) => RayOmega(j) / PhysicalConstants.SpeedOfLightMPerS;
 
@@ -72,7 +74,15 @@ namespace UltrafastEngine.Optics
         private void Step(bool x, double a, double b, double c, double d)
         {
             if (x) MatrixX = Multiply(new[] { a, b, c, d }, MatrixX); else MatrixY = Multiply(new[] { a, b, c, d }, MatrixY);
+            // the step has been applied to q already, so go back one step; the on-axis field goes as 1 / sqrt(A + B / q_in)
+            var qOut = x ? Qx : Qy;
+            var qIn = (d * qOut - b) / (-c * qOut + a);
+            GouyRad += 0.5 * (a + b / qIn).Phase;
         }
+
+        /// <summary>Accumulated Gouy phase of the on-axis field (rad, both planes), for E = Re{A exp(-i w t)}:
+        /// -atan(z / z_R) from a waist to z. Not in the pulse's field: it goes to the path ledger.</summary>
+        public double GouyRad { get; private set; }
 
         /// <summary>True when the beam carries spatial or angular dispersion.</summary>
         public bool HasCouplings => Ex != 0 || Fx != 0 || Ey != 0 || Fy != 0;
@@ -97,7 +107,7 @@ namespace UltrafastEngine.Optics
 
         public BeamState Clone() => new BeamState(Qx, Qy, Lambda0, M2x, M2y, MediumIndex)
         {
-            PathM = PathM, MatrixX = MatrixX, MatrixY = MatrixY, Ex = Ex, Ey = Ey, Fx = Fx, Fy = Fy, _xr = (double[])_xr.Clone(), _ar = (double[])_ar.Clone(), _yr = (double[])_yr.Clone(), _br = (double[])_br.Clone(), _phase = (double[])_phase.Clone()
+            _mediumOf = _mediumOf, GouyRad = GouyRad, PathM = PathM, MatrixX = MatrixX, MatrixY = MatrixY, Ex = Ex, Ey = Ey, Fx = Fx, Fy = Fy, _xr = (double[])_xr.Clone(), _ar = (double[])_ar.Clone(), _yr = (double[])_yr.Clone(), _br = (double[])_br.Clone(), _phase = (double[])_phase.Clone()
         };
 
         /// <summary>Beam from an inputBeam / beam spec of kind "gaussian": w0M (or w0xM/w0yM), zWaistM (waist position
@@ -130,17 +140,35 @@ namespace UltrafastEngine.Optics
         private static Complex Abcd(Complex q, double a, double b, double c, double d) => (a * q + b) / (c * q + d);
 
         /// <summary>Free propagation over a geometric length in a medium of index n.</summary>
-        public void Propagate(double lengthM, double n)
+        public void Propagate(double lengthM, double n, Func<double, double> nOf = null)
         {
             if (!(n > 0)) n = 1;
+            EnterMedium(n, nOf);
             Qx += lengthM / n; Qy += lengthM / n; MediumIndex = n; PathM += lengthM;
             Step(true, 1, lengthM / n, 0, 1); Step(false, 1, lengthM / n, 0, 1);
             for (int j = 0; j < Rays; j++)
             {
-                _phase[j] += RayK(j) * n * lengthM * (1 / Math.Cos(_ar[j]) + 1 / Math.Cos(_br[j]) - 2);
+                _phase[j] += RayK(j) * RayIndex(j) * lengthM * (1 / Math.Cos(_ar[j]) + 1 / Math.Cos(_br[j]) - 2);
                 _xr[j] += lengthM * Math.Tan(_ar[j]); _yr[j] += lengthM * Math.Tan(_br[j]);
             }
             Ex += lengthM / n * Fx; Ey += lengthM / n * Fy;
+        }
+
+        /// <summary>Index of the present medium for ray j.</summary>
+        private double RayIndex(int j) => _mediumOf != null ? _mediumOf(RayOmega(j)) : MediumIndex;
+
+        /// <summary>The rays cross a normal surface into a new medium: each refracts by its own index, while the reduced beam
+        /// quantities do not change.</summary>
+        private void EnterMedium(double n, Func<double, double> nOf)
+        {
+            if (nOf == null) { if (n != MediumIndex) _mediumOf = null; return; }
+            bool same = true;
+            for (int j = 0; j < Rays; j++) same &= RayIndex(j) == nOf(RayOmega(j));
+            if (same) { _mediumOf = nOf; return; }
+            var before = Enumerable.Range(0, Rays).Select(RayIndex).ToArray();
+            RaySurface(0, 0, true, j => (before[j], nOf(RayOmega(j)), 0.0));
+            RaySurface(0, 0, false, j => (before[j], nOf(RayOmega(j)), 0.0));
+            _mediumOf = nOf;
         }
 
         /// <summary>Thin lens (focal lengths in x and y; infinity = no power in that plane).</summary>
@@ -165,8 +193,8 @@ namespace UltrafastEngine.Optics
         /// a prism), and the ray bundle crosses the tilted surface exactly.</para></summary>
         public void TiltedInterface(double n1, double n2, double theta1, bool tangentialIsX, Func<double, double> n1Of = null, Func<double, double> n2Of = null)
         {
+            if (Math.Abs(theta1) < 1e-12) { EnterMedium(n2, n2Of); MediumIndex = n2; return; }
             MediumIndex = n2;
-            if (Math.Abs(theta1) < 1e-12) return;
             double s1 = Math.Sin(theta1), s2 = n1 * s1 / n2;
             if (Math.Abs(s2) >= 1) return; // total internal reflection: not a refracting beam
             double c1 = Math.Cos(theta1), c2 = Math.Sqrt(1 - s2 * s2);
@@ -177,6 +205,7 @@ namespace UltrafastEngine.Optics
             double h = 1e-4 * Omega0, dn1 = (n1Of(Omega0 + h) - n1Of(Omega0 - h)) / (2 * h), dn2 = (n2Of(Omega0 + h) - n2Of(Omega0 - h)) / (2 * h);
             Disperse(a, d, (s1 * dn1 - s2 * dn2) / c2, tangentialIsX);
             RaySurface(theta1, Math.Asin(s2), tangentialIsX, j => (n1Of(RayOmega(j)), n2Of(RayOmega(j)), 0.0));
+            _mediumOf = n2Of;
         }
 
         /// <summary>
@@ -275,10 +304,11 @@ namespace UltrafastEngine.Optics
             double ex = Ex, ey = Ey;
             for (int j = 0; j < Rays; j++)
             {
-                double k = RayK(j), xx = _xr[j], aa = Math.Tan(_ar[j]), yy = _yr[j], bb = Math.Tan(_br[j]);
+                // the matrices are reduced, so the rays' slopes enter times their index
+                double k = RayK(j), nj = RayIndex(j), xx = _xr[j], aa = nj * Math.Tan(_ar[j]), yy = _yr[j], bb = nj * Math.Tan(_br[j]);
                 _phase[j] += k / 2 * (ax * cx * xx * xx + 2 * bx * cx * xx * aa + bx * dx * aa * aa + ay * cy * yy * yy + 2 * by * cy * yy * bb + by * dy * bb * bb);
-                _xr[j] = ax * xx + bx * aa; _ar[j] = Math.Atan(cx * xx + dx * aa);
-                _yr[j] = ay * yy + by * bb; _br[j] = Math.Atan(cy * yy + dy * bb);
+                _xr[j] = ax * xx + bx * aa; _ar[j] = Math.Atan((cx * xx + dx * aa) / nj);
+                _yr[j] = ay * yy + by * bb; _br[j] = Math.Atan((cy * yy + dy * bb) / nj);
             }
             Ex = ax * ex + bx * Fx; Fx = cx * ex + dx * Fx;
             Ey = ay * ey + by * Fy; Fy = cy * ey + dy * Fy;
@@ -392,7 +422,7 @@ namespace UltrafastEngine.Optics
                         if (pw[c][i] == 0) continue;
                         double dw = g.OmegaAbsolute[i] - w0, u = xx - E * dw;
                         double m2 = pw[c][i] * Math.Exp(k0 * u * u * imQ);                          // |U|^2 (Im 1/q̂ < 0)
-                        double tf = k0 * E * u * reQ + k0 * F * u - k0 * F * E * dw;                 // d arg(beam factor) / d omega
+                        double tf = -k0 * E * u * reQ + k0 * F * u - k0 * F * E * dw;                // d arg(beam factor) / d omega; curvature phase +k u^2 / 2R
                         fl += m2; ft += m2 * (tau[c][i] + tf);
                     }
                 if (!(fl > 0)) continue;
@@ -421,7 +451,8 @@ namespace UltrafastEngine.Optics
                 for (int m = 0; m < NX; m++)
                 {
                     double u = basis.X[m] - E * dw;
-                    var v = Complex.Exp(-Complex.ImaginaryOne * b.K0 * u * u * invq / 2 + Complex.ImaginaryOne * b.K0 * F * dw * u);
+                    // E = Re{A exp(-i w t)}: curvature gives +k u^2 / 2R, the same as a carried profile
+                    var v = Complex.Exp(new Complex(b.K0 * u * u * invq.Imaginary / 2, b.K0 * u * u * invq.Real / 2 + b.K0 * F * dw * u));
                     data[m * n + i] = v; sum += basis.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary);
                 }
                 double sc = sum > 0 ? 1 / Math.Sqrt(sum) : 0;

@@ -14,7 +14,7 @@ namespace UltrafastEngine.Optics
     /// tangential axis is magnified by cos(theta_out) / cos(theta_in). The field then holds the coupling itself: spatial elements
     /// downstream spread the colours and two gratings recombine them, with no help from the tracker's phase.
     /// </summary>
-    public sealed class DispersiveSurfaceElement : IActiveElement
+    public sealed class DispersiveSurfaceElement : IActiveElement, Engine.IReportsCarrierPhase
     {
         public Func<double, double> TiltWavenumber;
         public double Magnification = 1;
@@ -27,7 +27,11 @@ namespace UltrafastEngine.Optics
 
         public PulseField Execute(ActiveContext ctx, PulseField p)
         {
-            if (p.Profile == null) return p;
+            if (p.Profile == null)
+            {
+                ctx.Result.Warnings.Add("Element '" + ctx.Element.Id + "': physics.spatioTemporal = profile needs a carried transverse profile; this beam has none, so its angular dispersion is lost.");
+                return p;
+            }
             if (!(p.Profile.Basis is CartesianBasis b))
             {
                 ctx.Result.Warnings.Add("Element '" + ctx.Element.Id + "': angular dispersion on a profile needs a cartesian grid; the radial profile passes unchanged.");
@@ -39,9 +43,11 @@ namespace UltrafastEngine.Optics
             double dAxis = TangentialIsX ? b.Dx : b.Dy;
             var coord = TangentialIsX ? b.X : b.Y;
             var old = (Complex[])prof.Data.Clone();
+            double maxTilt = 0, leastKept = 1;
             for (int f = 0; f < nf; f++)
             {
                 double q = TiltWavenumber(prof.Omega[f]), s = 0;
+                maxTilt = Math.Max(maxTilt, Math.Abs(q));
                 for (int m = 0; m < M; m++)
                 {
                     // the value at x / a, on the same line of the grid
@@ -58,8 +64,11 @@ namespace UltrafastEngine.Optics
                     prof.Data[m * nf + f] = v;
                     s += b.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary);
                 }
+                leastKept = Math.Min(leastKept, s);
                 if (s > 0) { double norm = 1 / Math.Sqrt(s); for (int m = 0; m < M; m++) prof.Data[m * nf + f] *= norm; }
             }
+            if (maxTilt * dAxis >= Math.PI) ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the tilt at the edge of the spectrum is {1:G3} rad per grid point: above pi the grid cannot hold it. Refine the grid along the plane of incidence.", ctx.Element.Id, maxTilt * dAxis));
+            if (leastKept < 0.99) ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the magnification pushes {1:P1} of a stored frequency off the grid; widen the grid.", ctx.Element.Id, 1 - leastKept));
             // stored frequencies must be close enough for the interpolation between them across the beam
             double w = 2 * (TangentialIsX ? prof.SecondMomentRadius().Wx : prof.SecondMomentRadius().Wy), step = 0;
             for (int f = 1; f < nf; f++) step = Math.Max(step, Math.Abs(TiltWavenumber(prof.Omega[f]) - TiltWavenumber(prof.Omega[f - 1])) * w);

@@ -3,7 +3,7 @@
 **Goal:** measure the pulse where you would on a real table: before and after the plate, with a spectrometer, an
 autocorrelator, a FROG, a camera and a d-scan. Then see why it matters *where in the beam* an instrument looks.
 
-We keep `plate.ufs` from tutorial 1 and only change the run spec: `docs/examples/tutorial/run-diagnostics.json`.
+We keep `plate.ufs` from tutorial 1 and only change the run spec: `docs/tutorials/files/run-diagnostics.json`.
 
 ## 1. Placing instruments
 

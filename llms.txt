@@ -72,9 +72,11 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Releasing](docs/releasing.md): build.sh / build.bat release packages
 
 ## Design notes
-- [Phase 2 proposal (active media)](docs/design/phase2-active-media.md)
-- [Plan before branches](docs/design/t0-t2-plan.md)
-- [Branched systems (plan)](docs/design/branching.md)
+- [Branched systems (design)](docs/design/branching.md)
+- [Branched systems reference](docs/reference/branches.md)
+- [Architecture](docs/architecture/index.md)
+- [Code map](docs/architecture/code-map.md)
+- [Key processes](docs/architecture/processes.md)
 
 
 ## Optional
