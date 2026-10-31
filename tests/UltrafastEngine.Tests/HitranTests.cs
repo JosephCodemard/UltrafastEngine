@@ -265,6 +265,31 @@ namespace UltrafastEngine.Tests
             finally { File.Delete(file); }
         }
 
+        /// <summary>A linear gap is the reference: lines in a nonlinear or spatial element reach the same tail. The energy is too low for Kerr to matter.</summary>
+        [Test(Reference = "cross-check: the same gap, linear, on the exact step", Tolerance = "2 %")]
+        public void WaterLines_InsideASolver_ReachTheTailLikeALinearGap()
+        {
+            double nu0 = 1e7 / (Lam * 1e9);
+            string file = WriteLines(Line(nu0, 3e-21), Line(nu0 + 1.7, 1e-21), Line(nu0 - 2.3, 2e-21));
+            try
+            {
+                var air = O("kind", "hitran", "humidity", 0.5, "applyToGaps", true, "species", O("H2O", file), "rangeCm1", new[] { 9000.0, 10500.0 });
+                var grid = O("tail", O("windowS", 2e-9), "snapCarrier", false);
+                double TailPeak(RunResult r) => Peak(r.TailLedger.Composite(r.Output, r.TailAt["end"]), 100e-12, 900e-12);
+                double reference = TailPeak(Go(GapSystem(O("air", air), 10.0), grid));
+                Assert.Greater(reference, 0, "the linear gap rings");
+                var beam = O("kind", "gaussian", "w0M", 5e-3);
+                Assert.Close(reference, TailPeak(Go(GapSystem(O("air", air), 10.0, O("nonlinear", true, "beam", beam)), grid)), 0.02, 0, "nonlinear 1-D gap");
+                var radial = O("model", "radial", "points", 32, "spectralSamples", 2);
+                Assert.Close(reference, TailPeak(Go(GapSystem(O("air", air), 10.0, O("beam", beam, "transverse", radial)), grid)), 0.02, 0, "radial gap");
+                var vector = O("model", "radial", "points", 32, "spectralSamples", 2, "polarization", "vector");
+                var v = Go(GapSystem(O("air", air), 10.0, O("beam", beam, "transverse", vector)), grid);
+                Assert.Greater(v.TailLedger.ExactSteps, 0, "a vector profile takes the exact step");
+                Assert.Close(reference, TailPeak(v), 0.02, 0, "vector radial gap");
+            }
+            finally { File.Delete(file); }
+        }
+
         private static double Peak(Pulses.PulseField p, double t0, double t1)
         {
             var pw = PulseMetrics.TemporalPower(p); var t = p.Grid.Time; double m = 0;

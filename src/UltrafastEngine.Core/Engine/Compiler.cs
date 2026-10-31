@@ -23,6 +23,13 @@ namespace UltrafastEngine.Engine
         public Material Material { get; set; }
         public List<LinearTerm> Background { get; } = new List<LinearTerm>();
         public bool CarrierResolved { get; set; }
+        /// <summary>The same segment with another background (the executor takes narrow lines out of the solver).</summary>
+        public NonlinearSegment WithBackground(IEnumerable<LinearTerm> background)
+        {
+            var s = new NonlinearSegment { Medium = Medium, Beam = Beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved };
+            s.Background.AddRange(background);
+            return s;
+        }
     }
 
     /// <summary>Surface data used for fluence / damage diagnostics.</summary>
@@ -128,6 +135,8 @@ namespace UltrafastEngine.Engine
             public bool EnvAirInGaps;
             public double Omega0;
             public readonly Dictionary<string, double> PortOmega = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            public readonly Dictionary<string, double> PortTiltX = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            public double TiltX;
             public Optics.BeamState Track;
             /// <summary>Track spatio-temporal couplings with the beam / apply their group-delay dispersion to the pulse.</summary>
             public bool StcTrack, StcPhase, StcProfile;
@@ -298,8 +307,8 @@ namespace UltrafastEngine.Engine
                     var linked = c.Out.Graph.Edges.Where(x => string.Equals(x.To, e.Id, StringComparison.OrdinalIgnoreCase) && beamAfter.ContainsKey(x.From)).ToList();
                     string mainPort = Ports.Inputs(e).FirstOrDefault();
                     var edge = linked.FirstOrDefault(x => string.Equals(x.ToPort, mainPort, StringComparison.OrdinalIgnoreCase)) ?? linked.FirstOrDefault();
-                    if (edge != null) { c.Track = beamAfter[edge.From].track?.Clone(); c.Omega0 = c.PortOmega[edge.From + ":" + edge.FromPort]; }
-                    else if (i > 0) { c.Track = c.Out.BeamAtInput?.Clone(); c.Omega0 = c.Out.RequestedOmega0; }
+                    if (edge != null) { c.Track = beamAfter[edge.From].track?.Clone(); c.Omega0 = c.PortOmega[edge.From + ":" + edge.FromPort]; c.TiltX = c.PortTiltX[edge.From + ":" + edge.FromPort]; }
+                    else if (i > 0) { c.Track = c.Out.BeamAtInput?.Clone(); c.Omega0 = c.Out.RequestedOmega0; c.TiltX = 0; }
                 }
                 CompiledElement ce;
                 try { ce = CompileElement(c, e); }
@@ -310,7 +319,8 @@ namespace UltrafastEngine.Engine
                 if (ce.Active != null && !double.IsNaN(ce.Active.OutputOmega0) && ce.Active.OutputOmega0 > 0) c.Omega0 = ce.Active.OutputOmega0;
                 beamAfter[e.Id] = (c.Track, c.Omega0);
                 // each output port's carrier: a crystal's outputs differ, every other element has one
-                foreach (var port in Ports.Outputs(e)) c.PortOmega[e.Id + ":" + port] = c.Omega0;
+                c.TiltX += e.Json.GetDouble("tiltXRad", 0);
+                foreach (var port in Ports.Outputs(e)) { c.PortOmega[e.Id + ":" + port] = c.Omega0; c.PortTiltX[e.Id + ":" + port] = c.TiltX; }
                 if (ce.Active is Crystals.CrystalElement crystal) foreach (var kv in crystal.PortOmega) c.PortOmega[e.Id + ":" + kv.Key] = kv.Value;
             }
             foreach (var loop in c.Out.Graph.Stages.Where(s => s.Loop != null).Select(s => s.Loop))
@@ -360,6 +370,12 @@ namespace UltrafastEngine.Engine
         private static CompilerServices Services(Ctx c) => new CompilerServices
         {
             System = c.Sys, Run = c.Run, Registry = c.Reg, Provenance = c.Out.Provenance, Omega0 = c.Omega0, Warnings = c.Out.Warnings,
+            TiltXRad = c.TiltX,
+            FedTiltX = (id, port) =>
+            {
+                var edge = c.Out.Graph.Edges.FirstOrDefault(x => string.Equals(x.To, id, StringComparison.OrdinalIgnoreCase) && string.Equals(x.ToPort, port, StringComparison.OrdinalIgnoreCase));
+                return edge != null && c.PortTiltX.TryGetValue(edge.From + ":" + edge.FromPort, out double t) ? t : double.NaN;
+            },
             FedCarrier = (id, port) =>
             {
                 var edge = c.Out.Graph.Edges.FirstOrDefault(x => string.Equals(x.To, id, StringComparison.OrdinalIgnoreCase) && string.Equals(x.ToPort, port, StringComparison.OrdinalIgnoreCase));
@@ -1582,6 +1598,9 @@ namespace UltrafastEngine.Engine
         public List<string> Warnings { get; internal set; }
         /// <summary>Carrier arriving on an element's input port, from what feeds it (rad/s); NaN if that is not compiled yet.</summary>
         internal Func<string, string, double> FedCarrier;
+        /// <summary>Lab tilt (rad, x) arriving on an input port, and on the element's main input.</summary>
+        internal Func<string, string, double> FedTiltX;
+        internal double TiltXRad;
         internal Func<SystemElement, string, double, double> NumFn;
         internal Func<SystemElement, string, string, string> StrFn;
         internal Func<SystemElement, string, OverrideRule> FindFn;

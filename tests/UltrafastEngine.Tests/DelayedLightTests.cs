@@ -52,6 +52,40 @@ namespace UltrafastEngine.Tests
             => SysOf(O("ar", O("kind", "ar")), O("id", "w", "type", "plate", "material", "FusedSilica", "thicknessM", 5e-3,
                 "coating", O("kind", "ar", "R", r), "ghosts", true));
 
+        private static RunResult PlateIn(JsonObject transverse)
+        {
+            var w = O("id", "w", "type", "plate", "material", "FusedSilica", "thicknessM", 5e-3, "coating", O("kind", "ar", "R", 0.01), "ghosts", true, "beam", O("kind", "gaussian", "w0M", 2e-3));
+            if (transverse != null) w.Set("transverse", transverse);
+            return Go(SysOf(O("ar", O("kind", "ar")), w), Gauss(Lam, 300e-15, 1e-6), O("n", 1024, "windowS", 10e-12, "auto", false, "tail", O("windowS", 200e-12)));
+        }
+
+        /// <summary>A ghost of a 5 mm silica plate is 49 ps late, far outside a 10 ps main window: it belongs in the tail, whichever solver ran the plate.</summary>
+        [Test(Reference = "Airy: first replica at 2 n_g d / c with intensity R^2", Tolerance = "1 %, 20 %")]
+        public void Ledger_GhostOfANonlinearPlate_LandsAtItsDelay_InEverySolver()
+        {
+            double ng = Materials.MaterialLibrary.BuiltIn("FusedSilica").GroupIndexAt(2 * Math.PI * C / Lam), delay = 2 * ng * 5e-3 / C;
+            foreach (var t in new[] { null, O("model", "radial", "points", 32, "spectralSamples", 2), O("model", "radial", "points", 32, "spectralSamples", 2, "polarization", "vector") })
+            {
+                var r = PlateIn(t);
+                var (at, rel) = Largest(CompositeOf(r), 20e-12, 90e-12);
+                Assert.Close(delay, at, 0.01, 0, "delay of the ghost");
+                Assert.Close(1e-4, rel, 0.2, 0, "intensity of the ghost");
+            }
+        }
+
+        /// <summary>The tail must meet the material of a spatial element too: a stretched tail, not a tail that skipped the plate.</summary>
+        [Test(Reference = "cross-check: the same plate, 1-D and radial", Tolerance = "2 %")]
+        public void Ledger_TailPassesThroughTheMaterialOfASpatialElement()
+        {
+            JsonObject Plates(JsonObject t) { var thick = O("id", "b", "type", "bulk", "material", "FusedSilica", "lengthM", 0.1, "nonlinear", false); if (t != null) thick.Set("beam", O("kind", "gaussian", "w0M", 2e-3)).Set("transverse", t); return thick; }
+            var ghost = O("id", "w", "type", "plate", "material", "FusedSilica", "thicknessM", 5e-3, "coating", O("kind", "ar", "R", 0.01), "ghosts", true);
+            var grid = O("n", 2048, "windowS", 10e-12, "auto", false, "tail", O("windowS", 200e-12));
+            RunResult Run(JsonObject t) => Go(SysOf(O("ar", O("kind", "ar")), ghost, Plates(t)), Gauss(Lam, 50e-15, 1e-6), grid);
+            var a = Run(null); var b = Run(O("model", "radial", "points", 32, "spectralSamples", 2));
+            double Width(RunResult r) => PulseMetrics.Summarize(r.TailLedger.TailField()).FwhmS;
+            Assert.Close(Width(a), Width(b), 0.02, 0, "the tail is stretched by the same glass");
+        }
+
         /// <summary>Reference: the ledger must reproduce a run of the same system on a single window that holds the ghost.</summary>
         [Test(Reference = "cross-check: one large grid holding the whole window", Tolerance = "1e-05, 0.1 %")]
         public void Ledger_GhostOfAPlate_MatchesTheBruteForceBigWindow()

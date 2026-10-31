@@ -1,6 +1,6 @@
 # Plan: basics, and a catalogue
 
-Status: proposed, not started. Two independent pieces of work. Do the first first: the review found that bugs sit where a test could not see them, and a catalogue multiplies what depends on the components.
+Status: proposed, not started. Non-collinear SHG and SFG came first and are done. These are two independent pieces of work. Do the first first: the review found that bugs sit where a test could not see them, and a catalogue multiplies what depends on the components.
 
 ## 1. Back to basics
 
@@ -37,18 +37,23 @@ Each runs under `example_check`, so its numbers are tests.
 
 **What exists.** `MaterialLibrary`, `Gases`, refractiveindex.info pages with `ultrafast materials list | show | import`, a user library, model kinds, `crystal: {base: ...}` overrides, and `coatingFactory` kinds. There is no one place to browse, coatings and substrates are not named things, and each family overrides differently.
 
+**Scope (owner, 2026-10-31).** We consolidate the information we already have, check it against published sources found on the web, and let users add their own. Users bring vendor data; none is shipped.
+
 ### Design
 
 One catalogue with entry kinds: `material`, `gas`, `crystal`, `coating`, `substrate`, and possibly `grating` and `fibre`. An entry is a file, in layers, later ones winning:
 
-1. built in (shipped with the engine);
-2. user library (`~/.ultrafast/catalogue/`);
-3. project (a `catalogue/` folder beside the system file);
-4. inline in the `.ufs`;
-5. run overrides and study parameters.
+1. built in (shipped with the engine: our consolidated data, each value with its source);
+2. shared libraries (see below);
+3. user library (`~/.ultrafast/catalogue/`, or `%USERPROFILE%\.ultrafast\catalogue\` on Windows);
+4. project (a `catalogue/` folder beside the system file);
+5. inline in the `.ufs`;
+6. run overrides and study parameters.
+
+**Shared libraries** are folders on a path list: `ULTRAFAST_CATALOGUE_PATH`, separated as `PATH` is, plus a `catalogue` list in `~/.ultrafast/config.json`. A lab points this at a network folder or a git checkout, on any platform. Nothing is copied, so everyone reads the same files.
 
 ```jsonc
-{ "kind": "coating", "name": "LaserOptik-HR-1030", "base": "HR-1030-generic",
+{ "kind": "coating", "name": "HR-1030-from-vendor-sheet", "base": "HR-1030-generic",
   "reflectivity": { "csv": "data/hr1030.csv", "columns": ["wavelengthNm", "R"] },
   "gddFs2": { "expr": "20 + 50*(lambdaNm-1030)/50" },
   "damageJPerCm2": 1.5, "source": "vendor sheet, 2026" }
@@ -56,23 +61,18 @@ One catalogue with entry kinds: `material`, `gas`, `crystal`, `coating`, `substr
 
 **One property, four forms.** Every property takes a number, an expression, a table or CSV, or a named model. `expr` uses the existing `CompiledExpression`, with named variables a study can scan. That is the part to get right: it makes the rule the same everywhere.
 
-**Selecting.** `"material": "FusedSilica"` keeps working. New: `catalogue/coating/LaserOptik-HR-1030`, with `ultrafast catalogue list | show | search | add | validate`, `uf.catalogue` in Python with tab completion, and `Literal` types generated for the built-in names.
+**Selecting.** `"material": "FusedSilica"` keeps working. New: `catalogue/coating/HR-1030-from-vendor-sheet`, with `ultrafast catalogue list | show | search | add | validate`, `uf.catalogue` in Python with tab completion, and `Literal` types generated for the built-in names.
 
-**Traceability.** Every entry states its source; `provenance.json` records the entry, its layer, its file hash and each override. Results stay reproducible when a library changes.
+**Traceability.** Every entry states its source. `provenance.json` records the entry, its layer, its file hash and each override, so a result stays reproducible when a library changes. Projects do not pin a version: the hash is the record.
 
 ### Stages
 
-1. The property type (number, expression, table, model) and its schema, with no change of behaviour.
-2. The layered store and `ultrafast catalogue`, wrapping today's libraries.
-3. Coatings and substrates as entries.
-4. Crystals into the same form.
-5. Python access, autocompletion, docs, an example of a vendor CSV.
-
-### Questions for the owner
-
-* Which vendor data do you want shipped? Licences decide: user-supplied files are always safe.
-* Should a project pin a catalogue version, or is the file hash in the provenance enough?
-* Is `~/.ultrafast/` the right place on Windows and for shared lab libraries, or should a path be configurable?
+1. Consolidate: list every built-in value, find its published source, correct what disagrees.
+2. The property type (number, expression, table, model) and its schema, with no change of behaviour.
+3. The layered store, shared libraries, and `ultrafast catalogue`, wrapping today's libraries.
+4. Coatings and substrates as entries.
+5. Crystals into the same form.
+6. Python access, autocompletion, docs, and an example with a user's CSV.
 
 ### Rules that stay
 

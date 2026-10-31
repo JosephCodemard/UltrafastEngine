@@ -104,7 +104,7 @@ Doppler width against the kinetic formula; a pressure-broadened (Lorentz) line a
 extremum `n_d S / (8 pi^2 nu gamma_L)`; **Kramers-Kronig** by a numerical Hilbert transform of a Voigt line; the temperature and
 density scaling; energy lost in a gap against Beer-Lambert `sum S (1 - exp(-alpha L))`; and the ring-down of three lines in a
 10 m gap on the tail grid (main N = 1024, tail N = 262 144) against the same system on **one 2 ns window (N = 524 288)** --
-total energy to 1e-5, tail power 100-900 ps to 2 %, main peak power to 0.1 %. The always-on tests use no HITRAN data (the lines are
+total energy to 1e-5, tail power 100-900 ps to 2 %, main peak power to 0.1 %. The same lines in a nonlinear gap, a radial gap and a vector radial gap reach the tail of the linear gap to 2 %. The always-on tests use no HITRAN data (the lines are
 synthetic, written in the HITRAN format).
 
 **Real lines against the reference implementation.** `plugins/hitran/tools/make_hapi_reference.py DIR` downloads real lines (needs the network and

@@ -92,22 +92,138 @@ namespace UltrafastEngine.Tests
             Assert.Close(tau * Math.Sqrt(1.5), d * Math.Sqrt(-4 * Math.Log(2) / Math.Log(ratio)), 0.01, 0, "FWHM");
         }
 
-        [Test(Reference = "a crystal treats its beams as collinear: a tilted arm must say so", Tolerance = "exact")]
-        public void TiltedArmIntoACrystal_Warns()
+        private static JsonObject Crossing(double w, double l, double tau, params object[] interaction) => O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", l, "chi3", false, "cut", "auto",
+            "interaction", O(new object[] { "process", "sfg", "type", "I" }.Concat(interaction).ToArray()), "beam", O("kind", "gaussian", "w0M", w), "deffPmPerV", 2.0, "output", "sum",
+            "aux", A(O("role", "b", "pulse", Gauss(Lam, tau, 1e-9), "delayS", 0.0, "beam", O("kind", "gaussian", "radiusM", w))));
+
+        [Test(Category = "physics", Reference = "type I phase matching of crossing equal beams: n_e(2w, theta) = n_o(w) cos(alpha / 2)", Tolerance = "0.01 deg")]
+        public void NoncollinearShg_CutFollowsTheAnalyticCondition()
         {
-            var s = Chain();
-            s.Elements.First(e => e.Id == "stage").Json.Set("tiltXRad", 0.01);
-            var r = Go(s, Spec(Gauss(Lam, 100e-15, 1e-9)));
-            Assert.True(r.Warnings.Any(w => w.Contains("collinear")), "warned");
+            double alpha = 4 * Math.PI / 180, w = 2 * Math.PI * C / Lam;
+            var bbo = Crystals.CrystalLibrary.Get("BBO", double.NaN);
+            var o = new double[1]; var e = new double[1];
+            bbo.Nx.Evaluate(new[] { w }, o); double noW = o[0];
+            bbo.Nx.Evaluate(new[] { 2 * w }, o); double no2 = o[0];
+            bbo.Nz.Evaluate(new[] { 2 * w }, e); double ne2 = e[0];
+            double n = noW * Math.Cos(alpha / 2), sin2 = (1 / (n * n) - 1 / (no2 * no2)) / (1 / (ne2 * ne2) - 1 / (no2 * no2));
+            var v = Go(Sys(Crossing(1e-3, 100e-6, 1e-12, "noncollinearDeg", 4.0)), Spec(Gauss(Lam, 1e-12, 1e-9))).Records[0].Values;
+            Assert.Close(Math.Asin(Math.Sqrt(sin2)) * 180 / Math.PI, v["thetaDeg"], 0, 0.01, "cut");
+            Assert.Close(4.0, v["noncollinearDeg"], 1e-6, 0, "the angle is kept");
+            Assert.Close(2.0, v["angleToSumDeg_a"], 1e-3, 0, "equal colours: the sum bisects them");
+            Assert.Close(-2.0, v["angleToSumDeg_b"], 1e-3, 0, "the other side");
         }
 
-        [Test(Reference = "only opa and dfg have a non-collinear geometry", Tolerance = "exact")]
-        public void NoncollinearSfg_IsRefusedNotIgnored()
+        [Test(Category = "physics", Reference = "sinc^2(dk L / 2) in the crossed geometry", Tolerance = "1 %")]
+        public void NoncollinearShg_DetuningFollowsSincSquared()
         {
-            var t = Thg(200e-6); t["interaction"].AsObject().Set("noncollinearDeg", 2.0);
-            var s = Sys(Shg(200e-6, O("out", "stage", "fundamental", "thg")), O("id", "stage", "type", "delay", "delayS", 0.0, "next", "thg:b"), t);
+            double eta0 = double.NaN;
+            foreach (double det in new[] { 0.0, 0.1, 0.2 })
+            {
+                var v = Go(Sys(Crossing(5e-3, 1e-3, 3e-12, "noncollinearDeg", 4.0).Set("detuneDeg", det)), Spec(Gauss(Lam, 3e-12, 1e-9))).Records[0].Values;
+                if (det == 0) { eta0 = v["energy_sum_J"]; continue; }
+                double a = v["deltaK0PerM"] * 1e-3 / 2;
+                Assert.Greater(Math.Abs(a), 0.3, "detuning is significant");
+                Assert.Close(Math.Pow(Math.Sin(a) / a, 2), v["energy_sum_J"] / eta0, 0.01, 0, "sinc^2 at " + det);
+            }
+        }
+
+        [Test(Category = "physics", Reference = "Gaussians crossing at mid-crystal: effective length l sqrt(pi) erf(L / 2 l), l^2 = (wa^2 + wb^2) / slope^2", Tolerance = "2 %")]
+        public void CrossingBeams_InteractOverTheirOverlapOnly()
+        {
+            double w = 100e-6, L = 5e-3;
+            double Sum(double deg) => Go(Sys(Crossing(w, L, 5e-12, "noncollinearDeg", deg)), Spec(Gauss(Lam, 5e-12, 1e-9))).Records[0].Values["energy_sum_J"];
+            double LEff(double deg) { double slope = 2 * Math.Tan(deg / 2 * Math.PI / 180), l = Math.Sqrt(2) * w / slope; return l * Math.Sqrt(Math.PI) * Erf(L / (2 * l)); }
+            Assert.Close(Math.Pow(LEff(4) / LEff(2), 2), Sum(4) / Sum(2), 0.02, 0, "conversion follows the overlap");
+        }
+
+        private static double Erf(double x)
+        {
+            double s = x, t = x; for (int k = 1; k < 80; k++) { t *= -x * x / k; s += t / (2 * k + 1); }
+            return 2 / Math.Sqrt(Math.PI) * s;
+        }
+
+        private static SystemDescription CrossedAutocorrelator(double delayS, JsonObject transverse, double w)
+        {
+            var x = O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", 20e-6, "chi3", false, "cut", "auto", "interaction", O("process", "sfg", "type", "I", "externalAngleDeg", 3.0),
+                "beam", O("kind", "gaussian", "w0M", w), "output", "sum", "next", "end", "aux", A(O("role", "b", "fromPort", true, "beam", O("kind", "gaussian", "radiusM", w))));
+            if (transverse != null) x.Set("transverse", transverse);
+            var s = Sys(O("id", "bs", "type", "beamSplitter", "reflectivity", 0.5, "next", O("c", "f", "d", "stage")), O("id", "f", "type", "delay", "delayS", 0.0, "next", "x"),
+                O("id", "stage", "type", "delay", "delayS", delayS, "next", "x:b"), x);
             s.Topology = SystemGraph.Branched;
-            Assert.Throws<Exception>(() => Go(s, Spec(Gauss(Lam, 100e-15, 1e-9))), "noncollinearDeg");
+            return s;
+        }
+
+        [Test(Category = "physics", Reference = "autocorrelation with geometric smearing: FWHM^2 = 2 tau^2 + (w sqrt(ln 2) 2 sin(phi / 2) / c)^2", Tolerance = "1 %")]
+        public void CrossedAutocorrelator_OnACartesianGrid_HasTheGeometricSmearing()
+        {
+            const double tau = 60e-15, w = 200e-6, d = 60e-15;
+            var run = Spec(Gauss(Lam, tau, 1e-9), O("grid", O("n", 512, "windowS", 2.56e-12, "auto", false)));
+            var grid = O("model", "cartesian", "nx", 64, "ny", 1, "halfWidthM", 800e-6, "spectralSamples", 4); // ny = 1 gives the shape of the trace, not its energy
+            double E(double delay) => Go(CrossedAutocorrelator(delay, grid, w), run).Output.TotalEnergyJ();
+            double smear = w * Math.Sqrt(Math.Log(2)) * 2 * Math.Sin(1.5 * Math.PI / 180) / C;
+            double ratio = Math.Sqrt(E(d) * E(-d)) / E(0);
+            Assert.Close(Math.Sqrt(2 * tau * tau + smear * smear), d * Math.Sqrt(-4 * Math.Log(2) / Math.Log(ratio)), 0.01, 0, "FWHM");
+        }
+
+        [Test(Reference = "cross-check: 1-D coupling against a 2-D Cartesian grid", Tolerance = "1 %")]
+        public void CrossedBeams_OneDimensionAndCartesianGiveTheSameEnergy()
+        {
+            var run = Spec(Gauss(Lam, 300e-15, 2e-9));
+            double a = Go(CrossedAutocorrelator(0, null, 200e-6), run).Output.TotalEnergyJ();
+            double b = Go(CrossedAutocorrelator(0, O("model", "cartesian", "nx", 64, "ny", 64, "halfWidthM", 800e-6, "spectralSamples", 2), 200e-6), run).Output.TotalEnergyJ();
+            Assert.Close(a, b, 0.01, 0, "sum energy");
+        }
+
+        private static SystemDescription Mixer(double tiltRad, JsonObject interaction = null)
+        {
+            var thg = Thg(10e-6); if (interaction != null) thg.Set("interaction", interaction);
+            var s = Sys(Shg(10e-6, O("out", "stage", "fundamental", "thg")), O("id", "stage", "type", "delay", "delayS", 0.0, "tiltXRad", tiltRad, "next", "thg:b"), thg);
+            s.Topology = SystemGraph.Branched;
+            return s;
+        }
+
+        [Test(Category = "physics", Reference = "tangential momentum and Snell: w3 sin t3 = w1 sin t1 + w2 sin t2", Tolerance = "1e-3")]
+        public void CrossedThg_RecordsTheOutputAngles()
+        {
+            double tilt = 3 * Math.PI / 180;
+            var v = Go(Mixer(tilt), Spec(Gauss(Lam, 100e-15, 1e-6))).Records.First(x => x.Id == "thg").Values;
+            Assert.Close(3.0, v["externalAngleDeg"], 1e-6, 0, "the arms set the angle");
+            Assert.Close(0.0, v["outputTiltDeg_a"], 0, 1e-9, "the fundamental keeps its direction");
+            Assert.Close(3.0, v["outputTiltDeg_b"], 1e-9, 0, "the second harmonic keeps its direction");
+            // the carriers are the grid's: their ratio is 2 to the grid spacing, here 1e-3
+            Assert.Close(Math.Asin(2 * Math.Sin(tilt) / 3) * 180 / Math.PI, v["outputTiltDeg_sum"], 1e-3, 0, "the third harmonic leaves between them");
+        }
+
+        [Test(Reference = "the arms and the interaction state the same geometry", Tolerance = "1e-9")]
+        public void CrossedThg_AngleFromTheArms_EqualsTheStatedAngle()
+        {
+            var run = Spec(Gauss(Lam, 100e-15, 1e-6));
+            var stated = O("process", "sfg", "type", "I", "externalAngleDeg", -3.0);
+            Assert.Close(Go(Mixer(0, stated), run).Output.TotalEnergyJ(), Go(Mixer(3 * Math.PI / 180), run).Output.TotalEnergyJ(), 1e-9, 0, "third harmonic");
+        }
+
+        [Test(Reference = "a crossing angle changes the cut, or the beam would not phase match", Tolerance = "exact")]
+        public void CrossedThg_NeedsADifferentCutThanCollinear()
+        {
+            var run = Spec(Gauss(Lam, 100e-15, 1e-6));
+            var collinear = Go(Mixer(0), run).Records.First(x => x.Id == "thg").Values;
+            var crossed = Go(Mixer(5 * Math.PI / 180), run).Records.First(x => x.Id == "thg").Values;
+            Assert.Greater(Math.Abs(crossed["thetaDeg"] - collinear["thetaDeg"]), 0.01, "the cut moves");
+            Assert.Less(Math.Abs(crossed["deltaK0PerM"]) * 10e-6, 0.3, "and still phase matches");
+        }
+
+        [Test(Reference = "one beam cannot cross itself", Tolerance = "exact")]
+        public void NoncollinearShg_OfOneBeam_IsRefusedWithAPointer()
+        {
+            var x = O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", 10e-6, "cut", "auto", "interaction", O("process", "shg", "type", "I", "noncollinearDeg", 4.0), "beam", Beam(), "output", "sh");
+            Assert.Throws<Exception>(() => Go(Sys(x), Spec(Gauss(Lam, 100e-15, 1e-9))), "sfg");
+        }
+
+        [Test(Reference = "a y tilt is not in the crystal's plane: it must say so", Tolerance = "exact")]
+        public void YTiltOnAnArm_Warns()
+        {
+            var s = Chain(); s.Elements.First(e => e.Id == "stage").Json.Set("tiltYRad", 0.01);
+            Assert.True(Go(s, Spec(Gauss(Lam, 100e-15, 1e-9))).Warnings.Any(w => w.Contains("y tilts")), "warned");
         }
     }
 }

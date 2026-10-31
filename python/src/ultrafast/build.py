@@ -457,7 +457,7 @@ def aux_beam(role: str, pulse: Optional[Mapping[str, Any]] = None, *, from_resul
 
 
 def crystal(id: str, crystal: Any, length_m: float, process: str = "shg", type: Optional[str] = None, *, cut: Any = "auto",
-            noncollinear: Any = None, qpm: Any = None, aux: Optional[list] = None, output: Optional[str] = None,
+            noncollinear: Any = None, external_angle_deg: Optional[float] = None, qpm: Any = None, aux: Optional[list] = None, output: Optional[str] = None,
             main_role: Optional[str] = None, record: Optional[list] = None, beam: Optional[Mapping[str, Any]] = None,
             transverse: Optional[Mapping[str, Any]] = None, deff_pm_per_v: Optional[float] = None, seed_noise: Optional[bool] = None,
             temperature_c: Optional[float] = None, overlap: Any = None, chi3: Optional[bool] = None, **extra) -> "T.CrystalElement":
@@ -467,7 +467,7 @@ def crystal(id: str, crystal: Any, length_m: float, process: str = "shg", type: 
     degrees or "magic"; ``qpm`` = True / a period in m / {"periodM": .., "model": "averaged"|"domains", "phaseDeg": ..};
     ``type`` defaults to "I" (birefringent) or "0" (QPM); ``overlap`` = "gaussian" (default) | "planeWave" |
     {"model": "planeWave", "radiusM": ..} | {"areaM2": ..} (1-D coupling model); ``chi3=False`` switches SPM/XPM off."""
-    inter = _clean({"process": process, "type": type, "noncollinearDeg": noncollinear,
+    inter = _clean({"process": process, "type": type, "noncollinearDeg": noncollinear, "externalAngleDeg": external_angle_deg,
                     "qpm": qpm if (qpm is None or isinstance(qpm, (bool, dict))) else {"periodM": qpm}})
     return _clean({"id": id, "type": "crystal", "crystal": crystal, "lengthM": length_m, "cut": cut, "interaction": inter,
                    "aux": aux, "output": output, "mainRole": main_role, "record": record, "beam": beam,

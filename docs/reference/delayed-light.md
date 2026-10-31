@@ -36,7 +36,11 @@ the main window comes back (a stretcher followed by a compressor works with a wi
 pulse). A linear element costs a few FFTs of the tail grid.
 
 **How a nonlinear element acts.** The nonlinear solver runs on the main grid only. The tail passes through the
-element's linear terms (dispersion, absorption, surfaces).
+element's linear terms (dispersion, absorption, surfaces), in the 1-D and the spatial solvers alike.
+
+**Narrow lines in a solver.** The main grid cannot resolve a line a few GHz wide, so the lines of a nonlinear or spatial element do not stay in its solver. A term with an `ISmoothIndex` divides in two: the smooth index stays in the solver, and half of the lines is applied exactly to main + tail on each side of it (Strang). This is what puts their ring-down into the tail. Without a tail they remain on the main grid.
+
+**Vector profiles.** A carried profile with separate x and y shapes takes the exact step like any other. Only a polarisation-mixing term goes on the full field, because it mixes the shapes too.
 
 ### Cost and smooth elements
 

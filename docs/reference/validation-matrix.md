@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **386 tests** in 43 classes. **197** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **14** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **397 tests** in 43 classes. **205** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -14,8 +14,8 @@ Every C# test of the engine: **386 tests** in 43 classes. **197** of them check 
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
 | [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 20 | 14 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
-| [Crystal chains and phase-matching limits: SHG to THG, length against bandwidth](#crystalchaintests) | `CrystalChainTests` | 8 | 8 |
-| [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 32 | 10 |
+| [Crystal chains and phase-matching limits: SHG to THG, length against bandwidth](#crystalchaintests) | `CrystalChainTests` | 16 | 16 |
+| [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
 | [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 8 | 8 |
@@ -24,7 +24,7 @@ Every C# test of the engine: **386 tests** in 43 classes. **197** of them check 
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 7 | 4 |
-| [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 17 | 9 |
+| [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 3 | 2 |
 | [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 5 | 5 |
@@ -217,12 +217,20 @@ Crystal chains and phase-matching limits: SHG to THG, length against bandwidth.
 |---|---|---|
 | `AutoCut_OfAFedThirdHarmonicStage_IsPhaseMatched` | BBO type I THG of 1064 nm: theta = 31.3 deg (Dmitriev, Handbook of Nonlinear Optical Crystals) | 0.3 deg |
 | `Conversion_GrowsAsLengthSquared_ThenLinearlyOnceWalkOffLimitsIt` | Weiner, Ultrafast Optics: efficiency grows as L^2 for L << tau / GVM, as L beyond it | 2 % |
+| `CrossedAutocorrelator_OnACartesianGrid_HasTheGeometricSmearing` | autocorrelation with geometric smearing: FWHM^2 = 2 tau^2 + (w sqrt(ln 2) 2 sin(phi / 2) / c)^2 | 1 % |
+| `CrossedBeams_OneDimensionAndCartesianGiveTheSameEnergy` | cross-check: 1-D coupling against a 2-D Cartesian grid | 1 % |
+| `CrossedThg_AngleFromTheArms_EqualsTheStatedAngle` | the arms and the interaction state the same geometry | 1e-9 |
+| `CrossedThg_NeedsADifferentCutThanCollinear` | a crossing angle changes the cut, or the beam would not phase match | exact |
+| `CrossedThg_RecordsTheOutputAngles` | tangential momentum and Snell: w3 sin t3 = w1 sin t1 + w2 sin t2 | 1e-3 |
+| `CrossingBeams_InteractOverTheirOverlapOnly` | Gaussians crossing at mid-crystal: effective length l sqrt(pi) erf(L / 2 l), l^2 = (wa^2 + wb^2) / slope^2 | 2 % |
 | `DelayScanOfTheThirdHarmonic_IsTheCrossCorrelation` | third-order cross-correlation of Gaussians: FWHM = sqrt(tau^2 + (tau / sqrt 2)^2) | 1 % |
-| `NoncollinearSfg_IsRefusedNotIgnored` | only opa and dfg have a non-collinear geometry | exact |
+| `NoncollinearShg_CutFollowsTheAnalyticCondition` | type I phase matching of crossing equal beams: n_e(2w, theta) = n_o(w) cos(alpha / 2) | 0.01 deg |
+| `NoncollinearShg_DetuningFollowsSincSquared` | sinc^2(dk L / 2) in the crossed geometry | 1 % |
+| `NoncollinearShg_OfOneBeam_IsRefusedWithAPointer` | one beam cannot cross itself | exact |
 | `SecondHarmonicBandwidth_IsSetByTheCrystal` | sinc^2 phase-matching bandwidth: 0.886 / (GVM L); GVM from the crystal's group indices | 3 % |
 | `ShgThenSfg_ConservesPhotonsAtTheThirdHarmonic` | Manley-Rowe: one photon each of w and 2w per photon of 3w | 1e-3 |
 | `ShgThenSfg_MainAndFedBeamsCanSwap` | the crystal does not care which beam is called main | 1e-3 |
-| `TiltedArmIntoACrystal_Warns` | a crystal treats its beams as collinear: a tilted arm must say so | exact |
+| `YTiltOnAnArm_Warns` | a y tilt is not in the crystal's plane: it must say so | exact |
 
 ## DelayedLightTests
 
@@ -244,10 +252,12 @@ Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detecto
 | `Ledger_CrossCorrelator_ReadsTheGhostInTheProbe` | -- | -- |
 | `Ledger_CrossPhase_MatchesTheFullNonlinearSolutionToFirstOrder` | cross-check: the full nonlinear difference field | 10 % |
 | `Ledger_EnergyBudgetCloses_WithTheTailBooked` | -- | -- |
+| `Ledger_GhostOfANonlinearPlate_LandsAtItsDelay_InEverySolver` | Airy: first replica at 2 n_g d / c with intensity R^2 | 1 %, 20 % |
 | `Ledger_GhostOfAPlate_MatchesTheBruteForceBigWindow` | cross-check: one large grid holding the whole window | 1e-05, 0.1 % |
 | `Ledger_LightLeavingTheMainWindowComesBack` | -- | -- |
 | `Ledger_Off_ChangesNothing` | -- | -- |
 | `Ledger_SmoothElements_SkipTheExactStep_WithTheSameResult` | -- | -- |
+| `Ledger_TailPassesThroughTheMaterialOfASpatialElement` | cross-check: the same plate, 1-D and radial | 2 % |
 | `Ledger_WarnsWhenTheTailIsAFewPercentOfTheEnergy` | -- | -- |
 | `MirrorEcho_AWedgedSubstrateSendsTheEchoOutOfTheBeam` | -- | -- |
 | `MirrorEcho_DelayIsTwoGroupIndexThicknessOverC` | echo delay 2 n_g d / c (fused silica n_g = 1.4635 at 1030 nm) | 0.3 %, 1 %, 8 % |
@@ -399,6 +409,7 @@ HITRAN plugin: line shapes, files, partition sums, absorption in air.
 | `PartitionTable_InterpolatesLinearly_AndRefusesToExtrapolate` | -- | -- |
 | `VoigtLine_DispersionIsTheHilbertTransformOfTheAbsorption` | Kramers-Kronig (numerical Hilbert transform) | -- |
 | `WaterLines_InAGap_AbsorbAsBeerLambertOnTheGrid` | Beer-Lambert: 1 − exp(−α L) | 1 % |
+| `WaterLines_InsideASolver_ReachTheTailLikeALinearGap` | cross-check: the same gap, linear, on the exact step | 2 % |
 | `WaterLines_TailLedger_ReproducesTheBruteForce2nsWindow` | cross-check: one 2 ns window | 1e-05, 0.1 %, 2 % |
 | `WaterVapour_FractionFollowsTheSaturationPressure` | saturation vapour pressure of water, 2339 Pa at 20 °C | 1e-12, 0.5 % |
 

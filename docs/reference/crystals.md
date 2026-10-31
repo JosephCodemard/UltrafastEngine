@@ -92,7 +92,7 @@ crystal) overrides the tensor contraction.
   aux carriers), in the best plane (`interaction.plane`: `XY`, `XZ`, `YZ` for biaxial crystals; found automatically
   by largest |deff| otherwise). `{"thetaDeg": .., "phiDeg": ..}` fixes it; `"detuneDeg"` (in `cut` or on the element)
   tilts it away -- useful for scans.
-* **Non-collinear** (`opa`/`dfg` only; `shg` and `sfg` refuse it): `noncollinearDeg` is the angle between pump and signal inside the crystal;
+* **Non-collinear** (`opa`, `dfg`, and `sfg`: see [below](#non-collinear-sum-frequency); `shg` refuses it, since one beam cannot cross itself): `noncollinearDeg` is the angle between pump and signal inside the crystal;
   `"magic"` solves for the angle at which the idler's group velocity projected on the signal equals the signal's
   (broadest gain bandwidth). The cut is then the pump's angle to the optic axis (reported as `pumpThetaDeg`).
 * **Main-beam polarisation.** The main beam's Jones vector is projected on the crystal's axis for its role
@@ -239,9 +239,47 @@ Each wave has its own k(ω) from the Sellmeier equations at the crystal's angle,
 
 So a thick crystal suits a narrow spectrum, and a broad spectrum needs a thin one. The walk-off length τ / GVM is about 0.3 mm for 30 fs in BBO at 1030 nm.
 
+## Non-collinear sum frequency
+
+Crossing beams are `sfg`. Non-collinear SHG is two beams, so it is `sfg` with one colour on both. Give the angle in one of three ways:
+
+| where | key | meaning |
+|---|---|---|
+| the arms | `tiltXRad` on a linked `delay` | the angle follows from the two beams' tilts |
+| the interaction | `externalAngleDeg` | the angle outside the crystal |
+| the interaction | `noncollinearDeg` | the angle inside the crystal |
+
+```jsonc
+{ "id": "x", "type": "crystal", "crystal": "BBO", "lengthM": 20e-6, "cut": "auto", "output": "sum",
+  "interaction": { "process": "sfg", "type": "I", "externalAngleDeg": 3 },
+  "beam": { "kind": "gaussian", "w0M": 200e-6 },
+  "aux": [ { "role": "b", "fromPort": true, "beam": { "kind": "gaussian", "radiusM": 200e-6 } } ] }
+```
+
+The sum wave lies along the crystal's axis, and the inputs lie either side of it in the tuning plane. Transverse momentum balances, k_a sin a = k_b sin b, and outside the crystal Snell's law gives ω_a sin e_a = ω_b sin e_b. For equal colours in type I this reduces to n_e(2ω, θ) = n_o(ω) cos(α/2), and `cut: "auto"` solves for it.
+
+**Overlap.** The beams cross at mid-crystal. The 1-D model scales the coupling by exp(−d²/(w_a² + w_b²)), with d their separation at z, so a thick crystal stops contributing once they part.
+
+**Smearing.** The beams meet at a different time at each point across them. A delay scan broadens by the geometric smearing, FWHM = w √(ln 2) · 2 sin(φ/2) / c for equal beams at external angle φ. The 1-D model has one point across the beam, so it leaves this out: it reports `geometricSmearingS`, and warns above 0.3 of the pulse length. A Cartesian grid carries the pulse-front tilt and the lateral walk of each beam, so the broadening comes out of the propagation. There, `ny: 1` gives the shape of a trace but not its energy.
+
+**Recorded angles.** `elements[i].values` holds:
+
+| key | meaning |
+|---|---|
+| `noncollinearDeg`, `externalAngleDeg` | the angle between the inputs, inside and outside |
+| `angleToSumDeg_a`, `angleToSumDeg_b` | each input's internal angle to the sum wave |
+| `outputTiltDeg_a`, `_b`, `_sum` | where each beam leaves, in the lab |
+
+Inputs keep their direction. The sum leaves at ω₃ sin t₃ = ω₁ sin t₁ + ω₂ sin t₂, and its path carries that tilt onward, as each port's does.
+
+Example [40](../examples/40-noncollinear-correlators/README.md).
+
 ## What a crystal does not model
 
-* **Angles between beams, except in `opa` and `dfg`.** `shg` and `sfg` are collinear, and `noncollinearDeg` is refused. In `opa` and `dfg` the angle sets Δk and the lateral drift, but comes from the element, not from the arms.
-* **A tilt on a linked arm.** It changes neither phase matching nor overlap, and raises a warning.
-* **Output directions.** Output beams carry no angle. `angleToSignalDeg` from the phase-matching solver is the only record, and only for `opa` and `dfg`.
+* **An input's own second harmonic in non-collinear SHG.** Each beam also makes a collinear second harmonic in a real crystal, if the cut suits. The model has only the cross term, which is the background-free signal.
+* **Angular spread of the sum at each frequency.** In 1-D the sum wave stays on the axis for every frequency. This matters for very broad spectra at large angles.
+* **Depletion across the beam in 1-D.** Conversion is uniform across it. Use a spatial model near depletion.
+* **A tilt out of the tuning plane.** The angle is taken from the x tilts; a y tilt raises a warning. The x axis is taken to lie in the tuning plane.
+* **A radial grid.** Crossing beams need `cartesian`.
+* **Angles in `opa` and `dfg` from the arms.** The angle comes from the element. Output tilts are recorded for `sfg` only.
 * **Polarisation between crystals.** Each wave takes the role its process needs. The waveplate between type I stages is assumed.

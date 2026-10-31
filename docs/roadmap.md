@@ -36,7 +36,9 @@ needs. T0 and the branch stages of T1 are done. **Next: the remaining T1 items, 
    - [x] Design: [docs/design/branching.md](design/branching.md) (final plan, stages 0-8: ports on all elements, jumps, graph compiler, virtual inputs, loops)
    - [x] Ports, path ledger, graph compiler and alerts, 1-D interference, loops, crystal ports, `beamSplitter`, `delay`, virtual inputs -- stages 1-6 of the plan
    - [x] Space (tracked-beam overlap, profiles meeting), `sameAs` folding, `leakMirror`, `polarizingSplitter`, `dichroic`, crystal wave ports, tail per path, carrier phase from active elements, Gouy phase, study node cache, array studies, modelled IAC, FTS, FROG, f-2f -- stages 7-8
-   - [ ] A pump-probe example; beams crossing at an angle in a crystal, from the arms
+   - [x] Crossing beams in a crystal: non-collinear SFG and SHG, angle from the arms or stated, overlap, pulse-front tilt and geometric smearing on a Cartesian grid, output angles recorded (example 40)
+   - [ ] A pump-probe example
+   - [ ] Non-collinear OPA and DFG with the angle from the arms
 3. **Spatio-temporal couplings**
    - [x] Kostenbauder couplings with the tracked beam: gratings, tilted interfaces (prisms), plates, single-pass grating pairs; pulse-front tilt (Hebling, Akturk); the GDD they add (Treacy, 4f = 0)
    - [x] Angular dispersion on carried cartesian profiles (`physics.spatioTemporal: "profile"`), checked against the tracker and Treacy
@@ -47,6 +49,13 @@ needs. T0 and the branch stages of T1 are done. **Next: the remaining T1 items, 
    - [x] `mask` element: axicon, zone plate, vortex plate, slits, amplitude / phase maps from NPZ 
    - [x] Measured near field and wavefront as input (`initialProfile` kind `measured`: NPZ, background, resampling) 
    - [x] Gerchberg-Saxton phase retrieval from near / far-field images (`retrieve gerchbergSaxton`), PNG input, near-field centring and threshold
+
+## Next
+
+Plan: [design/next-basics-and-catalogue.md](design/next-basics-and-catalogue.md).
+
+1. **Back to basics**: one test sheet for every component, and a `basics/` example series.
+2. **A catalogue**: our existing materials, coatings, crystals and substrates in one place, checked against published sources, and the user's own entries beside them. Users bring vendor data; none is shipped.
 
 ## T2 -- after T1
 - [x] Thermal lenses of gain media in the Gaussian beam tracking -- *left:* regenerative amplifiers

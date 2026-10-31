@@ -253,7 +253,8 @@ namespace UltrafastEngine.Schema
                 .Enum("process", new[] { "shg", "sfg", "opa", "dfg" }, "Process", required: true)
                 .Str("type", "I, II (IIa), IIb or 0", "I (0 with qpm)").Enum("plane", new[] { "XY", "XZ", "YZ" }, "Biaxial plane", "auto")
                 .Free("polarizations", ParamType.Object, "Explicit polarisations per field, e.g. {signal: o, idler: o, pump: e}")
-                .P("noncollinearDeg", ParamType.Any, "deg", "Pump-signal angle inside the crystal, or \"magic\"")
+                .P("noncollinearDeg", ParamType.Any, "deg", "Angle between the inputs inside the crystal (opa, dfg, sfg), or \"magic\" (opa, dfg)")
+                .Num("externalAngleDeg", "deg", "sfg: angle between the inputs outside the crystal; default: from the arms' tiltXRad")
                 .P("qpm", ParamType.Any, "", "true or {periodM, model: averaged|domains, phaseDeg, periodExpr}"));
             add(new ComponentSpec("auxBeam", "", "An auxiliary beam entering an active element (docs/reference/active-elements.md#auxiliary-beams).")
                 .Str("role", "pump, signal, idler, b", "pump")

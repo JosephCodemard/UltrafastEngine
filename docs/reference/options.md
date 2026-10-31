@@ -1616,7 +1616,8 @@ The chi(2) process.
 | `type` | string |  | I (0 with qpm) | I, II (IIa), IIb or 0 |
 | `plane` | `"XY"` \| `"XZ"` \| `"YZ"` |  | auto | Biaxial plane |
 | `polarizations` | object |  |  | Explicit polarisations per field, e.g. {signal: o, idler: o, pump: e} |
-| `noncollinearDeg` | any | deg |  | Pump-signal angle inside the crystal, or "magic" |
+| `noncollinearDeg` | any | deg |  | Angle between the inputs inside the crystal (opa, dfg, sfg), or "magic" (opa, dfg) |
+| `externalAngleDeg` | number | deg |  | sfg: angle between the inputs outside the crystal; default: from the arms' tiltXRad |
 | `qpm` | any |  |  | true or {periodM, model: averaged\|domains, phaseDeg, periodExpr} |
 
 ### `inversion`

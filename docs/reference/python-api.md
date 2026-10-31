@@ -344,7 +344,7 @@ Seeded smooth random amplitude (relative rms) and phase noise with the given cor
 
 Auxiliary beam for a crystal: a pulse spec (see :func:`pulse`), ``from_results`` (a results folder), or ``from_port=True`` in a Branched system: the beam arriving at the input port named ``role`` (docs/reference/branches.md#crystals).
 
-### `crystal(id: str, crystal: Any, length_m: float, process: str = 'shg', type: Optional[str] = None, *, cut: Any = 'auto', noncollinear: Any = None, qpm: Any = None, aux: Optional[list] = None, output: Optional[str] = None, main_role: Optional[str] = None, record: Optional[list] = None, beam: Optional[Mapping[str, Any]] = None, transverse: Optional[Mapping[str, Any]] = None, deff_pm_per_v: Optional[float] = None, seed_noise: Optional[bool] = None, temperature_c: Optional[float] = None, overlap: Any = None, chi3: Optional[bool] = None, **extra) -> 'T.CrystalElement'`
+### `crystal(id: str, crystal: Any, length_m: float, process: str = 'shg', type: Optional[str] = None, *, cut: Any = 'auto', noncollinear: Any = None, external_angle_deg: Optional[float] = None, qpm: Any = None, aux: Optional[list] = None, output: Optional[str] = None, main_role: Optional[str] = None, record: Optional[list] = None, beam: Optional[Mapping[str, Any]] = None, transverse: Optional[Mapping[str, Any]] = None, deff_pm_per_v: Optional[float] = None, seed_noise: Optional[bool] = None, temperature_c: Optional[float] = None, overlap: Any = None, chi3: Optional[bool] = None, **extra) -> 'T.CrystalElement'`
 
 A chi(2) crystal element (docs/reference/crystals.md).
 

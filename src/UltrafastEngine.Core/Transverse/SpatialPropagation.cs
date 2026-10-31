@@ -448,6 +448,7 @@ namespace UltrafastEngine.Transverse
         public double LengthM { get; set; }
         public SpatialProperties Properties { get; set; }
         public List<LinearTerm> Background { get; } = new List<LinearTerm>();
+        private List<LinearTerm> Bg(ActiveContext ctx) => ctx.BackgroundOverride ?? Background;
         public string Kind => "spatial";
         public string Description => "spatial " + Spec.Model + " propagation in " + Material?.Name + " (" + LengthM.ToString("G5", CultureInfo.InvariantCulture) + " m" + (Medium != null && Medium.IsActive ? ", nonlinear" : ", linear") + ")";
         public double OutputOmega0 => double.NaN;
@@ -464,9 +465,9 @@ namespace UltrafastEngine.Transverse
             var prof = TransverseStart.Initial(Spec, basis, p, Beam, idx, ctx.Element.Id, ctx.Record.Notes);
             basis = prof.Basis;
             var axis = OmegaAxis.FromGrid(g);
-            Executor.Combine(Background, axis, out var phX, out var ampX, out var phY, out var ampY);
-            double tauEl = Background.Sum(b => b.GroupDelayAt(g.OmegaCenter));
-            var own = new DispersionPoint(); foreach (var b in Background) own += b.DispersionAt(g.OmegaCenter);
+            Executor.Combine(Bg(ctx), axis, out var phX, out var ampX, out var phY, out var ampY);
+            double tauEl = Bg(ctx).Sum(b => b.GroupDelayAt(g.OmegaCenter));
+            var own = new DispersionPoint(); foreach (var b in Bg(ctx)) own += b.DispersionAt(g.OmegaCenter);
             ctx.Own = own;
             double e0 = p.TotalEnergyJ();
             double eyFrac = p.Ay.Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary) / Math.Max(1e-300, p.Ax.Concat(p.Ay).Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary));
@@ -530,7 +531,7 @@ namespace UltrafastEngine.Transverse
             stats.Representation = ctx.Record.Representation;
             foreach (var s in stats.Notes) ctx.Note(s);
             double e1 = q.TotalEnergyJ();
-            bool absorbs = Background.Any(b => b.Mechanism == "absorption") || (Medium?.ExtraResponses.Count ?? 0) > 0 || Properties?.Absorption != null;
+            bool absorbs = Bg(ctx).Any(b => b.Mechanism == "absorption") || (Medium?.ExtraResponses.Count ?? 0) > 0 || Properties?.Absorption != null;
             ctx.Energy(boundary && !absorbs ? "grid boundary" : absorbs ? "absorption" : (Medium != null && Medium.EffectiveRamanFraction > 0 && Medium.IsActive ? "raman+numerical" : "numerical"), e0 - e1);
             return q;
         }
@@ -636,7 +637,7 @@ namespace UltrafastEngine.Transverse
                 ctx.Energy("grid boundary", eb);
                 e0 -= eb;
             }
-            ctx.Energy(Background.Any(b => b.Mechanism == "absorption") ? "absorption" : "numerical", e0 - e1);
+            ctx.Energy(Bg(ctx).Any(b => b.Mechanism == "absorption") ? "absorption" : "numerical", e0 - e1);
             return q;
         }
 

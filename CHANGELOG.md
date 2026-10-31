@@ -23,6 +23,7 @@
 - **Study node cache** never hit away from the nominal point: study parameters are run overrides, and all of them were hashed into every element's key. `element:<id>` overrides now count only for that element. An 81-point delay scan with 0.3 m of nonlinear glass upstream goes from 58.2 s to 9.6 s, with identical results.
 - `build/example_check.py --against` hid a baseline that failed or wrote nothing, which read as "no differences". It now reports both. Python examples use the current library either way, so `--against` compares CLI examples only.
 - `00-quickstart` wrote its output into the current folder; it now writes beside the script.
+- **Delayed light through a solver.** Narrow gas lines inside a nonlinear or spatial element stayed on the main grid, which cannot resolve them, so the ring-down wrapped and almost never reached the tail (1e-25 of the true value in the test). They now go exactly on main + tail, half on each side of the solver. A vector profile bypassed the exact step, so its lines and ghosts wrapped too (a 49 ps ghost read 80 ps in a test); it now takes that step, and only polarisation-mixing terms go on the full field. The tail also skipped the material of spatial elements altogether.
 - **Crystals fed at a port with a different colour** (SHG to THG): the fed beam was treated as the run's carrier, so Δk and the generated carrier were wrong and conversion was 1e-4 of the true value, with no error. Fed beams keep their own carrier, in compilation too, where each output port of a crystal now has its own; `cut: "auto"` solves for the colours that arrive. Same-colour systems were not affected.
 - A compiled element could continue from a crystal's `aux` port link rather than its main input. A tilted arm into a crystal now warns that crystals are collinear. `crystals.md` wrongly listed `sfg` as accepting `noncollinearDeg`.
 - `python/tools/build_engine.py` warns when a stale `bin/native` would shadow the hosted build. `aux_beam` gained `from_port`, without which a branch-fed crystal could not be written with builders.
@@ -31,6 +32,7 @@
 ### Added (review)
 - `python/tests/test_lightpipes.py` and `test_pynlo_branched.py` (cross-checks); `ReviewRegressionTests`; `m2Y` from `beamProfile` on 2-D grids.
 - Examples 32, 33 and 34 use the Python API, with figures; 34 adds a FROG. New: 35 (CLI), 36 (Python), 37 (Python), 38 (CLI), 00-quickstart. The examples list says which interface each uses.
+- **Non-collinear SFG and SHG**: `noncollinearDeg`, new `externalAngleDeg`, or the angle from the arms' `tiltXRad`. Phase matching with transverse momentum, overlap of crossing beams, pulse-front tilt and geometric smearing on a Cartesian grid, and output angles in the crystal's values and on each path. `shg` refuses an angle and points to `sfg`. Example 40.
 - Example 39, a third-order cross-correlator as a Branched system. `CrystalChainTests`: Manley-Rowe through SHG and THG, the cross-correlation width, and conversion against length and bandwidth.
 - Moved: tutorial files to `docs/tutorials/files/`. Removed: finished design plans, folded into `docs/design/history.md`.
 

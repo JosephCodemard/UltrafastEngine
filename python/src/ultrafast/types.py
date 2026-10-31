@@ -3746,7 +3746,9 @@ class Interaction(TypedDict, total=False):
     polarizations: Dict[str, Any]
     """Explicit polarisations per field, e.g. {signal: o, idler: o, pump: e}"""
     noncollinearDeg: Any
-    """Pump-signal angle inside the crystal, or "magic" [deg]"""
+    """Angle between the inputs inside the crystal (opa, dfg, sfg), or "magic" (opa, dfg) [deg]"""
+    externalAngleDeg: float
+    """sfg: angle between the inputs outside the crystal; default: from the arms' tiltXRad [deg]"""
     qpm: Any
     """true or {periodM, model: averaged|domains, phaseDeg, periodExpr}"""
     comment: Any

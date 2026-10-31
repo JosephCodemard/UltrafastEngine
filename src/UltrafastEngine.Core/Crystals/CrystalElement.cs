@@ -41,6 +41,10 @@ namespace UltrafastEngine.Crystals
         public double ThetaRad, PhiRad;
         public string Plane;
         public double NoncollinearRad;
+        /// <summary>SFG: angle between the inputs outside the crystal (rad): from <c>externalAngleDeg</c> or the arms' tilts.</summary>
+        public double ExternalRad;
+        /// <summary>Lab tilts (rad, x) of the main and fed beams on entry, from the arms.</summary>
+        public double MainTiltXRad, FedTiltXRad;
         public double QpmPeriodM = double.NaN;
         public string QpmModel = "averaged";
         public Func<double, double> QpmPeriodOfZ;
@@ -98,7 +102,7 @@ namespace UltrafastEngine.Crystals
         internal ThreeWave Geometry(int referenceWave) => new ThreeWave
         {
             Crystal = Crystal, Process = Process, Roles = Roles, ThetaRad = ThetaRad, PhiRad = PhiRad,
-            TuningAngle = Plane == "XY" ? "phi" : "theta", NoncollinearRad = NoncollinearRad,
+            TuningAngle = Plane == "XY" ? "phi" : "theta", NoncollinearRad = NoncollinearRad, ExternalRad = ExternalRad,
             QpmK = 0, ReferenceWave = referenceWave
         };
 
@@ -282,6 +286,15 @@ namespace UltrafastEngine.Crystals
                 double w1r = fields[0].RadiusM, w2r = K == 2 ? fields[0].RadiusM : fields[1].RadiusM, w3r = fields[K - 1].RadiusM;
                 overlap = Math.Pow(2 / Math.PI, 1.5) / (w1r * w2r * w3r) * Math.PI / (1 / (w1r * w1r) + 1 / (w2r * w2r) + 1 / (w3r * w3r));
             }
+            // crossing beams meet at mid-crystal; the 1-D model scales the coupling by how far apart they are at z
+            bool crossed = Process == "sfg" && (NoncollinearRad != 0 || ExternalRad != 0);
+            double crossSlope = crossed ? Math.Tan(geo.AngleToRefRad[0]) - Math.Tan(geo.AngleToRefRad[1]) : 0;
+            Func<double, double> crossing = null;
+            if (crossed && !spatial && OverlapModel == "gaussian")
+            {
+                double w2sum = fields[0].RadiusM * fields[0].RadiusM + fields[1].RadiusM * fields[1].RadiusM, slope = crossSlope, mid = LengthM / 2;
+                crossing = z => Math.Exp(-Math.Pow((z - mid) * slope, 2) / w2sum);
+            }
             double dk0 = fields.Length == 2
                 ? 2 * fields[0].Kz[fields[0].Grid.CarrierIndex] - fields[1].Kz[fields[1].Grid.CarrierIndex]
                 : fields[0].Kz[fields[0].Grid.CarrierIndex] + fields[1].Kz[fields[1].Grid.CarrierIndex] - fields[2].Kz[fields[2].Grid.CarrierIndex];
@@ -328,7 +341,33 @@ namespace UltrafastEngine.Crystals
             ctx.Record.Values["deltaK0PerM"] = dk0;
             ctx.Record.Values["thetaDeg"] = ThetaRad * 180 / Math.PI;
             ctx.Record.Values["phiDeg"] = PhiRad * 180 / Math.PI;
-            if (NoncollinearRad != 0) ctx.Record.Values["noncollinearDeg"] = NoncollinearRad * 180 / Math.PI;
+            if (NoncollinearRad != 0 && !crossed) ctx.Record.Values["noncollinearDeg"] = NoncollinearRad * 180 / Math.PI;
+            if (crossed)
+            {
+                int ia = Array.IndexOf(names, "a"), ib = Array.IndexOf(names, "b");
+                double angA = geo.AngleToRefRad[ia], angB = geo.AngleToRefRad[ib], sinA = Math.Sin(angA) * geo.N[ia], sinB = Math.Sin(angB) * geo.N[ib];
+                ctx.Record.Values["noncollinearDeg"] = Math.Abs(angA - angB) * 180 / Math.PI;
+                ctx.Record.Values["externalAngleDeg"] = Math.Abs(Math.Asin(sinA) - Math.Asin(sinB)) * 180 / Math.PI;
+                ctx.Record.Values["angleToSumDeg_a"] = angA * 180 / Math.PI;
+                ctx.Record.Values["angleToSumDeg_b"] = angB * 180 / Math.PI;
+                if (!spatial)
+                {
+                    // delay across the overlap, FWHM of I_a I_b along x: what a Cartesian run would add to a delay scan
+                    double wa = fields[ia].RadiusM, wb = fields[ib].RadiusM, fwhmX = 2 * Math.Sqrt(Math.Log(2) / (2 * (1 / (wa * wa) + 1 / (wb * wb))));
+                    double smear = fwhmX * Math.Abs(sinA - sinB) / C;
+                    ctx.Record.Values["geometricSmearingS"] = smear;
+                    if (smear > 0.3 * PulseMetrics.Summarize(p).FwhmS)
+                        ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': crossing beams have a geometric smearing of {1:G3} fs, which the 1-D model does not include; use \"transverse\": {{\"model\": \"cartesian\"}} or a smaller angle.", Id, smear * 1e15));
+                }
+                // lab directions. With no tilts from the arms the crystal's normal is the axis; tangential momentum sets the sum's, and each input keeps its own
+                bool fromArms = MainTiltXRad != FedTiltXRad;
+                double tiltA = fromArms ? MainTiltXRad : MainTiltXRad + Math.Asin(sinA), tiltB = fromArms ? FedTiltXRad : MainTiltXRad + Math.Asin(sinB);
+                double tiltSum = Math.Asin((geo.Omega[ia] * Math.Sin(tiltA) + geo.Omega[ib] * Math.Sin(tiltB)) / (geo.Omega[ia] + geo.Omega[ib]));
+                ctx.Record.Values["outputTiltDeg_a"] = tiltA * 180 / Math.PI;
+                ctx.Record.Values["outputTiltDeg_b"] = tiltB * 180 / Math.PI;
+                ctx.Record.Values["outputTiltDeg_sum"] = tiltSum * 180 / Math.PI;
+                ctx.ByproductTiltXRad["a"] = tiltA; ctx.ByproductTiltXRad["b"] = tiltB; ctx.ByproductTiltXRad["sum"] = tiltSum;
+            }
             // ---------------------------------------------------------------- transverse setup
             ITransverseBasis basis = null; TransverseProfile mainProfile = null;
             if (spatial)
@@ -352,11 +391,26 @@ namespace UltrafastEngine.Crystals
             }
             // ---------------------------------------------------------------- initial spectra
             int M = basis?.M ?? 1;
-            Complex[] Spatialize(Complex[] a, FrequencyGrid g, TransverseProfile prof)
+            Complex[] Spatialize(Complex[] a, FrequencyGrid g, TransverseProfile prof, int crossingWave = -1)
             {
                 if (basis == null) return a;
                 var e = TransverseOps.Expand(a, g.OmegaAbsolute, prof);
+                // a crossing beam: the pulse front tilts by the face's tangential k(w), which is what smears a non-collinear correlator
+                double angleRad = crossingWave >= 0 ? geo.AngleToRefRad[crossingWave] : 0, sinExt = crossingWave >= 0 ? Math.Sin(angleRad) * geo.N[crossingWave] : 0;
+                if (sinExt != 0)
+                    for (int m = 0; m < M; m++)
+                        for (int i = 0; i < n; i++) e[m * n + i] *= Complex.FromPolarCoordinates(1, g.OmegaOffset[i] * sinExt * basis.X[m] / C);
                 basis.ToK(e, n);
+                // and starts to the side, by what it drifts in half the crystal
+                if (angleRad != 0 && basis is CartesianBasis)
+                {
+                    double x0 = -Math.Tan(angleRad) * LengthM / 2;
+                    for (int m = 0; m < M; m++)
+                    {
+                        var f = Complex.FromPolarCoordinates(1, -basis.Kx[m] * x0);
+                        for (int i = 0; i < n; i++) e[m * n + i] *= f;
+                    }
+                }
                 return e;
             }
             // main beam projected on the crystal's eigen-polarisation(s)
@@ -383,7 +437,7 @@ namespace UltrafastEngine.Crystals
                 else { double ca = Math.Cos(PolarizationAxisRad), sa = Math.Sin(PolarizationAxisRad); a0 = Enumerable.Range(0, n).Select(i => ca * pM.Ax[i] + sa * pM.Ay[i]).ToArray(); a1 = Enumerable.Range(0, n).Select(i => -sa * pM.Ax[i] + ca * pM.Ay[i]).ToArray(); if (Roles[0] != "slow") { var t = a0; a0 = a1; a1 = t; } leftover = null; }
                 fields[0].Initial = Spatialize(a0, gMain, mainProfile); fields[1].Initial = Spatialize(a1, gMain, mainProfile);
             }
-            else fields[mainIdx].Initial = Spatialize(mainA, gMain, mainProfile);
+            else fields[mainIdx].Initial = Spatialize(mainA, gMain, mainProfile, crossed ? waveOf[mainIdx] : -1);
             double mainCentroid = PulseMetrics.Moments(gMain.Time, PulseMetrics.TemporalPower(pM)).Mean;
             var auxEnergyIn = new Dictionary<string, double>();
             foreach (var kv in auxFor)
@@ -404,7 +458,7 @@ namespace UltrafastEngine.Crystals
                     var mode = geo.Modes[waveOf[kv.Key]];
                     prof = TransverseOps.FromShape(basis, spec.Beam, spec.RadiusXM, spec.RadiusYM, R, w => mode.N, bins.Select(b => f.Grid.OmegaAbsolute[b]).ToArray(), Id + "#" + f.Name);
                 }
-                f.Initial = Spatialize(a, f.Grid, prof);
+                f.Initial = Spatialize(a, f.Grid, prof, crossed ? waveOf[kv.Key] : -1);
             }
             var rng = new Random(NoiseSeed);
             for (int k = 0; k < K; k++)
@@ -432,7 +486,7 @@ namespace UltrafastEngine.Crystals
             var state = new Complex[K * M * n];
             for (int k = 0; k < K; k++) Array.Copy(fields[k].Initial, 0, state, k * M * n, M * n);
             double eTot0 = 0; for (int k = 0; k < K; k++) eTot0 += FieldEnergy(fields[k].Initial, fields[k].Grid, basis);
-            var prob = new Chi2Problem(fields, K == 2, gamma, overlap, dk0, LengthM, basis, qpmPhase, domainSign, Chi3 ? N2 : 0, SelfSteepening, vRefInv, Paraxial, maxStep) { Walls = walls };
+            var prob = new Chi2Problem(fields, K == 2, gamma, overlap, dk0, LengthM, basis, qpmPhase, domainSign, Chi3 ? N2 : 0, SelfSteepening, vRefInv, Paraxial, maxStep) { Walls = walls, Crossing = crossing };
             var st = ctx.Run.Run.Stepper;
             var settings = new StepperSettings
             {
@@ -516,6 +570,7 @@ namespace UltrafastEngine.Crystals
                 if (K == 3) ctx.Record.Values["manleyRoweResidual"] = ((Ph(fields[0].Name, false) - Ph(fields[0].Name, true)) - (Ph(fields[1].Name, false) - Ph(fields[1].Name, true))) / Math.Max(1e-300, Ph(fields[2].Name, true) + Ph(fields[0].Name, true) + Ph(fields[1].Name, true));
             }
             // ---------------------------------------------------------------- by-products and output grid
+            if (crossed && ctx.Path != null && ctx.ByproductTiltXRad.TryGetValue(outName, out double tiltOut)) ctx.Path.TiltXRad = tiltOut;
             var rec = Record ?? new HashSet<string>(fo.Keys.Where(k => k != outName), StringComparer.OrdinalIgnoreCase);
             foreach (var kv in fo) if (kv.Key != outName && rec.Contains(kv.Key)) ctx.Byproduct(kv.Key, kv.Value);
             // own dispersion of the output field through the crystal (frame group delay = L / v_ref)
@@ -650,6 +705,10 @@ namespace UltrafastEngine.Crystals
             var auxArr = c.Find(e, "aux")?.RawValue?.AsArray() ?? j.GetArray("aux") ?? new JsonArray();
             foreach (var a in auxArr) el.Aux.Add(AuxBeamSpec.FromJson(a.AsObject(), c.System.BaseDirectory ?? c.Run.BaseDirectory, "element " + e.Id + ".aux"));
             foreach (var a in el.Aux.Where(x => x.FromPort)) { a.Pulse = c.Run.Pulse; a.NominalOmega = c.FedCarrier(e.Id, a.Role); }
+            // the arms' tilts give the angle between the beams, unless the interaction states it
+            el.MainTiltXRad = el.FedTiltXRad = c.TiltXRad;
+            var fedBeam = el.Aux.FirstOrDefault(x => x.FromPort);
+            if (fedBeam != null && !double.IsNaN(c.FedTiltX(e.Id, fedBeam.Role))) el.FedTiltXRad = c.FedTiltX(e.Id, fedBeam.Role);
             // polarisations
             var pol = it.GetObject("polarizations");
             // beam
@@ -718,6 +777,9 @@ namespace UltrafastEngine.Crystals
             if (el.Qpm) req.Set("qpm", double.IsNaN(el.QpmPeriodM) ? (JsonValue)true : new JsonObject().Set("periodM", el.QpmPeriodM));
             if (it.Has("plane")) req.Set("plane", it.GetString("plane"));
             if (it.TryGet("noncollinearDeg", out var nc)) req.Set("noncollinearDeg", nc);
+            el.ExternalRad = it.GetDouble("externalAngleDeg", 0) * Math.PI / 180;
+            if (el.ExternalRad == 0 && nc == null && el.Process == "sfg") el.ExternalRad = el.MainTiltXRad - el.FedTiltXRad;
+            if (el.ExternalRad != 0) req.Set("externalAngleDeg", el.ExternalRad * 180 / Math.PI);
             var cut = j["cut"];
             bool autoCut = cut == null || (cut.Kind == JsonKind.String && cut.AsString().Equals("auto", StringComparison.OrdinalIgnoreCase));
             if (!autoCut)

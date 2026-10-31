@@ -38,7 +38,7 @@ with its resolution, sampling and detector.
 | **Kerr nonlinearity** | self- and cross-phase modulation with the full isotropic χ(3) tensor, Raman (Blow–Wood, Lin–Agrawal, Hollenbeck–Cantrell), self-steepening, user time-domain responses n(t, I) |
 | **Fibres** | single-mode fibres and waveguides from Taylor coefficients or a dispersion curve, γ or γ(z), loss and gain, soliton and dispersive-wave diagnostics, quantum noise and supercontinuum coherence |
 | **Gases** | rotational Raman of N₂, O₂, CO₂, H₂ and air; pressure and temperature scaling; photo-ionisation (PPT, ADK, Keldysh, MPI) and plasma |
-| **χ(2) crystals** | SHG, SFG, DFG, OPA / OPCPA, birefringent and quasi-phase-matched (including chirped gratings), non-collinear; phase-matching calculator |
+| **χ(2) crystals** | SHG, SFG, DFG, OPA / OPCPA, birefringent and quasi-phase-matched (including chirped gratings), non-collinear (OPA, DFG, and SFG with crossing beams and recorded output angles); phase-matching calculator |
 | **Active media** | Yb, Ti:sapphire, Nd and user gain media with rate equations, pumping, thermal lens, multipass and regenerative amplifiers; mode-locked oscillators (Kerr-lens, SESAM) |
 | **Beams and space** | Gaussian beam tracking (astigmatic) through lenses and off-axis mirrors; radial and cartesian full-field models with diffraction, self-focusing, Zernike aberrations, vector fields and a UPPE coupling |
 | **Contrast** | input pedestals (pre/post-pulses, ASE, phase noise), ghost reflections of plates, crystals and rods, a third-order cross-correlator with 100+ dB dynamic range |

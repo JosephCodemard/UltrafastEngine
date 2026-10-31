@@ -41,6 +41,8 @@ A Sequential system calls this for each element in turn, in the loop in `Executo
 4. Output with no link goes to a virtual output.
 5. The strongest packet at `end` becomes `RunResult.Output`, and the budget is added up over the graph. `graph.energyOutJ` counts every packet at `end`.
 
+A crystal's input angle comes from the arms: the compiler tracks a carrier and an x tilt per output port (`PortOmega`, `PortTiltX`). `ThreeWave.At` works out the directions, and each output port's path leaves with its own tilt.
+
 Interference is not a step of its own. An element sees one packet at a time, which is exact for a linear element, and fields add when the packets on one port merge. Crystals are the exception: beams on their ports run together, because they mix.
 
 ## A loop
@@ -58,6 +60,10 @@ When packets merge, each is moved to a common frame by the difference of their l
 ## Beam size and quality
 
 A carried profile's size and M² are central moments: `SecondMomentRadius` measures about the centroid, and `BeamQuality` removes the mean tilt and the fitted curvature first. `Curvature` fits the phase step between neighbouring samples, so a vortex or the sign change between lobes does not disturb it.
+
+## Narrow lines and the tail
+
+With a tail, `Executor.SplitNarrow` divides a solver's background through `LinearTerm.TrySplitNarrow`: the smooth part stays in the solver, and half of the narrow part goes exactly on main + tail before and after it. `ApplyLinear` sends polarisation-mixing terms of a vector profile to the full field, and everything else to the ledger.
 
 ## Grids
 

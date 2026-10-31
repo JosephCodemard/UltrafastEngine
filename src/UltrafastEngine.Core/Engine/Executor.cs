@@ -191,7 +191,7 @@ namespace UltrafastEngine.Engine
             public int SnapPoints, Count; public Func<FrequencyGrid, OmegaAxis> AxisOf;
             public ProgressCallback Progress; public CancellationToken Cancel;
             /// <summary>Branched systems: the input port of this run of an element, and the by-products it gave.</summary>
-            public string InputPort; public Dictionary<string, PulseField> LastOutputs;
+            public string InputPort; public Dictionary<string, PulseField> LastOutputs; public Dictionary<string, double> LastByproductTilts;
         }
 
         /// <summary>Run one element on one pulse, record it, and advance <paramref name="path"/>. A sequential system calls this
@@ -218,20 +218,27 @@ namespace UltrafastEngine.Engine
 
             el.Prepare?.Invoke(pulse, rec);
             pulse = ApplyLinear(tail, pulse, el.Pre, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
+            // narrow lines of a solver's background: the main grid cannot resolve them, so half before and half after, exactly on main + tail
+            var solverBackground = (IEnumerable<LinearTerm>)el.Nonlinear?.Background ?? (el.Active as Transverse.SpatialBulkElement)?.Background;
+            List<LinearTerm> smoothBackground = null, narrowHalf = null;
+            if (tail != null && solverBackground != null && ReferenceEquals(pulse.Grid, tail.Main)) SplitNarrow(solverBackground, out smoothBackground, out narrowHalf);
+            bool splitNarrow = narrowHalf != null && narrowHalf.Count > 0;
+            if (splitNarrow) pulse = ApplyLinear(tail, pulse, narrowHalf, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
             Action<double> prog = progress == null && !cancel.CanBeCanceled ? (Action<double>)null : f => { progress?.Invoke(el.Id, ei, count, f); cancel.ThrowIfCancellationRequested(); };
             if (el.Active != null)
             {
                 int eiCopy = ei;
                 var actx = new ActiveContext
                 {
-                    Run = cr, Element = el, Record = rec, Result = res, Index = ei, Path = path, InputPort = st.InputPort, InGraph = cr.Graph?.IsBranched == true, ArrivalS = arrival, Progress = prog, Cancel = cancel,
+                    Run = cr, Element = el, Record = rec, Result = res, Index = ei, Path = path, InputPort = st.InputPort, InGraph = cr.Graph?.IsBranched == true, ArrivalS = arrival, Progress = prog, BackgroundOverride = splitNarrow ? smoothBackground : null, Cancel = cancel,
                     DownstreamGrid = p => PlanDownstreamGrid(cr, p, eiCopy + 1, rec.Notes)
                 };
                 pulse = el.Active.Execute(actx, pulse);
-                st.LastOutputs = actx.Byproducts;
+                st.LastOutputs = actx.Byproducts; st.LastByproductTilts = actx.ByproductTiltXRad;
                 if (!(el.Active is IReportsCarrierPhase) || actx.PhaseLost) path.PhaseKnown = false;
                 path.PhaseRad *= actx.PathPhaseFactor;
-                if (tail != null) rec.Notes.Add("delayed-light tail: this active element acts on the main field only; the tail passes through its Pre/Post linear terms");
+                if (tail != null && el.Active is Transverse.SpatialBulkElement sbTail) tail.PropagateTail(splitNarrow ? smoothBackground : sbTail.Background, (m, dE) => AddLoss(rec, m, dE));
+                else if (tail != null) rec.Notes.Add("delayed-light tail: this active element acts on the main field only; the tail passes through its Pre/Post linear terms");
                 own += actx.Own;
                 rec.Terms.Add(el.Active.Description);
                 foreach (var kv in actx.Byproducts)
@@ -250,7 +257,7 @@ namespace UltrafastEngine.Engine
             }
             else if (el.Nonlinear != null)
             {
-                var seg = el.Nonlinear;
+                var seg = splitNarrow ? el.Nonlinear.WithBackground(smoothBackground) : el.Nonlinear;
                 var grid = pulse.Grid;
                 double eBefore = pulse.TotalEnergyJ();
                 if (!seg.Medium.ReplaceKerr && seg.Medium.N2 > 0)
@@ -287,6 +294,7 @@ namespace UltrafastEngine.Engine
                 rec.PeakIntensityWPerM2 = Math.Max(Results.PulseMetrics.TemporalPower(pulse).Max(), 0) / minA;
                 foreach (var n in stats.Notes) rec.Notes.Add(n);
             }
+            if (splitNarrow) pulse = ApplyLinear(tail, pulse, narrowHalf, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
             pulse = ApplyLinear(tail, pulse, el.Post, AxisOf(pulse.Grid), rec, ref own, AxisOf, cr.Run.Grid.TailExactSteps);
             if (tail != null && !ReferenceEquals(pulse.Grid, tail.Main))
             {
@@ -488,7 +496,20 @@ namespace UltrafastEngine.Engine
         private static PulseField ApplyLinear(TailLedger tail, PulseField p, List<LinearTerm> terms, OmegaAxis axis, ElementRecord rec, ref DispersionPoint own, Func<FrequencyGrid, OmegaAxis> axisOf, bool exactSteps)
         {
             if (terms.Count == 0) return p;
-            if (tail == null || !ReferenceEquals(p.Grid, tail.Main) || p.Profile?.DataY != null)
+            // x and y shapes differ: a polarisation-mixing term must mix the shapes, so it goes on the full field; every other term takes the ledger's path
+            bool mixes(LinearTerm t) => t is JonesTerm;
+            bool vector = tail != null && ReferenceEquals(p.Grid, tail.Main) && p.Profile?.DataY != null;
+            if (vector && terms.Any(mixes) && !terms.All(mixes))
+            {
+                for (int i = 0; i < terms.Count;)
+                {
+                    int j = i; while (j < terms.Count && mixes(terms[j]) == mixes(terms[i])) j++;
+                    p = ApplyLinear(tail, p, terms.GetRange(i, j - i), axisOf(p.Grid), rec, ref own, axisOf, exactSteps);
+                    i = j;
+                }
+                return p;
+            }
+            if (tail == null || !ReferenceEquals(p.Grid, tail.Main) || (vector && terms.Any(mixes)))
             {
                 if (tail != null && ReferenceEquals(p.Grid, tail.Main)) tail.PropagateTail(terms, (m, dE) => AddLoss(rec, m, dE));
                 foreach (var t in terms) p = ApplyTerm(p, t, axisOf(p.Grid), rec, ref own);
@@ -514,6 +535,18 @@ namespace UltrafastEngine.Engine
                 rec.Terms.Add(t.Description);
             }
             return q;
+        }
+
+        /// <summary>Divide a solver's background into what stays in the solver and half of its narrow lines.</summary>
+        private static void SplitNarrow(IEnumerable<LinearTerm> background, out List<LinearTerm> smooth, out List<LinearTerm> narrowHalf)
+        {
+            smooth = new List<LinearTerm>(); narrowHalf = new List<LinearTerm>();
+            foreach (var t in background)
+            {
+                if (!t.TrySplitNarrow(out var s, out var h)) { smooth.Add(t); continue; }
+                if (s != null) smooth.Add(s);
+                narrowHalf.Add(h);
+            }
         }
 
         internal static void AddLoss(ElementRecord rec, string mech, double dE)

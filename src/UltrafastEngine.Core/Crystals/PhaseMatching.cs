@@ -29,6 +29,9 @@ namespace UltrafastEngine.Crystals
         /// <summary>"theta" or "phi": which angle a non-collinear tilt (and angle tuning) acts on.</summary>
         public string TuningAngle { get; set; } = "theta";
         public double NoncollinearRad { get; set; }
+        /// <summary>SFG: angle between the two inputs outside the crystal (rad), used instead of <see cref="NoncollinearRad"/>. Signed: wave
+        /// <see cref="ReferenceWave"/> goes towards larger theta for a positive angle.</summary>
+        public double ExternalRad { get; set; }
         /// <summary>Grating vector of quasi-phase matching (rad/m, 0 = none): Delta k_eff = Delta k - Kg.</summary>
         public double QpmK { get; set; }
         /// <summary>Which of waves 1/2 is the reference (signal) direction in OPA: 1 or 2.</summary>
@@ -62,7 +65,25 @@ namespace UltrafastEngine.Crystals
             g.Directions[refW] = Dir(0); g.AngleToRefRad[refW] = 0;
             g.Modes[refW] = Crystal.Mode(g.Omega[refW], g.Directions[refW], Roles[refW]);
             double kRef = g.Modes[refW].N * g.Omega[refW] / c;
-            if (Process == "opa" && NoncollinearRad != 0)
+            if (Process == "sfg" && (NoncollinearRad != 0 || ExternalRad != 0))
+            {
+                // the sum wave along the axis, the inputs on either side; transverse momentum balances, k_a sin a = k_b sin b
+                g.Directions[2] = Dir(0); g.AngleToRefRad[2] = 0;
+                g.Modes[2] = Crystal.Mode(g.Omega[2], g.Directions[2], Roles[2]);
+                double wr = g.Omega[refW], wo = g.Omega[other], ar = 0, ao = 0;
+                double er = ExternalRad == 0 ? 0 : Math.Atan2(wo * Math.Sin(ExternalRad), wr + wo * Math.Cos(ExternalRad)), eo = ExternalRad - er;
+                for (int it = 0; it < 6; it++)
+                {
+                    g.Directions[refW] = Dir(ar); g.Directions[other] = Dir(-ao);
+                    g.Modes[refW] = Crystal.Mode(wr, g.Directions[refW], Roles[refW]);
+                    g.Modes[other] = Crystal.Mode(wo, g.Directions[other], Roles[other]);
+                    double kr = g.Modes[refW].N * wr / c, ko = g.Modes[other].N * wo / c;
+                    if (ExternalRad != 0) { ar = Math.Asin(Math.Sin(er) / g.Modes[refW].N); ao = Math.Asin(Math.Sin(eo) / g.Modes[other].N); }
+                    else { ar = Math.Atan2(ko * Math.Sin(NoncollinearRad), kr + ko * Math.Cos(NoncollinearRad)); ao = NoncollinearRad - ar; }
+                }
+                g.AngleToRefRad[refW] = ar; g.AngleToRefRad[other] = -ao;
+            }
+            else if (Process == "opa" && NoncollinearRad != 0)
             {
                 double a = NoncollinearRad;
                 g.Directions[2] = Dir(a); g.AngleToRefRad[2] = a;
@@ -241,7 +262,10 @@ namespace UltrafastEngine.Crystals
                 if (nv.Kind == JsonKind.String && nv.AsString().Equals("magic", StringComparison.OrdinalIgnoreCase)) magic = true;
                 else alpha = nv.AsDouble() * Math.PI / 180;
             }
-            if ((magic || alpha != 0) && process != "opa") throw new JsonException("noncollinearDeg applies to opa/dfg only");
+            double external = req.GetDouble("externalAngleDeg", 0) * Math.PI / 180;
+            if (process == "shg" && (magic || alpha != 0 || external != 0)) throw new JsonException("one beam cannot cross itself: non-collinear SHG is two beams, so use process \"sfg\" with the same colour on both");
+            if (magic && process != "opa") throw new JsonException("noncollinearDeg \"magic\" applies to opa/dfg only");
+            if (external != 0 && process != "sfg") throw new JsonException("externalAngleDeg applies to sfg only");
 
             var solutions = new JsonArray();
             JsonObject best = null; double bestD = -1;
@@ -252,7 +276,7 @@ namespace UltrafastEngine.Crystals
                     tw.Roles = (string[])roles.Clone();
                     tw.PhiRad = double.IsNaN(cand.Phi) ? 0 : cand.Phi; tw.ThetaRad = double.IsNaN(cand.Theta) ? Math.PI / 2 : cand.Theta;
                     tw.TuningAngle = cand.Plane == "XY" ? "phi" : "theta";
-                    tw.NoncollinearRad = alpha; tw.QpmK = 0;
+                    tw.NoncollinearRad = alpha; tw.ExternalRad = external; tw.QpmK = 0;
                     var angles = new List<double>();
                     if (cand.Tune == "none") angles.Add(cand.Tune == "none" && cand.Plane == "XY" ? tw.PhiRad : tw.ThetaRad);
                     else angles.AddRange(FindRoots(x => { Set(tw, cand.Tune, x); return tw.At(w1, w2).DeltaK; }, cand.Tune == "phi" ? 0 : 0, Math.PI / 2));
@@ -394,7 +418,8 @@ namespace UltrafastEngine.Crystals
                 .Set("deltaKPerM", g.DeltaK)
                 .Set("roles", JsonValue.FromArray(tw.Roles));
             if (qpm) o.Set("qpmPeriodM", tw.QpmK != 0 ? 2 * Math.PI / Math.Abs(tw.QpmK) : double.PositiveInfinity).Set("qpmNote", "first-order QPM: deff includes the 2/pi factor");
-            if (tw.NoncollinearRad != 0)
+            if (tw.NoncollinearRad != 0 && tw.Process != "opa") o.Set("noncollinearDeg", tw.NoncollinearRad * 180 / Math.PI);
+            else if (tw.NoncollinearRad != 0)
             {
                 o.Set("noncollinearDeg", tw.NoncollinearRad * 180 / Math.PI);
                 // literature usually quotes the crystal cut as the PUMP angle to the optic axis

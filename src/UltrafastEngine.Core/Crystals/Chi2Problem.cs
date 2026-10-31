@@ -47,6 +47,8 @@ namespace UltrafastEngine.Crystals
         private readonly ITransverseBasis _b;
         private readonly bool _shg;
         private readonly double _gamma, _overlap, _dk0;
+        /// <summary>1-D model of crossing beams: the fraction of the coupling left at z, or null.</summary>
+        public Func<double, double> Crossing { get; set; }
         private readonly Func<double, double> _qpmPhase;   // Phi_QPM(z) (averaged model) or null
         private readonly Func<double, double> _domainSign; // sign of d(z) (domain model) or null
         private readonly double _n2;
@@ -148,7 +150,7 @@ namespace UltrafastEngine.Crystals
             double phi = _dk0 * z - (_qpmPhase?.Invoke(z) ?? 0);
             double sgn = _domainSign?.Invoke(z) ?? 1.0;
             var ePlus = Complex.FromPolarCoordinates(1, phi); var eMinus = Complex.Conjugate(ePlus);
-            double g0 = _gamma * sgn * _overlap;
+            double g0 = _gamma * sgn * _overlap * (Crossing?.Invoke(z) ?? 1.0);
             double peak = 0; object lk = new object();
             Parallel.For(0, M, () => 0.0, (m, st, localPeak) =>
             {

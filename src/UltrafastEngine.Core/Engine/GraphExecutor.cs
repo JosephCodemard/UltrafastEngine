@@ -238,8 +238,8 @@ namespace UltrafastEngine.Engine
                         kv.Key.Supplied = kv.Value.Pulse;
                         kv.Key.DelayS = kv.Value.Path.FrameDelayS - packet.Path.FrameDelayS;
                         kv.Key.SuppliedPhaseRad = kv.Value.Path.PhaseRad - packet.Path.PhaseRad;
-                        if (kv.Value.Path.TiltXRad != packet.Path.TiltXRad || kv.Value.Path.TiltYRad != packet.Path.TiltYRad)
-                            st.Res.Warnings.Add("Element '" + id + "': the beams on its ports have different tilts, but a crystal treats them as collinear: the angle does not change the phase matching or the overlap.");
+                        if (kv.Value.Path.TiltYRad != packet.Path.TiltYRad)
+                            st.Res.Warnings.Add("Element '" + id + "': the beams on its ports have different y tilts; a crystal takes the angle between them in the x tilt only.");
                     }
                     st.Tail = path.Tail;
                     var outPulse = RunElement(st, run.Index[id], el, packet.Pulse, path);
@@ -269,6 +269,7 @@ namespace UltrafastEngine.Engine
                                 // a crystal books its by-products itself: an unlinked one stays booked, a linked one continues
                                 if (st.Cr.Graph.EdgeFrom(id, kv.Key) == null) continue;
                                 AddLoss(run.Records[id], "port " + kv.Key + " output", -kv.Value.TotalEnergyJ());
+                                if (st.LastByproductTilts != null && st.LastByproductTilts.TryGetValue(kv.Key, out double tilt)) side.TiltXRad = tilt;
                             }
                             Deliver(run, st, id, kv.Key, kv.Value, side);
                         }

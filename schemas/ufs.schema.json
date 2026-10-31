@@ -1913,7 +1913,11 @@
           "description": "Explicit polarisations per field, e.g. {signal: o, idler: o, pump: e}"
         },
         "noncollinearDeg": {
-          "description": "Pump-signal angle inside the crystal, or \"magic\" [deg]"
+          "description": "Angle between the inputs inside the crystal (opa, dfg, sfg), or \"magic\" (opa, dfg) [deg]"
+        },
+        "externalAngleDeg": {
+          "type": "number",
+          "description": "sfg: angle between the inputs outside the crystal; default: from the arms' tiltXRad [deg]"
         },
         "qpm": {
           "description": "true or {periodM, model: averaged|domains, phaseDeg, periodExpr}"

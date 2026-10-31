@@ -175,5 +175,5 @@ ultrafast validate system.ufs --graph --mermaid    # a Mermaid diagram
 * Mode overlap assumes simple Gaussian beams at one plane and ignores M².
 * A linked crystal port takes the strongest packet only, and only the strongest main packet meets it. Other packets are booked as `packets not overlapping in crystal`, with a warning.
 * `gddFs2` of a `leakMirror` acts on the field, but is not in the `system` dispersion the element reports.
-* Beams crossing at an angle in a crystal are collinear in the model, with a warning if their arms are tilted. `noncollinearDeg` works for `opa` and `dfg` only and comes from the element, not the arms. See [Crystals](crystals.md#what-a-crystal-does-not-model).
+* The x tilts of the arms into an `sfg` crystal set the crossing angle ([Crystals](crystals.md#non-collinear-sum-frequency)). `opa` and `dfg` take their angle from the element, not the arms. A carried profile entering with its own tilt phase would count the tilt twice, so use tracked beams for crossing arms.
 * Merged carried profiles share one transverse shape per stored frequency, so spectral fringes finer than `spectralSamples` are averaged.

@@ -81,6 +81,10 @@ namespace UltrafastEngine.Physics
         /// then takes the exact long-grid step (docs/reference/delayed-light.md#cost-and-smooth-elements).</summary>
         public virtual bool IsSmooth => false;
 
+        /// <summary>For a term with narrow spectral lines: its smooth part (null if none), which stays in a nonlinear solver, and half of
+        /// its narrow part, applied exactly to main + tail on each side of the solver (Strang). False for any other term.</summary>
+        public virtual bool TrySplitNarrow(out LinearTerm smooth, out LinearTerm narrowHalf) { smooth = narrowHalf = null; return false; }
+
         internal static double SafeAmp(double a) => double.IsNaN(a) || a < 0 ? 0.0 : a;
     }
 
@@ -329,6 +333,14 @@ namespace UltrafastEngine.Physics
         public double LengthM { get; }
         public BulkTerm(Material m, double lengthM) { Material = m; LengthM = lengthM; Mechanism = "dispersion"; }
         public override string Description => Material.Name + ", " + (LengthM * 1e3).ToString("G6", System.Globalization.CultureInfo.InvariantCulture) + " mm";
+        public override bool TrySplitNarrow(out LinearTerm smooth, out LinearTerm narrowHalf)
+        {
+            smooth = narrowHalf = null;
+            if (!(Material.Index is Models.ISmoothIndex si)) return false;
+            smooth = new SmoothIndexTerm(si.Smooth, LengthM, Description);
+            narrowHalf = new NarrowIndexTerm(Material.Index, si.Smooth, LengthM / 2, Description);
+            return true;
+        }
         protected override void Phase(double[] omega, double[] phi)
         {
             Material.Index.Evaluate(omega, phi);
@@ -349,6 +361,37 @@ namespace UltrafastEngine.Physics
         // (mechanism "absorption") so the loss budget can tell dispersion and absorption apart.
     }
 
+    /// <summary>The smooth part of a <see cref="BulkTerm"/> with narrow lines: its frame is that of the whole term.</summary>
+    public sealed class SmoothIndexTerm : PhaseTerm
+    {
+        private readonly Models.IRefractiveIndex _n; private readonly double _l; private readonly string _name;
+        public SmoothIndexTerm(Models.IRefractiveIndex smooth, double lengthM, string name) { _n = smooth; _l = lengthM; _name = name; Mechanism = "dispersion"; }
+        public override bool IsSmooth => true;
+        public override string Description => _name;
+        protected override void Phase(double[] omega, double[] phi)
+        {
+            _n.Evaluate(omega, phi);
+            double k = _l / PhysicalConstants.SpeedOfLightMPerS;
+            for (int i = 0; i < omega.Length; i++) phi[i] = phi[i] * omega[i] * k;
+        }
+    }
+
+    /// <summary>The narrow part of a <see cref="BulkTerm"/>: (n - n_smooth) w L / c. The frame stays in the smooth part.</summary>
+    public sealed class NarrowIndexTerm : PhaseTerm
+    {
+        private readonly Models.IRefractiveIndex _n, _smooth; private readonly double _l; private readonly string _name;
+        public NarrowIndexTerm(Models.IRefractiveIndex index, Models.IRefractiveIndex smooth, double lengthM, string name) { _n = index; _smooth = smooth; _l = lengthM; _name = name; Mechanism = "dispersion"; }
+        public override string Description => "narrow lines of " + _name;
+        protected override void Phase(double[] omega, double[] phi)
+        {
+            var s = new double[omega.Length];
+            _n.Evaluate(omega, phi); _smooth.Evaluate(omega, s);
+            double k = _l / PhysicalConstants.SpeedOfLightMPerS;
+            for (int i = 0; i < omega.Length; i++) phi[i] = (phi[i] - s[i]) * omega[i] * k;
+        }
+        protected override void FrameReference(double w0, out double phi0, out double tau0) { phi0 = 0; tau0 = 0; }
+    }
+
     /// <summary>Material attenuation as its own term (mechanism "absorption"), so the loss budget separates it
     /// from dispersion when a bulk element is split into dispersion + absorption.</summary>
     public sealed class AttenuationTerm : PhaseTerm
@@ -357,6 +400,11 @@ namespace UltrafastEngine.Physics
         private readonly IAttenuation _a; private readonly double _l; private readonly string _name;
         public AttenuationTerm(IAttenuation a, double lengthM, string name) { _a = a; _l = lengthM; _name = name; Mechanism = "absorption"; }
         public override string Description => "absorption in " + _name;
+        public override bool TrySplitNarrow(out LinearTerm smooth, out LinearTerm narrowHalf)
+        {
+            smooth = null; narrowHalf = _a is Models.ISmoothIndex ? new AttenuationTerm(_a, _l / 2, _name) : null;
+            return narrowHalf != null;
+        }
         protected override void Phase(double[] omega, double[] phi) { for (int i = 0; i < omega.Length; i++) phi[i] = 0; }
         protected override void Amplitude(double[] omega, double[] amp)
         {

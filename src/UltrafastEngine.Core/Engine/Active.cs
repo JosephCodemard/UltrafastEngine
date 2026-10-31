@@ -60,6 +60,10 @@ namespace UltrafastEngine.Engine
         /// <summary>Returns a grid sized for the elements after this one, related exactly to the given pulse's grid.</summary>
         public Func<PulseField, FrequencyGrid> DownstreamGrid { get; set; }
         public Dictionary<string, PulseField> Byproducts { get; } = new Dictionary<string, PulseField>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>The background a solver uses instead of its own, when the executor has taken its narrow lines out.</summary>
+        public List<Physics.LinearTerm> BackgroundOverride { get; set; }
+        /// <summary>Tilt (rad, x) of each by-product, where it differs from the path's.</summary>
+        public Dictionary<string, double> ByproductTiltXRad { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Energy leaving (positive) or entering (negative) the main beam, by mechanism.</summary>
         public void Energy(string mechanism, double joules)
