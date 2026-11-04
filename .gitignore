@@ -42,3 +42,7 @@ coherence-results/
 retrieved/
 docs/examples/12-user-element/dazzler.png
 docs/examples/00-quickstart/quickstart.png
+
+# paper replications and component checks: raw outputs are regenerated
+papers/*/results/
+verification/report/

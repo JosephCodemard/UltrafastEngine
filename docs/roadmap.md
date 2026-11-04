@@ -52,10 +52,10 @@ needs. T0 and the branch stages of T1 are done. **Next: the remaining T1 items, 
 
 ## Next
 
-Plan: [design/next-basics-and-catalogue.md](design/next-basics-and-catalogue.md).
-
-1. **Back to basics**: one test sheet for every component, and a `basics/` example series.
-2. **A catalogue**: our existing materials, coatings, crystals and substrates in one place, checked against published sources, and the user's own entries beside them. Users bring vendor data; none is shipped.
+Current plan (agreed 2026-11-04): [design/plan-2026-11.md](design/plan-2026-11.md) -- the T1.2 items, engineering,
+waveguides and gain with ASE, the fitting plugin, two design plugins (coatings, crystals), paper replications in
+`papers/`, component checks with plots in `verification/`, plots of branched systems. The basics and catalogue plan
+([design/next-basics-and-catalogue.md](design/next-basics-and-catalogue.md)) is folded into it.
 
 ## T2 -- after T1
 - [x] Thermal lenses of gain media in the Gaussian beam tracking -- *left:* regenerative amplifiers
@@ -86,10 +86,12 @@ Plan: [design/next-basics-and-catalogue.md](design/next-basics-and-catalogue.md)
 - [x] TIPS partition sums for the hitran plugin; H2O, CO2 and O2 vs HAPI -- *left:* a comparison with a measured air transmission; continuum absorption
 - [x] Tail: smooth elements skip the exact step; first-order cross-phase -- *left:* second-order tail nonlinearity (the tail's own self-phase)
 
-## Fibres
-- [ ] Frequency-dependent effective area and multimode fibres
+## Fibres and waveguides (open-air focus, owner 2026-11-04)
+- [ ] Frequency-dependent effective area
+- [ ] Hollow-capillary (Marcatili) gas waveguide
 - [ ] z-dependent dispersion within one fibre element (tapers)
-- [ ] Saturated fibre gain (rate equations along the fibre)
+- [ ] Rate-equation gain with ASE, shared by fibres and the bulk gain elements
+- Deferred: multimode fibres beyond a GRIN example (GMMNLSE, a mode solver)
 
 ## Fitting plugin (after the transforms of 2.1.8)
 - [ ] General low-rank and learned (ML) field operators as built-in transform kinds
