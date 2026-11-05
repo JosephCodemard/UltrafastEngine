@@ -78,10 +78,13 @@ class Paper:
         import matplotlib.pyplot as plt
         fig.tight_layout()
         path = os.path.join(self.figures, name + ".png")
-        fig.savefig(path)
+        for dpi in (120, 100, 85, 70):               # the size depends on the platform's fonts: lower the resolution until it fits
+            fig.savefig(path, dpi=dpi)
+            size = os.path.getsize(path)
+            if size <= MAX_FIGURE_BYTES:
+                break
         plt.close(fig)
-        size = os.path.getsize(path)
         if size > MAX_FIGURE_BYTES:
-            sys.exit("%s is %d kB, more than the 300 kB limit of papers/CLAUDE.md" % (path, size // 1024))
+            sys.exit("%s is %d kB, more than the 300 kB limit of docs/papers/CLAUDE.md" % (path, size // 1024))
         print("wrote", os.path.relpath(path, self.folder), "(%d kB)" % (size // 1024))
         return path
