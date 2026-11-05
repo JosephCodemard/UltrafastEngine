@@ -49,7 +49,7 @@ namespace UltrafastEngine.Results
 
         private static double R(double v) => double.IsNaN(v) || double.IsInfinity(v) ? double.NaN : v;
 
-        private static JsonObject GridJson(FrequencyGrid g) => new JsonObject().Set("n", g.N).Set("dtS", g.DTime).Set("windowS", g.N * g.DTime).Set("omega0", g.OmegaCenter)
+        private static JsonObject GridJson(FrequencyGrid g) => new JsonObject().Set("n", g.N).Set("dtS", g.DTime).Set("windowS", g.N * g.DTime).Set("omega0", g.OmegaCenter).Set("reportOmega0", g.ReportOmega)
             .Set("centerWavelengthM", 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / g.OmegaCenter).Set("domega", g.DOmega);
 
         private static JsonObject SummaryOf(PulseSummary s) => new JsonObject()

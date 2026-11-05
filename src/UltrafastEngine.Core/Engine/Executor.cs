@@ -274,7 +274,7 @@ namespace UltrafastEngine.Engine
                 pulse = seg.CarrierResolved
                     ? PropagateField(cr, pulse, seg, arrival, tauEl, el.Id, stats, rec, prog)
                     : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog);
-                foreach (var b in seg.Background) { var d = b.DispersionAt(grid.OmegaCenter); own += d; rec.Terms.Add(b.Description); }
+                foreach (var b in seg.Background) { var d = Reported(b, grid); own += d; rec.Terms.Add(b.Description); }
                 tail?.PropagateTail(seg.Background, (m, dE) => AddLoss(rec, m, dE));
                 if (tail != null && cr.Run.Grid.TailCrossPhase && !seg.CarrierResolved && !seg.Medium.ReplaceKerr && seg.Medium.N2 > 0 && ReferenceEquals(pulseBefore.Grid, pulse.Grid))
                 {
@@ -530,7 +530,7 @@ namespace UltrafastEngine.Engine
             AddLoss(rec, "delayed light (tail)", (e0 - q.TotalEnergyJ()) - booked);
             foreach (var t in terms)
             {
-                var d = t.DispersionAt(p.Grid.OmegaCenter);
+                var d = Reported(t, p.Grid);
                 if (!double.IsNaN(d.GroupDelayS)) own += d;
                 rec.Terms.Add(t.Description);
             }
@@ -547,6 +547,18 @@ namespace UltrafastEngine.Engine
                 if (s != null) smooth.Add(s);
                 narrowHalf.Add(h);
             }
+        }
+
+        /// <summary>Dispersion of a term as reported: the carrier phase and delay removed from the frame are those at the grid centre (where
+        /// the pulse sits); the group delay dispersion (GDD, TOD) is that at the requested carrier wavelength.</summary>
+        internal static DispersionPoint Reported(LinearTerm t, FrequencyGrid g)
+        {
+            var d = t.DispersionAt(g.OmegaCenter);
+            double w = g.ReportOmega;
+            if (w == g.OmegaCenter) return d;
+            var r = t.DispersionAt(w);
+            d.GddS2 = r.GddS2; d.TodS3 = r.TodS3;
+            return d;
         }
 
         internal static void AddLoss(ElementRecord rec, string mech, double dE)
@@ -583,7 +595,7 @@ namespace UltrafastEngine.Engine
                 q = p.WithSpectrum(bx, by);
             }
             AddLoss(rec, t.Mechanism, e0 - q.TotalEnergyJ());
-            var d = t.DispersionAt(grid.OmegaCenter);
+            var d = Reported(t, grid);
             if (!double.IsNaN(d.GroupDelayS)) own += d;
             rec.Terms.Add(t.Description);
             return q;

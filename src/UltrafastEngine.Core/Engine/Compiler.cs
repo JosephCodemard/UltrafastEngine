@@ -1591,6 +1591,7 @@ namespace UltrafastEngine.Engine
             if (w0s != c.Omega0)
                 c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Carrier snapped to the frequency grid: {0:F4} -> {1:F4} nm.",
                     2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0 * 1e9, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w0s * 1e9));
+            grid.RequestedOmega = c.Omega0;
             c.Out.Grid = grid;
             c.Out.Input = ps.Build(grid, c.Out.Warnings);
             c.Out.Notes.Add("Input pulse: " + ps.Describe() + string.Format(CultureInfo.InvariantCulture, ", {0:G4} J", c.Out.Input.TotalEnergyJ()));

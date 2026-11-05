@@ -43,8 +43,9 @@ def bulk_taylor(fam: Family):
             eng, ana = [], []
             for lam in lams:
                 r = run([b.bulk("m", g, L)], lam)
-                t, w0 = r.summary["totals"], r.summary["grid"]["omega0"]
-                gd, gdd, tod = A.phase_derivatives(A.GLASSES[g], L, w0)
+                t, w0 = r.summary["totals"], r.summary["grid"]["reportOmega0"]
+                gd = A.phase_derivatives(A.GLASSES[g], L, r.summary["grid"]["omega0"])[0]   # arrival time: the pulse sits at the grid centre
+                _, gdd, tod = A.phase_derivatives(A.GLASSES[g], L, w0)                        # GDD, TOD: at the requested carrier
                 eng.append(t["systemGddS2"] / FS2 / 10)
                 ana.append(gdd / FS2 / 10)
                 if lam in CARRIERS_M:
@@ -57,8 +58,9 @@ def bulk_taylor(fam: Family):
         # air gap: 1 m
         for lam in CARRIERS_M:
             r = run([b.gap("air", 1.0)], lam)
-            t, w0 = r.summary["totals"], r.summary["grid"]["omega0"]
-            gd, gdd, tod = A.phase_derivatives(A.ciddor_air, 1.0, w0)
+            t, w0 = r.summary["totals"], r.summary["grid"]["reportOmega0"]
+            gd = A.phase_derivatives(A.ciddor_air, 1.0, r.summary["grid"]["omega0"])[0]
+            _, gdd, tod = A.phase_derivatives(A.ciddor_air, 1.0, w0)
             fam.check(f"air gap 1 m GD {label_wl(lam)}", t["arrivalTimeS"], gd, rel=1e-9, unit="s")
             fam.check(f"air gap 1 m GDD {label_wl(lam)}", t["systemGddS2"], gdd, rel=1e-4, unit="s²")
 
@@ -129,7 +131,7 @@ def plates(fam: Family):
             eng, ana = [], []
             for aoi in angles:
                 r = run([b.plate("p", "FusedSilica", d, aoi_deg=float(aoi))], lam, beam=beam)
-                w0 = r.summary["grid"]["omega0"]
+                w0 = r.summary["grid"]["reportOmega0"]
                 _, gdd, _ = A.derivatives(A.tilted_plate_phase(nfs, d, math.radians(aoi), A.ciddor_air, w0), w0)
                 eng.append(r.summary["totals"]["systemGddS2"] / FS2)
                 ana.append(gdd / FS2)
@@ -153,11 +155,11 @@ def mirrors(fam: Family):
             w0 = r.summary["grid"]["omega0"]
             w, s, ph = field_phase(r)
             c = poly_phase(w, ph, s, w0, 4)
-            # Taylor model about the carrier, read at the grid centre ω0 (snapped to the frequency step)
+            # the field is read at the grid centre ω0 (snapped to the frequency step); the summary reports at the requested carrier
             gdd_at = gdd + tod * (w0 - w_c)
             fam.check(f"{name} GDD (field, {label_dur(tau)})", c[2], gdd_at, rel=1e-4, abs=1e-33, unit="s²", formula="GDD + TOD (ω0 − ω_c)")
             fam.check(f"{name} TOD (field, {label_dur(tau)})", c[3], tod, rel=1e-3, abs=1e-46, unit="s³")
-            fam.check(f"{name} GDD (summary, {label_dur(tau)})", r.summary["totals"]["systemGddS2"], gdd_at, rel=1e-4, abs=1e-33, unit="s²")
+            fam.check(f"{name} GDD (summary, {label_dur(tau)})", r.summary["totals"]["systemGddS2"], gdd, rel=1e-9, abs=1e-36, unit="s²", formula="reported at the requested carrier")
             fam.check(f"{name} transmission ({label_dur(tau)})", r.summary["totals"]["energyTransmission"], T, rel=1e-12)
 
 
@@ -197,7 +199,7 @@ def grating_pair(fam: Family):
             xs, eng, ana = [], [], []
             for lam, lpm in cases.items():
                 r = run([b.grating_pair("gp", lpm, 50, 0.1, passes=passes)], lam)
-                w0 = r.summary["grid"]["omega0"]
+                w0 = r.summary["grid"]["reportOmega0"]
                 gdd, tod = A.treacy(2 * math.pi * C / w0, lpm * 1e3, math.radians(50), 0.1, -1, passes)
                 fam.check(f"gratingPair GDD {label_wl(lam)} {passes} pass", r.summary["totals"]["systemGddS2"], gdd, rel=1e-5, unit="s²")
                 fam.check(f"gratingPair TOD {label_wl(lam)} {passes} pass", r.summary["totals"]["systemTodS3"], tod, rel=1e-4, unit="s³")

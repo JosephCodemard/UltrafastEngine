@@ -39,7 +39,7 @@ namespace UltrafastEngine.Tests
                 }
                 var r0 = Go(Sys(O("id", "p", "type", "plate", "material", "FusedSilica", "medium", "Vacuum", "thicknessM", d, "aoiDeg", aoiDeg)),
                             Spec(Gauss(lam, 100e-15, 1e-9), O("physics", O("nonlinear", false))));
-                double w0 = r0.Input.Grid.OmegaCenter;
+                double w0 = W(lam);   // dispersion is reported at the requested carrier
                 double st0 = s / NFs(w0), tan0 = st0 / Math.Sqrt(1 - st0 * st0);
                 Func<double, double> phi = w => w / C * d * (Math.Sqrt(NFs(w) * NFs(w) - s * s) + s * tan0);
                 double expected = Gdd(phi, w0);
@@ -111,6 +111,16 @@ namespace UltrafastEngine.Tests
             Assert.True(!names.Contains("probe_pr_spectrum"), "no unsuffixed duplicate");
             Assert.True(r.GetArray("probe_pr_packet2_spectrum") != null, "lookup by name finds the second packet");
             Assert.True(r.SummaryJson()["probes"].AsArray().Select(v => v.AsString()).Contains("pr_packet2"), "summary.probes lists the names");
+        }
+
+        [Test(Reference = "a Taylor dispersion element has its GDD at its reference wavelength: 1000 fs^2 and 2000 fs^3 about the requested carrier", Tolerance = "1e-9")]
+        public void ReportedGdd_IsAtTheRequestedCarrier_NotTheSnappedGridCentre()
+        {
+            var r = Go(Sys(O("id", "d", "type", "dispersion", "gddFs2", 1000.0, "todFs3", 2000.0)), Spec(Gauss(1030e-9, 30e-15, 1e-9)));
+            Assert.True(Math.Abs(r.Input.Grid.OmegaCenter - W(1030e-9)) > 1e9, "the grid centre is snapped away from the requested carrier");
+            Assert.Close(1000e-30, r.FinalSystem.GddS2, 1e-9, 0, "system GDD");
+            Assert.Close(2000e-45, r.FinalSystem.TodS3, 1e-9, 0, "system TOD");
+            Assert.Close(1000e-30, r.Records[0].Own.GddS2, 1e-9, 0, "own GDD");
         }
     }
 }
