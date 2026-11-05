@@ -15,7 +15,8 @@ namespace UltrafastEngine.Crystals
     /// "fundamental_slow" + "fundamental_fast" (type II) and "sh"; for SFG "a" (reference), "b" and "sum".
     /// Internally wave 3 is the highest frequency (omega3 = omega1 + omega2). In non-collinear OPA the pump is
     /// tilted by alpha from the signal in the tuning plane (towards larger theta for alpha &gt; 0); the idler angle
-    /// follows from transverse momentum conservation.
+    /// follows from transverse momentum conservation, k_i sin(beta) = k_p sin(alpha), on the pump's side. An external
+    /// angle (<see cref="ExternalRad"/>) refracts at a face normal to the signal: n_p sin(alpha) = sin(E).
     /// </summary>
     public sealed class ThreeWave
     {
@@ -29,8 +30,9 @@ namespace UltrafastEngine.Crystals
         /// <summary>"theta" or "phi": which angle a non-collinear tilt (and angle tuning) acts on.</summary>
         public string TuningAngle { get; set; } = "theta";
         public double NoncollinearRad { get; set; }
-        /// <summary>SFG: angle between the two inputs outside the crystal (rad), used instead of <see cref="NoncollinearRad"/>. Signed: wave
-        /// <see cref="ReferenceWave"/> goes towards larger theta for a positive angle.</summary>
+        /// <summary>Angle between the two inputs outside the crystal (rad), used instead of <see cref="NoncollinearRad"/>. SFG: signed so that
+        /// wave <see cref="ReferenceWave"/> goes towards larger theta for a positive angle. OPA: the pump's angle to the signal, outside a face
+        /// normal to the signal (positive towards larger theta).</summary>
         public double ExternalRad { get; set; }
         /// <summary>Grating vector of quasi-phase matching (rad/m, 0 = none): Delta k_eff = Delta k - Kg.</summary>
         public double QpmK { get; set; }
@@ -83,23 +85,32 @@ namespace UltrafastEngine.Crystals
                 }
                 g.AngleToRefRad[refW] = ar; g.AngleToRefRad[other] = -ao;
             }
-            else if (Process == "opa" && NoncollinearRad != 0)
+            else if (Process == "opa" && (NoncollinearRad != 0 || ExternalRad != 0))
             {
+                // the pump at a from the signal; an external angle E refracts at a face normal to the signal: n_p(a) sin a = sin E
                 double a = NoncollinearRad;
+                if (ExternalRad != 0)
+                {
+                    a = Math.Asin(Math.Sin(ExternalRad) / Crystal.Mode(g.Omega[2], Dir(ExternalRad), Roles[2]).N);
+                    for (int it = 0; it < 8; it++) a = Math.Asin(Math.Sin(ExternalRad) / Crystal.Mode(g.Omega[2], Dir(a), Roles[2]).N);
+                }
                 g.Directions[2] = Dir(a); g.AngleToRefRad[2] = a;
                 g.Modes[2] = Crystal.Mode(g.Omega[2], g.Directions[2], Roles[2]);
                 double kp = g.Modes[2].N * g.Omega[2] / c;
-                // idler: transverse momentum balance kp sin(a) = ki sin(b) on the other side, iterate on its index
+                // idler: k_i = k_p - k_s, so its transverse momentum is the pump's, k_i sin b = k_p sin a, on the pump's side
+                // (beyond it, since k_i < k_p); iterate on its index
                 double b = 0;
-                for (int it = 0; it < 6; it++)
+                for (int it = 0; it < 8; it++)
                 {
-                    g.Directions[other] = Dir(-b);
+                    g.Directions[other] = Dir(b);
                     g.Modes[other] = Crystal.Mode(g.Omega[other], g.Directions[other], Roles[other]);
                     double ki = g.Modes[other].N * g.Omega[other] / c;
                     double sb = kp * Math.Sin(a) / ki;
                     b = Math.Asin(Math.Max(-1, Math.Min(1, sb)));
                 }
-                g.AngleToRefRad[other] = -b;
+                g.Directions[other] = Dir(b);
+                g.Modes[other] = Crystal.Mode(g.Omega[other], g.Directions[other], Roles[other]);
+                g.AngleToRefRad[other] = b;
             }
             else
             {
@@ -265,7 +276,8 @@ namespace UltrafastEngine.Crystals
             double external = req.GetDouble("externalAngleDeg", 0) * Math.PI / 180;
             if (process == "shg" && (magic || alpha != 0 || external != 0)) throw new JsonException("one beam cannot cross itself: non-collinear SHG is two beams, so use process \"sfg\" with the same colour on both");
             if (magic && process != "opa") throw new JsonException("noncollinearDeg \"magic\" applies to opa/dfg only");
-            if (external != 0 && process != "sfg") throw new JsonException("externalAngleDeg applies to sfg only");
+            if (external != 0 && process != "sfg" && process != "opa") throw new JsonException("externalAngleDeg applies to sfg, opa and dfg only");
+            if (external != 0 && (magic || alpha != 0)) throw new JsonException("give noncollinearDeg or externalAngleDeg, not both");
 
             var solutions = new JsonArray();
             JsonObject best = null; double bestD = -1;
@@ -419,12 +431,15 @@ namespace UltrafastEngine.Crystals
                 .Set("roles", JsonValue.FromArray(tw.Roles));
             if (qpm) o.Set("qpmPeriodM", tw.QpmK != 0 ? 2 * Math.PI / Math.Abs(tw.QpmK) : double.PositiveInfinity).Set("qpmNote", "first-order QPM: deff includes the 2/pi factor");
             if (tw.NoncollinearRad != 0 && tw.Process != "opa") o.Set("noncollinearDeg", tw.NoncollinearRad * 180 / Math.PI);
-            else if (tw.NoncollinearRad != 0)
+            else if (tw.Process == "opa" && (tw.NoncollinearRad != 0 || tw.ExternalRad != 0))
             {
-                o.Set("noncollinearDeg", tw.NoncollinearRad * 180 / Math.PI);
+                // the internal angle; with an external angle it is the refracted one at this cut
+                double a = g.AngleToRefRad[2];
+                o.Set("noncollinearDeg", a * 180 / Math.PI);
+                o.Set("externalAngleDeg", Math.Asin(Math.Max(-1, Math.Min(1, g.N[2] * Math.Sin(a)))) * 180 / Math.PI);
                 // literature usually quotes the crystal cut as the PUMP angle to the optic axis
-                o.Set("pumpThetaDeg", (tw.TuningAngle == "theta" ? tw.ThetaRad + tw.NoncollinearRad : tw.ThetaRad) * 180 / Math.PI);
-                o.Set("idlerAngleToSignalDeg", -g.AngleToRefRad[1 - (tw.ReferenceWave - 1)] * 180 / Math.PI);
+                o.Set("pumpThetaDeg", (tw.TuningAngle == "theta" ? tw.ThetaRad + a : tw.ThetaRad) * 180 / Math.PI);
+                o.Set("idlerAngleToSignalDeg", g.AngleToRefRad[1 - (tw.ReferenceWave - 1)] * 180 / Math.PI);
             }
             var waves = new JsonArray();
             var ng = new double[3];

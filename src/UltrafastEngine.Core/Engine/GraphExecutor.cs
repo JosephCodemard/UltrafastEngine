@@ -137,7 +137,11 @@ namespace UltrafastEngine.Engine
             foreach (var el in cr.Elements)
                 foreach (var kv in el.VirtualInputs)
                 {
-                    var p = kv.Value.Spec.Build(VirtualInputGrid(cr.Grid, kv.Value.Spec), 0, res.Notes);
+                    // a crystal port's beam is built on its own carrier (on a bin of the main grid); any other virtual beam on the grid of its colour
+                    var g = cr.Grid;
+                    if (kv.Value.OwnCarrier) g = FrequencyGrid.Create(g.N, g.DTime, Math.Round(kv.Value.Spec.CenterOmega() / g.DOmega) * g.DOmega);
+                    else g = VirtualInputGrid(g, kv.Value.Spec);
+                    var p = kv.Value.Spec.Build(g, 0, res.Notes);
                     run.InputEnergyJ += p.TotalEnergyJ();
                     string source = kv.Value.CoherentWith == null ? el.Id + "#" + kv.Key : kv.Value.CoherentWith;
                     run.Queue(el.Id, kv.Key).Add(new BeamPacket { Pulse = p, Path = new PathLedger { SourceId = source, PhaseRad = kv.Value.PhaseRad } });

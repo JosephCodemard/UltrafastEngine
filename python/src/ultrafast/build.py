@@ -464,7 +464,8 @@ def crystal(id: str, crystal: Any, length_m: float, process: str = "shg", type: 
     """A chi(2) crystal element (docs/reference/crystals.md).
 
     ``cut`` = "auto" (phase matched at the nominal wavelengths) or {"thetaDeg": .., "phiDeg": ..}; ``noncollinear`` in
-    degrees or "magic"; ``qpm`` = True / a period in m / {"periodM": .., "model": "averaged"|"domains", "phaseDeg": ..};
+    degrees (inside the crystal) or "magic"; ``external_angle_deg`` the angle outside (sfg: between the inputs; opa / dfg: the
+    pump's to the signal); with neither, the arms' ``tiltXRad`` give it in a Branched system; ``qpm`` = True / a period in m / {"periodM": .., "model": "averaged"|"domains", "phaseDeg": ..};
     ``type`` defaults to "I" (birefringent) or "0" (QPM); ``overlap`` = "gaussian" (default) | "planeWave" |
     {"model": "planeWave", "radiusM": ..} | {"areaM2": ..} (1-D coupling model); ``chi3=False`` switches SPM/XPM off."""
     inter = _clean({"process": process, "type": type, "noncollinearDeg": noncollinear, "externalAngleDeg": external_angle_deg,

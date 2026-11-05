@@ -19,6 +19,8 @@ namespace UltrafastEngine.Engine
         public double PhaseRad;
         /// <summary>The source this beam is coherent with ("input"); null if it is an independent source.</summary>
         public string CoherentWith;
+        /// <summary>Built on a grid at its own carrier (a crystal's fed port), not on the run's.</summary>
+        public bool OwnCarrier;
     }
 
     /// <summary>
