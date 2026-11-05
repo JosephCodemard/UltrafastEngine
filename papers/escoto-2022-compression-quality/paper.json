@@ -1,0 +1,31 @@
+{
+  "id": "escoto-2022-compression-quality",
+  "citation": "E. Escoto, A.-L. Viotti, S. Alisauskas, H. Tünnermann, I. Hartl and C. M. Heyl, \"Temporal quality of post-compressed pulses at large compression factors\", J. Opt. Soc. Am. B 39, 1694 (2022)",
+  "doi": "10.1364/JOSAB.453901",
+  "preprint": "arXiv:2201.05836v1 (CC BY 4.0)",
+  "openAccess": true,
+  "fullTextRead": "arXiv:2201.05836v1 (the journal version was not compared; locations below are sections and equations of the preprint)",
+  "topic": "post-compression: temporal quality after SPM broadening and linear compression",
+  "referenceNumbers": [
+    {"key": "eq2", "value": "C ~ 0.59 B + 1", "where": "Sec. 2.1, Eq. (2)", "status": "verified in text"},
+    {"key": "eq2ErrorUpTo40", "value": "error below 5 % for FTL and GDD-only compression up to B = 40 rad", "where": "Sec. 2.1, text after Eq. (2)", "status": "verified in text"},
+    {"key": "eq2ErrorAt100", "value": "up to 100 rad: below 2 % (FTL), just above 10 % (GDD only)", "where": "Sec. 2.1, text after Eq. (2)", "status": "verified in text"},
+    {"key": "broadeningFactor", "value": "d omega / d omega0 ~ 0.88 B", "where": "Sec. 2.1 (quoted from their Ref. 3)", "status": "verified in text, not checked"},
+    {"key": "gaussianEnergyRatio", "value": "~98 %", "where": "Sec. 2.2, after Eq. (3)", "status": "verified in text"},
+    {"key": "energyRatioDefinition", "value": "energy within t0 +- FWHM_out / total", "where": "Sec. 2.2, Eq. (3)", "status": "verified in text"},
+    {"key": "gddOptimum", "value": "the GDD that maximises the peak power", "where": "Sec. 3.1", "status": "verified in text"},
+    {"key": "intensityRatioAsymptote", "value": "~10 % (FTL)", "where": "Sec. 3.1 (Fig. 3a, grey dashed line)", "status": "verified in text"},
+    {"key": "energyRatioAtC100", "value": "~70 % (FTL) at C = 100; ~65 % at C = 1000", "where": "Sec. 3.1", "status": "verified in text (C = 1000 not reproduced)"},
+    {"key": "sidePeaksOnset", "value": "secondary pulses appear roughly when C > 2", "where": "Sec. 4.2 (referring to Fig. 3)", "status": "verified in text, loose wording"},
+    {"key": "eq4At5", "value": "a chirped Gaussian with gamma / sigma^2 = +-5 is almost 14 times longer", "where": "Sec. 3.3, Eq. (4) and text", "status": "verified in text"},
+    {"key": "chirpedInput", "value": "energy and intensity ratios degrade much faster with increasing C for a chirped input", "where": "Sec. 3.3, Fig. 6", "status": "verified in text (qualitative)"},
+    {"key": "experiment", "value": "730 fs, 1030 nm, 2 m Ar MPC: energy ratio 92 % (2 mJ) and 83 % (3 mJ); peak power boost ~10 and ~14", "where": "Sec. 3.4", "status": "verified in text, not reproduced (cell parameters not given)"},
+    {"key": "cascading", "value": "optimal cascading ratio C1 = C2; dual-stage better than single-stage unless the ratio exceeds 10", "where": "Sec. 4.1", "status": "verified in text, not reproduced"}
+  ],
+  "assumptions": [
+    "The paper's model (Eq. 1): pure SPM of a Gaussian, no dispersion during broadening, no losses. Here: a 1 mm Kerr plate with a constant index, constant beam area, no Raman, no self-steepening, 1 ps input at 1030 nm (the results are dimensionless in t / FWHM_in).",
+    "FWHM means the intensity FWHM of the main peak (half-maximum crossings next to the maximum).",
+    "Intensity ratio: the highest local maximum of the power other than the main peak, above 1e-5 of it.",
+    "Chirped input: GDD = +-tau^2 (gamma / sigma^2 = +-1); C is taken against the transform-limited input duration, as in the paper."
+  ]
+}
