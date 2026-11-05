@@ -319,9 +319,16 @@ namespace UltrafastEngine.Engine
                 if (ce.Active != null && !double.IsNaN(ce.Active.OutputOmega0) && ce.Active.OutputOmega0 > 0) c.Omega0 = ce.Active.OutputOmega0;
                 beamAfter[e.Id] = (c.Track, c.Omega0);
                 // each output port's carrier: a crystal's outputs differ, every other element has one
+                var crystal = ce.Active as Crystals.CrystalElement;
+                if (crystal != null && crystal.PortTiltXRad.TryGetValue("out", out double crystalTilt)) c.TiltX = crystalTilt;
                 c.TiltX += e.Json.GetDouble("tiltXRad", 0);
                 foreach (var port in Ports.Outputs(e)) { c.PortOmega[e.Id + ":" + port] = c.Omega0; c.PortTiltX[e.Id + ":" + port] = c.TiltX; }
-                if (ce.Active is Crystals.CrystalElement crystal) foreach (var kv in crystal.PortOmega) c.PortOmega[e.Id + ":" + kv.Key] = kv.Value;
+                // a crystal's ports differ in colour and, for crossing beams, in direction
+                if (crystal != null)
+                {
+                    foreach (var kv in crystal.PortOmega) c.PortOmega[e.Id + ":" + kv.Key] = kv.Value;
+                    foreach (var kv in crystal.PortTiltXRad) c.PortTiltX[e.Id + ":" + kv.Key] = kv.Value;
+                }
             }
             foreach (var loop in c.Out.Graph.Stages.Where(s => s.Loop != null).Select(s => s.Loop))
                 if (loop.Members.All(id => c.Out.Elements.First(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)).GroupDelayAt(c.Out.RequestedOmega0) == 0))
