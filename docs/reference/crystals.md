@@ -92,7 +92,7 @@ crystal) overrides the tensor contraction.
   aux carriers), in the best plane (`interaction.plane`: `XY`, `XZ`, `YZ` for biaxial crystals; found automatically
   by largest |deff| otherwise). `{"thetaDeg": .., "phiDeg": ..}` fixes it; `"detuneDeg"` (in `cut` or on the element)
   tilts it away -- useful for scans.
-* **Non-collinear** (`opa`, `dfg`, and `sfg`: see [below](#non-collinear-sum-frequency); `shg` refuses it, since one beam cannot cross itself): `noncollinearDeg` is the angle between pump and signal inside the crystal;
+* **Non-collinear** (`opa`, `dfg` and `sfg`: see [OPA and DFG](#non-collinear-opa-and-dfg) and [sum frequency](#non-collinear-sum-frequency); `shg` refuses it, since one beam cannot cross itself): `noncollinearDeg` is the angle between pump and signal inside the crystal, `externalAngleDeg` the angle outside, or the arms' tilts give it;
   `"magic"` solves for the angle at which the idler's group velocity projected on the signal equals the signal's
   (broadest gain bandwidth). The cut is then the pump's angle to the optic axis (reported as `pumpThetaDeg`).
 * **Main-beam polarisation.** The main beam's Jones vector is projected on the crystal's axis for its role
@@ -274,6 +274,46 @@ Inputs keep their direction. The sum leaves at ω₃ sin t₃ = ω₁ sin t₁ +
 
 Example [40](../examples/40-noncollinear-correlators/README.md).
 
+## Non-collinear OPA and DFG
+
+In `opa` and `dfg` the signal lies along the crystal's axis, and the crystal's face is normal to it. The pump is at α from the signal in the tuning plane, positive towards larger θ. Give the angle in one of three ways, as for `sfg`:
+
+| where | key | meaning |
+|---|---|---|
+| the arms | `tiltXRad` on the arms into the crystal | E = tilt of the pump − tilt of the signal |
+| the interaction | `externalAngleDeg` | E, the pump's angle to the signal outside the crystal |
+| the interaction | `noncollinearDeg` | α, the same angle inside the crystal, or `"magic"` |
+
+The pump refracts at the face, n_p(α) sin α = sin E. For an extraordinary pump n_p depends on its direction, so `cut: "auto"` solves the cut and α together. A stated angle or `"magic"` wins over the arms. The angle from the arms needs the signal and the pump as the two inputs; if the seeded wave is the idler, call it `signal`. A virtual beam on a fed port (below) enters along the lab axis, tilt 0.
+
+```jsonc
+{ "id": "nopa", "type": "crystal", "crystal": "BBO", "lengthM": 2e-3, "cut": "auto",
+  "interaction": { "process": "opa", "type": "I" }, "mainRole": "pump", "output": "signal",
+  "beam": { "kind": "gaussian", "w0M": 400e-6 },
+  "aux": [ { "role": "signal", "fromPort": true, "beam": { "kind": "gaussian", "radiusM": 400e-6 } } ],
+  "inputs": { "signal": { "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 100e-15, "energyJ": 10e-9 },
+                          "delayS": "auto" } } }
+```
+
+**The idler.** Momentum gives k_i = k_p − k_s. Its transverse part is the pump's, k_i sin β = k_p sin α, so the idler lies on the pump's side, beyond it (β > α). Along z each idler frequency has k_z = √(k_i² − (k_p sin α)²).
+
+**Overlap and smearing.** As for `sfg`, the 1-D model scales the coupling by exp(−d²/(w_s² + w_p²)), with d the distance between pump and signal at z, crossing at mid-crystal. With `planeWave` or `area` overlap the beams never part. `geometricSmearingS` is the delay spread across the overlap of pump and signal. A Cartesian grid carries the pump's pulse-front tilt and its lateral walk; a radial grid has no x axis, so it keeps the internal angles but neither of these.
+
+**Recorded values.** `elements[i].values` holds:
+
+| key | meaning |
+|---|---|
+| `noncollinearDeg`, `externalAngleDeg` | α and E, signed |
+| `angleToSignalDeg_pump`, `angleToSignalDeg_idler` | internal angles to the signal |
+| `outputTiltDeg_signal`, `_idler`, `_pump` | where each wave leaves, in the lab |
+| `wavelengthM_signal`, `_idler`, `_pump` | the carriers these angles were computed for |
+
+Each wave leaves at Snell's angle of its internal direction, sin t = n sin(angle to the signal), measured from the face normal. The tilts then obey ω_p sin t_p = ω_s sin t_s + ω_i sin t_i. Each port's path carries its tilt onward, and so does the compiled system, so a crystal linked to the idler port sees the idler's direction.
+
+Checked against the mismatched parametric gain G = 1 + (Γ/g)² sinh²(gL), g² = Γ² − (Δk/2)² (Cerullo & De Silvestri, Rev. Sci. Instrum. 74, 1 (2003)), transverse momentum, and Manley-Rowe in DFG (`NoncollinearOpaTests`). Example [42](../examples/42-noncollinear-opa/README.md).
+
+**Virtual beams on fed ports.** In a Branched system, a fed port (`aux` with `fromPort: true`) with no link can hold a beam: `"inputs": {"<role>": {"pulse": ..., "delayS": ...}}`, the keys of a [virtual input](branches.md#virtual-inputs). The beam keeps its own carrier, on a grid with the run's spacing. `delayS` is measured from the run's source, or `"auto"` centres it on the main beam in the crystal.
+
 ## What a crystal does not model
 
 * **An input's own second harmonic in non-collinear SHG.** Each beam also makes a collinear second harmonic in a real crystal, if the cut suits. The model has only the cross term, which is the background-free signal.
@@ -281,5 +321,4 @@ Example [40](../examples/40-noncollinear-correlators/README.md).
 * **Depletion across the beam in 1-D.** Conversion is uniform across it. Use a spatial model near depletion.
 * **A tilt out of the tuning plane.** The angle is taken from the x tilts; a y tilt raises a warning. The x axis is taken to lie in the tuning plane.
 * **A radial grid.** Crossing beams need `cartesian`.
-* **Angles in `opa` and `dfg` from the arms.** The angle comes from the element. Output tilts are recorded for `sfg` only.
 * **Polarisation between crystals.** Each wave takes the role its process needs. The waveplate between type I stages is assumed.

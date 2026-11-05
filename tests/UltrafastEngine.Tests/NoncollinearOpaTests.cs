@@ -116,7 +116,8 @@ namespace UltrafastEngine.Tests
             {
                 Assert.Close(arms["thetaDeg"], other["thetaDeg"], 1e-6, 0, "cut");
                 Assert.Close(arms["noncollinearDeg"], other["noncollinearDeg"], 1e-6, 0, "internal angle");
-                Assert.Close(arms["deltaK0PerM"], other["deltaK0PerM"], 0, 1e-3, "mismatch");
+                // an external angle refracts at the pump's grid carrier, a stated internal one does not: 0.01 / m, 1e-5 rad over the crystal
+                Assert.Close(arms["deltaK0PerM"], other["deltaK0PerM"], 0, 0.02, "mismatch");
                 Assert.Close(arms["energy_signal_J"], other["energy_signal_J"], 1e-6, 0, "amplified signal");
             }
             Assert.Less(Math.Abs(arms["deltaK0PerM"]) * 1e-3, 0.3, "phase matched");

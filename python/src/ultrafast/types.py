@@ -3748,7 +3748,7 @@ class Interaction(TypedDict, total=False):
     noncollinearDeg: Any
     """Angle between the inputs inside the crystal (opa, dfg, sfg), or "magic" (opa, dfg) [deg]"""
     externalAngleDeg: float
-    """sfg: angle between the inputs outside the crystal; default: from the arms' tiltXRad [deg]"""
+    """Angle between the inputs outside the crystal (sfg; opa, dfg: the pump's angle to the signal, at a face normal to the signal); default: from the arms' tiltXRad [deg]"""
     qpm: Any
     """true or {periodM, model: averaged|domains, phaseDeg, periodExpr}"""
     comment: Any

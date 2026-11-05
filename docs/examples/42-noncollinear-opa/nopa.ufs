@@ -1,0 +1,19 @@
+// Example 42: a non-collinear OPA (NOPA) in BBO, with the crossing angle taken from the pump arm's tilt.
+// The run's 1030 nm pulse is doubled to 515 nm; the second harmonic goes to an arm tilted by 4 deg and pumps the NOPA.
+// The 800 nm seed is a virtual input on the NOPA's signal port, along the lab axis. The NOPA's face is normal to the seed,
+// so the arm's tilt is the pump's external angle; inside the crystal it refracts to about 2.4 deg, near BBO's "magic" angle.
+{ "format": "ultrafast-system", "version": 3, "name": "nopa from the arms", "topology": "branched",
+  "elements": [
+    { "id": "shg", "type": "crystal", "crystal": "BBO", "lengthM": 1e-3, "cut": "auto",
+      "interaction": { "process": "shg", "type": "I" }, "beam": { "kind": "gaussian", "w0M": 400e-6 },
+      "output": "sh", "next": { "out": "arm", "fundamental": "virtual" } },
+    { "id": "arm", "type": "delay", "delayS": 0, "tiltXRad": 0.06981317, "next": "nopa" },
+    { "id": "nopa", "type": "crystal", "crystal": "BBO", "lengthM": 2e-3, "cut": "auto",
+      "interaction": { "process": "opa", "type": "I" },
+      "mainRole": "pump", "output": "signal",
+      "beam": { "kind": "gaussian", "w0M": 400e-6 },
+      "aux": [ { "role": "signal", "fromPort": true, "beam": { "kind": "gaussian", "radiusM": 400e-6 } } ],
+      "inputs": { "signal": { "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 100e-15, "energyJ": 10e-9 },
+                              "delayS": "auto" } },
+      "next": { "out": "end", "idler": "virtual", "pump": "virtual" } }
+  ] }

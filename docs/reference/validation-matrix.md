@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **397 tests** in 43 classes. **205** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **403 tests** in 44 classes. **211** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -34,6 +34,7 @@ Every C# test of the engine: **397 tests** in 43 classes. **205** of them check 
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
 | [Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs](#modelledinstrumentstests) | `ModelledInstrumentsTests` | 4 | 3 |
 | [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 7 | 7 |
+| [Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain](#noncollinearopatests) | `NoncollinearOpaTests` | 6 | 6 |
 | [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
 | [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 7 | 1 |
 | [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 3 | 2 |
@@ -544,6 +545,19 @@ Nonlinear ellipse rotation and the vector Kerr / Raman tensor.
 | `Rotation_InstantaneousKerr_IsBsin2chiOverThree` | nonlinear ellipse rotation B sin 2χ / 3 (Maker, Terhune & Savage 1964) | 1 % |
 | `Rotation_WithAnisotropicRaman_UsesTheAnisotropicShare` | steady-state Raman tensor (Hellwarth) | 2 % |
 | `SpatialModel_OnAxisRotationWithAnisotropicRaman_MatchesTheOneDModel` (slow) | cross-model: the 1-D vector model | 5 % |
+
+## NoncollinearOpaTests
+
+Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain.
+
+| test | reference | tolerance |
+|---|---|---|
+| `AngleFromTheArms_WithoutASignalInput_IsRefused` | the idler must leave with a signal and a pump to set the direction | exact |
+| `NoncollinearDfg_ConservesPhotons` | Manley-Rowe: one signal and one idler photon per pump photon | 1e-4 |
+| `Nopa_CutFromTheArms_EqualsTheStatedAngle` | the arms, externalAngleDeg and noncollinearDeg state the same geometry | 1e-6 |
+| `Nopa_OutputTilts_ConserveTransverseMomentum` | transverse momentum at the exit face: w_p sin t_p = w_s sin t_s + w_i sin t_i | 1e-6 |
+| `Nopa_PlaneWaveGain_FollowsTheMismatchedParametricGain` | Cerullo & De Silvestri, Rev. Sci. Instrum. 74, 1 (2003): G = 1 + (Gamma/g)^2 sinh^2(g L), g^2 = Gamma^2 - (dk/2)^2 | 2 % |
+| `SequentialAndBranched_GiveTheSameNopa` | one crystal as a Sequential and as a Branched system | 1e-9 |
 
 ## PhysicsReviewTests
 

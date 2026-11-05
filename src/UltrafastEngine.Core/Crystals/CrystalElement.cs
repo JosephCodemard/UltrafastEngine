@@ -42,7 +42,8 @@ namespace UltrafastEngine.Crystals
         public string Plane;
         public double NoncollinearRad;
         /// <summary>Angle between the inputs outside the crystal (rad): from <c>externalAngleDeg</c> or the arms' tilts. SFG: used by the
-        /// geometry; OPA / DFG: the pump's angle to the signal, converted to the internal <see cref="NoncollinearRad"/> at compilation.</summary>
+        /// geometry; OPA / DFG: the pump's angle to the signal, refracted at the pump's carrier (<see cref="NoncollinearRad"/>, the internal
+        /// angle at the nominal carrier, then marks the geometry as crossing).</summary>
         public double ExternalRad;
         /// <summary>Lab tilts (rad, x) of the main and fed beams on entry, from the arms.</summary>
         public double MainTiltXRad, FedTiltXRad;
@@ -107,7 +108,7 @@ namespace UltrafastEngine.Crystals
         internal ThreeWave Geometry(int referenceWave) => new ThreeWave
         {
             Crystal = Crystal, Process = Process, Roles = Roles, ThetaRad = ThetaRad, PhiRad = PhiRad,
-            TuningAngle = Plane == "XY" ? "phi" : "theta", NoncollinearRad = NoncollinearRad, ExternalRad = Process == "sfg" ? ExternalRad : 0,
+            TuningAngle = Plane == "XY" ? "phi" : "theta", NoncollinearRad = NoncollinearRad, ExternalRad = ExternalRad,
             QpmK = 0, ReferenceWave = referenceWave
         };
 
@@ -255,7 +256,7 @@ namespace UltrafastEngine.Crystals
                 f.Kz = new double[n];
                 var dir = geo.Directions[wv];
                 bool isIdlerNc = Process == "opa" && NoncollinearRad != 0 && wv != 2 && wv != refWave - 1;
-                double kpT = Process == "opa" && NoncollinearRad != 0 ? geo.N[2] * wc[2] / C * Math.Sin(NoncollinearRad) : 0;
+                double kpT = Process == "opa" && NoncollinearRad != 0 ? geo.N[2] * wc[2] / C * Math.Sin(geo.AngleToRefRad[2]) : 0;
                 for (int i = 0; i < n; i++)
                 {
                     double w = f.Grid.OmegaAbsolute[i];
@@ -776,6 +777,7 @@ namespace UltrafastEngine.Crystals
                 spec.Role = a.Role;
                 ce.VirtualInputs[a.Role] = new VirtualInput { Spec = spec, PhaseRad = vo.GetDouble("phaseRad", 0), CoherentWith = vo.GetString("coherentWith"), OwnCarrier = true };
                 if (spec.Pulse != null) a.Pulse = spec.Pulse;
+                a.DelayAuto = spec.DelayAuto; // "auto": centred on the main beam in the crystal, whatever the paths' delays
                 a.NominalOmega = spec.CenterOmega();
                 virtualRoles.Add(a.Role);
             }
