@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **412 tests** in 46 classes. **219** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **414 tests** in 46 classes. **221** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -18,7 +18,7 @@ Every C# test of the engine: **412 tests** in 46 classes. **219** of them check 
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
-| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 8 | 8 |
+| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 9 | 9 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
@@ -27,7 +27,7 @@ Every C# test of the engine: **412 tests** in 46 classes. **219** of them check 
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
-| [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 3 | 2 |
+| [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
 | [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 5 | 5 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
@@ -316,6 +316,7 @@ Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence.
 | `LossGainAndGainGoal` | exponential loss and gain in dB | 0.01 %, 0.1 % |
 | `QuantumNoise_OnePhotonPerMode_AndCoherentSoliton` | one photon per mode: N ħω of energy | 5 % |
 | `RamanModels_NormalisedAndHollenbeckPeaksAt13THz` | Hollenbeck & Cantrell, JOSA B 19, 2886 (2002): gain peak 13.2 THz | 1 %, 3 % |
+| `SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon` | Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain) | 2 % |
 | `TaperedGamma_BIntegralFollowsTheIntegral` | B = ∫ γ(z) P dz | 1 % |
 
 ## FieldToolsTests
@@ -449,6 +450,7 @@ Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan.
 | test | reference | tolerance |
 |---|---|---|
 | `Autocorrelator_DeconvolutionFactors` | autocorrelation widths: √2 x FWHM (Gaussian), sech² deconvolution; interferometric AC peak-to-background 8:1 | 1 %, 2 % |
+| `Compressor_AfterStrongSpm_ReportsTheFwhmOnTheFullGrid` | Escoto et al., JOSA B 39, 1694 (2022), Eq. 2: C = 0.59 B + 1 within 5 % to B = 40 | 0.5 %, 5 % |
 | `DScan_FindsGlassThatCompensatesTheChirp` | GDD of 1.5 mm fused silica at 800 nm | 2 %, 5 % |
 | `Spectrometer_CompressorPolarimeterEnergy` | -- | -- |
 

@@ -1,0 +1,17 @@
+{
+  "paper": "bespalov-talanov-1966-ssf",
+  "checks": [
+    {"id": "g_max / (k0 n2 I)", "kind": "number", "key": "gMaxOverDeltaEngine", "expected": 1.0, "tolerance": 0.02,
+     "source": "linear stability analysis (analytic): g_max = Delta = k0 n2 I"},
+    {"id": "K at the peak / K_opt", "kind": "number", "key": "kPeakOverKoptEngine", "expected": 1.0, "tolerance": 0.03,
+     "source": "analytic: K_opt = k0 sqrt(2 n0 n2 I)"},
+    {"id": "gain peak (curve)", "kind": "location", "key": "gainSpectrum", "expected": 1.0, "tolerance": 0.1,
+     "source": "the fastest-growing sampled ripple is within 10 % of K_opt"},
+    {"id": "ripple vs cosh(gL) / |cos|, every K", "kind": "number", "key": "maxRelErrRipple", "expected": 0, "tolerance": 0.02,
+     "source": "analytic: 2 eps cosh(g L), 2 eps |cos(sqrt(q (q - 2 Delta)) L)| above the cutoff"},
+    {"id": "stable above sqrt(2) K_opt", "kind": "ordering", "a": "maxStableRippleOverSeed", "b": "one",
+     "source": "no growth above the cutoff"},
+    {"id": "reported B = k0 n2 I L", "kind": "number", "key": "bIntegralReportedRad", "expected": 3.0, "tolerance": 0.01, "relative": true,
+     "source": "the calibration: the engine's B-integral of the plate"}
+  ]
+}

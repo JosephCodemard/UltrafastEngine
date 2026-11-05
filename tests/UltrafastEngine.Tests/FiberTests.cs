@@ -35,6 +35,40 @@ namespace UltrafastEngine.Tests
             return Go(s, Spec(pulse, e));
         }
 
+        /// <summary>Soliton self-frequency shift of an N = 1, T0 = 300 fs soliton (D = 15 ps/(nm km), gamma = 1.3 /(W km),
+        /// Blow-Wood Raman, no self-steepening) on the auto-sized grid, whose time step (23.5 fs) is two Raman periods:
+        /// the rate must be Gordon's perturbation integral with the model's response,
+        /// dOmega/dz = -(gamma fR / 2 P0 T0) int |P~(W)|^2 W Im H(W) dW / 2 pi, |P~|^2 = (pi P0 T0^2 W / sinh(pi W T0 / 2))^2
+        /// (~ -8 |beta2| T_R / 15 T0^4). With the kernel sampled directly on that grid it was 43 % too fast;
+        /// papers/gordon-1986-ssfs sweeps T0 and the three silica models.</summary>
+        [Test(Reference = "Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain)", Tolerance = "2 %")]
+        public void SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon()
+        {
+            double lam = 1550e-9, b2 = -15e-6 * lam * lam / (2 * Math.PI * C), gamma = 1.3e-3, t0 = 300e-15, len = 45;
+            double p0 = Math.Abs(b2) / (gamma * t0 * t0);
+            var r = Go(Fib(O("id", "f", "type", "fiber", "lengthM", len, "betas", A(b2), "gamma", gamma, "raman", "silica")),
+                Spec(O("shape", "sech2", "centerWavelengthM", lam, "durationFwhmS", 2 * Math.Log(1 + Math.Sqrt(2)) * t0, "peakPowerW", p0),
+                     O("physics", O("selfSteepening", false))));
+            Assert.Greater(r.Output.Grid.DTime, 15e-15, "the auto grid is coarse against the 12 fs Raman oscillation");
+            double rate = (SpectralCentroid(r.Output) - SpectralCentroid(r.Input)) / len;
+            // Gordon's integral with the Blow-Wood response (unit integral), fR = 0.18
+            var h = new DampedOscillatorResponse(12.2e-15, 32e-15);
+            int nt = 40000; double dth = 0.1e-15;
+            var th = Enumerable.Range(0, nt).Select(i => i * dth).ToArray();
+            var hv = h.Evaluate(th); double norm = hv.Sum() * dth;
+            double fR = 0.18, sum = 0; int nw = 800; double wMax = 40 / t0, dw = wMax / nw;
+            for (int k = 1; k <= nw; k++)
+            {
+                double w = k * dw, imH = 0;
+                for (int i = 0; i < nt; i++) imH += hv[i] * Math.Sin(w * th[i]);
+                imH *= dth / norm;
+                double pw = Math.PI * p0 * t0 * t0 * w / Math.Sinh(Math.PI * w * t0 / 2);
+                sum += pw * pw * w * imH * dw;
+            }
+            double gordon = -gamma * fR / (2 * p0 * t0) * 2 * sum / (2 * Math.PI);
+            Assert.Close(gordon, rate, 0.02, 0, "SSFS rate on the auto grid");
+        }
+
         [Test(Reference = "fundamental soliton sech shape (NLSE)", Tolerance = "1 %")]
         public void FundamentalSoliton_PropagatesUnchanged_AndMetricsAreRight()
         {
