@@ -58,7 +58,7 @@ namespace UltrafastEngine.Tests
             var s = Sys(O("id", "bs", "type", "beamSplitter", "reflectivity", 0.5, "inputs", O("b", O("pulse", Gauss(l2, 400e-15, 1e-9), "delayS", 0.0, "coherentWith", "input"))));
             var r = Go(s, Spec(Gauss(l1, 400e-15, 1e-9)));
             Assert.Close(0.5 * (W(l1) + W(l2)), SpectralCentroid(r.Output), 2e-4, 0, "centroid is the mean of the two carriers");
-            Assert.Close(1e-9, r.Output.TotalEnergyJ(), 1e-3, 0, "half of each 1 nJ beam " + string.Join(";", r.Warnings) + " N=" + r.Output.Grid.N + " dw=" + r.Output.Grid.DOmega + " dt=" + r.Output.Grid.DTime + " loss=" + string.Join(",", r.Records[0].LossJ.Select(k => k.Key + "=" + k.Value)));
+            Assert.Close(1e-9, r.Output.TotalEnergyJ(), 1e-3, 0, "half of each 1 nJ beam");
         }
 
         [Test]
@@ -95,6 +95,22 @@ namespace UltrafastEngine.Tests
             var s = Sys(O("id", "m", "type", "leakMirror", "transmission", 0.02, "gddFs2", 20000.0, "inputs", O("b", O("pulse", Gauss(1000e-9, 100e-15, 1e-9), "delayS", 0.0, "coherentWith", "input"))));
             var r = Go(s, Spec(Gauss(1030e-9, 100e-15, 1e-15)));
             Assert.True(Math.Abs(Tc(r.Output)) < 0.2e-12 + 0, "centroid " + Tc(r.Output));
+        }
+
+        [Test]
+        public void Probe_SeeingTwoPackets_GivesEachItsOwnNamedArrays()
+        {
+            var sys = Sys(O("id", "a", "type", "beamSplitter", "reflectivity", 0.5, "next", O("c", "x", "d", "y")), O("id", "x", "type", "delay", "delayS", 0.0, "next", "m:1"),
+                O("id", "y", "type", "delay", "delayS", 200e-12, "next", "m:2"),
+                O("id", "m", "type", "beamSplitter", "reflectivity", 0.5, "next", O("c", "pr", "d", "virtual")), O("id", "pr", "type", "probe", "next", "end"));
+            sys.Topology = UltrafastEngine.Systems.SystemGraph.Branched;
+            var r = Go(sys, Spec(Gauss(1030e-9, 100e-15, 1e-6), O("grid", O("n", 4096, "windowS", 10e-12), "probes", A("pr"))));
+            var names = r.Arrays().Select(a => a.Name).ToList();
+            Assert.Equal(names.Count, names.Distinct().Count(), "array names are unique");
+            Assert.True(names.Contains("probe_pr_packet1_spectrum") && names.Contains("probe_pr_packet2_spectrum"), "one set per packet: " + string.Join(",", names.Where(n => n.StartsWith("probe_"))));
+            Assert.True(!names.Contains("probe_pr_spectrum"), "no unsuffixed duplicate");
+            Assert.True(r.GetArray("probe_pr_packet2_spectrum") != null, "lookup by name finds the second packet");
+            Assert.True(r.SummaryJson()["probes"].AsArray().Select(v => v.AsString()).Contains("pr_packet2"), "summary.probes lists the names");
         }
     }
 }
