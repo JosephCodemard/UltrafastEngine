@@ -69,6 +69,7 @@ nav:
   - Testing & validation:
       - Overview: testing.md
       - Validation matrix (generated): reference/validation-matrix.md
+      - Paper replications: papers.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md
   - Claude Code: claude-code.md

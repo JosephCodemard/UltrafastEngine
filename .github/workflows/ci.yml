@@ -69,6 +69,32 @@ jobs:
         working-directory: python
         run: PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python -m pytest -q tests
 
+  papers:
+    name: Paper replications (fast tier)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the package
+        run: pip install -e "python[hosted,plot,test]"
+      - name: Build the engine for Python
+        run: python python/tools/build_engine.py
+      - name: Run every paper's fast tier, check the published numbers
+        run: python build/paper_check.py --report paper-check.json --markdown paper-check.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paper-check
+          path: |
+            paper-check.json
+            paper-check.md
+            papers/*/results/figures/
+
   docs-and-examples:
     name: Docs and example check
     runs-on: ubuntu-24.04
