@@ -25,12 +25,17 @@ from ultrafast import build as b
 
 C = 299792458.0
 T0, E, LAM, L, GAMMA, B2, B3 = 28.4e-15, 50e-12, 1550e-9, 0.008, 1.0, -120e-27, 0.005e-39  # N ~ 2.4 soliton, ~1.2 L_D
+# pyNLO samples the Raman kernel on its own time step: at 4096 points over 10 ps (2.4 fs) that aliased kernel has a 0.4 %
+# error in the Raman gain and up to 2 % in Re H near 13 THz, enough to move this soliton's fission by 0.5-1.8 % (L1). The
+# engine band-limits its kernel (EnvelopeProblem.SampledResponse) and is converged at 4096 points; pyNLO is run at
+# 16384 points (0.6 fs), where the two agree to 3e-4.
+PYNLO_NPTS = 2 ** 14
 
 
 def _run_both(raman: bool):
     pynlo = _import_pynlo()
     pulse = pynlo.light.DerivedPulses.SechPulse(power=1, T0_ps=T0 * 1e12, center_wavelength_nm=LAM * 1e9, time_window_ps=10,
-                                                GDD=0, TOD=0, NPTS=2 ** 12, frep_MHz=100, power_is_avg=False)
+                                                GDD=0, TOD=0, NPTS=PYNLO_NPTS, frep_MHz=100, power_is_avg=False)
     pulse.set_epp(E)
     fiber = pynlo.media.fibers.fiber.FiberInstance()
     fiber.generate_fiber(L, center_wl_nm=LAM * 1e9, betas=(B2 * 1e27, B3 * 1e39), gamma_W_m=GAMMA, gvd_units="ps^n/km", gain=0)
@@ -65,7 +70,9 @@ def test_higher_order_soliton_matches_pynlo(raman, tol):
     assert _l1(pout.T_ps * 1e-12, np.abs(pout.AT) ** 2, t, p) < tol, "temporal profile"
     assert _l1(pout.F_THz * 1e12, np.abs(pout.AW) ** 2, res["output_omega_rad_s"] / (2 * math.pi), res["output_spectrum"]) < tol, "spectrum"
     assert res.summary["output"]["energyJ"] == pytest.approx(pout.calc_epp(), rel=tol / 5)
-    assert p.max() == pytest.approx((np.abs(pout.AT) ** 2).max(), rel=tol)
+    # the peak on the engine's (coarser) samples: pyNLO's power interpolated there
+    o = np.argsort(pout.T_ps)
+    assert p.max() == pytest.approx(np.interp(t, pout.T_ps[o] * 1e-12, (np.abs(pout.AT) ** 2)[o]).max(), rel=tol)
 
 
 def _run_fiber_both(raman: str, gain_per_m: float = 0.0):
@@ -73,7 +80,7 @@ def _run_fiber_both(raman: str, gain_per_m: float = 0.0):
     gamma, Raman model, flat gain)."""
     pynlo = _import_pynlo()
     pulse = pynlo.light.DerivedPulses.SechPulse(power=1, T0_ps=T0 * 1e12, center_wavelength_nm=LAM * 1e9, time_window_ps=10,
-                                                GDD=0, TOD=0, NPTS=2 ** 12, frep_MHz=100, power_is_avg=False)
+                                                GDD=0, TOD=0, NPTS=PYNLO_NPTS, frep_MHz=100, power_is_avg=False)
     pulse.set_epp(E)
     fiber = pynlo.media.fibers.fiber.FiberInstance()
     betas_ps_km = (B2 * 1e27, B3 * 1e39)
