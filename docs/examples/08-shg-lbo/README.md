@@ -28,6 +28,17 @@ centre. `results-radial/summary.json` -> `elements[0].beam` (radius, M^2) and th
 (fluence vs radius) show this. The 1-D model uses an overlap of Gaussian modes, which is exact at low
 conversion and an estimate at high conversion (here 52 % vs 47 % radial).
 
+## Result
+
+![Fundamental and second-harmonic pulse, angular phase-matching curve](shg-lbo.png)
+
+`python plot.py` draws this figure from `results/`. The 1000 fs, 400 uJ pump at 1030 nm is converted with an
+energy efficiency of 52.5 % (210.1 uJ of 515 nm light, 190 uJ of fundamental left over). The second-harmonic pulse
+(left, solid) is shorter than the input, 808.5 fs, because the intense centre of the pulse converts better than its
+wings. The right panel is the efficiency of the same crystal as it is tilted away from the phase-matching angle:
+it falls to half of its maximum at +-0.49 deg, which is the 0.985 deg FWHM angular acceptance reported by
+`phaseMatchingCurve_shg`. This tells you how accurately the crystal has to be aligned.
+
 Things to try:
 
 * `"cut": {"thetaDeg": 90, "phiDeg": 13.8}` with `"detuneDeg": 0.3` -- detune the crystal and watch the efficiency.
