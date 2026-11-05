@@ -183,7 +183,7 @@ namespace UltrafastEngine.Tests
         /// searches on a compact copy whose time step only resolves the spectrum (a fifth of the compressed FWHM here);
         /// the reported FWHM must come from the pulse on its own grid. Before the fix it was 3.8 % short (38.9 vs 40.4 fs).
         /// The compression factor is also Escoto's fit C = 0.59 B + 1, which holds to 5 % up to B = 40 for GDD-only
-        /// compression (arXiv:2201.05836v1, Sec. 2.1, Eq. 2; papers/escoto-2022-compression-quality).</summary>
+        /// compression (arXiv:2201.05836v1, Sec. 2.1, Eq. 2; docs/papers/escoto-2022-compression-quality).</summary>
         [Test(Reference = "Escoto et al., JOSA B 39, 1694 (2022), Eq. 2: C = 0.59 B + 1 within 5 % to B = 40", Tolerance = "0.5 %, 5 %")]
         public void Compressor_AfterStrongSpm_ReportsTheFwhmOnTheFullGrid()
         {

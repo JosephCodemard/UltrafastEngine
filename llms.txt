@@ -67,7 +67,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Testing & validation](docs/testing.md)
 - [Component verification: every component alone against its analytic answer, with plots (verification/)](docs/verification.md)
 - [Validation matrix (generated: every test and its reference)](docs/reference/validation-matrix.md)
-- [Paper replications](docs/papers.md): published results reproduced in papers/ (index and rules: papers/README.md), harness build/paper_check.py
+- [Paper replications](docs/papers/README.md): published results reproduced with the engine, with plots and commentary
 - [Roadmap](docs/roadmap.md)
 - [For AI agents](docs/agents.md)
 - [Claude Code setup](docs/claude-code.md): CLAUDE.md files, commands, subagents, skills, hooks

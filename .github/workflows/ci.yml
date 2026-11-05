@@ -116,7 +116,7 @@ jobs:
           path: |
             paper-check.json
             paper-check.md
-            papers/*/results/figures/
+            docs/papers/*/results/figures/
 
   docs-and-examples:
     name: Docs and example check

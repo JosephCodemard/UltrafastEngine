@@ -195,7 +195,7 @@ namespace UltrafastEngine.Physics
         /// oscillation (dt of 5-25 fs for a 100 fs - 1 ps pulse, against the 12 fs / 13 THz period of the silica Raman
         /// response) aliases the sampled kernel: its spectrum is not H(w) near w = 0, and the Raman shift, which follows
         /// the slope of Im H there, came out 3 % too fast at dt = 6.5 fs and 43 % at dt = 23.5 fs (soliton self-frequency
-        /// shift against Gordon, Opt. Lett. 11, 662 (1986); papers/gordon-1986-ssfs). So for dt above the sub-step, h is
+        /// shift against Gordon, Opt. Lett. 11, 662 (1986); docs/papers/gordon-1986-ssfs). So for dt above the sub-step, h is
         /// evaluated on a grid M times finer, its spectrum cut at the coarse grid's Nyquist frequency and every M-th sample
         /// kept: the kernel's discrete spectrum is then H(w) itself at every frequency of the grid. Fine grids are unchanged.
         /// </summary>

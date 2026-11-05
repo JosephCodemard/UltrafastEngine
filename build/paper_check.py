@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the paper replications in papers/ and check their numbers against the published values (papers/CLAUDE.md).
+"""Run the paper replications in docs/papers/ and check their numbers against the published values (docs/papers/CLAUDE.md).
 
     python3 build/paper_check.py                          # every paper, fast tier; exit 1 if a hard check fails
     python3 build/paper_check.py gordon boyd              # papers whose folder starts with these names
@@ -38,7 +38,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from example_check import ROOT, leaves  # noqa: E402  (shared with the example checker)
 
-PAPERS = os.path.join(ROOT, "papers")
+PAPERS = os.path.join(ROOT, "docs", "papers")
 KINDS = ("number", "ordering", "location")
 
 
@@ -151,7 +151,7 @@ def main(argv=None):
     ap.add_argument("only", nargs="*", help="paper folder name prefixes (default: all)")
     ap.add_argument("--full", action="store_true", help="run the full tier instead of the fast one")
     ap.add_argument("--no-run", action="store_true", help="do not run run.py; evaluate the existing results/numbers.json")
-    ap.add_argument("--root", default=PAPERS, help="folder of the paper folders (default: papers/)")
+    ap.add_argument("--root", default=PAPERS, help="folder of the paper folders (default: docs/papers/)")
     ap.add_argument("--timeout", type=float, default=1800, help="seconds per paper run (default 1800)")
     ap.add_argument("--report", help="write a JSON report here")
     ap.add_argument("--markdown", help="write the tables as Markdown here")

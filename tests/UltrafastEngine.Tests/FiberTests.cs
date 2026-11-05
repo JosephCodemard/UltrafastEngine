@@ -40,7 +40,7 @@ namespace UltrafastEngine.Tests
         /// the rate must be Gordon's perturbation integral with the model's response,
         /// dOmega/dz = -(gamma fR / 2 P0 T0) int |P~(W)|^2 W Im H(W) dW / 2 pi, |P~|^2 = (pi P0 T0^2 W / sinh(pi W T0 / 2))^2
         /// (~ -8 |beta2| T_R / 15 T0^4). With the kernel sampled directly on that grid it was 43 % too fast;
-        /// papers/gordon-1986-ssfs sweeps T0 and the three silica models.</summary>
+        /// docs/papers/gordon-1986-ssfs sweeps T0 and the three silica models.</summary>
         [Test(Reference = "Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain)", Tolerance = "2 %")]
         public void SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon()
         {

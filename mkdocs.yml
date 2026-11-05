@@ -70,7 +70,7 @@ nav:
       - Overview: testing.md
       - Component verification (scripts and plots): verification.md
       - Validation matrix (generated): reference/validation-matrix.md
-      - Paper replications: papers.md
+      - Paper replications: papers/README.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md
   - Claude Code: claude-code.md
