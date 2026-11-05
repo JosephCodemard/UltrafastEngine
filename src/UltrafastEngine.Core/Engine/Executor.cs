@@ -371,7 +371,7 @@ namespace UltrafastEngine.Engine
         }
 
         /// <summary>
-        /// Run the run spec's instruments on the pulses recorded in <paramref name="res"/> (<c>res.At</c>: "input", element
+        /// Run the run spec's instruments on the pulses recorded in the result (<c>res</c>) (<c>res.At</c>: "input", element
         /// ids, "end"), apply each instrument's sampling, filter and detector, and let plugins post-process the readings.
         /// Used after a forward run and by run modes that produce the pulses differently (e.g. backward propagation).
         /// </summary>

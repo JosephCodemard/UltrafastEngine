@@ -1,5 +1,5 @@
 # Continuous integration: every platform is compiled with dotnet; the full test suites run on Linux, the C# and Python tests also on
-# macOS (Apple silicon) and Windows.
+# macOS (Apple silicon) and Windows. GPU tests need an OpenCL / CUDA device and are skipped here.
 # OpticStudio cannot run in CI: the Zemax binding is built against its stubs and checked by hand on Windows.
 name: CI
 
@@ -26,7 +26,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Install Mono (net48 reference assemblies and runtime)
-        run: sudo apt-get update && sudo apt-get install -y mono-complete pocl-opencl-icd
+        run: sudo apt-get update && sudo apt-get install -y mono-complete
       - name: Build everything
         run: dotnet build UltrafastEngine.sln -c Release
       - name: C# tests, .NET 10, including slow

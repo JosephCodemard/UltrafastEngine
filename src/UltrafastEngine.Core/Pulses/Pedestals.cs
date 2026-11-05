@@ -189,8 +189,6 @@ namespace UltrafastEngine.Pulses
         }
 
         private static double Gauss(Random r) { double u1 = 1 - r.NextDouble(), u2 = r.NextDouble(); return Math.Sqrt(-2 * Math.Log(u1)) * Math.Cos(2 * Math.PI * u2); }
-        private static Complex GaussC(Random r) => new Complex(Gauss(r), Gauss(r)) / Math.Sqrt(2);
-        private static Complex Gauss(Random r, bool complex) => complex ? GaussC(r) : Gauss(r);
 
         /// <summary>Real Gaussian noise of the given rms, correlated over corrW (Gaussian correlation function).</summary>
         public static double[] CorrelatedNoise(int n, double dOmega, double corrW, Random rnd, double rms)

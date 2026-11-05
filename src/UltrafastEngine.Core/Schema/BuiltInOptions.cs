@@ -11,8 +11,6 @@ namespace UltrafastEngine.Schema
     /// </summary>
     public static partial class BuiltInOptions
     {
-        private static readonly string[] Pol = { "x", "y", "45", "-45", "rcp", "lcp" };
-
         public static void RegisterAll(Action<ComponentSpec> add)
         {
             Sections(add);

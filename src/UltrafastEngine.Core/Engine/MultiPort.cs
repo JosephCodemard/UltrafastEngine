@@ -213,7 +213,7 @@ namespace UltrafastEngine.Engine
 
     /// <summary>The splitter family: a lossless 2x2 element, c = t a - r b, d = r a + t b (Stokes relations, r' = -r), with
     /// r and t by frequency and polarisation. Types differ only in their coefficients and port names (Compiler.CompileSplitter).
-    /// <paramref name="side"/> = -1 reverses the sign of r: the same plate met from its other face.</summary>
+    /// <c>side</c> = -1 reverses the sign of r: the same plate met from its other face.</summary>
     public sealed class BeamSplitterElement : IMultiPortElement, IReportsCarrierPhase
     {
         private readonly Func<double, (double Rx, double Ry)> _reflect;
