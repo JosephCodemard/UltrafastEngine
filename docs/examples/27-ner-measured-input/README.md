@@ -72,4 +72,14 @@ compares only where both have readings and removes the dark level from the darke
     osa                    spectrometer   chi^2 18.55      (401 points)  rms error 0.43 %
 ```
 
+![Cleaned input spectrum, output spectrum and comparison with the OSA recording](ner-measured.png)
+
+`python plot.py` draws this figure from `results/`. On the left, the grey dots are the raw digitised file: the flat
+floor is visible over the whole 160 nm range, and the engine input (dashed) is the same spectrum after the floor
+was removed, with no light outside the measured range. After the ten plates (solid) the peak is lower and the
+wings are broader, as SPM spreads the spectrum. On the right the simulated spectrum, blurred to the OSA's 0.5 nm
+resolution, lies on top of the recording, including the shoulders at about 1020 nm and 1040 nm that come from the
+shape of the measured input. Because the input is the measurement itself, this agreement tests the Kerr and
+dispersion model, not the input.
+
 The rms error is the noise of the recording. `ultrafast-plot results` draws the comparison in `measurements.png`.
