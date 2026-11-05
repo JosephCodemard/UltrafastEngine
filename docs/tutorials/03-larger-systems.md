@@ -131,7 +131,7 @@ python docs/tutorials/files/cpa.py
 It prints:
 
 ```
-amplified: 14.58 W, compressible to 535 fs, SHG efficiency 41.9%
+amplified: 14.58 W, compressible to 534 fs, SHG efficiency 41.9%
 pump (W)   IR after amp (W)   green (W)
       60               0.35        0.00
      100               3.96        0.46
