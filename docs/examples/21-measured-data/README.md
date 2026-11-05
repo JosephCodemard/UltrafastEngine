@@ -101,7 +101,7 @@ fit: calibrate parameters against the measured instruments ...
 | compressor GDD | −300 fs² | −533 ± 8 fs² | −520 fs² | 1.6σ |
 | net GDD (chirp + compressor) | 0 | −69.8 fs² | −70 fs² | |
 
-All three are recovered within their error bars, and the residuals left after the fit are at the noise level of the data. The reduced χ² of 0.37 means the stated σ (3 %) is larger than the actual noise (about 2 %), so the error bars are conservative.
+All three are recovered within 2σ (the net GDD, the best-determined combination, to 0.2 fs²), and the residuals left after the fit are at the noise level of the data. The reduced χ² of 0.37 means the stated σ (3 %) is larger than the actual noise (about 2 %), so the error bars are conservative.
 
 **Why the correlation warning?** The autocorrelator and the d-scan sit after the compressor, so they mostly measure
 the *net* GDD. That is fixed to about ±1.5 fs². Only the spectrum after the plate distinguishes the input chirp from
