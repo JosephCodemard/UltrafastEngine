@@ -78,7 +78,7 @@ The input pulse (docs/reference/run-spec.md#pulse).
 | `polarization` | any |  | "x" | "x", "y", "45", "-45", "rcp", "lcp", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm] |
 | `spectrum` | object (`pulseSpectrum`) |  |  | Measured spectrum (shape: spectrum): wavelengthsM + intensity (+ phaseRad), or csv |
 | `delayS` | number | s | 0 | Time offset |
-| `pedestal` | any |  |  | Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential) |
+| `pedestal` | any |  |  | Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured) |
 | `noise` | object (`pulseNoise`) |  |  | Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding) |
 
 ## Grid
@@ -1740,7 +1740,7 @@ A pedestal / contrast component of the input pulse (docs/reference/run-spec.md#p
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `kind` | `"replica"` \| `"prePulse"` \| `"postPulse"` \| `"ase"` \| `"phaseNoise"` \| `"exponential"` |  |  | Component **Required.** |
+| `kind` | `"replica"` \| `"prePulse"` \| `"postPulse"` \| `"ase"` \| `"phaseNoise"` \| `"exponential"` \| `"measured"` |  |  | Component **Required.** |
 | `delayS` | number | s |  | Delay (replica; ASE envelope centre) |
 | `relativeIntensity` | number |  |  | Intensity relative to the main peak |
 | `relativeEnergy` | number |  |  | Energy relative to the main pulse (replica) |
@@ -1759,6 +1759,11 @@ A pedestal / contrast component of the input pulse (docs/reference/run-spec.md#p
 | `level` | number |  |  | Exponential pedestal level at the peak |
 | `riseS` | number | s |  | Exponential rise (before the peak) |
 | `fallS` | number | s |  | Exponential fall (after the peak) |
+| `csv` | string |  |  | measured: CSV file of a contrast trace (columns time_<unit> or delay_<unit>, and relativeIntensity, intensity or contrast_dB) |
+| `timesS` | any | s |  | measured: delays of the trace points (alternative to csv; use with relativeIntensity) |
+| `relativeIntensities` | any |  |  | measured: intensity relative to the main peak at each delay (alternative to csv) |
+| `excludeWithinS` | number | s | 0 | measured: trace points closer than this to t = 0 are ignored (the main pulse is already there) |
+| `outside` | string |  | zero | measured: "zero" (no pedestal beyond the trace) or "hold" (the end values continue) |
 | `seed` | integer |  | 1 | Random seed |
 
 ### `pulseNoise`

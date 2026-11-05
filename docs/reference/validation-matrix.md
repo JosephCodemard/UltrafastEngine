@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **414 tests** in 46 classes. **221** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **415 tests** in 46 classes. **222** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -12,7 +12,7 @@ Every C# test of the engine: **414 tests** in 46 classes. **221** of them check 
 | [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
-| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 20 | 14 |
+| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 21 | 15 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
 | [Crystal chains and phase-matching limits: SHG to THG, length against bandwidth](#crystalchaintests) | `CrystalChainTests` | 16 | 16 |
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
@@ -191,6 +191,7 @@ Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday ro
 | `NdFilter_AbsorptiveAndReflectiveOd` | T = 10^−OD | 0.2 % |
 | `NdFilter_OdPerWavelengthShapesTheSpectrum` | T = 10^−OD(λ) | 1 % |
 | `Pedestal_AseLevelAndPhaseNoiseConservesEnergy` | -- | -- |
+| `Pedestal_Measured_FollowsTheRecordedTrace` | a recorded contrast trace as the input pedestal: the pulse's intensity follows the trace | 25 % (a random field: ~100 independent speckles in the averaging window, 10 % rms) |
 | `Pedestal_ReplicaPostPulseAndPrePulse` | -- | -- |
 | `Plate_GhostReplicaDelayAndIntensity` | ghost delay 2 n_g d / c, level R² | 0.2 %, 3 % |
 | `Plate_GhostTiltedOutOfTheBeamByAWedge` | -- | -- |

@@ -264,6 +264,101 @@ def draw_system(res, ax, theme: dict, compact: bool = False):
     return locs
 
 
+def _graph_layout(summary: dict):
+    """Layers and lanes of a branched system from ``summary["graph"]["links"]``: the layer of a node is its longest path from the
+    input, the lane spreads nodes of one layer over y. Returns (nodes, edges, layer, lane) with nodes in element order."""
+    els = summary.get("elements", [])
+    ids = [e["id"] for e in els]
+    edges = []
+    for lk in summary.get("graph", {}).get("links", []):
+        a, b = lk["from"], lk["to"]
+        a_id, a_port = (a.split(":", 1) + [""])[:2]
+        b_id = b.split(":", 1)[0]
+        edges.append((a_id, a_port, b_id))
+    layer = {i: 0 for i in ids}
+    for _ in range(len(ids)):                      # longest-path layering (loops are cut by the iteration bound)
+        for a, _, b in edges:
+            if a in layer and b in layer and layer[b] < layer[a] + 1:
+                layer[b] = layer[a] + 1
+    lane = {}
+    by_layer = {}
+    for i in ids:
+        by_layer.setdefault(layer[i], []).append(i)
+    for k, members in by_layer.items():
+        for j, i in enumerate(members):
+            lane[i] = j - (len(members) - 1) / 2.0
+    return ids, edges, layer, lane
+
+
+def draw_graph(res, ax, theme: dict, compact: bool = False):
+    """Draw a Branched system as a graph on ``ax``: elements as boxes by layer, arms as lanes, links coloured by the carrier
+    after their source element, virtual inputs and outputs as small open markers, the energy at the end, loops as arcs."""
+    from matplotlib.patches import FancyBboxPatch
+
+    s = res.summary
+    els = {e["id"]: e for e in s.get("elements", [])}
+    ids, edges, layer, lane = _graph_layout(s)
+    g = s.get("graph", {})
+    nl = max(layer.values()) + 1 if layer else 1
+    width = max(abs(v) for v in lane.values()) * 2 + 1 if lane else 1
+    pos = {i: (layer[i] + 1.0, -lane[i] * 1.25) for i in ids}
+    ax.set_xlim(-0.2, nl + 1.9)
+    ax.set_ylim(-(width / 2 * 1.25) - 1.1, (width / 2 * 1.25) + 1.1)
+    ax.set_axis_off()
+    idx = {e["id"]: e["index"] for e in s.get("elements", [])}
+
+    def lam_after(i):
+        return wavelength_color(_carrier(s, idx[i]))
+
+    def box(i, x, y):
+        w, h = 0.78, 0.62
+        e = els[i]
+        ax.add_patch(FancyBboxPatch((x - w / 2, y - h / 2), w, h, boxstyle="round,pad=0.02,rounding_size=0.08",
+                                    fc=theme["panel"] if "panel" in theme else "white", ec=theme["text2"], lw=1.1, zorder=3))
+        ax.text(x, y + 0.11, i, ha="center", va="center", fontsize=8.5, fontweight="bold", color=theme["text"], zorder=4)
+        ax.text(x, y - 0.14, e["type"], ha="center", va="center", fontsize=7, color=theme["text2"], zorder=4)
+
+    xin = 0.0
+    first = ids[0] if ids else None
+    for a, port, b in edges:
+        if a in pos and b in pos:
+            (x0, y0), (x1, y1) = pos[a], pos[b]
+            off = 0.0
+            ax.plot([x0 + 0.4, x1 - 0.4], [y0, y1], color=lam_after(a), lw=2.6, zorder=1, solid_capstyle="round")
+            if port in ("c", "d", "1", "2") and not compact:
+                ax.text((x0 + x1) / 2, (y0 + y1) / 2 + 0.12, port, fontsize=7, color=theme["text2"], ha="center", zorder=5)
+    if first:
+        ax.plot([xin + 0.25, pos[first][0] - 0.4], [pos[first][1]] * 2, color=wavelength_color(s["input"].get("centroidWavelengthM")), lw=2.6, zorder=1)
+        ax.text(xin, pos[first][1], "input", fontsize=8, ha="center", va="center", color=theme["text"])
+    for i in ids:
+        box(i, *pos[i])
+        e = els[i]
+        if e.get("lengthM") and not compact:
+            ax.text(pos[i][0], pos[i][1] - 0.5, _fmt_len(e["lengthM"]), fontsize=6.5, ha="center", color=theme["text2"])
+    linked_out = {a for a, _, _ in edges}
+    for v in g.get("virtualInputs", []):                       # "bs1#b": an input port with no beamline behind it
+        i = v.split("#")[0]
+        if i in pos:
+            x, y = pos[i]
+            ax.plot([x - 0.55, x - 0.4], [y + 0.3, y + 0.15], color=theme["text2"], lw=1, ls=":")
+            ax.plot([x - 0.55], [y + 0.3], marker="o", mfc="none", mec=theme["text2"], ms=5)
+    for v in g.get("virtualOutputs", []):
+        i = v.split("#")[0]
+        if i in pos:
+            x, y = pos[i]
+            ax.plot([x + 0.4, x + 0.62], [y - 0.15, y - 0.3], color=theme["text2"], lw=1, ls=":")
+            ax.plot([x + 0.62], [y - 0.3], marker="o", mfc="none", mec=theme["text2"], ms=5)
+    ends = [a for a, port, b in edges if b == "end"]
+    for lk in g.get("links", []):
+        if lk["to"] == "end":
+            a = lk["from"].split(":", 1)[0]
+            x, y = pos[a]
+            ax.plot([x + 0.4, nl + 1.25], [y, y], color=lam_after(a), lw=2.6, zorder=1)
+            ax.text(nl + 1.35, y, "output\n%.3g nJ" % (g.get("energyOutJ", 0) * 1e9) if len(ends) == 1 else "output", fontsize=8, va="center", color=theme["text"])
+    for lp in g.get("loops", []):
+        pass
+
+
 def _pulse_txt(p):
     e = p.get("energyJ"); f = p.get("fwhmS")
     parts = []

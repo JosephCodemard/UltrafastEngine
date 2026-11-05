@@ -3974,7 +3974,7 @@ class Pulse(TypedDict, total=False):
     delayS: float
     """Time offset [s] Default: 0."""
     pedestal: Any
-    """Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"""
+    """Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured)"""
     noise: Union["PulseNoise", str]
     """Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding)"""
     comment: Any

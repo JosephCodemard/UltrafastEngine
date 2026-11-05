@@ -328,6 +328,36 @@ namespace UltrafastEngine.Tests
             Assert.Close(1e-6, rpre, 0.02, 0, "pre-pulse intensity");
         }
 
+        [Test(Reference = "a recorded contrast trace as the input pedestal: the pulse's intensity follows the trace", Tolerance = "25 % (a random field: ~100 independent speckles in the averaging window, 10 % rms)")]
+        public void Pedestal_Measured_FollowsTheRecordedTrace()
+        {
+            // 1e-6 of the peak at 2-12 ps before and 1e-4 at 2-12 ps after, nothing inside +-2 ps (excluded) or beyond 12 ps
+            var times = new[] { -12e-12, -2e-12, -1e-12, 0, 1e-12, 2e-12, 12e-12 };
+            var level = new[] { 1e-6, 1e-6, 0.5, 1.0, 0.5, 1e-4, 1e-4 };
+            var p = Gauss(Lam, 100e-15, 1e-6);
+            p.Set("pedestal", O("kind", "measured", "timesS", times, "relativeIntensities", level, "excludeWithinS", 1.5e-12));
+            var r = GoJ(SysWith(null, O("id", "x", "type", "probe")), Run(p, O("grid", O("windowS", 40e-12, "auto", false, "n", 8192))));
+            var pw = PulseMetrics.TemporalPower(r.Output); var t = r.Output.Grid.Time;
+            double pk = pw.Max();
+            double Mean(double a, double b) => Enumerable.Range(0, pw.Length).Where(i => t[i] > a && t[i] < b).Average(i => pw[i]) / pk;
+            Assert.Close(1e-6, Mean(-11.5e-12, -2.5e-12), 0.25, 0, "measured pre-pedestal level");
+            Assert.Close(1e-4, Mean(2.5e-12, 11.5e-12), 0.25, 0, "measured post-pedestal level");
+            Assert.Less(Mean(15e-12, 19e-12), 1e-12, "nothing beyond the trace");
+            // the same trace as a CSV in dB: contrast_dB -60 is 1e-6
+            string file = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ped_trace_" + Guid.NewGuid().ToString("N") + ".csv");
+            System.IO.File.WriteAllText(file, "time_ps,contrast_dB\n-12,-60\n-3,-60\n3,-40\n12,-40\n");
+            try
+            {
+                var q = Gauss(Lam, 100e-15, 1e-6);
+                q.Set("pedestal", O("kind", "measured", "csv", file));
+                var r2 = GoJ(SysWith(null, O("id", "x", "type", "probe")), Run(q, O("grid", O("windowS", 40e-12, "auto", false, "n", 8192))));
+                var pw2 = PulseMetrics.TemporalPower(r2.Output); double pk2 = pw2.Max();
+                double m2 = Enumerable.Range(0, pw2.Length).Where(i => t[i] > 3e-12 && t[i] < 11.5e-12).Average(i => pw2[i]) / pk2;
+                Assert.Close(1e-4, m2, 0.25, 0, "csv in dB");
+            }
+            finally { System.IO.File.Delete(file); }
+        }
+
         [Test]
         public void Pedestal_AseLevelAndPhaseNoiseConservesEnergy()
         {

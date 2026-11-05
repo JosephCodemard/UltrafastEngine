@@ -67,7 +67,8 @@ instruments, ghosts and nonlinear elements work on a realistic field:
   { "kind": "postPulse", "delayS": 30e-12, "relativeIntensity": 1e-4, "gddFs2": 2000 },
   { "kind": "ase", "durationS": 10e-9, "relativeIntensity": 1e-10, "bandwidthFwhmNm": 30 },
   { "kind": "phaseNoise", "rmsRad": 0.05, "correlationNm": 0.5 },
-  { "kind": "exponential", "level": 1e-5, "riseS": 3e-12, "fallS": 5e-12 }
+  { "kind": "exponential", "level": 1e-5, "riseS": 3e-12, "fallS": 5e-12 },
+  { "kind": "measured", "csv": "pharos_contrast.csv", "excludeWithinS": 1.5e-12 }
 ]
 ```
 
@@ -77,6 +78,9 @@ instruments, ghosts and nonlinear elements work on a realistic field:
 | `ase` | amplified spontaneous emission: a flat incoherent floor (random spectral phase) | `durationS` (10 ns), `relativeIntensity` or `energyFraction`, `bandwidthFwhmM` / `bandwidthFwhmNm`, `centerWavelengthM`, `seed` |
 | `phaseNoise` | spectral phase (and amplitude) noise: the coherent pedestal of a stretcher-compressor | `rmsRad`, `amplitudeRms`, `correlationNm` / `correlationRadPerS`, `seed` |
 | `exponential` | an incoherent exponential pedestal (scattering in a stretcher, ...) | `level` (at the peak), `riseS`, `fallS`, bandwidth as for `ase` |
+| `measured` | an incoherent pedestal whose intensity follows a recorded contrast trace (intensity relative to the main peak against delay), with the pulse's spectrum | `csv` (columns `time_<unit>` or `delay_<unit>`, and `relativeIntensity`, `intensity` or `contrast_dB`), or `timesS` with `relativeIntensities`; `excludeWithinS` (ignore points near t = 0, where the trace shows the pulse itself), `outside` (`zero` or `hold` beyond the trace), `seed` |
+
+A `measured` pedestal is random: its level follows the trace on average, with the speckle statistics of an incoherent field. Between points the trace is interpolated linearly in log intensity. A third-order cross-correlator trace already reads as intensity contrast, so it can be used as it is.
 
 The grid planner widens the time window to hold every component (a 10 ns ASE floor makes a long window: give
 `grid.windowS` and accept the large grid, or drop the ASE term for the propagation and model it in the

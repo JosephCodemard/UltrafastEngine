@@ -100,8 +100,9 @@ namespace UltrafastEngine.Pulses
                 foreach (var x in p.Pedestal)
                 {
                     string k = x.GetString("kind", "").ToLowerInvariant();
-                    if (k != "replica" && k != "prepulse" && k != "postpulse" && k != "ase" && k != "phasenoise" && k != "exponential")
-                        throw new JsonException(origin + ".pedestal: unknown kind \"" + x.GetString("kind", "") + "\" (replica, prePulse, postPulse, ase, phaseNoise, exponential).");
+                    if (k != "replica" && k != "prepulse" && k != "postpulse" && k != "ase" && k != "phasenoise" && k != "exponential" && k != "measured")
+                        throw new JsonException(origin + ".pedestal: unknown kind \"" + x.GetString("kind", "") + "\" (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured).");
+                    if (k == "measured") PrepareMeasuredPedestal(x, origin, baseDirectory);
                 }
             }
             var sp = o.GetObject("spectrum");
@@ -392,6 +393,30 @@ namespace UltrafastEngine.Pulses
                 }
             }
             return h;
+        }
+
+        /// <summary>A measured pedestal: read its CSV (time or delay column, and relativeIntensity / intensity / contrast_dB) into
+        /// the component's arrays, so that the solver only sees numbers. Sorted by time; the main pulse's own rows can be excluded.</summary>
+        private static void PrepareMeasuredPedestal(JsonObject x, string origin, string baseDirectory)
+        {
+            if (x.Has("csv"))
+            {
+                string path = x.GetString("csv");
+                if (!Path.IsPathRooted(path) && baseDirectory != null) path = Path.Combine(baseDirectory, path);
+                var d = UltrafastEngine.Measured.MeasuredData.Load(path);
+                string tc = d.Find("time", "delay", "t"), lc = d.Find("relativeIntensity", "intensity", "contrast", "level");
+                if (tc == null || lc == null) throw new JsonException(origin + ".pedestal measured: " + path + " needs a time_<unit> (or delay_<unit>) column and a relativeIntensity, intensity or contrast_dB column.");
+                double su = UltrafastEngine.Measured.MeasuredData.Unit(tc);
+                bool db = lc.EndsWith("_db", StringComparison.OrdinalIgnoreCase);
+                var t = d.Columns[tc].Select(v => v * su).ToArray();
+                var l = d.Columns[lc].Select(v => db ? Math.Pow(10, -Math.Abs(v) / 10) : v).ToArray();
+                x.Set("timesS", JsonValue.FromArray(t)); x.Set("relativeIntensities", JsonValue.FromArray(l));
+            }
+            var times = x.GetDoubleArray("timesS"); var lev = x.GetDoubleArray("relativeIntensities");
+            if (times == null || lev == null || times.Length != lev.Length || times.Length < 2)
+                throw new JsonException(origin + ".pedestal measured needs a csv, or timesS and relativeIntensities of equal length (at least 2 points).");
+            string outside = x.GetString("outside", "zero").ToLowerInvariant();
+            if (outside != "zero" && outside != "hold") throw new JsonException(origin + ".pedestal measured: outside must be \"zero\" or \"hold\".");
         }
 
         private static double[] Solve3(double[,] A, double[] b)

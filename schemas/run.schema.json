@@ -260,7 +260,7 @@
           "description": "Time offset [s] Default: 0."
         },
         "pedestal": {
-          "description": "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"
+          "description": "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured)"
         },
         "noise": {
           "anyOf": [

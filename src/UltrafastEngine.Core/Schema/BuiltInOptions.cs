@@ -85,7 +85,7 @@ namespace UltrafastEngine.Schema
                 .P("polarization", ParamType.Any, "", "\"x\", \"y\", \"45\", \"-45\", \"rcp\", \"lcp\", {angleDeg, ellipticity} or [exRe, exIm, eyRe, eyIm]", "\"x\"")
                 .Obj("spectrum", "Measured spectrum (shape: spectrum): wavelengthsM + intensity (+ phaseRad), or csv", "pulseSpectrum")
                 .Num("delayS", "s", "Time offset", "0")
-                .P("pedestal", ParamType.Any, "", "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)")
+                .P("pedestal", ParamType.Any, "", "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured)")
                 .Obj("noise", "Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding)", "pulseNoise"));
             add(new ComponentSpec("pulseNoise", "", "Quantum noise added to the input pulse (docs/reference/fibers.md#noise-and-coherence).")
                 .Enum("kind", new[] { "onePhotonPerMode", "none" }, "Noise model", "onePhotonPerMode")
@@ -150,12 +150,17 @@ namespace UltrafastEngine.Schema
                 .Int("gpuMinPoints", "backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU", "8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end")
                 .Int("deviceSlots", "GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits", "4"));
             add(new ComponentSpec("pedestalComponent", "", "A pedestal / contrast component of the input pulse (docs/reference/run-spec.md#pedestal).").Open()
-                .Enum("kind", new[] { "replica", "prePulse", "postPulse", "ase", "phaseNoise", "exponential" }, "Component", required: true)
+                .Enum("kind", new[] { "replica", "prePulse", "postPulse", "ase", "phaseNoise", "exponential", "measured" }, "Component", required: true)
                 .Num("delayS", "s", "Delay (replica; ASE envelope centre)").Num("relativeIntensity", "", "Intensity relative to the main peak").Num("relativeEnergy", "", "Energy relative to the main pulse (replica)")
                 .Num("phaseRad", "rad", "Replica phase").Num("gddFs2", "fs^2", "Extra GDD of a replica").Num("gddS2", "s^2", "Extra GDD of a replica")
                 .Num("durationS", "s", "ASE duration", "10e-9").Num("energyFraction", "", "ASE energy / main energy").Num("bandwidthFwhmM", "m", "Spectral FWHM of ASE / exponential pedestal").Num("bandwidthFwhmNm", "nm", "Spectral FWHM in nm").Num("centerWavelengthM", "m", "Centre of that spectrum")
                 .Num("rmsRad", "rad", "Spectral phase noise rms").Num("amplitudeRms", "", "Spectral amplitude noise rms").Num("correlationNm", "nm", "Noise correlation width").Num("correlationRadPerS", "rad/s", "Noise correlation width")
                 .Num("level", "", "Exponential pedestal level at the peak").Num("riseS", "s", "Exponential rise (before the peak)").Num("fallS", "s", "Exponential fall (after the peak)")
+                .Str("csv", "measured: CSV file of a contrast trace (columns time_<unit> or delay_<unit>, and relativeIntensity, intensity or contrast_dB)")
+                .P("timesS", ParamType.Any, "s", "measured: delays of the trace points (alternative to csv; use with relativeIntensity)")
+                .P("relativeIntensities", ParamType.Any, "", "measured: intensity relative to the main peak at each delay (alternative to csv)")
+                .Num("excludeWithinS", "s", "measured: trace points closer than this to t = 0 are ignored (the main pulse is already there)", "0")
+                .Str("outside", "measured: \"zero\" (no pedestal beyond the trace) or \"hold\" (the end values continue)", "zero")
                 .Int("seed", "Random seed", "1"));
             add(new ComponentSpec("stepper", "", "Nonlinear solver (docs/reference/solvers.md).")
                 .Enum("method", new[] { "adaptive", "rk4ip" }, "Adaptive ERK4(3)-IP or fixed-step RK4IP", "adaptive")

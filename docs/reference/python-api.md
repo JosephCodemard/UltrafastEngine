@@ -718,3 +718,7 @@ Collapse repeated units (e.g. 20 x [pass, mirror] in a multipass cell) into one 
 ### `draw_system(res, ax, theme: dict, compact: bool = False)`
 
 Draw the schematic of ``res`` (live Result or results folder) on ``ax``.
+
+### `draw_graph(res, ax, theme: dict, compact: bool = False)`
+
+Draw a Branched system as a graph on ``ax``: elements as boxes by layer, arms as lanes, links coloured by the carrier after their source element, virtual inputs and outputs as small open markers, the energy at the end, loops as arcs.

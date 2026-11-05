@@ -543,7 +543,10 @@ def system_diagram(res, ax=None, compact: bool = False):
     res = load(res)
     with _Style():
         ax = ax or plt.gca()
-        diagram.draw_system(res, ax, _theme, compact=compact)
+        if res.summary.get("graph", {}).get("topology") == "branched" and res.summary.get("graph", {}).get("links"):
+            diagram.draw_graph(res, ax, _theme, compact=compact)
+        else:
+            diagram.draw_system(res, ax, _theme, compact=compact)
         if compact:
             ax.set_title("System")
     return ax
