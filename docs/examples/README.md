@@ -42,6 +42,7 @@ Each example is a folder with a README, its commands and its expected output. **
 | [35-tilt-fringes](35-tilt-fringes/README.md) | CLI | a Michelson with a tilted mirror in a Branched `.ufs`: fringes at lambda / angle from carried profiles | `ultrafast run michelson.ufs run.json -o results`, `python report.py` |
 | [36-structured-beams](36-structured-beams/README.md) | Python | Hermite-Gauss and Laguerre-Gauss M², a Bessel core from an axicon, a zone-plate focus | `python structured.py` |
 | [37-f2f-cep](37-f2f-cep/README.md) | Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
+| [41-pump-probe](41-pump-probe/README.md) | Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
 | [42-noncollinear-opa](42-noncollinear-opa/README.md) | CLI | a NOPA in a Branched `.ufs`: the pump arm's tilt sets the angle, a virtual seed, the idler's direction from transverse momentum | `ultrafast run nopa.ufs run.json -o results`, `python report.py` |
 | [40-noncollinear-correlators](40-noncollinear-correlators/README.md) | Python | beams crossing in a crystal: a background-free autocorrelator with its geometric smearing, and crossed THG with the output angles | `python correlators.py` |
 | [39-third-order-cross-correlator](39-third-order-cross-correlator/README.md) | Python | SHG, a delay and THG in a Branched system: the layout of a SEQUOIA or TOCC | `python tocc.py` |
