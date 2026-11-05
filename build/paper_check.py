@@ -146,6 +146,12 @@ def table(rows):
     return "\n".join(lines)
 
 
+def annotate(name, text):
+    """A GitHub Actions error annotation (readable without log access); nothing elsewhere."""
+    if os.environ.get("GITHUB_ACTIONS"):
+        print("::error title=paper %s::%s" % (name, text.replace("\n", " ")[:600]))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("only", nargs="*", help="paper folder name prefixes (default: all)")
@@ -172,6 +178,7 @@ def main(argv=None):
                 failures += 1
                 entry["error"] = out.strip().splitlines()[-12:]
                 print("FAIL %-40s run.py --tier %s exited %d after %.0f s:\n     %s" % (name, tier, rc, dt, "\n     ".join(entry["error"])))
+                annotate(name, "run.py exited %d: %s" % (rc, " | ".join(entry["error"][-4:])))
                 report.append(entry)
                 continue
         npath = os.path.join(folder, "results", "numbers.json")
@@ -189,6 +196,8 @@ def main(argv=None):
         failures += bool(bad)
         print("%-4s %-40s %d checks, %d failed, %d soft-failed%s" % ("ok" if not bad else "FAIL", name, len(rows), len(bad), len(soft),
                                                                      " (%.0f s)" % entry["seconds"] if "seconds" in entry else ""))
+        for r in bad:
+            annotate(name, "%s: expected %s, ours %s %s" % (r["id"], fmt(r["expected"]), fmt(r["ours"]), r.get("detail") or ""))
         for r in rows:
             print("     %-9s %-46s expected %-28s ours %s%s" % (r["verdict"], r["id"], fmt(r["expected"]), fmt(r["ours"]), ("  [" + r["detail"] + "]") if r.get("detail") else ""))
         if any(r.get("detail") for r in bad):
