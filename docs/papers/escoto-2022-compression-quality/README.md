@@ -78,7 +78,7 @@ The compressed pulses at B = 20 rad (C ≈ 13): the side peaks that set the inte
 | side peaks appear | roughly C > 2 (Sec. 4.2) | C = 2.18 (FTL), 2.33 (GDD; jumps to 5.7 %) | pass (soft) |
 | Eq. 4 stretch at γ/σ² = 5 | almost 14 (Sec. 3.3) | 13.90 | pass |
 | FTL energy ratio at C = 10: unchirped / +τ² / −τ² | chirped worse (Sec. 3.3) | 0.820 / 0.744 / 0.749 | pass |
-| engine compressor instrument vs numpy GDD optimum | | 4·10⁻⁶ (3.8 % before the fix) | pass |
+| engine compressor instrument vs numpy GDD optimum | | 4·10⁻⁶ | pass |
 
 ## Commentary
 
@@ -100,12 +100,3 @@ The compressed pulses at B = 20 rad (C ≈ 13): the side peaks that set the inte
 * Not reproduced: the energy ratio at C = 1000 (~65 %, B ≈ 1700, needs a much larger grid), the experimental
   results of Sec. 3.4 (the 2 m argon MPC parameters are not given), the GDD-detuning maps of Figs. 4-5 and the
   cascaded compression of Sec. 4.
-
-## An engine bug found on the way, fixed
-
-The engine's `compressor` instrument reported a GDD-compressed FWHM **3.8 % too short at B = 40** (38.9 fs vs
-40.4 fs), though its GDD was right. It searches on a compact copy of the pulse whose time step only resolves the
-spectrum (about a fifth of the compressed FWHM after strong SPM) and interpolated the half-maximum crossings on it.
-Fix: the compressed pulse is now evaluated on the pulse's own grid (`IdealCompressor` in
-`src/UltrafastEngine.Core/Instruments/Instruments.cs`). Test:
-`InstrumentTests.Compressor_AfterStrongSpm_ReportsTheFwhmOnTheFullGrid` (0.5 %, and Eq. 2 to 5 % at B = 40).

@@ -2,7 +2,7 @@
 
 J. P. Gordon, "Theory of the soliton self-frequency shift", Opt. Lett. 11, 662 (1986), DOI 10.1364/OL.11.000662.
 **Not open access; neither the paper nor its abstract could be read.** Status: **reproduced against the
-perturbation theory** (after an engine fix, below); the paper's worked example is UNVERIFIED.
+perturbation theory**; the paper's worked example is UNVERIFIED.
 
 ## What the paper claims
 
@@ -70,7 +70,7 @@ The three Raman gain shapes fR Im H̃(f) and their T_R.
 
 ## Commentary
 
-* After the fix below the engine follows Gordon's integral: to 1.3 % for Blow-Wood at every T0, and to 1-2 % for
+* The engine follows Gordon's integral: to 1.3 % for Blow-Wood at every T0, and to 1-2 % for
   the other two models for T0 ≥ 140 fs. The fitted exponents agree with those of the integral to 0.01.
 * The long-pulse T0⁻⁴ law needs T0 much longer than every time of the response. For Blow-Wood and Hollenbeck it
   holds to 0.13 in the exponent from 200 fs; the Lin-Agrawal boson peak (96 fs, a gain bump near 2 THz) keeps the
@@ -81,18 +81,6 @@ The three Raman gain shapes fR Im H̃(f) and their T_R.
   same T0) is not expected to hold to better than that. Not investigated further.
 * Gordon's worked example (~100 m) agrees best with the Hollenbeck model (107 m), whose gain is the measured
   spectrum; the Blow-Wood oscillator, with half the gain slope, needs twice the distance.
-
-## What did not reproduce at first: an engine bug, fixed
-
-With the kernel sampled directly on the auto-sized grid, the engine's shift was **8-43 % too fast**, growing with
-T0 (the auto grid's time step grows with T0: 23.5 fs at T0 = 300 fs for one 45 m fibre). Cause: `EnvelopeProblem.RamanKernels`
-(`src/UltrafastEngine.Core/Physics/Nonlinear.cs`) sampled h(t) on the grid's time step. A step longer than the
-12 fs Raman oscillation aliases the kernel, so its discrete spectrum is not H(ω) near ω = 0 and the slope that sets
-the shift is wrong (on a fixed 6.5 fs grid the error was 2.8 %, on 1.6 fs 0.2 %). Fix: on grids coarser than
-0.5 fs, h is evaluated on a sub-grid, its spectrum is cut at the grid's Nyquist frequency and the samples are
-decimated (`EnvelopeProblem.SampledResponse`), so the kernel's spectrum is H(ω) at every grid frequency. Test:
-`FiberTests.SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon` (T0 = 300 fs on the auto grid, 2 %).
-This changes every Raman run on a grid coarser than 0.5 fs, by up to a few % for picosecond pulses.
 
 ## What is not done
 

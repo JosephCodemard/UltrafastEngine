@@ -64,7 +64,9 @@ the Raman fraction `fR`:
 Molecular gases have their rotational Raman response as an anisotropic tensor response instead
 ([Gases](gases.md)). Every kernel is sampled on the time grid and normalised there to unit sum, so the delayed
 fraction is exactly fR whatever the step (an analytic normalisation is off by a few % when the step is not much smaller
-than the 12 fs oscillation; with the grid normalisation the engine and pyNLO agree to 0.05 %).
+than the 12 fs oscillation; with the grid normalisation the engine and pyNLO agree to 0.05 %). On a grid whose step is
+longer than 0.5 fs the response is evaluated on a finer sub-grid and band-limited to the grid before it is sampled, so
+its spectrum is the response's own H(ω) at every frequency of the grid and the Raman shift does not depend on the step.
 
 ## Carrier-resolved field model
 
