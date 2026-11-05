@@ -47,5 +47,54 @@ namespace UltrafastEngine.Tests
                 Assert.Close(expected, Run(true), 1e-4, 0, "tracked GDD at " + aoiDeg + " deg");
             }
         }
+
+        private static double Tc(UltrafastEngine.Pulses.PulseField p) => TemporalCentroid(p);
+
+        [Test(Reference = "linear superposition: the splitter passes each colour at its own frequency", Tolerance = "1 %")]
+        public void SequentialSplitter_FedBeamOfAnotherColour_KeepsItsOwnCarrier()
+        {
+            // 1000 nm fed into a 1030 nm run: both colours leave by port c, half of each (R = 0.5), so the spectral centroid is the mean frequency
+            double l1 = 1030e-9, l2 = 1000e-9;
+            var s = Sys(O("id", "bs", "type", "beamSplitter", "reflectivity", 0.5, "inputs", O("b", O("pulse", Gauss(l2, 400e-15, 1e-9), "delayS", 0.0, "coherentWith", "input"))));
+            var r = Go(s, Spec(Gauss(l1, 400e-15, 1e-9)));
+            Assert.Close(0.5 * (W(l1) + W(l2)), SpectralCentroid(r.Output), 2e-4, 0, "centroid is the mean of the two carriers");
+            Assert.Close(1e-9, r.Output.TotalEnergyJ(), 1e-3, 0, "half of each 1 nJ beam " + string.Join(";", r.Warnings) + " N=" + r.Output.Grid.N + " dw=" + r.Output.Grid.DOmega + " dt=" + r.Output.Grid.DTime + " loss=" + string.Join(",", r.Records[0].LossJ.Select(k => k.Key + "=" + k.Value)));
+        }
+
+        [Test]
+        public void SequentialSplitter_FedBeamOutsideTheGrid_IsReportedAndBooked_NotRenormalised()
+        {
+            double l1 = 1030e-9;
+            var s = Sys(O("id", "bs", "type", "beamSplitter", "reflectivity", 0.5, "inputs", O("b", O("pulse", Gauss(l1 / 2, 100e-15, 1e-9), "delayS", 0.0, "coherentWith", "input"))));
+            var r = Go(s, Spec(Gauss(l1, 100e-15, 1e-9)));
+            Assert.Close(0.5e-9, r.Output.TotalEnergyJ(), 1e-3, 0, "only the main beam's half is on the grid");
+            Assert.True(r.Warnings.Any(w => w.Contains("outside the run's frequency grid")), "a warning names the lost energy");
+            Assert.True(r.Records[0].LossJ.ContainsKey("fed beam outside the run's grid"), "booked as a loss");
+        }
+
+        [Test]
+        public void MeasuredSpectrum_OutsideTheGridBand_IsAnError_NotRenormalisedAtTheEdge()
+        {
+            var wl = Enumerable.Range(0, 200).Select(i => 1000e-9 + i * 0.3e-9).ToArray();
+            var I = wl.Select(l => Math.Exp(-Math.Pow((l - 1030e-9) / 10e-9, 2))).ToArray();
+            var run = UltrafastEngine.Specs.RunSpec.FromJson(O("format", "ultrafast-run", "pulse", O("spectrum", O("wavelengthsM", wl, "intensity", I), "energyJ", 1e-6)));
+            var onBand = UltrafastEngine.Pulses.FrequencyGrid.Create(1024, 5e-15, W(1030e-9));
+            var notes = new System.Collections.Generic.List<string>();
+            run.Pulse.Build(onBand, notes);
+            Assert.Equal(0, notes.Count, "a spectrum inside the band raises nothing");
+            var offBand = UltrafastEngine.Pulses.FrequencyGrid.Create(1024, 5e-15, W(515e-9));
+            string msg = "";
+            try { run.Pulse.Build(offBand, notes); } catch (InvalidOperationException ex) { msg = ex.Message; }
+            Assert.True(msg.Contains("frequency band"), "a spectrum outside the band is an error: " + msg);
+        }
+
+        [Test(Reference = "a leakMirror's GDD is a quadratic phase about the beam's own carrier: no group-delay offset for another colour", Tolerance = "0.2 ps")]
+        public void LeakMirror_GddIsAboutTheFedBeamsOwnCarrier()
+        {
+            // a negligible main pulse and a 1000 nm fed beam on a 1030 nm run: the reflected port's temporal centroid stays at zero
+            var s = Sys(O("id", "m", "type", "leakMirror", "transmission", 0.02, "gddFs2", 20000.0, "inputs", O("b", O("pulse", Gauss(1000e-9, 100e-15, 1e-9), "delayS", 0.0, "coherentWith", "input"))));
+            var r = Go(s, Spec(Gauss(1030e-9, 100e-15, 1e-15)));
+            Assert.True(Math.Abs(Tc(r.Output)) < 0.2e-12 + 0, "centroid " + Tc(r.Output));
+        }
     }
 }

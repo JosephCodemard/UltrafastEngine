@@ -154,7 +154,7 @@ namespace UltrafastEngine.Engine
             }
             double Key(string name, double def) => Num(c, src, name, def);
             Func<double, (double Rx, double Ry)> reflect;
-            Func<double, double> phaseR = null, phaseT = null;
+            Func<double, double, double> phaseR = null, phaseT = null;   // (omega, reference omega): GDD about the beam's own carrier
             string a = "a", b = "b", cPort = "c", dPort = "d", keep = "c";
             switch (type)
             {
@@ -189,9 +189,9 @@ namespace UltrafastEngine.Engine
                         return ts[order[order.Length - 1]];
                     }
                     reflect = w => { double r = 1 - TAt(w); return (r, r); };
-                    double w0 = c.Omega0, gddR = Key("gddFs2", 0) * 1e-30, gddT = Key("leakGddFs2", 0) * 1e-30;
-                    if (gddR != 0) phaseR = w => 0.5 * gddR * (w - w0) * (w - w0);
-                    if (gddT != 0) phaseT = w => 0.5 * gddT * (w - w0) * (w - w0);
+                    double gddR = Key("gddFs2", 0) * 1e-30, gddT = Key("leakGddFs2", 0) * 1e-30;
+                    if (gddR != 0) phaseR = (w, wr) => 0.5 * gddR * (w - wr) * (w - wr);
+                    if (gddT != 0) phaseT = (w, wr) => 0.5 * gddT * (w - wr) * (w - wr);
                     break;
                 }
                 default: // dichroic
@@ -1592,7 +1592,7 @@ namespace UltrafastEngine.Engine
                 c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Carrier snapped to the frequency grid: {0:F4} -> {1:F4} nm.",
                     2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0 * 1e9, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w0s * 1e9));
             c.Out.Grid = grid;
-            c.Out.Input = ps.Build(grid);
+            c.Out.Input = ps.Build(grid, c.Out.Warnings);
             c.Out.Notes.Add("Input pulse: " + ps.Describe() + string.Format(CultureInfo.InvariantCulture, ", {0:G4} J", c.Out.Input.TotalEnergyJ()));
         }
     }

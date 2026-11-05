@@ -10,7 +10,7 @@
 //     BeamPacket Strongest(IEnumerable<BeamPacket> packets)
 //     Complex Overlap(PathLedger a, PathLedger b)                  mode overlap of two tracked Gaussian beams
 //   class BeamSplitterElement : IMultiPortElement                  the splitter family: c = t a - r b, d = r a + t b
-//     (Complex X, Complex Y) Coefficient(inPort, outPort, omega)
+//     (Complex X, Complex Y) Coefficient(inPort, outPort, omega, omegaRef)
 //   class BeamTiltElement : IActiveElement                         misalignment of an arm
 //   class DelayTerm : PhaseTerm                                    a pure delay, phase omega tau
 //
@@ -217,12 +217,12 @@ namespace UltrafastEngine.Engine
     public sealed class BeamSplitterElement : IMultiPortElement, IReportsCarrierPhase
     {
         private readonly Func<double, (double Rx, double Ry)> _reflect;
-        private readonly Func<double, double> _phaseR, _phaseT;
+        private readonly Func<double, double, double> _phaseR, _phaseT;
         private readonly double _side;
         private readonly string _a, _b, _c, _d;
         private readonly VirtualInput _virtual;
 
-        public BeamSplitterElement(string kind, Func<double, (double Rx, double Ry)> reflect, Func<double, double> phaseR, Func<double, double> phaseT, double side,
+        public BeamSplitterElement(string kind, Func<double, (double Rx, double Ry)> reflect, Func<double, double, double> phaseR, Func<double, double, double> phaseT, double side,
             string a, string b, string c, string d, string continuingPort, VirtualInput virtualOnB)
         {
             Kind = kind; _reflect = reflect; _phaseR = phaseR; _phaseT = phaseT; _side = side;
@@ -236,13 +236,13 @@ namespace UltrafastEngine.Engine
         public string ContinuingPort { get; }
 
         /// <summary>Amplitude from an input to an output at one frequency, for x and y.</summary>
-        public (Complex X, Complex Y) Coefficient(string inPort, string outPort, double omega)
+        public (Complex X, Complex Y) Coefficient(string inPort, string outPort, double omega, double omegaRef)
         {
             bool onB = string.Equals(inPort, _b, StringComparison.OrdinalIgnoreCase), toC = string.Equals(outPort, _c, StringComparison.OrdinalIgnoreCase);
             var (rx, ry) = _reflect(omega);
             bool reflected = onB == toC;   // a -> d and b -> c are the reflections
             double sign = !reflected ? 1 : (onB ? -_side : _side);
-            double phase = (reflected ? _phaseR : _phaseT)?.Invoke(omega) ?? 0;
+            double phase = (reflected ? _phaseR : _phaseT)?.Invoke(omega, omegaRef) ?? 0;
             Complex X = (reflected ? Math.Sqrt(rx) : Math.Sqrt(1 - rx)) * sign, Y = (reflected ? Math.Sqrt(ry) : Math.Sqrt(1 - ry)) * sign;
             if (phase == 0) return (X, Y);
             var f = Complex.FromPolarCoordinates(1, phase);
@@ -257,7 +257,7 @@ namespace UltrafastEngine.Engine
             var f = onB == toC ? _phaseR : _phaseT;
             if (f == null) return new Physics.DispersionPoint();
             double h = 1e-3 * omega;
-            return new Physics.DispersionPoint { GddS2 = (f(omega + h) - 2 * f(omega) + f(omega - h)) / (h * h) };
+            return new Physics.DispersionPoint { GddS2 = (f(omega + h, omega) - 2 * f(omega, omega) + f(omega - h, omega)) / (h * h) };
         }
 
         private PulseField Through(PulseField p, string inPort, string outPort)
@@ -267,7 +267,7 @@ namespace UltrafastEngine.Engine
             for (int i = 0; i < n; i++)
             {
                 if (p.Ax[i] == Complex.Zero && p.Ay[i] == Complex.Zero) continue;
-                var (x, y) = Coefficient(inPort, outPort, p.Grid.OmegaAbsolute[i]);
+                var (x, y) = Coefficient(inPort, outPort, p.Grid.OmegaAbsolute[i], p.Grid.OmegaCenter);
                 ax[i] = p.Ax[i] * x; ay[i] = p.Ay[i] * y;
             }
             var q = p.WithSpectrum(ax, ay);
@@ -281,11 +281,26 @@ namespace UltrafastEngine.Engine
             var c = Through(p, port, _c); var d = Through(p, port, _d);
             if (_virtual != null && !ctx.InGraph)
             {
-                var v = _virtual.Spec.Build(p.Grid, 0, ctx.Record.Notes);
+                // the fed beam is built on a grid around its own carrier (as in a Branched system), passed through the splitter at its
+                // own frequencies, and only then brought onto the run's grid; what falls outside that grid is booked and reported
+                var vg = Executor.VirtualInputGrid(p.Grid, _virtual.Spec);
+                var v = _virtual.Spec.Build(vg, 0, ctx.Result.Warnings);
                 var f = Complex.FromPolarCoordinates(1, _virtual.PhaseRad);
                 v = v.WithSpectrum(v.Ax.Select(z => z * f).ToArray(), v.Ay.Select(z => z * f).ToArray());
                 ctx.Record.EnergyInJ += v.TotalEnergyJ();
-                c = Added(c, Through(v, _b, _c)); d = Added(d, Through(v, _b, _d));
+                var vc = Through(v, _b, _c); var vd = Through(v, _b, _d);
+                if (!ReferenceEquals(vg, p.Grid))
+                {
+                    double before = vc.TotalEnergyJ() + vd.TotalEnergyJ();
+                    vc = GridResampler.Resample(vc, p.Grid, out _); vd = GridResampler.Resample(vd, p.Grid, out _);
+                    double lostJ = before - vc.TotalEnergyJ() - vd.TotalEnergyJ();
+                    Executor.AddLoss(ctx.Record, "fed beam outside the run's grid", lostJ);
+                    if (before > 0 && lostJ > 1e-3 * before)
+                        ctx.Result.Warnings.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "Element '" + ctx.Element.Id + "': fed beam at {0:G5} nm: {1:P1} of its energy at the splitter outputs lies outside the run's frequency grid (use a Branched system, or widen the grid)",
+                            2e9 * Math.PI * Numerics.PhysicalConstants.SpeedOfLightMPerS / vg.OmegaCenter, lostJ / before));
+                }
+                c = Added(c, vc); d = Added(d, vd);
             }
             bool keepC = string.Equals(ContinuingPort, _c, StringComparison.OrdinalIgnoreCase);
             var other = keepC ? d : c;

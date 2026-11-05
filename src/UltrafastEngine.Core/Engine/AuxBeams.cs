@@ -171,7 +171,7 @@ namespace UltrafastEngine.Engine
                     p = p.WithSpectrum(p.Ax.Select(z => z * f).ToArray(), p.Ay.Select(z => z * f).ToArray());
                 }
             }
-            else if (Pulse != null) p = Pulse.Build(grid);
+            else if (Pulse != null) p = Pulse.Build(grid, notes);
             else
             {
                 var s = LoadSaved();
