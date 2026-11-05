@@ -1252,6 +1252,11 @@ namespace UltrafastEngine.Engine
             double g = Num(c, e, "separationM", double.NaN);
             if (double.IsNaN(g)) throw new JsonException("gratingPair needs separationM (perpendicular distance; negative for a stretcher).");
             int order = (int)Num(c, e, "order", -1), passes = (int)Num(c, e, "passes", 2);
+            // without a propagating order at the carrier the whole spectrum would be removed silently (energy null downstream)
+            double sinD = Math.Abs(order == 0 ? -1 : order) * 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0 / (1.0 / lpm) - Math.Sin(aoi);
+            if (Math.Abs(sinD) >= 1)
+                throw new JsonException(string.Format(CultureInfo.InvariantCulture, "gratingPair '{0}': order {1} does not propagate at the carrier ({2:G5} nm, {3:G5} l/mm, AOI {4:G4} deg: sin(theta_d) = {5:G4}); use fewer lines per mm or another angle",
+                    e.Id, order, 2e9 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0, lpm * 1e-3, aoi * 180 / Math.PI, sinD));
             var t = new GratingPairTerm(lpm, aoi, g, order, passes, 1.0);
             ce.Pre.Add(t);
             ce.LengthM = Math.Abs(g) * passes * 2;
