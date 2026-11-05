@@ -18,7 +18,7 @@ ultrafast-plot results
 | round trips (auto) | 11 (2 passes each, 6 % cavity loss, 40 mm of fused silica per round trip) |
 | output | 1.81 mJ (gain 9 × 10⁵), extraction 97 % of the stored energy |
 | spectrum | 31.4 nm → 28.6 nm FWHM (gain narrowing), centroid shifts red (800.2 → 802.9 nm) |
-| compressed | 42.3 fs (transform limit 34.3 fs; the remainder is higher-order phase of the cavity) |
+| compressed | 41.1 fs (transform limit 34.3 fs; the remainder is higher-order phase of the cavity) |
 | B-integral in the regen | 1.8 rad |
 
 ![Gain spectrum, inversion, build-up per round trip and pulse train of the regenerative amplifier](regen-gain.png)

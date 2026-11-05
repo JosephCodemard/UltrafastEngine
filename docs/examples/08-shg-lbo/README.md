@@ -19,7 +19,7 @@ What to look at in `results/summary.json`:
 * `energyBudget` -- "to fundamental" is the energy carried off by the by-product; "numerical" is the solver's
   bookkeeping error (~1e-8 of the input).
 * `instruments`: `conversion_shg` (energies and photon numbers of every field), `phaseMatchingCurve_shg`
-  (angular acceptance, ~0.9 deg FWHM for 2 mm), `acceptance_wavelength` (spectral acceptance, ~11.5 nm).
+  (angular acceptance, ~0.9 deg FWHM for 2 mm), `acceptance_wavelength` (spectral acceptance, ~15.3 nm).
 * `results/result.npz` -> `probe_shg_fundamental_*`: the depleted fundamental (time and spectrum).
 
 The radial run computes the conversion point by point across the beam: the centre converts more than the wings,

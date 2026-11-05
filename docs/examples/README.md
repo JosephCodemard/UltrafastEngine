@@ -18,7 +18,7 @@ Each example is a folder with a README, its commands and its expected output. **
 | [11-spatial-kerr](11-spatial-kerr/README.md) | CLI | self-focusing with diffraction resolved (radial model), profile carried through free space; on-axis vs whole-beam spectra and autocorrelations (pinhole, slit, fibre in the far field) | `ultrafast run kerr.ufs run.json` |
 | [12-user-element](12-user-element/README.md) | Python | a pulse shaper written in Python as a user element | `python dazzler.py` |
 | [13-yb-multipass-cpa](13-yb-multipass-cpa/README.md) | CLI | Yb:YAG CPA: cw-pumped 8-pass amplifier, steady state at 10 kHz, gain narrowing, thermal lens | `ultrafast run amp.ufs run.json` |
-| [14-ti-sapphire-regen](14-ti-sapphire-regen/README.md) | CLI | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 42 fs | `ultrafast run regen.ufs run.json` |
+| [14-ti-sapphire-regen](14-ti-sapphire-regen/README.md) | CLI | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 41 fs | `ultrafast run regen.ufs run.json` |
 | [15-spatial-gain-thermal-lens](15-spatial-gain-thermal-lens/README.md) | CLI | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json` |
 | [16-position-dependent-index](16-position-dependent-index/README.md) | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `python grin_variants.py` |
 | [17-instrument-tour](17-instrument-tour/README.md) | CLI | every instrument kind once along one beam line, plus spectrometers and an autocorrelator looking through a pinhole, a fibre (far field) and a slit | `ultrafast run tour.ufs run.json` |

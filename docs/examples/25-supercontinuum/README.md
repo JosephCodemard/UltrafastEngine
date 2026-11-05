@@ -32,7 +32,7 @@ shows what that does in the frequency domain: a dispersive wave appears on the b
 resonance, the spectrum extends from about 500 nm to beyond 1300 nm, and the strongest red feature near 1200 nm
 is the fundamental soliton, which the Raman effect has shifted away from the pump. In time, this Raman soliton has
 slowed down and arrives about 3.3 ps after the others, because red light travels slower in this fibre.
-The output keeps 91.07 % of the pulse energy, the rest of the photon energy goes to the vibrations of the glass.
+The output keeps 91.06 % of the pulse energy, the rest of the photon energy goes to the vibrations of the glass.
 
-The explicit grid (8192 points over 12.5 ps) resolves the full spectrum; the edges of the output spectrum are 60 dB
+The explicit grid (16384 points over 12.5 ps) resolves the full spectrum; the edges of the output spectrum are 60 dB
 below its peak (check `edgeEnergyFraction`).
