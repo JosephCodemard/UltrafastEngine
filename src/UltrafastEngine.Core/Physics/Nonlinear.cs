@@ -130,7 +130,7 @@ namespace UltrafastEngine.Physics
         internal static (Complex[] Total, Complex[] Aniso) RamanKernels(IDelayedResponse r, FrequencyGrid grid, bool vector)
         {
             int n = grid.N;
-            var raw = r.Evaluate(grid.Time);
+            var raw = SampledResponse(r.Evaluate, grid);
             double s = 0; for (int i = 0; i < n; i++) s += raw[i];
             s *= grid.DTime;
             double scale = s > 0 && Math.Abs(s - 1) > 1e-12 ? 1 / s : 1;
@@ -140,7 +140,7 @@ namespace UltrafastEngine.Physics
             Complex[] aniso = null;
             if (vector && r is IVectorDelayedResponse v && v.AnisotropicFraction > 0)
             {
-                var hb = v.EvaluateAnisotropic(grid.Time);
+                var hb = SampledResponse(v.EvaluateAnisotropic, grid);
                 var bc = new Complex[n];
                 for (int i = 0; i < n; i++) bc[i] = hb[i] * scale;
                 aniso = SpectralTransform.TimeToFreq(bc);
@@ -185,6 +185,41 @@ namespace UltrafastEngine.Physics
                 if (dn > peak) peak = dn;
             }
             return peak;
+        }
+
+        /// <summary>Finest sub-step (s) at which a delayed response is evaluated before it is sampled on a coarser grid.</summary>
+        internal const double ResponseSubStepS = 0.5e-15;
+
+        /// <summary>
+        /// The response h(t) on the grid's time samples, band-limited to the grid. A grid coarser than the response's
+        /// oscillation (dt of 5-25 fs for a 100 fs - 1 ps pulse, against the 12 fs / 13 THz period of the silica Raman
+        /// response) aliases the sampled kernel: its spectrum is not H(w) near w = 0, and the Raman shift, which follows
+        /// the slope of Im H there, came out 3 % too fast at dt = 6.5 fs and 43 % at dt = 23.5 fs (soliton self-frequency
+        /// shift against Gordon, Opt. Lett. 11, 662 (1986); docs/papers/gordon-1986-ssfs). So for dt above the sub-step, h is
+        /// evaluated on a grid M times finer, its spectrum cut at the coarse grid's Nyquist frequency and every M-th sample
+        /// kept: the kernel's discrete spectrum is then H(w) itself at every frequency of the grid. Fine grids are unchanged.
+        /// </summary>
+        internal static double[] SampledResponse(Func<double[], double[]> evaluate, FrequencyGrid grid)
+        {
+            int n = grid.N; double dt = grid.DTime;
+            int m = (int)Math.Ceiling(dt / ResponseSubStepS - 1e-9);
+            while (m > 1 && (long)n * m > (1L << 23)) m--;
+            if (m <= 1) return evaluate(grid.Time);
+            int nf = n * m; double df = dt / m, t0 = grid.Time[0];
+            var tf = new double[nf];
+            for (int j = 0; j < nf; j++) tf[j] = t0 + j * df;
+            var hf = evaluate(tf);
+            var c = new Complex[nf];
+            for (int j = 0; j < nf; j++) c[j] = hf[j];
+            var spec = UltrafastEngine.Numerics.ComplexFft.Forward(c);
+            // keep |k| < n/2 (the coarse grid's band); +n/2 and -n/2 fold onto the same coarse bin: half each
+            int half = n / 2;
+            for (int k = half + 1; k < nf - half; k++) spec[k] = Complex.Zero;
+            if (n % 2 == 0) { spec[half] *= 0.5; spec[nf - half] *= 0.5; }
+            var lp = UltrafastEngine.Numerics.ComplexFft.Inverse(spec);
+            var h = new double[n];
+            for (int i = 0; i < n; i++) h[i] = lp[i * m].Real;
+            return h;
         }
 
         /// <summary>The sampled Raman kernel scaled to unit sum on the grid, so the delayed fraction is exactly fR

@@ -179,6 +179,31 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.2, em.Values.GetDouble("averagePowerW", 0), 1e-9, 0, "average power");
         }
 
+        /// <summary>After B = 40 rad of pure SPM the GDD-compressed pulse is ~25 times shorter than the input. The compressor
+        /// searches on a compact copy whose time step only resolves the spectrum (a fifth of the compressed FWHM here);
+        /// the reported FWHM must come from the pulse on its own grid. Before the fix it was 3.8 % short (38.9 vs 40.4 fs).
+        /// The compression factor is also Escoto's fit C = 0.59 B + 1, which holds to 5 % up to B = 40 for GDD-only
+        /// compression (arXiv:2201.05836v1, Sec. 2.1, Eq. 2; docs/papers/escoto-2022-compression-quality).</summary>
+        [Test(Reference = "Escoto et al., JOSA B 39, 1694 (2022), Eq. 2: C = 0.59 B + 1 within 5 % to B = 40", Tolerance = "0.5 %, 5 %")]
+        public void Compressor_AfterStrongSpm_ReportsTheFwhmOnTheFullGrid()
+        {
+            double tau = 1e-12, lam = 1030e-9, n2 = 2.5e-20, len = 1e-3, area = 1e-8, bInt = 40;
+            double p0 = bInt * area / (2 * Math.PI / lam * n2 * len), e = p0 * tau / (2 * Math.Sqrt(Math.Log(2) / Math.PI));
+            var s = Sys(O("id", "plate", "type", "bulk", "material", "flat", "lengthM", len, "beam", O("kind", "constant", "areaM2", area)));
+            s.Materials.Set("flat", FlatMaterial(n2));
+            var r = Go(s, Spec(Gauss(lam, tau, e), O("grid", O("n", 8192, "windowS", 12e-12, "auto", false), "physics", O("raman", false, "selfSteepening", false))));
+            Assert.Close(bInt, r.Records[0].BIntegralRad, 1e-3, 0, "B-integral of the plate");
+            var cp = Measure("compressor", r, O("optimizeTod", false));
+            double gdd = -cp.Values.GetDouble("compressorGddS2", 0), fwhm = cp.Values.GetDouble("compressedFwhmS", 0);
+            // the reference: the run's output with that GDD, on the run's own grid (dt = 1.46 fs, 27 samples per FWHM)
+            var g = r.Output.Grid;
+            var ax = r.Output.Ax.Select((c, i) => c * System.Numerics.Complex.FromPolarCoordinates(1, -gdd * g.OmegaOffset[i] * g.OmegaOffset[i] / 2)).ToArray();
+            var ay = r.Output.Ay.Select((c, i) => c * System.Numerics.Complex.FromPolarCoordinates(1, -gdd * g.OmegaOffset[i] * g.OmegaOffset[i] / 2)).ToArray();
+            double reference = PulseMetrics.Fwhm(g.Time, PulseMetrics.TemporalPower(new UltrafastEngine.Pulses.PulseField(g, ax, ay)));
+            Assert.Close(reference, fwhm, 0.005, 0, "compressed FWHM vs the same pulse on the run's grid");
+            Assert.Close(0.59 * bInt + 1, tau / fwhm, 0.05, 0, "Escoto Eq. 2, GDD only");
+        }
+
         [Test(Reference = "GDD of 1.5 mm fused silica at 800 nm", Tolerance = "2 %, 5 %")]
         public void DScan_FindsGlassThatCompensatesTheChirp()
         {

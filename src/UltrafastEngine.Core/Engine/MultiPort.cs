@@ -10,7 +10,7 @@
 //     BeamPacket Strongest(IEnumerable<BeamPacket> packets)
 //     Complex Overlap(PathLedger a, PathLedger b)                  mode overlap of two tracked Gaussian beams
 //   class BeamSplitterElement : IMultiPortElement                  the splitter family: c = t a - r b, d = r a + t b
-//     (Complex X, Complex Y) Coefficient(inPort, outPort, omega)
+//     (Complex X, Complex Y) Coefficient(inPort, outPort, omega, omegaRef)
 //   class BeamTiltElement : IActiveElement                         misalignment of an arm
 //   class DelayTerm : PhaseTerm                                    a pure delay, phase omega tau
 //
@@ -107,6 +107,7 @@ namespace UltrafastEngine.Engine
             }
             // a different carrier: both go on the grid that spans more (a fundamental and its harmonic in an f-2f interferometer)
             var target = a.Pulse.Grid.N * a.Pulse.Grid.DOmega >= b.Pulse.Grid.N * b.Pulse.Grid.DOmega ? a.Pulse.Grid : b.Pulse.Grid;
+            target = Spanning(target, a.Pulse.Grid, b.Pulse.Grid);
             double tauRef = 0.5 * (a.Path.FrameDelayS + b.Path.FrameDelayS), phiRef = a.Path.PhaseRad;
             var pa = Rebased(a, target, tauRef, phiRef, target.OmegaCenter, ctx);
             var pb = Rebased(b, target, tauRef, phiRef, target.OmegaCenter, ctx);
@@ -132,6 +133,21 @@ namespace UltrafastEngine.Engine
             for (int i = 0; i < n; i++) { ax[i] = pa.Ax[i] + overlap * pb.Ax[i]; ay[i] = pa.Ay[i] + overlap * pb.Ay[i]; }
             ctx.MismatchJ += (1 - overlap.Magnitude * overlap.Magnitude) * pb.TotalEnergyJ();
             return new BeamPacket { Pulse = a.Pulse.Grid == target ? a.Pulse.WithSpectrum(ax, ay) : new PulseField(target, ax, ay, a.Pulse.RepRateHz), Path = path };
+        }
+
+        /// <summary><paramref name="target"/> if its band holds both grids' bands; else a grid with the same window, the time step
+        /// halved until the band spans both, centred between them (exactly related to both when they share the window, as the
+        /// grids of one run do). Two beams of distant carriers (a 515 nm beam fed beside a 1030 nm one) otherwise lost the one
+        /// outside the other's band.</summary>
+        internal static FrequencyGrid Spanning(FrequencyGrid target, FrequencyGrid g, FrequencyGrid h)
+        {
+            double Lo(FrequencyGrid x) => x.OmegaCenter - 0.5 * x.N * x.DOmega;
+            double Hi(FrequencyGrid x) => x.OmegaCenter + 0.5 * x.N * x.DOmega;
+            double lo = Math.Min(Lo(g), Lo(h)), hi = Math.Max(Hi(g), Hi(h));
+            if (Lo(target) <= lo + 0.5 * target.DOmega && Hi(target) >= hi - 0.5 * target.DOmega) return target;
+            int k = 0;
+            while (target.N * Math.Pow(2, k) * target.DOmega < hi - lo && k < 8) k++;
+            return GridResampler.Derive(target, 0, -k, 0.5 * (lo + hi));
         }
 
         private static TailLedger MergeTails(BeamPacket a, BeamPacket b, double tauRef, double phiRef)
@@ -197,16 +213,16 @@ namespace UltrafastEngine.Engine
 
     /// <summary>The splitter family: a lossless 2x2 element, c = t a - r b, d = r a + t b (Stokes relations, r' = -r), with
     /// r and t by frequency and polarisation. Types differ only in their coefficients and port names (Compiler.CompileSplitter).
-    /// <paramref name="side"/> = -1 reverses the sign of r: the same plate met from its other face.</summary>
+    /// <c>side</c> = -1 reverses the sign of r: the same plate met from its other face.</summary>
     public sealed class BeamSplitterElement : IMultiPortElement, IReportsCarrierPhase
     {
         private readonly Func<double, (double Rx, double Ry)> _reflect;
-        private readonly Func<double, double> _phaseR, _phaseT;
+        private readonly Func<double, double, double> _phaseR, _phaseT;
         private readonly double _side;
         private readonly string _a, _b, _c, _d;
         private readonly VirtualInput _virtual;
 
-        public BeamSplitterElement(string kind, Func<double, (double Rx, double Ry)> reflect, Func<double, double> phaseR, Func<double, double> phaseT, double side,
+        public BeamSplitterElement(string kind, Func<double, (double Rx, double Ry)> reflect, Func<double, double, double> phaseR, Func<double, double, double> phaseT, double side,
             string a, string b, string c, string d, string continuingPort, VirtualInput virtualOnB)
         {
             Kind = kind; _reflect = reflect; _phaseR = phaseR; _phaseT = phaseT; _side = side;
@@ -220,17 +236,28 @@ namespace UltrafastEngine.Engine
         public string ContinuingPort { get; }
 
         /// <summary>Amplitude from an input to an output at one frequency, for x and y.</summary>
-        public (Complex X, Complex Y) Coefficient(string inPort, string outPort, double omega)
+        public (Complex X, Complex Y) Coefficient(string inPort, string outPort, double omega, double omegaRef)
         {
             bool onB = string.Equals(inPort, _b, StringComparison.OrdinalIgnoreCase), toC = string.Equals(outPort, _c, StringComparison.OrdinalIgnoreCase);
             var (rx, ry) = _reflect(omega);
             bool reflected = onB == toC;   // a -> d and b -> c are the reflections
             double sign = !reflected ? 1 : (onB ? -_side : _side);
-            double phase = (reflected ? _phaseR : _phaseT)?.Invoke(omega) ?? 0;
+            double phase = (reflected ? _phaseR : _phaseT)?.Invoke(omega, omegaRef) ?? 0;
             Complex X = (reflected ? Math.Sqrt(rx) : Math.Sqrt(1 - rx)) * sign, Y = (reflected ? Math.Sqrt(ry) : Math.Sqrt(1 - ry)) * sign;
             if (phase == 0) return (X, Y);
             var f = Complex.FromPolarCoordinates(1, phase);
             return (X * f, Y * f);
+        }
+
+        /// <summary>GDD a path from <paramref name="inPort"/> to <paramref name="outPort"/> picks up (the leakMirror's gddFs2 /
+        /// leakGddFs2: a pure quadratic phase, so GDD only), for the reported own / system dispersion.</summary>
+        public Physics.DispersionPoint PortDispersion(string inPort, string outPort, double omega)
+        {
+            bool onB = string.Equals(inPort, _b, StringComparison.OrdinalIgnoreCase), toC = string.Equals(outPort, _c, StringComparison.OrdinalIgnoreCase);
+            var f = onB == toC ? _phaseR : _phaseT;
+            if (f == null) return new Physics.DispersionPoint();
+            double h = 1e-3 * omega;
+            return new Physics.DispersionPoint { GddS2 = (f(omega + h, omega) - 2 * f(omega, omega) + f(omega - h, omega)) / (h * h) };
         }
 
         private PulseField Through(PulseField p, string inPort, string outPort)
@@ -240,7 +267,7 @@ namespace UltrafastEngine.Engine
             for (int i = 0; i < n; i++)
             {
                 if (p.Ax[i] == Complex.Zero && p.Ay[i] == Complex.Zero) continue;
-                var (x, y) = Coefficient(inPort, outPort, p.Grid.OmegaAbsolute[i]);
+                var (x, y) = Coefficient(inPort, outPort, p.Grid.OmegaAbsolute[i], p.Grid.OmegaCenter);
                 ax[i] = p.Ax[i] * x; ay[i] = p.Ay[i] * y;
             }
             var q = p.WithSpectrum(ax, ay);
@@ -254,16 +281,32 @@ namespace UltrafastEngine.Engine
             var c = Through(p, port, _c); var d = Through(p, port, _d);
             if (_virtual != null && !ctx.InGraph)
             {
-                var v = _virtual.Spec.Build(p.Grid, 0, ctx.Record.Notes);
+                // the fed beam is built on a grid around its own carrier (as in a Branched system), passed through the splitter at its
+                // own frequencies, and only then brought onto the run's grid; what falls outside that grid is booked and reported
+                var vg = Executor.VirtualInputGrid(p.Grid, _virtual.Spec);
+                var v = _virtual.Spec.Build(vg, 0, ctx.Result.Warnings);
                 var f = Complex.FromPolarCoordinates(1, _virtual.PhaseRad);
                 v = v.WithSpectrum(v.Ax.Select(z => z * f).ToArray(), v.Ay.Select(z => z * f).ToArray());
                 ctx.Record.EnergyInJ += v.TotalEnergyJ();
-                c = Added(c, Through(v, _b, _c)); d = Added(d, Through(v, _b, _d));
+                var vc = Through(v, _b, _c); var vd = Through(v, _b, _d);
+                if (!ReferenceEquals(vg, p.Grid))
+                {
+                    double before = vc.TotalEnergyJ() + vd.TotalEnergyJ();
+                    vc = GridResampler.Resample(vc, p.Grid, out _); vd = GridResampler.Resample(vd, p.Grid, out _);
+                    double lostJ = before - vc.TotalEnergyJ() - vd.TotalEnergyJ();
+                    Executor.AddLoss(ctx.Record, "fed beam outside the run's grid", lostJ);
+                    if (before > 0 && lostJ > 1e-3 * before)
+                        ctx.Result.Warnings.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "Element '" + ctx.Element.Id + "': fed beam at {0:G5} nm: {1:P1} of its energy at the splitter outputs lies outside the run's frequency grid (use a Branched system, or widen the grid)",
+                            2e9 * Math.PI * Numerics.PhysicalConstants.SpeedOfLightMPerS / vg.OmegaCenter, lostJ / before));
+                }
+                c = Added(c, vc); d = Added(d, vd);
             }
             bool keepC = string.Equals(ContinuingPort, _c, StringComparison.OrdinalIgnoreCase);
             var other = keepC ? d : c;
             string otherPort = keepC ? _d : _c;
             ctx.Byproduct(otherPort, other);
+            ctx.Own += PortDispersion(port, ContinuingPort, p.Grid.OmegaCenter);
             if (!ctx.InGraph) Executor.AddLoss(ctx.Record, "port " + otherPort + " (not tracked)", other.TotalEnergyJ());
             return keepC ? c : d;
         }

@@ -1,10 +1,11 @@
-# Continuous integration: every platform is compiled here with dotnet, the tests run on Linux.
+# Continuous integration: every platform is compiled with dotnet; the full test suites run on Linux, the C# and Python tests also on
+# macOS (Apple silicon) and Windows. GPU tests need an OpenCL / CUDA device and are skipped here.
 # OpticStudio cannot run in CI: the Zemax binding is built against its stubs and checked by hand on Windows.
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "dev/**"]
   pull_request:
 
 concurrency:
@@ -32,6 +33,34 @@ jobs:
         run: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --slow
       - name: C# tests, .NET Framework 4.8 build on Mono, including slow
         run: mono tests/UltrafastEngine.Tests/bin/Release/net48/UltrafastEngine.Tests.exe --slow
+
+  tests-macos-windows:
+    name: C# and Python tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the tests and the CLI (net10.0)
+        run: |
+          dotnet build tests/UltrafastEngine.Tests -c Release -f net10.0
+          dotnet build src/UltrafastEngine.Cli -c Release -f net10.0
+      - name: C# tests (not the slow ones)
+        run: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll
+      - name: Python package, engine and tests
+        shell: bash
+        run: |
+          pip install -e "python[hosted,plot,test]"
+          python python/tools/build_engine.py
+          cd python && python -m pytest -q tests -x -k "not pynlo and not lightpipes"
 
   compile-platforms:
     name: Compile CLI for ${{ matrix.rid }}
@@ -68,6 +97,55 @@ jobs:
       - name: Python tests
         working-directory: python
         run: PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python -m pytest -q tests
+
+  verification:
+    name: Component verification scripts (numbers only)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the package
+        run: pip install -e "python[hosted,test]"
+      - name: Build the engine for Python
+        run: python python/tools/build_engine.py
+      - name: Every component against its analytic answer
+        run: python verification/run_all.py --no-plots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-report
+          path: verification/report/
+
+  papers:
+    name: Paper replications (fast tier)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the package
+        run: pip install -e "python[hosted,plot,test]"
+      - name: Build the engine for Python
+        run: python python/tools/build_engine.py
+      - name: Run every paper's fast tier, check the published numbers
+        run: python build/paper_check.py --report paper-check.json --markdown paper-check.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paper-check
+          path: |
+            paper-check.json
+            paper-check.md
+            docs/papers/*/results/figures/
 
   docs-and-examples:
     name: Docs and example check

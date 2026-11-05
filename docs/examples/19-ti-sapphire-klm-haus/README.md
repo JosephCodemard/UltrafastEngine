@@ -24,6 +24,15 @@ ultrafast-plot results          # oscillator.png: build-up, pulse and spectrum v
 | soliton area theorem 3.53 \|GDD\|/(δE) | 71.3 fs (ratio 1.04) |
 | B-integral per round trip | 0.30 rad |
 
+![Start-up of the Kerr-lens mode-locked oscillator: energy, pulse and spectrum versus round trip, and the final pulse](klm-oscillator.png)
+
+The left panel shows the output energy (log scale): the cavity fills with light from quantum noise within the first
+few hundred round trips and then stays at 825 pJ. The two colour maps show the pulse in time and the spectrum for
+every round trip. For the first thousands of round trips the light is a changing pattern of noise spikes; around
+round trip 3500 one spike wins, the spectrum widens and smooths out, and the pulse settles into a single sech^2-like
+soliton. The final pulse (right) is 74.1 fs long with an 8.08 nm spectrum, close to the 71.3 fs that the soliton
+area theorem predicts from the GDD, the SPM strength and the pulse energy.
+
 `oscillator.png` shows the start-up: noise first, then a few noise spikes competing, then one pulse winning
 (around 3500 round trips) and shaping into a soliton. Try `"gddFs2": -800` (longer pulse), a larger
 `kappaPerW` (stronger mode-locking), or `"saturationEnergyJ": 20e-9` (more energy than one soliton can carry:

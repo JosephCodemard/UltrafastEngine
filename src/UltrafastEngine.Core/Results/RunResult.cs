@@ -49,7 +49,7 @@ namespace UltrafastEngine.Results
 
         private static double R(double v) => double.IsNaN(v) || double.IsInfinity(v) ? double.NaN : v;
 
-        private static JsonObject GridJson(FrequencyGrid g) => new JsonObject().Set("n", g.N).Set("dtS", g.DTime).Set("windowS", g.N * g.DTime).Set("omega0", g.OmegaCenter)
+        private static JsonObject GridJson(FrequencyGrid g) => new JsonObject().Set("n", g.N).Set("dtS", g.DTime).Set("windowS", g.N * g.DTime).Set("omega0", g.OmegaCenter).Set("reportOmega0", g.ReportOmega)
             .Set("centerWavelengthM", 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / g.OmegaCenter).Set("domega", g.DOmega);
 
         private static JsonObject SummaryOf(PulseSummary s) => new JsonObject()
@@ -148,7 +148,7 @@ namespace UltrafastEngine.Results
                 o.Set("measuredChi2", Comparisons.Sum(c => c.Chi2));
             }
             foreach (var ext in Plugins.PluginManager.Extensions) ext.ContributeSummary(this, o);
-            o.Set("probes", JsonValue.FromArray(Snapshots.Select(s => s.Id)));
+            o.Set("probes", JsonValue.FromArray(ProbeNames().Select(p => p.Name)));
             o.Set("arrays", new JsonArray(Arrays().Select(a => (JsonValue)new JsonObject().Set("name", a.Name).Set("shape", JsonValue.FromArray(a.Shape.Select(x => (double)x))).Set("unit", a.Unit).Set("description", a.Description))));
             o.Set("notes", JsonValue.FromArray(Notes));
             o.Set("warnings", JsonValue.FromArray(Warnings));
@@ -197,9 +197,9 @@ namespace UltrafastEngine.Results
             var tab = new double[Records.Count * cols.Length];
             for (int i = 0; i < Records.Count; i++) { var row = ElementRow(Records[i]); Array.Copy(row, 0, tab, i * cols.Length, cols.Length); }
             list.Add(new NdArray("elements", tab, Records.Count, cols.Length) { Unit = "mixed", Description = "per-element table; columns: " + string.Join(",", cols) });
-            foreach (var s in Snapshots)
+            foreach (var (name, s) in ProbeNames())
             {
-                string pf = "probe_" + Sanitize(s.Id);
+                string pf = "probe_" + name;
                 list.Add(A(pf + "_time_s", s.TimeS, "s", "probe " + s.Id));
                 list.Add(A(pf + "_power_w", s.PowerW, "W", "probe " + s.Id));
                 list.Add(A(pf + "_wavelength_m", s.WavelengthM, "m", "probe " + s.Id));
@@ -209,6 +209,22 @@ namespace UltrafastEngine.Results
             foreach (var i in Instruments) foreach (var a in i.Arrays) list.Add(a);
             foreach (var r in Records) foreach (var a in r.Arrays) list.Add(a);
             _arrays = list;
+            return list;
+        }
+
+        /// <summary>The name each probe snapshot gets in the arrays and in <c>summary.probes</c>: the sanitised element id, or, when a probe saw
+        /// more than one packet (a Branched system), <c>id_packet1</c>, <c>id_packet2</c>, ... in the order the packets arrived.</summary>
+        public List<(string Name, ProbeSnapshot Snapshot)> ProbeNames()
+        {
+            var count = Snapshots.GroupBy(s => Sanitize(s.Id)).ToDictionary(g => g.Key, g => g.Count());
+            var seen = new Dictionary<string, int>();
+            var list = new List<(string, ProbeSnapshot)>();
+            foreach (var s in Snapshots)
+            {
+                string n = Sanitize(s.Id);
+                if (count[n] > 1) { seen.TryGetValue(n, out int k); seen[n] = ++k; n += "_packet" + k; }
+                list.Add((n, s));
+            }
             return list;
         }
 

@@ -22,6 +22,8 @@ namespace UltrafastEngine.Pulses
     /// imperfections.</item>
     /// <item><c>exponential</c>: an incoherent pedestal level x exp(-|t|/riseS) before and exp(-t/fallS) after the
     /// peak -- a phenomenological fit form for measured contrast curves.</item>
+    /// <item><c>measured</c>: an incoherent pedestal whose intensity follows a recorded contrast trace (csv, or timesS and
+    /// relativeIntensities), with the pulse's spectrum; rows near t = 0 can be excluded (excludeWithinS).</item>
     /// </list>
     /// Random components use a seed (default 1) and are reproducible.
     /// </summary>
@@ -98,7 +100,7 @@ namespace UltrafastEngine.Pulses
                         }
                         break;
                     }
-                    case "ase": case "exponential":
+                    case "ase": case "exponential": case "measured":
                     {
                         var rnd = new Random(c.GetInt("seed", 1));
                         // temporal envelope of the intensity (relative)
@@ -109,6 +111,11 @@ namespace UltrafastEngine.Pulses
                             double dur = c.GetDouble("durationS", 10e-9);
                             for (int i = 0; i < n; i++) { double t = g.Time[i] - c.GetDouble("delayS", 0); env[i] = Math.Exp(-Math.Pow(2 * t / dur, 12) * Math.Log(2)); }
                             level = c.Has("energyFraction") ? c.GetDouble("energyFraction", 0) * energy / dur / Math.Max(peak, 1e-300) : c.GetDouble("relativeIntensity", 1e-8);
+                        }
+                        else if (k == "measured")
+                        {
+                            MeasuredEnvelope(c, g.Time, env);
+                            level = 1;
                         }
                         else
                         {
@@ -132,6 +139,14 @@ namespace UltrafastEngine.Pulses
                         else shape = specAmp.Select(v => sMax > 0 ? v / sMax : 0).ToArray();
                         for (int i = 0; i < n; i++) f[i] *= shape[i];
                         var et = SpectralTransform.FreqToTime(f);
+                        if (k == "measured")
+                        {
+                            // intensity(t) = trace(t) x main peak on average: the filter removes the fraction 1 - mean(shape^2) of white noise
+                            double sh2 = shape.Average(v => v * v);
+                            double scm = sh2 > 0 ? Math.Sqrt(peak / sh2) : 0;
+                            for (int i = 0; i < n; i++) total[i] += scm * f[i];
+                            break;
+                        }
                         // normalise: mean intensity where the envelope is ~1 equals level x peak
                         double s = 0, w8 = 0;
                         for (int i = 0; i < n; i++) if (env[i] > 0.5) { s += et[i].Real * et[i].Real + et[i].Imaginary * et[i].Imaginary; w8++; }
@@ -152,9 +167,28 @@ namespace UltrafastEngine.Pulses
             return new PulseField(g, ax, ay, p.RepRateHz) { Profile = p.Profile };
         }
 
+        /// <summary>The measured trace (intensity relative to the main peak) on the grid's times: log-linear between points, zero or the
+        /// end values outside, points within excludeWithinS of t = 0 ignored.</summary>
+        private static void MeasuredEnvelope(JsonObject c, double[] time, double[] env)
+        {
+            var t = c.GetDoubleArray("timesS"); var v = c.GetDoubleArray("relativeIntensities");
+            double ex = c.GetDouble("excludeWithinS", 0);
+            bool hold = c.GetString("outside", "zero").Equals("hold", StringComparison.OrdinalIgnoreCase);
+            var pts = Enumerable.Range(0, t.Length).Where(i => Math.Abs(t[i]) >= ex && v[i] > 0 && !double.IsNaN(v[i]) && !double.IsNaN(t[i]))
+                                .OrderBy(i => t[i]).Select(i => (t: t[i], lv: Math.Log(v[i]))).ToList();
+            if (pts.Count < 2) throw new ArgumentException("pedestal measured: fewer than two usable trace points");
+            for (int i = 0; i < time.Length; i++)
+            {
+                double x = time[i];
+                if (x < pts[0].t || x > pts[pts.Count - 1].t) { env[i] = hold ? Math.Exp(x < pts[0].t ? pts[0].lv : pts[pts.Count - 1].lv) : 0; continue; }
+                int lo = 0, hi = pts.Count - 1;
+                while (hi - lo > 1) { int mid = (lo + hi) / 2; if (pts[mid].t <= x) lo = mid; else hi = mid; }
+                double f = pts[hi].t > pts[lo].t ? (x - pts[lo].t) / (pts[hi].t - pts[lo].t) : 0;
+                env[i] = Math.Exp(pts[lo].lv + f * (pts[hi].lv - pts[lo].lv));
+            }
+        }
+
         private static double Gauss(Random r) { double u1 = 1 - r.NextDouble(), u2 = r.NextDouble(); return Math.Sqrt(-2 * Math.Log(u1)) * Math.Cos(2 * Math.PI * u2); }
-        private static Complex GaussC(Random r) => new Complex(Gauss(r), Gauss(r)) / Math.Sqrt(2);
-        private static Complex Gauss(Random r, bool complex) => complex ? GaussC(r) : Gauss(r);
 
         /// <summary>Real Gaussian noise of the given rms, correlated over corrW (Gaussian correlation function).</summary>
         public static double[] CorrelatedNoise(int n, double dOmega, double corrW, Random rnd, double rms)

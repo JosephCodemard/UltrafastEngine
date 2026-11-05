@@ -16,6 +16,9 @@ folder-level `CLAUDE.md` files (loaded only when you work in that folder), in th
 * Must run on Apple silicon (arm64 macOS), Windows and Linux; .NET 10 and .NET Framework 4.8 (OpticStudio).
 * Physical accuracy first: a physics change needs an analytic or published reference value in a test.
 * Plain, precise English in docs and messages. SI units with the unit in the key name.
+* Never publish to PyPI. Pushing branches to GitHub is allowed; tags / releases only when the owner asks.
+* The owner's `../Experiments/` folder is off-limits (never read code from it or modify it); only its `data/` files
+  may be copied into `docs/papers/`. Licensed paper PDFs and their figures never go into the repository.
 
 ## Commands (fast path first)
 
@@ -62,6 +65,9 @@ after a code change.
 | speed: CPU FFT providers, compute back-ends, GPU | `docs/reference/speed.md`, `docs/plugins/gpu.md`; tests `ComputeTests`, `GpuTests` |
 | tests | `tests/UltrafastEngine.Tests/CLAUDE.md` |
 | status / what is verified | `PROJECT_STATUS.md`; history in `CHANGELOG.md` (top section only) |
+| current plan, owner decisions | `docs/design/plan-next.md` (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
+| paper replications | `docs/papers/` (`docs/papers/CLAUDE.md`): published headline results reproduced, plots + commentary |
+| component checks with plots | `verification/` (`verification/CLAUDE.md`): one script per component family, HTML gallery |
 
 ## Definition of done
 

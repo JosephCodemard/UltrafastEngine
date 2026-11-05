@@ -361,6 +361,33 @@ namespace UltrafastEngine.Physics
         // (mechanism "absorption") so the loss budget can tell dispersion and absorption apart.
     }
 
+    /// <summary>
+    /// Correction that turns the bulk phase of a tilted plate, n(w) w L / c over the fixed carrier path L = d / cos(theta_t0), into the
+    /// plane-wave phase through the plate seen on the plane normal to the carrier ray through the carrier's exit point:
+    /// (w / c) [ d sqrt(n^2 - n_o^2 sin^2 theta) + n_o sin(theta) d tan(theta_t0) ] - n w L / c.
+    /// The first part is k_z d (every colour refracts at its own angle); the second is the air path each colour crosses between
+    /// its own exit point and that plane. Used when no beam is tracked; with a tracked beam the ray bundle supplies the same phase.
+    /// </summary>
+    public sealed class TiltedPathTerm : PhaseTerm
+    {
+        private readonly Func<double, double> _n, _nOut; private readonly double _d, _sin, _tanT0, _l;
+        public TiltedPathTerm(Func<double, double> glassIndex, Func<double, double> surroundingIndex, double thicknessM, double aoiRad, double carrierOmega)
+        {
+            _n = glassIndex; _nOut = surroundingIndex; _d = thicknessM; _sin = Math.Sin(aoiRad);
+            double s0 = _nOut(carrierOmega) * _sin / _n(carrierOmega), c0 = Math.Sqrt(1 - s0 * s0);
+            _tanT0 = s0 / c0; _l = _d / c0; Mechanism = "dispersion";
+        }
+        public override string Description => "tilted-plate path (angular dispersion of the refracted colours)";
+        protected override void Phase(double[] omega, double[] phi)
+        {
+            for (int i = 0; i < omega.Length; i++)
+            {
+                double n = _n(omega[i]), no = _nOut(omega[i]), s = no * _sin, kz = Math.Sqrt(n * n - s * s);
+                phi[i] = omega[i] / PhysicalConstants.SpeedOfLightMPerS * (_d * kz + s * _d * _tanT0 - n * _l);
+            }
+        }
+    }
+
     /// <summary>The smooth part of a <see cref="BulkTerm"/> with narrow lines: its frame is that of the whole term.</summary>
     public sealed class SmoothIndexTerm : PhaseTerm
     {

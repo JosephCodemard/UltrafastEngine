@@ -1,0 +1,2 @@
+{ "format": "ultrafast-run", "version": 2, "name": "nopa",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1030e-9, "durationFwhmS": 300e-15, "energyJ": 60e-6 } }

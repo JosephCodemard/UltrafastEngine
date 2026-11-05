@@ -76,7 +76,14 @@ See [Fitting plugin](docs/plugins/fitting.md) and [example 26](docs/examples/26-
 
 The physics is validated against analytic results and against [pyNLO](https://github.com/pyNLO/PyNLO): fibre
 propagation with Raman and gain agrees to better than 0.5 % (temporal and spectral profiles), difference-frequency
-generation in PPLN to better than 1 % in the converted energies. See [Capabilities and limitations](docs/capabilities.md).
+generation in PPLN to better than 1 % in the converted energies. Beyond the unit tests:
+
+* [Published results reproduced](docs/papers/README.md): post-compression quality, the soliton self-frequency shift, focused
+  second-harmonic generation, small-scale self-focusing, nonlinear ellipse rotation in a multi-pass cell, and a lab beamline
+  fitted to recordings, each with plots and an account of what agrees and what does not.
+* [Component verification](docs/verification.md): every component run alone against its analytic answer, with plots.
+
+See [Capabilities and limitations](docs/capabilities.md).
 
 ## Built to be changed
 
@@ -104,12 +111,13 @@ generation in PPLN to better than 1 % in the converted energies. See [Capabiliti
 |---|---|
 | [Getting started](docs/getting-started.md) | build on Windows, macOS (including Apple silicon) and Linux; Python setup |
 | [Tutorials](docs/tutorials/index.md) | six step-by-step tutorials: first run, diagnostics, a CPA chain, measured data, contrast, diffraction |
-| [Examples](docs/examples/README.md) | 39 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier, OPCPA, interferometers and instruments built from elements, each marked CLI, Python or both |
+| [Examples](docs/examples/README.md) | 43 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier, OPCPA, interferometers and instruments built from elements, each marked CLI, Python or both |
 | [Reference](docs/reference/system-file.md) | system file, run spec, every element and instrument, models, results |
 | [Capabilities and limitations](docs/capabilities.md) | what is modelled, how it is validated, and what is not modelled |
 | [Plugins](docs/plugins/index.md) | the fitting, zemax, gpu and hitran plugins, [installing plugins](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
 | [For AI agents](docs/agents.md) | how to drive and extend the engine programmatically ([`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt)) |
-| [Claude Code](docs/claude-code.md) | the Claude Code setup: `CLAUDE.md` files, project commands, subagents, skills and hooks |
+| [Papers](docs/papers/README.md) | published results reproduced with the engine, with plots and commentary |
+| [Claude Code](docs/claude-code.md) | the Claude Code setup: skills and agents to replicate papers, mirror a lab setup, optimise and debug a setup, plus the developer commands |
 | [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages (CLI, Python wheel, C API, C# libraries, OpticStudio extension) for each platform, with only the plugins you choose |
 
 The documentation is a [MkDocs](https://www.mkdocs.org) site: `pip install mkdocs-material && mkdocs serve`.
@@ -123,7 +131,8 @@ src/UltrafastEngine.Native   C API (include/ultrafast.h)
 python/                      the `ultrafast` Python package
 plugins/                     fitting, zemax, gpu, hitran
 schemas/                     JSON Schemas of system files and run specs
-docs/                        documentation, tutorials, examples, synthetic test data
+docs/                        documentation, tutorials, examples, paper replications (docs/papers), synthetic test data
+verification/                every component against its analytic answer, with plots
 tests/                       C# test suite (no external framework)
 build/, build.sh, build.bat  MSBuild helpers and the release packager (docs/releasing.md)
 CLAUDE.md, .claude/          Claude Code setup (docs/claude-code.md)
@@ -133,7 +142,7 @@ CLAUDE.md, .claude/          Claude Code setup (docs/claude-code.md)
 
 UltrafastEngine is in beta: the file formats are versioned (older files are migrated on load), the core is
 feature-complete for its scope, and the test suite pins the physics to analytic results and reference codes. What
-is planned next, deeper OpticStudio integration and a live-data plugin, is on the [roadmap](docs/roadmap.md). Changes
+is planned next (coating and crystal design plugins, more paper replications, waveguides and gain with ASE, deeper OpticStudio integration) is on the [roadmap](docs/roadmap.md). Changes
 are listed in the [changelog](CHANGELOG.md).
 
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under the [MIT licence](LICENSE).

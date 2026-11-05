@@ -3748,7 +3748,7 @@ class Interaction(TypedDict, total=False):
     noncollinearDeg: Any
     """Angle between the inputs inside the crystal (opa, dfg, sfg), or "magic" (opa, dfg) [deg]"""
     externalAngleDeg: float
-    """sfg: angle between the inputs outside the crystal; default: from the arms' tiltXRad [deg]"""
+    """Angle between the inputs outside the crystal (sfg; opa, dfg: the pump's angle to the signal, at a face normal to the signal); default: from the arms' tiltXRad [deg]"""
     qpm: Any
     """true or {periodM, model: averaged|domains, phaseDeg, periodExpr}"""
     comment: Any
@@ -3974,7 +3974,7 @@ class Pulse(TypedDict, total=False):
     delayS: float
     """Time offset [s] Default: 0."""
     pedestal: Any
-    """Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"""
+    """Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured)"""
     noise: Union["PulseNoise", str]
     """Quantum noise on the input: one photon per frequency mode with random phase (supercontinuum coherence, parametric seeding)"""
     comment: Any

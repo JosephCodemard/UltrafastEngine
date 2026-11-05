@@ -24,5 +24,15 @@ What to look at:
   (`durationFwhmS` 150e-15 at the same peak power, N ~ 26) and the mean coherence drops to ~0.2: the spectrum is then
   seeded by noise-driven modulation instability.
 
-The explicit grid (8192 points over 12.5 ps) resolves the full spectrum; the edges of the output spectrum are 60 dB
+![Supercontinuum spectrum and pulse after 15 cm of photonic-crystal fibre](supercontinuum.png)
+
+`python plot.py` draws this figure from `results/`. The 50 fs pulse (dashed, right) has a soliton number of 8.65, so
+it first compresses and then breaks up (fission) after about 8 mm into several short solitons. The spectrum (left)
+shows what that does in the frequency domain: a dispersive wave appears on the blue side near the predicted 652 nm
+resonance, the spectrum extends from about 500 nm to beyond 1300 nm, and the strongest red feature near 1200 nm
+is the fundamental soliton, which the Raman effect has shifted away from the pump. In time, this Raman soliton has
+slowed down and arrives about 3.3 ps after the others, because red light travels slower in this fibre.
+The output keeps 91.06 % of the pulse energy, the rest of the photon energy goes to the vibrations of the glass.
+
+The explicit grid (16384 points over 12.5 ps) resolves the full spectrum; the edges of the output spectrum are 60 dB
 below its peak (check `edgeEnergyFraction`).

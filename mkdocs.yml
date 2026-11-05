@@ -68,7 +68,9 @@ nav:
       - HITRAN (gas lines in air): plugins/hitran.md
   - Testing & validation:
       - Overview: testing.md
+      - Component verification (scripts and plots): verification.md
       - Validation matrix (generated): reference/validation-matrix.md
+      - Paper replications: papers/README.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md
   - Claude Code: claude-code.md
@@ -76,7 +78,7 @@ nav:
   - Design notes:
       - Development history: design/history.md
       - Branched systems (design): design/branching.md
-      - "Plan: basics and a catalogue": design/next-basics-and-catalogue.md
+      - "Plan: what is next": design/plan-next.md
 markdown_extensions:
   - admonition
   - tables

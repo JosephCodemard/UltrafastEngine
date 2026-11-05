@@ -23,3 +23,14 @@ photodiode, a spectrometer and a (virtual) Wigner distribution after the stretch
 spectrometer, autocorrelator, a (virtual) field probe and the ideal compressor at the end. `ultrafast-plot results`
 draws the system schematic (`plots/system.png`) with the instruments numbered in order, and every instrument panel
 carries its number and location -- the Wigner panel shows the ~230 ps linear chirp the stretcher imposes.
+
+## Result
+
+![Spectrum, stretched pulse and compressed pulse of the CPA line](cpa-line.png)
+
+`python plot.py` draws this figure from `results/`. The 150 fs input pulse is stretched to 232.6 ps by the grating
+stretcher (middle), which is what keeps the peak power low in a real amplifier. The gain-narrowing filter then
+trims the spectrum (left), so the compressed pulse (right) is longer than the input: 268.8 fs instead of 150 fs,
+and the whole line transmits 45.38 % of the energy, so the peak power is lower than at the input.
+Because the compressor and the chirped mirrors cancel the stretcher's GDD and TOD almost perfectly, the pulse
+leaves at its transform limit (268.4 fs): the `residual` instrument reports a temporal Strehl ratio of 1.00.

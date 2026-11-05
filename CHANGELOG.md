@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Added (plan of 2026-11: docs/design/plan-2026-11.md)
+- `verification/`: one script per component family (linear, splitters and masks, polarisation, crystals, instruments) that runs each component alone, overlays the analytic answer and writes an HTML gallery (`run_all.py`); a CI job runs it without plots. C# component sheet (`tests/.../Components/`): every listed component at 515 nm / 1030 nm / 2 µm and 1 ps / 10 fs, energy, reported GDD, bandwidth, Sequential = Branched.
+- `docs/papers/` (published results reproduced, with our plots and commentary; harness `build/paper_check.py`, a CI job for the fast tier) and the plan for November 2026. First four: Escoto 2022 (compression quality), Gordon 1986 (soliton self-frequency shift), Boyd-Kleinman 1968 (focused SHG), Bespalov-Talanov 1966 (small-scale self-focusing).
+- `pulse.pedestal` kind `measured`: an input pedestal that follows a recorded contrast trace (`csv` with time and relative intensity or dB columns, or arrays).
+- `ultrafast-plot` draws a Branched system as a graph (arms in lanes, merges, virtual ports, the output energy).
+- Paper replications added: nonlinear ellipse rotation in a multi-pass cell (Escoto et al., CLEO 2024) and a lab beamline fitted to recordings (fitting plugin, measured pedestal, water lines of the air).
+- Figures and commentary for examples 01, 02, 03, 08, 09, 11, 13, 14, 19, 22, 25 and 27.
+- Claude Code skills and agents for replicating papers, mirroring a lab setup, optimising and debugging a setup, and hunting engine bugs; the commands `/replicate` and `/lab`.
+- CI runs the C# and Python tests on macOS (Apple silicon) and Windows.
+- Example 41: a pump-probe experiment (opposite circular pump and probe in a Branched system) against the exact cross-phase shift of the probe's spectral centroid.
+- **Non-collinear OPA and DFG**: the angle from the arms' `tiltXRad` (or `externalAngleDeg`), refracted at the face; the idler leaves at the angle that conserves the transverse momentum, recorded on its path; a crystal's fed port can hold a virtual beam. Example 42 (a NOPA). Checked against transverse momentum, the parametric gain with mismatch (Cerullo & De Silvestri 2003), arms = stated angle, DFG photon balance.
+
+### Fixed (2026-11)
+- A tilted plate (also ND filter and thin-film polariser substrate) without an `inputBeam` now has the plane-wave phase of colours refracting at their own angles; its GDD was 0.3 fs² (40°) to 1.0 fs² (70°) too high for 5 mm of fused silica at 1030 nm.
+- A virtual beam fed to a Sequential `beamSplitter` keeps its own carrier; what falls outside the run's grid is booked and warned about. A measured input spectrum lying mostly outside the grid's band is an error (a partly cut one warns) instead of being renormalised at the band edge.
+- A `leakMirror`'s `gddFs2` / `leakGddFs2` is a phase about each beam's own carrier.
+- A probe passed by several packets gives each its own arrays (`probe_<id>_packet<k>_*`, listed in `summary.probes`).
+- Reported GDD and TOD are those at the requested carrier, not the snapped grid centre (`summary.grid.reportOmega0`).
+- The critical-power constant (3.77, Marburger) is documented; the Hollenbeck-Cantrell table entry that could not be checked against the paper is noted in the reference.
+
+### Fixed (component sheet, 2026-11-05)
+- `leakMirror`: `gddFs2` / `leakGddFs2` were applied but the reported own and system GDD stayed 0 on both ports.
+- `gratingPair` with no propagating diffraction order at the carrier removed the whole spectrum silently; it is now an error.
+- A fed beam of another colour on a Branched splitter (`virtual_input` at 515 nm in a 1030 nm run) was built on the run's grid: incoherently it came out as a band-edge tail, coherently it interfered as if it were 1030 nm. Virtual inputs now get their own carrier's grid, and beams that meet go on a grid spanning both.
+- `GridResampler.Exact` aliased when the carrier shift exceeded half the source band; the shift is now a frequency-bin shift after padding.
+- **Raman kernel aliasing on coarse grids** (found replicating Gordon 1986): a delayed response sampled directly on a grid with dt above the 12 fs Raman period aliased; the soliton self-frequency shift came out 3 % too fast at dt = 6.5 fs and 43 % at dt = 23.5 fs. The kernel is now evaluated on a finer grid, band-limited and decimated, so its discrete spectrum is H(ω) on every grid. The pyNLO cross-checks run pyNLO at 16384 points because pyNLO's own sampling aliased the same way.
+- **`compressor` instrument** reported the FWHM from a compact copy of the pulse (time step a fifth of the compressed FWHM after strong SPM): 4 % short at B = 40 rad (found replicating Escoto 2022). It now uses the input on its own grid.
+- Example 32 quoted the energy closure (rounding noise, platform dependent) as a number; it now prints the bound it meets.
+
 ### Added (branched systems; plan: docs/design/branching.md)
 - **Branched systems**: `"topology": "branched"`, `next` naming input ports (`"bs:1"`, `{"id": "bs", "port": 1}`), ports on every element type, a graph compiler with verification (`ultrafast validate --graph`), alerts and virtual ports for unused ports.
 - **Interference**: a carrier-phase ledger per path; packets; `beamSplitter`, `delay`; virtual input beams, also in Sequential systems.

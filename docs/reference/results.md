@@ -22,7 +22,9 @@ window: wrap-around check), stokes [s1, s2, s3], degreeOfPolarization.
 ## Per-element records
 
 index, id, type, label, lengthM, cumulativeLengthM, energyInJ/OutJ, lossJ by mechanism, arrivalTimeS (lab-frame
-carrier delay so far), own and cumulative system dispersion (GD, GDD, TOD at the carrier), bIntegralRad and
+carrier delay so far), own and cumulative system dispersion (GD at the grid centre, where the pulse sits and the arrival time is counted;
+GDD and TOD at the requested carrier wavelength, not at the grid centre, which is snapped to the frequency step and can be up to half a step away:
+a 1000 fs² element with 2000 fs³ TOD reports 1000 fs², not 1004 fs² at the snapped centre of a 30 fs run), bIntegralRad and
 cumulative, peakIntensityWPerM2, peakFluenceJPerM2, lidtFluenceJPerM2, lidtMargin, outsideDataFraction,
 criticalPowerRatio, solver statistics (method, representation, accepted/rejected steps, min/max step), the
 list of linear terms applied, and notes. Active elements add:
@@ -59,9 +61,12 @@ energy leaving as by-products, so for every element: energy in − energy out = 
 
 `input_*` / `output_*`: `time_s`, `power_w`, `power_x_w`, `power_y_w`, `omega_rad_s`, `wavelength_m`, `spectrum`
 (per unit omega), `phase_x_rad`, and (full-resolution exports) the complex spectral envelopes `ax_re`, `ax_im`,
-`ay_re`, `ay_im` in grid order. `elements`: the per-element table as a matrix (columns in the manifest).
+`ay_re`, `ay_im` on the ascending `omega_rad_s` axis (the time-domain envelope, convention e^{-iωt}, is `numpy.fft.fftshift(numpy.fft.fft(numpy.fft.ifftshift(a)))`). `elements`: the per-element table as a matrix (columns in the manifest).
 `probe_<id>_*`: compact snapshots at probes (cropped to the support, <= 2048 points); by-products of active
-elements are always snapshotted as `probe_<id>_<field>_*`. Instrument arrays are prefixed with the instrument name.
+elements are always snapshotted as `probe_<id>_<field>_*`. When a probe in a Branched system is passed by more than one
+packet, each packet gets its own set, in the order the packets arrived: `probe_<id>_packet1_*`, `probe_<id>_packet2_*`, ...
+(a probe seen by one packet keeps `probe_<id>_*`). `summary.probes` lists the names that exist, so `probe_<name>_spectrum`
+is always a valid array. Array names in `result.npz` are unique. Instrument arrays are prefixed with the instrument name.
 When the input and output grids differ, `spectrum.csv` / `temporal.csv` are written per pulse.
 
 From C#, `RunResult` also keeps the full `PulseField` at every element (`At[id]`) and every by-product

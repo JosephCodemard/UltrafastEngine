@@ -19,6 +19,8 @@ namespace UltrafastEngine.Engine
         public double PhaseRad;
         /// <summary>The source this beam is coherent with ("input"); null if it is an independent source.</summary>
         public string CoherentWith;
+        /// <summary>Built on a grid at its own carrier (a crystal's fed port), not on the run's.</summary>
+        public bool OwnCarrier;
     }
 
     /// <summary>
@@ -169,7 +171,7 @@ namespace UltrafastEngine.Engine
                     p = p.WithSpectrum(p.Ax.Select(z => z * f).ToArray(), p.Ay.Select(z => z * f).ToArray());
                 }
             }
-            else if (Pulse != null) p = Pulse.Build(grid);
+            else if (Pulse != null) p = Pulse.Build(grid, notes);
             else
             {
                 var s = LoadSaved();

@@ -485,30 +485,6 @@ namespace UltrafastEngine.Instruments
             }
             return img;
         }
-
-        private static double InterpSorted(double[] x, int[] order, Func<int, double> y, double v)
-        {
-            int n = order.Length;
-            if (v <= x[order[0]]) return y(order[0]);
-            if (v >= x[order[n - 1]]) return 0;
-            int lo = 0, hi = n - 1;
-            while (hi - lo > 1) { int mid = (lo + hi) / 2; if (x[order[mid]] <= v) lo = mid; else hi = mid; }
-            double t = (v - x[order[lo]]) / (x[order[hi]] - x[order[lo]]);
-            return y(order[lo]) * (1 - t) + y(order[hi]) * t;
-        }
-
-        private static double InterpK(CartesianBasis cb, Func<int, double> y, double kx, double ky)
-        {
-            double dkx = 2 * Math.PI / (cb.Nx * cb.Dx), dky = cb.Ny > 1 ? 2 * Math.PI / (cb.Ny * cb.Dy) : 1;
-            double fx = kx / dkx, fy = cb.Ny > 1 ? ky / dky : 0;
-            if (Math.Abs(fx) >= cb.Nx / 2 - 1 || Math.Abs(fy) >= Math.Max(1, cb.Ny / 2 - 1)) return 0;
-            int ix = (int)Math.Floor(fx), iy = (int)Math.Floor(fy);
-            double u = fx - ix, w = fy - iy;
-            int W(int i, int n) => ((i % n) + n) % n;
-            double V(int a, int c) => y(W(a, cb.Nx) * cb.Ny + (cb.Ny > 1 ? W(c, cb.Ny) : 0));
-            if (cb.Ny == 1) return V(ix, 0) * (1 - u) + V(ix + 1, 0) * u;
-            return V(ix, iy) * (1 - u) * (1 - w) + V(ix + 1, iy) * u * (1 - w) + V(ix, iy + 1) * (1 - u) * w + V(ix + 1, iy + 1) * u * w;
-        }
     }
 
     /// <summary>
@@ -535,7 +511,6 @@ namespace UltrafastEngine.Instruments
         public string Kind => "camera";
 
         private static readonly string[] ImagingKeys = { "propagateM", "focalLengthM", "magnification", "relay" };
-        private static readonly string[] SensorKeys = { "pixels", "pixelSizeM", "qe", "bitDepth", "fullScaleJPerM2", "readNoiseCounts", "backgroundCounts", "hotPixelFraction", "noiseSeed", "centerXM", "centerYM", "bandM" };
 
         public void Measure(InstrumentContext ctx, InstrumentOutput o)
         {

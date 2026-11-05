@@ -19,7 +19,7 @@ What to look at in `results/summary.json`:
 * `energyBudget` -- "to fundamental" is the energy carried off by the by-product; "numerical" is the solver's
   bookkeeping error (~1e-8 of the input).
 * `instruments`: `conversion_shg` (energies and photon numbers of every field), `phaseMatchingCurve_shg`
-  (angular acceptance, ~0.9 deg FWHM for 2 mm), `acceptance_wavelength` (spectral acceptance, ~11.5 nm).
+  (angular acceptance, ~0.9 deg FWHM for 2 mm), `acceptance_wavelength` (spectral acceptance, ~15.3 nm).
 * `results/result.npz` -> `probe_shg_fundamental_*`: the depleted fundamental (time and spectrum).
 
 The radial run computes the conversion point by point across the beam: the centre converts more than the wings,
@@ -27,6 +27,17 @@ so the SH beam is narrower than a Gaussian-overlap estimate suggests, and the fu
 centre. `results-radial/summary.json` -> `elements[0].beam` (radius, M^2) and the `beamProfile_shg` instrument
 (fluence vs radius) show this. The 1-D model uses an overlap of Gaussian modes, which is exact at low
 conversion and an estimate at high conversion (here 52 % vs 47 % radial).
+
+## Result
+
+![Fundamental and second-harmonic pulse, angular phase-matching curve](shg-lbo.png)
+
+`python plot.py` draws this figure from `results/`. The 1000 fs, 400 uJ pump at 1030 nm is converted with an
+energy efficiency of 52.5 % (210.1 uJ of 515 nm light, 190 uJ of fundamental left over). The second-harmonic pulse
+(left, solid) is shorter than the input, 808.5 fs, because the intense centre of the pulse converts better than its
+wings. The right panel is the efficiency of the same crystal as it is tilted away from the phase-matching angle:
+it falls to half of its maximum at +-0.49 deg, which is the 0.985 deg FWHM angular acceptance reported by
+`phaseMatchingCurve_shg`. This tells you how accurately the crystal has to be aligned.
 
 Things to try:
 

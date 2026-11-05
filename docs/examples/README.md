@@ -18,7 +18,7 @@ Each example is a folder with a README, its commands and its expected output. **
 | [11-spatial-kerr](11-spatial-kerr/README.md) | CLI | self-focusing with diffraction resolved (radial model), profile carried through free space; on-axis vs whole-beam spectra and autocorrelations (pinhole, slit, fibre in the far field) | `ultrafast run kerr.ufs run.json` |
 | [12-user-element](12-user-element/README.md) | Python | a pulse shaper written in Python as a user element | `python dazzler.py` |
 | [13-yb-multipass-cpa](13-yb-multipass-cpa/README.md) | CLI | Yb:YAG CPA: cw-pumped 8-pass amplifier, steady state at 10 kHz, gain narrowing, thermal lens | `ultrafast run amp.ufs run.json` |
-| [14-ti-sapphire-regen](14-ti-sapphire-regen/README.md) | CLI | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 42 fs | `ultrafast run regen.ufs run.json` |
+| [14-ti-sapphire-regen](14-ti-sapphire-regen/README.md) | CLI | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 41 fs | `ultrafast run regen.ufs run.json` |
 | [15-spatial-gain-thermal-lens](15-spatial-gain-thermal-lens/README.md) | CLI | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json` |
 | [16-position-dependent-index](16-position-dependent-index/README.md) | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `python grin_variants.py` |
 | [17-instrument-tour](17-instrument-tour/README.md) | CLI | every instrument kind once along one beam line, plus spectrometers and an autocorrelator looking through a pinhole, a fibre (far field) and a slit | `ultrafast run tour.ufs run.json` |
@@ -42,6 +42,8 @@ Each example is a folder with a README, its commands and its expected output. **
 | [35-tilt-fringes](35-tilt-fringes/README.md) | CLI | a Michelson with a tilted mirror in a Branched `.ufs`: fringes at lambda / angle from carried profiles | `ultrafast run michelson.ufs run.json -o results`, `python report.py` |
 | [36-structured-beams](36-structured-beams/README.md) | Python | Hermite-Gauss and Laguerre-Gauss M², a Bessel core from an axicon, a zone-plate focus | `python structured.py` |
 | [37-f2f-cep](37-f2f-cep/README.md) | Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
+| [41-pump-probe](41-pump-probe/README.md) | Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
+| [42-noncollinear-opa](42-noncollinear-opa/README.md) | CLI | a NOPA in a Branched `.ufs`: the pump arm's tilt sets the angle, a virtual seed, the idler's direction from transverse momentum | `ultrafast run nopa.ufs run.json -o results`, `python report.py` |
 | [40-noncollinear-correlators](40-noncollinear-correlators/README.md) | Python | beams crossing in a crystal: a background-free autocorrelator with its geometric smearing, and crossed THG with the output angles | `python correlators.py` |
 | [39-third-order-cross-correlator](39-third-order-cross-correlator/README.md) | Python | SHG, a delay and THG in a Branched system: the layout of a SEQUOIA or TOCC | `python tocc.py` |
 | [38-four-grating-compressor](38-four-grating-compressor/README.md) | CLI | a compressor grating by grating: spatial chirp opens and closes, GDD against Treacy | `ultrafast run compressor.ufs run.json -o results`, `python report.py` |

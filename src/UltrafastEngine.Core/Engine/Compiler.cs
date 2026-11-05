@@ -154,7 +154,7 @@ namespace UltrafastEngine.Engine
             }
             double Key(string name, double def) => Num(c, src, name, def);
             Func<double, (double Rx, double Ry)> reflect;
-            Func<double, double> phaseR = null, phaseT = null;
+            Func<double, double, double> phaseR = null, phaseT = null;   // (omega, reference omega): GDD about the beam's own carrier
             string a = "a", b = "b", cPort = "c", dPort = "d", keep = "c";
             switch (type)
             {
@@ -189,9 +189,9 @@ namespace UltrafastEngine.Engine
                         return ts[order[order.Length - 1]];
                     }
                     reflect = w => { double r = 1 - TAt(w); return (r, r); };
-                    double w0 = c.Omega0, gddR = Key("gddFs2", 0) * 1e-30, gddT = Key("leakGddFs2", 0) * 1e-30;
-                    if (gddR != 0) phaseR = w => 0.5 * gddR * (w - w0) * (w - w0);
-                    if (gddT != 0) phaseT = w => 0.5 * gddT * (w - w0) * (w - w0);
+                    double gddR = Key("gddFs2", 0) * 1e-30, gddT = Key("leakGddFs2", 0) * 1e-30;
+                    if (gddR != 0) phaseR = (w, wr) => 0.5 * gddR * (w - wr) * (w - wr);
+                    if (gddT != 0) phaseT = (w, wr) => 0.5 * gddT * (w - wr) * (w - wr);
                     break;
                 }
                 default: // dichroic
@@ -319,9 +319,16 @@ namespace UltrafastEngine.Engine
                 if (ce.Active != null && !double.IsNaN(ce.Active.OutputOmega0) && ce.Active.OutputOmega0 > 0) c.Omega0 = ce.Active.OutputOmega0;
                 beamAfter[e.Id] = (c.Track, c.Omega0);
                 // each output port's carrier: a crystal's outputs differ, every other element has one
+                var crystal = ce.Active as Crystals.CrystalElement;
+                if (crystal != null && crystal.PortTiltXRad.TryGetValue("out", out double crystalTilt)) c.TiltX = crystalTilt;
                 c.TiltX += e.Json.GetDouble("tiltXRad", 0);
                 foreach (var port in Ports.Outputs(e)) { c.PortOmega[e.Id + ":" + port] = c.Omega0; c.PortTiltX[e.Id + ":" + port] = c.TiltX; }
-                if (ce.Active is Crystals.CrystalElement crystal) foreach (var kv in crystal.PortOmega) c.PortOmega[e.Id + ":" + kv.Key] = kv.Value;
+                // a crystal's ports differ in colour and, for crossing beams, in direction
+                if (crystal != null)
+                {
+                    foreach (var kv in crystal.PortOmega) c.PortOmega[e.Id + ":" + kv.Key] = kv.Value;
+                    foreach (var kv in crystal.PortTiltXRad) c.PortTiltX[e.Id + ":" + kv.Key] = kv.Value;
+                }
             }
             foreach (var loop in c.Out.Graph.Stages.Where(s => s.Loop != null).Select(s => s.Loop))
                 if (loop.Members.All(id => c.Out.Elements.First(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)).GroupDelayAt(c.Out.RequestedOmega0) == 0))
@@ -1252,6 +1259,11 @@ namespace UltrafastEngine.Engine
             double g = Num(c, e, "separationM", double.NaN);
             if (double.IsNaN(g)) throw new JsonException("gratingPair needs separationM (perpendicular distance; negative for a stretcher).");
             int order = (int)Num(c, e, "order", -1), passes = (int)Num(c, e, "passes", 2);
+            // without a propagating order at the carrier the whole spectrum would be removed silently (energy null downstream)
+            double sinD = Math.Abs(order == 0 ? -1 : order) * 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0 / (1.0 / lpm) - Math.Sin(aoi);
+            if (Math.Abs(sinD) >= 1)
+                throw new JsonException(string.Format(CultureInfo.InvariantCulture, "gratingPair '{0}': order {1} does not propagate at the carrier ({2:G5} nm, {3:G5} l/mm, AOI {4:G4} deg: sin(theta_d) = {5:G4}); use fewer lines per mm or another angle",
+                    e.Id, order, 2e9 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0, lpm * 1e-3, aoi * 180 / Math.PI, sinD));
             var t = new GratingPairTerm(lpm, aoi, g, order, passes, 1.0);
             ce.Pre.Add(t);
             ce.LengthM = Math.Abs(g) * passes * 2;
@@ -1579,8 +1591,9 @@ namespace UltrafastEngine.Engine
             if (w0s != c.Omega0)
                 c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Carrier snapped to the frequency grid: {0:F4} -> {1:F4} nm.",
                     2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / c.Omega0 * 1e9, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w0s * 1e9));
+            grid.RequestedOmega = c.Omega0;
             c.Out.Grid = grid;
-            c.Out.Input = ps.Build(grid);
+            c.Out.Input = ps.Build(grid, c.Out.Warnings);
             c.Out.Notes.Add("Input pulse: " + ps.Describe() + string.Format(CultureInfo.InvariantCulture, ", {0:G4} J", c.Out.Input.TotalEnergyJ()));
         }
     }

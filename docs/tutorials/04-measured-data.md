@@ -119,12 +119,12 @@ ultrafast-plot results-4b
 
 ```
 fit: calibrate parameters against the measured instruments ...
-  fit: chi^2 2.567E+04 -> 582.9 (683 points, reduced 0.856), 4 iterations, 16 runs
-  energy                                 2.6476E-07 +- 1.29E-09     (start 2E-07)
-  chirp                                     115.456 +- 3.08         (start 0)
+  fit: chi^2 2.566E+04 -> 583.8 (683 points, reduced 0.857), 4 iterations, 16 runs
+  energy                                 2.64443E-07 +- 1.29E-09     (start 2E-07)
+  chirp                                     116.219 +- 3.08         (start 0)
   spectrum                           rms error 3.59 % -> 0.46 %
   ac                                 rms error 2.06 % -> 0.92 %
-  power                              chi^2 63.1 -> 0.0749
+  power                              chi^2 63.1 -> 0.0544
 ```
 
 | | true (used to make the data) | fitted |

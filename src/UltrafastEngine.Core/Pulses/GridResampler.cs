@@ -56,16 +56,20 @@ namespace UltrafastEngine.Pulses
             var bt = new Complex[n2];
             int off = n2 / 2 - n / 2; // index shift so t = 0 stays at the centre
             for (int i = 0; i < n; i++) { int j = i + off; if (j >= 0 && j < n2) bt[j] = at[i]; }
-            // 2. carrier shift (exact in time): a'(t) = a(t) exp(+i delta t)
+            // 2. time-step change and carrier shift in frequency (same frequency step): each sample goes to the bin of the same
+            // absolute frequency. A carrier shift applied in time at the source step aliased whenever it exceeded half the source
+            // band (a 515 nm beam moved onto a grid centred at 690 nm wrapped around).
             double delta = dst.OmegaCenter - src.OmegaCenter;
-            if (delta != 0)
+            double dw = 2 * Math.PI / (n2 * src.DTime), m = delta / dw;
+            int mi = (int)Math.Round(m);
+            bool binShift = Math.Abs(m - mi) < 1e-6;
+            if (!binShift && delta != 0)   // carrier off the bin grid: the exact sub-bin shift a'(t) = a(t) exp(+i delta t), as before
                 for (int j = 0; j < n2; j++) { double t = (j - n2 / 2) * src.DTime; bt[j] *= Complex.FromPolarCoordinates(1, delta * t); }
-            // 3. time-step change: pad / crop the spectrum (same frequency step)
             var bs = SpectralTransform.TimeToFreq(bt);
             int nd = dst.N;
             var outS = new Complex[nd];
             double scale = (double)nd / n2; // = dt_src / dt_dst
-            int off2 = nd / 2 - n2 / 2;
+            int off2 = nd / 2 - n2 / 2 - (binShift ? mi : 0);
             for (int k = 0; k < n2; k++) { int j = k + off2; if (j >= 0 && j < nd) outS[j] = bs[k] * scale; }
             double e1 = 0; for (int j = 0; j < nd; j++) e1 += Norm(outS[j]);
             e1 = e1 / nd * dst.DTime;

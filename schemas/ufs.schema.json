@@ -1917,7 +1917,7 @@
         },
         "externalAngleDeg": {
           "type": "number",
-          "description": "sfg: angle between the inputs outside the crystal; default: from the arms' tiltXRad [deg]"
+          "description": "Angle between the inputs outside the crystal (sfg; opa, dfg: the pump's angle to the signal, at a face normal to the signal); default: from the arms' tiltXRad [deg]"
         },
         "qpm": {
           "description": "true or {periodM, model: averaged|domains, phaseDeg, periodExpr}"
@@ -2089,7 +2089,7 @@
           "description": "Time offset [s] Default: 0."
         },
         "pedestal": {
-          "description": "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential)"
+          "description": "Pedestal / contrast components: one object or a list (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured)"
         },
         "noise": {
           "anyOf": [

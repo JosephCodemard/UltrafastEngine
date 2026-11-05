@@ -18,8 +18,19 @@ ultrafast-plot results
 | round trips (auto) | 11 (2 passes each, 6 % cavity loss, 40 mm of fused silica per round trip) |
 | output | 1.81 mJ (gain 9 × 10⁵), extraction 97 % of the stored energy |
 | spectrum | 31.4 nm → 28.6 nm FWHM (gain narrowing), centroid shifts red (800.2 → 802.9 nm) |
-| compressed | 42.3 fs (transform limit 34.3 fs; the remainder is higher-order phase of the cavity) |
+| compressed | 41.1 fs (transform limit 34.3 fs; the remainder is higher-order phase of the cavity) |
 | B-integral in the regen | 1.8 rad |
+
+![Gain spectrum, inversion, build-up per round trip and pulse train of the regenerative amplifier](regen-gain.png)
+
+`ultrafast-plot results` draws this figure (`results/plots/gain.png`). The pulse grows from 2 nJ to 1.81 mJ in
+the cavity. On the build-up panel the energy rises exponentially, a factor of about 5 per round trip (two passes at
+2.34 each), until the gain saturates and the energy flattens, which is where the regen ejects the pulse. The
+inversion panel shows the same thing in the crystal: the pump has excited up to 12 % of the ions near the entrance
+face, and the amplified pulse leaves almost none (green), i.e. nearly all of the stored energy is extracted. The
+gain spectrum (left) is broad but not flat, so the output spectrum (shaded) is narrower than the seed and shifted
+towards the gain peak side; the output is identical for all 4 pulses of the train, because the upper state is
+re-pumped from scratch every millisecond.
 
 The compressor's GDD and TOD were tuned with the `compressor` instrument. Without the correction, the 11 round
 trips of sapphire and silica (≈ 30 000 fs²) leave a 2.4 ps pulse. `el_regen_energyPerRoundTrip` holds the build-up

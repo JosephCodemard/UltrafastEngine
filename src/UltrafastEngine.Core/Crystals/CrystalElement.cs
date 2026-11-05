@@ -41,10 +41,16 @@ namespace UltrafastEngine.Crystals
         public double ThetaRad, PhiRad;
         public string Plane;
         public double NoncollinearRad;
-        /// <summary>SFG: angle between the inputs outside the crystal (rad): from <c>externalAngleDeg</c> or the arms' tilts.</summary>
+        /// <summary>Angle between the inputs outside the crystal (rad): from <c>externalAngleDeg</c> or the arms' tilts. SFG: used by the
+        /// geometry; OPA / DFG: the pump's angle to the signal, refracted at the pump's carrier (<see cref="NoncollinearRad"/>, the internal
+        /// angle at the nominal carrier, then marks the geometry as crossing).</summary>
         public double ExternalRad;
         /// <summary>Lab tilts (rad, x) of the main and fed beams on entry, from the arms.</summary>
         public double MainTiltXRad, FedTiltXRad;
+        /// <summary>The angle between the beams came from the arms' tilts (not from the interaction).</summary>
+        public bool AngleFromArms;
+        /// <summary>Lab tilt (rad, x) of each output port of a crossing geometry, known at compilation ("out" included).</summary>
+        public Dictionary<string, double> PortTiltXRad { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         public double QpmPeriodM = double.NaN;
         public string QpmModel = "averaged";
         public Func<double, double> QpmPeriodOfZ;
@@ -106,18 +112,13 @@ namespace UltrafastEngine.Crystals
             QpmK = 0, ReferenceWave = referenceWave
         };
 
-        public PulseField Execute(ActiveContext ctx, PulseField p) => Run(ctx, p, double.NaN, out _);
+        /// <summary>Beams crossing in the crystal: a stated or arm-derived angle (sfg), or a non-collinear pump (opa, dfg).</summary>
+        internal bool Crossed => (Process == "sfg" && (NoncollinearRad != 0 || ExternalRad != 0)) || (Process == "opa" && NoncollinearRad != 0);
 
-        /// <summary>Run the crystal; <paramref name="delayOverride"/> replaces the aux beams' delay (delay scans).</summary>
-        public PulseField Run(ActiveContext ctx, PulseField p, double delayOverride, out Dictionary<string, PulseField> fieldsOut)
+        /// <summary>Carriers of waves 1 and 2 (by frequency), the field names, the main beam's name and wave, and the reference wave.</summary>
+        internal void Carriers(double wMain, out double w1, out double w2, out string[] names, out string mainName, out int mainWave, out int refWave)
         {
-            var notes = ctx.Record.Notes;
-            var g0 = p.Grid; int n0 = g0.N;
-            double wMain = g0.OmegaCenter;
-            bool spatial = Transverse.IsSpatial;
-            // ---------------------------------------------------------------- field carriers and names
             double wAux = Aux.Count > 0 ? Aux[0].CenterOmega() : double.NaN;
-            string mainName; int mainWave; double w1, w2; string[] names; int refWave;
             switch (Process)
             {
                 case "shg":
@@ -144,6 +145,49 @@ namespace UltrafastEngine.Crystals
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Lab x tilt (rad) of each wave leaving a crossing geometry, by field name. SFG: inputs keep their arms' directions (or, with a
+        /// stated angle, refract from a face normal to the main beam's arm), and the sum leaves by tangential momentum. OPA / DFG: the face is
+        /// normal to the signal, and each wave leaves at Snell's angle of its internal direction, sin e = n sin(angle to the signal); the
+        /// idler's then obeys w_i sin e_i = w_p sin e_p - w_s sin e_s because the internal geometry conserves transverse momentum.
+        /// </summary>
+        internal Dictionary<string, double> LabTilts(ThreeWave.Geometry geo, string[] names, string mainName)
+        {
+            var t = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            if (Process == "sfg")
+            {
+                int ia = Array.IndexOf(names, "a"), ib = Array.IndexOf(names, "b");
+                double sinA = Math.Sin(geo.AngleToRefRad[ia]) * geo.N[ia], sinB = Math.Sin(geo.AngleToRefRad[ib]) * geo.N[ib];
+                // with no tilts from the arms the crystal's normal is the axis; tangential momentum sets the sum's, and each input keeps its own
+                bool fromArms = MainTiltXRad != FedTiltXRad;
+                double tiltA = fromArms ? MainTiltXRad : MainTiltXRad + Math.Asin(sinA), tiltB = fromArms ? FedTiltXRad : MainTiltXRad + Math.Asin(sinB);
+                t["a"] = tiltA; t["b"] = tiltB;
+                t["sum"] = Math.Asin((geo.Omega[ia] * Math.Sin(tiltA) + geo.Omega[ib] * Math.Sin(tiltB)) / (geo.Omega[ia] + geo.Omega[ib]));
+                return t;
+            }
+            // a stated or arm-derived external angle is the pump's own (the internal one was refracted from it at the nominal carrier)
+            int jp = Array.IndexOf(names, "pump");
+            double Ext(int j) => j == jp && ExternalRad != 0 ? ExternalRad : Math.Asin(Math.Max(-1, Math.Min(1, geo.N[j] * Math.Sin(geo.AngleToRefRad[j]))));
+            // the main beam enters at its arm's tilt; with the angle from the arms that puts the normal on the signal's arm
+            double normal = MainTiltXRad - Ext(Array.IndexOf(names, mainName));
+            for (int j = 0; j < 3; j++) t[names[j]] = normal + Ext(j);
+            return t;
+        }
+
+        public PulseField Execute(ActiveContext ctx, PulseField p) => Run(ctx, p, double.NaN, out _);
+
+        /// <summary>Run the crystal; <paramref name="delayOverride"/> replaces the aux beams' delay (delay scans).</summary>
+        public PulseField Run(ActiveContext ctx, PulseField p, double delayOverride, out Dictionary<string, PulseField> fieldsOut)
+        {
+            var notes = ctx.Record.Notes;
+            var g0 = p.Grid; int n0 = g0.N;
+            double wMain = g0.OmegaCenter;
+            bool spatial = Transverse.IsSpatial;
+            // ---------------------------------------------------------------- field carriers and names
+            double wAux = Aux.Count > 0 ? Aux[0].CenterOmega() : double.NaN;
+            Carriers(wMain, out double w1, out double w2, out string[] names, out string mainName, out int mainWave, out int refWave);
             // ---------------------------------------------------------------- internal grid
             var tw = Geometry(refWave);
             var geo = tw.At(w1, w2);
@@ -212,7 +256,7 @@ namespace UltrafastEngine.Crystals
                 f.Kz = new double[n];
                 var dir = geo.Directions[wv];
                 bool isIdlerNc = Process == "opa" && NoncollinearRad != 0 && wv != 2 && wv != refWave - 1;
-                double kpT = Process == "opa" && NoncollinearRad != 0 ? geo.N[2] * wc[2] / C * Math.Sin(NoncollinearRad) : 0;
+                double kpT = Process == "opa" && NoncollinearRad != 0 ? geo.N[2] * wc[2] / C * Math.Sin(geo.AngleToRefRad[2]) : 0;
                 for (int i = 0; i < n; i++)
                 {
                     double w = f.Grid.OmegaAbsolute[i];
@@ -287,12 +331,15 @@ namespace UltrafastEngine.Crystals
                 overlap = Math.Pow(2 / Math.PI, 1.5) / (w1r * w2r * w3r) * Math.PI / (1 / (w1r * w1r) + 1 / (w2r * w2r) + 1 / (w3r * w3r));
             }
             // crossing beams meet at mid-crystal; the 1-D model scales the coupling by how far apart they are at z
-            bool crossed = Process == "sfg" && (NoncollinearRad != 0 || ExternalRad != 0);
-            double crossSlope = crossed ? Math.Tan(geo.AngleToRefRad[0]) - Math.Tan(geo.AngleToRefRad[1]) : 0;
+            // (sfg: the two inputs; opa / dfg: the main beam and the first aux beam, signal and pump in a NOPA; the idler they make follows)
+            bool crossed = Crossed;
+            int inA = mainIdx, inB = auxFor.Keys.Where(k => k != mainIdx).DefaultIfEmpty(-1).First();
+            if (crossed && inB < 0) crossed = false;
+            double crossSlope = crossed ? Math.Tan(geo.AngleToRefRad[waveOf[inA]]) - Math.Tan(geo.AngleToRefRad[waveOf[inB]]) : 0;
             Func<double, double> crossing = null;
-            if (crossed && !spatial && OverlapModel == "gaussian")
+            if (crossed && !spatial && OverlapModel == "gaussian" && crossSlope != 0)
             {
-                double w2sum = fields[0].RadiusM * fields[0].RadiusM + fields[1].RadiusM * fields[1].RadiusM, slope = crossSlope, mid = LengthM / 2;
+                double w2sum = fields[inA].RadiusM * fields[inA].RadiusM + fields[inB].RadiusM * fields[inB].RadiusM, slope = crossSlope, mid = LengthM / 2;
                 crossing = z => Math.Exp(-Math.Pow((z - mid) * slope, 2) / w2sum);
             }
             double dk0 = fields.Length == 2
@@ -344,29 +391,41 @@ namespace UltrafastEngine.Crystals
             if (NoncollinearRad != 0 && !crossed) ctx.Record.Values["noncollinearDeg"] = NoncollinearRad * 180 / Math.PI;
             if (crossed)
             {
-                int ia = Array.IndexOf(names, "a"), ib = Array.IndexOf(names, "b");
-                double angA = geo.AngleToRefRad[ia], angB = geo.AngleToRefRad[ib], sinA = Math.Sin(angA) * geo.N[ia], sinB = Math.Sin(angB) * geo.N[ib];
-                ctx.Record.Values["noncollinearDeg"] = Math.Abs(angA - angB) * 180 / Math.PI;
-                ctx.Record.Values["externalAngleDeg"] = Math.Abs(Math.Asin(sinA) - Math.Asin(sinB)) * 180 / Math.PI;
-                ctx.Record.Values["angleToSumDeg_a"] = angA * 180 / Math.PI;
-                ctx.Record.Values["angleToSumDeg_b"] = angB * 180 / Math.PI;
+                double SinIn(int k) => Math.Sin(geo.AngleToRefRad[waveOf[k]]) * geo.N[waveOf[k]];
+                if (Process == "sfg")
+                {
+                    int ia = Array.IndexOf(names, "a"), ib = Array.IndexOf(names, "b");
+                    double angA = geo.AngleToRefRad[ia], angB = geo.AngleToRefRad[ib];
+                    ctx.Record.Values["noncollinearDeg"] = Math.Abs(angA - angB) * 180 / Math.PI;
+                    ctx.Record.Values["externalAngleDeg"] = Math.Abs(Math.Asin(SinIn(ia)) - Math.Asin(SinIn(ib))) * 180 / Math.PI;
+                    ctx.Record.Values["angleToSumDeg_a"] = angA * 180 / Math.PI;
+                    ctx.Record.Values["angleToSumDeg_b"] = angB * 180 / Math.PI;
+                }
+                else
+                {
+                    // signed: the pump's angle to the signal inside and outside (a face normal to the signal), and each wave's internal angle
+                    int ip = Array.IndexOf(names, "pump"), isg = Array.IndexOf(names, "signal"), ii = Array.IndexOf(names, "idler");
+                    ctx.Record.Values["noncollinearDeg"] = geo.AngleToRefRad[ip] * 180 / Math.PI;
+                    ctx.Record.Values["externalAngleDeg"] = (ExternalRad != 0 ? ExternalRad : Math.Asin(Math.Max(-1, Math.Min(1, SinIn(ip))))) * 180 / Math.PI;
+                    ctx.Record.Values["angleToSignalDeg_pump"] = geo.AngleToRefRad[ip] * 180 / Math.PI;
+                    ctx.Record.Values["angleToSignalDeg_idler"] = geo.AngleToRefRad[ii] * 180 / Math.PI;
+                    foreach (int j in new[] { isg, ii, ip }) ctx.Record.Values["wavelengthM_" + names[j]] = 2 * Math.PI * C / geo.Omega[j];
+                }
                 if (!spatial)
                 {
-                    // delay across the overlap, FWHM of I_a I_b along x: what a Cartesian run would add to a delay scan
-                    double wa = fields[ia].RadiusM, wb = fields[ib].RadiusM, fwhmX = 2 * Math.Sqrt(Math.Log(2) / (2 * (1 / (wa * wa) + 1 / (wb * wb))));
-                    double smear = fwhmX * Math.Abs(sinA - sinB) / C;
+                    // delay across the overlap of the two inputs, FWHM of I_A I_B along x: what a Cartesian run would add to a delay scan
+                    double wa = fields[inA].RadiusM, wb = fields[inB].RadiusM, fwhmX = 2 * Math.Sqrt(Math.Log(2) / (2 * (1 / (wa * wa) + 1 / (wb * wb))));
+                    double smear = fwhmX * Math.Abs(SinIn(inA) - SinIn(inB)) / C;
                     ctx.Record.Values["geometricSmearingS"] = smear;
                     if (smear > 0.3 * PulseMetrics.Summarize(p).FwhmS)
                         ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': crossing beams have a geometric smearing of {1:G3} fs, which the 1-D model does not include; use \"transverse\": {{\"model\": \"cartesian\"}} or a smaller angle.", Id, smear * 1e15));
                 }
-                // lab directions. With no tilts from the arms the crystal's normal is the axis; tangential momentum sets the sum's, and each input keeps its own
-                bool fromArms = MainTiltXRad != FedTiltXRad;
-                double tiltA = fromArms ? MainTiltXRad : MainTiltXRad + Math.Asin(sinA), tiltB = fromArms ? FedTiltXRad : MainTiltXRad + Math.Asin(sinB);
-                double tiltSum = Math.Asin((geo.Omega[ia] * Math.Sin(tiltA) + geo.Omega[ib] * Math.Sin(tiltB)) / (geo.Omega[ia] + geo.Omega[ib]));
-                ctx.Record.Values["outputTiltDeg_a"] = tiltA * 180 / Math.PI;
-                ctx.Record.Values["outputTiltDeg_b"] = tiltB * 180 / Math.PI;
-                ctx.Record.Values["outputTiltDeg_sum"] = tiltSum * 180 / Math.PI;
-                ctx.ByproductTiltXRad["a"] = tiltA; ctx.ByproductTiltXRad["b"] = tiltB; ctx.ByproductTiltXRad["sum"] = tiltSum;
+                // lab directions of every wave leaving the crystal; each port's path carries its own
+                foreach (var kv in LabTilts(geo, names, mainName))
+                {
+                    ctx.Record.Values["outputTiltDeg_" + kv.Key] = kv.Value * 180 / Math.PI;
+                    ctx.ByproductTiltXRad[kv.Key] = kv.Value;
+                }
             }
             // ---------------------------------------------------------------- transverse setup
             ITransverseBasis basis = null; TransverseProfile mainProfile = null;
@@ -396,7 +455,9 @@ namespace UltrafastEngine.Crystals
                 if (basis == null) return a;
                 var e = TransverseOps.Expand(a, g.OmegaAbsolute, prof);
                 // a crossing beam: the pulse front tilts by the face's tangential k(w), which is what smears a non-collinear correlator
-                double angleRad = crossingWave >= 0 ? geo.AngleToRefRad[crossingWave] : 0, sinExt = crossingWave >= 0 ? Math.Sin(angleRad) * geo.N[crossingWave] : 0;
+                // (Cartesian only: a radial grid has no x axis to tilt along)
+                bool tilts = crossingWave >= 0 && basis is CartesianBasis;
+                double angleRad = tilts ? geo.AngleToRefRad[crossingWave] : 0, sinExt = tilts ? Math.Sin(angleRad) * geo.N[crossingWave] : 0;
                 if (sinExt != 0)
                     for (int m = 0; m < M; m++)
                         for (int i = 0; i < n; i++) e[m * n + i] *= Complex.FromPolarCoordinates(1, g.OmegaOffset[i] * sinExt * basis.X[m] / C);
@@ -704,11 +765,27 @@ namespace UltrafastEngine.Crystals
             }
             var auxArr = c.Find(e, "aux")?.RawValue?.AsArray() ?? j.GetArray("aux") ?? new JsonArray();
             foreach (var a in auxArr) el.Aux.Add(AuxBeamSpec.FromJson(a.AsObject(), c.System.BaseDirectory ?? c.Run.BaseDirectory, "element " + e.Id + ".aux"));
-            foreach (var a in el.Aux.Where(x => x.FromPort)) { a.Pulse = c.Run.Pulse; a.NominalOmega = c.FedCarrier(e.Id, a.Role); }
+            // a fed port with no link can hold a virtual beam ("inputs": {"<role>": {pulse...}}): it keeps its own carrier, and enters along the lab axis
+            var virtualIn = j.GetObject("inputs");
+            var virtualRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var a in el.Aux.Where(x => x.FromPort))
+            {
+                a.Pulse = c.Run.Pulse; a.NominalOmega = c.FedCarrier(e.Id, a.Role);
+                var vo = virtualIn?.GetObject(a.Role);
+                if (vo == null || vo.GetBool("virtual", false) || !double.IsNaN(a.NominalOmega)) continue;
+                var spec = AuxBeamSpec.FromJson(vo, c.System.BaseDirectory ?? c.Run.BaseDirectory, "element " + e.Id + ".inputs." + a.Role);
+                spec.Role = a.Role;
+                ce.VirtualInputs[a.Role] = new VirtualInput { Spec = spec, PhaseRad = vo.GetDouble("phaseRad", 0), CoherentWith = vo.GetString("coherentWith"), OwnCarrier = true };
+                if (spec.Pulse != null) a.Pulse = spec.Pulse;
+                a.DelayAuto = spec.DelayAuto; // "auto": centred on the main beam in the crystal, whatever the paths' delays
+                a.NominalOmega = spec.CenterOmega();
+                virtualRoles.Add(a.Role);
+            }
             // the arms' tilts give the angle between the beams, unless the interaction states it
             el.MainTiltXRad = el.FedTiltXRad = c.TiltXRad;
             var fedBeam = el.Aux.FirstOrDefault(x => x.FromPort);
-            if (fedBeam != null && !double.IsNaN(c.FedTiltX(e.Id, fedBeam.Role))) el.FedTiltXRad = c.FedTiltX(e.Id, fedBeam.Role);
+            if (fedBeam != null && virtualRoles.Contains(fedBeam.Role)) el.FedTiltXRad = 0;
+            else if (fedBeam != null && !double.IsNaN(c.FedTiltX(e.Id, fedBeam.Role))) el.FedTiltXRad = c.FedTiltX(e.Id, fedBeam.Role);
             // polarisations
             var pol = it.GetObject("polarizations");
             // beam
@@ -778,7 +855,17 @@ namespace UltrafastEngine.Crystals
             if (it.Has("plane")) req.Set("plane", it.GetString("plane"));
             if (it.TryGet("noncollinearDeg", out var nc)) req.Set("noncollinearDeg", nc);
             el.ExternalRad = it.GetDouble("externalAngleDeg", 0) * Math.PI / 180;
-            if (el.ExternalRad == 0 && nc == null && el.Process == "sfg") el.ExternalRad = el.MainTiltXRad - el.FedTiltXRad;
+            if (el.ExternalRad == 0 && nc == null && el.Process == "sfg") { el.ExternalRad = el.MainTiltXRad - el.FedTiltXRad; el.AngleFromArms = el.ExternalRad != 0; }
+            if (el.ExternalRad == 0 && nc == null && el.Process == "opa" && el.MainTiltXRad != el.FedTiltXRad)
+            {
+                // the face is normal to the signal's arm, so the angle is the pump's tilt from it: E = tilt(pump) - tilt(signal)
+                string fedRole = fedBeam?.Role;
+                if (!((mr == "signal" && fedRole == "pump") || (mr == "pump" && fedRole == "signal")))
+                    throw new JsonException("crystal '" + e.Id + "': the angle from the arms needs the signal and the pump as the two inputs (main " + mr + ", fed " + (fedRole ?? "none") +
+                        "); call the seeded wave \"signal\", or state interaction.noncollinearDeg or externalAngleDeg");
+                el.ExternalRad = mr == "pump" ? el.MainTiltXRad - el.FedTiltXRad : el.FedTiltXRad - el.MainTiltXRad;
+                el.AngleFromArms = true;
+            }
             if (el.ExternalRad != 0) req.Set("externalAngleDeg", el.ExternalRad * 180 / Math.PI);
             var cut = j["cut"];
             bool autoCut = cut == null || (cut.Kind == JsonKind.String && cut.AsString().Equals("auto", StringComparison.OrdinalIgnoreCase));
@@ -835,6 +922,14 @@ namespace UltrafastEngine.Crystals
             if (el.Process == "shg") { el.PortOmega["fundamental"] = wMain; el.PortOmega["sh"] = 2 * wMain; }
             else if (el.Process == "sfg") { el.PortOmega["a"] = wMain; el.PortOmega["b"] = wAuxN; el.PortOmega["sum"] = wMain + wAuxN; }
             el.NominalOmegaMain = wMain;
+            if (el.Crossed)
+            {
+                // each output port's lab tilt at the nominal carriers, so that elements linked to it see their arm's direction
+                el.Carriers(wMain, out double n1, out double n2, out var nm, out var mn, out _, out int rw);
+                var tilts = el.LabTilts(el.Geometry(rw).At(n1, n2), nm, mn);
+                foreach (var kv in tilts) el.PortTiltXRad[kv.Key] = kv.Value;
+                if (tilts.TryGetValue(outName, out double tOut)) el.PortTiltXRad["out"] = tOut;
+            }
             ce.Active = el;
             c.Provenance.Record("element:" + e.Id, "crystal", crystal.Describe() + "; " + crystal.References, ModelSource.MaterialDefault, "crystal library");
             c.Provenance.Record("element:" + e.Id, "cut", string.Format(CultureInfo.InvariantCulture, "theta {0:F4} deg, phi {1:F3} deg{2}, roles {3}", el.ThetaRad * 180 / Math.PI, el.PhiRad * 180 / Math.PI,

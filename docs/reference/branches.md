@@ -71,6 +71,7 @@ An input port with no beamline can hold a beam, in Sequential and Branched syste
 
 * `coherentWith`: `"input"` makes it interfere with the run's pulse. Without it the beam is an independent source and its energy simply adds.
 * A Sequential system keeps one pulse, so there a virtual beam at a splitter must be coherent.
+* A virtual beam of another colour is built on a grid around its own carrier, passes the splitter (and a `leakMirror`'s `gddFs2` / `leakGddFs2`, a quadratic phase about the beam's own carrier) at its own frequencies, and is then brought onto the run's grid in a Sequential system. Whatever lies outside the run's frequency band is booked as `fed beam outside the run's grid` and reported as a warning: use a Branched system or widen the grid.
 * In a Branched system `delayS` and `phaseRad` are measured from the source of the run's pulse. In a Sequential system they are measured from the main beam at the element.
 
 ## Beam splitters
@@ -140,6 +141,8 @@ A `steadyState` loop needs gain. The input enters once, so a passive loop only d
 
 An `aux` beam with `"fromPort": true` comes from a link to the port named by its `role`. Its timing, phase and carrier come from the paths, so `delayS` is not used, and `cut: "auto"` solves for the colours that arrive: a fundamental and a second harmonic give the third-harmonic cut. Example [39](../examples/39-third-order-cross-correlator/README.md) is such a chain.
 
+A fed port with no link can hold a virtual beam, `"inputs": {"signal": {"pulse": ..., "delayS": "auto"}}`. It keeps its own carrier and enters along the lab axis, so the tilt of the other arm sets the crossing angle. Example [42](../examples/42-noncollinear-opa/README.md) seeds a NOPA this way. Other elements read `inputs` beams only on splitters (`beamSplitter`, `polarizingSplitter`, `dichroic`).
+
 ```jsonc
 { "id": "x", "type": "crystal", "crystal": "BBO", "lengthM": 20e-6, "interaction": { "process": "sfg", "type": "I" }, "cut": "auto",
   "beam": { "kind": "gaussian", "w0M": 100e-6 }, "output": "sum", "next": "end",
@@ -175,5 +178,5 @@ ultrafast validate system.ufs --graph --mermaid    # a Mermaid diagram
 * Mode overlap assumes simple Gaussian beams at one plane and ignores M².
 * A linked crystal port takes the strongest packet only, and only the strongest main packet meets it. Other packets are booked as `packets not overlapping in crystal`, with a warning.
 * `gddFs2` of a `leakMirror` acts on the field, but is not in the `system` dispersion the element reports.
-* The x tilts of the arms into an `sfg` crystal set the crossing angle ([Crystals](crystals.md#non-collinear-sum-frequency)). `opa` and `dfg` take their angle from the element, not the arms. A carried profile entering with its own tilt phase would count the tilt twice, so use tracked beams for crossing arms.
+* The x tilts of the arms into a crystal set the crossing angle: `sfg` ([Crystals](crystals.md#non-collinear-sum-frequency)), and `opa` and `dfg` when the signal and the pump are the two inputs ([Crystals](crystals.md#non-collinear-opa-and-dfg)). A carried profile entering with its own tilt phase would count the tilt twice, so use tracked beams for crossing arms.
 * Merged carried profiles share one transverse shape per stored frequency, so spectral fringes finer than `spectralSamples` are averaged.

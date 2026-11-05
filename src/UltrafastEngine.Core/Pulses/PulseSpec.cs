@@ -100,8 +100,9 @@ namespace UltrafastEngine.Pulses
                 foreach (var x in p.Pedestal)
                 {
                     string k = x.GetString("kind", "").ToLowerInvariant();
-                    if (k != "replica" && k != "prepulse" && k != "postpulse" && k != "ase" && k != "phasenoise" && k != "exponential")
-                        throw new JsonException(origin + ".pedestal: unknown kind \"" + x.GetString("kind", "") + "\" (replica, prePulse, postPulse, ase, phaseNoise, exponential).");
+                    if (k != "replica" && k != "prepulse" && k != "postpulse" && k != "ase" && k != "phasenoise" && k != "exponential" && k != "measured")
+                        throw new JsonException(origin + ".pedestal: unknown kind \"" + x.GetString("kind", "") + "\" (replica, prePulse, postPulse, ase, phaseNoise, exponential, measured).");
+                    if (k == "measured") PrepareMeasuredPedestal(x, origin, baseDirectory);
                 }
             }
             var sp = o.GetObject("spectrum");
@@ -258,16 +259,21 @@ namespace UltrafastEngine.Pulses
         /// <summary>Build the pulse on <paramref name="grid"/>.</summary>
         public PulseField Build(FrequencyGrid grid) => Build(grid, true);
 
+        /// <summary>The pulse on a grid, with <paramref name="notes"/> receiving a message when part of a measured spectrum lies outside the
+        /// grid's band. A measured spectrum with less than half of its energy inside the band is an error (it would otherwise be
+        /// renormalised to the full energy at the band edge).</summary>
+        public PulseField Build(FrequencyGrid grid, List<string> notes) => Build(grid, true, notes);
+
         /// <summary>The pulse on a grid; <paramref name="withNoise"/> false leaves out the quantum noise (grid planning).</summary>
-        public PulseField Build(FrequencyGrid grid, bool withNoise)
+        public PulseField Build(FrequencyGrid grid, bool withNoise, List<string> notes = null)
         {
-            var p = BuildField(grid, withNoise);
+            var p = BuildField(grid, withNoise, notes);
             if (CepRad == 0) return p;
             var f = Complex.FromPolarCoordinates(1, CepRad);
             return p.WithSpectrum(p.Ax.Select(z => z * f).ToArray(), p.Ay.Select(z => z * f).ToArray());
         }
 
-        private PulseField BuildField(FrequencyGrid grid, bool withNoise)
+        private PulseField BuildField(FrequencyGrid grid, bool withNoise, List<string> notes)
         {
             var pol = Polarization.Normalized();
             int n = grid.N;
@@ -321,6 +327,7 @@ namespace UltrafastEngine.Pulses
                     }
                     a[i] = Complex.FromPolarCoordinates(Math.Sqrt(Math.Max(0, li.Evaluate(x))), pi.Evaluate(x));
                 }
+                CheckSpectrumInBand(grid, w, s, li, notes);
             }
             else
             {
@@ -374,6 +381,29 @@ namespace UltrafastEngine.Pulses
             return Noise != null && withNoise ? Pedestals.QuantumNoise(built, Noise) : built;
         }
 
+        /// <summary>The share of the measured spectrum's energy that falls inside the grid's band (the part of the data range the grid covers).
+        /// Less than half: an error; below 95 %: a message.</summary>
+        private void CheckSpectrumInBand(FrequencyGrid grid, double[] w, double[] s, LinearInterpolator li, List<string> notes)
+        {
+            double total = 0;
+            for (int k = 1; k < w.Length; k++) total += 0.5 * (s[k] + s[k - 1]) * (w[k] - w[k - 1]);
+            if (!(total > 0)) return;
+            double lo = grid.OmegaAbsolute[0], hi = grid.OmegaAbsolute[grid.N - 1];
+            if (lo > hi) { var t = lo; lo = hi; hi = t; }
+            double inside = 0; int m = 4000;
+            double a0 = Math.Max(lo, w[0]), a1 = Math.Min(hi, w[w.Length - 1]);
+            if (a1 > a0) { double dw = (a1 - a0) / m; for (int k = 0; k < m; k++) inside += li.Evaluate(a0 + (k + 0.5) * dw) * dw; }
+            double frac = inside / total;
+            string where = string.Format(CultureInfo.InvariantCulture, "the measured spectrum spans {0:G5}-{1:G5} nm, the grid's band {2:G5}-{3:G5} nm",
+                2e9 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w[w.Length - 1], 2e9 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w[0],
+                2e9 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / hi, 2e9 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / lo);
+            if (frac < 0.5)
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
+                    "Input spectrum: only {0:P1} of its energy lies inside the grid's frequency band ({1}). Centre the grid on the spectrum (the pulse's centerWavelengthM), widen the grid, or build the beam on a grid around its own carrier.", frac, where));
+            if (frac < 0.95)
+                notes?.Add(string.Format(CultureInfo.InvariantCulture, "Input spectrum: {0:P1} of its energy lies outside the grid's frequency band and is cut off ({1}).", 1 - frac, where));
+        }
+
         /// <summary>Half-window the pulse's satellites need (largest replica delay, a few decay times of an exponential pedestal).</summary>
         public double SatelliteHalfWindowS()
         {
@@ -392,6 +422,30 @@ namespace UltrafastEngine.Pulses
                 }
             }
             return h;
+        }
+
+        /// <summary>A measured pedestal: read its CSV (time or delay column, and relativeIntensity / intensity / contrast_dB) into
+        /// the component's arrays, so that the solver only sees numbers. Sorted by time; the main pulse's own rows can be excluded.</summary>
+        private static void PrepareMeasuredPedestal(JsonObject x, string origin, string baseDirectory)
+        {
+            if (x.Has("csv"))
+            {
+                string path = x.GetString("csv");
+                if (!Path.IsPathRooted(path) && baseDirectory != null) path = Path.Combine(baseDirectory, path);
+                var d = UltrafastEngine.Measured.MeasuredData.Load(path);
+                string tc = d.Find("time", "delay", "t"), lc = d.Find("relativeIntensity", "intensity", "contrast", "level");
+                if (tc == null || lc == null) throw new JsonException(origin + ".pedestal measured: " + path + " needs a time_<unit> (or delay_<unit>) column and a relativeIntensity, intensity or contrast_dB column.");
+                double su = UltrafastEngine.Measured.MeasuredData.Unit(tc);
+                bool db = lc.EndsWith("_db", StringComparison.OrdinalIgnoreCase);
+                var t = d.Columns[tc].Select(v => v * su).ToArray();
+                var l = d.Columns[lc].Select(v => db ? Math.Pow(10, -Math.Abs(v) / 10) : v).ToArray();
+                x.Set("timesS", JsonValue.FromArray(t)); x.Set("relativeIntensities", JsonValue.FromArray(l));
+            }
+            var times = x.GetDoubleArray("timesS"); var lev = x.GetDoubleArray("relativeIntensities");
+            if (times == null || lev == null || times.Length != lev.Length || times.Length < 2)
+                throw new JsonException(origin + ".pedestal measured needs a csv, or timesS and relativeIntensities of equal length (at least 2 points).");
+            string outside = x.GetString("outside", "zero").ToLowerInvariant();
+            if (outside != "zero" && outside != "hold") throw new JsonException(origin + ".pedestal measured: outside must be \"zero\" or \"hold\".");
         }
 
         private static double[] Solve3(double[,] A, double[] b)

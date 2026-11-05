@@ -68,5 +68,15 @@ What to look at:
   plate, ~1e-5). The engine warns if more than 0.01 % of the energy sits near the edge of a transverse grid;
   enlarge `radiusM` (keeping the point spacing) if it does.
 
+![Space-time intensity after the plate and beam profiles with and without the Kerr effect](spatial-kerr.png)
+
+`python plot.py` draws this figure from `results-run/` and `results-run-linear/`. The left panel is the intensity
+after the plate as a function of radius and time, a quantity no single camera measures: the pulse is strongest and
+shortest on the axis and weaker and longer in the wings, because the Kerr phase follows the local intensity. The right
+panel compares the beam at 1 nJ (grey, no Kerr effect) and at 4 uJ (red). At the plate exit the intense beam is
+narrower (97.8 um against 102.5 um): the Kerr effect acts as a weak positive lens and the beam is converging. After 40 mm of free
+space it is still narrower than the linear beam (167 um against 183 um), since it has been focused
+and has begun to diverge again from a smaller spot.
+
 The same plate without `"transverse"` runs in 1-D (much faster) and warns that the peak power is above the
 critical power -- this example is what that warning points to.

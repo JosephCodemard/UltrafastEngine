@@ -785,14 +785,19 @@ namespace UltrafastEngine.Instruments
             }
             // never report a "compressor" that is worse than none
             if (peakAt(0, 0) >= peakAt(gddBest, todBest)) { gddBest = 0; todBest = 0; }
-            var aa = new Complex[n]; var bb = new Complex[n];
-            for (int i = 0; i < n; i++)
+            // The reported pulse is the input on its own grid with the best phase. The compact copy resolves the
+            // spectrum, not the compressed peak: its time step can be a fifth of the compressed FWHM after strong SPM,
+            // and the half-maximum crossings interpolated on it were 4 % short at B = 40 rad (Escoto et al., JOSA B
+            // 39, 1694 (2022), docs/papers/escoto-2022-compression-quality).
+            var full = ctx.Pulse; var fg = full.Grid; int fn = fg.N;
+            var aa = new Complex[fn]; var bb = new Complex[fn];
+            for (int i = 0; i < fn; i++)
             {
-                double d = g.OmegaOffset[i];
+                double d = fg.OmegaOffset[i];
                 var ph = Complex.FromPolarCoordinates(1, -(gddBest * d * d / 2 + todBest * d * d * d / 6));
-                aa[i] = p.Ax[i] * ph; bb[i] = p.Ay[i] * ph;
+                aa[i] = full.Ax[i] * ph; bb[i] = full.Ay[i] * ph;
             }
-            var comp = new PulseField(g, aa, bb, p.RepRateHz);
+            var comp = new PulseField(fg, aa, bb, full.RepRateHz);
             var sm = PulseMetrics.Summarize(comp);
             Tools.Put(o, "compressorGddS2", -gddBest); Tools.Put(o, "compressorTodS3", -todBest);
             Tools.Put(o, "compressedFwhmS", sm.FwhmS); Tools.Put(o, "compressedPeakPowerW", sm.PeakPowerW);
@@ -800,7 +805,7 @@ namespace UltrafastEngine.Instruments
             var pt = PulseMetrics.TemporalPower(comp);
             var (lo2, hi2) = PulseMetrics.SupportRange(pt, 1e-6, 8);
             int pts = ctx.Spec.GetInt("points", 4096);
-            o.Add("time_s", Engine.Executor.Crop(g.Time, lo2, hi2, pts), "s", "time");
+            o.Add("time_s", Engine.Executor.Crop(fg.Time, lo2, hi2, pts), "s", "time");
             o.Add("power_w", Engine.Executor.CropMax(pt, lo2, hi2, pts), "W", "compressed pulse power");
         }
     }

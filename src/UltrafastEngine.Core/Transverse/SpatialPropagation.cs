@@ -427,7 +427,7 @@ namespace UltrafastEngine.Transverse
             if (Medium != null && Medium.IsActive && Medium.N2 > 0 && !Medium.ReplaceKerr)
             {
                 double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / g.OmegaCenter, n0 = Material.IndexAt(g.OmegaCenter);
-                ctx.Record.Values["peakPowerOverCritical"] = PulseMetrics.TemporalPower(p).Max() / (3.77 * lam * lam / (8 * Math.PI * n0 * Medium.N2));
+                ctx.Record.Values["peakPowerOverCritical"] = PulseMetrics.TemporalPower(p).Max() / (PhysicalConstants.CriticalPowerFactor * lam * lam / (8 * Math.PI * n0 * Medium.N2));
             }
             if (basis.Kind == "cartesian")
             {
@@ -467,7 +467,7 @@ namespace UltrafastEngine.Transverse
             var axis = OmegaAxis.FromGrid(g);
             Executor.Combine(Bg(ctx), axis, out var phX, out var ampX, out var phY, out var ampY);
             double tauEl = Bg(ctx).Sum(b => b.GroupDelayAt(g.OmegaCenter));
-            var own = new DispersionPoint(); foreach (var b in Bg(ctx)) own += b.DispersionAt(g.OmegaCenter);
+            var own = new DispersionPoint(); foreach (var b in Bg(ctx)) own += Engine.Executor.Reported(b, g);
             ctx.Own = own;
             double e0 = p.TotalEnergyJ();
             double eyFrac = p.Ay.Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary) / Math.Max(1e-300, p.Ax.Concat(p.Ay).Sum(c => c.Real * c.Real + c.Imaginary * c.Imaginary));

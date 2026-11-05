@@ -30,6 +30,19 @@ What to look at:
   (gain narrowing took the 15 fs seed bandwidth down to ~24 fs).
 * `results/result.npz` -> `probe_nopa_idler_*`, `probe_nopa_pump_*`: the idler (at ~1.4 um) and the depleted pump.
 
+## Result
+
+![Signal spectrum, gain bandwidth and delay scan of the NOPCPA stage](nopcpa-bbo.png)
+
+`python plot.py` draws this figure from `results/`. The 50 nJ seed leaves the crystal with 43.7 uJ (21 % of the
+energy in, the rest is the idler and the unconverted pump). The middle panel shows why the non-collinear geometry
+is used: the phase-matching curve is flat over a very wide band (FWHM 224 nm), far wider than the seed (15 fs
+corresponds to roughly 60 nm). Even so, the amplified spectrum (left, solid) is narrower than the seed because the
+gain is highest at the centre of the strongly saturated pulse; the compressed pulse is 23.8 fs, against 15 fs
+for the seed. The delay scan (right) moves the pump across the 0.6 ps seed: the output energy is highest when the
+pump is about 0.1 ps ahead of the signal's centre, which compensates the group-velocity mismatch between the beams
+in the crystal, and it falls to near zero when the pump no longer overlaps the seed.
+
 No example-08 results? Replace the aux `"from"` with a pulse:
 `"pulse": {"shape": "gaussian", "centerWavelengthM": 515e-9, "durationFwhmS": 0.8e-12, "energyJ": 200e-6}`.
 

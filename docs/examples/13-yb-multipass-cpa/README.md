@@ -29,6 +29,16 @@ What the amplifier element does (docs/gain.md):
 | B-integral | 0.07 rad (well stretched) |
 | thermal lens | 10.5 W of heat, ΔT(0) = 57 K, f_th = 0.14 m |
 
+![Gain spectrum, inversion, pass-by-pass build-up and pulse train of the Yb:YAG amplifier](yb-amplifier-gain.png)
+
+`ultrafast-plot results` draws this figure (`results/plots/gain.png`). The left panel shows why the amplified
+spectrum is narrower than the seed: the small-signal gain of Yb:YAG peaks at 1030 nm and falls off on both sides,
+so the centre of the spectrum grows fastest. The second panel is the fraction of ions in the excited state along
+the rod, before and after the pulse passes; the pulse takes only a small part of the stored energy, consistent
+with the 5.4 % extraction in the table. The build-up panel is a straight line on the log scale, a constant gain
+of about 2.9 per pass from 716 nJ to 1.46 mJ over 8 passes. The last panel is the pulse train: the first pulses
+find an unpumped rod, and the output settles at 1.46 mJ after about 15 pulses (the engine runs 28 and reports 14.6 W average power).
+
 Things to try:
 
 * `"passes": 12`, or raise the seed to watch saturation flatten the build-up (`energyPerPass`);
