@@ -5,6 +5,12 @@
 ### Added (plan of 2026-11: docs/design/plan-2026-11.md)
 - `verification/`: one script per component family (linear, splitters and masks, polarisation, crystals, instruments) that runs each component alone, overlays the analytic answer and writes an HTML gallery (`run_all.py`); a CI job runs it without plots. C# component sheet (`tests/.../Components/`): every listed component at 515 nm / 1030 nm / 2 µm and 1 ps / 10 fs, energy, reported GDD, bandwidth, Sequential = Branched.
 - `docs/papers/` (published results reproduced, with our plots and commentary; harness `build/paper_check.py`, a CI job for the fast tier) and the plan for November 2026. First four: Escoto 2022 (compression quality), Gordon 1986 (soliton self-frequency shift), Boyd-Kleinman 1968 (focused SHG), Bespalov-Talanov 1966 (small-scale self-focusing).
+- `pulse.pedestal` kind `measured`: an input pedestal that follows a recorded contrast trace (`csv` with time and relative intensity or dB columns, or arrays).
+- `ultrafast-plot` draws a Branched system as a graph (arms in lanes, merges, virtual ports, the output energy).
+- Paper replications added: nonlinear ellipse rotation in a multi-pass cell (Escoto et al., CLEO 2024) and a lab beamline fitted to recordings (fitting plugin, measured pedestal, water lines of the air).
+- Figures and commentary for examples 01, 02, 03, 08, 09, 11, 13, 14, 19, 22, 25 and 27.
+- Claude Code skills and agents for replicating papers, mirroring a lab setup, optimising and debugging a setup, and hunting engine bugs; the commands `/replicate` and `/lab`.
+- CI runs the C# and Python tests on macOS (Apple silicon) and Windows.
 - Example 41: a pump-probe experiment (opposite circular pump and probe in a Branched system) against the exact cross-phase shift of the probe's spectral centroid.
 - **Non-collinear OPA and DFG**: the angle from the arms' `tiltXRad` (or `externalAngleDeg`), refracted at the face; the idler leaves at the angle that conserves the transverse momentum, recorded on its path; a crystal's fed port can hold a virtual beam. Example 42 (a NOPA). Checked against transverse momentum, the parametric gain with mismatch (Cerullo & De Silvestri 2003), arms = stated angle, DFG photon balance.
 
