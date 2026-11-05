@@ -336,6 +336,12 @@ def main():
               len(entry["quoted"]), len(bad), ", %d table keys not in summary.json" % len(unchecked) if unchecked else "", time.time() - t0))
         for q, got in bad:
             print("       README: %s\n       output: %s" % (q, got or "(no line with this text)"))
+        if status != "ok" and os.environ.get("GITHUB_ACTIONS"):
+            # an annotation is readable without log access (the run's check-run annotations)
+            why = "; ".join("exit %d: %s" % (c["rc"], c["line"]) for c in entry["commands"] if c["rc"] != 0) or \
+                  "; ".join("README %s -> %s" % (q, got or "missing") for q, got in bad)
+            tail = " | ".join(output[-4:]) if not ok else ""
+            print("::error title=example %s::%s %s" % (name, why[:300], tail[:400]))
         for bf in entry.get("baselineFailed", []):
             print("       vs %s: exit %d on: %s\n         %s" % (args.against, bf["rc"], bf["line"], " ".join(bf["tail"])[:160]))
         if entry.get("notCompared"):
