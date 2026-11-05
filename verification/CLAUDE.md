@@ -5,7 +5,7 @@
   instruments (gain, gases, fibres still to write). Harness `_common.py` (`Family.check`, `figure`, `overlay`;
   `known="..."` marks a reported, unfixed engine bug: shown as KNOWN, does not fail), references `_analytic.py`
   (no engine import). Read docs/verification.md for the conventions that trip analytic expectations.
-* The checks follow the component sheet of `docs/design/plan-2026-11.md` (G): energy, dispersion, carrier (515 nm,
+* The checks follow the component sheet: energy, dispersion, carrier (515 nm,
   1030 nm, 2 µm), bandwidth (1 ps and 10 fs), topology (Sequential = Branched), ports, off cases, reversal,
   polarisation (circular / linear SPM = 2/3, NER rotation B sin2χ / 3).
 * `run_all.py` runs them all and writes `report/index.html` (git-ignored): figure, formula, numbers, pass / fail.

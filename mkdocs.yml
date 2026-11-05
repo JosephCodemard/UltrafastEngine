@@ -78,8 +78,7 @@ nav:
   - Design notes:
       - Development history: design/history.md
       - Branched systems (design): design/branching.md
-      - "Plan: basics and a catalogue": design/next-basics-and-catalogue.md
-      - "Plan: November 2026": design/plan-2026-11.md
+      - "Plan: what is next": design/plan-next.md
 markdown_extensions:
   - admonition
   - tables

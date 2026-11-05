@@ -2,10 +2,10 @@
 
 Working notes for the replication programme: which papers were read in full text, their parameters and headline
 numbers with locations, and what is missing. Anything marked UNVERIFIED must be read in the paper before it becomes
-a check. Chosen papers move into their own folder (see `papers/CLAUDE.md`).
+a check. Chosen papers move into their own folder (see `docs/papers/CLAUDE.md`).
 
 
-Research pass for `papers/` (plan-2026-11 section F). Every number below was read in the full text I fetched,
+Research pass for the paper replications. Every number below was read in the full text I fetched,
 unless it is marked **UNVERIFIED** (abstract only, secondary source, or not retrievable). Numbers are paraphrased with
 their location; no text or figures are copied. "Read off Fig. N" = value read from a plot, needs a wide tolerance.
 
@@ -255,7 +255,7 @@ are OL/JoVE; not read). Seidel 2022 S1.2 gives a Yb:YAG rod chain: 15 nJ â†’ 5 â
   -5.3943e-13, 1.3486e-15, -2.5495e-18, 3.0524e-21, -1.7140e-24 (ps^n/m). These match the repo's
   `docs/examples/25-supercontinuum/pcf.ufs` (ps^n/km) exactly. Whether "50 fs" is the FWHM or T0 must be checked in
   the original (gnlse's SechEnvelope argument).
-* Already an engine example; a `papers/` entry would add location checks (fission length, Raman soliton and
+* Already an engine example; a `docs/papers/` entry would add location checks (fission length, Raman soliton and
   dispersive-wave wavelengths read off Fig. 3). Difficulty M. Verdict: replicable, but numbers only from the figure.
 
 ### 5.4 Gordon, OL 11, 662 (1986); Nisoli et al., OL 22, 522 (1997)

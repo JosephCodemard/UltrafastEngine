@@ -75,8 +75,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 
 ## Design notes
 - [Branched systems (design)](docs/design/branching.md)
-- [Plan: basics and a catalogue](docs/design/next-basics-and-catalogue.md)
-- [Plan: November 2026](docs/design/plan-2026-11.md)
+- [Plan: what is next](docs/design/plan-next.md)
 - [Branched systems reference](docs/reference/branches.md)
 - [Architecture](docs/architecture/index.md)
 - [Code map](docs/architecture/code-map.md)
