@@ -28,7 +28,8 @@ fringes = (1 - np.cos(w * TAU)) / 2
 band = s_in > 1e-3 * s_in.max()
 print("Mach-Zehnder     output / input %.4f   analytic %.4f" % (s_out.sum() / s_in.sum(), (s_in * fringes).sum() / s_in.sum()))
 print("spectral fringes largest error  %.1e of the peak" % (np.abs(s_out - s_in * fringes)[band].max() / s_in.max()))
-print("budget closure   %.1e J" % graph["energyClosureJ"])
+# the closure is rounding noise (~1e-25 J on 1 nJ, platform dependent): print the bound it meets
+print("budget closure   %s 1e-12 of the input" % ("below" if abs(graph["energyClosureJ"]) < 1e-12 * 1e-9 else "ABOVE"))
 
 # etalon: two mirrors of R = 0.8 joined by a loop, and a cw source. Scanning a path over one wave passes one Airy peak
 R, GAP = 0.8, 0.01

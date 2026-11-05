@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **397 tests** in 43 classes. **205** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **406 tests** in 45 classes. **213** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -25,10 +25,12 @@ Every C# test of the engine: **397 tests** in 43 classes. **205** of them check 
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 7 | 4 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
+| [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 3 | 2 |
 | [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 5 | 5 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
+| [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
 | [Measured input spectra, comparisons and satellite room](#measuredspectrumtests) | `MeasuredSpectrumTests` | 13 | 0 |
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
@@ -413,6 +415,17 @@ HITRAN plugin: line shapes, files, partition sums, absorption in air.
 | `WaterLines_TailLedger_ReproducesTheBruteForce2nsWindow` | cross-check: one 2 ns window | 1e-05, 0.1 %, 2 % |
 | `WaterVapour_FractionFollowsTheSaturationPressure` | saturation vapour pressure of water, 2339 Pa at 20 °C | 1e-12, 0.5 % |
 
+## InstrumentCrystalComponentTests
+
+Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Autocorrelator_Sech2_HasTheRatio1543_AtEveryCarrier` | Intensity autocorrelation of sech^2: FWHM ratio 1.5427 (Diels & Rudolph, Table 9.1) | 0.3 % |
+| `BboShg_ConservesEnergy_AndEachPortHasItsCarrier_AtEveryCarrier` | Manley-Rowe / energy conservation of lossless SHG; out port = SH at lambda / 2, fundamental at lambda | 1e-6 energy, 0.2 % carrier |
+| `CrossCorrelator_Gaussian_HasWidthRootThreeHalves_AndTheFloor` | Third-order correlation of a Gaussian: integral I(t) I^2(t - tau) dt has FWHM sqrt(3/2) tau_p; flat floor at the dynamic range | 0.5 %; 0.01 dB |
+| `Frog_FrequencyMarginal_IsTheSpectrumsAutoconvolution` | SHG-FROG frequency marginal = autoconvolution of the spectrum: centre 2 w0, rms sqrt(2) sigma_w | 1e-4 centre, 1 % rms |
+
 ## InstrumentDeviceTests
 
 Instrument device models: resolution, acceptance, detectors, filters.
@@ -468,6 +481,18 @@ Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved �
 | `Haus_SolitonModeLocking_ObeysTheAreaTheorem` | soliton area theorem (Haus master equation) | 1e-12, 10 % |
 | `Sesam_SlowAbsorber_SaturatesAsTheEnergyIntegral` | slow absorber: q0 (1 − e^−S) / S | 1e-09, 2 % |
 | `ThermalLens_ExportsAsGradient1` | GRIN thin lens n_r2 = −1 / (2 f L) | 1e-09 |
+
+## LinearComponentTests
+
+Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched.
+
+| test | reference | tolerance |
+|---|---|---|
+| `FedBeam_OfAnotherColour_KeepsItsCarrier` | Linear superposition: a lossless splitter sends (1 - R) a + R b of each colour to port c; different colours do not interfere | 1e-6 |
+| `GratingPair_WithoutAPropagatingOrder_IsAnError` | -- | -- |
+| `GridResampler_ShiftBeyondTheBand_IsExact` | Band-limited resampling between exactly related grids is exact | 1e-9 |
+| `LeakMirror_ReportsTheGddOfThePortThatContinues` | leakMirror gddFs2 / leakGddFs2 (the phase applied to each port) | 1e-9 |
+| `LinearSheet_EveryElement_PassesAtEveryCarrierAndBandwidth` | Sellmeier (Malitson 1965) x Ciddor (1996); Treacy, IEEE JQE 5, 454 (1969); Taylor phase; Stokes relations | GDD 1e-6 (glass 1e-5, air 1e-4), energy 1e-9, Branched = Sequential 1e-12 |
 
 ## LossAndOverrideTests
 

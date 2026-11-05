@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added (plan of 2026-11: docs/design/plan-2026-11.md)
+- `verification/`: one script per component family (linear, splitters and masks, polarisation, crystals, instruments) that runs each component alone, overlays the analytic answer and writes an HTML gallery (`run_all.py`); a CI job runs it without plots. C# component sheet (`tests/.../Components/`): every listed component at 515 nm / 1030 nm / 2 µm and 1 ps / 10 fs, energy, reported GDD, bandwidth, Sequential = Branched.
+- `papers/` (published results reproduced) and the plan for November 2026.
+
+### Fixed (component sheet, 2026-11-05)
+- `leakMirror`: `gddFs2` / `leakGddFs2` were applied but the reported own and system GDD stayed 0 on both ports.
+- `gratingPair` with no propagating diffraction order at the carrier removed the whole spectrum silently; it is now an error.
+- A fed beam of another colour on a Branched splitter (`virtual_input` at 515 nm in a 1030 nm run) was built on the run's grid: incoherently it came out as a band-edge tail, coherently it interfered as if it were 1030 nm. Virtual inputs now get their own carrier's grid, and beams that meet go on a grid spanning both.
+- `GridResampler.Exact` aliased when the carrier shift exceeded half the source band; the shift is now a frequency-bin shift after padding.
+- Example 32 quoted the energy closure (rounding noise, platform dependent) as a number; it now prints the bound it meets.
+
 ### Added (branched systems; plan: docs/design/branching.md)
 - **Branched systems**: `"topology": "branched"`, `next` naming input ports (`"bs:1"`, `{"id": "bs", "port": 1}`), ports on every element type, a graph compiler with verification (`ultrafast validate --graph`), alerts and virtual ports for unused ports.
 - **Interference**: a carrier-phase ledger per path; packets; `beamSplitter`, `delay`; virtual input beams, also in Sequential systems.

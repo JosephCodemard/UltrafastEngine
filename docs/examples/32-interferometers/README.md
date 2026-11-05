@@ -14,7 +14,7 @@ python interferometers.py
 ```
 Mach-Zehnder     output / input 0.5004   analytic 0.5004
 spectral fringes largest error  4.1e-14 of the peak
-budget closure   -1.0e-25 J
+budget closure   below 1e-12 of the input
 etalon           peak 1.0000   Airy 1.0000, largest error 3.5e-08
 ```
 
