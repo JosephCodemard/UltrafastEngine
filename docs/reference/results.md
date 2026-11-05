@@ -61,7 +61,7 @@ energy leaving as by-products, so for every element: energy in − energy out = 
 
 `input_*` / `output_*`: `time_s`, `power_w`, `power_x_w`, `power_y_w`, `omega_rad_s`, `wavelength_m`, `spectrum`
 (per unit omega), `phase_x_rad`, and (full-resolution exports) the complex spectral envelopes `ax_re`, `ax_im`,
-`ay_re`, `ay_im` in grid order. `elements`: the per-element table as a matrix (columns in the manifest).
+`ay_re`, `ay_im` on the ascending `omega_rad_s` axis (the time-domain envelope, convention e^{-iωt}, is `numpy.fft.fftshift(numpy.fft.fft(numpy.fft.ifftshift(a)))`). `elements`: the per-element table as a matrix (columns in the manifest).
 `probe_<id>_*`: compact snapshots at probes (cropped to the support, <= 2048 points); by-products of active
 elements are always snapshotted as `probe_<id>_<field>_*`. When a probe in a Branched system is passed by more than one
 packet, each packet gets its own set, in the order the packets arrived: `probe_<id>_packet1_*`, `probe_<id>_packet2_*`, ...

@@ -17,7 +17,7 @@
   "assumptions": [
     "The cell is NOT stated in the source used. Hypothesis: the multi-pass cell of Seidel et al., Laser Photon. Rev. 16, 2100268 (2022), arXiv:2105.05882 (~350 mm, ROC 200 mm, three 1 mm AR-coated fused-silica plates 3 cm apart, 31 round trips, 900 fs at 1030 nm; B tuned, ~10 rad in simulation, ~15 rad maximum in the experiment).",
     "Model: 1-D plane wave; the cell is ONE fused-silica Kerr element (1 mm, constant beam) whose energy gives B = 10 rad for LINEAR light (circular light then sees 2/3 of it). Dispersion per round trip is taken as compensated (the 1 mm element's own GDD is ~19 fs2). Raman of silica on (engine default).",
-    "Input: 900 fs Gaussian at 1030 nm, linear along x. Polariser crossed (axis y). QWP2 angle is plotted with the sign that puts the dark ellipse along theta1 = theta2 (engine angle = -paper angle).",
+    "Input: 900 fs Gaussian at 1030 nm, linear along x. Polariser crossed (axis y). QWP2 angle is plotted with the sign that puts the dark ellipse along theta1 = theta2 (engine angle of QWP2 = paper angle + 90 deg: equal paper angles mean perpendicular axes).",
     "Input contrast at +2 ps is the analytic Gaussian value (8.8e5). The polariser and waveplates are ideal; the contrast improvement is then set by the sharpness of the linear null, not by an extinction ratio.",
     "Values read off figures carry tolerances of a few degrees / 10-15 %."
   ]

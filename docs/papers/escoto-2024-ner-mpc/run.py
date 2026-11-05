@@ -15,8 +15,9 @@ the B-integral of LINEAR light is B = 10 rad (their Fig. 1b value); 900 fs Gauss
 switching (the engine's silica Raman is on, as in glass).
 
 Angle convention (assumed, see README): the input is linear (x); the polariser is crossed (axis y); QWP1 axis theta1.
-The paper plots QWP2 so that the low-transmission ellipse lies along theta1 = theta2; in the engine's lab frame that is
-theta2_engine = -theta2_paper. Here theta1, theta2 are the PAPER angles; QWP2 is applied as a Jones matrix on the
+The paper's "identical (orthogonal)" angles mean that for theta1 = theta2 the two quarter-wave axes are perpendicular, so the
+pair is transparent to linear light and the low-transmission ellipse lies along theta1 = theta2; in the engine's lab frame that is
+theta2_engine = theta2_paper + 90 deg. Here theta1, theta2 are the PAPER angles; QWP2 is applied as a Jones matrix on the
 engine's output field of [QWP1, Kerr], checked against the engine's own waveplate + polarizer elements.
 """
 import math
@@ -63,7 +64,7 @@ def field(r, which="output"):
 
 def after_qwp2_pol(th2_paper_deg, ax, ay, extinction=0.0):
     """Field behind QWP2 (paper angle) and the crossed polariser (axis y); extinction = leaked intensity fraction."""
-    th = math.radians(-th2_paper_deg)
+    th = math.radians(th2_paper_deg + 90.0)       # equal paper angles = orthogonal axes: the pair is then transparent to linear light
     c, s = math.cos(th), math.sin(th)
     u, v = c * ax + s * ay, -s * ax + c * ay
     v = 1j * v                                   # fast axis along the plate's x (validated against the engine)
@@ -162,7 +163,7 @@ def main():
     # engine's own QWP2 + polariser elements at a few points: validates the Jones matrices used above
     chk = []
     for th1, th2 in [(10, 10), (30, -20), (-35, 30), (40, 40)]:
-        r = uf.run(system(th1, -th2), spec(energy))
+        r = uf.run(system(th1, th2 + 90.0), spec(energy))
         ax, ay = field(r)
         a0, b0 = fields[int(np.argmin(np.abs(angles - th1)))]
         e = after_qwp2_pol(th2, a0, b0)
@@ -233,7 +234,7 @@ def main():
         "mapPeakTheta1": float(angles[i1m]), "mapPeakTheta2": float(angles[i2m]),
         "mapPeakAbsTheta1": abs(float(angles[i1m])), "mapPeakAbsTheta2": abs(float(angles[i2m])),
         "mapPeakOppositeSigns": float(np.sign(angles[i1m]) * np.sign(angles[i2m]) < 0),
-        "diagP1Angle": p1, "diagP1Eff": e_p1, "diagMinAngle": mn, "diagMinEff": e_mn, "diagP2Angle": p2, "diagP2Eff": e_p2,
+        "diagP1Angle": p1, "diagP1Eff": e_p1 / e_p1, "diagMinAngle": mn, "diagMinEff": e_mn / e_p1, "diagP2Angle": p2, "diagP2Eff": e_p2 / e_p1,   # normalised to the first maximum, as Fig. 2a
         "diagEffAt3": e_at3, "diagEffAt40": e_at40, "diagZeroAngle": zero,
         "diagonalCurve": {"x": th, "y": dg},
         "ciDiagMax": ci_on, "ciDiagMaxAbsAngle": ci_on_angle, "ciOffDiagMax": ci_off,
@@ -295,13 +296,14 @@ def plots(p, angles, effn, ci, diag, cid, th, dg, cid_pos, sel, imax, nb, extra)
 
     # Fig B: the diagonal
     fig, ax = p.figure(2, 1, 9.6, 3.8)
-    ax[0].plot(th, dg, color=BLUE, label="engine, B = 10 rad (assumed)")
+    first = next((i for i in range(len(dg) - 1) if dg[i] > dg[i + 1]), int(np.argmax(dg)))   # the paper's Fig. 2a is normalised to the first maximum on the diagonal
+    ax[0].plot(th, dg / dg[first], color=BLUE, label="engine, B = 10 rad (assumed)")
     pts = [(3, 0.55), (10, 1.0), (26, 0.47), (35, 0.62), (40, 0.4), (44, 0.0)]
     ax[0].plot(*zip(*pts), "o", color=REF, label="read off the paper's Fig. 2a")
     for b, d in extra.get("sweep", {}).items():
-        ax[0].plot(th, d, lw=1.2, ls=":", label="engine, B = %g rad (own peak = 1)" % b)
+        ax[0].plot(th, d, lw=1.2, ls=":", label="engine, B = %g rad" % b)
     ax[0].set_xlabel("theta1 = theta2 (deg)")
-    ax[0].set_ylabel("efficiency (normalised)")
+    ax[0].set_ylabel("efficiency (normalised to the first maximum)")
     ax[0].set_title("along the diagonal")
     ax[0].legend(fontsize=7.5)
     ax[1].plot(th, cid_pos, color=ORANGE, label="ideal polariser")

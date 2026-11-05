@@ -16,8 +16,9 @@ two plate angles in [-50, 50] deg: the **efficiency** (energy through the polari
   compensated; silica Raman on). Its energy is set so the B-integral of linear light is **B = 10 rad**, the value of the
   paper's model.
 * 900 fs Gaussian at 1030 nm, linear along x; QWP1 at theta1; QWP2 at theta2; ideal polariser crossed to the input.
-  The paper's sign convention of theta2 is assumed to be the one that puts the low-efficiency ellipse along
-  theta1 = theta2 (engine angle = - paper angle).
+  The paper calls equal angles "identical (orthogonal)": for theta1 = theta2 the two quarter-wave axes are perpendicular, so
+  the pair is transparent to linear light and the low-efficiency ellipse lies along theta1 = theta2 (engine angle of QWP2
+  = paper angle + 90 deg).
 * QWP1 and the cell run in the engine (`waveplate`, `bulk`); QWP2 + polariser are applied as Jones matrices to the output
   field (one engine run per theta1, then the whole theta2 axis at once). The matrices agree with the engine's own
   `waveplate` and `polarizer` elements to 3e-3 of the energy (1e-5 at 1 degree steps).
@@ -35,44 +36,38 @@ Left: efficiency over (theta2, theta1) with the paper's maxima marked. Right: co
 ![diagonal](figures/diagonal.png)
 
 Along theta1 = theta2: efficiency (black points: values read off Fig. 2a) and contrast improvement. Dotted: other
-assumed B, each normalised to its own peak.
+assumed B; every curve is normalised to its first maximum on the diagonal, as the paper's Fig. 2a is.
 
 ![P1 and P2](figures/p1-p2.png)
 
-Spectra and GDD-compressed pulses at the first (P1) and second (P2) diagonal maximum of our model.
+Spectra and GDD-compressed pulses at two diagonal operating points of our model (15 deg and 28 deg).
 
 ## What reproduces
 
-| feature | paper (read off) | ours |
+| feature | paper (read off its figures) | ours |
 |---|---|---|
-| efficiency exactly 0 at the origin, symmetry (theta1, theta2) -> (-theta1, -theta2) | Fig. 1b | exact |
-| dark tilted band along theta1 = theta2 through the origin | Fig. 1b | yes |
-| maxima in the (theta2 < 0, theta1 > 0) and (theta2 > 0, theta1 < 0) quadrants | (-30, +35), (+30, -35) deg | broad maxima in the same quadrants, peak at the corner (-45, +45) |
-| diagonal efficiency returns to 0 near 45 deg | ~44 deg | 45 deg (linear null of two plates at +-45 deg) |
-| contrast improvement is largest on the diagonal and grows towards +-45 deg | Fig. 1c, up to ~8-9 | yes, up to 4.2 (1 degree grid) |
-| diagonal is non-monotonic with a first maximum, a minimum and a second maximum | Fig. 2a | one broad maximum only |
+| no light through the polariser at the origin; symmetry (theta1, theta2) -> (-theta1, -theta2) | Fig. 1b | exact |
+| efficiency maxima in the (theta2 < 0, theta1 > 0) and (theta2 > 0, theta1 < 0) quadrants | (-30, +35), (+30, -35) deg | yes: broad maxima in those quadrants, reaching the corner (-45, +45) |
+| contrast improvement is confined to the diagonal theta1 = theta2 | Fig. 1c | yes (map above, right): about 6 orders on the diagonal, ~1 off it |
+| the diagonal efficiency has a first maximum at small angle, then falls to zero near 45 deg | Fig. 2a: maximum at ~10 deg, zero at ~44 deg | maximum at 15 deg for B = 10 rad (11 deg for B = 15 rad, the experiment's largest B), zero at 45 deg |
 
 ## What does not reproduce
 
-* **The diagonal efficiency curve (Fig. 2a).** The paper has a maximum 1 at ~10 deg, a minimum at ~26 deg and a second
-  maximum of ~0.62 at ~35 deg. We find a single broad maximum of 0.28 (relative to the map peak) at 19 deg, a minimum at
-  32 deg and a weak maximum 0.19 at 28 deg. Changing B moves the first maximum (B = 6: ~21 deg; B = 15: ~14 deg; see
-  figure), so the position depends on the assumed B, but the second maximum and the relative height of the diagonal
-  to the map peak (~1 in the paper) are not obtained at any B tried. In the engine the diagonal is a thin dark band of
-  the linear map; the paper's diagonal reaches the map maximum. This suggests the paper's two plates see the light
-  differently from our idealisation (a different plate configuration, e.g. not the same sense of rotation, extra
-  retardance of the cell mirrors, or another definition of the angles).
-* **P1 modulated, P2 smooth; P2 cleaner (Fig. 2f,g).** Both our spectra are two-lobed SPM spectra of nearly equal width
-  (~28 nm; the paper's is ~35 nm wide) and both compress to similar pulses; P2 is not cleaner than P1 here. A single
-  lumped Kerr element does not make the multi-plate, multi-pass structure of the real cell (alternating beam size, and a
-  spatial NER averaged over the beam), which is the likely source of the paper's smoother P2.
-* **Contrast improvement size.** With ideal components our improvement is limited to ~4 orders by the width of the
-  null in the 1 degree grid (it is exact at 45 deg, where nothing passes at all). The paper's 8-9 orders need a finer
-  null or a different definition (for example the ratio at a fixed output level). A polariser leak of 1e-5 gives
-  essentially no change on the diagonal.
+* **The second diagonal maximum (Fig. 2a, ~0.62 of the first at ~35 deg).** For B = 10 rad our diagonal efficiency has a single
+  maximum and falls monotonically to zero. A second maximum appears only at larger B and closer in (B = 25 rad: first
+  maximum at 7 deg, a second of 0.5 at 20 deg; see the figure). The position of the first maximum alone would suggest
+  B of about 15-20 rad for linear light; the rest of the shape then differs. A lumped plane-wave element is the likely
+  reason: the real cell has three plates, a Gaussian beam of changing size and 31 round trips.
+* **The size of the contrast improvement.** Ours is ~6 orders at small angles on the diagonal and falls towards 45 deg
+  (it is limited there by the narrowness of the null on the angle grid); the paper's Fig. 1c rises to ~8-9 near +-45 deg.
+  A polariser leak of 1e-5 caps the improvement at ~5.5.
+* **P1 modulated, P2 smooth, P2 cleaner (Fig. 2f,g).** Our two operating points (the first and a later diagonal
+  maximum) have spectra of nearly equal width (~28 nm; the paper's is ~35 nm) and P2 is not smoother or cleaner after
+  compression than P1. A single lumped Kerr element cannot make the complementary-spectra effect the paper describes
+  (two circular components broadened differently in a multi-plate cell).
 
 Most likely reasons, in order: the assumed cell and B (a lumped plane-wave element instead of three plates and 31 round
-trips with a Gaussian beam); the angle convention for QWP2; the contrast metric's definition.
+trips); the contrast metric's definition; the polariser's finite extinction.
 
 ## Files
 
