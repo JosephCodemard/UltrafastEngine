@@ -26,6 +26,11 @@ namespace UltrafastEngine.Pulses
         public double DTime { get; }
         public double[] Time { get; }
         public double OmegaCenter { get; }
+        /// <summary>The carrier the user asked for (the grid centre is snapped to the frequency step, so it can differ by up to half a step);
+        /// NaN when the grid is not a run grid. Reported dispersion (GD, GDD, TOD of elements) is evaluated here.</summary>
+        public double RequestedOmega { get; set; } = double.NaN;
+        /// <summary>The frequency at which element dispersion is reported: the requested carrier when it is on this grid, else the centre.</summary>
+        public double ReportOmega => !double.IsNaN(RequestedOmega) && Math.Abs(RequestedOmega - OmegaCenter) <= DOmega ? RequestedOmega : OmegaCenter;
         public double[] OmegaOffset { get; }
         public double[] OmegaAbsolute { get; }
         public double DOmega { get; }

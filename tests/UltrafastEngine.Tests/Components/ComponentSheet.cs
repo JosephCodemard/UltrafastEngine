@@ -79,7 +79,7 @@ namespace UltrafastEngine.Tests.Components
                     Check(Math.Abs(e1 / e0 - c.Transmission) <= 1e-7, string.Format(ci, "energy {0:R} != {1:R}{2}", e1 / e0, c.Transmission, at));
                     double booked = seq.Records.Sum(r => r.LossJ.Values.Sum());
                     Check(Math.Abs(e0 - e1 - booked) <= 1e-9 * e0, "loss budget does not close" + at);
-                    double wc = seq.Output.Grid.OmegaCenter, want = c.GddS2(lam, wc);
+                    double wc = seq.Output.Grid.OmegaCenter, want = c.GddS2(lam, 2 * Math.PI * C / lam);   // reported at the requested carrier
                     Check(Math.Abs(seq.FinalSystem.GddS2 - want) <= c.GddRelTol * Math.Abs(want) + 1e-33,
                         string.Format(ci, "reported GDD {0:G8} fs^2 != {1:G8} fs^2{2}", seq.FinalSystem.GddS2 * 1e30, want * 1e30, at));
                     Check(Math.Abs(2 * Math.PI * C / wc / lam - 1) < 0.02, "grid centre is not near the carrier" + at);

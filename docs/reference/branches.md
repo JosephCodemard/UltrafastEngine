@@ -71,6 +71,7 @@ An input port with no beamline can hold a beam, in Sequential and Branched syste
 
 * `coherentWith`: `"input"` makes it interfere with the run's pulse. Without it the beam is an independent source and its energy simply adds.
 * A Sequential system keeps one pulse, so there a virtual beam at a splitter must be coherent.
+* A virtual beam of another colour is built on a grid around its own carrier, passes the splitter (and a `leakMirror`'s `gddFs2` / `leakGddFs2`, a quadratic phase about the beam's own carrier) at its own frequencies, and is then brought onto the run's grid in a Sequential system. Whatever lies outside the run's frequency band is booked as `fed beam outside the run's grid` and reported as a warning: use a Branched system or widen the grid.
 * In a Branched system `delayS` and `phaseRad` are measured from the source of the run's pulse. In a Sequential system they are measured from the main beam at the element.
 
 ## Beam splitters

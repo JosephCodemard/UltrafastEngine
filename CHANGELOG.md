@@ -8,6 +8,14 @@
 - Example 41: a pump-probe experiment (opposite circular pump and probe in a Branched system) against the exact cross-phase shift of the probe's spectral centroid.
 - **Non-collinear OPA and DFG**: the angle from the arms' `tiltXRad` (or `externalAngleDeg`), refracted at the face; the idler leaves at the angle that conserves the transverse momentum, recorded on its path; a crystal's fed port can hold a virtual beam. Example 42 (a NOPA). Checked against transverse momentum, the parametric gain with mismatch (Cerullo & De Silvestri 2003), arms = stated angle, DFG photon balance.
 
+### Fixed (2026-11)
+- A tilted plate (also ND filter and thin-film polariser substrate) without an `inputBeam` now has the plane-wave phase of colours refracting at their own angles; its GDD was 0.3 fs² (40°) to 1.0 fs² (70°) too high for 5 mm of fused silica at 1030 nm.
+- A virtual beam fed to a Sequential `beamSplitter` keeps its own carrier; what falls outside the run's grid is booked and warned about. A measured input spectrum lying mostly outside the grid's band is an error (a partly cut one warns) instead of being renormalised at the band edge.
+- A `leakMirror`'s `gddFs2` / `leakGddFs2` is a phase about each beam's own carrier.
+- A probe passed by several packets gives each its own arrays (`probe_<id>_packet<k>_*`, listed in `summary.probes`).
+- Reported GDD and TOD are those at the requested carrier, not the snapped grid centre (`summary.grid.reportOmega0`).
+- The critical-power constant (3.77, Marburger) is documented; the Hollenbeck-Cantrell table entry that could not be checked against the paper is noted in the reference.
+
 ### Fixed (component sheet, 2026-11-05)
 - `leakMirror`: `gddFs2` / `leakGddFs2` were applied but the reported own and system GDD stayed 0 on both ports.
 - `gratingPair` with no propagating diffraction order at the carrier removed the whole spectrum silently; it is now an error.

@@ -80,6 +80,14 @@ namespace UltrafastEngine.Engine
         private static Func<double, double> InternalAngle(Material m0, Material m, double theta)
             => w => { double s = m0.IndexAt(w) * Math.Sin(theta) / m.IndexAt(w); return Math.Abs(s) < 1 ? Math.Asin(s) : double.NaN; };
 
+        /// <summary>Without a tracked beam, replaces the carrier-path bulk phase of a tilted plate by the plane-wave phase of the refracted colours
+        /// (each at its own internal angle). With a tracked beam the ray bundle adds this phase itself.</summary>
+        private static void AddTiltedPath(Ctx c, CompiledElement ce, Material medium, Material mat, double d, double aoi)
+        {
+            if (Math.Abs(aoi) < 1e-9 || d <= 0 || c.StcPhase) return;
+            ce.Pre.Add(new TiltedPathTerm(mat.IndexAt, medium.IndexAt, d, aoi, c.Omega0));
+        }
+
         // ================================================================================== plate / window / ND filter
 
         /// <summary>
@@ -154,6 +162,7 @@ namespace UltrafastEngine.Engine
             var inner = Inner(c, e, matName, L, bulkT);
             if (denseWl != null) inner.Json.Set("wavelengthsM", JsonValue.FromArray(denseWl));
             CompileBulk(c, inner, ce, false);
+            AddTiltedPath(c, ce, medium, mat, d, aoi);
             ce.LengthM = L;
             if (nd && ndKind == "absorptive" && ce.Nonlinear == null && ce.Active == null)
                 ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "absorptive ND: OD {0:G4} distributed over the {1:G4} mm path", odAt0, L * 1e3));
@@ -347,6 +356,7 @@ namespace UltrafastEngine.Engine
                     var thetaT = InternalAngle(medium, sub, aoi);
                     double L = d / Math.Cos(thetaT(c.Omega0));
                     CompileBulk(c, Inner(c, e, subName, L), ce, false);
+                    AddTiltedPath(c, ce, medium, sub, d, aoi);
                     ce.LengthM = L;
                     ce.Post.Add(new InterfaceTerm(ce.Label + " back", sub, medium, CoatingFrom(c, e, "coatingBack"), "refract", thetaT, basis));
                     ce.TrackingIndex = sub.IndexAt(c.Omega0);

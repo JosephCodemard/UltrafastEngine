@@ -111,16 +111,16 @@ namespace UltrafastEngine.Engine
             }
         }
 
-        /// <summary>The grid a virtual input is built on: the run's grid when its carrier lies in the central half of that grid's
-        /// band, else a grid with the same N and time step centred on its own carrier (snapped to the frequency step, so packets
-        /// on the two grids stay exactly related and can merge). Building a 515 nm beam on a 1030 nm grid put its far tail at the
-        /// band edge, normalised to the full energy.</summary>
+        /// <summary>The grid a virtual input is built on: the run's grid when the beam's carrier is the run's carrier (within half a
+        /// frequency step), else a grid with the same N and time step centred on its own carrier (snapped to the frequency step, so
+        /// packets on the two grids stay exactly related and can merge). A pulse is built about the centre of its grid, so a beam of
+        /// another colour needs a grid of its own.</summary>
         internal static FrequencyGrid VirtualInputGrid(FrequencyGrid main, AuxBeamSpec spec)
         {
             double lam = spec.Pulse?.ResolveCenterWavelengthM() ?? double.NaN;
             if (double.IsNaN(lam) || lam <= 0) return main;
             double w = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / lam;
-            if (Math.Abs(w - main.OmegaCenter) <= 0.25 * main.N * main.DOmega) return main;
+            if (Math.Abs(w - main.OmegaCenter) <= 0.5 * main.DOmega) return main;
             return GridResampler.Derive(main, 0, 0, w);
         }
 
@@ -304,7 +304,7 @@ namespace UltrafastEngine.Engine
 
         private static void ScaleTail(TailLedger tail, BeamSplitterElement bs, string inPort, string outPort)
         {
-            tail.MultiplyPolarized(w => bs.Coefficient(inPort, outPort, w));
+            tail.MultiplyPolarized(w => bs.Coefficient(inPort, outPort, w, tail.Long.OmegaCenter));
         }
 
         /// <summary>An element that ran more than once has one record: its energies and losses are the sums.</summary>
