@@ -69,7 +69,7 @@ compares only where both have readings and removes the dark level from the darke
 
 ```
   measured data:
-    osa                    spectrometer   chi^2 16.82      (401 points)  rms error 0.41 %
+    osa                    spectrometer   chi^2 18.55      (401 points)  rms error 0.43 %
 ```
 
 The rms error is the noise of the recording. `ultrafast-plot results` draws the comparison in `measurements.png`.

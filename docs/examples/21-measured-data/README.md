@@ -52,7 +52,7 @@ its peak, with the data scaled onto it by least squares). The run reports a χ²
 
 ```
   measured data:
-    fibre_spectrum         spectrometer   chi^2 36.89      (401 points)  rms error 0.91 %
+    fibre_spectrum         spectrometer   chi^2 36.85      (401 points)  rms error 0.91 %
     ac_out                 autocorrelator chi^2 262.8      (201 points)  rms error 2.29 %
     dscan_out              dscan          chi^2 8996       (3751 points)  rms error 4.65 %
     power_out              energyMeter    chi^2 31.27      (1 points)
@@ -83,23 +83,23 @@ The fit (Levenberg–Marquardt) minimises the total χ² over every measured ins
 
 ```
 fit: calibrate parameters against the measured instruments ...
-  fit: chi^2 9324 -> 1612 (4354 points, reduced 0.371), 9 iterations, 52 runs
-  input chirp                               458.023 +- 8.97         (start 300)
-  input energy                          1.41728E-07 +- 3.72E-09     (start 1.2E-07)
-  compressor GDD                           -527.997 +- 8.08         (start -300)
+  fit: chi^2 9324 -> 1613 (4354 points, reduced 0.371), 7 iterations, 33 runs
+  input chirp                               462.739 +- 9.01         (start 300)
+  input energy                          1.4254E-07 +- 3.73E-09     (start 1.2E-07)
+  compressor GDD                           -532.569 +- 8.13         (start -300)
   fibre_spectrum                     rms error 0.91 % -> 0.76 %
   ac_out                             rms error 2.28 % -> 0.92 %
-  dscan_out                          rms error 4.65 % -> 1.92 %
-  power_out                          chi^2 31.3 -> 0.317
+  dscan_out                          rms error 4.65 % -> 1.93 %
+  power_out                          chi^2 31.3 -> 0.14
   WARNING: Fit: parameters input chirp and compressor GDD are strongly correlated (-0.989): ...
 ```
 
 | parameter | first guess | fitted (±1σ) | true | deviation |
 |---|---|---|---|---|
-| input chirp | 300 fs² | 458 ± 9 fs² | 450 fs² | 0.9σ |
-| input energy | 120 nJ | 141.7 ± 3.7 nJ | 140 nJ | 0.5σ |
-| compressor GDD | −300 fs² | −528 ± 8 fs² | −520 fs² | 1.0σ |
-| net GDD (chirp + compressor) | 0 | −70.0 fs² | −70 fs² | |
+| input chirp | 300 fs² | 463 ± 9 fs² | 450 fs² | 1.4σ |
+| input energy | 120 nJ | 142.5 ± 3.7 nJ | 140 nJ | 0.7σ |
+| compressor GDD | −300 fs² | −533 ± 8 fs² | −520 fs² | 1.6σ |
+| net GDD (chirp + compressor) | 0 | −69.8 fs² | −70 fs² | |
 
 All three are recovered within their error bars, and the residuals left after the fit are at the noise level of the data. The reduced χ² of 0.37 means the stated σ (3 %) is larger than the actual noise (about 2 %), so the error bars are conservative.
 
