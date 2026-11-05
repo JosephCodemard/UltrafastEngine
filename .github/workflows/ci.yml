@@ -1,4 +1,5 @@
-# Continuous integration: every platform is compiled here with dotnet, the tests run on Linux.
+# Continuous integration: every platform is compiled with dotnet; the full test suites run on Linux, the C# and Python tests also on
+# macOS (Apple silicon) and Windows.
 # OpticStudio cannot run in CI: the Zemax binding is built against its stubs and checked by hand on Windows.
 name: CI
 
@@ -25,13 +26,41 @@ jobs:
         with:
           global-json-file: global.json
       - name: Install Mono (net48 reference assemblies and runtime)
-        run: sudo apt-get update && sudo apt-get install -y mono-complete
+        run: sudo apt-get update && sudo apt-get install -y mono-complete pocl-opencl-icd
       - name: Build everything
         run: dotnet build UltrafastEngine.sln -c Release
       - name: C# tests, .NET 10, including slow
         run: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --slow
       - name: C# tests, .NET Framework 4.8 build on Mono, including slow
         run: mono tests/UltrafastEngine.Tests/bin/Release/net48/UltrafastEngine.Tests.exe --slow
+
+  tests-macos-windows:
+    name: C# and Python tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the tests and the CLI (net10.0)
+        run: |
+          dotnet build tests/UltrafastEngine.Tests -c Release -f net10.0
+          dotnet build src/UltrafastEngine.Cli -c Release -f net10.0
+      - name: C# tests (not the slow ones)
+        run: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll
+      - name: Python package, engine and tests
+        shell: bash
+        run: |
+          pip install -e "python[hosted,plot,test]"
+          python python/tools/build_engine.py
+          cd python && python -m pytest -q tests -x -k "not pynlo and not lightpipes"
 
   compile-platforms:
     name: Compile CLI for ${{ matrix.rid }}
