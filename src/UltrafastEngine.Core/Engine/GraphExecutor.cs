@@ -18,6 +18,7 @@ using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using UltrafastEngine.Models;
+using UltrafastEngine.Numerics;
 using UltrafastEngine.Pulses;
 using UltrafastEngine.Results;
 using UltrafastEngine.Serialization;
@@ -110,6 +111,19 @@ namespace UltrafastEngine.Engine
             }
         }
 
+        /// <summary>The grid a virtual input is built on: the run's grid when its carrier lies in the central half of that grid's
+        /// band, else a grid with the same N and time step centred on its own carrier (snapped to the frequency step, so packets
+        /// on the two grids stay exactly related and can merge). Building a 515 nm beam on a 1030 nm grid put its far tail at the
+        /// band edge, normalised to the full energy.</summary>
+        internal static FrequencyGrid VirtualInputGrid(FrequencyGrid main, AuxBeamSpec spec)
+        {
+            double lam = spec.Pulse?.ResolveCenterWavelengthM() ?? double.NaN;
+            if (double.IsNaN(lam) || lam <= 0) return main;
+            double w = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / lam;
+            if (Math.Abs(w - main.OmegaCenter) <= 0.25 * main.N * main.DOmega) return main;
+            return GridResampler.Derive(main, 0, 0, w);
+        }
+
         private static void RunGraph(ExecutionState st)
         {
             var cr = st.Cr; var res = st.Res; var graph = cr.Graph;
@@ -123,7 +137,7 @@ namespace UltrafastEngine.Engine
             foreach (var el in cr.Elements)
                 foreach (var kv in el.VirtualInputs)
                 {
-                    var p = kv.Value.Spec.Build(cr.Grid, 0, res.Notes);
+                    var p = kv.Value.Spec.Build(VirtualInputGrid(cr.Grid, kv.Value.Spec), 0, res.Notes);
                     run.InputEnergyJ += p.TotalEnergyJ();
                     string source = kv.Value.CoherentWith == null ? el.Id + "#" + kv.Key : kv.Value.CoherentWith;
                     run.Queue(el.Id, kv.Key).Add(new BeamPacket { Pulse = p, Path = new PathLedger { SourceId = source, PhaseRad = kv.Value.PhaseRad } });
@@ -263,7 +277,14 @@ namespace UltrafastEngine.Engine
                         {
                             if (!outputs.Contains(kv.Key, StringComparer.OrdinalIgnoreCase)) continue;
                             var side = path.Clone();
-                            if (el.Active is BeamSplitterElement bs && side.Tail != null) ScaleTail(side.Tail, bs, port, kv.Key);
+                            if (el.Active is BeamSplitterElement bs)
+                            {
+                                if (side.Tail != null) ScaleTail(side.Tail, bs, port, kv.Key);
+                                // the path ran with the kept port's dispersion: swap it for this port's (leakMirror gddFs2 / leakGddFs2)
+                                double wc = kv.Value.Grid.OmegaCenter;
+                                var dKeep = bs.PortDispersion(port, keep, wc); var dSide = bs.PortDispersion(port, kv.Key, wc);
+                                side.System.GddS2 += dSide.GddS2 - dKeep.GddS2;
+                            }
                             if (el.Active is Crystals.CrystalElement)
                             {
                                 // a crystal books its by-products itself: an unlinked one stays booked, a linked one continues

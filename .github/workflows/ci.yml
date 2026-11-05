@@ -69,6 +69,29 @@ jobs:
         working-directory: python
         run: PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python -m pytest -q tests
 
+  verification:
+    name: Component verification scripts (numbers only)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the package
+        run: pip install -e "python[hosted,test]"
+      - name: Build the engine for Python
+        run: python python/tools/build_engine.py
+      - name: Every component against its analytic answer
+        run: python verification/run_all.py --no-plots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-report
+          path: verification/report/
+
   docs-and-examples:
     name: Docs and example check
     runs-on: ubuntu-24.04

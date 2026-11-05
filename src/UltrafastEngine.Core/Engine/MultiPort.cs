@@ -107,6 +107,7 @@ namespace UltrafastEngine.Engine
             }
             // a different carrier: both go on the grid that spans more (a fundamental and its harmonic in an f-2f interferometer)
             var target = a.Pulse.Grid.N * a.Pulse.Grid.DOmega >= b.Pulse.Grid.N * b.Pulse.Grid.DOmega ? a.Pulse.Grid : b.Pulse.Grid;
+            target = Spanning(target, a.Pulse.Grid, b.Pulse.Grid);
             double tauRef = 0.5 * (a.Path.FrameDelayS + b.Path.FrameDelayS), phiRef = a.Path.PhaseRad;
             var pa = Rebased(a, target, tauRef, phiRef, target.OmegaCenter, ctx);
             var pb = Rebased(b, target, tauRef, phiRef, target.OmegaCenter, ctx);
@@ -132,6 +133,21 @@ namespace UltrafastEngine.Engine
             for (int i = 0; i < n; i++) { ax[i] = pa.Ax[i] + overlap * pb.Ax[i]; ay[i] = pa.Ay[i] + overlap * pb.Ay[i]; }
             ctx.MismatchJ += (1 - overlap.Magnitude * overlap.Magnitude) * pb.TotalEnergyJ();
             return new BeamPacket { Pulse = a.Pulse.Grid == target ? a.Pulse.WithSpectrum(ax, ay) : new PulseField(target, ax, ay, a.Pulse.RepRateHz), Path = path };
+        }
+
+        /// <summary><paramref name="target"/> if its band holds both grids' bands; else a grid with the same window, the time step
+        /// halved until the band spans both, centred between them (exactly related to both when they share the window, as the
+        /// grids of one run do). Two beams of distant carriers (a 515 nm beam fed beside a 1030 nm one) otherwise lost the one
+        /// outside the other's band.</summary>
+        internal static FrequencyGrid Spanning(FrequencyGrid target, FrequencyGrid g, FrequencyGrid h)
+        {
+            double Lo(FrequencyGrid x) => x.OmegaCenter - 0.5 * x.N * x.DOmega;
+            double Hi(FrequencyGrid x) => x.OmegaCenter + 0.5 * x.N * x.DOmega;
+            double lo = Math.Min(Lo(g), Lo(h)), hi = Math.Max(Hi(g), Hi(h));
+            if (Lo(target) <= lo + 0.5 * target.DOmega && Hi(target) >= hi - 0.5 * target.DOmega) return target;
+            int k = 0;
+            while (target.N * Math.Pow(2, k) * target.DOmega < hi - lo && k < 8) k++;
+            return GridResampler.Derive(target, 0, -k, 0.5 * (lo + hi));
         }
 
         private static TailLedger MergeTails(BeamPacket a, BeamPacket b, double tauRef, double phiRef)
@@ -233,6 +249,17 @@ namespace UltrafastEngine.Engine
             return (X * f, Y * f);
         }
 
+        /// <summary>GDD a path from <paramref name="inPort"/> to <paramref name="outPort"/> picks up (the leakMirror's gddFs2 /
+        /// leakGddFs2: a pure quadratic phase, so GDD only), for the reported own / system dispersion.</summary>
+        public Physics.DispersionPoint PortDispersion(string inPort, string outPort, double omega)
+        {
+            bool onB = string.Equals(inPort, _b, StringComparison.OrdinalIgnoreCase), toC = string.Equals(outPort, _c, StringComparison.OrdinalIgnoreCase);
+            var f = onB == toC ? _phaseR : _phaseT;
+            if (f == null) return new Physics.DispersionPoint();
+            double h = 1e-3 * omega;
+            return new Physics.DispersionPoint { GddS2 = (f(omega + h) - 2 * f(omega) + f(omega - h)) / (h * h) };
+        }
+
         private PulseField Through(PulseField p, string inPort, string outPort)
         {
             int n = p.Grid.N;
@@ -264,6 +291,7 @@ namespace UltrafastEngine.Engine
             var other = keepC ? d : c;
             string otherPort = keepC ? _d : _c;
             ctx.Byproduct(otherPort, other);
+            ctx.Own += PortDispersion(port, ContinuingPort, p.Grid.OmegaCenter);
             if (!ctx.InGraph) Executor.AddLoss(ctx.Record, "port " + otherPort + " (not tracked)", other.TotalEnergyJ());
             return keepC ? c : d;
         }
