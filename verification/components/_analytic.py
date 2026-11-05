@@ -92,18 +92,25 @@ def phase_derivatives(n_of_lam, L_m: float, w0: float, h_rel: float = 2e-3):
     return d1 + L_m / C, d2, d3
 
 
-def tilted_plate_phase(n_of_lam, d_m: float, aoi_rad: float, n_out_of_lam=None):
+def tilted_plate_phase(n_of_lam, d_m: float, aoi_rad: float, n_out_of_lam=None, w_carrier=None):
     """Plane-wave phase of a tilted plane-parallel plate on a fixed reference plane, k_z d:
     φ(ω) = (ω / c) d [√(n² − n_o² sin²θ) − 1] (n_o: the surrounding medium, which sets the internal angle). The engine's
     elements are absolute (a plate does not remove the air it replaces), so no n_o cos θ term; the − 1 is the vacuum
-    phase ω d / c, which has no GDD and only keeps φ small for differencing."""
+    phase ω d / c, which has no GDD and only keeps φ small for differencing.
+    With `w_carrier`, the phase is read on the plane normal to the carrier ray through the carrier's exit point (the engine's
+    reference plane): each colour crosses the extra air path n_o sin θ d tan θ_t(ω0) between its own exit point and that plane."""
     n_o = n_out_of_lam if n_out_of_lam is not None else (lambda lam: np.ones_like(np.asarray(lam, float)))
     s = math.sin(aoi_rad)
+    tan_t0 = 0.0
+    if w_carrier is not None:
+        lam0 = 2 * math.pi * C / w_carrier
+        st = float(n_o(lam0)) * s / float(n_of_lam(lam0))
+        tan_t0 = st / math.sqrt(1 - st * st)
 
     def phi(w):
         lam = 2 * math.pi * C / w
         n, no = n_of_lam(lam), n_o(lam)
-        return w / C * d_m * (np.sqrt(n * n - (no * s) ** 2) - 1.0)
+        return w / C * d_m * (np.sqrt(n * n - (no * s) ** 2) - 1.0) + w / C * no * s * d_m * tan_t0
     return phi
 
 

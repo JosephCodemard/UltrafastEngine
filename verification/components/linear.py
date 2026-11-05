@@ -123,22 +123,18 @@ def plates(fam: Family):
                     marker="o", analytic_label="Fresnel" if key == "x" else None)
 
     with fam.figure("plate-tilt-gdd", "Tilted fused-silica plate, 5 mm, 1030 nm: GDD against the plane-wave phase",
-                    "φ(ω) = (ω/c) d √(n² − n_o² sin²θ) (k_z d, absolute indices); tracked beam (inputBeam) and untracked") as f:
+                    "φ(ω) = (ω/c) [d √(n² − n_o² sin²θ) + n_o sinθ d tanθ_t0] (k_z d plus the air path to the plane normal to the beam); with and without an inputBeam") as f:
         lam = 1030e-9
         for beam, tag in ((None, "untracked"), ({"kind": "gaussian", "w0M": 1e-3}, "tracked")):
             eng, ana = [], []
             for aoi in angles:
                 r = run([b.plate("p", "FusedSilica", d, aoi_deg=float(aoi))], lam, beam=beam)
                 w0 = r.summary["grid"]["omega0"]
-                _, gdd, _ = A.derivatives(A.tilted_plate_phase(nfs, d, math.radians(aoi), A.ciddor_air), w0)
+                _, gdd, _ = A.derivatives(A.tilted_plate_phase(nfs, d, math.radians(aoi), A.ciddor_air, w0), w0)
                 eng.append(r.summary["totals"]["systemGddS2"] / FS2)
                 ana.append(gdd / FS2)
             for aoi, e_, a_ in zip(angles, eng, ana):
-                known = ("untracked tilted plate: the bulk runs over the carrier's internal path d/cos θ_t for every frequency, "
-                         "so the angular-dispersion GDD is missing (0.36 fs² at 45°); give an inputBeam") if (tag == "untracked" and aoi > 0) else ""
-                # tracked: 2-5e-4 above k_z d from 40 to 70 deg. The engine's spectrum is the field on each colour's chief ray,
-                # which is displaced sideways; k_z d is on a fixed point. The two references differ by k_x Δx(ω): unresolved, 1e-3.
-                fam.check(f"plate GDD {tag} {aoi:g} deg", e_ * FS2, a_ * FS2, rel=1e-3 if tag == "tracked" else 2e-4, unit="s²", known=known)
+                fam.check(f"plate GDD {tag} {aoi:g} deg", e_ * FS2, a_ * FS2, rel=1e-5, unit="s²")
             overlay(f, angles, eng, ana, label=tag, xlabel="angle of incidence (deg)", ylabel="GDD (fs²)", marker="o",
                     analytic_label="plane-wave k_z" if tag == "untracked" else None)
 
