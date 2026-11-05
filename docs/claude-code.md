@@ -49,6 +49,11 @@ the fitting plugin only".
 | `.claude/agents/docs-sync.md` | when delegated | updates every page, README, docstring and status file a code change affects |
 | `.claude/skills/engine-physics/` | when physics is involved | the conventions, equations (vector Kerr + Raman, B-integral), normalisations, grid / satellite rules and validation values in one place |
 | `.claude/skills/run-simulations/` | when running the engine | writing .ufs / run.json, CLI and Python, measured data, reading results |
+| `.claude/skills/replicate-paper/` + `.claude/agents/paper-replicator.md`, command `/replicate` | when reproducing a published result | extract the paper's inputs and headline numbers, build the smallest faithful system, compare, and say what agrees and why anything does not (folders in `docs/papers/`) |
+| `.claude/skills/mirror-lab-setup/` + `.claude/agents/lab-mirror.md`, command `/lab` | when modelling a real beamline | interview for the layout and data, build and validate stage by stage, calibrate few unknowns with the fitting plugin, report where model and lab disagree |
+| `.claude/skills/optimise-setup/` + `.claude/agents/setup-optimiser.md` | when tuning a setup | state the goal as a number, scan before optimising, verify in the full model, report sensitivity |
+| `.claude/skills/debug-setup/` | when a run looks wrong | checks in order: validate, units, grid, energy budget, physics switches, polarisation and carrier, the measurement itself |
+| `.claude/agents/bug-hunter.md` | when developing the engine | runs real cases at several carriers, bandwidths, grids and topologies and reduces every disagreement to a failing test and a fix |
 
 Files you may add for yourself (git-ignored): `CLAUDE.local.md` (personal notes for this checkout) and
 `.claude/settings.local.json` (personal permissions).
