@@ -1,0 +1,22 @@
+{
+  "id": "bespalov-talanov-1966-ssf",
+  "citation": "V. I. Bespalov and V. I. Talanov, \"Filamentary structure of light beams in nonlinear liquids\", JETP Lett. 3, 307-310 (1966)",
+  "doi": null,
+  "openAccess": false,
+  "fullTextRead": false,
+  "topic": "beams: small-scale self-focusing (modulational instability of a plane wave in a Kerr medium)",
+  "note": "The paper was not read (not available online in full text). The reference is the linear stability analysis of the paraxial Kerr envelope equation, derived in docs/reference/transverse.md (small-scale self-focusing) and in textbooks (e.g. R. W. Boyd, Nonlinear Optics, section on small-scale filamentation). The factors below are in this engine's convention and are re-derived, not copied.",
+  "convention": "k0 = 2 pi / lambda (vacuum), k = n0 k0 (medium), n = n0 + n2 I, Delta = k0 n2 I (1/m), q = K^2 / (2 k). Then K_opt = sqrt(2 k Delta) = k0 sqrt(2 n0 n2 I) = k sqrt(2 n2 I / n0), and g_max = Delta = k0 n2 I = k n2 I / n0 (the field-amplitude growth rate; the intensity ripple grows at the same rate in the linear regime). Formulas written with k0 sqrt(2 n2 I / n0) and k0 n2 I / n0 use k0 for the wavenumber in the medium.",
+  "referenceNumbers": [
+    {"key": "gMaxOverDelta", "value": 1.0, "where": "linear stability analysis: g^2 = q (2 Delta - q), maximal at q = Delta", "status": "analytic"},
+    {"key": "kPeakOverKopt", "value": 1.0, "where": "K_opt = sqrt(2 k Delta)", "status": "analytic"},
+    {"key": "cutoff", "value": "K = sqrt(2) K_opt", "where": "g = 0 at q = 2 Delta", "status": "analytic"},
+    {"key": "paperClaims", "value": "growth rate k0 n2 I / n0 at k_perp,opt = k0 sqrt(2 n2 I / n0)", "where": "as quoted for the paper in secondary sources (paper not read)", "status": "UNVERIFIED"}
+  ],
+  "assumptions": [
+    "A cw source (one spectral bin): constant intensity in time, so the growth is exactly cosh(g L) without an average over a pulse.",
+    "A flat-top beam (super-Gaussian of order 10, radius 1 mm) on a 2048 x 1 cartesian grid over 7 mm; the ripple is fitted over |x| < 0.4 mm, where the beam is flat.",
+    "Constant index (no dispersion), no Raman, no self-steepening; I = 6.07e15 W/m^2 so Delta = 1000 1/m and B = Delta L = 3 rad over 3 mm.",
+    "Seed amplitude 1e-3 of the field: the ripple stays linear (2 eps cosh(B) = 2 %)."
+  ]
+}

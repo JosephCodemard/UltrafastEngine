@@ -1,0 +1,17 @@
+{
+  "paper": "boyd-kleinman-1968-focused-shg",
+  "checks": [
+    {"id": "h_m at xi = 2.84", "kind": "number", "key": "hmAt2p84Engine", "expected": 1.068, "tolerance": 0.005, "relative": true,
+     "source": "BK integral evaluated in run.py (1.0677); the paper's 1.068 is UNVERIFIED (not read)"},
+    {"id": "optimal xi", "kind": "number", "key": "xiOptEngine", "expected": 2.84, "tolerance": 0.1,
+     "source": "BK integral evaluated in run.py (2.84); parabola in ln xi through the engine points"},
+    {"id": "optimal xi (curve)", "kind": "location", "key": "hmVsXi", "window": [2.0, 4.0],
+     "source": "the largest engine h_m lies at a sampled xi between 2 and 4"},
+    {"id": "sigma_m at xi = 2.84", "kind": "number", "key": "sigmaMAt2p84Engine", "expected": 0.573, "tolerance": 0.02,
+     "source": "BK integral evaluated in run.py (0.573)"},
+    {"id": "weak focusing h / xi", "kind": "number", "key": "weakFocusHOverXiEngine", "expected": 0.99834, "tolerance": 0.002, "relative": true,
+     "source": "BK integral at xi = 0.05, sigma = 0 (-> 1 as xi -> 0)"},
+    {"id": "engine vs integral, every run", "kind": "number", "key": "maxRelDiffEngineVsBk", "expected": 0, "tolerance": 0.005,
+     "source": "largest relative difference of h over all (sigma, xi) runs"}
+  ]
+}
