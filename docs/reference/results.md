@@ -22,7 +22,9 @@ window: wrap-around check), stokes [s1, s2, s3], degreeOfPolarization.
 ## Per-element records
 
 index, id, type, label, lengthM, cumulativeLengthM, energyInJ/OutJ, lossJ by mechanism, arrivalTimeS (lab-frame
-carrier delay so far), own and cumulative system dispersion (GD, GDD, TOD at the carrier), bIntegralRad and
+carrier delay so far), own and cumulative system dispersion (GD at the grid centre, where the pulse sits and the arrival time is counted;
+GDD and TOD at the requested carrier wavelength, not at the grid centre, which is snapped to the frequency step and can be up to half a step away:
+a 1000 fs² element with 2000 fs³ TOD reports 1000 fs², not 1004 fs² at the snapped centre of a 30 fs run), bIntegralRad and
 cumulative, peakIntensityWPerM2, peakFluenceJPerM2, lidtFluenceJPerM2, lidtMargin, outsideDataFraction,
 criticalPowerRatio, solver statistics (method, representation, accepted/rejected steps, min/max step), the
 list of linear terms applied, and notes. Active elements add:

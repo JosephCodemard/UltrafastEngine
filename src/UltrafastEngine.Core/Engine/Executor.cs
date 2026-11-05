@@ -263,7 +263,7 @@ namespace UltrafastEngine.Engine
                 if (!seg.Medium.ReplaceKerr && seg.Medium.N2 > 0)
                 {
                     double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / grid.OmegaCenter, n0 = seg.Material.IndexAt(grid.OmegaCenter);
-                    double pcr = 3.77 * lam * lam / (8 * Math.PI * n0 * seg.Medium.N2);
+                    double pcr = PhysicalConstants.CriticalPowerFactor * lam * lam / (8 * Math.PI * n0 * seg.Medium.N2);
                     rec.CriticalPowerRatio = PulseMetrics.TemporalPower(pulse).Max() / pcr;
                     if (rec.CriticalPowerRatio > 0.3 && !res.Warnings.Any(w => w.Contains("critical power")))
                         res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));

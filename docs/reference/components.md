@@ -68,7 +68,7 @@ E' = A E + B F + E_el,      F' = C E + D F + F_el
 |---|---|
 | `grating` with `linesPerMm` (and `order`, default −1) | sin θ_out = sin θ_in + m λ / Λ; dθ_out/dλ = m / (Λ cos θ_out); magnification cos θ_out / cos θ_in |
 | `interface` / `surface` (refract) at an angle | Snell's law between dispersive media: n₂ dθ₂/dω = (sin θ₁ dn₁/dω − sin θ₂ dn₂/dω) / cos θ₂ |
-| `plate` / `window` at an angle | its two faces: spatial chirp ~ L sin θ / n, a little negative GDD |
+| `plate` / `window` at an angle | its two faces: spatial chirp ~ L sin θ / n, and a GDD above that of the carrier path (see [Plate](#plate)) |
 | `gratingPair` with `passes: 1` | the output's spatial chirp G cos α / cos²β · dβ/dω |
 
 Angles are **signed in the unfolded beam**: the same sign on both faces of a parallel plate, opposite signs on the faces of a
@@ -170,6 +170,13 @@ evaluated beyond `radiusM` too, so choose a radius that covers the beam.
 
 Front surface → bulk over the internal path d / cos θ_t (dispersion, absorption, and with a beam its nonlinearity or a
 spatial model) → back surface. `coatingFront` / `coatingBack` override `coating`.
+
+**Tilted plates and their phase.** At an angle every colour refracts at its own internal angle, so the phase through the
+plate is the plane-wave phase k_z(ω) d = (ω/c) d √(n² − n_o² sin²θ) (n_o: the surrounding medium), plus the air path each
+colour crosses between its own exit point and the plane normal to the carrier ray through the carrier's exit point,
+(ω/c) n_o sin θ d tan θ_t. The engine applies exactly this, with or without an `inputBeam`; with a tracked beam the
+ray bundle supplies the same phase. Its GDD at 40° and 70° for 5 mm of fused silica at 1030 nm is 0.3 and 1.0 fs² above
+what the path d / cos θ_t at the carrier would give. The same holds for the thin-film polariser's substrate.
 
 ### Ghost reflections
 

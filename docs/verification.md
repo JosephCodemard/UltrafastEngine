@@ -51,8 +51,9 @@ cross-correlation on a −100 dB flank).
 
 Decide first whether the engine or the analytic expectation is wrong. The conventions that matter most are in
 [Concepts](concepts.md): elements use absolute indices (a plate does not remove the air it replaces), the envelope sits
-on a grid centred on the carrier snapped to the frequency step (a Taylor-model GDD is reported at that centre, so it
-includes TOD (ω_c − ω)), and pulse-averaged quantities (Stokes parameters of a chromatic waveplate, a pulse's SHG
+on a grid centred on the carrier snapped to the frequency step (the reported GDD and TOD are those at the requested
+carrier, `grid.reportOmega0` in the summary; a fit to the field gives the values at the grid centre, so it includes
+TOD (ω_c − ω)), and pulse-averaged quantities (Stokes parameters of a chromatic waveplate, a pulse's SHG
 efficiency) need the average over the spectrum or the pulse, not the value at the carrier. If the engine is wrong, fix
 it with a C# test in `tests/UltrafastEngine.Tests/Components/`.
 

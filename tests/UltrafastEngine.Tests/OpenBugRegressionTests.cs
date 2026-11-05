@@ -122,5 +122,20 @@ namespace UltrafastEngine.Tests
             Assert.Close(2000e-45, r.FinalSystem.TodS3, 1e-9, 0, "system TOD");
             Assert.Close(1000e-30, r.Records[0].Own.GddS2, 1e-9, 0, "own GDD");
         }
+
+        [Test(Reference = "Marburger 1975: P_cr = 3.77 lambda^2 / (8 pi n0 n2) for a Gaussian beam", Tolerance = "1e-6")]
+        public void CriticalPowerRatio_UsesMarburgersConstant_InBulk()
+        {
+            double n0 = 1.45, n2 = 3e-20, lam = 1030e-9;
+            var j = O("format", "ultrafast-system", "version", 2, "name", "pcr");
+            j.Set("materials", O("Kerr", FlatMaterial(n2, n0)));
+            j.Set("elements", A(O("id", "b", "type", "bulk", "material", "Kerr", "lengthM", 1e-3, "beam", O("kind", "constant", "radiusM", 1e-3))));
+            var r = Go(UltrafastEngine.Systems.SystemDescription.FromJson(j), Spec(Gauss(lam, 100e-15, 1e-6), O("physics", O("nonlinear", true))));
+            double peak = PulseMetricsPeak(r.Input);
+            double pcr = 3.77 * lam * lam / (8 * Math.PI * n0 * n2);
+            Assert.Close(peak / pcr, r.Records[0].CriticalPowerRatio, 1e-3, 0, "bulk P / P_cr (the grid centre is within half a step of the carrier)");
+        }
+
+        private static double PulseMetricsPeak(UltrafastEngine.Pulses.PulseField p) => UltrafastEngine.Results.PulseMetrics.TemporalPower(p).Max();
     }
 }

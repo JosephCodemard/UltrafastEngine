@@ -427,7 +427,7 @@ namespace UltrafastEngine.Transverse
             if (Medium != null && Medium.IsActive && Medium.N2 > 0 && !Medium.ReplaceKerr)
             {
                 double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / g.OmegaCenter, n0 = Material.IndexAt(g.OmegaCenter);
-                ctx.Record.Values["peakPowerOverCritical"] = PulseMetrics.TemporalPower(p).Max() / (3.77 * lam * lam / (8 * Math.PI * n0 * Medium.N2));
+                ctx.Record.Values["peakPowerOverCritical"] = PulseMetrics.TemporalPower(p).Max() / (PhysicalConstants.CriticalPowerFactor * lam * lam / (8 * Math.PI * n0 * Medium.N2));
             }
             if (basis.Kind == "cartesian")
             {

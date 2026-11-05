@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **414 tests** in 46 classes. **221** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **422 tests** in 47 classes. **226** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -37,6 +37,7 @@ Every C# test of the engine: **414 tests** in 46 classes. **221** of them check 
 | [Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs](#modelledinstrumentstests) | `ModelledInstrumentsTests` | 4 | 3 |
 | [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 7 | 7 |
 | [Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain](#noncollinearopatests) | `NoncollinearOpaTests` | 6 | 6 |
+| [Regressions from the open-bug sweep](#openbugregressiontests) | `OpenBugRegressionTests` | 8 | 5 |
 | [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
 | [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 7 | 1 |
 | [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 3 | 2 |
@@ -585,6 +586,21 @@ Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain.
 | `Nopa_OutputTilts_ConserveTransverseMomentum` | transverse momentum at the exit face: w_p sin t_p = w_s sin t_s + w_i sin t_i | 1e-6 |
 | `Nopa_PlaneWaveGain_FollowsTheMismatchedParametricGain` | Cerullo & De Silvestri, Rev. Sci. Instrum. 74, 1 (2003): G = 1 + (Gamma/g)^2 sinh^2(g L), g^2 = Gamma^2 - (dk/2)^2 | 2 % |
 | `SequentialAndBranched_GiveTheSameNopa` | one crystal as a Sequential and as a Branched system | 1e-9 |
+
+## OpenBugRegressionTests
+
+Regressions from the open-bug sweep.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CriticalPowerRatio_UsesMarburgersConstant_InBulk` | Marburger 1975: P_cr = 3.77 lambda^2 / (8 pi n0 n2) for a Gaussian beam | 1e-6 |
+| `LeakMirror_GddIsAboutTheFedBeamsOwnCarrier` | a leakMirror's GDD is a quadratic phase about the beam's own carrier: no group-delay offset for another colour | 0.2 ps |
+| `MeasuredSpectrum_OutsideTheGridBand_IsAnError_NotRenormalisedAtTheEdge` | -- | -- |
+| `Probe_SeeingTwoPackets_GivesEachItsOwnNamedArrays` | -- | -- |
+| `ReportedGdd_IsAtTheRequestedCarrier_NotTheSnappedGridCentre` | a Taylor dispersion element has its GDD at its reference wavelength: 1000 fs^2 and 2000 fs^3 about the requested carrier | 1e-9 |
+| `SequentialSplitter_FedBeamOfAnotherColour_KeepsItsOwnCarrier` | linear superposition: the splitter passes each colour at its own frequency | 1 % |
+| `SequentialSplitter_FedBeamOutsideTheGrid_IsReportedAndBooked_NotRenormalised` | -- | -- |
+| `TiltedPlate_WithoutBeam_HasTheRefractedColoursGdd_AndMatchesTheTrackedBeam` | plane-wave phase of a tilted plate: k_z d with k_z = (w/c) sqrt(n^2 - sin^2 theta), plus the air path to the plane normal to the beam | 1e-4 |
 
 ## PhysicsReviewTests
 

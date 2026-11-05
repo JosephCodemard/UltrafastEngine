@@ -61,10 +61,25 @@ the Raman fraction `fR`:
 | `dampedOscillator` | your `tau1`, `tau2` (`anisotropicFraction`, default 0) | `fR` |
 | `expression`, `callback` | any h(t) | `fR` |
 
+The tabulated parameters of the `hollenbeck` model are those of Table 1 of the paper as commonly reproduced (the same
+numbers are used by other open-source pulse-propagation codes). In that table the Lorentzian width of every mode is
+one third of its Gaussian width except mode 2 (100 cm^-1: Gaussian 110.42, Lorentzian 38.81 where one third would be
+36.81). The engine could not check this entry against the original paper, so it uses the value as printed; the
+difference is small (2 cm^-1 on one of thirteen modes). The default `fR` of 0.18 is the
+commonly used value for silica; set `fR` yourself to use another.
+
 Molecular gases have their rotational Raman response as an anisotropic tensor response instead
 ([Gases](gases.md)). Every kernel is sampled on the time grid and normalised there to unit sum, so the delayed
 fraction is exactly fR whatever the step (an analytic normalisation is off by a few % when the step is not much smaller
 than the 12 fs oscillation; with the grid normalisation the engine and pyNLO agree to 0.05 %).
+
+### Critical power
+
+The reported ratio of peak power to critical power (`criticalPowerRatio` in the element table, `peakPowerOverCritical` for
+spatial models) uses P_cr = 3.77 lambda^2 / (8 pi n0 n2) (Marburger 1975, Gaussian beam; lambda is the carrier wavelength
+in vacuum, n0 the linear index at the carrier). Other sources quote 3.72 for the collapse threshold (Fibich and Gaeta,
+Opt. Lett. 25, 335 (2000)); the two differ by 1.3 %. The engine uses 3.77 everywhere, so the ratio is comparable between
+elements and with the textbook value. A ratio above 0.3 raises a warning.
 
 ## Carrier-resolved field model
 
