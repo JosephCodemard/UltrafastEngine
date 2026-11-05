@@ -68,6 +68,7 @@ nav:
       - HITRAN (gas lines in air): plugins/hitran.md
   - Testing & validation:
       - Overview: testing.md
+      - Component verification (scripts and plots): verification.md
       - Validation matrix (generated): reference/validation-matrix.md
   - Roadmap: roadmap.md
   - For AI agents: agents.md
