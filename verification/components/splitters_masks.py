@@ -80,7 +80,7 @@ def polarizing_splitter(fam: Family):
         ec, ea = [], []
         for a in angles:
             p = b.pulse(1030e-9, 100e-15, energy=1e-9)
-            p["polarization"] = {"kind": "linear", "angleDeg": float(a)}
+            p["polarization"] = {"angleDeg": float(a)}
             r = run([b.link(b.polarizing_splitter("pbs", tp, rs), {"c": "end", "d": "virtual"})], branched=True, pulse=p)
             c2, s2 = math.cos(math.radians(a)) ** 2, math.sin(math.radians(a)) ** 2
             want_c = (tp * c2 + (1 - rs) * s2) * 1e-9

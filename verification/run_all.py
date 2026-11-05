@@ -103,7 +103,8 @@ def main() -> int:
     (out / "index.html").write_text(page(records, time.time() - t0), encoding="utf-8")
     failed = sum(1 for r in records for row in r["rows"] if not row["ok"])
     total = sum(len(r["rows"]) for r in records)
-    print(f"\n== verification: {total - failed}/{total} checks passed, {failed} failed"
+    known = sum(1 for r in records for row in r["rows"] if row.get("status") == "KNOWN")
+    print(f"\n== verification: {total - failed - known}/{total} checks passed, {known} known bugs, {failed} failed"
           + (f", crashed: {', '.join(crashed)}" if crashed else "") + f"; report: {out / 'index.html'}")
     return 1 if failed or crashed else 0
 

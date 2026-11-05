@@ -109,7 +109,7 @@ def plates(fam: Family):
                 s = b.system("plate", [b.plate("p", "FusedSilica", d, aoi_deg=float(aoi))])
                 pulse = b.pulse(1030e-9, 100e-15, energy=1e-9)
                 if key == "y":
-                    pulse["polarization"] = {"kind": "linear", "angleDeg": 90}
+                    pulse["polarization"] = {"angleDeg": 90}
                 r = uf.run(s, b.run_spec(pulse, physics={"nonlinear": False}))
                 w0 = r.summary["grid"]["omega0"]
                 lam = 2 * math.pi * C / w0
