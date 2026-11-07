@@ -230,6 +230,7 @@ def main():
 
     # Argon n2 and critical power the engine uses
     numbers["arN2_1bar_m2W"] = float(uf.command({"command": "materials.show", "name": "Ar"})["n2"])
+    numbers["paperCeiling"] = 0.75
     numbers["peakPowerW"] = 0.9394 * E_IN / TAU
 
     p.write_numbers(numbers)

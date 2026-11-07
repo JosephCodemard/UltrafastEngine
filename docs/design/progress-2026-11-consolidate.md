@@ -90,3 +90,14 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
   reproduced; 2 soft checks (bright fringe fraction, Na D period). treacy-1969: GDD/delay match eqs. 7, 8; the paper's printed
   0.58 ps/cm, 10 cm optimum and eq. 17 (TOD) disagree with its own formulas (engine is right: 0.610 ps/cm, 9.51 cm, eq. 17 off 1.76×).
 * PDFs were scans: read via macOS PDFKit; tables garbled (UNVERIFIED). No engine bug found in these three.
+
+## Update: Shimizu 1967 and Liu 2013 (CS2) done
+* shimizu-1967-cs2-broadening: 14 checks, 12 pass, 2 soft-fail (average fringe period 6.8 vs 10 ± 3 cm⁻¹; blue-side spacing). Paper gives
+  no n2 / intensity / τ: assumed (6 ps Gaussian, τ = 2 ps, B = 120 rad). The paper's 10 cm⁻¹ period (3.3 ps) conflicts with its 6 ps.
+* liu-2013-ner-cs2-pulse-cleaner: 12 checks, 11 pass, 1 soft. Eq. (1) transmissivity 0.667 at 9.5π (paper ~0.66), contrast gain
+  3.9 vs 3.7 orders (ER 1e4), optimum angle 32.5°; cleaned width 158 fs vs paper ~60 fs because the 1-D model includes 436 fs² of
+  CS2 GDD that Eq. (1) neglects (engine matches an independent numpy split-step; focused beam / self-focusing not modelled).
+* **Engine findings:** (1) no built-in CS2 (supplied as a user material with Kedenburg 2012 index; GDD not cross-checked);
+  (2) grid planner ignores the memory of a delayed response: τ = 18 ps in a 120 ps window says "adequate" with no warning but the
+  spectrum is wrong (`shimizu…/repro_1.py`); (3) `anisotropicFraction` on an `expression` delayed response is silently ignored
+  and values > 1 are rejected, so a purely orientational response (needs 1.5) cannot be built (`liu…/repro_1.py`).

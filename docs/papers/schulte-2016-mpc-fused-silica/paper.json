@@ -1,0 +1,27 @@
+{
+  "id": "schulte-2016-mpc-fused-silica",
+  "citation": "J. Schulte, T. Sartorius, J. Weitenberg, A. Vernaleken, P. Russbueldt, \"Nonlinear pulse compression in a multi-pass cell\", Opt. Lett. 41(19), 4511-4514 (2016)",
+  "doi": "10.1364/OL.41.004511",
+  "openAccess": false,
+  "fullTextRead": "Yes, all 4 pages as text (pypdf; the Read tool could not render page images because pdftoppm is missing). Figures were NOT seen: every number below comes from the running text. The file on disk is Schulte et al. 2016, not 'Weitenberg et al. 2017' (Weitenberg is the third author).",
+  "topic": "spectral broadening of 850 fs Yb:YAG pulses in a Herriott cell whose fused-silica mirror substrates are the Kerr medium, then a chirped-mirror compressor",
+  "referenceNumbers": [
+    {"key": "inputPulse", "value": "850 fs FWHM, 1.6 nm bandwidth, 10 MHz, up to 530 W (53 uJ)", "where": "p. 2 (abstract, text)", "status": "verified in text"},
+    {"key": "cell", "value": "mirror distance ~540 mm, 18 bounces per mirror (36 total), mode radius 460 um on the curved mirrors without Kerr lensing, 13 mm fused-silica substrates, mirror GDD about -400 (+-100?) fs2 per bounce, ~1 m in glass, ~20 m in air", "where": "p. 2", "status": "verified in text; the +- of the GDD and the curvature value are garbled glyphs"},
+    {"key": "rocInferred", "value": "effective ROC 350 mm", "where": "inferred: symmetric cell with d = 540 mm gives w = 459 um (stated 460 um) for R = 350 mm", "status": "inferred, cross-checked"},
+    {"key": "transmission", "value": "91 % at 446 W out; 72 AR passes + 36 HR bounces", "where": "p. 2-3", "status": "verified in text"},
+    {"key": "bIntegral", "value": "about 5 pi at maximum power, estimated from measured beam radii", "where": "p. 2", "status": "verified in text"},
+    {"key": "bw354", "value": "13.4 nm at 350 W (Fig. 4a caption: 354 W), outer-peak half-maximum definition", "where": "p. 3", "status": "verified in text"},
+    {"key": "bw446", "value": "16.1 nm at 446 W; 8.4-fold and 10-fold of 1.6 nm", "where": "p. 3", "status": "verified in text"},
+    {"key": "tl", "value": "transform-limited 160 fs (354 W) and 140 fs (446 W)", "where": "p. 3", "status": "verified in text"},
+    {"key": "compressor", "value": "3 reflections of a dispersive mirror, nominal GDD (-10000 ...) fs2 each, 15 nm bandwidth", "where": "p. 3", "status": "UNVERIFIED digits (garbled); used as the range -54000 ... -21000 fs2 total, soft check"},
+    {"key": "compression375", "value": "optimum at 375 W, 13.5 nm; AC FWHM 200 fs; < 170 fs inferred; ~75 % of the energy in the main peak; ~160 MW", "where": "p. 4, Fig. 5a", "status": "verified in text"}
+  ],
+  "assumptions": [
+    "Pulse: sech2, transform limited, 850 fs. The pair (850 fs, 1.6 nm) has a time-bandwidth product of 0.38, below the Gaussian 0.44 and above the sech2 0.315, so no ideal shape satisfies both; the sech2 gives 1.1-1.3 nm. Bandwidth ratios are quoted against the paper's 1.6 nm and against ours.",
+    "Effective ROC 350 mm and the lens of the AR concave face are lumped into a thin mirror in air after the 26 mm of glass; the mirror distance 540 mm is the air gap; the start beam is the mode of the EMPTY 540 mm cell (459 um). The substrate/meniscus lens is not modelled separately.",
+    "The 91 % transmission is an input: the loss (mirror reflectance 0.91^(1/36)) is spread evenly over the bounces. In and out coupling prisms are not modelled. Energy is set from the output power: E_in = P_out / 0.91 / 10 MHz.",
+    "Air is included (Kerr, no rotational Raman) although the paper does not say whether the cell was evacuated; it contributes 0.1 rad of 17.4 rad.",
+    "Kerr and thermal lensing are inside the radial model only as far as the Kerr effect goes; no thermal lens, no M2 comparison, no mode-matching re-optimisation at each power."
+  ]
+}

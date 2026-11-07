@@ -1,0 +1,27 @@
+{
+  "id": "kaur-2024-mpc-ner-xpw",
+  "citation": "J. Kaur, L. Daniault, Z. Cheng, O. Tourneur, O. Tcherbakoff, F. Reau, J.-F. Hergott, R. Lopez-Martens, \"Simultaneous nonlinear spectral broadening and temporal contrast enhancement of ultrashort pulses in a multi-pass cell\", J. Phys. Photonics 6, 015001 (2024)",
+  "doi": "10.1088/2515-7647/ad078a",
+  "openAccess": true,
+  "fullTextRead": "Yes, all 14 pages as text (pypdf; the Read tool could not render page images because pdftoppm is missing). Figures were NOT seen: figure-only values (spectra, Fig. 2 curves, Fig. 3 spectral widths, Fig. 7 caustics, Fig. 8 curve) are UNVERIFIED and never checked.",
+  "topic": "NER and XPW in an argon / BaF2 multi-pass cell for contrast enhancement and post-compression of 30 fs Ti:sapphire pulses",
+  "referenceNumbers": [
+    {"key": "laser", "value": "800 nm, 1 mJ, 30 fs, 1 kHz", "where": "p. 2", "status": "verified in text"},
+    {"key": "cell", "value": "two mirrors ROC 1.5 m, ~3 m apart (quasi-concentric), argon, 12 passes = 36 m, waist 450 um 'corresponding to a 2.9 mm beam diameter on the end-mirrors'", "where": "p. 2", "status": "verified in text; the waist and the mirror size are not consistent with the stated cell (README)"},
+    {"key": "bMax", "value": "B cannot be pushed much beyond 6 rad, ~400 mbar argon", "where": "p. 3", "status": "verified in text; B is not defined"},
+    {"key": "eps", "value": "ellipticity eps from 0 (linear) to 1 (circular); eps_i = 0.25 first, then 0.18; eps should not go below 0.15 and the maximum NER efficiency 'should not exceed 75 %'", "where": "p. 3-4", "status": "verified in text; the definition of eps is not given (tan chi assumed)"},
+    {"key": "eff58", "value": "internal NER efficiency 58 % at ~350 mbar (eps 0.25), measured; simulation 'excellent agreement'; pulse break-up from 420 mbar", "where": "p. 4, Fig. 3", "status": "verified in text"},
+    {"key": "eff69", "value": "69 % at 420 mbar, eps 0.18; output 0.49 mJ; overall 49 %; compressor 87 %; total 43 %; FTL 5.8 fs", "where": "p. 4", "status": "verified in text"},
+    {"key": "polariser", "value": "thin-film polariser extinction ratio 5e-3; contrast enhancement >= 3 orders, limited by it", "where": "p. 3-4", "status": "verified in text; read as a power leak"},
+    {"key": "losses", "value": "silver mirrors ~1 % per bounce; BaF2 plates ~3 % per MPC pass", "where": "p. 8", "status": "verified in text"},
+    {"key": "xpw", "value": "two 600 um BaF2 plates, input 64.5 deg to the optical axes, 5e3 x critical power, 57 % internal / 28 % overall (FTL input), 65 % / 34 % (-500 fs2 chirp), compressed 16 fs / 20 fs", "where": "p. 7-10", "status": "verified in text; NOT reproducible (engine has no XPW)"}
+  ],
+  "assumptions": [
+    "Input: Gaussian 30 fs transform-limited pulse (the real spectrum is measured, not given).",
+    "QWP1 / QWP2 achromatic; QWP2 crossed = the inverse plate; polariser crossed with the input; efficiency = energy behind / in front of the polariser.",
+    "eps = tan(alpha), alpha = angle of the first plate: eps is minor/major axis ratio. The alternative eps = (minor/major)^2 was tried in exploration and is discussed in the README.",
+    "Two beam readings for the cell: constant w = 1.45 mm (2.9 mm diameter on the mirrors, 'overall constant beam size') and a 450 um-waist Gaussian caustic in each 3 m pass. Neither is the paper's Kerr-matched mode.",
+    "Plane-wave 1-D in time (no radial model): no spatial averaging over the beam profile, so the efficiency is that of the beam centre.",
+    "BaF2 n2 = 1.6e-20 m2/W (literature order of magnitude, UNVERIFIED) only for the P/Pcr number."
+  ]
+}
