@@ -47,9 +47,10 @@ namespace UltrafastEngine.Cli
         the CPU on standard problems, --benchmark also times both (docs/reference/speed.md).
   ultrafast study <study.json> [-o <dir>] [--parallel <n>] [--backend <name>]
         Parameter scan (grid, random, LHS, Sobol), optimisation or sensitivity study (docs/reference/studies.md).
-  ultrafast retrieve <pcgpa|epie|dscan|gerchbergSaxton> <trace.npz|trace.json> [--kind shg-frog|pg-frog|dscan] [--fundamental spectrum.csv]
+  ultrafast retrieve <pcgpa|epie|dscan|gerchbergSaxton> <trace.npz|trace.json> [--kind shg-frog|pg-frog|sd-frog|xfrog|dscan] [--fundamental spectrum.csv]
                      [--material FusedSilica] [--instrument name] [--iterations n] [-o <dir>]
-        Pulse retrieval from a FROG or d-scan trace (or a results folder's result.npz: --instrument picks the trace);
+        Pulse retrieval from a FROG or d-scan trace (or a results folder's result.npz: --instrument picks the trace; the
+        kind is read from summary.json there; a bare trace needs --kind unless it is symmetric in the delay = SHG);
         writes retrieved_spectrum.csv (usable as a run-spec pulse).
   ultrafast materials list | show <name|page> | import <page.yml> [--name <name>]
         Built-in materials, gases and bundled refractiveindex.info pages; add a page to the user library.
