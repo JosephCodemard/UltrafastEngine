@@ -256,20 +256,31 @@ namespace UltrafastEngine.Instruments
             var range = s.GetDoubleArray("rangeM");
             double? pol = s.Has("polarizerDeg") ? s.GetDouble("polarizerDeg", 0) * Math.PI / 180 : (double?)null;
             double sum = 0;
+            // the band [range[0], range[1]] in angular frequency; each bin covers [w - dw/2, w + dw/2] and counts with the fraction
+            // of that interval inside the band, so the edges are not snapped to whole bins (error falls as dw^2)
+            double wBandLo = 0, wBandHi = double.PositiveInfinity;
+            if (range != null)
+            {
+                wBandLo = range[1] > 0 ? 2 * Math.PI * Tools.C / range[1] : 0;
+                wBandHi = range[0] > 0 ? 2 * Math.PI * Tools.C / range[0] : double.PositiveInfinity;
+            }
             for (int i = 0; i < g.N; i++)
             {
                 double w = g.OmegaAbsolute[i];
+                double weight = 1.0;
                 if (range != null)
                 {
-                    double l = w > 0 ? 2 * Math.PI * Tools.C / w : double.PositiveInfinity;
-                    if (l < range[0] || l > range[1]) continue;
+                    double hw = 0.5 * g.DOmega;
+                    double ov = Math.Min(w + hw, wBandHi) - Math.Max(w - hw, wBandLo);
+                    weight = Math.Max(0, Math.Min(1, ov / g.DOmega));
+                    if (weight <= 0) continue;
                 }
                 if (pol.HasValue)
                 {
                     var a = p.Ax[i] * Math.Cos(pol.Value) + p.Ay[i] * Math.Sin(pol.Value);
-                    sum += a.Real * a.Real + a.Imaginary * a.Imaginary;
+                    sum += weight * (a.Real * a.Real + a.Imaginary * a.Imaginary);
                 }
-                else sum += p.Ax[i].Real * p.Ax[i].Real + p.Ax[i].Imaginary * p.Ax[i].Imaginary + p.Ay[i].Real * p.Ay[i].Real + p.Ay[i].Imaginary * p.Ay[i].Imaginary;
+                else sum += weight * (p.Ax[i].Real * p.Ax[i].Real + p.Ax[i].Imaginary * p.Ax[i].Imaginary + p.Ay[i].Real * p.Ay[i].Real + p.Ay[i].Imaginary * p.Ay[i].Imaginary);
             }
             double e = sum / g.N * g.DTime;
             Tools.Put(o, "energyJ", e);
@@ -427,8 +438,19 @@ namespace UltrafastEngine.Instruments
                 var I = pt; double fwI = PulseMetrics.Fwhm(g.Time, I);
                 double range = s.GetDouble("rangeS", 3 * (double.IsNaN(fwI) ? 100e-15 : fwI));
                 double dtau = 2 * Math.PI / w0 / 16;
-                int m = Math.Min(s.GetInt("points", 4001), (int)(2 * range / dtau) + 1);
-                var tau = Tools.Linspace(-range, range, m);
+                // the delay axis is symmetric with an odd number of points, so it contains d = 0 (the fringe maximum, S(0) = 8 x background);
+                // the step is lambda0/(16 c) unless the "points" cap forces a coarser one (then a note says the fringes are under-sampled)
+                int kHalf = (int)Math.Floor(range / dtau);
+                int cap = Math.Max(3, s.GetInt("points", 4001)); if (cap % 2 == 0) cap--;
+                int m = 2 * kHalf + 1;
+                double[] tau;
+                if (m <= cap) { tau = new double[m]; for (int k = 0; k < m; k++) tau[k] = (k - kHalf) * dtau; }
+                else
+                {
+                    m = cap; tau = Tools.Linspace(-range, range, m); tau[m / 2] = 0;
+                    double st = 2 * range / (m - 1);
+                    if (st > dtau * 1.0001) o.Notes.Add("interferometric autocorrelation: \"points\" = " + cap + " gives a delay step of " + (st * 1e15).ToString("G3", CultureInfo.InvariantCulture) + " fs, coarser than lambda0/(16c) = " + (dtau * 1e15).ToString("G3", CultureInfo.InvariantCulture) + " fs: the fringes are under-sampled and peakToBackground is biased low");
+                }
                 var y = new double[m];
                 for (int k = 0; k < m; k++)
                 {

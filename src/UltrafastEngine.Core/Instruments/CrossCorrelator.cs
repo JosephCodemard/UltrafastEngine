@@ -77,7 +77,14 @@ namespace UltrafastEngine.Instruments
             if (!(smax > 0)) throw new InvalidOperationException("crossCorrelator: no signal");
             for (int j = 0; j < m; j++) S[j] /= smax;
             double res = s.GetDouble("resolutionS", 0);
-            if (res > 0) S = Tools.GaussianSmooth(S, g.DTime, res);
+            if (res > 0)
+            {
+                // the finite delay resolution smears the main peak and every other feature alike; the trace, the noise floor and the
+                // reported contrast are all relative to the peak of the RESOLUTION-LIMITED trace, so renormalise after smoothing
+                S = Tools.GaussianSmooth(S, g.DTime, res);
+                double smax2 = S.Max();
+                if (smax2 > 0) for (int j = 0; j < m; j++) S[j] /= smax2;
+            }
             int jp = Array.IndexOf(S, S.Max());
             double tPeak = lags[jp];
             // ---- scan grid

@@ -98,6 +98,7 @@ namespace UltrafastEngine.Schema
                 .P("segments", ParamType.Any, "", "Attenuation-range stitching: a list of {fromS, toS, attenuation (or gain), noiseFloor} -- the signal in that delay range is measured through the attenuation (power factor) and divided by it afterwards, so the floor rises as 1/attenuation and saturation moves up accordingly")
                 .Num("resolutionS", "s", "Extra temporal resolution (Gaussian FWHM)", "0").Num("shgAcceptanceFwhmM", "m", "SHG crystal acceptance (SH wavelength FWHM)")
                 .P("polarization", ParamType.Any, "", "\"total\", \"x\", \"y\" or an analyser angle in degrees", "\"total\"")
+                .Enum("delayedLightArm", new[] { "sampling", "gate", "both" }, "With grid.tail: which arm of the correlator sees the delayed light (ghosts, echoes): the sampling (probe) channel, the SHG gate, or both", "sampling")
                 .Arr("probeDelaysS", "s", "Delays at which to report the contrast in dB").Num("windowS", "s", "Pre/post window around the peak", "5 x FWHM"));
             add(new ComponentSpec("instrument", "polarimeter", "Stokes parameters, integrated and vs wavelength.").DocAt(D + "polarimeter").Int("points", "Output points", "1024")
                 .Num("extinctionRatio", "", "Power extinction ratio of the analysers (0: perfect); Stokes readings scale by (1 - e) / (1 + e)", "0"));
