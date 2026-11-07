@@ -79,6 +79,18 @@ namespace UltrafastEngine.Tests
             }
         }
 
+        /// <summary>A long pulse needs more delay points than the "points" cap: the axis still contains d = 0 (so the peak is 8) and a note says
+        /// that the fringes are under-sampled.</summary>
+        [Test(Reference = "Diels and Rudolph: IAC peak to background 8:1", Tolerance = "0.2 %")]
+        public void InterferometricAutocorrelator_LongPulse_KeepsZeroDelay_AndSaysTheFringesAreUndersampled()
+        {
+            var r = Go(Empty(), Gauss(1030e-9, 1e-12, 1e-9), null, O("kind", "autocorrelator", "type", "interferometric", "name", "iac"));
+            Assert.Close(8.0, r.Instruments.Single().Values.GetDouble("peakToBackground", double.NaN), 0.002, 0, "peak to background, 1 ps");
+            Assert.True(r.Instruments.Single().Notes.Any(n => n.Contains("under-sampled")), "note");
+            var d = Arr(r, "iac", "delay_s");
+            Assert.True(d.Length % 2 == 1 && Math.Abs(d[d.Length / 2]) < 1e-21, "zero delay is on the axis");
+        }
+
         private static double Db(double v) => 10 * Math.Log10(v);
 
         /// <summary>The finite delay resolution smears the main peak and the pre-pulse alike, so the pre-pulse still reads its relative
@@ -103,31 +115,40 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        private static SystemDescription GhostPlate(double r)
-            => SysOf(O("ar", O("kind", "ar")), O("id", "w", "type", "plate", "material", "FusedSilica", "thicknessM", 5e-3, "coating", O("kind", "ar", "R", r), "ghosts", true));
+        private const double PlateD = 1.0e-3, GateLam = 1030e-9;
 
-        private static double GhostLevel(string arm, double sign, double R)
+        private static (double[] Delay, double[] Signal) GateArmRun(JsonObject gateArm, double center, double half)
         {
-            double ng = Materials.MaterialLibrary.BuiltIn("FusedSilica").GroupIndexAt(2 * Math.PI * C / 1030e-9), T = 2 * ng * 5e-3 / C;
-            var xc = O("kind", "crossCorrelator", "name", "xc", "rangeS", new[] { sign * T - 3e-12, sign * T + 3e-12 }, "stepS", 10e-15, "noise", false, "noiseFloor", 1e-16);
-            if (arm != null) xc.Set("delayedLightArm", arm);
-            var r = Go(GhostPlate(R), Gauss(1030e-9, 100e-15, 1e-6), O("tail", true), xc);
-            return Arr(r, "xc", "signal_ideal").Max();
+            var xc = O("kind", "crossCorrelator", "name", "xc", "rangeS", new[] { center - half, center + half }, "stepS", 10e-15, "noise", false, "noiseFloor", 1e-16);
+            if (gateArm != null) xc.Set("gateArm", gateArm);
+            var r = Go(Empty(), Gauss(GateLam, 200e-15, 1e-6), O("auto", false, "n", 1 << 14, "windowS", 100e-12), xc);
+            return (Arr(r, "xc", "delay_s"), Arr(r, "xc", "signal_ideal"));
         }
 
-        /// <summary>A plate's first ghost replica has intensity R^2 (R per face). In the sampling arm the correlator sees it at +T with that
-        /// level; in the gate arm the SHG gate |E^2|^2 squares it (R^4) and it appears at -T; with both arms it shows at +T (R^2) and -T (R^4).</summary>
-        [Test(Reference = "Airy: first ghost intensity R^2; gate = |E^2|^2 gives R^4", Tolerance = "5 %")]
-        public void CrossCorrelator_DelayedLightArm_PutsTheGhostInTheSamplingOrTheGateArm()
+        private static JsonObject PlateArm() => O("elements", A(O("id", "plate", "type", "plate", "material", "FusedSilica", "thicknessM", PlateD, "ghosts", O("orders", 3, "overlap", 1.0))));
+
+        /// <summary>A plate with ghosts in the gate arm only (the second-harmonic gate, as in the single-shot cross-correlator of Ma et al.,
+        /// Optica 2018, Fig. 4c): the k-th ghost replica of the gate has intensity R^(2k) (R the Fresnel reflectance of an uncoated face at the
+        /// second harmonic, evaluated at lambda0/2) at k times 2 n_g d / c, with n_g at the second harmonic. The probe channel is untouched.</summary>
+        [Test(Reference = "Fresnel: ghost k of a plate has intensity R^(2k); spacing 2 n_g(lambda/2) d / c", Tolerance = "3 %, spacing 0.1 %")]
+        public void CrossCorrelator_GateArmPlate_GivesGhostLevelsRToThe2k_AtTheSecondHarmonicSpacing()
         {
-            double R = 0.01;
-            Assert.Close(R * R, GhostLevel(null, +1, R), 0.05, 0, "default = sampling arm, +T");
-            Assert.Close(R * R, GhostLevel("sampling", +1, R), 0.05, 0, "sampling arm, +T");
-            Assert.Less(GhostLevel("sampling", -1, R), 1e-12, "sampling arm: nothing at -T");
-            Assert.Close(Math.Pow(R, 4), GhostLevel("gate", -1, R), 0.05, 0, "gate arm, -T");
-            Assert.Less(GhostLevel("gate", +1, R), 1e-12, "gate arm: nothing at +T");
-            Assert.Close(R * R, GhostLevel("both", +1, R), 0.05, 0, "both, +T");
-            Assert.Close(Math.Pow(R, 4), GhostLevel("both", -1, R), 0.05, 0, "both, -T");
+            var fs = Materials.MaterialLibrary.BuiltIn("FusedSilica");
+            double w2 = 2 * 2 * Math.PI * C / GateLam;
+            double n2 = fs.IndexAt(w2), ng2 = fs.GroupIndexAt(w2), R = Math.Pow((n2 - 1) / (n2 + 1), 2), T = 2 * ng2 * PlateD / C;
+            for (int k = 1; k <= 3; k++)
+            {
+                var (d, s) = GateArmRun(PlateArm(), -k * T, 1.5e-12);
+                int ip = Array.IndexOf(s, s.Max());
+                Assert.Close(Math.Pow(R, 2 * k), s[ip], 0.03, 0, "ghost " + k + " level");
+                Assert.Close(-k * T, d[ip], 0, 0.1e-3 * T * k + 10e-15, "ghost " + k + " position");
+            }
+            // nothing at +T: the probe channel has no ghost
+            var (dp, sp) = GateArmRun(PlateArm(), +T, 1.5e-12);
+            Assert.Less(sp.Max(), 1e-12, "no replica at +T");
+            // the main peak is unchanged apart from the plate's own transmission (relative trace)
+            var (d0, s0) = GateArmRun(null, 0, 1e-12);
+            Assert.Close(1.0, s0.Max(), 1e-9, 0, "without a gate arm the peak is the normalisation");
         }
     }
 }

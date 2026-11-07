@@ -60,6 +60,7 @@ namespace UltrafastEngine.Instruments
                 for (int i = 0; i < n; i++) f[i] *= Math.Exp(-2 * Math.Log(2) * Math.Pow(g.OmegaOffset[i] / dw, 2)) ;
                 e2 = SpectralTransform.FreqToTime(f);
             }
+            if (s.Has("gateArm") && s["gateArm"].Kind == JsonKind.Object) e2 = PropagateGateArm(ctx, s.GetObject("gateArm"), e2, o);
             var G = e2.Select(z => z.Real * z.Real + z.Imaginary * z.Imaginary).ToArray();
             // ---- S(tau) = sum_t I(t) G(t - tau), linear correlation by zero-padded FFT
             int m = 2 * n;
@@ -161,6 +162,39 @@ namespace UltrafastEngine.Instruments
             Tools.Put(o, "prePulseContrastDb", 10 * Math.Log10(Math.Max(pre, floor))); Tools.Put(o, "prePulseDelayS", tpre);
             Tools.Put(o, "postPulseContrastDb", 10 * Math.Log10(Math.Max(post, floor))); Tools.Put(o, "postPulseDelayS", tpost);
             o.Notes.Add("third-order correlation: a post-pulse at +T of relative intensity e also gives an artefact ~e^2 at -T (gate replica)");
+        }
+
+        /// <summary>
+        /// Elements in the gate arm only. The second-harmonic field <paramref name="e2"/> (envelope about 2 w0, on the instrument's time grid) is
+        /// sent through the listed elements (<c>gateArm.elements</c>, optional <c>gateArm.materials</c>; any linear element: plate with ghosts, filter,
+        /// dispersion, ...), compiled at the second-harmonic carrier so materials and coatings are evaluated at lambda0/2. The fundamental (probe)
+        /// channel does not see them. The window is the instrument's: it must hold the replicas (grid.windowS, or grid.tail).
+        /// The field is scaled to the energy of the fundamental for the run (the conversion is taken as lossless) and unscaled afterwards.
+        /// </summary>
+        private static Complex[] PropagateGateArm(InstrumentContext ctx, JsonObject arm, Complex[] e2, InstrumentOutput o)
+        {
+            var g = ctx.Pulse.Grid; int n = g.N;
+            if (!arm.Has("elements")) throw new InvalidOperationException("crossCorrelator: gateArm needs an \"elements\" list (the elements the second-harmonic gate passes).");
+            var sysJson = new JsonObject().Set("format", "ultrafast-system").Set("version", 2).Set("name", "gate-arm").Set("elements", arm["elements"]);
+            if (arm.Has("materials")) sysJson.Set("materials", arm["materials"]);
+            var sys = Systems.SystemDescription.FromJson(sysJson);
+            double w2 = 2 * g.OmegaCenter, lam2 = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w2;
+            var runJson = new JsonObject().Set("format", "ultrafast-run").Set("version", 2)
+                .Set("pulse", new JsonObject().Set("shape", "gaussian").Set("centerWavelengthM", lam2).Set("durationFwhmS", 50 * g.DTime).Set("energyJ", 1e-9))
+                .Set("grid", new JsonObject().Set("auto", false).Set("n", n).Set("windowS", n * g.DTime));
+            var cr = Engine.Compiler.Compile(sys, Specs.RunSpec.FromJson(runJson), ctx.Registry);
+            if (cr.Grid.N != n || Math.Abs(cr.Grid.DTime / g.DTime - 1) > 1e-9)
+                throw new InvalidOperationException("crossCorrelator: the gate-arm grid (" + cr.Grid.N + " points, dt " + cr.Grid.DTime + ") differs from the instrument grid (" + n + ", " + g.DTime + ").");
+            double eIn = e2.Sum(z => z.Real * z.Real + z.Imaginary * z.Imaginary) * g.DTime;
+            double eFund = ctx.Pulse.TotalEnergyJ();
+            double k = eIn > 0 && eFund > 0 ? Math.Sqrt(eFund / eIn) : 1.0;
+            var scaled = e2.Select(z => z * k).ToArray();
+            cr.Input = new Pulses.PulseField(cr.Grid, SpectralTransform.TimeToFreq(scaled), new Complex[n], ctx.Pulse.RepRateHz);
+            var res = Engine.Executor.Execute(cr);
+            foreach (var w in res.Warnings) o.Notes.Add("gate arm: " + w);
+            if (res.Output.Grid.N != n) throw new InvalidOperationException("crossCorrelator: the gate-arm elements changed the grid; use elements that keep it.");
+            o.Notes.Add("gate arm: the second-harmonic gate passes " + sys.Elements.Count + " element(s) at " + (lam2 * 1e9).ToString("G4", CultureInfo.InvariantCulture) + " nm before the sum-frequency step; the probe channel does not");
+            return res.Output.TemporalAx().Select(z => z / k).ToArray();
         }
 
         private static double Gauss(Random r) { double u1 = 1 - r.NextDouble(), u2 = r.NextDouble(); return Math.Sqrt(-2 * Math.Log(u1)) * Math.Cos(2 * Math.PI * u2); }

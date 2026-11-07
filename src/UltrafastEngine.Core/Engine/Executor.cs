@@ -408,18 +408,9 @@ namespace UltrafastEngine.Engine
                         if (TailLinearInstruments.Contains(inst.Kind))
                         {
                             ctx.Pulse = res.TailLedger.Composite(p, tailField);
-                            string arm = inst.Kind == "crossCorrelator" ? ispec.GetString("delayedLightArm", "sampling").ToLowerInvariant() : "";
-                            if (inst.Kind == "crossCorrelator")
-                            {
-                                if (arm == "gate") { ctx.GatePulse = ctx.Pulse; ctx.Pulse = res.TailLedger.EmbedMain(p); }
-                                else if (arm == "both") ctx.GatePulse = null;
-                                else if (arm == "sampling") ctx.GatePulse = res.TailLedger.EmbedMain(p);
-                                else throw new InvalidOperationException("crossCorrelator: delayedLightArm must be \"sampling\", \"gate\" or \"both\".");
-                            }
+                            if (inst.Kind == "crossCorrelator") ctx.GatePulse = res.TailLedger.EmbedMain(p);
                             outp.Notes.Add(inst.Kind == "crossCorrelator"
-                                ? (arm == "gate" ? "delayed-light tail included in the SHG gate only; the probe channel is the main field"
-                                   : arm == "both" ? "delayed-light tail included in both the probe channel and the SHG gate"
-                                   : "delayed-light tail included in the probe channel; the SHG gate is made from the main field only")
+                                ? "delayed-light tail included in the probe channel; the SHG gate is made from the main field only"
                                 : "delayed-light tail included (main + tail on the long grid)");
                         }
                         else outp.Notes.Add("nonlinear instrument: the delayed-light tail is not included (main field only)");

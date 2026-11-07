@@ -48,8 +48,11 @@ namespace UltrafastEngine.Instruments
             cf.W = new double[nf];
             for (int i = 0; i < g.N; i++)
             {
-                double w = g.OmegaAbsolute[i]; if (w < wLo || w > wHi) continue;
-                double s = (p.Ax[i].Real * p.Ax[i].Real + p.Ax[i].Imaginary * p.Ax[i].Imaginary + p.Ay[i].Real * p.Ay[i].Real + p.Ay[i].Imaginary * p.Ay[i].Imaginary) * g.DTime / g.N;
+                double w = g.OmegaAbsolute[i];
+                // edge bins count with the fraction of the bin inside the band (not snapped to whole bins)
+                double frac = Math.Max(0, Math.Min(1, (Math.Min(w + 0.5 * g.DOmega, wHi) - Math.Max(w - 0.5 * g.DOmega, wLo)) / g.DOmega));
+                if (frac <= 0) continue;
+                double s = frac * ((p.Ax[i].Real * p.Ax[i].Real + p.Ax[i].Imaginary * p.Ax[i].Imaginary + p.Ay[i].Real * p.Ay[i].Real + p.Ay[i].Imaginary * p.Ay[i].Imaginary)) * g.DTime / g.N;
                 if (s == 0) continue;
                 int f = Nearest(cf.Omega, w);
                 cf.W[f] += s;
