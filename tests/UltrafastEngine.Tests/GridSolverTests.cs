@@ -105,5 +105,37 @@ namespace UltrafastEngine.Tests
             var small = new UltrafastEngine.Physics.CircularAperture(1e-3 * wx);
             Assert.Close(2 * small.Radius * small.Radius / (wx * wy), small.PowerTransmission(wx, wy, 0, 0), 1e-5, 0, "small-aperture limit: pi a^2 x peak intensity");
         }
+
+        private static JsonObject Quartz() => O("name", "quartz (Ghosh 1999)",
+            "no", O("kind", "sellmeier", "A", 1.28604141, "B", new[] { 1.07044083, 1.10202242 }, "C", new[] { 1.00585997e-2, 100.0 }),
+            "ne", O("kind", "sellmeier", "A", 1.28851804, "B", new[] { 1.09509924, 1.15662475 }, "C", new[] { 1.02101864e-2, 100.0 }),
+            "pointGroup", "general", "deffPmPerV", 0.3);
+
+        private static (double eta, double dk) Shg(double length)
+        {
+            var sys = Sys(O("id", "q", "type", "crystal", "crystal", Quartz(), "lengthM", length, "cut", O("thetaDeg", 90, "phiDeg", 0),
+                "interaction", O("process", "shg", "type", "0"), "overlap", O("model", "planeWave", "radiusM", 1e-3), "chi3", false));
+            var r = Go(sys, Spec(Gauss(694.3e-9, 5e-12, 1e-6)));
+            var v = r.Records.First(x => x.Id == "q").Values;
+            return (v["conversionEfficiency"], v["deltaK0PerM"]);
+        }
+
+        [Test(Reference = "plane-wave SHG at low conversion: eta(L) ~ sin^2(dk L / 2) (Armstrong et al., Phys. Rev. 127, 1918 (1962), eq. 2.14 limit)", Tolerance = "4 % (dispersion of the 5 ps pulse and finite bandwidth)")]
+        public void Shg_StronglyPhaseMismatchedThickCrystal_FollowsTheSincLaw_AtTheDefaultStepper()
+        {
+            // 0.8 mm of quartz, dk L = 370 rad (coherence length 6.9 um). The adaptive step used to span 18 rad of mismatch phase and the
+            // second-harmonic energy came out 150-960 x the law. eta(L_m) at the maxima L_m = (2m + 1) pi / dk equals eta(L_0).
+            var (e0, dk) = Shg(Math.PI / 4.6e5);
+            double l0 = Math.PI / Math.Abs(dk);
+            var (eRef, dkRef) = Shg(l0);
+            foreach (int m in new[] { 57, 58, 59 })
+            {
+                double L = (2 * m + 1) * l0;
+                var (e, _) = Shg(L);
+                Assert.Close(eRef, e, 0.04, 0, "eta at the " + m + "th maximum (L = " + L * 1e3 + " mm)");
+                var (eMin, _) = Shg(2 * m * l0 + 0.0);
+                Assert.Less(eMin, 0.02 * eRef, "eta at the nodes (L = 2 m l_c)");
+            }
+        }
     }
 }
