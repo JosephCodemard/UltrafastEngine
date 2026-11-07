@@ -1,0 +1,29 @@
+{
+  "id": "kane-1993-frog",
+  "citation": "D. J. Kane and R. Trebino, \"Characterization of arbitrary femtosecond pulses using frequency-resolved optical gating\", IEEE J. Quantum Electron. 29, 571-578 (1993)",
+  "doi": "10.1109/3.199311",
+  "openAccess": false,
+  "fullTextRead": true,
+  "readability": "PDF text layer extracted (pypdf; the Read tool's PDF renderer was unavailable: pdftoppm not installed). All text, equations in words and the appendices were read; the figures could NOT be viewed, so no number is taken from a graph. Eq. (5)-(7) coefficients come from the text layer (some OCR damage: the first coefficient is printed as 'U').",
+  "topic": "FROG: self-diffraction FROG trace, instantaneous-frequency laws (Appendix C), SHG ambiguity (Appendix B), 200 fs chirped pulse",
+  "referenceNumbers": [
+    {"key": "pulseLengthChirped", "value": "~200 fs, compressible to ~100 fs", "where": "p. 574, experiment", "status": "read"},
+    {"key": "chirpLengthening", "value": "factor ~2 in pulse length", "where": "p. 575, third-order autocorrelation paragraph", "status": "read"},
+    {"key": "wavelength", "value": "~620 nm", "where": "p. 574", "status": "read"},
+    {"key": "pulseEnergyPerBeam", "value": "~6 uJ", "where": "p. 574", "status": "read"},
+    {"key": "peakIntensityBK7", "value": "25 GW/cm^2 in a 3 mm BK-7 window; cubic dependence of diffracted energy verified; negligible spectral broadening and self-focusing", "where": "p. 574", "status": "read"},
+    {"key": "delays", "value": "11 delays at 67 fs spacing, 11 x 516 array interpolated to 33 x 33; relation d_nu = 1/(N d_tau)", "where": "p. 574", "status": "read, not reproduced (needs the measured trace)"},
+    {"key": "fitCoefficients", "value": "a=0.133 b=0.41 c=1.60 d=-1.18 alpha=-0.058 beta=-0.271 gamma=-0.00044 delta=-0.0007 epsilon=-0.00003, tau_ref=76 fs", "where": "p. 574-575, Eqs. (5)-(7)", "status": "read from the text layer"},
+    {"key": "fitRms", "value": "1.9 % of peak per point (33 x 33)", "where": "p. 575", "status": "read, not reproduced (needs the measured trace)"},
+    {"key": "appC_SD", "value": "Omega(tau) = a tau  =>  w(t) = (3/4) a t", "where": "Appendix C, p. 577", "status": "read"},
+    {"key": "appC_PG", "value": "Omega(tau) = a tau  =>  w(t) = (3/2) a t", "where": "Appendix C, p. 577", "status": "read"},
+    {"key": "appB_SHG", "value": "SHG-FROG trace symmetric in tau (Eq. B2): direction of time ambiguous", "where": "Appendix B, p. 577", "status": "read"},
+    {"key": "Q", "value": "Q = 1 (weak SPM, Fig. 3) and Q = 8 (strong SPM, Fig. 4)", "where": "captions Figs. 3-4", "status": "definition of Q not found in the text; read here as the peak SPM phase (assumption, UNVERIFIED)"}
+  ],
+  "assumptions": [
+    "Chirped test pulse: Gaussian, 100 fs transform limit, GDD chosen to give exactly 200 fs (6247 fs^2); 620 nm.",
+    "The engine has no self-diffraction FROG: the SD trace is computed in run.py from the engine's complex field (|FT[E^2(t) E*(t-tau)]|^2).",
+    "Strong/weak SPM pulses: unchirped 100 fs Gaussian through a dispersion-free Kerr element, peak SPM phase B = 1 and 8 rad (Q read as B).",
+    "BK-7 window: constant beam area chosen so the peak intensity is 25 GW/cm^2 for 6 uJ in a 200 fs pulse; engine n2 of N-BK7 = 3.4e-20 m^2/W."
+  ]
+}

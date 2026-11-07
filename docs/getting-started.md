@@ -9,10 +9,13 @@ src/UltrafastEngine.Native           C API exports (+ include/ultrafast.h); Nati
 src/UltrafastEngine.Cli              `ultrafast` command line (Windows/macOS/Linux)
 plugins/fitting                      fitting plugin: transforms, calibration fits, backward propagation (C# + Python module)
 plugins/zemax                        zemax plugin: OpticStudio sampling (any OS), the OpticStudio program (Windows), ZOS-API stubs
+plugins/gpu                          gpu plugin: CUDA and OpenCL compute back-ends
+plugins/hitran                       hitran plugin: gas absorption and dispersion lines (C# + Python downloader)
 schemas/                             JSON Schemas of system files and run specs (editor completion)
 build/                               shared MSBuild logic (plugin layout, Mono reference assemblies)
 artifacts/plugins                    installable plugin folders, laid out by every build
 tests/UltrafastEngine.Tests          test runner (console app, no NuGet packages)
+tests/components/                    component checks against analytic answers, with plots (docs/component-tests.md)
 python/                              the `ultrafast-engine` Python package (+ tests incl. pyNLO cross-check)
 docs/                                this documentation (MkDocs: `mkdocs serve`)
 docs/examples/                       runnable examples (system files, run specs, Python, C++)

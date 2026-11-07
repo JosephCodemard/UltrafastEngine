@@ -1,7 +1,8 @@
 # UltrafastEngine
 
 **Nonlinear ultrafast pulse propagation through complete optical systems** — stretchers and compressors,
-amplifiers, multipass cells, fibres, crystals, plates, gas cells, mirrors and coatings.
+amplifiers, multipass cells, interferometers, crystals, plates, gas cells, mirrors and coatings, with some support for
+single-mode fibre. Built for table-top, open-air optics.
 
 UltrafastEngine answers *what does my pulse look like after this system?* — spectrum, temporal profile, chirp,
 energy and losses, B-integral, contrast, fluence against damage thresholds, polarisation, beam size — and shows it the
@@ -25,7 +26,7 @@ polarimeter, camera, each with its own resolution and detector.
   unchanged on Windows, macOS and Linux.
 * **Physics of the whole chain.** Exact linear optics (materials, coatings, gratings, polarisation, losses), Kerr and
   Raman nonlinearity, fibres, gases with rotational Raman and ionisation, χ(2) crystals, gain media and oscillators,
-  spatial models up to UPPE — see [Capabilities and limitations](capabilities.md).
+  spatial models up to UPPE, beam splitters and interferometers (Branched systems), delayed light (ghosts, echoes) — see [Capabilities and limitations](capabilities.md).
 * **Everything is a replaceable model.** Indices, n², Raman responses, beam sizes, coatings, filters, gain media and
   time-domain responses can be data, expressions or your own functions, set per material, per element or globally
   from the run spec ([Models and overrides](reference/models.md)).
@@ -52,11 +53,14 @@ polarimeter, camera, each with its own resolution and detector.
 | frequency conversion, OPA / OPCPA | [Crystals](reference/crystals.md) |
 | amplifiers and lasers | [Gain media](reference/gain.md), [Oscillators](reference/oscillators.md) |
 | diffraction, self-focusing, filaments | [Spatial models](reference/transverse.md), [Ionisation](reference/ionization.md) |
+| splitters, interferometers, loops | [Branched systems](reference/branches.md) |
+| ghosts, echoes, scatter, ring-down | [Delayed light](reference/delayed-light.md) |
 | model my instruments, compare with measurements | [Instruments](reference/instruments.md), [Measured data](reference/measured-data.md) |
 | fit the model to my lab, reuse it on new inputs, propagate backward | [Fitting plugin](plugins/fitting.md), [example 26](examples/26-transforms/README.md) |
 | install or check plugins | [Installing plugins](plugins/installing.md) |
 | scan, optimise, retrieve a pulse | [Studies](reference/studies.md), [Pulse retrieval](reference/retrieval.md) |
 | plug in my own function or element | [Extending](reference/extending.md), [Python](reference/python.md), [C API](reference/c-api.md) |
 | export from OpticStudio | [Zemax plugin](plugins/zemax.md) |
-| check the validation | [Testing and validation](testing.md) |
+| check the validation | [Testing and validation](testing.md), [paper replications](papers/README.md) |
+| see what is planned | [Roadmap](roadmap.md) |
 | drive it from an AI agent | [For AI agents](agents.md) |

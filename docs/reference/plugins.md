@@ -3,7 +3,7 @@
 A **plugin** adds capabilities to the engine without the core depending on it: element types, instrument kinds,
 models, run modes, hooks that post-process instrument readings, summary sections and result files, CLI commands,
 console reports, and (optionally) a Python module with builders and figures. The first-party plugins are
-[fitting](../plugins/fitting.md) and [zemax](../plugins/zemax.md); the live-data plugin and ML plugins follow
+[fitting](../plugins/fitting.md), [zemax](../plugins/zemax.md), [gpu](../plugins/gpu.md) and [hitran](../plugins/hitran.md); the live-data plugin and ML plugins follow
 after the stable release.
 
 ## Using plugins
@@ -19,7 +19,7 @@ ultrafast plugins remove my-plugin
 
 ```python
 import ultrafast as uf
-[p.id for p in uf.plugins.installed()]       # ['fitting', 'zemax']
+[p.id for p in uf.plugins.installed()]       # ['fitting', 'gpu', 'hitran', 'zemax']
 fitting = uf.plugins.module("fitting")       # the plugin's Python module, or None
 ```
 

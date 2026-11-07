@@ -1,0 +1,31 @@
+{
+  "id": "michelson-1887-ether-null",
+  "citation": "A. A. Michelson and E. W. Morley, \"On the relative motion of the Earth and the luminiferous ether\", Am. J. Sci. (3rd series) 34, 333-345 (November 1887)",
+  "doi": "10.2475/ajs.s3-34.203.333",
+  "doiStatus": "UNVERIFIED (from memory; not printed in the scan)",
+  "openAccess": true,
+  "fullTextRead": true,
+  "readMethod": "Read tool PDF mode failed (poppler missing). Read through macOS PDFKit: the PDF is a scan with an OCR text layer (13 pages); the text was used for prose and the page images were viewed for the numbers. The two data tables (p. 340) are badly garbled by OCR and were NOT used. Page numbers below are the journal's (PDF page 1 = journal p. 333).",
+  "topic": "interferometry: null result of the ether-wind experiment",
+  "referenceNumbers": [
+    {"key": "armLengthFirst", "value": "D = 2e6 waves (yellow)", "where": "p. 336", "status": "read"},
+    {"key": "expectedShiftFirst", "value": 0.04, "unit": "fringe", "where": "p. 336 (2 D v^2/V^2 with v^2/V^2 = 1e-8)", "status": "read"},
+    {"key": "armLengthSecond", "value": "D = 11 m = 2e7 waves of yellow light (repeated reflection raises the path to about ten times the first)", "where": "pp. 337, 341", "status": "read"},
+    {"key": "expectedShiftSecond", "value": 0.4, "unit": "fringe", "where": "p. 341", "status": "read"},
+    {"key": "pathDifferenceFormula", "value": "difference of the two round-trip paths = D v^2/V^2; a 90 degree turn reverses it: fringe displacement 2 D v^2/V^2", "where": "p. 336", "status": "read"},
+    {"key": "orbitalVelocityRatio", "value": "v^2/V^2 = 1e-8", "where": "p. 336", "status": "read"},
+    {"key": "observedBound", "value": "displacement not much greater than 0.01 of the fringe distance", "where": "p. 340", "status": "read"},
+    {"key": "observedBoundLooser", "value": "certainly less than a twentieth of 0.4, probably less than a fortieth", "where": "p. 341", "status": "read"},
+    {"key": "velocityBound", "value": "relative velocity probably < 1/6, certainly < 1/4 of the orbital velocity (the shift goes as v^2)", "where": "p. 341", "status": "read"},
+    {"key": "fringeWidthAndDivision", "value": "fringe width 40-60 micrometer divisions (mean 50); one division = 0.02 wave", "where": "pp. 339-340", "status": "read"},
+    {"key": "rotation", "value": "16 equidistant marks, one turn in six minutes, six turns per run; 0.3 m stone on mercury", "where": "pp. 337-339", "status": "read"},
+    {"key": "tables", "value": "noon and 6 pm means of six turns at the 16 marks (July 8, 9, 11, 12)", "where": "p. 340", "status": "UNVERIFIED (OCR garbled), not used"},
+    {"key": "fig6", "value": "observed curves against dotted curves of one eighth of the theoretical displacement", "where": "p. 340, Fig. 6", "status": "read (shape only; amplitude of the plotted curves not read)"}
+  ],
+  "assumptions": [
+    "Yellow light is taken as 550 nm, so that 11 m = 2e7 waves as the paper states (p. 341).",
+    "D is the effective one-way arm length (the paper's folded path); each arm is a delay of the round trip 2 D.",
+    "The ether wind enters only as the paper's first-order prediction L(theta) = 2 D (1 + b^2 (1 - sin^2 theta / 2)) for an arm at angle theta to the wind, b = 1e-4. It is an input, not engine physics.",
+    "The compensator plate, mirror flatness, strain, temperature drift and aberration are not modelled."
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "paper": "perot-1899-multiple-beam-interference",
+  "checks": [
+    {"id": "Airy function R = 0.8 (coefficient 80), largest error", "kind": "number", "key": "airyMaxError_R80", "expected": 0, "tolerance": 1e-5,
+     "source": "p. 91: I = I0 / (1 + (4f/(1-f)^2) sin^2(pi Delta/lambda)), f = 0.8 -> 80"},
+    {"id": "coefficient 4f/(1-f)^2 for f = 0.8", "kind": "number", "key": "coefficient_R80", "expected": 80, "tolerance": 1e-6, "source": "p. 91 'this fraction is equal to 80'"},
+    {"id": "peak equals I0 (lossless mirrors)", "kind": "number", "key": "peakTransmission_R80", "expected": 1, "tolerance": 1e-5, "source": "p. 91: I = I0 when Delta/lambda is a whole number"},
+    {"id": "I_max / I_min = 1 + 80", "kind": "number", "key": "maxOverMin_R80", "expected": 81, "tolerance": 0.01, "source": "from the p. 91 formula"},
+    {"id": "FWHM of a fringe / spacing, R = 0.8", "kind": "number", "key": "fwhmOverSpacing_R80", "expected": 0.0713254, "tolerance": 0.0001, "source": "from the p. 91 formula (2/pi) asin(1/sqrt 80); the engine's value is measured"},
+    {"id": "FWHM of a fringe / spacing, R = 0.9", "kind": "number", "key": "fwhmOverSpacing_R90", "expected": 0.0335684, "tolerance": 0.0001, "source": "from the p. 91 formula"},
+    {"id": "bright part under 1/20 of the interval at R = 0.9 (silver 'about 0.90', p. 92)", "kind": "ordering", "a": "fwhmOverSpacing_R90", "b": "fwhmFractionLimit", "margin": 0, "hard": false,
+     "source": "p. 92: 'not more than 1/20 of the interval'; read as the FWHM, which needs R >= 0.855"},
+    {"id": "period of coincidence, Hg yellow lines (Cd-green waves)", "kind": "number", "key": "period_hgYellow_CdGreenWaves", "expected": 311.9, "tolerance": 0.001, "relative": true, "source": "p. 102"},
+    {"id": "period of coincidence, Cd green / Hg green", "kind": "number", "key": "period_cdGreenHgGreen_CdGreenWaves", "expected": 14.56515, "tolerance": 0.001, "relative": true, "source": "p. 102"},
+    {"id": "period of coincidence, Cd green / Cd red", "kind": "number", "key": "period_cdGreenCdRed_CdGreenWaves", "expected": 4.759901, "tolerance": 0.001, "relative": true, "source": "p. 103"},
+    {"id": "period of coincidence, Na D lines (about 1000 waves)", "kind": "number", "key": "period_NaD_waves", "expected": 1000, "tolerance": 0.05, "relative": true, "hard": false, "source": "p. 98 'about 1000' (D wavelengths from tables, not the paper)"},
+    {"id": "fringe spacing of every line = its wavelength (largest relative error)", "kind": "number", "key": "spacingError_hgYellow", "expected": 0, "tolerance": 1e-8, "source": "engine peak lattice against the requested wavelength"},
+    {"id": "two lines at the start of the scan coincide (sum of the two peaks)", "kind": "number", "key": "twoLines_sumAtDelta0", "expected": 2, "tolerance": 0.01, "source": "p. 96: both systems start at Delta = 0"},
+    {"id": "coincidence found from the product of the two measured patterns: deviation / period", "kind": "number", "key": "coincidenceDeviationOverPeriod", "expected": 0, "tolerance": 0.2, "hard": false,
+     "source": "p. 97: coincidences at multiples of the period; quantised by the fringe spacing (about 0.1 period for Cd green/red)"},
+    {"id": "two lines 1e-5 apart at e = 5 mm: fringes 1/5 of a spacing apart", "kind": "number", "key": "peakOffsetOverSpacing_e5mm", "expected": 0.2, "tolerance": 0.002, "source": "p. 99: separation 'clearly visible' at 1/5 of the spacing, order p = lambda/(5 eps)"},
+    {"id": "two lines at e = 5 cm: fringes 1/5 of a spacing apart", "kind": "number", "key": "peakOffsetOverSpacing_e5cm", "expected": 0.2, "tolerance": 0.002, "source": "p. 99"},
+    {"id": "order at e = 5 cm, 0.5 um (p = 200,000)", "kind": "number", "key": "orderP_e5cm", "expected": 200000, "tolerance": 0.001, "relative": true, "source": "p. 99 (the engine's order for eps/lambda = 1e-6)"},
+    {"id": "order at e = 5 mm (p = 20,000)", "kind": "number", "key": "orderP_e5mm", "expected": 20000, "tolerance": 0.001, "relative": true, "source": "p. 99"},
+    {"id": "the two Airy functions add (incoherent lines), largest error", "kind": "number", "key": "sumVsAiryMaxError_e5mm", "expected": 0, "tolerance": 1e-5, "source": "analytic"}
+  ]
+}

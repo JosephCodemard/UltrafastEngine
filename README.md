@@ -32,7 +32,7 @@ with its resolution, sampling and detector.
 
 | Area | What is modelled |
 |---|---|
-| **Linear optics** | dispersion to all orders from Sellmeier / tabulated / [refractiveindex.info](https://refractiveindex.info) materials or ray-traced group delay; grating pairs, prism pairs from ray-traced data, chirped mirrors with GDD ripple; absolute (vacuum-referenced) indices and air |
+| **Linear optics** | dispersion to all orders from Sellmeier / tabulated / [refractiveindex.info](https://refractiveindex.info) materials or ray-traced group delay; grating pairs, prisms (angular dispersion and pulse-front tilt of the tracked beam; prism-pair and Martinez-stretcher dispersion from ray-traced group delay), chirped mirrors with GDD ripple; absolute (vacuum-referenced) indices and air |
 | **Surfaces and losses** | Fresnel, thin-film coatings (transfer matrix), clipping, scatter, absorption, ND filters, thin-film polarisers — with an exact per-mechanism loss budget, peak fluence and LIDT margins |
 | **Polarisation** | Jones calculus with s/p basis transport; waveplates (thick, zero-order, compound, with birefringent dispersion), polarisers, Faraday rotators |
 | **Kerr nonlinearity** | self- and cross-phase modulation with the full isotropic χ(3) tensor, Raman (Blow–Wood, Lin–Agrawal, Hollenbeck–Cantrell), self-steepening, user time-domain responses n(t, I) |
@@ -41,7 +41,7 @@ with its resolution, sampling and detector.
 | **χ(2) crystals** | SHG, SFG, DFG, OPA / OPCPA, birefringent and quasi-phase-matched (including chirped gratings), non-collinear (OPA, DFG, and SFG with crossing beams and recorded output angles); phase-matching calculator |
 | **Active media** | Yb, Ti:sapphire, Nd and user gain media with rate equations, pumping, thermal lens, multipass and regenerative amplifiers; mode-locked oscillators (Kerr-lens, SESAM) |
 | **Beams and space** | Gaussian beam tracking (astigmatic) through lenses and off-axis mirrors; radial and cartesian full-field models with diffraction, self-focusing, Zernike aberrations, vector fields and a UPPE coupling |
-| **Contrast** | input pedestals (pre/post-pulses, ASE, phase noise), ghost reflections of plates, crystals and rods, a third-order cross-correlator with 100+ dB dynamic range |
+| **Contrast** | input pedestals (pre/post-pulses, ASE, phase noise, a measured contrast trace), ghost reflections of plates, crystals and rods, a third-order cross-correlator with 100+ dB dynamic range |
 | **Instruments** | energy meter, spectrometer, photodiode/scope, intensity and interferometric autocorrelator, FROG, d-scan, cross-correlator, polarimeter, cameras, wavefront sensor, ideal compressor, and virtual probes (Wigner, field, space–time) — each with resolution, filters and a detector model |
 | **Analysis** | parameter scans (grid, random, Latin hypercube, Sobol), optimisation, local and global sensitivities, FROG / d-scan pulse retrieval |
 
@@ -81,7 +81,7 @@ generation in PPLN to better than 1 % in the converted energies. Beyond the unit
 * [Published results reproduced](docs/papers/README.md): post-compression quality, the soliton self-frequency shift, focused
   second-harmonic generation, small-scale self-focusing, nonlinear ellipse rotation in a multi-pass cell, and a lab beamline
   fitted to recordings, each with plots and an account of what agrees and what does not.
-* [Component verification](docs/verification.md): every component run alone against its analytic answer, with plots.
+* [Component verification](docs/component-tests.md): every component run alone against its analytic answer, with plots.
 
 See [Capabilities and limitations](docs/capabilities.md).
 
@@ -92,9 +92,9 @@ See [Capabilities and limitations](docs/capabilities.md).
   per element or globally, without editing the system file (overrides in the run spec). A provenance report records
   where every value came from.
 * **Plugins.** Element types, instruments, models, run modes, transform operators, estimators, retrieval
-  algorithms, compute back-ends and CLI commands can be added as plugins that the engine discovers at start-up. Two
-  ship with the engine and are installed by every build: **fitting** (transforms, fitting, backward
-  propagation) and **zemax** (export a sequential OpticStudio system to a system file). A plugin is a folder:
+  algorithms, compute back-ends and CLI commands can be added as plugins that the engine discovers at start-up. Four
+  plugins live in `plugins/`: **fitting** (transforms, fitting, backward propagation), **zemax** (export a sequential
+  OpticStudio system to a system file), **gpu** (CUDA and OpenCL back-ends) and **hitran** (gas lines in air). A plugin is a folder:
   `ultrafast plugins install <folder or zip>`, `ultrafast plugins list`. See [Plugins](docs/plugins/index.md) and
   [Installing plugins](docs/plugins/installing.md).
 * **Schemas everywhere.** Every option is declared once with its type, unit and default. From that declaration come
@@ -120,7 +120,7 @@ See [Capabilities and limitations](docs/capabilities.md).
 | [Claude Code](docs/claude-code.md) | the Claude Code setup: skills and agents to replicate papers, mirror a lab setup, optimise and debug a setup, plus the developer commands |
 | [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages (CLI, Python wheel, C API, C# libraries, OpticStudio extension) for each platform, with only the plugins you choose |
 
-The documentation is a [MkDocs](https://www.mkdocs.org) site: `pip install mkdocs-material && mkdocs serve`.
+The documentation is a [MkDocs](https://www.mkdocs.org) site: `pip install mkdocs && mkdocs serve`.
 
 ## Repository layout
 
@@ -132,7 +132,7 @@ python/                      the `ultrafast` Python package
 plugins/                     fitting, zemax, gpu, hitran
 schemas/                     JSON Schemas of system files and run specs
 docs/                        documentation, tutorials, examples, paper replications (docs/papers), synthetic test data
-verification/                every component against its analytic answer, with plots
+tests/components/                every component against its analytic answer, with plots
 tests/                       C# test suite (no external framework)
 build/, build.sh, build.bat  MSBuild helpers and the release packager (docs/releasing.md)
 CLAUDE.md, .claude/          Claude Code setup (docs/claude-code.md)
@@ -142,7 +142,7 @@ CLAUDE.md, .claude/          Claude Code setup (docs/claude-code.md)
 
 UltrafastEngine is in beta: the file formats are versioned (older files are migrated on load), the core is
 feature-complete for its scope, and the test suite pins the physics to analytic results and reference codes. What
-is planned next (coating and crystal design plugins, more paper replications, waveguides and gain with ASE, deeper OpticStudio integration) is on the [roadmap](docs/roadmap.md). Changes
+is planned next (coating and crystal design plugins, more paper replications, waveguides and fibre gain, deeper OpticStudio integration) is on the [roadmap](docs/roadmap.md). Changes
 are listed in the [changelog](CHANGELOG.md).
 
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under the [MIT licence](LICENSE).

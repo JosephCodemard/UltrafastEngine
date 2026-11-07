@@ -98,8 +98,8 @@ jobs:
         working-directory: python
         run: PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python -m pytest -q tests
 
-  verification:
-    name: Component verification scripts (numbers only)
+  components:
+    name: Component test scripts (numbers only)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -114,12 +114,12 @@ jobs:
       - name: Build the engine for Python
         run: python python/tools/build_engine.py
       - name: Every component against its analytic answer
-        run: python verification/run_all.py --no-plots
+        run: python tests/components/run_all.py --no-plots
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: verification-report
-          path: verification/report/
+          name: components-report
+          path: tests/components/report/
 
   papers:
     name: Paper replications (fast tier)

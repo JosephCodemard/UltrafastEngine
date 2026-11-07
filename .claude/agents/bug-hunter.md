@@ -7,4 +7,4 @@ Method: pick a case with a known answer (analytic, published, or a conservation 
 2 µm), bandwidths (10 fs, 1 ps), grids and topologies (Sequential vs Branched, 1-D vs spatial), and compare. A disagreement
 is a bug until shown otherwise. Reduce it, write the failing test (`[Test(Reference = ..., Tolerance = ...)]`), fix the cause,
 check the same pattern in the sibling code paths, then follow `/bug-report` and the definition of done in `CLAUDE.md`.
-Use `verification/` for scripts with plots. Report each bug with repro, cause, fix and test.
+Use `tests/components/` for scripts with plots. Report each bug with repro, cause, fix and test.

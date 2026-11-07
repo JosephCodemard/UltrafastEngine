@@ -1,0 +1,218 @@
+{
+ "paper": "kane-1993-frog",
+ "checks": [
+  {
+   "id": "chirped pulse: FWHM ratio 200 fs / 100 fs",
+   "kind": "number",
+   "key": "chirp_ratio_fwhm",
+   "expected": 2.0,
+   "tolerance": 0.1,
+   "source": "p. 574-575: 200 fs pulse, compressible to ~100 fs; chirp doubles the length (text)"
+  },
+  {
+   "id": "App. C: SD centroid slope = (4/3) x chirp rate",
+   "kind": "number",
+   "key": "sd_slope_over_chirp",
+   "expected": 1.3333,
+   "tolerance": 0.01,
+   "source": "Appendix C (p. 577): w(t) = 3/4 a t for Omega = a tau"
+  },
+  {
+   "id": "App. C: PG centroid slope = (2/3) x chirp rate",
+   "kind": "number",
+   "key": "pg_slope_over_chirp",
+   "expected": 0.6667,
+   "tolerance": 0.01,
+   "source": "Appendix C (p. 577): w(t) = 3/2 a t"
+  },
+  {
+   "id": "App. C: engine PG instrument slope = (2/3) x chirp rate",
+   "kind": "number",
+   "key": "engine_pg_slope_over_chirp",
+   "expected": 0.6667,
+   "tolerance": 0.01,
+   "source": "Appendix C, engine `frog` type pg"
+  },
+  {
+   "id": "App. B: SHG-FROG trace symmetric in delay (computed)",
+   "kind": "number",
+   "key": "shg_asymmetry",
+   "expected": 0,
+   "tolerance": 1e-09,
+   "source": "Appendix B, Eq. (B2)"
+  },
+  {
+   "id": "App. B: SHG-FROG trace symmetric in delay (engine)",
+   "kind": "number",
+   "key": "engine_shg_asymmetry",
+   "expected": 0,
+   "tolerance": 1e-06,
+   "source": "Appendix B, Eq. (B2), engine `frog` type shg"
+  },
+  {
+   "id": "PG-FROG trace is not symmetric (asymmetry > 0.3)",
+   "kind": "number",
+   "key": "pg_asymmetry",
+   "expected": 0.45,
+   "tolerance": 0.2,
+   "source": "consequence of Appendix C: the sign of the chirp is visible in the trace"
+  },
+  {
+   "id": "engine PG delay marginal FWHM (fs)",
+   "kind": "number",
+   "key": "pg_delay_marginal_fwhm_fs_engine",
+   "expected": 244.95,
+   "tolerance": 0.01,
+   "source": "analytic sqrt(3/2) x 200 fs (third-order correlation of a Gaussian)",
+   "relative": true
+  },
+  {
+   "id": "engine SHG delay marginal FWHM (fs)",
+   "kind": "number",
+   "key": "shg_delay_marginal_fwhm_fs_engine",
+   "expected": 282.84,
+   "tolerance": 0.01,
+   "source": "analytic sqrt(2) x 200 fs",
+   "relative": true
+  },
+  {
+   "id": "third-order autocorrelation FWHM (fs), from the SD trace",
+   "kind": "number",
+   "key": "g3_fwhm_fs",
+   "expected": 244.95,
+   "tolerance": 0.01,
+   "source": "Fig. 9 quantity; analytic sqrt(3/2) x 200 fs",
+   "relative": true
+  },
+  {
+   "id": "SD trace integrated over frequency = third-order correlation",
+   "kind": "number",
+   "key": "sd_marginal_vs_g3_maxdiff",
+   "expected": 0,
+   "tolerance": 1e-09,
+   "source": "p. 575: 'integrating the FROG trace over all frequencies' (Parseval)"
+  },
+  {
+   "id": "PG-FROG retrieval: GDD (fs^2) with sign",
+   "kind": "number",
+   "key": "pg_retrieval_gdd_fs2",
+   "expected": 6247.05,
+   "tolerance": 0.01,
+   "source": "engine pulse GDD; PG has no time-direction ambiguity",
+   "relative": true
+  },
+  {
+   "id": "SHG-FROG retrieval: |GDD| (fs^2)",
+   "kind": "number",
+   "key": "shg_retrieval_abs_gdd_fs2_mean",
+   "expected": 6247.05,
+   "tolerance": 0.01,
+   "source": "magnitude is recovered",
+   "relative": true
+  },
+  {
+   "id": "SHG-FROG retrieval returns both signs of GDD",
+   "kind": "number",
+   "key": "shg_retrieval_has_both_signs",
+   "expected": 1,
+   "tolerance": 0,
+   "source": "Appendix B: SHG cannot tell the direction of time (random seeds; soft)",
+   "hard": false
+  },
+  {
+   "id": "3 mm BK-7 at 25 GW/cm^2: B integral (rad)",
+   "kind": "number",
+   "key": "bk7_B_rad",
+   "expected": 0.2584,
+   "tolerance": 0.03,
+   "source": "2 pi/lambda n2 I L from the paper's 25 GW/cm^2 with the library n2 = 3.4e-20 m^2/W (0.2584); the engine's is 1.3 % lower because the chirped pulse disperses in the window. Paper: negligible spectral broadening (p. 574)",
+   "relative": true
+  },
+  {
+   "id": "3 mm BK-7: peak intensity (GW/cm^2)",
+   "kind": "number",
+   "key": "bk7_peak_intensity_GW_cm2",
+   "expected": 25,
+   "tolerance": 0.01,
+   "source": "p. 574",
+   "relative": true
+  },
+  {
+   "id": "Kerr step vs numpy (field, relative)",
+   "kind": "number",
+   "key": "kerr_check_field_rel_diff",
+   "expected": 0,
+   "tolerance": 1e-05,
+   "source": "A exp(+i B I/Ipk)"
+  },
+  {
+   "id": "SD centroid, SPM B=1: exact intensity-weighted law",
+   "kind": "number",
+   "key": "spm1_sd_centroid_rms_dev_weighted_over_max",
+   "expected": 0,
+   "tolerance": 0.02,
+   "source": "Appendix C refined to the signal-weighted average"
+  },
+  {
+   "id": "SD centroid, SPM B=8: exact intensity-weighted law",
+   "kind": "number",
+   "key": "spm8_sd_centroid_rms_dev_weighted_over_max",
+   "expected": 0,
+   "tolerance": 0.02,
+   "source": "as above"
+  },
+  {
+   "id": "fitted pulse Eqs. (5)-(7): FWHM (fs)",
+   "kind": "number",
+   "key": "derived_fwhm_fs",
+   "expected": 200,
+   "tolerance": 0.1,
+   "source": "p. 575: 'about 200 fs' (coefficients read from the extracted text)",
+   "relative": true,
+   "hard": false
+  },
+  {
+   "id": "fitted pulse: FWHM / transform-limited FWHM",
+   "kind": "number",
+   "key": "derived_fwhm_over_transform_limit_fwhm",
+   "expected": 2.0,
+   "tolerance": 0.2,
+   "source": "p. 575: chirp lengthens the pulse by a factor ~2",
+   "relative": true,
+   "hard": false
+  },
+  {
+   "id": "fitted pulse: engine input from spectrum+phase, FWHM ratio",
+   "kind": "number",
+   "key": "derived_engine_over_direct_fwhm",
+   "expected": 1.0,
+   "tolerance": 0.02,
+   "source": "engine spectrum input reproduces the pulse"
+  },
+  {
+   "id": "fitted pulse: spectrum broader with the phase (rms ratio > 1.5)",
+   "kind": "number",
+   "key": "derived_spectrum_rms_over_constant_phase_rms",
+   "expected": 1.9,
+   "tolerance": 0.5,
+   "source": "Fig. 10: constant-phase spectrum 'significantly narrower' (qualitative; read off Fig. 10 not possible)",
+   "hard": false
+  },
+  {
+   "id": "App. B: SHG trace of +GDD and -GDD pulses are identical (engine)",
+   "kind": "number",
+   "key": "engine_shg_trace_plus_minus_gdd_maxdiff",
+   "expected": 0,
+   "tolerance": 1e-09,
+   "source": "Appendix B: SHG-FROG is blind to the direction of time (E vs E*(-t))"
+  },
+  {
+   "id": "App. B contrast: PG traces of +GDD and -GDD differ more than SHG",
+   "kind": "ordering",
+   "a": "engine_shg_trace_plus_minus_gdd_maxdiff",
+   "b": "engine_pg_trace_plus_minus_gdd_maxdiff",
+   "margin": 0.1,
+   "source": "Appendix C: PG/SD traces show the sign of the chirp"
+  }
+ ]
+}

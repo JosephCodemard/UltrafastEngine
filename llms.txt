@@ -1,12 +1,13 @@
 # UltrafastEngine
 
-> C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 2.1.8-beta.
+> C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators, interferometers; table-top optics with some fibre support), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 2.1.8-beta.
 
 Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change the code; Claude Code: CLAUDE.md). Every option with units and defaults: docs/reference/options.md.
 
 ## Guides
 - [Home](docs/index.md)
 - [Getting started](docs/getting-started.md)
+- [Capabilities and limitations: supported elements, what is modelled, what is not](docs/capabilities.md)
 
 ## Tutorials
 - [Overview](docs/tutorials/index.md)
@@ -34,13 +35,16 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Delayed light: tail grid, window warnings, ghosts, mirror substrate echoes, coating ripple, delayed scatter](docs/reference/delayed-light.md)
 - [Nonlinear physics & solvers](docs/reference/nonlinear.md)
 - [Ionisation & plasma](docs/reference/ionization.md)
+- [Fibres & waveguides](docs/reference/fibers.md)
 - [Active elements & aux beams](docs/reference/active-elements.md)
 - [Crystals (χ(2))](docs/reference/crystals.md)
 - [Gain media & amplifiers](docs/reference/gain.md)
 - [Oscillators & saturable absorbers](docs/reference/oscillators.md)
+- [Branched systems: splitters, interferometers, loops](docs/reference/branches.md)
 - [Position-dependent properties](docs/reference/spatial-properties.md)
 - [Spatial models](docs/reference/transverse.md)
 - [Instruments](docs/reference/instruments.md)
+- [Measured data: input spectra and comparison with recordings](docs/reference/measured-data.md)
 - [Pulse retrieval](docs/reference/retrieval.md)
 - [Parameter studies](docs/reference/studies.md)
 - [Speed & compute back-ends](docs/reference/speed.md)
@@ -65,7 +69,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 
 ## Testing, roadmap, agents
 - [Testing & validation](docs/testing.md)
-- [Component verification: every component alone against its analytic answer, with plots (verification/)](docs/verification.md)
+- [Component verification: every component alone against its analytic answer, with plots (tests/components/)](docs/component-tests.md)
 - [Validation matrix (generated: every test and its reference)](docs/reference/validation-matrix.md)
 - [Paper replications](docs/papers/README.md): published results reproduced with the engine, with plots and commentary
 - [Roadmap](docs/roadmap.md)
@@ -74,9 +78,9 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Releasing](docs/releasing.md): build.sh / build.bat release packages
 
 ## Design notes
+- [Development history](docs/design/history.md)
 - [Branched systems (design)](docs/design/branching.md)
 - [Plan: what is next](docs/design/plan-next.md)
-- [Branched systems reference](docs/reference/branches.md)
 - [Architecture](docs/architecture/index.md)
 - [Code map](docs/architecture/code-map.md)
 - [Key processes](docs/architecture/processes.md)

@@ -23,6 +23,8 @@ Then ask in plain words, or use the project commands:
 | `/bug-report <text>` | reproduces a reported bug minimally, decides whether it is valid (and why), fixes it with a test |
 | `/release <build.sh options>` | builds release packages and smoke-tests them ([Releasing](releasing.md)) |
 | `/example-check [names]` | re-runs examples and updates the numbers quoted in their READMEs |
+| `/replicate <paper>` | reproduces a published paper's headline results into `docs/papers/` ([Papers](papers/README.md)) |
+| `/lab <setup>` | models a real lab setup and compares it with the user's measurements |
 
 Typical requests: "add a `thermalLens` option to the gain element", "the B-integral of circular light looks too
 high -- check it", "fit the residual GDD of my compressor to these d-scan files", "package osx-arm64 and win-x64 with
@@ -37,7 +39,7 @@ the fitting plugin only".
 | `src/UltrafastEngine.Core/CLAUDE.md` | when working in the engine | pipeline, folder map, how to add options / elements / models, physics invariants |
 | `tests/UltrafastEngine.Tests/CLAUDE.md` | when working on tests | test framework, helpers, filters, tolerance policy |
 | `python/CLAUDE.md` | when working on Python | hosted vs native engine, builders and generated types, Python tests |
-| `plugins/CLAUDE.md` | when working on plugins | fitting and zemax structure; ZOS-API rule |
+| `plugins/CLAUDE.md` | when working on plugins | fitting, zemax, gpu and hitran structure; ZOS-API rule |
 | `docs/CLAUDE.md` | when working on docs | style, generated pages, mkdocs strict, example pairings |
 | `.claude/settings.json` | always | permissions (common build / test commands allowed without asking; ZOS-API folder and build output denied), environment (no .NET telemetry), hooks |
 | `.claude/hooks/protect_paths.py` | before every edit | blocks edits to the ZOS-API assemblies, generated files (with the command that regenerates them), build output, third-party code |

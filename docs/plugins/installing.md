@@ -5,10 +5,10 @@ optionally a Python module and tools. The engine finds them at start-up in a few
 registered globally and nothing is copied into the engine itself, so installing or removing a plugin is just
 copying or deleting a folder.
 
-## The first-party plugins (fitting, zemax)
+## The first-party plugins (fitting, zemax, gpu, hitran)
 
 **If you built the engine from source, they are already installed.** Every build of the CLI, the test runner and
-the Python package builds both plugins and copies their folders next to the engine:
+the Python package builds the plugins and copies their folders next to the engine:
 
 | you use | plugins are in |
 |---|---|
@@ -24,13 +24,17 @@ ultrafast plugins list
 ```
 fitting    2.1.8-beta       Fittable "transform" elements, fits to recorded data with replaceable estimators ("fit") and backward propagation ("backward").
            .../net10.0/plugins/fitting
+gpu        2.1.8-beta       Runs nonlinear propagation (1-D envelope and radial / cartesian spatial) on NVIDIA GPUs through CUDA and on any double-precision OpenCL device ...
+           .../net10.0/plugins/gpu
+hitran     2.1.8-beta       Line-by-line Voigt absorption and Kramers-Kronig-consistent dispersion of H2O, CO2 and O2 from HITRAN line lists ...
+           .../net10.0/plugins/hitran
 zemax      2.1.8-beta       Exports OpticStudio systems to .ufs files and ships the OpticStudio extension program.
            .../net10.0/plugins/zemax
 ```
 
 ```python
 import ultrafast as uf
-[p.id for p in uf.plugins.installed()]        # ['fitting', 'zemax']
+[p.id for p in uf.plugins.installed()]        # ['fitting', 'gpu', 'hitran', 'zemax']
 fx = uf.plugins.module("fitting")             # the plugin's Python module (builders, figures), or None
 ```
 

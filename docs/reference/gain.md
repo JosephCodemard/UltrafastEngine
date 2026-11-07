@@ -203,6 +203,6 @@ Arrays (`result.npz`, `el_<id>_<name>`): `gainSpectrumWavelengthM` + `gainSpectr
 
 * Gain is scalar and polarisation independent; there is no spectral hole burning or excited-state absorption.
   ASE is 1-D only and in the signal polarisation.
-* The thermal lens is radial (rod geometry); there is no thermal stress birefringence and no end bulging.
+* The thermal lens is radial (rod geometry) and has no end-face bulging. Stress birefringence (`thermalLens.stress`) is the beam-averaged depolarisation of a uniformly heated rod of a cubic host, not the four-lobed pattern; end-face bulging enters only the two reported `stressFocalLength…M` values.
 * Steady-state spatial trains use the input fluence profile for all pulses (no diffraction in the energy model).
 * Cross sections are approximate (see above).

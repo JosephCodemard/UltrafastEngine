@@ -1,0 +1,25 @@
+{
+  "paper": "michelson-1887-ether-null",
+  "checks": [
+    {"id": "predicted shift for D = 11 m, read out by the engine Michelson (fringes, 90 degree turn)", "kind": "number", "key": "shiftPeakToPeakFringes_1887", "expected": 0.4, "tolerance": 0.004,
+     "source": "p. 341: D = 2e7 waves, 2 D (v/V)^2 = 0.4 fringe (the paper's formula, fed to the engine as arm lengths)"},
+    {"id": "readout equals the formula 2 D b^2 / lambda", "kind": "number", "key": "shiftFitError_1887", "expected": 0, "tolerance": 1e-4,
+     "source": "largest difference between the engine's fitted fringe position at the 16 marks and D b^2 cos(2 theta) / lambda (fringes)"},
+    {"id": "no ether, table turns: fringe does not move (fringes)", "kind": "number", "key": "shiftPeakToPeakFringes_noEther", "expected": 0, "tolerance": 1e-6,
+     "source": "null result built into the engine (isotropic c); a check of the readout, not of the physics"},
+    {"id": "1881 experiment: D = 2e6 waves gives 0.04 fringe", "kind": "number", "key": "shiftPeakToPeakFringes_1881", "expected": 0.04, "tolerance": 0.0005,
+     "source": "p. 336"},
+    {"id": "shift scales as v^2: (v/4)^2 = 1/16", "kind": "number", "key": "ratio_vOver4_to_full", "expected": 0.0625, "tolerance": 0.001,
+     "source": "p. 341: displacement proportional to the square of the velocity"},
+    {"id": "observed < 1/20 of 0.4 fringe -> v below 1/4 of the orbital speed", "kind": "ordering", "a": "vBoundFromCertain", "b": "paperBoundCertain", "margin": 0,
+     "source": "p. 341: 'certainly less than one-fourth'"},
+    {"id": "observed < 1/40 of 0.4 fringe -> v below 1/6 of the orbital speed", "kind": "ordering", "a": "vBoundFromProbable", "b": "paperBoundProbable", "margin": 0,
+     "source": "p. 341: 'probably less than one sixth'"},
+    {"id": "engine resolves the paper's 0.01 fringe: shift at v/6 is still read", "kind": "number", "key": "shift_vOver6", "expected": 0.011111, "tolerance": 0.0001,
+     "source": "0.4 / 36; the paper's own limit was 0.01 fringe (p. 340)"},
+    {"id": "narrow-line fringes follow (1 - cos)/2, largest error", "kind": "number", "key": "sodiumFringeError", "expected": 0, "tolerance": 1e-6,
+     "source": "analytic two-beam interference"},
+    {"id": "white-light fringes follow the Gaussian visibility envelope, largest error", "kind": "number", "key": "whiteLightError", "expected": 0, "tolerance": 1e-3,
+     "source": "analytic: V = exp(-(tau dOmega)^2 / (16 ln 2)) for a Gaussian intensity spectrum of FWHM dOmega"}
+  ]
+}

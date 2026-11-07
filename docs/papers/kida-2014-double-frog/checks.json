@@ -1,0 +1,121 @@
+{
+ "paper": "kida-2014-double-frog",
+ "checks": [
+  {
+   "id": "test pulse FWHM after the substrate (fs)",
+   "kind": "number",
+   "key": "test_fwhm_fs",
+   "expected": 58,
+   "tolerance": 0.05,
+   "source": "p. 3007: retrieved test pulse 58 fs (our input is built to match; consistency of the setup)",
+   "relative": true
+  },
+  {
+   "id": "reference pulse FWHM (fs)",
+   "kind": "number",
+   "key": "ref_fwhm_fs",
+   "expected": 35,
+   "tolerance": 0.03,
+   "source": "p. 3006: 35 fs laser (input)",
+   "relative": true
+  },
+  {
+   "id": "GDD of the 3 mm fused-silica dichroic substrate at 1200 nm (fs^2)",
+   "kind": "number",
+   "key": "substrate_gdd_fs2",
+   "expected": 25.6,
+   "tolerance": 0.1,
+   "source": "p. 3009: 'estimated to be 25.6 fs^2'. FINDING: engine = Malitson = 18.1 fs^2 for 3 mm (repro_1.py)",
+   "relative": true,
+   "hard": false
+  },
+  {
+   "id": "engine SHG-FROG + PCGPA: both signs of GDD appear (time ambiguity)",
+   "kind": "number",
+   "key": "engine_shg_pcgpa_has_both_signs",
+   "expected": 1,
+   "tolerance": 0,
+   "source": "p. 3006-3007, ref. 19: SHG-FROG cannot give the direction of time"
+  },
+  {
+   "id": "numpy SHG trace vs engine instrument: delay marginal FWHM (fs)",
+   "kind": "number",
+   "key": "numpy_shg_delay_marginal_fwhm_fs",
+   "expected": 49.5,
+   "tolerance": 0.03,
+   "source": "engine `frog` shg instrument on the same pulse",
+   "relative": true
+  },
+  {
+   "id": "BBO 5 um at 33.2 deg: min sinc^2 over SHG 800, SHG 1200, SFG (type I assumed)",
+   "kind": "number",
+   "key": "pm_sinc2_min",
+   "expected": 0.95,
+   "tolerance": 0.06,
+   "source": "p. 3007: 5 um thin crystal phase-matches 'in a broad spectral range' (qualitative; type of phase matching not stated)",
+   "hard": false
+  },
+  {
+   "id": "XFROG fit with the time-reversed reference has a larger G error (worst right < best wrong)",
+   "kind": "ordering",
+   "a": "xfrog_right_ref_Gx_max",
+   "b": "xfrog_wrong_ref_Gx_min",
+   "margin": 0.001,
+   "source": "p. 3007-3008: 0.4-0.5 % (right) vs 0.9-1.0 % (reversed)"
+  },
+  {
+   "id": "XFROG with the time-reversed reference gives a shorter test pulse",
+   "kind": "ordering",
+   "a": "xfrog_wrong_ref_test_fwhm_fs",
+   "b": "xfrog_right_ref_test_fwhm_fs",
+   "margin": 3,
+   "source": "p. 3008: 34 fs (reversed) vs 58 fs (right). Not reproduced for chirped Gaussians (README)",
+   "hard": false
+  },
+  {
+   "id": "SHG-FROG then XFROG: fraction retrieved in the right time direction (random, ~50 %)",
+   "kind": "number",
+   "key": "conventional_both_correct_fraction",
+   "expected": 0.5,
+   "tolerance": 0.4,
+   "source": "p. 3007: two groups of retrievals appear at random",
+   "hard": false
+  },
+  {
+   "id": "double FROG: fraction retrieved in the right time direction",
+   "kind": "number",
+   "key": "double_both_correct_fraction",
+   "expected": 1.0,
+   "tolerance": 0.0,
+   "source": "p. 3008: six of six retrievals identical, no time-reversed replica. FINDING: ours gets stuck in a wrong-direction minimum in some starts (README)",
+   "hard": false
+  },
+  {
+   "id": "double FROG: spread of the retrieved test FWHM smaller than conventional",
+   "kind": "ordering",
+   "a": "double_test_fwhm_fs_std",
+   "b": "conventional_test_fwhm_fs_std",
+   "margin": 0,
+   "source": "p. 3008: higher convergence/reproducibility",
+   "hard": false
+  },
+  {
+   "id": "double FROG: mean XFROG G error lower than conventional",
+   "kind": "ordering",
+   "a": "double_Gx_mean",
+   "b": "conventional_Gx_mean",
+   "margin": 0,
+   "source": "p. 3008-3009",
+   "hard": false
+  },
+  {
+   "id": "double FROG: G error separates right from wrong direction",
+   "kind": "ordering",
+   "a": "double_right_direction_Gmax",
+   "b": "double_wrong_direction_Gmin",
+   "margin": 0,
+   "source": "consequence of the third trace (wrong-direction solutions do not fit all three)",
+   "hard": false
+  }
+ ]
+}

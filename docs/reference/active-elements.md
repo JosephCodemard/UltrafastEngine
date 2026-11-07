@@ -1,7 +1,7 @@
 # Active elements, aux beams and by-products
 
 Most elements are *passive*: dispersion, loss and the Kerr effect act on the one beam the system follows.
-**Active elements** can bring in other beams, run their own internal loops and change what the main beam *is*. The system stays sequential: one main beam goes in, one comes out.
+**Active elements** can bring in other beams, run their own internal loops and change what the main beam *is*. In a Sequential system one main beam goes in and one comes out; a [Branched system](branches.md) routes several.
 
 ```
                  aux beams (pump, seed, ...)
@@ -22,11 +22,12 @@ Most elements are *passive*: dispersion, loss and the Kerr effect act on the one
 
 ## Why one main beam
 
-Following one beam keeps the system file, the results and the Zemax mapping simple: every element has one input
-and one output, the energy budget is a single ledger, and instruments sit anywhere along one line. Interactions
-that need more beams get them as **aux beams** declared on the element; fields the element produces but the
-system does not follow are kept as **by-products**. Branching systems (beam splitters that recombine later) are not
-modelled; they are on the [roadmap](../roadmap.md).
+An element follows one main beam: it has one input and one output, the energy budget is a single ledger, and
+instruments sit anywhere along one line. Interactions that need more beams get them as **aux beams** declared on the
+element; fields the element produces but the system does not follow are kept as **by-products**. When light must split
+and meet again (beam splitters, interferometers, pump arms, loops), write the system as
+[Branched](branches.md): an aux beam can then come from another element's output port (`fromPort`), and each
+by-product of a crystal is an output port that can be routed on.
 
 ## Aux beams
 

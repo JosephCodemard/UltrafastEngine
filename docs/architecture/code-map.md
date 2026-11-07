@@ -19,6 +19,9 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Systems/SystemGraph.cs` | `SystemGraph`, `GraphEdge`, `GraphLoop`, `GraphStage`, `Ports` | the connected form of a system: order, loops, virtual ports, verification. Knows no physics |
 | `Specs/` | `RunSpec` | a `run.json` in memory |
 | `Pulses/` | `PulseSpec`, `PulseField`, `FrequencyGrid`, `GridResampler` | input pulses; a field on a grid; moving between grids |
+| `Pulses/Pedestals.cs`, `Pulses/MeasuredSpectrumPreparation.cs` | | input pedestals (replica, ASE, phase noise, exponential, measured contrast trace); cleaning of a measured input spectrum (sort, merge, background, deconvolution, Gaussian tails) |
+| `Models/` | `ModelRegistry`, `ModelSpec`, `Expression`, `SpatialFields` | the replaceable models (index, beam, filter, responses), expressions, position-dependent fields |
+| `Serialization/` | | JSON with comments, `.npz` reading and writing |
 | `Schema/` | `ComponentSpec`, `OptionRegistry`, `Validator`, `Migrations` | declarations of every key and port; generators of docs and JSON schemas; upgrades of old files |
 
 ## Compile
@@ -56,7 +59,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Gain/`, `Lasers/` | amplifiers; `Oscillator.cs`, `Resonator.cs`, saturable absorbers |
 | `Materials/` | index models, the library, Raman |
 | `Instruments/` | `Instruments.cs` (the registry), `ActiveInstruments.cs` (`beamProfile`, ...), `CameraInstruments.cs`, `Detector.cs`, `Sampling.cs` |
-| `Measured/` | comparison with recorded data |
+| `Measured/` | `Measurements.cs`: comparison of instruments with recorded data |
 | `Retrieval/` | FROG, d-scan, Gerchberg-Saxton |
 | `Numerics/` | FFTs, SIMD kernels, interpolation, constants |
 | `Plugins/` | how `plugins/` (fitting, zemax, gpu, hitran) connect |

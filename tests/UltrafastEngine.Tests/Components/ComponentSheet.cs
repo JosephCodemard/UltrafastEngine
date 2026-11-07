@@ -11,7 +11,7 @@
 //   SheetCase(string name, Func<double, JsonObject> element, string port, string otherPort,
 //             Func<double, double, double> gddS2 /* (lambda requested, omega grid centre) */, double transmission)
 //   static List<string> ComponentSheet.Run(SheetCase c)   -> the failures (empty when the case passes)
-// The verification scripts (verification/components/*.py) plot the same numbers.
+// The verification scripts (tests/components/*.py) plot the same numbers.
 using System;
 using System.Collections.Generic;
 using System.Globalization;

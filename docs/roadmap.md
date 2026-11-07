@@ -9,9 +9,9 @@ through public interfaces, never required by the core.
 
 The only open engine that treats the field as a pulse with a spectrum in real media: dispersion to all orders,
 χ(2) / χ(3) / Raman / plasma / gain, gases, spatial propagation, branched systems (interferometers, pump arms),
-spatio-temporal couplings, instruments (FROG, autocorrelators, third-order cross-correlators, contrast), measured-data
+spatio-temporal couplings, delayed light, instruments (FROG, autocorrelators, third-order cross-correlators, contrast), measured-data
 comparison and fitting. Every component is checked against an analytic or published value
-([test matrix](reference/validation-matrix.md), [component verification](verification.md)), and published results are
+([test matrix](reference/validation-matrix.md), [component verification](component-tests.md)), and published results are
 reproduced in [papers](papers/README.md).
 
 ## Next
@@ -33,7 +33,7 @@ Priorities, most useful first.
    - [ ] Frequency-dependent effective area
    - [ ] Hollow-capillary (Marcatili) gas waveguide with gas dispersion, loss and ionisation
    - [ ] z-dependent dispersion within one fibre element (tapers)
-   - [ ] Rate-equation gain with ASE, shared by fibres and the bulk gain elements (ASE as a spectrum and as a contrast pedestal)
+   - [ ] Saturated rate-equation gain in fibres, and forward / backward, spectrally resolved ASE shared with the bulk gain elements. Today the bulk `gain` / `amplifier` elements have rate equations and one-dimensional ASE seeded in the signal polarisation, and fibre gain is unsaturated
    - Not planned: multimode fibres beyond a graded-index example
 4. **Cross-polarised-wave generation** (anisotropic cubic χ(3)) for contrast cleaning, with the BaF2 tensor.
 5. **Fitting plugin**
@@ -62,8 +62,8 @@ Planned after the items above; needs the user's OpticStudio installation.
 
 ## Known limits that are planned work
 
-- Branches: a cycle in the element graph together with a resonator's nested sequence; coupling between coherent modes in nonlinear elements.
-- Thermal stress birefringence: the spatial (four-lobed) pattern; thermal lenses in regenerative amplifiers.
+- Branches: a `resonator` is a nested sequence and not a graph (graph loops exist: `ringDown`, `steadyState`); mode overlap beyond simple Gaussian beams (M² is ignored); coupling between coherent modes in nonlinear elements.
+- Thermal stress birefringence: the spatial (four-lobed) pattern (the beam-averaged depolarisation with `thermalLens.stress` exists); end-face bulging in the thermal lens; thermal lenses in regenerative amplifiers.
 - Delayed light and gas: a 256 × 256 plate at 2^13 time points (needs a GPU); non-Gaussian roughness spectra and bulk scatter from a measured BRDF; continuum absorption for the hitran plugin; the tail's own self-phase.
 - Detector presets: a catalogue of real instruments (needs their manuals and calibrations).
 - Live-data and machine-learning surrogate plugins: after the stable release.

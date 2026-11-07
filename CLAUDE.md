@@ -67,7 +67,7 @@ after a code change.
 | status / what is verified | `PROJECT_STATUS.md`; history in `CHANGELOG.md` (top section only) |
 | current plan, owner decisions | `docs/design/plan-next.md` (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
 | paper replications | `docs/papers/` (`docs/papers/CLAUDE.md`): published headline results reproduced, plots + commentary |
-| component checks with plots | `verification/` (`verification/CLAUDE.md`): one script per component family, HTML gallery |
+| component checks with plots | `tests/components/` (`tests/components/CLAUDE.md`): one script per component family, HTML gallery |
 
 ## Definition of done
 

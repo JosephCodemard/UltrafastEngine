@@ -1,0 +1,27 @@
+{
+  "id": "kida-2014-double-frog",
+  "citation": "Y. Kida, Y. Nakano, K. Motoyoshi and T. Imasaka, \"Frequency-resolved optical gating with two nonlinear optical processes\", Opt. Lett. 39, 3006-3009 (2014)",
+  "doi": "10.1364/OL.39.003006",
+  "openAccess": false,
+  "fullTextRead": true,
+  "readability": "PDF text layer extracted (pypdf; the Read tool's PDF renderer was unavailable: pdftoppm not installed). All text read; the figures (traces, retrieved pulses, phases) could NOT be viewed, so retrieved intensities / phases / the chirp magnitude are UNVERIFIED and not used.",
+  "topic": "double FROG: SHG-FROG of two pulses + XFROG analysed together removes the SHG time-direction ambiguity",
+  "referenceNumbers": [
+    {"key": "referencePulse", "value": "800 nm, 35 fs, 4 mJ, 1 kHz Ti:sapphire", "where": "p. 3007, experiment", "status": "read"},
+    {"key": "testPulse", "value": "1200 nm from an OPA; delayed by ~300 fs w.r.t. the reference", "where": "p. 3007", "status": "read"},
+    {"key": "dichroicMirror", "value": "3 mm fused-silica substrate", "where": "p. 3007", "status": "read"},
+    {"key": "BBO", "value": "5 um thick, phi = 90 deg, theta = 33.2 deg; non-collinear, f = 200 mm concave mirror", "where": "p. 3007", "status": "read (type of phase matching not stated)"},
+    {"key": "traceTime", "value": "whole trace in 50 s", "where": "p. 3007", "status": "read"},
+    {"key": "GerrorConventional", "value": "0.5 % (SHG-FROG, all retrievals); XFROG 0.4-0.5 % with the right reference, 0.9-1.0 % with the time-reversed one", "where": "p. 3007-3008", "status": "read"},
+    {"key": "testDurations", "value": "58 fs (right-direction reference), 34 fs (time-reversed reference)", "where": "p. 3007-3008", "status": "read"},
+    {"key": "doubleFrogGerror", "value": "SHG (reference) 0.5 %, XFROG 0.4 %, constant over six retrievals; six retrievals identical, no time-reversed replica", "where": "p. 3008", "status": "read"},
+    {"key": "twoSignalsOnly", "value": "SHG(ref) + XFROG only: profiles vary like conventional, time-reversed replica appears randomly", "where": "p. 3009", "status": "read"},
+    {"key": "dichroicGDD", "value": "25.6 fs^2 for the test pulse", "where": "p. 3009", "status": "read"}
+  ],
+  "assumptions": [
+    "Reference: Gaussian, 30 fs transform limit, GDD +195 fs^2 -> 35 fs. Test: Gaussian, 40 fs transform limit, GDD +580 fs^2 before 3 mm fused silica -> 57.6 fs. The paper's retrieved phases (Figs. 4, 5, 7) were not visible; only 'positive chirp' of the test pulse is stated.",
+    "Synthetic traces on a 128 x 128 grid (3 fs), additive noise 0.4 % of the peak (chosen a priori as a typical spectrometer noise; the absolute G errors depend on it, only comparisons are made).",
+    "XFROG delay range = the same full range as the SHG traces (the paper limits it to one signal at +tau).",
+    "The retrieval is written in numpy: generalised projections with PCGPA steps for the SHG traces and a least-squares step for the XFROG (Fig. 6 of the paper); the initial guess is a 40 fs Gaussian with random phase noise (not stated in the paper)."
+  ]
+}

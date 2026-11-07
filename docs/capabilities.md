@@ -5,11 +5,52 @@ listed with its unit and default in the [option reference](reference/options.md)
 
 ## Scope
 
-The engine propagates an ultrashort pulse along **one beam path** through a sequence of elements. By default the
-field is resolved in time and frequency (both polarisations) and the beam enters through its size — an effective
-area that follows a beam model or the tracked Gaussian beam. Where the transverse structure matters, an element can
-resolve it on a radial or cartesian grid. The pulse can be an envelope on a carrier (default) or the real
-carrier-resolved field.
+UltrafastEngine is built for **table-top, open-air ultrafast optics**: a pulse that travels through mirrors, gratings,
+prisms, lenses, plates, crystals, gain media, gas-filled paths and optical instruments on an optical table, with some
+support for single-mode fibre. It is not a general waveguide, multimode-fibre or laser-cavity design tool, and it does
+not trace rays (geometry comes from element parameters or from a ray trace exported by the zemax plugin).
+
+The pulse is a field resolved in time and frequency (both polarisations). The beam enters in one of three ways: through
+its size (an effective area that follows a beam model or the tracked Gaussian beam), as a carried transverse profile on a
+radial or cartesian grid for the elements that need the transverse structure, or as the real carrier-resolved field
+instead of an envelope on a carrier.
+
+A system is a **sequence** of elements (the default) or a **branched** graph of elements with named ports
+([Branched systems](reference/branches.md)): beam splitters, parallel arms that recombine with the right phase and mode
+overlap, delays, by-products of a crystal routed onwards, and loops.
+
+## Supported elements
+
+Every element type below is declared in `src/UltrafastEngine.Core/Schema/BuiltIn*.cs`; all keys, units and defaults are
+in the [option reference](reference/options.md#elements). Aliases in brackets.
+
+| Element | What it models | Documented in |
+|---|---|---|
+| `dispersion` | linear dispersion from sampled group delay, spectral phase or Taylor coefficients | [System file](reference/system-file.md) |
+| `bulk` (`medium`), `gap` | propagation in a material or in air (linear, or with Kerr, Raman, plasma and, with a `transverse` model, diffraction and self-focusing) | [System file](reference/system-file.md), [Nonlinear physics](reference/nonlinear.md), [Spatial models](reference/transverse.md) |
+| `plate` (`window`) | plane-parallel plate: two surfaces, bulk dispersion, absorption, nonlinearity, ghost replicas | [Components](reference/components.md#plate) |
+| `interface` (`surface`), `mirror`, `grating` | Fresnel or coated surface, curved or off-axis mirror, diffraction grating; angle of incidence, s/p phases, clipping, scatter, damage threshold | [System file](reference/system-file.md), [Coatings](reference/coatings.md), [Components](reference/components.md) |
+| `gratingPair` | Treacy grating pair (exact dispersion; negative separation is a stretcher) | [System file](reference/system-file.md) |
+| `prism` | prism in air: two faces and the glass on the chief ray; angular dispersion of the tracked beam | [Components](reference/components.md#spatio-temporal-couplings) |
+| `chirpedMirror` | GDD, TOD, FOD per bounce, with optional GDD ripple | [System file](reference/system-file.md), [Components](reference/components.md#gdd-ripple) |
+| `lens` | thin lens, chromatic with a material; acts on a carried profile | [System file](reference/system-file.md) |
+| `aperture`, `mask` | hard or soft aperture; axicon, zone plate, vortex, slit and file masks on the carried profile | [Spatial models](reference/transverse.md#diffraction-and-apertures) |
+| `wavefront` (`aberration`) | Zernike or random wavefront error and optional focal power | [Components](reference/components.md#aberrations) |
+| `filter`, `custom` | any spectral filter model (transmission and phase) | [System file](reference/system-file.md), [Models](reference/models.md) |
+| `ndFilter` | absorptive or reflective neutral-density filter, substrate, ghosts | [Components](reference/components.md#ndfilter) |
+| `waveplate`, `polarizer`, `rotator`, `thinFilmPolarizer` (`tfp`), `faradayRotator` (`faraday`) | Jones-calculus polarisation optics, multi-order and zero-order waveplates, thin-film polarisers, non-reciprocal rotation | [Components](reference/components.md#waveplates), [Surfaces and polarisation](reference/coatings.md) |
+| `beamSplitter`, `polarizingSplitter`, `dichroic`, `leakMirror`, `delay` | splitting, recombination and delay in a Branched system | [Branched systems](reference/branches.md) |
+| `crystal` | χ(2): SHG, SFG, DFG, OPA / OPCPA, collinear and non-collinear, birefringent and quasi-phase matching, χ(3) in the crystal | [Crystals](reference/crystals.md) |
+| `fiber` (`fibre`, `waveguide`) | single-mode fibre: Taylor betas or a dispersion curve, γ, loss, gain, Raman, noise, soliton and dispersive-wave diagnostics | [Fibres](reference/fibers.md) |
+| `gain`, `amplifier` | pumped gain media (rate equations, spectral saturation, thermal lens, optional stress birefringence, ASE); multipass and regenerative amplifiers | [Gain media](reference/gain.md) |
+| `oscillator`, `saturableAbsorber` (`sesam`) | mode-locked oscillators (parametric, Haus, cavity model); SESAM, fast and Kerr-lens absorbers | [Oscillators](reference/oscillators.md) |
+| `resonator` | passive resonator around nested elements: round-trip matrix, stability, eigenmode, Fox-Li mode and loss | [Oscillators](reference/oscillators.md#resonators) |
+| `user` | your own function of the main beam's spectrum (Python, C#, C) | [Active elements](reference/active-elements.md#user-elements) |
+| `probe` (`marker`) | a named place for snapshots and instruments; does nothing to the beam | [System file](reference/system-file.md) |
+| `transform` (fitting plugin) | fittable spectral phase and amplitude, energy, polarisation, contrast, wavefront | [Fitting plugin](plugins/fitting.md#transform-elements) |
+
+Instruments (energy meter, spectrometer, scope, autocorrelator, FROG, d-scan, cross-correlator, polarimeter, cameras and
+more) are listed in [Instruments](reference/instruments.md).
 
 ## What is modelled
 
@@ -27,10 +68,10 @@ carrier-resolved field.
 | **Gain and lasers** | Yb:YAG, Ti:sapphire, Nd:YAG and user media; rate equations with pumping, spectral Frantz–Nodvik saturation, pulse-train steady state, thermal lens; multipass and regenerative amplifiers; mode-locked oscillators (Haus master equation, Kerr-lens, SESAM) | small-signal gain, Frantz–Nodvik, soliton area theorem, steady-state energy balance |
 | **Spatial models** | radial (Hankel) and cartesian grids per element: diffraction (exact or paraxial) by round and square apertures with an absorbing boundary; Gaussian, flat-top, tophat, square, Hermite-Gauss, Laguerre-Gauss, Bessel-Gauss, Airy and measured near-field beams; axicon, zone-plate, vortex, slit and file masks; self-focusing, Kerr lensing, Zernike and random wavefront errors, vector (Jones) fields, UPPE coupling, ionisation, spatial gain; profiles carried between elements | Gaussian w(z), M² = 1, lens focus, thin Kerr lens, UPPE = envelope for paraxial beams; apertures vs the Fresnel integral (< 1 % of the peak), Fresnel zones on the axis, Airy and sinc zeros; mode radii, Bessel core, Airy trajectory, zone-plate gain, Young's fringes |
 | **Delayed light** | a second, long linear grid (`grid.tail`) carrying ghosts, mirror-substrate echoes, coating-ripple pedestals, delayed scatter (analytic surface model) and gas-line ring-down next to the nonlinear grid, energy-exact; window planning that names the satellite that does not fit ([Delayed light](reference/delayed-light.md)) | ledger = one large grid (10⁻³ … 10⁻⁵), echo delay 2 n_g d / c, ripple pedestal statistics |
-| **Contrast** | pedestal models of the input (replicas, pre/post-pulses, ASE, spectral phase noise, exponential); third-order cross-correlator with noise floor, resolution, SHG acceptance | correlator artefacts, pedestal levels |
+| **Contrast** | pedestal models of the input (replicas, pre/post-pulses, ASE, spectral phase noise, exponential, or a measured contrast trace); third-order cross-correlator with noise floor, resolution, SHG acceptance | correlator artefacts, pedestal levels, measured pedestal reproduced |
 | **Instruments** | energy meter, spectrometer, scope, intensity / interferometric autocorrelator, FROG, d-scan, contrast, cross-correlator, polarimeter, cameras (imaging + sensor), wavefront sensor, ideal compressor, conversion, phase-matching curve, delay scan; virtual Wigner, field and space–time probes. Every instrument has its resolution / range parameters, a spectral `filter`, a `detector` (calibration, noise, floor, bit depth) and near / far-field `sampling` through pinholes, fibres or slits, and reports the settings it used. Detectors have spectral response tables, photon counting, saturation and stitched segments, and reusable presets ([Detector presets](reference/instruments.md#detector-presets)) | AC deconvolution, IAC 8:1, FROG marginals with acceptance and resolution, detector reproducibility, pinhole / slit transmissions |
 | **Measured data** | measured input spectra (CSV or arrays; sorted, repeated wavelengths merged, background and threshold, recording resolution deconvolved, Gaussian tails beyond the recorded range); any instrument compared with a recording (CSV / NPZ / JSON curves, 2-D traces, scalar readings; linear or dB) on the recording's own axis and range, at its resolution | digitised spectra with out-of-order and repeated rows; floor restores the transform limit; overlap-only comparison; resolution matching |
-| **Cavities and coherence** | `resonator`: round-trip matrix, stability, eigenmode, Fox-Li mode and loss; Gaussian-Schell partial coherence as coherent modes; cw sources | Kogelnik & Li eigenmode, Fox-Li vs ABCD, N^(−3/2) loss, M² law |
+| **Branched systems, cavities and coherence** | beam splitters, polarising splitters, dichroics, leaky mirrors, delays; interferometers (Mach-Zehnder, Michelson, f-2f) with the carrier phase and mode overlap of the meeting beams; graph loops (`ringDown`, `steadyState`); `resonator`: round-trip matrix, stability, eigenmode, Fox-Li mode and loss; Gaussian-Schell partial coherence as coherent modes; cw sources | Michelson dark port and fringe period λ/2, Mach-Zehnder fringes vs path difference, Fabry-Perot loop = Airy function, f-2f fringes vs CEP, Kogelnik & Li eigenmode, Fox-Li vs ABCD, N^(−3/2) loss, M² law |
 | **Analysis** | scans (grid, random, Latin hypercube, Sobol), Nelder–Mead optimisation, local and Sobol sensitivities with a frozen grid and prefix caching; FROG (PCGPA, ePIE) and d-scan retrieval; Gerchberg-Saxton wavefront retrieval; fits of transforms and parameters to measured data, backward propagation (fitting plugin) | B ∝ L scans, elasticities, Sobol indices; retrieval of chirped pulses (duration, GDD) |
 
 Test details: [Testing and validation](testing.md). Synthetic measurements with known answers to try the analysis
@@ -69,27 +110,33 @@ the same way ([Plugin system](reference/plugins.md)).
 
 **Optical layout**
 
-* One beam path. Beam splitters, parallel arms and coherent recombination are not modelled (an element can produce
-  by-products, such as the idler of an OPA, which are recorded but not propagated further).
 * No ray tracing. Geometry enters through ray-traced data exported from OpticStudio (zemax plugin) or through the
   element parameters; prism pairs and Martinez stretchers need traced group delay.
-* Cavities appear only inside the `oscillator` element (and regenerative amplifiers); a general resonator between
-  arbitrary elements is not.
+* [Branched systems](reference/branches.md): mode overlap of meeting beams assumes simple Gaussian beams at one plane and
+  ignores M²; a linked crystal port takes the strongest packet only; merged carried profiles share one transverse shape
+  per stored frequency; a graph loop has one direction (a linear cavity is written as separate forward and return
+  entries); `resonator` is a nested sequence, not a graph.
+* A crystal makes by-products (the idler of an OPA, for example). In a Sequential system they are recorded but not
+  propagated; in a Branched system each is an output port that can be routed on.
+* Partial coherence is one run per coherent mode, with no coupling between modes in nonlinear elements.
 
 **Physics**
 
 * Beam tracking handles simple astigmatism (principal axes x and y). The tracked beam stays Gaussian: a thermal lens is
   applied as the parabola that fits it best over the beam (its aberration needs a spatial model), and the dispersion of
-  spatio-temporal couplings is applied to fourth order. A multipass amplifier puts its thermal lens on the tracked beam only when given the path between passes;
-  a regenerative amplifier does not.
+  spatio-temporal couplings is applied to fourth order (GDD, TOD, FOD). A multipass amplifier puts its thermal lens on the
+  tracked beam only when given the path between passes; a regenerative amplifier does not.
 * One-dimensional elements do not change the beam shape: self-focusing above the critical power and aberration effects
-  need a spatial model (the engine warns). Carried profiles take angular dispersion only with `physics.spatioTemporal` = `"profile"`, on cartesian grids.
-* [Branched systems](reference/branches.md) cover splitters, arms, interference and loops, with mode overlap of tracked beams and carried profiles meeting. Beams crossing in a crystal remain collinear in the model. A `resonator` is a nested sequence; partial coherence is one run per mode, with no coupling between modes in nonlinear elements.
-  Thermal stress birefringence is the beam-averaged result for a uniformly heated rod of a cubic host.
+  need a spatial model (the engine warns). Carried profiles take angular dispersion only with
+  `physics.spatioTemporal` = `"profile"`, on cartesian grids.
+* Thermal stress birefringence of a gain rod (`thermalLens.stress`, cubic hosts such as YAG) is the beam-averaged result
+  for a uniformly heated rod: a depolarised fraction moved between x and y, not the four-lobed pattern. It is off by
+  default, and the thermal lens itself is radial with no end-face bulging.
 * Fibres are single-mode with a frequency-independent effective area; within one `fiber` element the dispersion is
-  z-independent (use several elements for a taper's dispersion; γ(z) is supported). Fibre gain is unsaturated.
-* The carrier-resolved field mode is scalar (one polarisation).
-* ASE in amplifiers is one-dimensional; there is no thermal stress birefringence.
+  z-independent (use several elements for a taper's dispersion; γ(z) is supported). Fibre gain is unsaturated. There is
+  no hollow-capillary (Marcatili) waveguide model.
+* The carrier-resolved field mode is scalar (one polarisation; a y component is propagated linearly with a warning).
+* ASE in amplifiers is one-dimensional, in the signal polarisation, and covers the simulated time window only.
 * In envelope mode, the Drude plasma term uses the carrier frequency.
 
 **Data**
@@ -103,7 +150,7 @@ the same way ([Plugin system](reference/plugins.md)).
 
 * The Python package and the NativeAOT C library are built from source (no PyPI wheels or NuGet package yet).
 * GPU back-ends (`gpu` plugin: CUDA, OpenCL) run 1-D envelope and spatial envelope propagation; user responses,
-  rotational Raman, position-dependent properties, carrier-resolved fields, χ(2) and gain run on the CPU. Apple GPUs
+  rotational Raman, position-dependent properties, carrier-resolved fields, χ(2), amplifiers and ionisation run on the CPU. Apple GPUs
   are not used (no double precision); macOS uses the Accelerate FFT on the CPU ([GPU](plugins/gpu.md)).
 * The zemax plugin compiles against the OpticStudio API, but its operand conventions should be checked against a
   running OpticStudio before quantitative use ([Zemax plugin](plugins/zemax.md#known-assumptions-to-confirm-on-your-installation)).

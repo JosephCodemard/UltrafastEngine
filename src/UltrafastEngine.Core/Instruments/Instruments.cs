@@ -788,7 +788,7 @@ namespace UltrafastEngine.Instruments
             // The reported pulse is the input on its own grid with the best phase. The compact copy resolves the
             // spectrum, not the compressed peak: its time step can be a fifth of the compressed FWHM after strong SPM,
             // and the half-maximum crossings interpolated on it were 4 % short at B = 40 rad (Escoto et al., JOSA B
-            // 39, 1694 (2022), docs/papers/escoto-2022-compression-quality).
+            // 39, 1694 (2022),).
             var full = ctx.Pulse; var fg = full.Grid; int fn = fg.N;
             var aa = new Complex[fn]; var bb = new Complex[fn];
             for (int i = 0; i < fn; i++)

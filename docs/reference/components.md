@@ -50,8 +50,9 @@ Each element reports `trackedBeamRadiusXM`, `trackedBeamRadiusYM` and the wavefr
 tracking carries on unchanged.
 
 Simple astigmatism only: the principal axes are x and y. A fold plane at an arbitrary angle is snapped to the nearer
-axis (with a note). The thermal lens of a gain element is included (amplifier elements: not; their path between passes is
-not modelled).
+axis (with a note). The thermal lens of a gain element is included. A multipass amplifier puts its thermal lens on the tracked beam
+only when given the path between passes (`thermalLens.track`, `passGapM`); a regenerative amplifier does not
+([Gain media](gain.md#thermal-lens)).
 
 ## Spatio-temporal couplings
 

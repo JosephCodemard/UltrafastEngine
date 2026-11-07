@@ -45,5 +45,9 @@ docs/examples/00-quickstart/quickstart.png
 
 # paper replications and component checks: raw outputs are regenerated
 docs/papers/*/results/
-verification/report/
+tests/components/report/
 .claude/worktrees/
+
+# licensed paper PDFs are never committed
+docs/papers/*.pdf
+docs/papers/**/*.pdf

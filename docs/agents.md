@@ -6,8 +6,8 @@ root and `llms.txt` (an index of the documentation).
 
 ## The model in one paragraph
 
-A **system file** (`.ufs`, JSON with comments) lists elements in beam order: `bulk`, `gap`, `plate`, `mirror`,
-`lens`, `gratingPair`, `crystal`, `gain`, ... A **run spec** (`run.json`) gives the input pulse, physics switches,
+A **system file** (`.ufs`, JSON with comments) lists elements in beam order (or, in a Branched system, with the link `next` from each element): `bulk`, `gap`, `plate`, `mirror`,
+`lens`, `gratingPair`, `crystal`, `gain`, ... ([supported elements](capabilities.md#supported-elements)) A **run spec** (`run.json`) gives the input pulse, physics switches,
 instruments and overrides. The engine compiles both into linear and nonlinear operators on a frequency grid that it
 sizes itself, propagates the pulse, and writes `summary.json` (scalars), `result.npz` (arrays), CSVs and
 `provenance.json` (where every number came from). Every option has a documented default; nothing is guessed silently
@@ -47,7 +47,7 @@ Python: `res = uf.run(system, spec)`; `res.summary`, `res["name_array"]`, `res.i
 
 ## Branched systems
 
-For beam splitters, interferometers and loops, set `"topology": "branched"`, and give every element `next` ([Branched systems](reference/branches.md)). Check the layout with `ultrafast validate system.ufs --graph`. Read the budget from `summary["graph"]`: `energyClosureJ` should be at rounding level.
+For beam splitters, interferometers, pump arms and loops, set `"topology": "branched"`, and give every element `next` ([Branched systems](reference/branches.md)). Check the layout with `ultrafast validate system.ufs --graph`. Read the budget from `summary["graph"]`: `energyClosureJ` should be at rounding level.
 
 ## Many runs
 
@@ -81,7 +81,7 @@ measured field to the input ([Fitting](plugins/fitting.md)).
 ## Changing the code
 
 * Layout: `src/UltrafastEngine.Core` (engine), `src/UltrafastEngine.Cli`, `src/UltrafastEngine.Native` (C API),
-  `python/src/ultrafast`, `plugins/` (fitting, zemax), `tests/UltrafastEngine.Tests` (custom runner, no NuGet).
+  `python/src/ultrafast`, `plugins/` (fitting, zemax, gpu, hitran), `tests/UltrafastEngine.Tests` (custom runner, no NuGet).
 * Zero NuGet dependencies; the core must build for `net10.0` and `net48` (no newer APIs without `#if NET`).
 * Every element/option lives in `src/UltrafastEngine.Core/Schema/BuiltIn*.cs`; after changing one, regenerate
   `ultrafast schema system -o schemas/ufs.schema.json`, `ultrafast schema run -o schemas/run.schema.json`,

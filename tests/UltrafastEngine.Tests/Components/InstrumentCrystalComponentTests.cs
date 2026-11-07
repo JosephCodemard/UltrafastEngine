@@ -1,5 +1,5 @@
 // InstrumentCrystalComponentTests.cs -- component-sheet rows for instruments and chi(2) crystals that the rest of the suite
-// does not assert (verification/components/instruments.py and crystals.py plot the same numbers):
+// does not assert (tests/components/instruments.py and crystals.py plot the same numbers):
 // sech^2 autocorrelation ratio, third-order cross-correlation width and floor, SHG-FROG frequency marginal, all at 515 nm /
 // 1030 nm / 2 um; and for BBO SHG at the three carriers: energy conservation at high conversion and each port's carrier.
 using System;
