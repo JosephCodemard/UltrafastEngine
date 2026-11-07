@@ -1572,8 +1572,14 @@ namespace UltrafastEngine.Engine
             }
             double margin = double.IsNaN(run.Grid.SpectralMargin) ? (anyNl ? Math.Max(3.0, 1.0 + bEst) : 1.3) : run.Grid.SpectralMargin;
             if (anyNl) c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Estimated total B-integral (peak power after the dispersion before each element, no losses): {0:G3} rad; spectral margin {1:G3}.", bEst, margin));
+            // a delayed response (Raman, orientational) keeps the index changed for its memory after the pulse; the window must hold it or it wraps around
+            double memoryS = 0;
+            foreach (var x in enabled)
+                if (x.Nonlinear != null && x.Nonlinear.Medium.Raman != null && x.Nonlinear.Medium.EffectiveRamanFraction > 0)
+                    memoryS = Math.Max(memoryS, GridPlanner.ResponseMemoryS(x.Nonlinear.Medium.Raman));
+            if (memoryS > 5 * tl) c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "A delayed response in the system keeps the index changed for {0:G3} s after the pulse: the window is sized to hold it.", memoryS));
             var plan = GridPlanner.Plan(p0, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window0, run.Grid.ExplicitResolution ? run.Grid.N : n0, run.Grid.MaxN, run.Grid.Auto || run.Grid.ExtendForSatellites, run.Grid.ExplicitResolution, Results.PulseMetrics.Fwhm(g0.Time, Results.PulseMetrics.TransformLimitedPower(p0)) / run.Grid.MinPointsPerFwhm,
-                (run.Grid.TailEnabled ? 0.0 : SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes)) + run.Pulse.SatelliteHalfWindowS());
+                (run.Grid.TailEnabled ? 0.0 : SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes)) + run.Pulse.SatelliteHalfWindowS() + memoryS);
             if (run.Grid.TailEnabled) c.Out.Notes.Add("grid.tail: ghosts, echoes and other satellites are carried on the long tail grid; the main window is sized for the pulse only.");
             c.Out.GridPlan = plan;
             c.Out.Notes.AddRange(plan.Notes);

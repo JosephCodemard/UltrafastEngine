@@ -137,5 +137,44 @@ namespace UltrafastEngine.Tests
                 Assert.Less(eMin, 0.02 * eRef, "eta at the nodes (L = 2 m l_c)");
             }
         }
+
+        private static UltrafastEngine.Systems.SystemDescription SlowResponseCell(double tau)
+        {
+            var mat = O("index", O("kind", "expression", "expr", "1.6137"), "n2", 3e-19, "ramanFraction", 1.0,
+                        "raman", O("kind", "expression", "expr", "exp(-t/" + tau.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + ")/" + tau.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "*step(t)"));
+            var o = O("format", "ultrafast-system", "version", 2, "name", "cell", "materials", O("slow", mat));
+            o.Set("elements", new JsonArray(new JsonValue[] { O("id", "cell", "type", "bulk", "material", "slow", "lengthM", 0.01, "beam", O("kind", "constant", "radiusM", 50e-6)) }));
+            return UltrafastEngine.Systems.SystemDescription.FromJson(o);
+        }
+
+        private static double TotalVariation(UltrafastEngine.Pulses.PulseField a, UltrafastEngine.Pulses.PulseField b)
+        {
+            // spectra on a common 0.5 THz bin axis (the grids differ in step)
+            double bin = 2 * Math.PI * 0.5e12; int nb = 400;
+            Func<UltrafastEngine.Pulses.PulseField, double[]> hist = p =>
+            {
+                var h = new double[nb]; var s = p.SpectralIntensity(); double w0 = p.Grid.ReportOmega, tot = 0;
+                for (int i = 0; i < s.Length; i++) { int k = (int)Math.Floor((p.Grid.OmegaAbsolute[i] - w0) / bin) + nb / 2; if (k >= 0 && k < nb) h[k] += s[i]; tot += s[i]; }
+                return h.Select(v => v / tot).ToArray();
+            };
+            var ha = hist(a); var hb = hist(b);
+            return 0.5 * Enumerable.Range(0, nb).Sum(k => Math.Abs(ha[k] - hb[k]));
+        }
+
+        [Test(Reference = "periodic time grid: the response to a pulse must fit the window (convergence against a window four times larger)", Tolerance = "total variation of the spectra 0.02")]
+        public void DelayedResponseLongerThanTheWindow_IsWarnedAbout_AndTheAutoGridHoldsIt()
+        {
+            // tau = 18 ps (CS2-like), 6 ps pulse, B ~ 30 rad. The planner knew only the pulse and the dispersion: 120 ps was "adequate" and the
+            // spectrum was wrong; the memory of the response (9.2 tau at 1e-4) is now part of the required window.
+            double tau = 18e-12, fwhm = 6e-12;
+            var sys = SlowResponseCell(tau);
+            var pulse = O("shape", "gaussian", "centerWavelengthM", 694.3e-9, "durationFwhmS", fwhm, "energyJ", 3e-9, "polarization", "x");
+            var small = Go(sys, Spec(pulse, O("physics", O("selfSteepening", false), "grid", O("n", 1 << 14, "windowS", 120e-12, "auto", false))));
+            Assert.True(small.Warnings.Any(w => w.Contains("too small")), "the 120 ps window is reported as too small for an 18 ps response");
+            var auto = Go(sys, Spec(pulse, O("physics", O("selfSteepening", false))));
+            Assert.Greater(auto.Output.Grid.N * auto.Output.Grid.DTime, 9 * tau, "the planned window holds the response");
+            var big = Go(sys, Spec(pulse, O("physics", O("selfSteepening", false), "grid", O("n", 1 << 16, "windowS", 600e-12, "auto", false))));
+            Assert.Less(TotalVariation(auto.Output, big.Output), 0.02, "the auto grid agrees with a 600 ps window");
+        }
     }
 }
