@@ -85,5 +85,25 @@ namespace UltrafastEngine.Tests
             var r2 = Go(sys, Spec(O("shape", "gaussian", "centerWavelengthM", 2e-6, "durationFwhmS", 100e-15, "peakPowerW", 1e2), O("physics", O("selfSteepening", false))));
             Assert.False(r2.Warnings.Any(w => w.Contains("zero frequency")), "no warning for a many-cycle pulse");
         }
+
+        [Test(Reference = "elliptical Gaussian through a circular aperture: 2-D quadrature; small aperture T = 2 a^2 / (wx wy); round beam 1 - exp(-2 a^2 / w^2)", Tolerance = "1e-6 (quadrature), 1e-5 (small-aperture limit)")]
+        public void CircularAperture_OnAnEllipticalBeam_IsTheTwoDimensionalIntegral()
+        {
+            // the engine used the geometric-mean radius, 1 - exp(-2 a^2 / (wx wy)): 0.8816 instead of 0.7897 for 0.6 x 1.2 mm and a = 0.8 mm
+            double wx = 0.6e-3, wy = 1.2e-3, a = 0.8e-3;
+            var ap = new UltrafastEngine.Physics.CircularAperture(a);
+            int n = 4000; double h = 2 * a / n, sum = 0;
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                {
+                    double x = -a + (i + 0.5) * h, y = -a + (j + 0.5) * h;
+                    if (x * x + y * y <= a * a) sum += Math.Exp(-2 * x * x / (wx * wx) - 2 * y * y / (wy * wy));
+                }
+            double reference = sum * h * h * 2 / (Math.PI * wx * wy);
+            Assert.Close(reference, ap.PowerTransmission(wx, wy, 0, 0), 2e-4, 0, "ellipse 0.6 x 1.2 mm (the midpoint quadrature's own error is the tolerance)");
+            Assert.Close(1 - Math.Exp(-2 * a * a / (wx * wx)), ap.PowerTransmission(wx, wx, 0, 0), 1e-12, 0, "round beam");
+            var small = new UltrafastEngine.Physics.CircularAperture(1e-3 * wx);
+            Assert.Close(2 * small.Radius * small.Radius / (wx * wy), small.PowerTransmission(wx, wy, 0, 0), 1e-5, 0, "small-aperture limit: pi a^2 x peak intensity");
+        }
     }
 }

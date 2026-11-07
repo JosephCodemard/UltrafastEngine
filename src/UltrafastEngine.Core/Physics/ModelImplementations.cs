@@ -396,8 +396,20 @@ namespace UltrafastEngine.Physics
         public double PowerTransmission(double wx, double wy, double dx, double dy)
         {
             if (Radius <= 0 || double.IsInfinity(Radius)) return Radius <= 0 ? 0 : 1;
-            double w2 = wx * wy;
-            return 1 - Math.Exp(-2 * Radius * Radius / w2);
+            if (wx <= 0 || wy <= 0) return 1;
+            // Elliptical Gaussian I ~ exp(-2 x^2/wx^2 - 2 y^2/wy^2) through a disk of radius a, in polar coordinates:
+            // T = (1 / (pi wx wy)) integral_0^2pi (1 - exp(-a^2 q)) / q dphi,  q = 2 (cos^2 phi / wx^2 + sin^2 phi / wy^2).
+            // Round beam: 1 - exp(-2 a^2 / w^2). The integrand is smooth and periodic: the trapezoid rule converges exponentially.
+            if (Math.Abs(wx - wy) <= 1e-12 * wx) return 1 - Math.Exp(-2 * Radius * Radius / (wx * wy));
+            const int N = 2048; double a2 = Radius * Radius, sum = 0;
+            for (int k = 0; k < N; k++)
+            {
+                double phi = 2 * Math.PI * (k + 0.5) / N, c = Math.Cos(phi), sn = Math.Sin(phi);
+                double q = 2 * (c * c / (wx * wx) + sn * sn / (wy * wy));
+                double x = a2 * q;
+                sum += x < 1e-4 ? a2 * (1 - x / 2 + x * x / 6) : (1 - Math.Exp(-x)) / q;
+            }
+            return Math.Min(1.0, sum * 2 * Math.PI / N / (Math.PI * wx * wy));
         }
     }
 
