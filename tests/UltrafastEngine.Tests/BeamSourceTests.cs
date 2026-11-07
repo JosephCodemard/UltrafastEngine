@@ -150,6 +150,25 @@ namespace UltrafastEngine.Tests
             }
         }
 
+        [Test(Reference = "cell-averaged pi edges: a cell split into fractions f and 1-f of +1 and -1 transmits |2f-1|^2, mean 1/3 over a uniform edge position", Tolerance = "25 % of the loss, which falls as the grid step")]
+        public void BinaryPhaseZonePlate_LosesTheEnergyOfItsSampledEdges_AsTheGridStep()
+        {
+            // A pi phase mask is lossless as a continuum, but a grid cell holds one complex number: the cell average of an edge cell is
+            // short of unit magnitude (the rest is spatial frequencies the grid cannot carry). Edge n sits at r_n^2 = n lambda f; the edge cell
+            // of width dr holds the Gaussian power 4 r dr / w^2 exp(-2 r^2 / w^2) and loses 2/3 of it on average.
+            double f = 0.2, w = 1e-3, lf = Lam * f, radius = 3e-3, prev = double.NaN;
+            foreach (int pts in new[] { 512, 1024, 2048, 4096 })
+            {
+                var r = Go(Sys(Source(Grid("radial", pts, radius, O("kind", "gaussian", "radiusM", w))),
+                               O("id", "zp", "type", "mask", "kind", "zonePlate", "focalLengthM", f, "binaryPhase", true), Free("z", 0.0, Grid("radial", pts, radius))), Pulse());
+                double loss = 1 - Rec(r, "zp").Values["transmission"], dr = radius / pts, expect = 0;
+                for (int n = 1; n * lf < radius * radius; n++) { double rn = Math.Sqrt(n * lf); expect += 2.0 / 3 * 4 * rn * dr / (w * w) * Math.Exp(-2 * rn * rn / (w * w)); }
+                Assert.Close(expect, loss, 0.25, 0, "lost power fraction at " + pts + " points");
+                if (!double.IsNaN(prev)) Assert.Less(loss, prev, "the loss falls as the grid is refined");
+                prev = loss;
+            }
+        }
+
         [Test(Reference = "Axicon on a Gaussian: J0(k r sin(angle)) core, first zero 2.405 / (k sin(angle)) (McLeod 1954)", Tolerance = "2 %")]
         public void Axicon_TurnsAGaussianIntoABesselCore()
         {

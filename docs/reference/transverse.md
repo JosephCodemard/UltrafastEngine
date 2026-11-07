@@ -186,7 +186,7 @@ Gaussian beam does not change.
 | `file` | an NPZ map: `x_m`, `y_m` or `r_m`, `amplitude`, optionally `phase_rad` (at `designWavelengthM`; the phase scales with the frequency, as an optical path does) | `file` | both (x-y maps: cartesian) |
 
 `decenterXM`, `decenterYM` move the mask (cartesian). Each cell takes the average of the mask over the cell, so edges fall between samples as for
-[apertures](#diffraction-and-apertures); pure phase masks keep unit magnitude. Lost energy is booked as `clip`, and the element reports `transmission`;
+[apertures](#diffraction-and-apertures); axicon and vortex masks keep unit magnitude (a smooth phase). A `binaryPhase` zone plate does not: a cell that holds both a 0 and a π zone averages to less than unit magnitude, and the missing power is spatial frequency the grid cannot carry. On average a cell split by an edge transmits 1/3 of its power, so the loss is 2/3 of the power in the edge cells, `T ≈ 1 − (2/3) Σ_edges 4 r dr / w² exp(−2r²/w²)` for a Gaussian beam of radius w; it falls in proportion to the grid step (2.3 %, 0.9 %, 0.6 % for 512, 1024, 2048 radial points with w = 1 mm, f = 0.2 m). Lost energy is booked as `clip`, and the element reports `transmission`;
 a zone plate also reports `outerZoneWidthM` and warns below 3 samples per zone across the beam. Maps come from NPZ files: convert images in Python
 (`np.savez("mask.npz", x_m=x, y_m=y, amplitude=a)`).
 
