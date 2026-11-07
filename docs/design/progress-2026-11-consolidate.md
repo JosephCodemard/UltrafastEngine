@@ -113,3 +113,15 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
   (`repro_1.py`), so the gap is in the paper's B / ε / beam definition or the unstated cell. XPW not modelled.
 * **Engine gaps:** no anisotropic cubic χ(3) tensor (XPW; `repro_2.py`), no BaF2 material, no helper for a Kerr-matched Herriott /
   quasi-concentric cell mode. PDF glyphs garbled (mirror curvature inferred 350 mm).
+
+## Update: single-shot cross-correlator done (`ma-2018-single-shot-cross-correlator`)
+* 22 checks, 0 hard fail, 5 soft (full tier run by hand; fast tier not re-run after the last edit: run `paper_check.py ma-2018`).
+* Agrees: resolution ~1 ps (0.53-1.05 ps for 1-2 mm BBO), PPLN m=1 window 44.2 vs ~45 ps/cm, BK7 replica spacing 11.628 ps, replica II
+  3.7e-6 vs 2.7e-6. Above the paper: replica I (1.9e-3 vs 6e-4) and III (7e-9 vs ~1e-9): plate angle / coating not given; Fresnel ladder
+  R^(2k) reproduced to 1 %.
+* **Engine bug (needs /bug-report):** `crossCorrelator` with `resolutionS` set: trace is normalised to the smoothed peak but the floor
+  and the reported `contrastAt_m10ps_db` use the unsmoothed one. 50 fs pulse, 1e-6 pre-pulse, 105 dB range, 1 ps resolution: trace
+  floor -92.9 dB (not -105) and report -72.1 dB vs trace -60.0 dB. Repro `repro_1.py` in the paper folder.
+* **Missing:** single-shot time-to-space geometry (20-40° crossing on a cm grid + camera/fibre array), air scatter + stripe filter,
+  crystal-face reflection spikes, gate-arm-only element in `crossCorrelator` (used a Branched system instead).
+* `grid.satelliteLevel` had to be lowered to 1e-11 for the third ghost (~7e-9).

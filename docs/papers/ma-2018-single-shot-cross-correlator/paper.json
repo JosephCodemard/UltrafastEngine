@@ -1,0 +1,30 @@
+{
+  "id": "ma-2018-single-shot-cross-correlator",
+  "citation": "J. Ma, P. Yuan, J. Wang, G. Xie, H. Zhu, L. Qian, \"Single-shot cross-correlator for pulse-contrast characterization of high peak-power lasers\", High Power Laser Science and Engineering 6, e61 (2018)",
+  "doi": "10.1017/hpl.2018.57",
+  "openAccess": true,
+  "license": "CC BY 4.0 (the PDF and its figures are still not copied into the repository)",
+  "fullTextRead": true,
+  "readMethod": "Read tool PDF mode failed (no pdftoppm). Full text (11 pages) read through the macOS PDFKit text layer, which is clean for this paper; equations (1) and (2) and Fig. 4c were checked on page images (Fig. 4c at 7x magnification). PDF not in the repository.",
+  "topic": "review of a single-shot cross-correlator: noncollinear time-to-space encoding, fibre-array + PMT detection, artefacts",
+  "referenceNumbers": [
+    {"key": "eq1", "value": "temporal window T = W/c (n_T sin(alpha) + n_S sin(beta)); W transverse width of the beam overlap, alpha / beta inner angles of the PT / sampling beam to the correlation beam", "where": "p. 3, eq. (1)", "status": "read"},
+    {"key": "eq2", "value": "temporal resolution (time ambiguity) d_tau = L/c (n_T cos(alpha) - n_S cos(beta)); L crystal length", "where": "p. 4, eq. (2)", "status": "read"},
+    {"key": "angle", "value": "noncollinear angle about 40 deg, crystal 1-2 mm, actual temporal resolution about 1 ps", "where": "p. 2", "status": "read"},
+    {"key": "windows", "value": "large-aperture beta-BBO: 50 ps window (800 nm version), 70 ps (1053 nm version)", "where": "p. 9, Sec. 4.3", "status": "read; the beam width W is not given"},
+    {"key": "pplnWindow", "value": "about 45 ps/cm of beam width: PPLN, period 6 um, m = 1, sampling at 3.3 um; about 70 ps/cm with m = 3, 5", "where": "p. 4, Sec. 3.1", "status": "read; the PT wavelength is not stated in this paper (ref. [26]): 800 nm assumed -> UNVERIFIED"},
+    {"key": "dynamicRange", "value": "1e10 required for petawatt lasers; SSCC reaches 1e10 (up to 3e10, with fibre array + PMT); CCD-based SSCCs about 1e6", "where": "pp. 1-2, 5-6", "status": "read; detector specification, not an engine output"},
+    {"key": "channels", "value": "100 fibre channels, length increment 1-1.5 m, delay dt = dl n / c, above the PMT response of about 1 ns", "where": "p. 5", "status": "read; detector specification"},
+    {"key": "fig4c", "value": "three replicas (I, II, III) of the sampling pulse from multiple Fresnel reflections in a 1.1 mm BK7 plate, equally spaced; third replica at relative intensity about 1e-9 (text); read off the figure: spikes at about -11.8, -23.1, -33.8 ps with about 6e-4, 2.7e-6, 8e-10", "where": "p. 5 Fig. 4c, p. 6 text", "status": "text read; figure values read off at 7x (about +-0.15 decade, III sits in a background of 1e-9 noise)"},
+    {"key": "fig6a", "value": "artificial spikes at +-15 ps from stray reflection of the PT / sampling pulse between the crystal faces; delay 2 n_S L / c", "where": "p. 6-7, Fig. 6a", "status": "read; L of that crystal not given"},
+    {"key": "scattering", "value": "air scattering of the correlation signal 1e-8 to 1e-6 of the signal peak; stripe filter 1e-4 over 2 mm", "where": "p. 6", "status": "read; no engine model"},
+    {"key": "fig6b", "value": "PPLN trace pairs (alpha, beta) = (20, 44) and (4, 78) deg, L1 = 1 mm, L2 = 2 mm", "where": "p. 6 Fig. 6b caption", "status": "read; wavelengths not stated, not evaluated"}
+  ],
+  "assumptions": [
+    "The crossing angle is the angle between the two input beams inside the crystal; the engine's phase-matching calculator gives each beam's internal angle to the sum wave (alpha, beta). BBO type-I SFG, PT 800 nm + sampling 400 nm and PT 1053 nm + sampling 526.5 nm (SH sampling, p. 2), L = 1.5 mm. The largest angle the calculator can phase-match (34 deg at 800 nm, 40 deg at 1053 nm) is used for the paper's 'about 40 deg'.",
+    "PPLN: the PT wavelength is taken as 800 nm (Ti:sapphire; Fig. 3 caption names a 50 fs Ti:sapphire PT) with 3.3 um sampling; m = 3 on the 6 um grating is modelled as a first-order grating of 2 um.",
+    "Fig. 4c: 800 nm PT, 50 fs (assumption, as Fig. 3) and 200 fs (to remove the plate's dispersion from the level check) Gaussian; sampling = SH of the PT in 100 um BBO; the BK7 plate sits in the sampling arm after the SHG at normal incidence, mode overlap 1 (no wedge, no tilt), no coatings; collinear 1-D SFG (the engine's 1-D model has no time-to-space encoding).",
+    "The engine scans the PT delay (delay-scanning stand-in); the paper's single-shot mapping x -> tau is geometry (eq. (1)) and is not simulated.",
+    "The fibre array, PMT, attenuators, the stripe filter and air scattering are not modelled."
+  ]
+}
