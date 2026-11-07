@@ -73,3 +73,11 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
   at 1030 nm / 10 fs (`repro/pulse_carrier_snapped.py`), same root as the angular-dispersion finding.
 * Paper agents were stopped by the usage limit; partial folders exist in `docs/papers/` (kane, kida, kaur, schulte, liu, shimizu,
   michelson-1887, perot-1899, treacy). Resume them with SendMessage, then write the papers index.
+
+## Update: FROG papers done (kane-1993-frog, kida-2014-double-frog)
+* paper_check: Kane 25/25; Kida 13 checks, 0 hard failures, 2 soft. PDF figures not viewable (no pdftoppm); text layer read via pypdf.
+* **Engine findings:** no self-diffraction FROG gate, no XFROG / SFG-FROG instrument or retriever, no multi-trace (double / double-blind)
+  retrieval (all done in numpy in the paper scripts). `uf.retrieve("pcgpa", dict)` defaults to `kind="shg-frog"`: a polarisation-gate
+  trace without `kind="pg-frog"` retrieves wrongly with no warning (G 2 %, wrong centre wavelength) — should warn or infer.
+* Not an engine fault: Kida's 25.6 fs² substrate GDD vs ours 18.2 fs² (engine matches Malitson second derivative; paper's path
+  unspecified; `repro_1.py`); double-FROG removes direction ambiguity in 13/16 starts, not 6/6 (own numpy algorithm).
