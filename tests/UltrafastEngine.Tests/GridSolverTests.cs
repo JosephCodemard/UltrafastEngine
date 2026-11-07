@@ -176,5 +176,25 @@ namespace UltrafastEngine.Tests
             var big = Go(sys, Spec(pulse, O("physics", O("selfSteepening", false), "grid", O("n", 1 << 16, "windowS", 600e-12, "auto", false))));
             Assert.Less(TotalVariation(auto.Output, big.Output), 0.02, "the auto grid agrees with a 600 ps window");
         }
+
+        [Test(Reference = "self-steepening switch: with it off the pulse stays symmetric in time (centroid shift 0); with it on the centroid moves (Agrawal, Nonlinear Fiber Optics, sec. 4.4)", Tolerance = "off: centroid shift < 1 % of the on value")]
+        public void Fiber_ElementLevelSelfSteepeningFalse_SwitchesItOff_AndBulkToo()
+        {
+            // 20 fs, B = 8 at 1030 nm: the shock moves the temporal centroid by tens of attoseconds to femtoseconds
+            Func<JsonObject, JsonObject, double> shift = (element, physics) =>
+            {
+                var r = Go(Sys(element), Spec(O("shape", "gaussian", "centerWavelengthM", 1030e-9, "durationFwhmS", 20e-15, "peakPowerW", 1e5), O("physics", physics)));
+                return TemporalCentroid(r.Output) - TemporalCentroid(r.Input);
+            };
+            var fib = O("id", "f", "type", "fiber", "lengthM", 0.08, "betas", A(0.0), "gamma", 1e-3, "raman", "none");
+            var fibOff = O("id", "f", "type", "fiber", "lengthM", 0.08, "betas", A(0.0), "gamma", 1e-3, "raman", "none", "selfSteepening", false);
+            double on = shift(fib, O("selfSteepening", true)), runOff = shift(fib, O("selfSteepening", false)), elOff = shift(fibOff, O("selfSteepening", true));
+            Assert.Greater(Math.Abs(on), 1e-16, "self-steepening moves the pulse");
+            Assert.Less(Math.Abs(runOff), 0.01 * Math.Abs(on), "off by the run setting");
+            Assert.Close(runOff, elOff, 0, 1e-18, "off by the element's own switch");
+            Func<bool, JsonObject> bulk = ss => O("id", "b", "type", "bulk", "material", "FusedSilica", "lengthM", 1e-3, "n2", 3e-20, "beam", O("kind", "constant", "radiusM", 2e-6), "selfSteepening", ss);
+            double bulkOn = shift(bulk(true), O("selfSteepening", false)), bulkOff = shift(bulk(false), O("selfSteepening", true));
+            Assert.Greater(Math.Abs(bulkOn), 100 * Math.Abs(bulkOff), "bulk element switch (on in the element, off in the run, versus the reverse)");
+        }
     }
 }

@@ -960,7 +960,9 @@ namespace UltrafastEngine.Engine
                 med.RamanFraction = rr.Model.Json.GetDouble("fR", !double.IsNaN(MaterialLibrary.DefaultRamanFraction(rr.Model.Kind)) ? MaterialLibrary.DefaultRamanFraction(rr.Model.Kind) : med.RamanFraction);
                 if (med.Raman == null) med.RamanFraction = 0;
             }
-            var ssr = Find(c, e, "selfSteepening"); if (ssr != null) med.EnableSelfSteepening = ssr.RawValue.AsBool();
+            var ssr = Find(c, e, "selfSteepening");
+            if (ssr != null) med.EnableSelfSteepening = ssr.RawValue.AsBool();
+            else if (e.Json.Has("selfSteepening")) med.EnableSelfSteepening = e.Json.GetBool("selfSteepening", med.EnableSelfSteepening);   // the element's own switch (fibres pass theirs on)
             // time responses: global adds, element adds, and replace rules (which switch the built-in Kerr off)
             foreach (var r in c.Ov.FindAdditive("global", null, null, "timeResponse").Concat(c.Ov.FindAdditive("element", e.Id, e.Type, "timeResponse")))
             {
