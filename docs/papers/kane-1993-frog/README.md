@@ -1,11 +1,11 @@
 # Kane & Trebino 1993 -- frequency-resolved optical gating (FROG)
 
-Paper: D. J. Kane and R. Trebino, IEEE J. Quantum Electron. 29, 571 (1993), doi 10.1109/3.199311 (not open access).
-
-**Was the paper readable?** Text yes, figures no. The PDF's text layer was extracted (the PDF page renderer was not
+**Was the paper readable?** Text yes, figures no. The whole PDF's text layer (9 pages, including appendices A-C) was extracted with pypdf (the PDF page renderer was not
 available in this environment), so every sentence, equation description and appendix was read. The figures were not
 viewed: no number below is read off a graph; what the figures show (Figs. 5-11) is UNVERIFIED here. The fit
 coefficients of Eqs. (5)-(7) were taken from the text layer and may carry OCR errors.
+
+Paper: D. J. Kane and R. Trebino, IEEE J. Quantum Electron. 29, 571 (1993), doi 10.1109/3.199311 (not open access).
 
 ## What FROG is (for a reader who has not seen the paper)
 
@@ -43,11 +43,12 @@ quoted with its location. "Ours" is from the full tier.
 | SD trace: mean frequency slope / chirp rate | 4/3 (App. C: w = 3/4 a t) | 1.33333 | agrees |
 | PG trace: slope / chirp rate | 2/3 (App. C: w = 3/2 a t) | 0.66667 (numpy); 0.66667 (engine `frog` pg) | agrees |
 | SHG-FROG trace symmetric in delay | yes (Eq. B2) | asymmetry 0 (numpy), 3e-16 (engine) | agrees |
+| SHG-FROG trace of a pulse and of its time-reversed twin (GDD +/-6247 fs^2) | identical (App. B) | engine `frog` shg: max difference 1e-15; the PG traces differ by 0.45 of the peak | agrees |
 | SHG-FROG retrieval: direction of time | ambiguous (App. B) | PCGPA on the engine's SHG trace returns GDD = +6247 and -6247 fs^2 for different seeds (12 seeds) | agrees |
 | PG-FROG retrieval | no such ambiguity | GDD = +6246.6 fs^2 (true +6247.05), G = 7e-6 | agrees |
 | integral of the SD trace over frequency = third-order autocorrelation (p. 575) | identity | difference < 1e-15 | agrees |
 | third-order autocorrelation FWHM of the 200 fs pulse | not given (Fig. 9, UNVERIFIED) | 245.0 fs = sqrt(3/2) x 200 fs (analytic 244.95); engine PG marginal 245.2 fs | analytic check |
-| 3 mm BK-7, 25 GW/cm^2: B integral | "negligible spectral broadening" (p. 574, no number) | B = 0.255 rad (analytic from the engine's own peak intensity 0.252); spectral rms width +8 %, FWHM +13 % (engine and a numpy Kerr step agree to 3e-7) | see below |
+| 3 mm BK-7, 25 GW/cm^2: B integral | "negligible spectral broadening" (p. 574, no number) | B = 0.255 rad (2 pi/lambda n2 I L with the paper's 25 GW/cm^2 and the library n2 = 3.4e-20 m^2/W gives 0.258; the engine is 1.3 % lower because the chirped pulse disperses in the window); spectral rms width +8 %, FWHM +13 % (engine and a numpy Kerr step agree to 3e-7) | see below |
 | 3 mm BK-7: GDD at 620 nm | "negligible" (p. 574, no number) | 196 fs^2 (3 % FWHM change) | consistent |
 | fitted pulse (Eqs. 5-7): FWHM | "about 200 fs" (p. 575) | 204.3 fs (engine from spectrum + phase: 205.2 fs) | agrees (coefficients UNVERIFIED) |
 | fitted pulse: chirp-to-transform-limit | ~2 (p. 575) | 2.07 | agrees |
@@ -102,5 +103,10 @@ its spectrum with and without the fitted phase (right).
 * **Not reproduced:** the experimental trace and its fit residuals (no data), the 33 x 33 resampling and
   Fig. 11's spectra. The paper's own retrieval algorithm is announced as future work in the paper; the engine's PCGPA
   and ePIE are for SHG / PG and are used on those traces.
-* The checks in `checks.json` compare the engine with the paper's appendix laws and with analytic Gaussian results; the
-  tests in the BK-7 and fitted-pulse sections that rely on text-layer numbers are marked soft (`hard: false`).
+* The checks in `checks.json` compare the engine with the paper's appendix laws and with analytic Gaussian results.
+  The B integral and peak-intensity checks of the BK-7 window are hard (they use the paper's 25 GW/cm^2 and the
+  library n2); the fitted-pulse numbers that come from the text layer, and the random-seed sign check of the SHG
+  retrieval, are soft (`hard: false`).
+* **API pitfall found on the way:** `uf.retrieve("pcgpa", {dict from a pg instrument})` without `kind="pg-frog"` silently
+  runs an SHG retrieval (G = 2 %, centre wavelength 1.24 um instead of 620 nm). The dict path defaults to `shg-frog`; no
+  warning is given. With `kind="pg-frog"` G = 7e-6. Not changed here.

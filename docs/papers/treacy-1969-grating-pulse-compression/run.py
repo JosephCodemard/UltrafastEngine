@@ -83,7 +83,7 @@ class Pair:
         return self.inv_mu(bm) / self.w0 * 3 * (1 + self.lam / D * math.sin(GAMMA) - math.sin(GAMMA) ** 2) / (1 - self.x ** 2)
 
 
-def exact_phase_width(pr, g, t0, phi_in, n=1 << 15):
+def exact_phase_width(pr, g, t0, phi_in, n=1 << 13):
     """FWHM of the output of a Gaussian pulse (transform-limited FWHM t0, group-delay dispersion phi_in) through the pair at perpendicular
     separation g, with the exact phase: the integral of the exact group delay of eq. (4)/(7) over frequency, all orders."""
     sig = 2 * math.pi * 0.4413 / t0                         # FWHM of the intensity spectrum, rad/s
@@ -97,7 +97,11 @@ def exact_phase_width(pr, g, t0, phi_in, n=1 << 15):
     spec = amp * np.exp(1j * (phase + 0.5 * phi_in * dw ** 2))
     field = np.fft.fftshift(np.fft.ifft(np.fft.ifftshift(spec)))
     t = np.fft.fftshift(np.fft.fftfreq(n, d=step / (2 * math.pi)))
-    i = np.abs(field) ** 2
+    k = int(np.argmax(np.abs(field) ** 2))
+    half = np.abs(field[k]) ** 2 / 2
+    width = float(np.sum(np.abs(field) ** 2 > half)) * (t[1] - t[0])           # coarse width, to place a fine time grid
+    tf = t[k] + np.linspace(-1.2 * width, 1.2 * width, 1201)                     # the FFT's time step is too coarse for a 180 fs FWHM
+    i = np.abs(np.array([np.sum(spec * np.exp(-1j * dw * x)) for x in tf])) ** 2
     k = int(np.argmax(i))
     half = i[k] / 2
     lo = k
@@ -106,8 +110,8 @@ def exact_phase_width(pr, g, t0, phi_in, n=1 << 15):
     hi = k
     while i[hi] > half:
         hi += 1
-    tl_ = t[lo] + (half - i[lo]) * (t[lo + 1] - t[lo]) / (i[lo + 1] - i[lo])
-    th_ = t[hi - 1] + (half - i[hi - 1]) * (t[hi] - t[hi - 1]) / (i[hi] - i[hi - 1])
+    tl_ = tf[lo] + (half - i[lo]) * (tf[lo + 1] - tf[lo]) / (i[lo + 1] - i[lo])
+    th_ = tf[hi - 1] + (half - i[hi - 1]) * (tf[hi] - tf[hi - 1]) / (i[hi] - i[hi - 1])
     return th_ - tl_
 
 

@@ -144,11 +144,11 @@ def main():
     numbers["linearLeak"] = e0
 
     # ---- 2. engine vs the instantaneous-Kerr analytic law (the same Jones calculus), small dispersion -----------------------------
-    # 0.5 m of argon at 1 bar, B(linear) ~ a few rad: dispersion is ~ 9 fs2, negligible against T0^2 = 324 fs2
-    sysd = b.system("ner-plane", [{"id": "cell", "type": "bulk", "material": "Ar", "lengthM": 0.5, "beam": {"kind": "constant", "radiusM": 0.5e-3}}],
+    # 0.5 m of argon at 1 bar in a 0.3 mm beam: B(linear) up to ~ 10 rad, dispersion ~ 9 fs2 (negligible against T0^2 = 324 fs2)
+    sysd = b.system("ner-plane", [{"id": "cell", "type": "bulk", "material": "Ar", "lengthM": 0.5, "beam": {"kind": "constant", "radiusM": 0.3e-3}}],
                     materials={"Ar": b.material(gas=b.gas("Ar", 1.0, 293.15))})
     chk = []
-    for en in ([2e-5, 5e-5, 1e-4] if fast else [1e-5, 2e-5, 5e-5, 1e-4, 2e-4]):
+    for en in ([0.5e-3, 1e-3, 2e-3] if fast else [0.25e-3, 0.5e-3, 1e-3, 1.5e-3, 2e-3, 3e-3]):
         r = uf.run(sysd, spec(en, alpha, steepening=False))
         rl = uf.run(sysd, spec(en, alpha, linear=True, steepening=False))
         eff, _, _ = ner_efficiency(r, alpha)
@@ -173,7 +173,7 @@ def main():
     numbers["analyticBFor90degPeak_eps25"] = (math.pi / 2) * 3 / math.sin(2 * math.atan(0.25))
 
     # ---- 4. pressure scans, constant 1.45 mm beam ---------------------------------------------------------------------------------------
-    pr_axis = np.arange(0.05, 2.01, 0.05 if fast else 0.025)
+    pr_axis = np.arange(0.05, 3.01, 0.05 if fast else 0.025)
     scans = {}
     for eps in (0.25, 0.18, 0.15):
         scans[eps] = scan(eps, pr_axis)
@@ -209,13 +209,17 @@ def main():
     numbers["effWithLeak_eps18"] = eff
 
     # ---- 6. caustic reading (stated waist 450 um): B per bar and where the optimum falls ------------------------------------------------
-    pr_c = np.array([0.02, 0.05, 0.1, 0.2, 0.4] if fast else [0.01, 0.02, 0.03, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8])
+    pr_c = np.array([0.02, 0.05, 0.1, 0.2, 0.4, 0.6] if fast else [0.01, 0.02, 0.03, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8])
     sc = scan(0.25, pr_c, beam="caustic")
     e_c = np.array([s["eff"] for s in sc])
     numbers["bLinAt400mbar_caustic"] = float(np.interp(0.4, pr_c, [s["bLin"] for s in sc])) if pr_c[-1] >= 0.4 else float("nan")
     jc = int(np.argmax(e_c))
     numbers["pAtMaxEff_eps25_caustic_bar"] = float(pr_c[jc])
     numbers["maxEff_eps25_caustic"] = float(e_c[jc])
+    sc18 = scan(0.18, [0.42], beam="caustic")[0]
+    numbers["effAt420mbar_eps18_caustic"] = sc18["eff"]
+    numbers["bLinAt420mbar_caustic"] = sc18["bLin"]
+    numbers["ftlAt420mbarFs_eps18_caustic"] = sc18["ftlFs"]
 
     # ---- 7. XPW side numbers (engine has no anisotropic chi3: repro_2.py) ---------------------------------------------------------------
     # P/Pcr for BaF2 with a literature n2 (UNVERIFIED: not from the paper) at 1 mJ, 30 fs

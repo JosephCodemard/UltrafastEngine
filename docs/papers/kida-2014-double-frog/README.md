@@ -1,10 +1,10 @@
 # Kida et al. 2014 -- "double FROG" (SHG-FROG + XFROG analysed together)
 
-Paper: Y. Kida, Y. Nakano, K. Motoyoshi, T. Imasaka, Opt. Lett. 39, 3006 (2014), doi 10.1364/OL.39.003006 (not open access).
-
 **Was the paper readable?** Text yes (4 pages, text layer extracted; the PDF page renderer was unavailable), figures no.
 All numbers below come from the text. The retrieved intensities and phases of Figs. 4, 5, 7 and the traces of
 Fig. 3 were not seen: UNVERIFIED and not used.
+
+Paper: Y. Kida, Y. Nakano, K. Motoyoshi, T. Imasaka, Opt. Lett. 39, 3006 (2014), doi 10.1364/OL.39.003006 (not open access).
 
 ## The idea
 
@@ -78,7 +78,7 @@ Fraction of retrievals with both pulses in the right time direction (dotted: 50 
 ## What does not reproduce
 
 1. **Double FROG removing the ambiguity in every retrieval.** Ours removes it in 81 % (13 of 16) in the full tier, 4 of 6 in
-   the fast tier; the remaining starts stagnate in a wrong-direction solution. Not an engine issue: the algorithm is
+   the fast tier; the remaining starts stagnate in a wrong-direction solution. Not an engine issue, and therefore no engine reproduction exists to reduce it to: the algorithm is
    our numpy implementation of Fig. 6 with a 40 fs random-phase start, one projection step per trace, no tuning
    (the paper does not state its start or step details). Facts that support the paper's physical claim: without
    noise the correct solution reaches G = 0 while the stuck solutions stay at G = 0.0032 (so the three traces do
@@ -99,4 +99,6 @@ Fraction of retrievals with both pulses in the right time direction (dotted: 50 
   (ordering, ratios) are tested. `KIDA_NOISE` and `KIDA_ITERS` environment variables exist only for the sensitivity
   statements above (noise 0 and 1 %: right-direction fraction unchanged at 4 of 6 in the fast tier).
 * The XFROG delay range is the full circle of the grid, not the single signal at +tau the paper records.
+* **API pitfall found on the way** (also in the Kane README): `uf.retrieve("pcgpa", dict)` defaults to `shg-frog`; a PG trace
+  given as a dict without `kind="pg-frog"` is retrieved wrongly and silently.
 * UNVERIFIED (figures not seen): retrieved pulse shapes and phases, the double-FROG trace itself, the 50 s scan time effect.

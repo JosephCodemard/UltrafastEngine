@@ -37,3 +37,15 @@ agents must not edit C# or rebuild the engine while others run; engine bugs are 
 ## Environment
 `export ULTRAFAST_LIBRARY=$PWD/python/src/ultrafast/bin/hosted/UltrafastEngine.Native.dll PYTHONPATH=python/src ULTRAFAST_STRICT_OPTIONS=1 MPLBACKEND=Agg`
 and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.venv/bin/python python/tools/build_engine.py`.
+
+## Update: `media.py` and `crystals_chi2.py` done (agent report)
+* `media.py`: 231 checks (228 ok, 3 KNOWN, 0 FAIL); `crystals_chi2.py`: 174 checks, all ok. Not yet in `FAMILIES` of `run_all.py`.
+* **Engine findings for the owner**
+  1. KNOWN bug: pure SPM in a dispersion-free fibre at 2 µm, 10 fs, auto grid changes |A(t)|² by 6 % of peak at B = 3 and loses
+     energy (2e-5); at 1030 nm the change is 5e-4. The carrier-centred grid reaches ω ≤ 0 at 2 µm. Repro:
+     `tests/components/repro/fiber_spm_2um_10fs.py`.
+  2. Element-level `selfSteepening: false` on a fibre did not switch it off in one test; only `physics.selfSteepening` did (not chased).
+  3. At 10 fs the SPM phase deviates 4-6 mrad from γPL at 515 / 1030 nm, erratic with grid size (auto-grid sampling suspected).
+  4. A coarse D(λ) table (53 points) gives up to 0.8 % error in β2 near D = 0.
+  5. `own.gddS2` of a D(λ) fibre at 2 µm is 0.4 % from β2·L at `reportOmega0`.
+* Not tested: rotational revival (C# `GasTests`), bulk Raman gain, walk-off in a real run, depleted OPA, type-II SHG efficiency.
