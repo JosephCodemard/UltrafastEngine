@@ -98,12 +98,8 @@ namespace UltrafastEngine
         /// <summary>{"command": "retrieve", "method": "pcgpa" | "epie" | "dscan", "trace": path | {arrays}, "kind": "shg-frog",
         /// "fundamental": spectrum CSV (d-scan), "material", "instrument": name of the trace in a results file, "options": {...}, "output": dir,
         /// "energyJ": for the pulse}</summary>
-        public static JsonObject Retrieve(JsonObject r, string baseDirectory)
+        private static TraceData LoadTrace(JsonObject r, string kind, string baseDirectory)
         {
-            string method = r.GetString("method", "pcgpa");
-            if (string.Equals(method, "gerchbergSaxton", StringComparison.OrdinalIgnoreCase) || method == "gs")
-                return Retrieval.PhaseRetrieval.Command(r, Abs(r.GetString("trace"), baseDirectory), r.GetString("output") != null ? Abs(r.GetString("output"), baseDirectory) : null);
-            string kind = r.GetString("kind", method == "dscan" ? "dscan" : null);   // null: infer it from the data (see TraceData.KindGiven)
             TraceData t;
             var tv = r["trace"] ?? throw new JsonException("retrieve: \"trace\" is required");
             if (tv.Kind == JsonKind.String) t = TraceData.Load(Abs(tv.AsString(), baseDirectory), kind, r.GetString("instrument", null));
@@ -114,6 +110,51 @@ namespace UltrafastEngine
                 try { t = TraceData.Load(tmp, kind); } finally { File.Delete(tmp); }
             }
             if (kind != null) { t.Kind = kind; t.KindGiven = true; }
+            return t;
+        }
+
+        /// <summary>{"command": "retrieve", "method": "multiFrog", "traces": [{"trace": path | {arrays}, "kind": "shg-frog", "pulse": "ref", "gate": "ref" (xfrog)}, ...],
+        /// "options": {...}, "energyJ", "output": dir}: several traces sharing unknown pulses are retrieved together (docs/reference/retrieval.md).</summary>
+        private static JsonObject RetrieveMulti(JsonObject r, string baseDirectory)
+        {
+            var list = r["traces"] ?? throw new JsonException("retrieve multiFrog: \"traces\" (a list of {trace, kind, pulse, gate}) is required");
+            var terms = new List<MultiTraceTerm>();
+            foreach (var tv in list.AsArray())
+            {
+                var e = tv.AsObject();
+                string kind = e.GetString("kind", null);
+                var t = LoadTrace(e, kind, baseDirectory);
+                if (!t.KindGiven) throw new ArgumentException("retrieve multiFrog: every trace needs a \"kind\" (shg-frog, pg-frog, sd-frog, xfrog)");
+                terms.Add(new MultiTraceTerm { Data = t, Test = e.GetString("pulse", null), Gate = e.GetString("gate", null) });
+            }
+            var res = MultiTraceRetrieval.Run(terms, r.GetObject("options"));
+            var pulses = new JsonObject();
+            foreach (var kv in res.Pulses)
+            {
+                var po = kv.Value.ToJson(); po.Set("pulse", kv.Value.ToPulseJson(r.GetDouble("energyJ", 1e-9)));
+                pulses.Set(kv.Key, po);
+            }
+            var o = new JsonObject().Set("method", "multiFrog").Set("iterations", res.Iterations).Set("traceErrors", JsonValue.FromArray(res.TraceErrors))
+                .Set("error", res.TraceErrors.Max()).Set("pulses", pulses).Set("notes", JsonValue.FromArray(res.Notes));
+            var outDir = r.GetString("output");
+            if (outDir != null)
+            {
+                var d = Abs(outDir, baseDirectory); Directory.CreateDirectory(d);
+                foreach (var kv in res.Pulses) kv.Value.WriteSpectrumCsv(Path.Combine(d, "retrieved_spectrum_" + kv.Key + ".csv"));
+                File.WriteAllText(Path.Combine(d, "retrieval.json"), o.ToJson(true));
+            }
+            return o;
+        }
+
+        public static JsonObject Retrieve(JsonObject r, string baseDirectory)
+        {
+            string method = r.GetString("method", "pcgpa");
+            if (string.Equals(method, "gerchbergSaxton", StringComparison.OrdinalIgnoreCase) || method == "gs")
+                return Retrieval.PhaseRetrieval.Command(r, Abs(r.GetString("trace"), baseDirectory), r.GetString("output") != null ? Abs(r.GetString("output"), baseDirectory) : null);
+            if (string.Equals(method, "multiFrog", StringComparison.OrdinalIgnoreCase) || string.Equals(method, "doubleFrog", StringComparison.OrdinalIgnoreCase))
+                return RetrieveMulti(r, baseDirectory);
+            string kind = r.GetString("kind", method == "dscan" ? "dscan" : null);   // null: infer it from the data (see TraceData.KindGiven)
+            var t = LoadTrace(r, kind, baseDirectory);
             if (r.Has("material")) t.Material = r.GetString("material");
             var fcsv = r.GetString("fundamental");
             if (fcsv != null)
