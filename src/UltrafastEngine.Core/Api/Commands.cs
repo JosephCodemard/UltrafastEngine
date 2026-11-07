@@ -103,7 +103,7 @@ namespace UltrafastEngine
             string method = r.GetString("method", "pcgpa");
             if (string.Equals(method, "gerchbergSaxton", StringComparison.OrdinalIgnoreCase) || method == "gs")
                 return Retrieval.PhaseRetrieval.Command(r, Abs(r.GetString("trace"), baseDirectory), r.GetString("output") != null ? Abs(r.GetString("output"), baseDirectory) : null);
-            string kind = r.GetString("kind", method == "dscan" ? "dscan" : "shg-frog");
+            string kind = r.GetString("kind", method == "dscan" ? "dscan" : null);   // null: infer it from the data (see TraceData.KindGiven)
             TraceData t;
             var tv = r["trace"] ?? throw new JsonException("retrieve: \"trace\" is required");
             if (tv.Kind == JsonKind.String) t = TraceData.Load(Abs(tv.AsString(), baseDirectory), kind, r.GetString("instrument", null));
@@ -113,7 +113,7 @@ namespace UltrafastEngine
                 File.WriteAllText(tmp, tv.ToJson(false));
                 try { t = TraceData.Load(tmp, kind); } finally { File.Delete(tmp); }
             }
-            t.Kind = kind;
+            if (kind != null) { t.Kind = kind; t.KindGiven = true; }
             if (r.Has("material")) t.Material = r.GetString("material");
             var fcsv = r.GetString("fundamental");
             if (fcsv != null)

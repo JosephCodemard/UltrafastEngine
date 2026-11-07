@@ -77,10 +77,14 @@ namespace UltrafastEngine.Schema
                 .Num("shgAcceptanceFwhmM", "m", "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited", "0")
                 .Int("acceptancePoints", "Grid of the finite-acceptance computation", "512")
                 .Int("maxN", "Grid cap for the computation", "65536"));
-            add(new ComponentSpec("instrument", "frog", "SHG or PG FROG trace.").DocAt(D + "frog")
-                .Enum("type", new[] { "shg", "pg" }, "FROG geometry", "shg").Int("points", "Delay and frequency points", "256")
+            add(new ComponentSpec("instrument", "frog", "SHG, PG or self-diffraction (SD) FROG trace.").DocAt(D + "frog")
+                .Enum("type", new[] { "shg", "pg", "sd" }, "FROG geometry: shg (E E), pg (E |E|^2), sd (E^2 E*)", "shg").Int("points", "Delay and frequency points", "256")
                 .Num("spectralResolutionM", "m", "Spectrometer resolution (Gaussian FWHM at the signal wavelength)", "0")
                 .Num("shgAcceptanceFwhmM", "m", "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited", "0"));
+            add(new ComponentSpec("instrument", "xfrog", "Cross-correlation FROG (sum-frequency, SFG-FROG): the pulse gated by a known reference pulse.").Alias("sfgFrog").DocAt(D + "frog")
+                .P("reference", ParamType.Any, "", "The known gate pulse, as a run-spec pulse object (shape, centerWavelengthM, durationFwhmS, gddS2, ...); any carrier. Required")
+                .Int("points", "Delay and frequency points", "256")
+                .Num("spectralResolutionM", "m", "Spectrometer resolution (Gaussian FWHM at the signal wavelength)", "0"));
             add(new ComponentSpec("instrument", "dscan", "Dispersion scan: SHG spectrum vs glass insertion or GDD.").DocAt(D + "dscan")
                 .Str("material", "Wedge material (with insertionM)").Arr("insertionM", "m", "[min, max] insertion").Arr("gddRangeS2", "s^2", "[min, max] GDD (alternative)")
                 .Int("steps", "Scan steps", "101")

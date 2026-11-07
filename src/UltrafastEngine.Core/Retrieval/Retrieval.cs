@@ -14,8 +14,15 @@ namespace UltrafastEngine.Retrieval
     /// <summary>A measured (or simulated) trace to retrieve a pulse from (docs/reference/retrieval.md).</summary>
     public sealed class TraceData
     {
-        /// <summary>"shg-frog", "pg-frog" or "dscan".</summary>
+        /// <summary>"shg-frog", "pg-frog", "sd-frog" (self-diffraction), "xfrog" (known reference gate) or "dscan".</summary>
         public string Kind { get; set; } = "shg-frog";
+        /// <summary>False when the kind was neither given nor found in the data (the FROG retrieval then checks the trace's symmetry
+        /// before assuming SHG).</summary>
+        public bool KindGiven { get; set; } = true;
+        /// <summary>XFROG: the known reference (gate) pulse: time axis (s), complex envelope about <see cref="ReferenceOmega0"/>.</summary>
+        public double[] ReferenceTime { get; set; }
+        public Complex[] ReferenceField { get; set; }
+        public double ReferenceOmega0 { get; set; } = double.NaN;
         /// <summary>Row axis: delays (s, FROG) or glass insertions (m) / added GDD (s^2) (d-scan).</summary>
         public double[] Rows { get; set; }
         /// <summary>Column axis: absolute angular frequency of the signal (rad/s).</summary>
@@ -35,9 +42,20 @@ namespace UltrafastEngine.Retrieval
         public static TraceData FromInstrument(Results.RunResult r, string instrument)
         {
             var o = r.Instruments.FirstOrDefault(i => string.Equals(i.Name, instrument, StringComparison.OrdinalIgnoreCase)) ?? throw new ArgumentException("no instrument '" + instrument + "' in the result");
-            double[] A(string suffix) => o.Arrays.FirstOrDefault(a => a.Name.EndsWith("_" + suffix))?.Data;
-            if (o.Kind == "frog")
-                return new TraceData { Kind = "shg-frog", Rows = A("delay_s"), Omega = A("omega_rad_s"), Trace = A("trace") };
+            double[] A(string suffix) => o.Arrays.FirstOrDefault(a => a.Name == Results.RunResult.Sanitize(o.Name) + "_" + suffix)?.Data ?? o.Arrays.FirstOrDefault(a => a.Name.EndsWith("_" + suffix))?.Data;
+            if (o.Kind == "frog" || o.Kind == "xfrog")
+            {
+                string ft = o.Values.GetString("frogType", "shg");
+                var t = new TraceData { Kind = ft == "xfrog" ? "xfrog" : ft + "-frog", Rows = A("delay_s"), Omega = A("omega_rad_s"), Trace = A("trace") };
+                if (t.Kind == "xfrog")
+                {
+                    t.ReferenceTime = A("reference_time_s");
+                    var re = A("reference_field_re"); var im = A("reference_field_im");
+                    t.ReferenceField = re.Select((v, i) => new Complex(v, im[i])).ToArray();
+                    t.ReferenceOmega0 = o.Values.GetDouble("referenceOmegaRadS", double.NaN);
+                }
+                return t;
+            }
             if (o.Kind == "dscan")
             {
                 var wl = A("shg_wavelength_m");
@@ -83,7 +101,25 @@ namespace UltrafastEngine.Retrieval
                 }
                 return null;
             }
-            var t = new TraceData { Kind = kind ?? "shg-frog" };
+            var t = new TraceData { Kind = kind ?? "shg-frog", KindGiven = kind != null };
+            if (kind == null && path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) && JsonValue.ParseFile(path).AsObject().GetString("kind", null) is string jk) { t.Kind = jk; t.KindGiven = true; }
+            if (kind == null && !t.KindGiven)
+            {
+                // a results folder: summary.json next to result.npz records the frog type of each instrument
+                string sj = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".", "summary.json");
+                if (File.Exists(sj) && prefix != "")
+                    try
+                    {
+                        foreach (var ins in JsonValue.ParseFile(sj).AsObject()["instruments"].AsArray())
+                        {
+                            var io = ins.AsObject();
+                            if (!string.Equals(Results.RunResult.Sanitize(io.GetString("name", "")), prefix, StringComparison.OrdinalIgnoreCase)) continue;
+                            string ft = io["values"]?.AsObject().GetString("frogType", null);
+                            if (ft != null) { t.Kind = ft == "xfrog" ? "xfrog" : ft + "-frog"; t.KindGiven = true; }
+                        }
+                    }
+                    catch (Exception) { }
+            }
             t.Rows = Get("delay_s", "insertion_m", "gdd_s2") ?? throw new FormatException(path + ": no row axis (delay_s, insertion_m or gdd_s2)");
             if (Get("insertion_m") == null && Get("gdd_s2") != null) t.Material = "gdd";
             var om = Get("omega_rad_s");
@@ -92,6 +128,8 @@ namespace UltrafastEngine.Retrieval
             t.Trace = (traceKey != null ? arrays[traceKey].Data : null) ?? throw new FormatException(path + ": no trace");
             if (t.Trace.Length != t.Rows.Length * t.Omega.Length)
                 throw new FormatException(string.Format(CultureInfo.InvariantCulture, "{0}: trace has {1} values, but the axes give {2} rows x {3} columns", path, t.Trace.Length, t.Rows.Length, t.Omega.Length));
+            var rt = Get("reference_time_s"); var rre = Get("reference_field_re"); var rim = Get("reference_field_im"); var rw = Get("referenceOmegaRadS", "reference_omega_rad_s");
+            if (rt != null && rre != null && rim != null && rw != null) { t.ReferenceTime = rt; t.ReferenceField = rre.Select((v, i) => new Complex(v, rim[i])).ToArray(); t.ReferenceOmega0 = rw[0]; }
             var fw = Get("fundamental_wavelength_m"); var fi = Get("fundamental_intensity");
             if (fw != null && fi != null) { t.FundamentalOmega = fw.Select(l => 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / l).ToArray(); t.FundamentalIntensity = fi.Select((v, i) => v * fw[i] * fw[i]).ToArray(); }
             return t;
@@ -206,13 +244,48 @@ namespace UltrafastEngine.Retrieval
     {
         public abstract string Name { get; }
         public abstract string Description { get; }
-        public string[] TraceKinds => new[] { "shg-frog", "pg-frog" };
+        public string[] TraceKinds => new[] { "shg-frog", "pg-frog", "sd-frog", "xfrog" };
 
         protected int N; protected double Dt; protected FrequencyGrid G; protected double[] Imeas; protected bool Pg; protected double Wc;
+        /// <summary>The gate: "shg" (E E), "pg" (E |E|^2), "sd" (E^2 E*) or "x" (E R, R a known reference pulse).</summary>
+        protected string Gate = "shg";
+        protected Complex[] Ref;      // XFROG: the reference field on the retrieval time grid
+        protected double WRef;
+
+        /// <summary>The gate geometry named by a trace kind; throws for a kind that is not a FROG.</summary>
+        public static string GateOf(string kind)
+        {
+            switch (kind)
+            {
+                case "shg-frog": return "shg";
+                case "pg-frog": return "pg";
+                case "sd-frog": return "sd";
+                case "xfrog": return "x";
+                default: throw new ArgumentException("FROG retrieval: trace kind \"" + kind + "\" is not a FROG (shg-frog, pg-frog, sd-frog, xfrog).");
+            }
+        }
+
+        /// <summary>Signal carrier -> carrier of the unknown pulse: SHG halves it, XFROG subtracts the reference, PG and SD keep it.</summary>
+        public static double PulseCarrier(string gate, double wSignal, double wRef) => gate == "shg" ? wSignal / 2 : gate == "x" ? wSignal - wRef : wSignal;
+
+        /// <summary>Complex envelope of the reference on the retrieval time grid (linear interpolation, zero outside).</summary>
+        protected static Complex[] ResampleReference(TraceData d, double[] time)
+        {
+            if (d.ReferenceField == null || d.ReferenceTime == null || double.IsNaN(d.ReferenceOmega0))
+                throw new ArgumentException("XFROG retrieval needs the reference pulse (ReferenceTime, ReferenceField, ReferenceOmega0; an xfrog instrument result carries them).");
+            var rt = d.ReferenceTime; var rf = d.ReferenceField; var r = new Complex[time.Length];
+            for (int i = 0; i < time.Length; i++)
+            {
+                double t = time[i]; if (t < rt[0] || t > rt[rt.Length - 1]) continue;
+                double f = (t - rt[0]) / (rt[rt.Length - 1] - rt[0]) * (rt.Length - 1); int k = Math.Min(rt.Length - 2, (int)Math.Floor(f)); double u = f - k;
+                r[i] = rf[k] * (1 - u) + rf[k + 1] * u;
+            }
+            return r;
+        }
 
         protected void Setup(TraceData d, JsonObject o)
         {
-            Pg = d.Kind == "pg-frog";
+            Gate = GateOf(d.Kind); Pg = Gate == "pg";
             N = o.GetInt("points", 0);
             if (N <= 0) { N = 1; while (N < Math.Max(d.RowCount, 64)) N <<= 1; N = Math.Min(N, 512); }
             // delay step from the measured delays (FROG grids: dt dw = 2 pi / N)
@@ -222,13 +295,30 @@ namespace UltrafastEngine.Retrieval
             double sw = 0, s = 0;
             for (int i = 0; i < d.RowCount; i++) for (int j = 0; j < d.ColumnCount; j++) { double v = d.Trace[i * d.ColumnCount + j]; s += v * d.Omega[j]; sw += v; }
             Wc = s / sw;
-            double w0 = double.IsNaN(d.Omega0) ? (Pg ? Wc : Wc / 2) : d.Omega0;
+            WRef = Gate == "x" ? d.ReferenceOmega0 : 0;
+            double w0 = double.IsNaN(d.Omega0) ? PulseCarrier(Gate, Wc, WRef) : d.Omega0;
             G = FrequencyGrid.Create(N, Dt, w0);
+            if (Gate == "x") Ref = ResampleReference(d, G.Time);
             Imeas = new double[N * N];
             for (int r = 0; r < N; r++)
                 for (int k = 0; k < N; k++)
                     Imeas[r * N + k] = Math.Max(0, d.At(G.Time[r], Wc + G.OmegaOffset[k]));
             double mx = Imeas.Max(); if (mx > 0) for (int i = 0; i < Imeas.Length; i++) Imeas[i] /= mx;
+            CheckKind(d);
+        }
+
+        /// <summary>An SHG-FROG trace is exactly symmetric in the delay; a trace that is not cannot be SHG. If the kind was not given and the
+        /// trace is asymmetric the retrieval stops (it would silently return a wrong pulse); if SHG was named, a note warns.</summary>
+        protected double SymmetryNote;
+        private void CheckKind(TraceData d)
+        {
+            if (Gate != "shg") return;
+            double num = 0, den = 0;
+            for (int r = 1; r < N; r++) for (int k = 0; k < N; k++) { double a = Imeas[r * N + k], b = Imeas[(N - r) * N + k]; num += Math.Abs(a - b); den += a + b; }
+            SymmetryNote = den > 0 ? num / den : 0;
+            if (SymmetryNote > 0.1 && !d.KindGiven)
+                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture,
+                    "FROG retrieval: the trace kind was not given and the trace is not symmetric in the delay (asymmetry {0:P0}), so it is not an SHG-FROG. Name the kind (\"pg-frog\", \"sd-frog\", \"xfrog\") or pass an instrument result that records it.", SymmetryNote));
         }
 
         /// <summary>Signal field E_sig(t_i, tau_r) = E(t_i) g(t_i - tau_r) (circular shifts on the N-point grid).</summary>
@@ -236,7 +326,17 @@ namespace UltrafastEngine.Retrieval
         {
             int s = r - N / 2;
             var row = new Complex[N];
-            for (int i = 0; i < N; i++) { var gte = e[((i - s) % N + N) % N]; row[i] = e[i] * (Pg ? (Complex)(gte.Magnitude * gte.Magnitude) : gte); }
+            for (int i = 0; i < N; i++)
+            {
+                int j = ((i - s) % N + N) % N;
+                switch (Gate)
+                {
+                    case "pg": row[i] = e[i] * (Complex)(e[j].Magnitude * e[j].Magnitude); break;
+                    case "sd": row[i] = e[i] * e[i] * Complex.Conjugate(e[j]); break;
+                    case "x": row[i] = e[i] * Ref[j]; break;
+                    default: row[i] = e[i] * e[j]; break;
+                }
+            }
             return row;
         }
 
@@ -277,7 +377,7 @@ namespace UltrafastEngine.Retrieval
         {
             // centre the pulse (FROG has no absolute time) and fix the global phase
             var p = e.Select(z => z.Magnitude * z.Magnitude).ToArray();
-            int ip = Array.IndexOf(p, p.Max()), sh = N / 2 - ip;
+            int ip = Array.IndexOf(p, p.Max()), sh = Gate == "x" ? 0 : N / 2 - ip;   // XFROG: the reference fixes the time origin
             var c = new Complex[N];
             for (int i = 0; i < N; i++) c[((i + sh) % N + N) % N] = e[i];
             var ph = c[N / 2].Magnitude > 0 ? Complex.FromPolarCoordinates(1, -c[N / 2].Phase) : Complex.One;
@@ -301,7 +401,9 @@ namespace UltrafastEngine.Retrieval
                     out2[r * d.ColumnCount + k] = (tr[ir * N + ik] * (1 - ur) * (1 - uk) + tr[(ir + 1) * N + ik] * ur * (1 - uk) + tr[ir * N + ik + 1] * (1 - ur) * uk + tr[(ir + 1) * N + ik + 1] * ur * uk) / mx;
                 }
             res.RetrievedTrace = out2;
-            if (!Pg) res.Notes.Add("SHG-FROG cannot tell E(t) from E*(-t): the sign of the spectral phase (the direction of the chirp) is ambiguous");
+            if (Gate == "shg") res.Notes.Add("SHG-FROG cannot tell E(t) from E*(-t): the sign of the spectral phase (the direction of the chirp) is ambiguous");
+            if (Gate == "shg" && SymmetryNote > 0.1) res.Notes.Add(string.Format(CultureInfo.InvariantCulture, "WARNING: the trace is not symmetric in the delay (asymmetry {0:P0}), which an SHG-FROG trace must be: check that the kind is right (pg-frog, sd-frog, xfrog)", SymmetryNote));
+            if (!d.KindGiven) res.Notes.Add("trace kind not given: assumed shg-frog (the trace is symmetric in the delay)");
             res.Notes.Add(string.Format(CultureInfo.InvariantCulture, "{0} x {0} grid, dt = {1:G4} fs, FROG error G = {2:G3}", N, Dt * 1e15, err));
             return res;
         }
@@ -316,6 +418,31 @@ namespace UltrafastEngine.Retrieval
     /// </summary>
     public sealed class PcgpaRetrieval : FrogRetrievalBase
     {
+        /// <summary>One step of the principal-component update from the outer product O[i, j] ~ a(i) b(j) (rows: time, columns: delayed time).
+        /// SHG, PG: E is the left vector, E &lt;- O O^H E (power iteration; the gate follows E). SD: O = E^2 (x) E*, so E is the RIGHT
+        /// singular vector's conjugate: E &lt;- O^H O E. XFROG: the gate R is known, E = O conj(R) / sum |R|^2 (least squares).</summary>
+        private Complex[] UpdateFromOuterProduct(Complex[] O, Complex[] e)
+        {
+            var en = new Complex[N];
+            if (Gate == "x")
+            {
+                double r2 = Ref.Sum(z => z.Real * z.Real + z.Imaginary * z.Imaginary);
+                for (int i = 0; i < N; i++) { Complex acc = 0; for (int j = 0; j < N; j++) acc += O[i * N + j] * Complex.Conjugate(Ref[j]); en[i] = acc / Math.Max(r2, 1e-300); }
+                return en;
+            }
+            if (Gate == "sd")
+            {
+                var u = new Complex[N];   // O E = a (b . E), b = E*
+                for (int i = 0; i < N; i++) { Complex acc = 0; for (int j = 0; j < N; j++) acc += O[i * N + j] * e[j]; u[i] = acc; }
+                for (int j = 0; j < N; j++) { Complex acc = 0; for (int i = 0; i < N; i++) acc += Complex.Conjugate(O[i * N + j]) * u[i]; en[j] = acc; }   // O^H O E ~ conj(b) = E
+                return en;
+            }
+            var t = new Complex[N];
+            for (int j = 0; j < N; j++) { Complex acc = 0; for (int i = 0; i < N; i++) acc += Complex.Conjugate(O[i * N + j]) * e[i]; t[j] = acc; }
+            for (int i = 0; i < N; i++) { Complex acc = 0; for (int j = 0; j < N; j++) acc += O[i * N + j] * t[j]; en[i] = acc; }
+            return en;
+        }
+
         public override string Name => "pcgpa";
         public override string Description => "FROG: principal-component generalised projections (SHG, PG)";
 
@@ -341,11 +468,7 @@ namespace UltrafastEngine.Retrieval
                     int sh = r - N / 2;
                     for (int i = 0; i < N; i++) O[i * N + ((i - sh) % N + N) % N] = s[i];
                 }
-                // power iteration: E <- O O^H E  (gate: for SHG the same field; PG: |E|^2 gate follows E)
-                var t = new Complex[N];
-                for (int j = 0; j < N; j++) { Complex acc = 0; for (int i = 0; i < N; i++) acc += Complex.Conjugate(O[i * N + j]) * e[i]; t[j] = acc; }
-                var en = new Complex[N];
-                for (int i = 0; i < N; i++) { Complex acc = 0; for (int j = 0; j < N; j++) acc += O[i * N + j] * t[j]; en[i] = acc; }
+                var en = UpdateFromOuterProduct(O, e);
                 double nrm = Math.Sqrt(en.Sum(z => z.Real * z.Real + z.Imaginary * z.Imaginary));
                 if (nrm == 0) break;
                 for (int i = 0; i < N; i++) en[i] /= nrm;
@@ -385,7 +508,11 @@ namespace UltrafastEngine.Retrieval
                 {
                     int s = r - N / 2;
                     var gate = new Complex[N];
-                    for (int i = 0; i < N; i++) { var g = e[((i - s) % N + N) % N]; gate[i] = Pg ? (Complex)(g.Magnitude * g.Magnitude) : g; }
+                    for (int i = 0; i < N; i++)
+                    {
+                        int j = ((i - s) % N + N) % N;
+                        gate[i] = Gate == "pg" ? (Complex)(e[j].Magnitude * e[j].Magnitude) : Gate == "sd" ? e[i] * Complex.Conjugate(e[j]) : Gate == "x" ? Ref[j] : e[j];
+                    }
                     var psi = new Complex[N]; for (int i = 0; i < N; i++) psi[i] = e[i] * gate[i];
                     var f = SpectralTransform.TimeToFreq(psi);
                     for (int k = 0; k < N; k++) { double m = Math.Sqrt(Imeas[r * N + k]), am = f[k].Magnitude; f[k] = am > 0 ? f[k] * (m / am) : m; }
@@ -396,8 +523,10 @@ namespace UltrafastEngine.Retrieval
                     for (int i = 0; i < N; i++)
                     {
                         var dlt = psi2[i] - psi[i];
-                        en[i] += alpha * Complex.Conjugate(gate[i]) / gmax * dlt;                       // object update
-                        if (!Pg) en[((i - s) % N + N) % N] += alpha * Complex.Conjugate(e[i]) / emax * dlt;  // the gate is the pulse itself (SHG)
+                        int j = ((i - s) % N + N) % N;
+                        en[i] += alpha * Complex.Conjugate(gate[i]) / gmax * dlt;                       // object update (SD: psi = E (E E*), the gate holds the other factors)
+                        if (Gate == "shg") en[j] += alpha * Complex.Conjugate(e[i]) / emax * dlt;       // the gate is the pulse itself (SHG)
+                        else if (Gate == "sd") en[j] += alpha * (e[i] * e[i]) * Complex.Conjugate(dlt) / (emax * emax);   // psi depends on E*(j) with coefficient E(i)^2
                     }
                     e = en;
                 }

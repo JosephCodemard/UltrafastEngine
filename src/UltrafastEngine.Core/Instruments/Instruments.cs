@@ -103,6 +103,8 @@ namespace UltrafastEngine.Instruments
             { "photodiode", s => new Scope() },
             { "autocorrelator", s => new Autocorrelator() },
             { "frog", s => new Frog() },
+            { "xfrog", s => new Frog("xfrog") },
+            { "sfgFrog", s => new Frog("xfrog") },
             { "dscan", s => new DScan() },
             { "contrast", s => new ContrastMeter() },
             { "crossCorrelator", s => new CrossCorrelator() },
@@ -475,15 +477,23 @@ namespace UltrafastEngine.Instruments
         }
     }
 
-    /// <summary>FROG trace: "type": "shg" (default) or "pg"; "points" (delay and frequency, default 256).
-    /// I(w, tau) = |int E(t) G(t - tau) e^{i w t} dt|^2 with G = E (SHG) or |E|^2 (PG).</summary>
+    /// <summary>FROG trace: "type": "shg" (default), "pg" (polarisation gate) or "sd" (self-diffraction); "points" (delay and frequency,
+    /// default 256). I(w, tau) = |int E_sig(t, tau) e^{i w t} dt|^2 with E_sig = E(t) E(t - tau) (SHG), E(t) |E(t - tau)|^2 (PG) or
+    /// E(t)^2 E*(t - tau) (SD; Kane, Trebino, Opt. Lett. 18, 823 (1993)).
+    /// The <c>xfrog</c> kind (alias <c>sfgFrog</c>) gates with a KNOWN reference pulse ("reference": a pulse object as in the run spec, any
+    /// carrier): E_sig = E(t) R(t - tau) at the sum frequency w + w_ref (cross-correlation FROG, Linden et al., Appl. Phys. B 1999).
+    /// The reading records its type ("frogType") and, for XFROG, the reference field, so a retrieval needs no further input.</summary>
     public sealed class Frog : IInstrument
     {
-        public string Kind => "frog";
+        private readonly string _kind;
+        public Frog(string kind = "frog") { _kind = kind; }
+        public string Kind => _kind;
         public void Measure(InstrumentContext ctx, InstrumentOutput o)
         {
             var s = ctx.Spec;
-            string type = s.GetString("type", "shg").ToLowerInvariant();
+            bool xf = _kind == "xfrog";
+            string type = xf ? "x" : s.GetString("type", "shg").ToLowerInvariant();
+            if (type != "shg" && type != "pg" && type != "sd" && type != "x") throw new InvalidOperationException("frog: type must be \"shg\", \"pg\" or \"sd\" (got \"" + type + "\").");
             int m = s.GetInt("points", 256);
             var p = Tools.Compact(ctx.Pulse, 1 << 14, out var note, 2.0);
             if (note != null) o.Notes.Add(note);
@@ -499,16 +509,36 @@ namespace UltrafastEngine.Instruments
                 if (k < 0 || k >= g0.N - 1) continue;
                 e[i] = (a0[k] * (1 - u) + a0[k + 1] * u) + (b0[k] * (1 - u) + b0[k + 1] * u) * 0; // x polarisation (FROG uses one polarisation)
             }
-            var trace = Trace(e, type, m);
+            Complex[] refField = null; double wRef = 0;
+            if (xf)
+            {
+                var rj = s.GetObject("reference") ?? throw new InvalidOperationException("xfrog: \"reference\" (the known gate pulse, as a run-spec pulse object) is required.");
+                if (!rj.Has("energyJ") && !rj.Has("averagePowerW") && !rj.Has("peakPowerW")) { rj = (JsonObject)JsonValue.Parse(rj.ToJson(false)); rj.Set("energyJ", 1e-9); }
+                var rs = PulseSpec.FromJson(rj, null, "xfrog.reference");
+                wRef = 2 * Math.PI * Tools.C / rs.ResolveCenterWavelengthM();
+                var rg = FrequencyGrid.Create(m, dt, wRef);
+                refField = rs.Build(rg, false).TemporalAx();
+            }
+            var trace = Trace(e, type, m, refField);
             var delays = g.Time.ToArray();
-            double wc = type == "shg" ? 2 * g.OmegaCenter : g.OmegaCenter;
+            double wc = type == "shg" ? 2 * g.OmegaCenter : type == "x" ? g.OmegaCenter + wRef : g.OmegaCenter;
             var omg = g.OmegaOffset.Select(x => x + wc).ToArray();
             ApplySpectralResponse(trace, m, m, omg, s, type == "shg", o, "spectralResolutionM");
             double mx = trace.Max(); if (mx > 0) for (int i = 0; i < trace.Length; i++) trace[i] /= mx;
             o.Add("delay_s", delays, "s", "delay axis (rows)");
             o.Add("omega_rad_s", omg, "rad/s", "signal angular frequency (columns)");
             o.Add("wavelength_m", omg.Select(x => x > 0 ? 2 * Math.PI * Tools.C / x : double.NaN).ToArray(), "m", "signal wavelength (columns)");
-            o.Add("trace", trace, "norm.", (type == "shg" ? "SHG" : "PG") + "-FROG trace [delay, frequency]", m, m);
+            string label = type == "shg" ? "SHG" : type == "pg" ? "PG" : type == "sd" ? "SD" : "XFROG (sum frequency)";
+            o.Add("trace", trace, "norm.", label + "-FROG trace [delay, frequency]", m, m);
+            if (xf)
+            {
+                o.Add("reference_time_s", delays, "s", "time axis of the reference field");
+                o.Add("reference_field_re", refField.Select(z => z.Real).ToArray(), "sqrt(W)", "reference field envelope, real part (about reference_omega_rad_s)");
+                o.Add("reference_field_im", refField.Select(z => z.Imaginary).ToArray(), "sqrt(W)", "reference field envelope, imaginary part");
+                o.Add("reference_omega_rad_s", new[] { wRef }, "rad/s", "carrier of the reference pulse");
+                Tools.Put(o, "referenceOmegaRadS", wRef);
+            }
+            o.Values.Set("frogType", xf ? "xfrog" : type);
             // marginals
             var dm = new double[m]; var fm = new double[m];
             for (int d = 0; d < m; d++) for (int k = 0; k < m; k++) { dm[d] += trace[d * m + k]; fm[k] += trace[d * m + k]; }
@@ -518,7 +548,7 @@ namespace UltrafastEngine.Instruments
         }
 
         /// <summary>The FROG signal |FT[E(t) G(t - tau)]|^2 on an m x m grid (rows: delay, columns: frequency offset).</summary>
-        internal static double[] Trace(Complex[] e, string type, int m)
+        internal static double[] Trace(Complex[] e, string type, int m, Complex[] reference = null)
         {
             var trace = new double[m * m];
             var row = new Complex[m];
@@ -528,8 +558,14 @@ namespace UltrafastEngine.Instruments
                 for (int i = 0; i < m; i++)
                 {
                     int j = i - shift;
-                    Complex gate = (j >= 0 && j < m) ? (type == "pg" ? (Complex)(e[j].Magnitude * e[j].Magnitude) : e[j]) : Complex.Zero;
-                    row[i] = e[i] * gate;
+                    if (j < 0 || j >= m) { row[i] = Complex.Zero; continue; }
+                    switch (type)
+                    {
+                        case "pg": row[i] = e[i] * (Complex)(e[j].Magnitude * e[j].Magnitude); break;
+                        case "sd": row[i] = e[i] * e[i] * Complex.Conjugate(e[j]); break;
+                        case "x": row[i] = e[i] * reference[j]; break;
+                        default: row[i] = e[i] * e[j]; break;
+                    }
                 }
                 var f = SpectralTransform.TimeToFreq(row);
                 for (int k = 0; k < m; k++) trace[d * m + k] = f[k].Real * f[k].Real + f[k].Imaginary * f[k].Imaginary;
