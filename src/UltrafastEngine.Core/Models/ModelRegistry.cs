@@ -183,26 +183,27 @@ namespace UltrafastEngine.Models
             IDelayedResponse Split(IDelayedResponse h, ModelSpec s, double def)
             {
                 double b = s.GetDouble("anisotropicFraction", def);
-                return b > 0 && h != null ? new AnisotropicSplitResponse(h, b) : h;
+                if (double.IsNaN(b)) return h;   // linAgrawal without the key keeps its own fa / fb / fc split
+                return b != 0 && h != null ? new AnisotropicSplitResponse(h, b) : h;
             }
             r.Register<IDelayedResponse>("delayedResponse", "silica", (s, _) => Split(new DampedOscillatorResponse(12.2e-15, 32e-15), s, 0.25));
             r.Register<IDelayedResponse>("delayedResponse", "blowWood", (s, _) => Split(new DampedOscillatorResponse(12.2e-15, 32e-15), s, 0.25));
             r.Register<IDelayedResponse>("delayedResponse", "linAgrawal", (s, _) =>
             {
                 var la = new LinAgrawalRamanResponse(s.GetDouble("tau1", 12.2e-15), s.GetDouble("tau2", 32e-15), s.GetDouble("taub", 96e-15), s.GetDouble("fa", 0.75), s.GetDouble("fb", 0.21), s.GetDouble("fc", 0.04));
-                return s.Json.Has("anisotropicFraction") ? (IDelayedResponse)new AnisotropicSplitResponse(la, s.GetDouble("anisotropicFraction", 0.25)) : la;
+                return Split(la, s, double.NaN);
             });
             r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => Split(new HollenbeckCantrellRamanResponse(), s, 0.25));
             r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => Split(new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")), s, 0));
             r.Register<IDelayedResponse>("delayedResponse", "expression", (s, _) =>
             {
                 var e = CompiledExpression.Compile(s.Json.GetRequiredString("expr", s.Origin), new[] { "t" }, s.Params());
-                return new FunctionDelayedResponse("expression \"" + e.Text + "\"", t => e.Evaluate(new Dictionary<string, double[]> { { "t", t } }, t.Length));
+                return Split(new FunctionDelayedResponse("expression \"" + e.Text + "\"", t => e.Evaluate(new Dictionary<string, double[]> { { "t", t } }, t.Length)), s, 0);
             });
             r.Register<IDelayedResponse>("delayedResponse", "callback", (s, reg) =>
             {
                 var cb = reg.GetCallback<ArrayCallback>(s.Json.GetString("name"), s.Origin);
-                return new FunctionDelayedResponse("callback @" + s.Json.GetString("name"), t => { var h = new double[t.Length]; cb(t, h); return h; });
+                return Split(new FunctionDelayedResponse("callback @" + s.Json.GetString("name"), t => { var h = new double[t.Length]; cb(t, h); return h; }), s, 0);
             });
 
             // ---- time-domain response Delta n(t)

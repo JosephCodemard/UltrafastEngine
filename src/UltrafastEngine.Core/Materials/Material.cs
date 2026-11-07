@@ -134,7 +134,7 @@ namespace UltrafastEngine.Materials
         public double AnisotropicFraction { get; }
         public AnisotropicSplitResponse(IDelayedResponse inner, double anisotropicFraction)
         {
-            if (anisotropicFraction < 0 || anisotropicFraction > 1) throw new ArgumentException("anisotropicFraction must be between 0 and 1");
+            if (double.IsNaN(anisotropicFraction) || anisotropicFraction < 0 || anisotropicFraction > 1.5) throw new ArgumentException("anisotropicFraction must be between 0 and 1.5 (0 isotropic; 1 purely anisotropic; 1.5 purely orientational, h_a = -h_b/3)");
             Inner = inner; AnisotropicFraction = anisotropicFraction;
         }
         public string Description => Inner.Description + string.Format(System.Globalization.CultureInfo.InvariantCulture, "; anisotropic fraction {0:G3}", AnisotropicFraction);

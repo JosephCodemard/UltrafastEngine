@@ -136,9 +136,12 @@ namespace UltrafastEngine.Crystals
             double lSlow = mean - dif, lFast = mean + dif; // smaller impermeability = larger index
             Vec3 Vec(double l)
             {
-                double p, q;
-                if (Math.Abs(B) > 1e-300) { p = B; q = l - A; if (Math.Abs(p) + Math.Abs(q) < 1e-300) { p = l - Cc; q = B; } }
-                else { if (Math.Abs(l - A) < Math.Abs(l - Cc)) { p = 1; q = 0; } else { p = 0; q = 1; } }
+                // (B, l - A) and (l - Cc, B) are both eigenvectors of [[A, B], [B, Cc]] for the eigenvalue l; take the one with the
+                // larger norm. With B at rounding level (uniaxial crystal: the o axis is exactly u) the first is pure noise
+                // (B ~ 1e-17, l - A ~ 1e-17) and its direction was random, so d_eff changed erratically with phi.
+                double p1 = B, q1 = l - A, p2 = l - Cc, q2 = B, p, q;
+                if (p1 * p1 + q1 * q1 >= p2 * p2 + q2 * q2) { p = p1; q = q1; } else { p = p2; q = q2; }
+                if (p * p + q * q < 1e-300) { p = 1; q = 0; } // isotropic: any direction
                 return (p * u + q * v).Normalized();
             }
             var dS = Vec(lSlow);
