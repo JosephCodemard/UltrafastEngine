@@ -47,11 +47,13 @@ def bare_cell(R=R_EFF, d=D_MIRROR):
 W_MIRROR, W_WAIST = bare_cell()
 
 
-def system(nb=NBOUNCE, gdd=GDD_MIRROR, air_nonlinear=True, air_len=D_MIRROR, points=96, radius=1.5e-3, start=None):
+def system(nb=NBOUNCE, gdd=GDD_MIRROR, air_nonlinear=True, air_len=D_MIRROR, points=96, radius=1.5e-3, start=None, spectral_samples=None):
     """Radial model of the cell. start = (w0, zWaist) of the Gaussian at the first air gap (default: the empty cell's mode)."""
     w0, zw = start or (W_WAIST, air_len / 2)
     co = {"hr": {"kind": "gdd", "R": T_TOTAL ** (1.0 / NBOUNCE), "gddS2": gdd}}
     tr = {"model": "radial", "points": points, "radiusM": radius}
+    if spectral_samples:
+        tr["spectralSamples"] = spectral_samples
     els = []
     for k in range(nb):
         a = {"id": "air%02d" % k, "type": "bulk" if air_nonlinear else "gap", "material": "Air", "lengthM": air_len, "transverse": tr}
@@ -260,7 +262,7 @@ def main():
         # sensitivities at 375 W
         e375 = energy_in(375.0)
         for name, kw in (("gddM300", dict(gdd=-300e-30)), ("gddM500", dict(gdd=-500e-30)), ("airLinear", dict(air_nonlinear=False)),
-                         ("points128", dict(points=128, radius=2.0e-3)),
+                         ("points128", dict(points=128, radius=2.0e-3)), ("spectral128", dict(spectral_samples=128)),
                          ("airGap514", dict(air_len=0.514, start=None))):
             r = uf.run(system(**kw), spec(e375))
             a = analyse(r, name)
@@ -276,7 +278,7 @@ def main():
 
 def plots(p, res, a1, nums, sens):
     import matplotlib.pyplot as plt
-    fig, ax = p.figure(1, 2, 10.0, 4.0)
+    fig, ax = p.figure(2, 1, 11.0, 4.2)
     lam0 = 1030.0
     r375 = res[375.0]
     ax[0].plot(r375["_lam"] * 1e9, r375["_s"], color=BLUE, label="engine, radial, 375 W out (beam-integrated)")

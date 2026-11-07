@@ -101,3 +101,15 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
   (2) grid planner ignores the memory of a delayed response: τ = 18 ps in a 120 ps window says "adequate" with no warning but the
   spectrum is wrong (`shimizu…/repro_1.py`); (3) `anisotropicFraction` on an `expression` delayed response is silently ignored
   and values > 1 are rejected, so a purely orientational response (needs 1.5) cannot be built (`liu…/repro_1.py`).
+
+## Update: multi-pass-cell papers done
+* The PDF "Nonlinear pulse compression in a multi-pass cell" is **Schulte et al., Opt. Lett. 41, 4511 (2016)**, not Weitenberg 2017.
+  Folders: `schulte-2016-mpc-fused-silica` (14/14 pass), `kaur-2024-mpc-ner-xpw` (13 checks, 5 soft-fail = real disagreements).
+* Schulte: bandwidth 13.5 / 14.2 / 17.0 nm vs 13.4 / 13.5 / 16.1 nm; AC 207 vs 200 fs; main-peak energy 79 vs ~75 %. Depends on the
+  unstated cell geometry (with the glass inside the 540 mm gap the beam grows to ~1 mm and the result is 49 nm). 1-D on-axis model
+  gives 29 nm, so the spatial model is required.
+* Kaur: NER efficiency maxima match the analytic ceilings (57 % vs 58 %, 68 % vs 69 %); the pressure / B of the optimum does not
+  (paper ~350 mbar, B ≈ 6; ours 0.1-1.55 bar, B 5.4-19 depending on beam model). Engine matches textbook B and B sin2χ/3 to 0.1-0.4 %
+  (`repro_1.py`), so the gap is in the paper's B / ε / beam definition or the unstated cell. XPW not modelled.
+* **Engine gaps:** no anisotropic cubic χ(3) tensor (XPW; `repro_2.py`), no BaF2 material, no helper for a Kerr-matched Herriott /
+  quasi-concentric cell mode. PDF glyphs garbled (mirror curvature inferred 350 mm).

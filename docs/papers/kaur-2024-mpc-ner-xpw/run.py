@@ -239,7 +239,7 @@ def main():
 
 def plots(p, b_axis, ana, pr_axis, scans, pr_c, sc, chk, nb):
     # Fig 1: efficiency versus B (linear-light B-integral): the analytic law and the engine, with the paper's stated numbers
-    fig, ax = p.figure(1, 2, 10.0, 4.0)
+    fig, ax = p.figure(2, 1, 11.0, 4.2)
     cols = {0.25: BLUE, 0.18: ORANGE, 0.15: AQUA}
     for eps, c in cols.items():
         ax[0].plot(b_axis, 100 * ana[eps], color=c, lw=1.6, ls="--", label="analytic, eps = %.2f" % eps)
@@ -251,8 +251,8 @@ def plots(p, b_axis, ana, pr_axis, scans, pr_c, sc, chk, nb):
     ax[0].set_xlabel("B-integral of linear light (rad)")
     ax[0].set_ylabel("internal NER efficiency (%)")
     ax[0].set_xlim(0, 20)
-    ax[0].set_ylim(0, 85)
-    ax[0].legend(fontsize=6.5, loc="upper left")
+    ax[0].set_ylim(0, 105)
+    ax[0].legend(fontsize=6, loc="upper left", ncol=2)
     # Fig 2: against pressure
     for eps, c in cols.items():
         ax[1].plot(pr_axis * 1e3, [100 * s["eff"] for s in scans[eps]], color=c, label="constant 1.45 mm beam, eps = %.2f" % eps)
@@ -260,10 +260,11 @@ def plots(p, b_axis, ana, pr_axis, scans, pr_c, sc, chk, nb):
     ax[1].plot([350], [58], "s", color=REF, ms=8, label="paper: 58 % at ~350 mbar (eps 0.25)")
     ax[1].plot([420], [69], "D", color=REF, ms=7, label="paper: 69 % at 420 mbar (eps 0.18)")
     ax[1].set_xscale("log")
-    ax[1].set_xlim(10, 2000)
+    ax[1].set_xlim(10, 3000)
+    ax[1].set_ylim(0, 100)
     ax[1].set_xlabel("argon pressure (mbar)")
     ax[1].set_ylabel("internal NER efficiency (%)")
-    ax[1].legend(fontsize=6.5, loc="upper left")
+    ax[1].legend(fontsize=6, loc="upper left")
     p.save(fig, "efficiency")
 
 
