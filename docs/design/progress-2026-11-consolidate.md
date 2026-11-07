@@ -64,3 +64,12 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
 * Smaller: round aperture ignores `decenterXM` on a 1-D beam (docs say rectangular only); Gaussian filter "FWHM in wavelength" is
   ~1 % wide at 200 nm (first-order λ→ω); thick-lens ABCD ignores `thicknessM`.
 * Not tested: ghost wedge/overlap options, mask kinds other than the zone plate, TGG B-integral/dispersion, delay carrier phase.
+
+## Update: `spatial.py` and `instruments_more.py` done; all families registered
+* `run_all.py --no-plots`: **1667 / 1691 checks pass, 24 KNOWN, 0 fail** (10 families). `spatial` 200, `instruments_more` 219 (6 KNOWN).
+* **Engine findings:** (a) `energyMeter` `rangeM` band edges snap to whole spectral bins (±2 nm: 0.2456 vs 0.2370; repro
+  `repro/energymeter_band_bins.py`); (b) interferometric autocorrelator `peakToBackground` 7.84 not 8 (even delay count, no sample
+  at d = 0; `repro/iac_peak_undersampled.py`); (c) the pulse's spectral centre is the carrier snapped onto the grid, up to 1.5 nm
+  at 1030 nm / 10 fs (`repro/pulse_carrier_snapped.py`), same root as the angular-dispersion finding.
+* Paper agents were stopped by the usage limit; partial folders exist in `docs/papers/` (kane, kida, kaur, schulte, liu, shimizu,
+  michelson-1887, perot-1899, treacy). Resume them with SendMessage, then write the papers index.

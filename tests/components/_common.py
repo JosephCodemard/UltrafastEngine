@@ -167,7 +167,7 @@ class Family:
     def __init__(self, name: str, title: str):
         p = argparse.ArgumentParser(description=title)
         p.add_argument("--no-plots", action="store_true", help="numbers only (CI mode)")
-        p.add_argument("--out", default=str(ROOT / "verification" / "report"), help="report folder")
+        p.add_argument("--out", default=str(ROOT / "tests" / "components" / "report"), help="report folder")
         a = p.parse_args()
         self.name, self.title = name, title
         self.plots = not a.no_plots

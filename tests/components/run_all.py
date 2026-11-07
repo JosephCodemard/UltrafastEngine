@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-FAMILIES = ["linear", "splitters_masks", "polarisation", "crystals", "instruments"]
+FAMILIES = ["linear", "splitters_masks", "polarisation", "crystals", "instruments", "optics_misc", "media", "crystals_chi2", "spatial", "instruments_more"]
 
 
 def fmt(x) -> str:
