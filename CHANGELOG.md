@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added (plan of 2026-11: docs/design/plan-2026-11.md)
-- `verification/`: one script per component family (linear, splitters and masks, polarisation, crystals, instruments) that runs each component alone, overlays the analytic answer and writes an HTML gallery (`run_all.py`); a CI job runs it without plots. C# component sheet (`tests/.../Components/`): every listed component at 515 nm / 1030 nm / 2 µm and 1 ps / 10 fs, energy, reported GDD, bandwidth, Sequential = Branched.
+- `tests/components/` (was `verification/`): one script per component family (linear, splitters and masks, polarisation, crystals, instruments, optics_misc, media, crystals_chi2, spatial, instruments_more; 1691 checks) that runs each component alone, overlays the analytic answer and writes an HTML gallery (`run_all.py`); a CI job runs it without plots. C# component sheet (`tests/.../Components/`): every listed component at 515 nm / 1030 nm / 2 µm and 1 ps / 10 fs, energy, reported GDD, bandwidth, Sequential = Branched.
 - `docs/papers/` (published results reproduced, with our plots and commentary; harness `build/paper_check.py`, a CI job for the fast tier) and the plan for November 2026. First four: Escoto 2022 (compression quality), Gordon 1986 (soliton self-frequency shift), Boyd-Kleinman 1968 (focused SHG), Bespalov-Talanov 1966 (small-scale self-focusing).
 - `pulse.pedestal` kind `measured`: an input pedestal that follows a recorded contrast trace (`csv` with time and relative intensity or dB columns, or arrays).
 - `ultrafast-plot` draws a Branched system as a graph (arms in lanes, merges, virtual ports, the output energy).

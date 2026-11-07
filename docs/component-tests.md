@@ -27,8 +27,13 @@ The scripts find `python/src` and the hosted engine build (`python/src/ultrafast
 | `crystals.py` | BBO type-I SHG at three carriers: phase-matching angle, absolute conversion efficiency, η ∝ L² with depletion, η(Δk)/η(0) = sinc²(ΔkL/2), energy conservation at high conversion, the carrier on each output port | Eimerl 1987 and Tamošauskas 2018 Sellmeier; Armstrong et al. 1962 |
 | `instruments.py` | intensity autocorrelator (FWHM ratio √2 Gaussian, 1.5427 sech², and the whole trace); spectrometer resolution (FWHMs add in quadrature) and its energy; SHG-FROG marginals; third-order cross-correlator (FWHM √(3/2) τ, floor, trace in dB) | Diels & Rudolph; closed-form correlations |
 
-Gain, gases and fibres have no script yet; their analytic checks are in the C# suite (`GainTests`, `GasTests`,
-`FiberTests`).
+| `optics_misc.py` | `lens` and curved / off-axis `mirror` (ABCD, tangential and sagittal focus), `prism` (Snell, Brewster, prism-pair GDD), single `grating` (angle, Littrow, pulse-front tilt, efficiency), `ndFilter` and its ghost, plate and bulk ghosts, `interface` and coatings (Fresnel, quarter-wave AR, Bragg mirror), `delay`, `rotator`, `faradayRotator` (non-reciprocal double pass), `thinFilmPolarizer`, `saturableAbsorber`, `filter`, zone-plate `mask`, `wavefront` Zernike terms, `aperture` | Snell, Fork / Martinez, Treacy, Hebling, transfer matrix, Malus, Frantz-Nodvik-type ODE, Fresnel |
+| `media.py` | `fiber` (SPM phase γPL, broadening, β2 / β3, D(λ), solitons, Raman shift against Gordon, loss and gain, dispersive wave), `gain` (small signal, Frantz-Nodvik, extraction), gases (Ciddor, n2 and density, rotational Raman), ionisation (ADK, PPT), bulk Kerr (B, self-steepening) | Agrawal, Frantz-Nodvik 1963, Gordon 1986, PPT / ADK |
+| `crystals_chi2.py` | SFG, DFG, OPA / OPCPA gain and Manley-Rowe, quasi-phase matching, non-collinear OPA, BBO phase-matching angles, walk-off | cosh² and sinc² solutions, Tamošauskas Sellmeier |
+| `spatial.py` | Gaussian w(z), round and square apertures against the Fresnel integral, lens focus, Hermite- and Laguerre-Gauss beams, axicon, Kerr lens, Young slits, `resonator` eigenmodes, soliton `oscillator` | Fresnel integral, Kogelnik-Li, Fox-Li, area theorem |
+| `instruments_more.py` | energy meter, scope, polarimeter, interferometric autocorrelator, d-scan, Wigner, camera, wavefront sensor, beam profile, delay scan, FROG retrieval, spectrometer detector models | closed-form traces and Stokes vectors |
+
+Each reproduction of an engine disagreement is in `tests/components/repro/`; the check that shows it is marked `KNOWN`.
 
 ## Reading the report
 
