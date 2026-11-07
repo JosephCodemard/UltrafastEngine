@@ -55,7 +55,7 @@ namespace UltrafastEngine.Transverse
             _props = props != null && props.Any ? props : null;
             _g = grid; _b = basis; _m = medium; LengthM = lengthM; _id = elementId;
             _tArrival0 = tArrivalAtStart; _tauElement = elementCarrierGroupDelay;
-            _k0 = grid.OmegaCenter / PhysicalConstants.SpeedOfLightMPerS;
+            _k0 = grid.ReportOmega / PhysicalConstants.SpeedOfLightMPerS;
             int n = grid.N, M = basis.M;
             _block = M * n;
             Length = vector ? 2 * M * n : M * n;
@@ -160,7 +160,7 @@ namespace UltrafastEngine.Transverse
             {
                 N = _g.N, M = _b.M, Vector = Vector, K0 = _k0, N2 = kerr ? _m.N2 : 0, RamanFraction = fR,
                 RamanKernelFreq = kerr && fR > 0 ? _ramanKernelFreq : null, RamanAnisoFreq = kerr && fR > 0 && Vector ? _ramanAnisoFreq : null,
-                SelfSteepening = _m.EnableSelfSteepening, OmegaOffset = _g.OmegaOffset, OmegaCenter = _g.OmegaCenter, DTime = _g.DTime,
+                SelfSteepening = _m.EnableSelfSteepening, OmegaOffset = _g.OmegaOffsetFromReport(), OmegaCenter = _g.ReportOmega, DTime = _g.DTime,
                 LinearRate = LinearRate, LengthM = LengthM, Uppe = _uppe
             };
             if (_b is RadialBasis rb) { spec.Matrix = rb.Matrix; spec.Scale = rb.Scale; }
@@ -298,7 +298,7 @@ namespace UltrafastEngine.Transverse
                 var nf = nt; SpectralTransform.TimeToFreqInPlace(nf);
                 Complex[] nfy = null; if (Vector) { nfy = nty; SpectralTransform.TimeToFreqInPlace(nfy); }
                 if (_m.EnableSelfSteepening)
-                    for (int i = 0; i < n; i++) { double f = 1.0 + _g.OmegaOffset[i] / _g.OmegaCenter; nf[i] *= f; if (Vector) nfy[i] *= f; }
+                    for (int i = 0; i < n; i++) { double f = _g.OmegaAbsolute[i] / _g.ReportOmega; nf[i] *= f; if (Vector) nfy[i] *= f; }
                 if (_props != null)
                 {
                     for (int i = 0; i < n; i++) nf[i] += StaticRate(ef[i], i, m, dnS, alS);

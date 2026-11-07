@@ -111,7 +111,7 @@ namespace UltrafastEngine.Physics
         {
             _g = grid; _m = medium; _beam = beam; LengthM = lengthM; _scalar = scalar; _id = elementId;
             _tArrival0 = tArrivalAtStart; _tauElement = elementCarrierGroupDelay;
-            _k0 = grid.OmegaCenter / PhysicalConstants.SpeedOfLightMPerS;
+            _k0 = grid.ReportOmega / PhysicalConstants.SpeedOfLightMPerS;   // the requested carrier: the pulse is built there, not at the snapped lattice centre
             int n = grid.N;
             Length = scalar ? n : 2 * n;
             LinearRate = new Complex[Length];
@@ -274,7 +274,7 @@ namespace UltrafastEngine.Physics
                 N = _g.N, Scalar = _scalar, K0 = _k0, N2 = kerr ? _m.N2 : 0, RamanFraction = kerr ? _m.EffectiveRamanFraction : 0,
                 RamanKernelFreq = kerr && _m.EffectiveRamanFraction > 0 ? _ramanKernelFreq : null,
                 RamanAnisoFreq = kerr && _m.EffectiveRamanFraction > 0 && !_scalar ? _ramanAnisoFreq : null,
-                SelfSteepening = _m.EnableSelfSteepening, OmegaOffset = _g.OmegaOffset, OmegaCenter = _g.OmegaCenter, DTime = _g.DTime,
+                SelfSteepening = _m.EnableSelfSteepening, OmegaOffset = _g.OmegaOffsetFromReport(), OmegaCenter = _g.ReportOmega, DTime = _g.DTime,
                 LinearRate = LinearRate, LengthM = LengthM, AreaAt = AreaAt
             };
         }
@@ -354,7 +354,7 @@ namespace UltrafastEngine.Physics
             if (_m.EnableSelfSteepening)
                 for (int i = 0; i < n; i++)
                 {
-                    double f = 1.0 + _g.OmegaOffset[i] / _g.OmegaCenter;
+                    double f = _g.OmegaAbsolute[i] / _g.ReportOmega;
                     nx[i] *= f;
                     if (ny != null) ny[i] *= f;
                 }
@@ -473,7 +473,7 @@ namespace UltrafastEngine.Physics
             {
                 for (int i = 0; i < n; i++)
                 {
-                    double f = 1.0 + _g.OmegaOffset[i] / _g.OmegaCenter;
+                    double f = _g.OmegaAbsolute[i] / _g.ReportOmega;
                     nxF[i] *= f;
                     if (nyF != null) nyF[i] *= f;
                 }
@@ -675,7 +675,7 @@ namespace UltrafastEngine.Physics
             }
             var GR = SpectralTransform.TimeToFreq(gr);
             var GI = anyIm ? SpectralTransform.TimeToFreq(gi) : null;
-            double c = PhysicalConstants.SpeedOfLightMPerS, w0 = _map.Envelope.OmegaCenter;
+            double c = PhysicalConstants.SpeedOfLightMPerS, w0 = _map.Envelope.ReportOmega;
             for (int j = 0; j < nf / 2; j++) rate[j] = Complex.Zero;   // negative frequencies are not propagated (analytic signal)
             // quadratic (chi(2)) products alias around the Nyquist frequency and break energy conservation: drop the
             // nonlinear drive above 2/3 of the grid's bandwidth (the "2/3 rule"); raise physics.fieldHarmonic for more room
