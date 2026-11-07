@@ -182,6 +182,9 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("model:delayedResponse", "dampedOscillator", "Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1).").DocAt(R)
                 .Num("tau1", "s", "Period parameter").Num("tau2", "s", "Damping time").Num("fR", "", "Raman fraction").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0"));
             const string AF = "Anisotropic share b of the response, h_b = b h and h_a = (1 - b) h (vector Raman: ellipse rotation, circular light). 0 isotropic, 1 purely anisotropic (h_a = 0), 1.5 purely orientational (h_a = -h_b/3, e.g. liquid CS2). Allowed 0 to 1.5";
+            add(new ComponentSpec("model:delayedResponse", "orientational", "Molecular reorientation of a liquid (CS2): h(t) = (exp(-t/decayS) - exp(-t/riseS)) / (decayS - riseS), purely anisotropic Kerr tensor (h_a = -h_b/3).").DocAt(R)
+                .Num("riseS", "s", "Rise time (molecular inertia)", "0.2e-12").Num("decayS", "s", "Decay time (diffusive reorientation)", "1.6e-12").Num("fR", "", "Delayed fraction of n2")
+                .Num("anisotropicFraction", "", AF, "1.5"));
             add(new ComponentSpec("model:delayedResponse", "expression", "Delayed response h(t) from an expression in t (s), normalised to unit integral on the grid and forced causal.").DocAt(R).Open()
                 .Str("expr", "Expression in t (s) and the entries of params", null, true).Num("fR", "", "Raman (delayed) fraction of n2").Num("anisotropicFraction", "", AF, "0"));
             add(new ComponentSpec("model:delayedResponse", "callback", "Delayed response h(t) from a registered callback, normalised to unit integral on the grid and forced causal.").DocAt(R).Open()

@@ -24,13 +24,14 @@ namespace UltrafastEngine.Materials
             { "YAG", "YAG" }, { "SF11", "N-SF11" }, { "NSF11", "N-SF11" }, { "MGF2", "MgF2" },
             { "QUARTZ", "Quartz" }, { "CRYSTALQUARTZ", "Quartz" }, { "SIO2_CRYSTAL", "Quartz" }, { "QUARTZ-O", "Quartz" }, { "MGF2-O", "MgF2" }, { "SAPPHIRE-O", "Sapphire" },
             { "CALCITE-O", "Calcite" }, { "CACO3", "Calcite" }, { "YVO4-O", "YVO4" }, { "ABBO", "aBBO" }, { "ALPHA-BBO", "aBBO" }, { "ABBO-O", "aBBO" }, { "A-BBO", "aBBO" },
+            { "CARBONDISULFIDE", "CS2" }, { "CARBON_DISULFIDE", "CS2" }, { "BAF2", "BaF2" },
             { "AIR", "Air" }, { "VACUUM", "Vacuum" }, { "", "Air" }, { "OXYGEN", "O2" }, { "HYDROGEN", "H2" }, { "CARBONDIOXIDE", "CO2" },
             { "TA2O5", "Ta2O5" }, { "TIO2", "TiO2" }, { "HFO2", "HfO2" }, { "NB2O5", "Nb2O5" }, { "AL2O3_FILM", "Al2O3_film" }, { "SIO2_FILM", "SiO2_film" },
             { "HELIUM", "He" }, { "NEON", "Ne" }, { "ARGON", "Ar" }, { "KRYPTON", "Kr" }, { "XENON", "Xe" }, { "NITROGEN", "N2" }
         };
 
         public static IReadOnlyList<string> BuiltInNames => new[] { "Vacuum", "Air", "FusedSilica", "N-BK7", "CaF2", "Sapphire", "YAG", "N-SF11", "MgF2", "He", "Ne", "Ar", "Kr", "Xe", "N2", "O2", "CO2", "H2",
-            "Quartz", "Quartz-e", "MgF2-e", "Sapphire-e", "Calcite", "Calcite-e", "YVO4", "YVO4-e", "aBBO", "aBBO-e", "TGG",
+            "Quartz", "Quartz-e", "MgF2-e", "Sapphire-e", "Calcite", "Calcite-e", "YVO4", "YVO4-e", "aBBO", "aBBO-e", "TGG", "CS2", "BaF2",
             "Ta2O5", "TiO2", "HfO2", "Nb2O5", "Al2O3_film", "SiO2_film" };
 
         public static string Canonical(string name) => name != null && Aliases.TryGetValue(name.Trim(), out var c) ? c : name?.Trim();
@@ -125,6 +126,14 @@ namespace UltrafastEngine.Materials
                     m = Glass("TGG", new SellmeierIndex(new[] { 2.7769 }, new[] { 0.01656 }, 1.0, "TGG, approximate single-pole fit"), air, 0.0, 0.0, null);
                     m.Notes = "approximate dispersion (two-point fit); n2 not set (give one: the B-integral of an isolator matters)";
                     break;
+                case "cs2":
+                    // liquid carbon disulfide, 20 C. Index: Kedenburg et al. 2012 (refractiveindex.info, CC0), one-pole fit valid 0.5-1.6 um.
+                    // Nonlinearity: electronic (instantaneous, isotropic Maker-Terhune) + orientational (delayed, purely anisotropic).
+                    m = new Material { Name = "CS2", Index = new SellmeierIndex(new[] { 1.50387 }, new[] { 0.03049 }, 1.0, "Kedenburg et al., Opt. Mater. Express 2, 1588 (2012), 20 C"),
+                        N2 = CS2N2TotalPerW, RamanFraction = CS2OrientationalFraction, Raman = new OrientationalResponse(CS2RiseS, CS2DecayS) };
+                    m.Notes = "liquid CS2 at 20 C; index Kedenburg 2012 (fit valid 0.5-1.6 um, extrapolated outside); n2 = 3.0e-18 m^2/W total (ps pulses) of which 10 % electronic "
+                        + "(3e-19, the fs value of Liu 2013 / Ganeev 2004) and 90 % orientational, h(t) = (exp(-t/1.6 ps) - exp(-t/0.2 ps)) / 1.4 ps; the split and the time constants are UNVERIFIED typical values (spread of the literature is a factor 2-3): override n2 / ramanFraction / raman";
+                    break;
                 // thin-film materials (ion-beam-sputtered, approximate Cauchy fits; override for real designs)
                 case "ta2o5": m = Film("Ta2O5", 2.0500, 0.0200, 0.0012); break;
                 case "tio2": m = Film("TiO2", 2.2000, 0.0550, 0.0030); break;
@@ -154,6 +163,9 @@ namespace UltrafastEngine.Materials
                 default: return double.NaN;
             }
         }
+
+        /// <summary>Liquid CS2 nonlinearity (UNVERIFIED typical values, see Material.Notes): total n2 for ps pulses, delayed (orientational) share, rise and decay times.</summary>
+        public const double CS2N2TotalPerW = 3.0e-18, CS2OrientationalFraction = 0.9, CS2RiseS = 0.2e-12, CS2DecayS = 1.6e-12;
 
         private static Material Glass(string name, IRefractiveIndex relIndex, IRefractiveIndex air, double n2, double fR, IDelayedResponse raman) =>
             new Material { Name = name, Index = new AirReferencedIndex(relIndex, air), IndexReference = "air", N2 = n2, RamanFraction = fR, Raman = raman };

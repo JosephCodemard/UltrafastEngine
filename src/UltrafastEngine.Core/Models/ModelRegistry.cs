@@ -195,6 +195,8 @@ namespace UltrafastEngine.Models
             });
             r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => Split(new HollenbeckCantrellRamanResponse(), s, 0.25));
             r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => Split(new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")), s, 0));
+            r.Register<IDelayedResponse>("delayedResponse", "orientational", (s, _) =>
+                new OrientationalResponse(s.GetDouble("riseS", 0.2e-12), s.GetDouble("decayS", 1.6e-12), s.GetDouble("anisotropicFraction", 1.5)));
             r.Register<IDelayedResponse>("delayedResponse", "expression", (s, _) =>
             {
                 var e = CompiledExpression.Compile(s.Json.GetRequiredString("expr", s.Origin), new[] { "t" }, s.Params());

@@ -142,6 +142,35 @@ namespace UltrafastEngine.Materials
         public double[] EvaluateAnisotropic(double[] t) { var h = Inner.Evaluate(t); for (int i = 0; i < h.Length; i++) h[i] *= AnisotropicFraction; return h; }
     }
 
+    /// <summary>
+    /// Molecular reorientation (liquids such as CS2): h(t) = (exp(-t/decay) - exp(-t/rise)) / (decay - rise), unit integral, a
+    /// finite rise (inertia of the molecule) and a diffusive decay (CS2: about 1.6 ps). The response is purely orientational: for a
+    /// molecule with an axially symmetric polarisability the Kerr tensor of the orientational part has h_a = -h_b/3, i.e. an
+    /// anisotropic fraction b = 3/2 (linear light: all of it; circular light sees a quarter of the linear index change).
+    /// </summary>
+    public sealed class OrientationalResponse : IVectorDelayedResponse
+    {
+        public double RiseS { get; }
+        public double DecayS { get; }
+        public double AnisotropicFraction { get; }
+        public OrientationalResponse(double riseS, double decayS, double anisotropicFraction = 1.5)
+        {
+            if (!(riseS > 0) || !(decayS > riseS)) throw new ArgumentException("orientational response needs 0 < riseS < decayS");
+            if (!(anisotropicFraction >= 0 && anisotropicFraction <= 1.5)) throw new ArgumentException("anisotropicFraction must be between 0 and 1.5");
+            RiseS = riseS; DecayS = decayS; AnisotropicFraction = anisotropicFraction;
+        }
+        public string Description => string.Format(System.Globalization.CultureInfo.InvariantCulture,
+            "orientational (rise {0:G3} ps, decay {1:G3} ps; anisotropic fraction {2:G3})", RiseS * 1e12, DecayS * 1e12, AnisotropicFraction);
+        public double[] Evaluate(double[] t)
+        {
+            var h = new double[t.Length];
+            double k = 1.0 / (DecayS - RiseS);
+            for (int i = 0; i < t.Length; i++) h[i] = t[i] >= 0 ? k * (Math.Exp(-t[i] / DecayS) - Math.Exp(-t[i] / RiseS)) : 0.0;
+            return h;
+        }
+        public double[] EvaluateAnisotropic(double[] t) { var h = Evaluate(t); for (int i = 0; i < h.Length; i++) h[i] *= AnisotropicFraction; return h; }
+    }
+
     public sealed class FunctionDelayedResponse : IDelayedResponse
     {
         private readonly Func<double[], double[]> _f; private readonly string _d;
