@@ -11,7 +11,7 @@ What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md)
 | C# tests, `--slow` | **415 pass, 0 fail, 8 skipped** (7 `GpuTests` without a GPU device; the opt-in HAPI test) |
 | Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **124 pass, 1 skipped** |
 | Component tests (`tests/components/run_all.py`: 10 families covering linear optics, splitters, polarisation, crystals, nonlinear media, spatial components, instruments) | **1667 / 1691 checks** pass against analytic answers; **24 are marked KNOWN** (engine disagreements with a repro in `tests/components/repro/`, listed in `docs/design/progress-2026-11-consolidate.md`), 0 fail |
-| Paper replications (`build/paper_check.py`) | 6 folders, 0 hard failures; the soft checks mark what does not reproduce (see each README) |
+| Paper replications (`build/paper_check.py`) | 12 folders, 0 hard failures (fast tier); the soft checks mark what does not reproduce (see each README) |
 | Examples and tutorials (`build/example_check.py`, strict options) | 0 problems; the C++ example and the OpticStudio export (07) are manual |
 | `mkdocs build --strict` | 0 warnings |
 | Generated files (schemas, options.md, Python types, python-api.md, validation matrix) | current (checked by tests) |

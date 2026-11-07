@@ -17,7 +17,7 @@
      "source": "uf.crystal.phase_match acceptance for 1 mm, scaled by 1/1.5"},
     {"id": "d_eff follows sin 2 phi at fixed theta: fraction of azimuths off by more than 1 %", "kind": "number", "key": "kdpPhiLaw_fractionOffBy1pct", "expected": 0, "tolerance": 0.05, "hard": false,
      "source": "KDP -42m, type I: d_eff = d36 sin(theta) sin(2 phi). FINDING: the engine's explicit-cut d_eff is erratic in phi, see repro_1.py"},
-    {"id": "a focused beam is broader in angle than a collimated one", "kind": "ordering", "a": "fwhm_collimated_deg", "b": "fwhm_focused_deg", "margin": 0, "source": "p. 22: focusing mixes divergent rays"},
+    {"id": "a focused beam is broader in angle than a collimated one", "kind": "ordering", "a": "fwhm_collimated_deg", "b": "fwhm_focused_deg", "margin": 0, "tiers": ["full"], "source": "p. 22: focusing mixes divergent rays"},
     {"id": "focused tuning curve is one-sided (|asymmetry| larger than for the collimated beam)", "kind": "ordering", "a": "asymmetry_collimated", "b": "asymmetry_focused", "margin": 0.02, "source": "p. 22, Fig. 3: blue only for theta >= theta0"},
     {"id": "focusing gain over the 1/area law (paper: 30 from divergent-ray mixing)", "kind": "number", "key": "focusGain_ratio_over_area", "expected": 30, "tolerance": 29, "hard": false,
      "source": "p. 22: 3000 = 100 x 30; our value is below 1: a diffraction-limited beam does not gain from mixing, the paper's multimode laser did not behave as one. Not comparable (beam sizes assumed)"}

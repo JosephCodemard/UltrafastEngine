@@ -139,3 +139,11 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
   — check whether the built DLL was stale. (4) 1-D OPA at deep saturation is non-monotonic in pump energy (documented limit).
   (5) An early Dubietis run gave different OPA numbers (2.6 vs 1.33 µJ) — probably an engine rebuild mid-run; not reproduced.
 * Remaining: papers README index, `paper_check.py` (fast tier, all), `mkdocs build --strict`, `/verify`, final summary to the owner.
+
+## Update: papers index written; paper_check green
+* `docs/papers/README.md` lists all 12. `build/paper_check.py`: 12 folders, 0 hard failures (Maker's "focused broader than collimated" check is now
+  full-tier only: the fast tier's angular grid is too coarse). `mkdocs build --strict`: 0 warnings.
+* **Gotcha:** run Python from a fresh shell with `ULTRAFAST_LIBRARY` and `PYTHONPATH` exported in the same command; otherwise a stale
+  `bin/native` is used (this made `noncollinearDeg` and `externalAngleDeg` look unsupported). The agents' finding that `externalAngleDeg`
+  is "unknown parameter" is probably this: re-check before filing.
+* Remaining: `/verify` (C# tests, Python tests, examples), final summary and decision list for the owner.
