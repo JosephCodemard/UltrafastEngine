@@ -8,7 +8,7 @@ Main functions:
   gauss_w(w0, z, lam, m2=1) -> w(z)                      w0 sqrt(1 + (M2 z / zR)^2), zR = pi w0^2 / lam
   q_after(q, M) -> q'                                    (A q + B) / (C q + D)
   w_of_q(q, lam) -> w                                    1/q = 1/R - i lam / (pi w^2)
-  fresnel_radial(u0, rho, r, z, lam) -> u(r, z)          u = (k / i z) e^{i k r^2 / 2z} int u0 e^{i k rho^2 / 2z} J0(k rho r / z) rho drho
+  fresnel_radial(u0, rho, r, z, lam) -> u(r, z)          u = (k / i z) e^{i k r^2 / 2z} int u0 e^{i k rho^2 / 2z} J0(k rho r / z) rho drho (J0 from scipy, else the A&S polynomial)
   fresnel_1d(u0, x0, x, z, lam) -> u(x, z)               u = sqrt(k / 2 pi i z) int u0(x0) e^{i k (x - x0)^2 / 2z} dx0
   linear_resonator_mode(R1, R2, L, lam) -> (w1, w2)      two-mirror cavity (Kogelnik & Li 1966, Eq. 18)
   ring_mode_from_matrix(A, B, C, D, lam) -> (w, stability)  eigenmode of a round-trip matrix
@@ -39,9 +39,18 @@ def _j0(x):
     try:
         from scipy.special import j0
         return j0(x)
-    except Exception:  # noqa: BLE001  quadrature J0(x) = (1/pi) int_0^pi cos(x sin t) dt, trapezoid on a periodic integrand
-        th = (np.arange(1024) + 0.5) * math.pi / 1024
-        return np.cos(np.asarray(x)[..., None] * np.sin(th)).mean(-1)
+    except Exception:  # noqa: BLE001  NumPy only: Abramowitz & Stegun 9.4.1 (|x| <= 3) and 9.4.3 (|x| > 3), absolute error < 2e-8 (J0 amplitude form)
+        x = np.abs(np.asarray(x, float))
+        out = np.empty_like(x)
+        m = x <= 3
+        t = (x[m] / 3) ** 2
+        out[m] = 1 - 2.2499997 * t + 1.2656208 * t ** 2 - 0.3163866 * t ** 3 + 0.0444479 * t ** 4 - 0.0039444 * t ** 5 + 0.0002100 * t ** 6
+        y = 3 / x[~m]
+        f0 = 0.79788456 - 0.00000077 * y - 0.00552740 * y ** 2 - 0.00009512 * y ** 3 + 0.00137237 * y ** 4 - 0.00072805 * y ** 5 + 0.00014476 * y ** 6
+        th = (x[~m] - 0.78539816 - 0.04166397 * y - 0.00003954 * y ** 2 + 0.00262573 * y ** 3 - 0.00054125 * y ** 4
+              - 0.00029333 * y ** 5 + 0.00013558 * y ** 6)
+        out[~m] = f0 * np.cos(th) / np.sqrt(x[~m])
+        return out
 
 
 def fresnel_radial(u0, rho, r, z, lam):

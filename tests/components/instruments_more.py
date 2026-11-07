@@ -169,7 +169,7 @@ def interferometric_ac(fam: Family):
                           ratio_samples, rel=2e-3, formula="max_d S(d) / S(window edge), S analytic, d = the instrument's delay samples")
                 fam.check(f"IAC peak-to-background {label_wl(lam)} {label_dur(tau)}", v["peakToBackground"], 8.0, rel=2e-3, formula="16 / 2",
                           known=("the delay grid has an even number of points and no sample at d = 0, so the fringe peak is under-sampled (16 points per period): "
-                                 "7.84 instead of 8 for 30 fs at 1030 nm and 100 fs at 2 um (repro/iac_background_window.py)") if abs(ratio_samples - 8) > 0.016 else "")
+                                 "7.84 instead of 8 for 30 fs at 1030 nm and 100 fs at 2 um (repro/iac_peak_undersampled.py)") if abs(ratio_samples - 8) > 0.016 else "")
         lam, tau = 1030e-9, 30 * FS
         r = run(b.pulse(lam, tau, energy=1e-9), [b.instrument("autocorrelator", type="interferometric", name="iac")])
         d, s = np.asarray(r["iac_delay_s"]), np.asarray(r["iac_signal"])

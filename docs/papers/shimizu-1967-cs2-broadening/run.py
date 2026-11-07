@@ -176,6 +176,10 @@ def main():
     num["redFractionTau18ps"] = res[18e-12]["red"]
     num["redFractionMonotonic"] = float(all(res[a]["red"] <= res[b]["red"] + 1e-3 for a, b in zip(taus[:-1], taus[1:])))
     num["redFractionCurve"] = {"x": np.array(taus) / T_FWHM, "y": [res[tt]["red"] for tt in taus]}
+    num["redFractionTau6ps"] = res[6e-12]["red"]
+    num["paperRedFraction"] = 0.9               # p. 1098: "about 90 %" on the low-frequency side
+    num["paperMaxOverMinLowerBound"] = 10.0     # p. 1098: ratio between maxima and minima "at least 10"
+    num["paperPeriodCm1"] = 10.0                # p. 1098: average period 10 +- 3 cm^-1
     num["tau0Symmetry"] = float(abs(om0["red"] - 0.5))
 
     # --- red-side extent and fringes for the main run

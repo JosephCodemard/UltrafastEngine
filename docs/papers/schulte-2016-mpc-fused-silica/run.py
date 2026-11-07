@@ -126,9 +126,16 @@ def width_at_half(t, p):
     return float(t[hi] - t[lo])
 
 
-def time_axis(r, which="output"):
-    om = np.asarray(r[which + "_omega_rad_s"])
-    return 2 * np.pi / (len(om) * (om[1] - om[0])) * (np.arange(len(om)) - len(om) // 2)
+PAD = 64        # zero-padding of the spectrum (finer time sampling for the widths; the engine grid is coarse in time)
+
+
+def padded(a, om):
+    """Spectral field and angular-frequency axis extended with zeros by PAD x its length on each side (same step)."""
+    n = len(a)
+    d = om[1] - om[0]
+    ap = np.concatenate([np.zeros(PAD * n // 2, complex), a, np.zeros(PAD * n // 2, complex)])
+    omp = om[0] + d * (np.arange(len(ap)) - PAD * n // 2)
+    return ap, omp
 
 
 def to_time(a):
@@ -139,31 +146,44 @@ def field(r, which="output"):
     return np.asarray(r[which + "_ax_re"]) + 1j * np.asarray(r[which + "_ax_im"]), np.asarray(r[which + "_omega_rad_s"])
 
 
+def tgrid(om):
+    return 2 * np.pi / (len(om) * (om[1] - om[0])) * (np.arange(len(om)) - len(om) // 2)
+
+
 def transform_limited(r):
     a, om = field(r)
-    t = time_axis(r)
-    p = np.abs(to_time(np.abs(a))) ** 2
+    ap, omp = padded(np.abs(a), om)
+    t = tgrid(omp)
+    p = np.abs(to_time(ap)) ** 2
     return width_at_half(t, p), t, p
 
 
 def compress(r, gdds):
-    """Best GDD (min FWHM among the max-peak ones): apply exp(+i GDD dw^2 / 2) (e^{-iwt} convention, checked by the sign of the result)."""
+    """Best GDD (maximum peak power): apply exp(+i GDD dw^2 / 2) to the spectrum (e^{-iwt} convention; a negative optimum for a
+    positively chirped SPM pulse confirms it)."""
     a, om = field(r)
-    t = time_axis(r)
-    dw = om - np.sum(om * np.abs(a) ** 2) / np.sum(np.abs(a) ** 2)
+    dw0 = om - np.sum(om * np.abs(a) ** 2) / np.sum(np.abs(a) ** 2)
+    ap, omp = padded(a, om)
+    dw = omp - np.sum(om * np.abs(a) ** 2) / np.sum(np.abs(a) ** 2)
+    t = tgrid(omp)
     best = (0, 0.0, None)
     for g in gdds:
-        e = to_time(a * np.exp(0.5j * g * dw ** 2))
+        e = to_time(ap * np.exp(0.5j * g * dw ** 2))
         pk = np.max(np.abs(e) ** 2)
         if pk > best[0]:
             best = (pk, g, e)
     return best[1], best[2], t
 
 
-def autocorr_fwhm(t, p):
-    dt = t[1] - t[0]
-    ac = np.correlate(p, p, mode="full")
-    tau = (np.arange(len(ac)) - (len(p) - 1)) * dt
+def autocorr_fwhm(t, p, half_window=3e-12):
+    """FWHM of the intensity autocorrelation (FFT-based, the pulse cropped to +-half_window around its peak)."""
+    i = int(np.argmax(p))
+    m = np.abs(t - t[i]) <= half_window
+    q = p[m]
+    n = len(q)
+    f = np.fft.rfft(q, 2 * n)
+    ac = np.fft.fftshift(np.fft.irfft(f * np.conj(f), 2 * n))
+    tau = (np.arange(2 * n) - n) * (t[1] - t[0])
     return width_at_half(tau, ac)
 
 
@@ -208,7 +228,7 @@ def main():
         nums["bwRatio_%sW" % k] = res[pw]["bwOuterNm"] / 1.6
         if pw == 375.0:
             elements = r.summary["elements"]
-            nums["criticalPowerRatioFirstGlass"] = next(e_["criticalPowerRatio"] for e_ in elements if e_["id"] == "gl00" and e_.get("criticalPowerRatio"))
+            nums["powerOverCriticalFirstGlass"] = next(e_["values"]["peakPowerOverCritical"] for e_ in elements if e_["id"] == "gl00")
             rad = [e_["beam"]["radiusXM"] for e_ in elements if e_["id"].startswith("gl")]
             nums["glassBeamRadiusMinUm"], nums["glassBeamRadiusMaxUm"] = min(rad) * 1e6, max(rad) * 1e6
             nums["bAirRad_375W"] = sum(e_["bIntegralRad"] for e_ in elements if e_["id"].startswith("air"))
@@ -218,7 +238,6 @@ def main():
         nums[k + "_375W"] = c[k]
     nums["gddOptTotalRangeLoFs2"], nums["gddOptTotalRangeHiFs2"] = -54000.0, -21000.0          # 3 x (-18000 ... -7000), see paper.json
     nums["compressionFactor_375W"] = 850.0 / c["compressedFwhmFs"]
-    nums["compressedPeakPowerMW_375W"] = c["mainPeakFraction"] * (T_TOTAL * energy_in(375.0)) / (0.88 * c["compressedFwhmFs"] * 1e-15) * 1e-6 * 0 + 0.0
 
     # 1-D on-axis comparator (fixed mode, on-axis intensity)
     r1 = uf.run(system_1d(), spec(energy_in(375.0)))

@@ -49,3 +49,18 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
   4. A coarse D(λ) table (53 points) gives up to 0.8 % error in β2 near D = 0.
   5. `own.gddS2` of a D(λ) fibre at 2 µm is 0.4 % from β2·L at `reportOmega0`.
 * Not tested: rotational revival (C# `GasTests`), bulk Raman gain, walk-off in a real run, depleted OPA, type-II SHG efficiency.
+
+## Update: `optics_misc.py` done (agent report)
+* 489 checks, 0 failures, 15 KNOWN (3 engine bugs), ~56 s. Not yet in `FAMILIES`. Note `_common.py` default `--out` may still say
+  `verification/report` in one place: check it.
+* **Engine findings for the owner**
+  1. `trackedAngularDispersion…` of grating (7 checks) and prism (3) is off by exactly (λ_req/λ_snap)² − 1 (up to 1.2e-4 on the
+     default grid, 4e-4 on a coarse one): angle/magnification use the requested carrier, the dθ/dω → dθ/dλ conversion the snapped
+     grid ω0. GDD is unaffected. Repro `tests/components/repro/grating_snapped_carrier.py`.
+  2. `CircularAperture.PowerTransmission` (`Physics/ModelImplementations.cs`) uses 1 − exp(−2a²/(wx·wy)), exact only for a round
+     beam: 0.8816 vs 0.7897 by quadrature for w = 0.6 × 1.2 mm, a = 0.8 mm. Repro `round_aperture_astigmatic.py`.
+  3. `binaryPhase` zone plate transmission 0.977 / 0.991 / 0.994 at 512 / 1024 / 2048 points, not 1 (cell averaging at π edges; may
+     be a docs fix). Repro `binary_phase_zoneplate.py`.
+* Smaller: round aperture ignores `decenterXM` on a 1-D beam (docs say rectangular only); Gaussian filter "FWHM in wavelength" is
+  ~1 % wide at 200 nm (first-order λ→ω); thick-lens ABCD ignores `thicknessM`.
+* Not tested: ghost wedge/overlap options, mask kinds other than the zone plate, TGG B-integral/dispersion, delay carrier phase.

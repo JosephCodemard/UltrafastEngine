@@ -1,0 +1,31 @@
+{
+  "id": "perot-1899-multiple-beam-interference",
+  "citation": "A. Perot and C. Fabry, \"On the application of interference phenomena to the solution of various problems of spectroscopy and metrology\", Astrophys. J. 9, 87-115 (1899) (translated from Bull. Astron. 16, January 1899)",
+  "doi": "10.1086/140557",
+  "doiStatus": "UNVERIFIED (from memory; not printed in the scan)",
+  "openAccess": true,
+  "fullTextRead": true,
+  "readMethod": "Read tool PDF mode failed (poppler missing). Read through macOS PDFKit: the PDF is a scan with an OCR text layer (29 pages; ADS copy of the 1899 ApJ paper, public domain). Prose read in full to journal p. 112 (PDF page 26); pp. 112-115 (measurement of long lengths, standard films) skimmed and NOT used. Formulas and numbers were checked on page images (pp. 91, 92, 99).",
+  "note": "The file supplied as 'Michelson 1892, On the application of interference phenomena to the solution of various problems of spectroscopy and metrology' is NOT Michelson: the title and the author line read 'A. Perot and Charles Fabry', Astrophys. J. 9, 1899. Michelson's own visibility-curve paper (1892) was not available; anything attributed to it is UNVERIFIED. The Perot-Fabry paper cites Michelson's visibility curves and states that its own two-line results reproduce them (p. 100).",
+  "topic": "interferometry: multiple-beam (Fabry-Perot) fringes, coincidences of two lines, resolving power",
+  "referenceNumbers": [
+    {"key": "airy", "value": "I = I0 / (1 + (4f/(1-f)^2) sin^2(pi Delta/lambda)); f = 0.8 gives the coefficient 80", "where": "p. 91", "status": "read at page image"},
+    {"key": "brightPart", "value": "bright part of a fringe not more than 1/20 of the interval (silver, intense light)", "where": "p. 92", "status": "read; no reflectance attached"},
+    {"key": "silverReflectance", "value": "reflecting power of compact silver about 0.90; absorption limits the film thickness", "where": "p. 92", "status": "read"},
+    {"key": "period", "value": "coincidence period Omega = lambda lambda' / (lambda - lambda'); coincidences at Delta = m Omega, discordances at (m + 1/2) Omega", "where": "pp. 96-98", "status": "read (formula garbled in OCR, derived and checked against the printed numbers)"},
+    {"key": "resolving", "value": "two systems of rings are clearly separated when rings of different kinds are 1/5 of the distance between rings of one kind apart: order p = lambda/(5 eps), e = lambda^2/(10 eps)", "where": "p. 99 (page image)", "status": "read"},
+    {"key": "resolvingExamples", "value": "e = 5 cm, lambda = 0.5 um: p = 200,000, eps/lambda = 1e-6 (1/1000 of the D-line separation); e = 5 mm: p = 20,000, eps/lambda = 1e-5", "where": "p. 99", "status": "read"},
+    {"key": "wavelengthsHg", "value": "Hg yellow 0.57906593 and 0.57695984 um; Hg green 0.54607424 um", "where": "pp. 102, 107", "status": "read"},
+    {"key": "wavelengthsCd", "value": "Cd green 0.50858240 um, Cd red 0.64384722 um", "where": "p. 102", "status": "read"},
+    {"key": "periodHgYellow", "value": 311.9, "unit": "Cd-green waves", "where": "p. 102", "status": "read"},
+    {"key": "periodCdHgGreen", "value": 14.56515, "unit": "Cd-green waves", "where": "p. 102", "status": "read"},
+    {"key": "periodCdGreenRed", "value": 4.759901, "unit": "Cd-green waves", "where": "p. 103", "status": "read"},
+    {"key": "periodNaD", "value": "about 1000", "where": "p. 98", "status": "read"},
+    {"key": "ordersReached", "value": "separations up to 32 mm, order about 125,000 for Cd green", "where": "p. 107", "status": "read"}
+  ],
+  "assumptions": [
+    "Lossless mirrors of power reflectance R, joined by an engine loop (ringDown); the paper's silver absorbs, so its I0 is below the incident intensity. Not modelled.",
+    "Each spectral line is strictly monochromatic and the lines are mutually incoherent: one cw run per line, intensities added.",
+    "Normal incidence (Delta = 2 e), one plate spacing; fringes in convergent light (rings), white-light superposition fringes and standard films are not simulated."
+  ]
+}

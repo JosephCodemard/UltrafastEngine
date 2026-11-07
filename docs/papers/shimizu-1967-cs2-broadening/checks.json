@@ -1,0 +1,122 @@
+{
+ "paper": "shimizu-1967-cs2-broadening",
+ "checks": [
+  {
+   "id": "engine (CS2 dispersion off) = the paper's lowest-order model E exp(i dphi) with the Debye integral, all tau (total variation of the spectra)",
+   "kind": "number",
+   "key": "modelVsEngineTVMax",
+   "expected": 0,
+   "tolerance": 0.005,
+   "source": "p. 1098-1099 model, evaluated in numpy"
+  },
+  {
+   "id": "tau = 0: broadening symmetric, half of the energy on each side",
+   "kind": "number",
+   "key": "redFractionTau0",
+   "expected": 0.5,
+   "tolerance": 0.01,
+   "source": "p. 1099: broadening on either side for tau = 0"
+  },
+  {
+   "id": "red-side fraction grows with tau (tau = 0 < 2 ps)",
+   "kind": "ordering",
+   "a": "redFractionTau0",
+   "b": "redFractionTau2ps",
+   "margin": 0.1,
+   "source": "p. 1099"
+  },
+  {
+   "id": "red-side fraction grows with tau (2 ps < 18 ps)",
+   "kind": "ordering",
+   "a": "redFractionTau2ps",
+   "b": "redFractionTau18ps",
+   "margin": 0.1,
+   "source": "p. 1099: low-frequency side only for large tau"
+  },
+  {
+   "id": "red-side fraction is monotonic in tau over the scan",
+   "kind": "number",
+   "key": "redFractionMonotonic",
+   "expected": 1,
+   "tolerance": 0.01,
+   "source": "p. 1099"
+  },
+  {
+   "id": "intensity maximum at the low-frequency extremity (within 12 cm^-1 of the extremal instantaneous shift)",
+   "kind": "number",
+   "key": "spectrumMaxMinusExtremeWavenumber",
+   "expected": 0,
+   "tolerance": 12,
+   "source": "p. 1098-1099"
+  },
+  {
+   "id": "a peak at the laser frequency itself",
+   "kind": "number",
+   "key": "peakAtLaserFrequency",
+   "expected": 1,
+   "tolerance": 0.01,
+   "source": "p. 1098"
+  },
+  {
+   "id": "fringe spacing grows towards the low-frequency extremity",
+   "kind": "ordering",
+   "a": "fringeSpacingInnerCm1",
+   "b": "fringeSpacingOuterCm1",
+   "margin": 1.0,
+   "source": "p. 1098-1099"
+  },
+  {
+   "id": "fringe spacing = the paper's stationary-phase formula 1/(c (t2 - t1)) (median ratio)",
+   "kind": "number",
+   "key": "fringeSpacingVsFormulaMedianRatio",
+   "expected": 1,
+   "tolerance": 0.1,
+   "source": "p. 1099"
+  },
+  {
+   "id": "maxima / minima of the structure at least 10",
+   "kind": "ordering",
+   "a": "paperMaxOverMinLowerBound",
+   "b": "fringeMaxOverMinMedian",
+   "margin": 0,
+   "source": "p. 1098 (read of a photograph: soft in the paper, ours is a smooth Gaussian)",
+   "hard": false
+  },
+  {
+   "id": "period grows linearly with the distance from the centre (R^2 of a line)",
+   "kind": "number",
+   "key": "fringeSpacingLinearR2",
+   "expected": 1,
+   "tolerance": 0.1,
+   "hard": false,
+   "source": "p. 1098"
+  },
+  {
+   "id": "periodic structure also on the high-frequency side, with larger mean spacing than on the low side",
+   "kind": "ordering",
+   "a": "fringeMeanSpacingCm1",
+   "b": "blueMeanSpacingCm1",
+   "margin": 0,
+   "hard": false,
+   "source": "p. 1098-1099 (tau = 2 ps: short enough compared with the pulse)"
+  },
+  {
+   "id": "about 90 % of the energy on the low-frequency side (tau = 6 ps, tau/T = 1)",
+   "kind": "number",
+   "key": "redFractionTau6ps",
+   "expected": 0.9,
+   "tolerance": 0.05,
+   "hard": false,
+   "source": "p. 1098; depends on the unknown tau/T"
+  },
+  {
+   "id": "average fringe period 10 +- 3 cm^-1 (T = 6 ps, B = 120 rad assumed)",
+   "kind": "number",
+   "key": "fringeMeanSpacingCm1",
+   "expected": 10,
+   "tolerance": 3,
+   "hard": false,
+   "source": "p. 1098; depends on the unknown intensity (B) and duration"
+  }
+ ]
+}

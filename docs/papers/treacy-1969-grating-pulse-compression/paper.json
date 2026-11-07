@@ -1,0 +1,27 @@
+{
+  "id": "treacy-1969-grating-pulse-compression",
+  "citation": "E. B. Treacy, \"Optical pulse compression with diffraction gratings\", IEEE J. Quantum Electron. 5(9), 454-458 (1969)",
+  "doi": "10.1109/JQE.1969.1076303",
+  "openAccess": false,
+  "fullTextRead": true,
+  "readMethod": "Read tool PDF mode failed (poppler missing). Read through macOS PDFKit: the PDF has a text layer (5 pages, licensed IEEE copy, never copied into the repository) whose equations are garbled; every formula and number below was read from page images at 1.6x and, for eq. (17), 4x. The PDF and its figures are not in the repository.",
+  "topic": "linear optics: grating-pair dispersion and pulse compression",
+  "referenceNumbers": [
+    {"key": "gratings", "value": "1200 lines/mm, lambda = 1.06 um, gamma = 60 degrees, first order", "where": "p. 456 (example below eq. (5))", "status": "read"},
+    {"key": "delayPerCm", "value": "0.58 ps per cm of slant separation for two wavelengths 100 A apart", "where": "p. 456", "status": "read"},
+    {"key": "compressionExample", "value": "linear sweep over a 100 A band, 5.8 ps long, compressed to its minimum at slant separation b = 10 cm", "where": "p. 456", "status": "read"},
+    {"key": "eq3", "value": "sin(gamma - theta) = lambda/d - sin(gamma)", "where": "p. 455", "status": "read"},
+    {"key": "eq5", "value": "delta_lambda tau = b (lambda/d) d_lambda / (c d [1 - (lambda/d - sin gamma)^2])", "where": "p. 456, eq. (5a)", "status": "read"},
+    {"key": "eq7_8", "value": "tau_0 = b (1 + cos theta) / c;  1/mu = 4 pi^2 c b / (omega^3 d^2 [1 - (2 pi c/(omega d) - sin gamma)^2])", "where": "p. 456, eqs. (7), (8)", "status": "read"},
+    {"key": "eq14", "value": "output = (mu/2pi)^(1/2) integral A exp(i psi) exp(i (mu/2)(t - t')^2) dt  (Fresnel transform)", "where": "p. 456, eq. (14), p. 457 eq. (15)", "status": "read"},
+    {"key": "angularDispersion", "value": "about 2e-2 rad per 100 A (resolving-power remark)", "where": "p. 457", "status": "read (the exponent was read from the 1.6x image; moderately sure)"},
+    {"key": "eq17", "value": "sigma = (2 omega_0 mu)^-1 (1 + (lambda/d) sin gamma + sin^2 gamma), cubic coefficient of phi(omega)", "where": "p. 457, eq. (17)", "status": "read at 4x"},
+    {"key": "cubicToQuadratic", "value": "maximum ratio of cubic to quadratic phase of order twice the fractional bandwidth", "where": "p. 458", "status": "read"}
+  ],
+  "assumptions": [
+    "'A 100 A band' is taken as the FWHM of the intensity spectrum (10 nm), a Gaussian pulse with 165 fs transform limit; its group-delay dispersion is set so that the pulse is 5.8 ps long (3.46e5 fs^2).",
+    "The pair is traversed once (gratingPair passes = 1): Treacy's geometry has the light go through the two gratings one time. The engine's default is passes = 2 (double-passed compressor).",
+    "separationM is the perpendicular distance G, b = G / cos(theta_d) (theta_d the diffraction angle, equal to gamma - theta of eq. (3)).",
+    "Finite grating size, resolving power and efficiency (p. 457) are not modelled."
+  ]
+}

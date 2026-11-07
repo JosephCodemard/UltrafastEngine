@@ -4,7 +4,7 @@ The delay axis has an even number of points (840 for 30 fs at 1030 nm) and no sa
 so the highest sample misses the true peak S(0) = 8 by up to 4 %. The 100 fs / 1030 nm and 30 fs / 515 nm cases have an odd count (a sample at
 d = 0) and give 8.001. Expected: a delay grid that contains d = 0 (odd point count), or a peak found by interpolating the fringe.
 
-Run: .venv/bin/python tests/components/repro/iac_background_window.py
+Run: .venv/bin/python tests/components/repro/iac_peak_undersampled.py
 """
 import sys
 from pathlib import Path

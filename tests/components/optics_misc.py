@@ -358,7 +358,8 @@ def prism_single(fam: Family):
             eng.append(D)
             ana.append(Da)
             if lam in CARRIERS_M:
-                fam.check(f"prism dtheta/dlam {label_wl(lam)}", D, Da, rel=1e-3, unit="rad/m", formula="Snell's law, Sellmeier n(lam)")
+                fam.check(f"prism dtheta/dlam {label_wl(lam)}", D, Da, rel=1e-5, unit="rad/m", formula="Snell's law, Sellmeier n(lam)",
+                          known="reported dtheta/dlam is off by (lam_req/lam_snap)^2 - 1 (-4e-5 .. 1e-4), the same carrier mismatch as the grating (repro/grating_snapped_carrier.py); the GDD it feeds is consistent")
                 # transmission: p (x) at Brewster on both faces, s (y) = (1 - Rs)^2 per face
                 for pol, ang in (("p", 0), ("s", 90)):
                     rr = run([b.prism("P", "FusedSilica", math.degrees(apex), math.degrees(thb), 0.0, medium=VAC)], lam, pulse=pol_pulse(lam, ang, 1e-12), beam=gbeam())
@@ -392,7 +393,7 @@ def prism_pair(fam: Family):
                 eng.append(gdd / FS2)
                 ana.append(want / FS2)
                 if L in (0.1, 0.4):
-                    fam.check(f"prism pair GDD L={L} m {label_wl(lam)}", gdd, want, rel=4e-3, unit="s^2", formula="Fork / Martinez, beta = 0")
+                    fam.check(f"prism pair GDD L={L} m {label_wl(lam)}", gdd, want, rel=1e-4, unit="s^2", formula="Fork / Martinez, beta = 0")
             fam.check(f"prism pair leaves no angular dispersion {label_wl(lam)}", abs(val(r, 2, "trackedAngularDispersionXRadPerM")) / abs(D), 0.0, abs=2e-3,
                       formula="second prism entered at the first's exit angle")
             overlay(f, Ls, np.array(eng), np.array(ana), label=label_wl(lam), xlabel="apex separation L (m)", ylabel="GDD (fs^2)", residual="rel", marker="o",
@@ -468,8 +469,8 @@ def grating_pair_single(fam: Family):
             w0 = r.summary["grid"]["reportOmega0"]
             gdd, tod = A.treacy(2 * math.pi * C / w0, lp * 1e3, math.radians(aoi), G, -1, 1)
             t = r.summary["totals"]
-            fam.check(f"two gratings GDD {label_wl(lam)}", t["systemGddS2"], gdd, rel=1e-3, unit="s^2", formula="Treacy, 1 pass")
-            fam.check(f"two gratings TOD {label_wl(lam)}", t["systemTodS3"], tod, rel=1e-2, unit="s^3", formula="d(GDD)/dw")
+            fam.check(f"two gratings GDD {label_wl(lam)}", t["systemGddS2"], gdd, rel=1e-5, unit="s^2", formula="Treacy, 1 pass")
+            fam.check(f"two gratings TOD {label_wl(lam)}", t["systemTodS3"], tod, rel=5e-3, unit="s^3", formula="d(GDD)/dw")
             fam.check(f"two gratings leave no angular dispersion {label_wl(lam)}",
                       abs(val(r, 2, "trackedAngularDispersionXRadPerM")) / abs(val(r, 0, "trackedAngularDispersionXRadPerM")), 0.0, abs=2e-3)
             fam.check(f"two gratings restore the beam radius {label_wl(lam)}", val(r, 2, "trackedBeamRadiusXM") / W0, 1.0, abs=2e-4, formula="the magnifications cancel")
@@ -514,7 +515,7 @@ def nd_filter(fam: Family):
         od_w = np.interp(w[m], sorted(wt), [odv[1], odv[0]])   # wt[1] < wt[0]: ascending omega -> OD of 1110 first
         ana = 10 ** (-od_w) * np.array([(1 - ((n_rel("FusedSilica", x) - 1) / (n_rel("FusedSilica", x) + 1)) ** 2) ** 2 for x in lam])
         eng = so[m] / si[m]
-        fam.check("ndFilter OD(lambda) max rel. error of T over the band", float(np.max(np.abs(eng / ana - 1))), 0.0, abs=2e-3,
+        fam.check("ndFilter OD(lambda) max rel. error of T over the band", float(np.max(np.abs(eng / ana - 1))), 0.0, abs=1e-3,
                   formula="absorbance interpolated (not the transmission)")
         overlay(f, lam * 1e9, eng, ana, label="10 fs, 1030 nm", xlabel="wavelength (nm)", ylabel="power transmission", residual="rel", analytic_label="10^-OD(lam)(1-R)^2")
 
@@ -546,8 +547,8 @@ def ghosts(fam: Family):
                 em, eg, dly = ghost_window(r, gd2)
                 n = n_rel("FusedSilica", lam)
                 R2 = (((n - 1) / (n + 1)) ** 2) ** 2
-                fam.check(f"plate ghost delay {label_wl(lam)} {label_dur(tau)}", dly, gd2, rel=2e-4, unit="s", formula="2 n_g d / c")
-                fam.check(f"plate ghost energy ratio {label_wl(lam)} {label_dur(tau)}", eg / em, R2, rel=2e-3, formula="R^2 (second order R^4 neglected)")
+                fam.check(f"plate ghost delay {label_wl(lam)} {label_dur(tau)}", dly, gd2, rel=2e-5, unit="s", formula="2 n_g d / c")
+                fam.check(f"plate ghost energy ratio {label_wl(lam)} {label_dur(tau)}", eg / em, R2, rel=2e-4, formula="R^2 (second order R^4 neglected)")
                 if tau == 1e-12:
                     xs.append(lam * 1e9)
                     eng.append(eg / em)
@@ -574,22 +575,22 @@ def ghosts(fam: Family):
         dly = (psi(w0 + h) - psi(w0 - h)) / (2 * h)
         em, eg, dm = ghost_window(r, dly)
         fam.check(f"plate ghost {pol} 40 deg delay", dm, dly, rel=3e-4, unit="s", formula="d psi / d w, psi = 2 w d sqrt(n^2 - n_o^2 sin^2 a) / c")
-        fam.check(f"plate ghost {pol} 40 deg energy ratio", eg / em, Rf * Rb, rel=3e-3, formula="R_front R_back (s, p Fresnel)")
+        fam.check(f"plate ghost {pol} 40 deg energy ratio", eg / em, Rf * Rb, rel=5e-4, formula="R_front R_back (s, p Fresnel)")
 
     # bulk with ghosts and AR-coated end faces; ndFilter ghost with the absorption of two extra passes
     r = run([b.bulk("g", "CaF2", 5e-3, ghosts={"frontReflectance": 0.002, "backReflectance": 0.002})], 1030e-9, tau=1e-12)
     gd2 = A.phase_derivatives(A.GLASSES["CaF2"], 10e-3, omega0(r))[0]
     em, eg, dly = ghost_window(r, gd2)
-    fam.check("bulk CaF2 ghost delay", dly, gd2, rel=2e-4, unit="s", formula="2 n_g L / c")
-    fam.check("bulk CaF2 ghost level (R = 0.002 each face)", eg / em, 0.002 * 0.002, rel=3e-3, formula="R_front R_back")
+    fam.check("bulk CaF2 ghost delay", dly, gd2, rel=2e-5, unit="s", formula="2 n_g L / c")
+    fam.check("bulk CaF2 ghost level (R = 0.002 each face)", eg / em, 0.002 * 0.002, rel=1e-4, formula="R_front R_back")
     od = 0.5
     r = run([b.nd_filter("N", od, material="FusedSilica", thickness_m=3e-3, ghosts=True)], 1030e-9, tau=1e-12)
     gd2 = A.phase_derivatives(A.GLASSES["FusedSilica"], 6e-3, omega0(r))[0]
     em, eg, dly = ghost_window(r, gd2)
     n = n_rel("FusedSilica", 1030e-9)
     R = ((n - 1) / (n + 1)) ** 2
-    fam.check("ndFilter ghost delay", dly, gd2, rel=2e-4, unit="s")
-    fam.check("ndFilter ghost level R^2 10^(-2 OD)", eg / em, R * R * 10 ** (-2 * od), rel=3e-3, formula="two more passes through the absorber")
+    fam.check("ndFilter ghost delay", dly, gd2, rel=2e-5, unit="s")
+    fam.check("ndFilter ghost level R^2 10^(-2 OD)", eg / em, R * R * 10 ** (-2 * od), rel=2e-4, formula="two more passes through the absorber")
 
 
 # =============================================================================================== interface and coatings
@@ -687,7 +688,7 @@ def coatings(fam: Family):
         dph = ph(w0 + h) - ph(w0 - h)
         dph = (dph + math.pi) % (2 * math.pi) - math.pi
         tau_a = -dph / (2 * h)
-        fam.check(f"Bragg mirror reflection group delay {label_wl(lam)}", el(r, 0)["own"]["groupDelayS"], tau_a, rel=2e-3, abs=1e-17, unit="s",
+        fam.check(f"Bragg mirror reflection group delay {label_wl(lam)}", el(r, 0)["own"]["groupDelayS"], tau_a, rel=3e-4, abs=1e-19, unit="s",
                   formula="-d arg(r) / dw (e^{+iwt} convention of the characteristic matrix)")
 
 
@@ -801,12 +802,6 @@ def thin_film_polarizer(fam: Family):
                 ana.append(want)
             overlay(f, xs, eng, ana, label=label_wl(lam), xlabel="input polarisation angle from the p axis (deg)", ylabel="transmitted energy fraction", marker="o",
                     analytic_label="T_p cos^2 + T_s sin^2" if lam == CARRIERS_M[0] else None)
-    # the note of the compiled element reports Tp / Ts of the coating at the carrier: the transmitted-port energy is that times the back face
-    lam = 1030e-9
-    r = run([b.thin_film_polarizer("t", aoi_deg=56)], lam, pulse=pol_pulse(lam, 90.0, 1e-12))
-    rp = run([b.thin_film_polarizer("t", aoi_deg=56)], lam, pulse=pol_pulse(lam, 0.0, 1e-12))
-    fam.check("TFP extinction (engine energy, narrow band)", rp.summary["totals"]["energyTransmission"] / r.summary["totals"]["energyTransmission"], 800.0, rel=0.5,
-              note="order of magnitude only: Ts is a small difference near the band edge (value printed)")
     # ideal model: Malus with Tp, Ts, and the axis
     for axis in (0.0, 25.0):
         for psi in (0.0, 25.0, 70.0):

@@ -171,6 +171,7 @@ def main():
     grid = b.grid(n=16384, window_s=60e-12)
     pin = engine_pair(1e-3, pr, pulse, grid).summary["input"]
     out["input_fwhm_ps"] = pin["fwhmS"] * 1e12
+    out["input_fwhm_fs"] = pin["fwhmS"] * 1e15
     out["input_transformLimit_fs"] = pin["transformLimitFwhmS"] * 1e15
     out["input_spectralFwhm_nm"] = pin["spectralFwhmM"] * 1e9
     out["input_gdd_s2"] = phi_in
@@ -202,7 +203,7 @@ def main():
     out["widthMaxRelError_vs_exactPhase"] = float(np.max(np.abs(widths / exact - 1)))
     out["minWidth_exactPhaseReference_fs"] = exact.min() * 1e15
     out["bOpt_exactPhaseReference_cm"] = bs[int(np.argmin(exact))] * 100
-    out["widthAtZeroPair_ps"] = out["input_fwhm_ps"]
+    out["compressionBroadeningFromCubicPhase"] = widths.min() / t0
     # the sign: the same pair with the opposite chirp makes the pulse longer
     wrong = engine_pair(B_PAPER, pr, b.pulse(LAM, tl, energy=1e-9, gdd_s2=-phi_in), grid).summary["elements"][0]["pulse"]["fwhmS"]
     out["oppositeChirpWidth_ps"] = wrong * 1e12
