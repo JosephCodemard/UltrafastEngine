@@ -1,0 +1,19 @@
+{
+ "paper": "schulte-2016-mpc-fused-silica",
+ "checks": [
+  {"id": "bandwidth at 354 W out (outer-peak definition)", "kind": "number", "key": "bwOuterNm_354W", "expected": 13.4, "tolerance": 0.2, "relative": true, "source": "p. 3 text: 13.4 nm at 350 W; our energy follows 354 W (Fig. 4a caption)"},
+  {"id": "bandwidth at 375 W out", "kind": "number", "key": "bwOuterNm_375W", "expected": 13.5, "tolerance": 0.2, "relative": true, "source": "p. 4 text: 13.5 nm at optimum compression, 375 W"},
+  {"id": "bandwidth at 446 W out", "kind": "number", "key": "bwOuterNm_446W", "expected": 16.1, "tolerance": 0.2, "relative": true, "source": "p. 3 text: 16.1 nm at maximum power"},
+  {"id": "bandwidth increase at 354 W relative to 1.6 nm", "kind": "number", "key": "bwRatio_354W", "expected": 8.4, "tolerance": 0.2, "relative": true, "source": "p. 3 text: 8.4-fold"},
+  {"id": "bandwidth increase at 446 W relative to 1.6 nm", "kind": "number", "key": "bwRatio_446W", "expected": 10, "tolerance": 0.2, "relative": true, "source": "p. 3 text: 10-fold"},
+  {"id": "transform-limited duration at 354 W", "kind": "number", "key": "tlFs_354W", "expected": 160, "tolerance": 0.15, "relative": true, "source": "p. 3 text: 160 fs"},
+  {"id": "transform-limited duration at 446 W", "kind": "number", "key": "tlFs_446W", "expected": 140, "tolerance": 0.15, "relative": true, "source": "p. 3 text: 140 fs"},
+  {"id": "optimum compressor GDD inside the vendor range", "kind": "number", "key": "gddOptFs2_375W", "expected": -37500, "tolerance": 16500, "source": "p. 3: 3 reflections of nominal GDD; range -54000 ... -21000 fs2 is our reading of a garbled glyph (UNVERIFIED)", "hard": false},
+  {"id": "compressed duration below 170 fs", "kind": "ordering", "a": "compressedFwhmFs_375W", "b": "limit170", "source": "p. 4: < 170 fs inferred"},
+  {"id": "autocorrelation FWHM", "kind": "number", "key": "acFwhmFs_375W", "expected": 200, "tolerance": 0.1, "relative": true, "source": "p. 4: 200 fs measured"},
+  {"id": "energy in the main peak", "kind": "number", "key": "mainPeakFraction_375W", "expected": 0.75, "tolerance": 0.1, "relative": true, "hard": false, "source": "p. 4: ~75 % estimated from the AC; our window definition differs"},
+  {"id": "B-integral at 446 W / pi", "kind": "number", "key": "bTotalOverPi_446W", "expected": 5, "tolerance": 0.4, "relative": true, "hard": false, "source": "p. 3: ~5 pi estimated from measured beam radii"},
+  {"id": "peak power far above critical", "kind": "number", "key": "powerOverCriticalFirstGlass", "expected": 10, "tolerance": 0.5, "relative": true, "hard": false, "source": "p. 1-2: peak power exceeds the critical power (4 MW); our value is a model output"},
+  {"id": "1-D on-axis model overestimates the bandwidth", "kind": "ordering", "a": "bwOuterNm_375W", "b": "oneD_bwOuterNm_375W", "margin": 5, "source": "the beam-integrated spectrum is narrower than the on-axis one"}
+ ]
+}

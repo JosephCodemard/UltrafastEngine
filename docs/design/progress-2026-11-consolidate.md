@@ -81,3 +81,12 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
   trace without `kind="pg-frog"` retrieves wrongly with no warning (G 2 %, wrong centre wavelength) — should warn or infer.
 * Not an engine fault: Kida's 25.6 fs² substrate GDD vs ours 18.2 fs² (engine matches Malitson second derivative; paper's path
   unspecified; `repro_1.py`); double-FROG removes direction ambiguity in 13/16 starts, not 6/6 (own numpy algorithm).
+
+## Update: Michelson-Morley 1887, Perot-Fabry 1899, Treacy 1969 done
+* **The PDF named "Michelson 1892" is Perot & Fabry, Astrophys. J. 9, 87 (1899)** (Fabry-Perot). Replicated as
+  `perot-1899-multiple-beam-interference`; Michelson 1892 itself is still missing (tell the owner).
+* michelson-1887-ether-null: engine Michelson readout reproduces 0.4 fringe for D = 11 m, null for equal arms; mostly circular by
+  design (no ether physics in the engine). perot-1899: Airy coefficient 80, coincidence periods 311.9 / 14.56515 / 4.759901
+  reproduced; 2 soft checks (bright fringe fraction, Na D period). treacy-1969: GDD/delay match eqs. 7, 8; the paper's printed
+  0.58 ps/cm, 10 cm optimum and eq. 17 (TOD) disagree with its own formulas (engine is right: 0.610 ps/cm, 9.51 cm, eq. 17 off 1.76×).
+* PDFs were scans: read via macOS PDFKit; tables garbled (UNVERIFIED). No engine bug found in these three.

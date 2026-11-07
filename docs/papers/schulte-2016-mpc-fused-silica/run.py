@@ -236,6 +236,7 @@ def main():
     c = res[375.0]
     for k in ("gddOptFs2", "compressedFwhmFs", "acFwhmFs", "mainPeakFraction"):
         nums[k + "_375W"] = c[k]
+    nums["limit170"] = 170.0
     nums["gddOptTotalRangeLoFs2"], nums["gddOptTotalRangeHiFs2"] = -54000.0, -21000.0          # 3 x (-18000 ... -7000), see paper.json
     nums["compressionFactor_375W"] = 850.0 / c["compressedFwhmFs"]
 
