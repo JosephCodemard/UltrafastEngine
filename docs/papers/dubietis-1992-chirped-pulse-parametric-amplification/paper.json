@@ -1,0 +1,26 @@
+{
+  "id": "dubietis-1992-chirped-pulse-parametric-amplification",
+  "citation": "A. Dubietis, G. Jonusauskas, A. Piskarskas, \"Powerful femtosecond pulse generation by chirped and stretched pulse parametric amplification in BBO crystal\", Opt. Commun. 88(4-6), 437-440 (1992)",
+  "doi": "10.1016/0030-4018(92)90070-8",
+  "openAccess": false,
+  "fullTextRead": true,
+  "readMethod": "macOS PDFKit text layer (4 pages) plus page images at 1.8x; figures 2 and 3 were read off the images (shapes only). The PDF and figures are not in the repository.",
+  "topic": "OPCPA: fibre-chirped 1.055 um pulses amplified by 2e4 in BBO, compressed to 70 fs",
+  "referenceNumbers": [
+    {"key": "seed", "value": "Nd:glass oscillator, 1.7 ps (Gaussian assumed), 27 cm^-1 wide, 1.055 um", "where": "p. 437", "status": "read"},
+    {"key": "fibre", "value": "8 um core, 4.5 m; chirped over 155 cm^-1 (steepness ~30 cm^-1/ps), ~5 ps; ~8 nJ; linear chirp up to 9 GW/cm^2 input intensity = 4.5 kW peak", "where": "p. 438", "status": "read"},
+    {"key": "pump", "value": "8 ps pump gave the most efficient amplification of the 5 ps chirped pulse; 3 mJ at 527.5 nm (SH in 2 cm KDP, from 11 mJ); stretcher range 2.8-15 ps", "where": "pp. 438-439", "status": "read"},
+    {"key": "bbo", "value": "BBO, 8 mm, type I, beams crossed ~2 deg, pump waist 0.3 mm diameter (f = 1 m lens), signal = fibre core imaged by a 16x objective; gain bandwidth up to 400 cm^-1 at 1.055 um", "where": "p. 439", "status": "read"},
+    {"key": "gain", "value": "signal ~5 nJ -> 100 uJ (gain ~2e4, variation < 10 %)", "where": "p. 439", "status": "read"},
+    {"key": "compressor", "value": "600 lines/mm reflection grating, pair of flat mirrors, near Littrow, single-pass grating-pair equivalent; optimum length 170 mm", "where": "p. 439", "status": "read"},
+    {"key": "compressed", "value": "70 fs (sech^2; autocorrelation FWHM 110 fs), predicted 67 fs, time-bandwidth 0.325, efficiency ~64 %, 65 uJ, 0.9 GW, compression ratio ~24", "where": "p. 439, Fig. 3; p. 440", "status": "read"}
+  ],
+  "assumptions": [
+    "Seed for the OPA and compressor: a sech^2 pulse whose spectrum is 155 cm^-1 wide (transform limit 67.8 fs, which is the paper's 'predicted 67 fs'), with a linear chirp of 30 cm^-1/ps (GDD 1.77e5 fs^2, 5.17 ps). This is the paper's own description of the chirped pulse; the fibre stage is simulated separately (A) and disagrees with it.",
+    "Fibre: FusedSilica dispersion (the doped core is not given), n2 = 2.6e-20 m^2/W, A_eff = 4.5 kW / 9 GW/cm^2 = 50 um^2 (derived from the paper), scalar field.",
+    "'Crossed at ~2 deg' is taken as the angle inside the crystal; beams: signal radius 64 um, pump radius 150 um; the 1-D Gaussian-overlap crystal model.",
+    "The pump energy at the crystal is not given. Only the 3 mJ of second harmonic is. The pump energy that gives 100 uJ of signal in the engine is reported as an inferred quantity.",
+    "The compressor's incidence angle is 'near Littrow' (18.45 deg at 1055 nm); 170 mm is read as the perpendicular separation of the equivalent single-pass pair (the folded layout is not specified).",
+    "Idler compression, beam ellipticity from the lateral walk-off of a single-pass compressor, spatial effects in the OPA and the 1.7 ps -> 27 cm^-1 oscillator pulse shape are not modelled."
+  ]
+}

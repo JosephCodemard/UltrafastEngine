@@ -1,0 +1,21 @@
+{
+  "paper": "dubietis-1992-chirped-pulse-parametric-amplification",
+  "checks": [
+    {"id": "sech^2 transform limit of 155 cm^-1 vs the paper's predicted 67 fs", "kind": "number", "key": "seedTL_sech2_fs", "expected": 67.0, "tolerance": 1.5, "source": "p. 439: 'predicted duration of 67 fs'; tau * dnu = 0.315"},
+    {"id": "time-bandwidth product of 70 fs x 155 cm^-1", "kind": "number", "key": "tbp_70fs_155cm", "expected": 0.325, "tolerance": 0.003, "source": "p. 439"},
+    {"id": "autocorrelation 110 fs / 1.543 vs 70 fs", "kind": "number", "key": "ac_over_1p543_fs", "expected": 70.0, "tolerance": 2.0, "source": "p. 439, Fig. 3a"},
+    {"id": "compression ratio 1.7 ps / 70 fs", "kind": "number", "key": "compression_ratio_1p7ps_over_70fs", "expected": 24.0, "tolerance": 1.0, "source": "pp. 437, 440: ~24"},
+    {"id": "65 uJ in 70 fs is 0.9 GW", "kind": "number", "key": "compressedPeakPower_GW", "expected": 0.9, "tolerance": 0.05, "source": "p. 439"},
+    {"id": "GDD of a 30 cm^-1/ps linear chirp (fs^2)", "kind": "number", "key": "seedGdd_fs2", "expected": 177000, "tolerance": 2000, "source": "derived from the 30 cm^-1/ps steepness, p. 438 (GDD = 1/chirp rate)"},
+    {"id": "fibre stage: spectral width vs the paper's 155 cm^-1", "kind": "number", "key": "fibre_spectralFwhm_cm", "expected": 155, "tolerance": 25, "hard": false, "source": "p. 438; engine fibre (scalar, silica, A_eff 50 um^2) gives about 1.7x more: see README"},
+    {"id": "fibre stage: duration vs ~5 ps", "kind": "number", "key": "fibre_duration_ps", "expected": 5.0, "tolerance": 1.0, "source": "p. 438"},
+    {"id": "fibre stage: sweep rate vs 30 cm^-1/ps", "kind": "number", "key": "fibre_sweepRate_cm_per_ps", "expected": 30, "tolerance": 6, "hard": false, "source": "p. 438, Fig. 2a"},
+    {"id": "pump intensity for G = 2e4 in 8 mm (inferred, GW/cm^2)", "kind": "number", "key": "inferred_pumpIntensity_for_G2e4_GWcm2", "expected": 2.1, "tolerance": 0.5, "hard": false, "source": "derived from G = exp(2 Gamma L)/4; not a paper number"},
+    {"id": "grating separation that matches the chirp (mm, perpendicular)", "kind": "number", "key": "compressorG_analytic_mm", "expected": 170.0, "tolerance": 15.0, "hard": false, "source": "p. 439: 170 mm; ours 202 mm (Treacy, Littrow), geometry of the folded compressor not specified"},
+    {"id": "engine compressor optimum equals the analytic Treacy value (mm)", "kind": "number", "key": "compressed_bestG_mm", "expected": 201.78, "tolerance": 0.1, "source": "Treacy eq. (8) evaluated in run.py; scan includes the point"},
+    {"id": "compressed duration vs the paper's 70 fs (OPA output, fs)", "kind": "number", "key": "compressed_min_fs", "expected": 70.0, "tolerance": 15.0, "hard": false, "source": "p. 439; ours is 130 fs: uncompensated grating TOD (3.6e-40 s^3) on the 155 cm^-1 sweep, see README"},
+    {"id": "compression at the matched separation beats the paper's 170 mm with our chirp", "kind": "ordering", "a": "linearSeed_min_fs", "b": "compressed_at_170mm_fs", "margin": 100, "source": "Treacy: the separation must match the GDD of the chirp"},
+    {"id": "a pump shorter than the signal narrows the amplified spectrum", "kind": "ordering", "a": "narrowing_2p8ps_pump_cm", "b": "spectrum_8ps_pump_cm", "margin": 10, "source": "p. 437-438: the matching argument"},
+    {"id": "an 8 ps pump amplifies less bandwidth than a 15 ps one at equal gain exponent", "kind": "ordering", "a": "spectrum_8ps_pump_cm", "b": "spectrum_15ps_pump_cm", "margin": 5, "hard": false, "source": "consequence of the same argument"}
+  ]
+}

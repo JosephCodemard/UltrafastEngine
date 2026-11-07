@@ -125,3 +125,17 @@ and use `.venv/bin/python`. Rebuild the engine only with no agents running: `.ve
 * **Missing:** single-shot time-to-space geometry (20-40° crossing on a cm grid + camera/fibre array), air scatter + stripe filter,
   crystal-face reflection spikes, gate-arm-only element in `crossCorrelator` (used a Branched system instead).
 * `grid.satelliteLevel` had to be lowered to 1e-11 for the third ghost (~7e-9).
+
+## Update: Maker 1962 and Dubietis 1992 done — all 12 PDFs now replicated
+* The "dispersion and focusing" PDF is **Maker, Terhune, Nisenoff & Savage, PRL 8, 21 (1962)** (Maker fringes), not Bjorkholm.
+  `maker-1962-dispersion-focusing-harmonics`: 11 checks, 2 soft. Quartz fringe 13.71 vs 13.9 µm (1.4 %); KDP θ0 50.55° vs 52 ± 2°;
+  d_eff ∝ sin2φ fails at 7 of 19 azimuths.
+  `dubietis-1992-chirped-pulse-parametric-amplification`: 16 checks, 4 soft. 67 fs limit, 0.325 TBP, 24× compression, 0.9 GW agree;
+  fibre output width 264 vs 155 cm⁻¹, grating 202 vs 170 mm, compressed 133 vs 70 fs (grating TOD alone: 68 → 114 fs) do not.
+* **Engine findings:** (1) KDP type-I SHG with explicit `cut {thetaDeg, phiDeg}`: `deffPmPerV` erratic in φ (0.224 at 45.0°, 0.308 at
+  44.75° / 45.25°, −0.142 at 46°); `cut:"auto"` gives 0.308 (`maker…/repro_1.py`). (2) Default adaptive stepper (1e-6) does not resolve a
+  strongly phase-mismatched thick crystal: 0.8 mm quartz (ΔkL = 370 rad) gives SH energy 150-960× the plane-wave law, no warning
+  (`repro_2.py`; needs 1e-11). (3) `externalAngleDeg` is declared in the schema but the library answered "unknown parameter, ignored"
+  — check whether the built DLL was stale. (4) 1-D OPA at deep saturation is non-monotonic in pump energy (documented limit).
+  (5) An early Dubietis run gave different OPA numbers (2.6 vs 1.33 µJ) — probably an engine rebuild mid-run; not reproduced.
+* Remaining: papers README index, `paper_check.py` (fast tier, all), `mkdocs build --strict`, `/verify`, final summary to the owner.

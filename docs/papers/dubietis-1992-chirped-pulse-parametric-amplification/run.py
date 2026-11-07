@@ -132,9 +132,9 @@ def main():
     out["gain_at_100uJ"] = 100e-6 / 5e-9
     out["peakPumpIntensity_at_e100_GWcm2"] = (0.94 * e100 / 8e-12) * 2 / (math.pi * W_PUMP ** 2) / 1e13 if e100 == e100 else float("nan")
     out["opa_saturated_pumpEnergy_uJ"] = e100 * 1e6
-    # unsaturated stage for the bandwidth and compression tests: pump peak intensity at which the small-signal exponent Gamma L = 4
-    # (G ~ 3e2): the 100 uJ of the paper needs >= 200 uJ of pump, i.e. deep saturation, which a 1-D overlap model does not describe well
-    i_lin = i_need * (4.0 / gam_needed / L_BBO) ** 2
+    # unsaturated stage for the bandwidth and compression tests: pump peak intensity at which the small-signal exponent Gamma L = 2.5
+    # (G ~ 40): the 100 uJ of the paper needs >= 200 uJ of pump, i.e. deep saturation, which a 1-D overlap model does not describe well
+    i_lin = i_need * (2.5 / gam_needed / L_BBO) ** 2
     p_peak = i_lin * math.pi * W_PUMP ** 2 / 2
     ep = p_peak * 8e-12 / 0.94
     out["linearStage_pumpIntensity_GWcm2"] = i_lin / 1e13
@@ -186,6 +186,15 @@ def main():
         wl.append(pulse_of(rr)["fwhmS"] * 1e15)
     wl = np.array(wl)
     out["linearSeed_min_fs"] = float(wl.min()); out["linearSeed_bestG_mm"] = float(gs[int(np.argmin(wl))] * 1e3)
+    # E: the engine's fibre output (stage A, no OPA) through the same compressor: does its own TOD help?
+    gf = np.linspace(40e-3, 260e-3, 45 if p.fast else 89)
+    wf = []
+    for g in gf:
+        rr = uf.run(b.system("fc", [fib, b.grating_pair("comp", LINES, lit, float(g), order=-1, passes=1)]), b.run_spec(b.pulse(LS, 1.7e-12, energy=8e-9)))
+        wf.append(pulse_of(rr)["fwhmS"] * 1e15)
+    wf = np.array(wf)
+    out["fibreChain_min_fs"] = float(wf.min()); out["fibreChain_bestG_mm"] = float(gf[int(np.argmin(wf))] * 1e3)
+    out["fibreChain_transformLimit_fs"] = float(pulse_of(rr)["transformLimitFwhmS"] * 1e15)
     # at the paper's 170 mm
     rr = run_chain(ep, 8e-12, g=0.170, aoi=lit)
     out["compressed_at_170mm_fs"] = pulse_of(rr)["fwhmS"] * 1e15
@@ -211,6 +220,7 @@ def main():
     fig, ax = p.figure(width_in=6.6, height_in=3.8)
     ax.plot(gs * 1e3, wd, "o-", color=BLUE, label="OPA output, compressed")
     ax.plot(gs * 1e3, wl, "-", color=ORANGE, label="seed alone, compressed")
+    ax.plot(gf * 1e3, wf, "-", color=AQUA, label="engine fibre output, compressed (no OPA)")
     ax.axvline(170, color=REF, ls="--", label="paper: 170 mm")
     ax.axhline(70, color=REF2, ls=":", label="paper: 70 fs")
     ax.set(xlabel="grating separation G (mm, perpendicular; Littrow)", ylabel="pulse duration FWHM (fs)", yscale="log"); ax.legend(fontsize=8)

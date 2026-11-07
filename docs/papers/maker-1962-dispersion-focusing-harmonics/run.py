@@ -44,7 +44,9 @@ def vals(res):
 def quartz(L):
     el = b.crystal("q", "quartz", float(L), process="shg", type="0", cut={"thetaDeg": 90, "phiDeg": 0},
                    overlap={"model": "planeWave", "radiusM": 1e-3}, chi3=False, deff_pm_per_v=0.3)
-    r = uf.run(b.system("q", [el], materials={"quartz": QUARTZ}), b.run_spec(b.pulse(LAM, 5e-12, energy=1e-6)))
+    # stepper tolerance 1e-11: with the default (1e-6) the adaptive step does not resolve the rapid phase mismatch of a thick plate
+    # (delta k L = 370 rad) and the SH energy is wrong by 2-3 orders of magnitude (repro_2.py)
+    r = uf.run(b.system("q", [el], materials={"quartz": QUARTZ}), b.run_spec(b.pulse(LAM, 5e-12, energy=1e-6), stepper={"tolerance": 1e-11}))
     return vals(r)
 
 
@@ -175,8 +177,10 @@ def main():
         a = dscan[v >= v.max() / 2]
         return float(a.max() - a.min())
     out["fwhm_collimated_deg"], out["fwhm_focused_deg"] = fwhm(c), fwhm(f)
-    out["asymmetry_focused"] = float((f[dscan > 0.05].sum() - f[dscan < -0.05].sum()) / (f[dscan > 0.05].sum() + f[dscan < -0.05].sum()))
-    out["asymmetry_collimated"] = float((c[dscan > 0.05].sum() - c[dscan < -0.05].sum()) / (c[dscan > 0.05].sum() + c[dscan < -0.05].sum()))
+    def skew(v, d=0.2):      # (f(+d) - f(-d)) / (f(+d) + f(-d)), interpolated
+        fp, fm = np.interp(d, dscan, v), np.interp(-d, dscan, v)
+        return float((fp - fm) / (fp + fm))
+    out["asymmetry_focused"], out["asymmetry_collimated"] = skew(f), skew(c)
     fig, ax = p.figure(width_in=6.6, height_in=3.8)
     ax.plot(dscan, c / c.max(), "o-", color=BLUE, label="collimated, w0 = 300 um")
     ax.plot(dscan, f / f.max(), "s-", color=ORANGE, label="focused, w0 = 20 um")

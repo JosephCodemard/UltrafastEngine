@@ -1,0 +1,30 @@
+{
+  "id": "maker-1962-dispersion-focusing-harmonics",
+  "citation": "P. D. Maker, R. W. Terhune, M. Nisenoff, C. M. Savage, \"Effects of dispersion and focusing on the production of optical harmonics\", Phys. Rev. Lett. 8(1), 21-22 (1962)",
+  "doi": "10.1103/PhysRevLett.8.21",
+  "openAccess": false,
+  "fullTextRead": true,
+  "readMethod": "The request called this a 'Bjorkholm-type' paper; the PDF in docs/papers/ is the Maker et al. letter of 1962 (the Maker fringes), which is what was replicated. Read through macOS PDFKit: the 2 text pages (3-page PDF, third page blank) have a usable text layer except the equation and figure labels, so every number below was checked on a page image at 1.8x. The PDF and its figures are not in the repository.",
+  "topic": "chi(2): dispersion-limited SHG in quartz (Maker fringes), phase matching in KDP, focused beams",
+  "referenceNumbers": [
+    {"key": "quartzFringeSpacingTheory_um", "value": 13.9, "where": "p. 21, Fig. 1 (label 'dt theory = 13.9 um') and text", "status": "read"},
+    {"key": "quartzFringeSpacingMeasured_um", "value": 14, "where": "p. 21, Fig. 1 (label 'dt exp = 14 um')", "status": "read"},
+    {"key": "quartzPlateThickness", "value": "0.0308 in = 0.782 mm", "where": "p. 21, Fig. 1 caption", "status": "read"},
+    {"key": "kdpTheta0_deg", "value": "52 +- 2", "where": "p. 21, Fig. 2 caption", "status": "read"},
+    {"key": "kdpPhi0_deg", "value": 45, "where": "p. 21, Fig. 2 caption", "status": "read"},
+    {"key": "kdpCollimation_deg", "value": "+- 1/4", "where": "p. 21, Fig. 2 caption", "status": "read"},
+    {"key": "kdpEnhancement", "value": "300-fold increase of blue intensity at the matched orientation", "where": "p. 21 text", "status": "read; no baseline stated, not a hard check"},
+    {"key": "kdpSampleThickness_mm", "value": 1.5, "where": "p. 22 text", "status": "read"},
+    {"key": "photonRatios", "value": "red photons per blue photon: quartz collimated 5e12, focused 6e10; KDP collimated at (theta0, phi0) 3e9, focused 1e6", "where": "p. 22 text", "status": "read (page image); laser-dependent, not reproducible"},
+    {"key": "focusingGain", "value": "3000 in KDP = 100 (beam diameter reduction) x 30 (mixing of diverging rays); one-inch focal-length lens", "where": "p. 22", "status": "read; 'rough calculations' by the authors"},
+    {"key": "blueOnlyAboveTheta0", "value": "with a focused beam the blue is radiated only into the part of the cone with theta >= theta0", "where": "p. 22, Fig. 3", "status": "read"}
+  ],
+  "assumptions": [
+    "The laser is a ruby laser (p. 21): 694.3 nm is assumed (the text gives no wavelength).",
+    "Which polarisation geometry makes the quartz harmonic is not clear from the text (it says the red is polarised parallel to the z axis while the plate is rotated about z). The ordinary-wave interaction (o o -> o, d11) is simulated: its fringe spacing, 13.7 um, is the one that matches 13.9 um; the extraordinary combination gives 13.25 um.",
+    "Quartz indices: Ghosh (1999), the same as the engine's Quartz material (the indices the 1961 authors used are not given). d_eff is set to a nominal 0.3 pm/V; only shapes are compared.",
+    "The plate is modelled as a plane-parallel slab at normal incidence with path length d / cos(theta_r); Fresnel factors at the tilted faces are not in the engine.",
+    "KDP data: the engine's built-in KDP (Zernike 1964); a 5 ps pulse stands in for the nanosecond-scale ruby pulse (quasi-cw).",
+    "Beam sizes of the focused and collimated beams are not given: collimated w0 = 300 um and focused w0 = 20 um are assumptions. The paper's photon ratios are laser-dependent and are not compared."
+  ]
+}
