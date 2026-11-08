@@ -43,7 +43,7 @@ an execution plan:
 2. turn each element into *linear terms* (dispersion, Fresnel/coating, clip, scatter, absorption, filter,
    polarisation optics...) and, where the medium is nonlinear and a beam size is known, a *nonlinear segment*;
 3. size the time/frequency grid from the pulse and the largest group-delay spread anywhere in the system
-   (and the expected nonlinear broadening), snap the carrier onto the frequency grid, build the input pulse.
+   (and the expected nonlinear broadening), put the grid centre on a bin of the frequency lattice (within half a bin of the carrier) and build the input pulse at the requested carrier itself (an offset of the lattice), so the spectral centre, the Kerr phase n2 ω/c and the angles of gratings and prisms all refer to the wavelength you gave. A pulse at the requested carrier travels with the group delay at that carrier, which differs from the lattice centre's (the frame's) by GDD x offset: a sub-sample drift of the pulse in the window.
 
 It then **executes**: linear terms are applied exactly (one complex multiplication per frequency, any length),
 each with its own energy accounting; nonlinear segments are integrated in the interaction picture with the

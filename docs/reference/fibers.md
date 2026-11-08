@@ -19,7 +19,7 @@ overrides and studies all apply.
 |---|---|
 | `betas` | [beta2, beta3, ...] in s^k/m, about `referenceWavelengthM` |
 | `betasPsKm` | the same in ps^k/km (pyNLO and datasheet units) |
-| `dispersion` | a curve: `{"wavelengthsM": [...], "dPsNmKm": [...]}` (dispersion parameter D) or `"beta2S2PerM"`; integrated twice to beta(omega) |
+| `dispersion` | a curve: `{"wavelengthsM": [...], "dPsNmKm": [...]}` (dispersion parameter D) or `"beta2S2PerM"`; integrated twice to beta(omega); beta2(omega) is a natural cubic spline through the table (a linear interpolation was 0.8 % off for a 53-point table near D = 0) |
 | `material` | a bulk material instead (e.g. a hollow-core fibre filled with a gas, or an unguided rod) |
 
 The constant and linear terms of beta only set the absolute phase and group delay, which the engine removes;

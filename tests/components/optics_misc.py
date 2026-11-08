@@ -1010,8 +1010,8 @@ def wavefront_zernike(fam: Family):
                     sa = a * lam_ref * math.sqrt(var[z](1.0))
                     fam.check(f"wavefront Z{z} a={a} rms {label_wl(lam)}", sig, sa, rel=5e-4, unit="m", formula="Gaussian-weighted variance",
                               note="engine integrates numerically over a finite disc: -1e-4 (Z4), -2.5e-4 (Z11) relative")
-                    fam.check(f"wavefront Z{z} a={a} Strehl {label_wl(lam)}", val(r, 0, "strehlEstimate"), math.exp(-(2 * math.pi * sig / lam_snapped(r)) ** 2), rel=2e-5,
-                              formula="Marechal, at the grid carrier")
+                    fam.check(f"wavefront Z{z} a={a} Strehl {label_wl(lam)}", val(r, 0, "strehlEstimate"), math.exp(-(2 * math.pi * sig / lam) ** 2), rel=2e-5,
+                              formula="Marechal, at the requested carrier")
                     if lam == 1030e-9:
                         eng.append(sig)
                         ana.append(sa)

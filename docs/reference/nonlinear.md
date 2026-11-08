@@ -124,3 +124,11 @@ Analytic SPM broadening of a Gaussian (Agrawal eq. 4.1.15) to 1 %, fundamental-s
 period to 1 %, adaptive vs fixed steppers to 1e-4, Raman red-shift and self-steepening directions, envelope vs
 carrier-resolved models, callback == built-in Kerr to 1e-9, Bessel sidebands of lab-time phase modulation to
 1-4 %, and an N ~ 2.4 higher-order soliton against pyNLO to 0.05 % (0.8 % with Raman).
+
+
+## Limits that the engine reports
+
+* **Spectrum reaching zero frequency.** The envelope model has no field at ω <= 0. A pulse of a few cycles (10 fs at 2 µm is 1.5) broadened by SPM (B = 3) puts part of its spectrum there; the engine drops that part, books it as `spectrum at non-positive frequency` (not `numerical`) and warns. Use longer pulses or less nonlinearity; the result is outside the model's range.
+* **Delayed responses longer than the window.** The index change of a delayed response (Raman, orientational) lasts its memory (the time after which 1e-4 of its weight remains: 9.2 τ for exp(−t/τ)) after the pulse. The auto grid adds it to the window; a fixed window that is too short is warned about ("Grid looks too small").
+* **Phase-mismatched χ(2) crystals.** The integrator keeps the mismatch phase Δk·dz below 0.5 rad per step, so the generated field of a thick, strongly mismatched crystal (Δk L = 370 rad) follows sin²(Δk L / 2).
+* **Element-level `selfSteepening`** on fibres and bulk elements is honoured (it used to be read only from override rules).
