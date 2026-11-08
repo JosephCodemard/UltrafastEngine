@@ -251,7 +251,7 @@ namespace UltrafastEngine.Engine
     /// 0.8 % of beta2 for a 53-point D(lambda) table near D = 0.</summary>
     public sealed class TabulatedFiberIndex : IRefractiveIndex
     {
-        private readonly double _w0, _n; private readonly double[] _w, _b2, _gw, _beta; private readonly IInterpolator _b2Spline;
+        private readonly double _w0, _n; private readonly double[] _w, _b2, _gw, _beta; private readonly IInterpolator _b2Spline, _betaSpline;
         public TabulatedFiberIndex(double w0, double nEff, double[] wavelengthsM, double[] beta2)
         {
             _w0 = w0; _n = nEff;
@@ -271,6 +271,7 @@ namespace UltrafastEngine.Engine
             for (int i = i0 - 1; i >= 0; i--) b1[i] = b1[i + 1] - 0.5 * (Beta2At(_gw[i + 1]) + Beta2At(_gw[i])) * dw;
             for (int i = i0 + 1; i < n; i++) _beta[i] = _beta[i - 1] + 0.5 * (b1[i - 1] + b1[i]) * dw;
             for (int i = i0 - 1; i >= 0; i--) _beta[i] = _beta[i + 1] - 0.5 * (b1[i + 1] + b1[i]) * dw;
+            _betaSpline = new NaturalCubicSpline(_gw, _beta);   // beta(w) is read by finite differences for the reported GDD: a piecewise-linear beta gives noisy second derivatives
         }
         public double Beta2At(double w) => w <= _w[0] ? _b2[0] : w >= _w[_w.Length - 1] ? _b2[_b2.Length - 1] : _b2Spline.Evaluate(w);
         public string Description => "fiber mode, tabulated dispersion (" + _w.Length + " points)";
@@ -281,7 +282,7 @@ namespace UltrafastEngine.Engine
             {
                 double w = omega[i];
                 if (w <= 0) { nOut[i] = double.NaN; continue; }
-                double b = w < _gw[0] || w > _gw[_gw.Length - 1] ? double.NaN : Interpolation.Linear(_gw, _beta, w);
+                double b = w < _gw[0] || w > _gw[_gw.Length - 1] ? double.NaN : _betaSpline.Evaluate(w);
                 nOut[i] = double.IsNaN(b) ? double.NaN : c * (_n * _w0 / c + _n * (w - _w0) / c + b) / w;
             }
         }

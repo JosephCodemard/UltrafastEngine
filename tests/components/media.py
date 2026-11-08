@@ -203,13 +203,17 @@ def fiber_solitons(fam: Family):
                 ld = t0 * t0 / abs(b2)
                 L = 3.0 * ld
                 el = b.fiber("f", L, betas=[b2], gamma=gamma, raman="none")
-                r = run1(el, b.pulse(lam, tau, energy=sech_energy(p0, t0), shape="sech2"), selfSteepening=False)
+                # 24 points per FWHM: at the default 12 the sampled soliton is off by 0.3 % at 10 fs when its carrier is not on the frequency lattice
+                r = uf.run(b.system("c", [el]), b.run_spec(b.pulse(lam, tau, energy=sech_energy(p0, t0), shape="sech2"), physics={"selfSteepening": False},
+                                                           grid={"minPointsPerFwhm": 24}))
                 tag = f"{label_wl(lam)} {label_dur(tau)}"
                 t, Ai = tfield(r, "input")
                 _, Ao = tfield(r, "output")
                 pin = np.abs(Ai) ** 2
                 ip = int(np.argmax(pin))
-                fam.check(f"soliton peak kept {tag}", np.abs(Ao[ip]) ** 2, pin[ip], rel=3e-3, unit="W", formula="N = 1: P(z, 0) = P0")
+                # the window frame moves with the group delay at the lattice centre; a pulse at the requested carrier (up to half a bin away) is displaced
+                # by GDD x offset x L (73 fs for 1 ps, 515 nm): compare the peak, not the sample at the input peak
+                fam.check(f"soliton peak kept {tag}", float(np.max(np.abs(Ao) ** 2)), pin[ip], rel=3e-3, unit="W", formula="N = 1: max P(z, t) = P0")
                 fam.check(f"soliton FWHM kept {tag}", fwhm_power(r, "output") / fwhm_power(r, "input"), 1.0, abs=3e-3, formula="N = 1: τ(z) = τ0")
                 ph = float(np.angle(Ao[ip] / Ai[ip]))
                 want = (L / (2 * ld)) % (2 * math.pi)
@@ -238,6 +242,7 @@ def fiber_solitons(fam: Family):
         t, Ai = tfield(r, "input")
         _, Ao = tfield(r, "output")
         pi_, po = np.abs(Ai) ** 2, np.abs(Ao) ** 2
+        po = np.interp(t, t - ((t * po).sum() / po.sum() - (t * pi_).sum() / pi_.sum()), po)   # undo the (sub-sample) displacement of the window frame
         fam.check("N=2 soliton returns: L1 distance of P(t)", float(np.abs(po - pi_).sum() / pi_.sum()), 0.0, abs=0.01, formula="Σ|P_out - P_in| / ΣP_in at z0")
         fam.check("N=2 soliton returns: peak power", po.max(), pi_.max(), rel=0.01, unit="W")
         m = pi_ > 1e-3 * pi_.max()
