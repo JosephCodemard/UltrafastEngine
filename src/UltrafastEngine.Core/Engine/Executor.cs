@@ -622,7 +622,7 @@ namespace UltrafastEngine.Engine
         {
             var g = p.Grid; int n = g.N;
             Combine(seg.Background, axis, out var phX, out var ampX, out var phY, out var ampY);
-            bool scalar = phY == null && p.Ay.All(c => c == Complex.Zero);
+            bool scalar = phY == null && p.Ay.All(c => c == Complex.Zero) && !seg.Medium.HasCubicAnisotropy;   // the orthogonal wave (XPW) needs the y component
             var prob = new EnvelopeProblem(g, seg.Medium, seg.Beam, seg.LengthM, phX, ampX, phY, ampY, scalar, arrival, tauEl, id);
             var state = new Complex[prob.Length];
             Array.Copy(p.Ax, 0, state, 0, n);

@@ -142,6 +142,7 @@ namespace UltrafastEngine.Crystals
                 double p1 = B, q1 = l - A, p2 = l - Cc, q2 = B, p, q;
                 if (p1 * p1 + q1 * q1 >= p2 * p2 + q2 * q2) { p = p1; q = q1; } else { p = p2; q = q2; }
                 if (p * p + q * q < 1e-300) { p = 1; q = 0; } // isotropic: any direction
+                if (Math.Abs(p) >= Math.Abs(q) ? p < 0 : q < 0) { p = -p; q = -q; }   // one sign convention for both branches (d_eff changes sign only where it should)
                 return (p * u + q * v).Normalized();
             }
             var dS = Vec(lSlow);

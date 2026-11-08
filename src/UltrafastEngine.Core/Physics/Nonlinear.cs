@@ -24,6 +24,13 @@ namespace UltrafastEngine.Physics
         /// <summary>Orientational (rotational Raman) response of molecular gases: an anisotropic, delayed index tensor
         /// (docs/reference/gases.md). Null for atoms and solids.</summary>
         public IAnisotropicResponse Rotational { get; set; }
+        /// <summary>Cubic (m3m) anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (docs/reference/nonlinear.md#cubic-anisotropy);
+        /// 0 = isotropic. With sigma != 0 the Kerr index change is n2 [(1 - sigma) isotropic + sigma sum_a u_a |u_a.A|^2 (u_a.A)] and a linearly polarised
+        /// pulse makes an orthogonal wave (XPW).</summary>
+        public double KerrAnisotropy { get; set; }
+        /// <summary>Transverse (lab x, y) components of the three cubic axes [100], [010], [001], [axis, 0/1] (set with <see cref="KerrAnisotropy"/>).</summary>
+        public double[,] CubicAxes { get; set; }
+        public bool HasCubicAnisotropy => KerrAnisotropy != 0 && CubicAxes != null && !ReplaceKerr && N2 != 0;
         public bool NeedsCarrierResolution => ExtraResponses.Any(r => r.NeedsCarrierResolution);
         public bool IsActive => (!ReplaceKerr && N2 != 0) || ExtraResponses.Count > 0 || Rotational != null;
         public double EffectiveRamanFraction => EnableRaman && Raman != null ? RamanFraction : 0.0;
@@ -109,6 +116,7 @@ namespace UltrafastEngine.Physics
         public EnvelopeProblem(FrequencyGrid grid, NonlinearMedium medium, IBeamModel beam, double lengthM,
             double[] phX, double[] ampX, double[] phY, double[] ampY, bool scalar, double tArrivalAtStart, double elementCarrierGroupDelay, string elementId)
         {
+            if (scalar && medium.HasCubicAnisotropy) throw new InvalidOperationException("A cubic-anisotropic Kerr medium needs vector (x, y) propagation: the orthogonal wave (XPW) would be lost.");
             _g = grid; _m = medium; _beam = beam; LengthM = lengthM; _scalar = scalar; _id = elementId;
             _tArrival0 = tArrivalAtStart; _tauElement = elementCarrierGroupDelay;
             _k0 = grid.OmegaCenter / PhysicalConstants.SpeedOfLightMPerS;
@@ -267,7 +275,7 @@ namespace UltrafastEngine.Physics
         /// the problem uses features only the CPU path implements (user responses, rotational Raman).</summary>
         public EnvelopeDeviceSpec DeviceSpec()
         {
-            if (_m.Rotational != null || _m.ExtraResponses.Count != 0) return null;
+            if (_m.Rotational != null || _m.ExtraResponses.Count != 0 || _m.HasCubicAnisotropy) return null;
             bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
             return new EnvelopeDeviceSpec
             {
@@ -325,7 +333,9 @@ namespace UltrafastEngine.Physics
                 else ConvolveInPlace(it, _ramanKernelFreq, _g.DTime, w.C, w.Ram);
             }
             var nx = w.Nx; var ny = _scalar ? null : w.Ny;
-            double cc = kerr ? _m.N2 * (1 - fR) / (3.0 * aeff) : 0.0;
+            bool cubic = kerr && _m.HasCubicAnisotropy && !_scalar;
+            double elec = (1 - fR) * (1 - (_m.HasCubicAnisotropy ? _m.KerrAnisotropy : 0.0));   // isotropic share of the electronic Kerr response
+            double cc = kerr ? _m.N2 * elec / (3.0 * aeff) : 0.0;
             for (int i = 0; i < n; i++)
             {
                 double dnx = 0, dny = 0;
@@ -333,8 +343,8 @@ namespace UltrafastEngine.Physics
                 {
                     double rx = fR > 0 ? fR * (vecRaman ? w.RamX[i] : w.Ram[i]) : 0.0;
                     double ry = fR > 0 ? fR * (vecRaman ? w.RamY[i] : w.Ram[i]) : 0.0;
-                    dnx = _m.N2 * ((1 - fR) * (ix[i] + 2.0 / 3.0 * iy[i]) + rx);
-                    dny = _m.N2 * ((1 - fR) * (iy[i] + 2.0 / 3.0 * ix[i]) + ry);
+                    dnx = _m.N2 * (elec * (ix[i] + 2.0 / 3.0 * iy[i]) + rx);
+                    dny = _m.N2 * (elec * (iy[i] + 2.0 / 3.0 * ix[i]) + ry);
                 }
                 nx[i] = Complex.ImaginaryOne * _k0 * new Complex(dnx, 0) * ax[i];
                 if (!_scalar)
@@ -346,6 +356,7 @@ namespace UltrafastEngine.Physics
                         ny[i] += Complex.ImaginaryOne * _k0 * cc * ax[i] * ax[i] * Complex.Conjugate(ay[i]);
                     }
                     if (vecRaman) { double d = _m.N2 * fR * w.RamXY[i]; nx[i] += Complex.ImaginaryOne * _k0 * d * ay[i]; ny[i] += Complex.ImaginaryOne * _k0 * d * ax[i]; }
+                    if (cubic) AddCubic(ax[i], ay[i], aeff, (1 - fR), ref nx[i], ref ny[i]);
                 }
             }
             double peak = PeakIndexChange(ax, ay, nx, ny, _k0);
@@ -361,6 +372,22 @@ namespace UltrafastEngine.Physics
             Array.Copy(nx, 0, rate, 0, n);
             if (!_scalar) Array.Copy(ny, 0, rate, n, n);
             return _k0 * peak;
+        }
+
+        /// <summary>The cubic-anisotropy term of the Kerr response: dA_x,y += i k0 n2 sigma electronic sum_a u_a,x|y |u_a.A|^2 (u_a.A) / A_eff, with u_a the
+        /// transverse components of the cubic axes [100], [010], [001] (the delta_ijkl part of chi(3) of an m3m crystal; the isotropic part is
+        /// scaled by 1 - sigma elsewhere, so that n2 is the index change for light polarised along [100]).</summary>
+        private void AddCubic(Complex axi, Complex ayi, double aeff, double electronicShare, ref Complex nxi, ref Complex nyi)
+        {
+            double k = _k0 * _m.N2 * electronicShare * _m.KerrAnisotropy / aeff;
+            var u = _m.CubicAxes;
+            for (int a = 0; a < 3; a++)
+            {
+                double ux = u[a, 0], uy = u[a, 1];
+                Complex ca = ux * axi + uy * ayi;
+                Complex t = Complex.ImaginaryOne * (k * (ca.Real * ca.Real + ca.Imaginary * ca.Imaginary)) * ca;
+                nxi += ux * t; nyi += uy * t;
+            }
         }
 
         public double Nonlinear(Complex[] state, double z, Complex[] rate)
@@ -391,6 +418,7 @@ namespace UltrafastEngine.Physics
             var dnx = new double[n]; var dny = new double[n];
             double fR = _m.EffectiveRamanFraction;
             bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
+            double elec = (1 - fR) * (1 - (_m.HasCubicAnisotropy ? _m.KerrAnisotropy : 0.0));   // isotropic share of the electronic Kerr response
             double[] ram = null, ramX = null, ramY = null, ramXY = null;
             if (kerr)
             {
@@ -408,8 +436,8 @@ namespace UltrafastEngine.Physics
                 {
                     double rx = fR > 0 ? fR * (ramX != null ? ramX[i] : ram[i]) : 0.0;
                     double ry = fR > 0 ? fR * (ramY != null ? ramY[i] : ram[i]) : 0.0;
-                    dnx[i] = _m.N2 * ((1 - fR) * (ix[i] + 2.0 / 3.0 * iy[i]) + rx);
-                    dny[i] = _m.N2 * ((1 - fR) * (iy[i] + 2.0 / 3.0 * ix[i]) + ry);
+                    dnx[i] = _m.N2 * (elec * (ix[i] + 2.0 / 3.0 * iy[i]) + rx);
+                    dny[i] = _m.N2 * (elec * (iy[i] + 2.0 / 3.0 * ix[i]) + ry);
                 }
             }
             double[] dnxy = null;
@@ -446,7 +474,8 @@ namespace UltrafastEngine.Physics
 
             var nx = new Complex[n];
             Complex[] ny = _scalar ? null : new Complex[n];
-            double cc = kerr ? _m.N2 * (1 - fR) / (3.0 * aeff) : 0.0;
+            bool cubic = kerr && _m.HasCubicAnisotropy && !_scalar;
+            double cc = kerr ? _m.N2 * elec / (3.0 * aeff) : 0.0;
             for (int i = 0; i < n; i++)
             {
                 double ux = uRe != null ? uRe[i] : 0, ui = uIm != null ? uIm[i] : 0;
@@ -463,6 +492,7 @@ namespace UltrafastEngine.Physics
                     }
                     if (dnxy != null) { nx[i] += Complex.ImaginaryOne * _k0 * dnxy[i] * ay[i]; ny[i] += Complex.ImaginaryOne * _k0 * dnxy[i] * ax[i]; }
                     if (ramXY != null) { double d = _m.N2 * fR * ramXY[i]; nx[i] += Complex.ImaginaryOne * _k0 * d * ay[i]; ny[i] += Complex.ImaginaryOne * _k0 * d * ax[i]; }
+                    if (cubic) AddCubic(ax[i], ay[i], aeff, (1 - fR), ref nx[i], ref ny[i]);
                 }
             }
             double peak = PeakIndexChange(ax, _scalar ? null : ay, nx, ny, _k0);

@@ -184,7 +184,7 @@ namespace UltrafastEngine.Plugins.Fitting
                     phX[i] += px[i]; ampX[i] *= ax[i];
                 }
             }
-            bool scalar = phY == null && p.Ay.All(c => c == Complex.Zero);
+            bool scalar = phY == null && p.Ay.All(c => c == Complex.Zero) && !seg.Medium.HasCubicAnisotropy;
             double tauEl = seg.Background.Sum(b => b.GroupDelayAt(g.OmegaCenter));
             var inner = new EnvelopeProblem(g, seg.Medium, seg.Beam, seg.LengthM, phX, ampX, phY, ampY, scalar, 0, tauEl, id);
             var prob = new ReversedProblem(inner, 1e-3);

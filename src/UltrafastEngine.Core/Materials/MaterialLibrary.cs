@@ -126,6 +126,14 @@ namespace UltrafastEngine.Materials
                     m = Glass("TGG", new SellmeierIndex(new[] { 2.7769 }, new[] { 0.01656 }, 1.0, "TGG, approximate single-pole fit"), air, 0.0, 0.0, null);
                     m.Notes = "approximate dispersion (two-point fit); n2 not set (give one: the B-integral of an isolator matters)";
                     break;
+                case "baf2":
+                    // cubic fluoride (m3m). Index: Li, J. Phys. Chem. Ref. Data 9, 161 (1980), 293 K, 0.15-15 um (refractiveindex.info, CC0).
+                    m = Glass("BaF2", new SellmeierIndex(new[] { 0.81070, 0.19652, 4.52469 }, new[] { 0.10065 * 0.10065, 29.87 * 29.87, 53.82 * 53.82 }, 1.33973, "Li 1980"), air, BaF2N2PerW, 0.0, null);
+                    m.KerrAnisotropy = BaF2Sigma;
+                    m.Notes = "cubic (m3m); n2 = 2.0e-20 m^2/W for light polarised along [100] and anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 = -1.2 are UNVERIFIED literature-typical "
+                        + "values (n2 spread 1.8-2.9e-20; sigma from Minkovski et al., Opt. Lett. 29, 2237 (2004) / Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005), quoted from memory, not retrieved): override n2 / kerrAnisotropy. "
+                        + "Orientation: give kerrCutAxis / kerrAzimuthDeg on the element (default [001] cut, x along [100])";
+                    break;
                 case "cs2":
                     // liquid carbon disulfide, 20 C. Index: Kedenburg et al. 2012 (refractiveindex.info, CC0), one-pole fit valid 0.5-1.6 um.
                     // Nonlinearity: electronic (instantaneous, isotropic Maker-Terhune) + orientational (delayed, purely anisotropic).
@@ -165,6 +173,9 @@ namespace UltrafastEngine.Materials
         }
 
         /// <summary>Liquid CS2 nonlinearity (UNVERIFIED typical values, see Material.Notes): total n2 for ps pulses, delayed (orientational) share, rise and decay times.</summary>
+        /// <summary>BaF2 Kerr data (UNVERIFIED typical values, see Material.Notes): n2 along [100] and cubic anisotropy sigma.</summary>
+        public const double BaF2N2PerW = 2.0e-20, BaF2Sigma = -1.2;
+
         public const double CS2N2TotalPerW = 3.0e-18, CS2OrientationalFraction = 0.9, CS2RiseS = 0.2e-12, CS2DecayS = 1.6e-12;
 
         private static Material Glass(string name, IRefractiveIndex relIndex, IRefractiveIndex air, double n2, double fR, IDelayedResponse raman) =>
@@ -249,6 +260,7 @@ namespace UltrafastEngine.Materials
                 m.Index = idx;
                 m.Provenance["index"] = (idx.Description, source, origin);
             }
+            if (o.Has("kerrAnisotropy")) { m.KerrAnisotropy = o.GetDouble("kerrAnisotropy", 0); m.Provenance["kerrAnisotropy"] = (m.KerrAnisotropy.ToString("G4", System.Globalization.CultureInfo.InvariantCulture), source, origin); }
             if (o.Has("n2")) { m.N2 = o.GetDouble("n2", 0); m.Provenance["n2"] = (m.N2.ToString("G4", System.Globalization.CultureInfo.InvariantCulture) + " m^2/W", source, origin); }
             if (o.TryGet("rotationalRaman", out var rr) && !rr.IsNull)
             {

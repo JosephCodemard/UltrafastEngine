@@ -191,7 +191,8 @@ namespace UltrafastEngine.Models
             r.Register<IDelayedResponse>("delayedResponse", "linAgrawal", (s, _) =>
             {
                 var la = new LinAgrawalRamanResponse(s.GetDouble("tau1", 12.2e-15), s.GetDouble("tau2", 32e-15), s.GetDouble("taub", 96e-15), s.GetDouble("fa", 0.75), s.GetDouble("fb", 0.21), s.GetDouble("fc", 0.04));
-                return Split(la, s, double.NaN);
+                // an explicit anisotropicFraction (even 0 = isotropic) replaces the model's own fa / fb / fc split
+                return s.Json.Has("anisotropicFraction") ? (IDelayedResponse)new AnisotropicSplitResponse(la, s.GetDouble("anisotropicFraction", 0.25)) : la;
             });
             r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => Split(new HollenbeckCantrellRamanResponse(), s, 0.25));
             r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => Split(new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")), s, 0));

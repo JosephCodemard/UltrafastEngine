@@ -52,6 +52,8 @@ namespace UltrafastEngine.Materials
         public IAttenuation Attenuation { get; set; }
         /// <summary>Nonlinear index n2 (m^2/W), Delta n = n2 I.</summary>
         public double N2 { get; set; }
+        /// <summary>Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (cubic crystals, e.g. BaF2); 0 = isotropic.</summary>
+        public double KerrAnisotropy { get; set; }
         /// <summary>Delayed (Raman) fraction f_R of the Kerr response.</summary>
         public double RamanFraction { get; set; }
         public IDelayedResponse Raman { get; set; }
@@ -92,7 +94,7 @@ namespace UltrafastEngine.Materials
         {
             var copy = new Material
             {
-                Name = Name, Index = Index, IndexReference = IndexReference, Attenuation = Attenuation, N2 = N2,
+                Name = Name, Index = Index, IndexReference = IndexReference, Attenuation = Attenuation, N2 = N2, KerrAnisotropy = KerrAnisotropy,
                 RamanFraction = RamanFraction, Raman = Raman, Lidt = Lidt, IsGas = IsGas, Notes = Notes,
                 Rotational = Rotational, GasSpecies = GasSpecies, GasPressureBar = GasPressureBar, GasTemperatureK = GasTemperatureK, Ionization = Ionization
             };

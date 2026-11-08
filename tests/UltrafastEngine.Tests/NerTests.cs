@@ -156,6 +156,15 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.25, PeakPhase(Run(pure, Math.PI / 4, 2e-6)) / PeakPhase(Run(pure, 0, 2e-6)), 0.01, 0, "orientational circular / linear");
         }
 
+        [Test(Category = "ner", Reference = "tensor Raman: an explicit anisotropicFraction 0 makes linAgrawal isotropic: circular / linear = (1 - fR) 2/3 + fR", Tolerance = "1 %")]
+        public void LinAgrawal_WithExplicitZeroAnisotropy_IsIsotropic()
+        {
+            const double fR = 0.245;
+            var sys = Plate(O("kind", "linAgrawal", "anisotropicFraction", 0.0), fR);
+            double ratio = PeakPhase(Run(sys, Math.PI / 4, 2e-6)) / PeakPhase(Run(sys, 0, 2e-6));
+            Assert.Close((1 - fR) * 2.0 / 3.0 + fR, ratio, 0.01, 0, "circular / linear with an isotropic delayed response");
+        }
+
         [Test(Category = "ner", Reference = "validation: physically meaningful range 0 <= b <= 3/2", Tolerance = "exact")]
         public void AnisotropicFraction_OutsideZeroToOneAndAHalf_IsRejected()
         {

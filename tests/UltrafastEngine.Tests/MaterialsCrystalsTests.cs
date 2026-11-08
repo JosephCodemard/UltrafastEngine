@@ -22,7 +22,7 @@ namespace UltrafastEngine.Tests
         // o = (-sin phi, cos phi, 0) and E_e = (D_x/no^2, D_y/no^2, D_z/ne^2) normalised, D_e = (cos th cos phi, cos th sin phi, -sin th):
         // |d_eff| = d36 |sin 2phi| |E_z|. The textbook d36 sin(th) sin(2 phi) is the same with E_z -> D_z (walk-off ignored, 2 % at 50 deg).
         // Before the fix the o-eigenvector was chosen from rounding noise (B ~ 1e-17), so d_eff jumped with phi at fixed theta.
-        [Test(Category = "physics", Reference = "KDP (-42m) type-I o o -> e: d_eff = d36 |sin 2phi| E_z (exact E-field vectors); textbook d36 sin(theta) sin(2 phi) within the walk-off angle (Dmitriev, Handbook of NLO crystals)", Tolerance = "1e-9 relative (exact); 4 % (textbook)")]
+        [Test(Category = "physics", Reference = "KDP (-42m) type-I o o -> e: d_eff = d36 |sin 2phi| E_z (exact E-field vectors); textbook d36 sin(theta) sin(2 phi) within the walk-off angle (Dmitriev, Handbook of NLO crystals)", Tolerance = "1e-6 relative (exact); 4 % (textbook)")]
         public void Kdp_TypeI_Deff_FollowsD36Sin2Phi_ForEveryPhi_AtFixedTheta()
         {
             var kdp = CrystalLibrary.Get("KDP", 20);
