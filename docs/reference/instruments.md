@@ -21,11 +21,12 @@ warning when a name you gave is used twice.
 
 | kind | parameters | reports |
 |---|---|---|
-| `energyMeter` (`powerMeter`) | `rangeM` [min, max], `polarizerDeg`, `repRateHz` | energyJ, averagePowerW, transmissionFromInput |
+| `energyMeter` (`powerMeter`) | `rangeM` [min, max], `polarizerDeg`, `repRateHz` | energyJ, averagePowerW, transmissionFromInput; with `rangeM` the edge bins count with the fraction of the bin inside the band (error falls as the square of the bin width) |
 | `spectrometer` | `resolutionM` (Gaussian FWHM), `rangeM`, `points`, `polarizerDeg`, `normalize` (`peak` / `area` / `none` = J/m), `db`, `wavelengthOffsetM` | spectrum vs wavelength; peak, centroid, FWHM, RMS and -10 dB widths |
 | `scope` (`photodiode`) | `riseTimeS` or `bandwidthHz`, `points` | detected power vs time (impulse-response limited), FWHM, peak |
-| `autocorrelator` | `type`: `intensity` (default) or `interferometric`; `rangeS`, `points`, `resolutionS` (delay resolution), `shgAcceptanceFwhmM` (crystal bandwidth) | trace; AC FWHM and deconvolved FWHM (Gaussian sqrt2, sech^2 1.543); IAC peak-to-background (8:1) |
-| `frog` | `type`: `shg` (default) or `pg`; `points` (default 256), `spectralResolutionM`, `shgAcceptanceFwhmM` | trace [delay, frequency], axes, marginals |
+| `autocorrelator` | `type`: `intensity` (default) or `interferometric`; `rangeS`, `points`, `resolutionS` (delay resolution), `shgAcceptanceFwhmM` (crystal bandwidth) | trace; AC FWHM and deconvolved FWHM (Gaussian sqrt2, sech^2 1.543); IAC peak-to-background (8:1; the delay axis is symmetric with an odd number of points, so it contains d = 0, step lambda0/(16 c); if `points` forces a coarser step a note says the fringes are under-sampled; the background is the separated-pulse level 2 sum I^2) |
+| `frog` | `type`: `shg` (default), `pg` (polarisation gate) or `sd` (self-diffraction); `points` (default 256), `spectralResolutionM`, `shgAcceptanceFwhmM` | trace [delay, frequency], axes, marginals; `frogType` ([FROG geometries](#frog-geometries)) |
+| `xfrog` (`sfgFrog`) | `reference` (the known gate pulse, a run-spec pulse object), `points`, `spectralResolutionM` | cross-correlation FROG trace at the sum frequency; the reference field is stored with it ([FROG geometries](#frog-geometries)) |
 | `dscan` | `material` + `insertionM` [min, max], or `gddRangeS2` [min, max]; `steps`, `spectralResolutionM`, `shgAcceptanceFwhmM` | SHG trace vs insertion/GDD, integrated SHG, FWHM vs scan, optimum |
 | `contrast` | `resolutionS`, `windowS`, `dynamicRangeDb` | intensity in dB; pre/post-pulse contrast; pedestal energy fraction |
 | `polarimeter` | `points`, `extinctionRatio` | Stokes s1, s2, s3 (integrated and vs wavelength), degree of polarisation, azimuth, ellipticity |
@@ -35,7 +36,7 @@ warning when a name you gave is used twice.
 | `phaseMatchingCurve` | `at`: a crystal; `scan`: `angle` (`rangeDeg`), `wavelength` (`rangeM`), `temperature` (`rangeK`), `period` (`rangeM`); `points` | low-conversion sinc²(ΔkL/2) and Δk vs the scan variable, peak, FWHM ([Crystals](crystals.md)) |
 | `delayScan` | `at`: a crystal with aux beams; `fromS`, `toS`, `points` | re-runs the crystal on the pulse that entered it for each aux delay: output energy vs delay, optimum |
 | `beamProfile` | `at`: after an element with a transverse model | fluence vs radius (radial) or x / y cuts and map (cartesian); second-moment radius about the centroid, M² (`m2`, and `m2Y` on 2-D grids), true peak fluence ([Spatial models](transverse.md)) |
-| `crossCorrelator` (`thirdOrderCorrelator`) | `rangeS`, `stepS` / `points`, `fineStepS` + `fineRangeS`, `dynamicRangeDb` (110), `noise`, `resolutionS`, `shgAcceptanceFwhmM`, `polarization`, `probeDelaysS` | third-order correlation vs delay (linear and dB, with and without noise), pre/post-pulse contrast and their delays, contrast at chosen delays ([below](#crosscorrelator)) |
+| `crossCorrelator` (`thirdOrderCorrelator`) | `rangeS`, `stepS` / `points`, `fineStepS` + `fineRangeS`, `dynamicRangeDb` (110), `noise`, `resolutionS`, `shgAcceptanceFwhmM`, `polarization`, `probeDelaysS`, `gateArm` | third-order correlation vs delay (linear and dB, with and without noise), pre/post-pulse contrast and their delays, contrast at chosen delays ([below](#crosscorrelator)) |
 
 <!-- anchors for links from the generated option reference -->
 <span id="autocorrelator"></span><span id="beamprofile"></span><span id="compressor"></span><span id="contrast"></span><span id="conversion"></span><span id="delayscan"></span><span id="dscan"></span><span id="energymeter"></span><span id="frog"></span><span id="phasematchingcurve"></span><span id="polarimeter"></span><span id="pulsesummary"></span><span id="scope"></span><span id="spectrometer"></span><span id="wavefrontsensor"></span>
@@ -172,6 +173,19 @@ S(τ) = ∫ I(t) G(t - τ) dt.
   bandwidth of the doubling crystal.
 * **Delayed light.** With `grid.tail` ([Delayed light](delayed-light.md)) the SHG gate is made from the main field only,
   and the probe channel (linear in intensity) from main + tail: a ghost or an echo appears as the real device sees it.
+* **Resolution.** With `resolutionS` the trace, the noise floor and the reported contrasts are all relative to the peak of the
+  resolution-limited trace: smoothing smears a distant pre-pulse and the main peak alike, so a 1e-6 pre-pulse still reads
+  -60 dB, and the floor stays `dynamicRangeDb` below the (smoothed) peak.
+* **Elements in the gate arm only** (`gateArm`). A real correlator makes the second-harmonic gate in its own arm, and an
+  element there (a plate whose ghosts replicate the gate, a filter, dispersion) does not touch the fundamental. Give
+  `"gateArm": {"elements": [ ... ]}` (any element list of a system file, optional `"materials"`): the second harmonic of the
+  dominant polarisation, with the crystal acceptance applied, is sent through them compiled at lambda0/2, so glass and
+  coatings are evaluated at the second-harmonic wavelength, and the gate is `|E_SH|^2` of the result. The probe channel does not see
+  them. The time window of the instrument is used: it must hold the replicas (`grid.windowS`, or `grid.tail`). A plate with
+  `ghosts` gives replica k of relative level `R^(2k)` (R: the face reflectance at lambda0/2) at `-2 k n_g d / c` (the gate is
+  delayed against the probe), as in the single-shot cross-correlator of Ma et al., High Power Laser Sci. Eng. 2018, doi 10.1017/hpl.2018.57 (Fig. 4c).
+  Elements before the instrument in the system act on both arms. The run is linear: a nonlinear element in the gate arm sees an
+  arbitrary power scale (the gate is scaled to the energy of the fundamental pulse).
 * **Saturation and range stitching** (generic, set by you -- no instrument's numbers are built in). `saturationLevel` clips the
   reading (signal x attenuation + floor) at that fraction of the unattenuated peak; `segments` is a list of
   `{fromS, toS, attenuation (or gain), noiseFloor}`: the signal in that delay range is measured through the attenuation (a
@@ -187,6 +201,27 @@ and ND filters ([components](components.md#ghost-reflections)) and nonlinear con
 pre-pulses, and widen the window when the features are far from the peak. [Tutorial 5](../tutorials/05-contrast.md)
 follows a pre-pulse through an amplifier chain.
 
+
+## FROG geometries
+<span id="frog-geometries"></span>
+
+`frog` `type` selects the gate (all with one x polarisation; delay `tau`, gate pulse delayed by `tau`):
+
+| type | signal field | carrier of the signal |
+|---|---|---|
+| `shg` | `E(t) E(t - tau)` | `2 w0` |
+| `pg` | `E(t) |E(t - tau)|^2` | `w0` |
+| `sd` (self-diffraction) | `E(t)^2 E*(t - tau)` | `w0` |
+
+SHG-FROG traces are symmetric in the delay and cannot tell `E(t)` from `E*(-t)`; PG and SD traces can. For a linear chirp
+`omega(t) = w0 + b t` the intensity-weighted frequency centre of the row at delay `tau` is `w0 + (2/3) b tau` (PG) and
+`w0 + (4/3) b tau` (SD) (Kane and Trebino, Opt. Lett. 18, 823 (1993), appendix C); `FrogKindsTests` checks the engine's traces against these.
+
+`xfrog` (alias `sfgFrog`) gates the pulse with a **known reference** `R` of any carrier (`reference`: the pulse object of a run
+spec, e.g. `{"shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 30e-15, "chirp": {"gddS2": 195e-30}}`): the
+signal `E(t) R(t - tau)` is at the sum frequency `w0 + w_R`. The reading stores the type (`frogType`) and, for XFROG, the reference
+field (`reference_time_s`, `reference_field_re`, `reference_field_im`, `reference_omega_rad_s`), so [retrieval](retrieval.md) from it
+needs nothing else.
 
 ## Sampling: where the instrument looks
 <span id="sampling"></span>

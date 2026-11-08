@@ -159,7 +159,7 @@ namespace UltrafastEngine.Measured
                     string xs = xa == null ? "wavelength_m" : xa.Substring(RunResultName(o).Length + 1);
                     return new Layout { X = xs, Y = "efficiency_norm", MX = new[] { "detuning", "temperature", "period", "wavelength", "x" }, MY = new[] { "efficiency", "signal", "y" } };
                 }
-                case "frog": return new Layout { Rows = "delay_s", Cols = "wavelength_m", Trace = "trace", MRows = new[] { "delay", "tau" }, MCols = new[] { "wavelength", "lambda" }, MTrace = new[] { "trace", "frog" } };
+                case "frog": case "xfrog": return new Layout { Rows = "delay_s", Cols = "wavelength_m", Trace = "trace", MRows = new[] { "delay", "tau" }, MCols = new[] { "wavelength", "lambda" }, MTrace = new[] { "trace", "frog" } };
                 case "dscan": return new Layout { Rows = has("insertion_m") ? "insertion_m" : "gdd_s2", Cols = "shg_wavelength_m", Trace = "trace", MRows = has("insertion_m") ? new[] { "insertion", "glass", "z" } : new[] { "gdd" }, MCols = new[] { "wavelength", "shg_wavelength", "lambda" }, MTrace = new[] { "trace", "dscan" } };
                 case "nearFieldCamera": case "camera": case "farFieldCamera":
                     return new Layout { Rows = "x_m", Cols = "y_m", Trace = "fluence_j_m2", MRows = new[] { "x" }, MCols = new[] { "y" }, MTrace = new[] { "image", "fluence", "counts" } };

@@ -6,11 +6,29 @@ instrument would let you recover.
 
 | method | trace | algorithm |
 |---|---|---|
-| `pcgpa` | SHG-FROG, PG-FROG | principal-component generalised projections (Kane 1999): project on the measured magnitudes, rebuild the outer product, one power iteration per step |
-| `epie` | SHG-FROG, PG-FROG | ptychographic iterative engine adapted to FROG (Sidorenko et al. 2016): delays in random order, object and gate updated |
+| `pcgpa` | SHG-, PG-, SD-FROG, XFROG | principal-component generalised projections (Kane 1999): project on the measured magnitudes, rebuild the outer product, one power iteration per step |
+| `epie` | SHG-, PG-, SD-FROG, XFROG | ptychographic iterative engine adapted to FROG (Sidorenko et al. 2016): delays in random order, object and gate updated |
 | `dscan` | SHG d-scan (glass insertion or GDD) | the measured fundamental spectrum is kept; the spectral phase (a spline through `nodes` points) is fitted by Levenberg-Marquardt, with a per-column calibration of the SHG detection eliminated |
 
-All three use exactly the forward models of the engine's `frog` and `dscan` instruments.
+| `multiFrog` (`doubleFrog`) | several FROG traces sharing unknown pulses | all traces together ([below](#multi-trace-retrieval)) |
+
+All use exactly the forward models of the engine's `frog`, `xfrog` and `dscan` instruments.
+
+## Trace kinds
+
+| kind | gate | notes |
+|---|---|---|
+| `shg-frog` | `E(t) E(t - tau)` | symmetric in the delay; the direction of time (sign of the chirp) is ambiguous |
+| `pg-frog` | `E(t) |E(t - tau)|^2` | no ambiguity |
+| `sd-frog` | `E(t)^2 E*(t - tau)` | self-diffraction; no ambiguity; PCGPA takes `E` from the right singular vector (the probe is `E*`) |
+| `xfrog` | `E(t) R(t - tau)`, `R` known | sum-frequency (SFG) cross-correlation FROG; the reference fixes the time origin and the direction; PCGPA is the least-squares step `E = O R* / sum |R|^2` |
+
+**The kind is never guessed silently.** It comes from (1) the `kind` argument, (2) a `"kind"` key in a JSON / dict trace, (3) the
+instrument that made the trace (`frogType`; `TraceData.FromInstrument`, and `summary.json` next to a `result.npz`). If none is
+available the retrieval assumes `shg-frog` only when the trace is symmetric in the delay (as every SHG trace is) and says so in
+its notes; an asymmetric trace stops with an error asking for the kind. Naming `shg-frog` for an asymmetric trace adds a warning note.
+An XFROG trace needs its reference (`reference_time_s`, `reference_field_re`, `reference_field_im`, `reference_omega_rad_s`): the
+`xfrog` instrument's arrays carry it.
 
 ## Command line
 
@@ -36,6 +54,28 @@ out = uf.retrieve("pcgpa", {"delay_s": res["frog_delay_s"], "omega_rad_s": res["
 out["error"], out["fwhmS"]
 spec2 = b.run_spec(out["pulse"])              # the retrieved pulse as an input
 ```
+
+## Multi-trace retrieval
+
+Traces that share unknown pulses are retrieved together (Kida et al., Opt. Express 22, 3004 (2014), "double FROG"): the SHG-FROG
+of a reference pulse, the SHG-FROG of a test pulse, and the XFROG trace of the test pulse gated by the reference. Each SHG trace
+alone leaves the time direction of its pulse open; the XFROG trace ties them, and the two SHG traces remove the common twin.
+
+```python
+out = uf.retrieve_multi([
+    {"trace": ref_shg,  "kind": "shg-frog", "pulse": "ref"},
+    {"trace": test_shg, "kind": "shg-frog", "pulse": "test"},
+    {"trace": xfrog,    "kind": "xfrog",    "pulse": "test", "gate": "ref"},   # gate: the unknown pulse that gates it
+], maxIterations=600)
+out["pulses"]["test"]["pulse"], out["traceErrors"]
+```
+
+Every pulse has its own carrier (fixed by an SHG / PG / SD trace; otherwise give `carriersRadS` in the options). All pulses live on
+one grid (`points`, `dtS`); in every sweep each trace projects onto its measured magnitudes and updates its pulses (SHG / PG / SD: the
+PCGPA step; XFROG: least squares for the test pulse with the gate fixed, then for the gate with the test pulse fixed). The JSON command
+is `{"command": "retrieve", "method": "multiFrog", "traces": [...], "options": {...}}`; C#: `MultiTraceRetrieval.Run(terms, options)`.
+An XFROG term without `gate` uses the reference stored in its trace as a known gate. Tested on six random starts for both pulses
+(`MultiTraceRetrievalTests`).
 
 ## Wavefront from two intensities: Gerchberg-Saxton
 
@@ -74,5 +114,5 @@ Options: `points` (FROG grid, default the next power of two ≥ the delay count,
 Implement `UltrafastEngine.Retrieval.IRetrieval` and register it (`Retrievals.Register`, or a plugin's
 `ctx.RegisterRetrieval(...)`); it is then available by name in the CLI, the C API and Python.
 
-Tests: `RetrievalTests` (PCGPA and ePIE on a chirped pulse: error, duration, |GDD|; d-scan: GDD with its sign,
+Tests: `FrogKindsTests` (PG / SD / XFROG trace tilt against the analytic slopes, retrieval of a chirped pulse with the sign, kind inference), `MultiTraceRetrievalTests`, `RetrievalTests` (PCGPA and ePIE on a chirped pulse: error, duration, |GDD|; d-scan: GDD with its sign,
 duration, and the retrieved field reused as a run input).

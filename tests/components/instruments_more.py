@@ -69,10 +69,9 @@ def energy_meter(fam: Family):
             eng.append(iv(r, "em")["energyJ"] / 1e-6)
             ana.append(a)
             fam.check(f"band +-{h * 1e9:g} nm fraction (quantisation bound)", eng[-1], a, abs=bound,
-                      formula="Gaussian spectrum between the band edges; bound = two half-bins x peak density (edges snap to whole bins)")
+                      formula="Gaussian spectrum between the band edges; bound = two half-bins x peak density (the old whole-bin snapping error; edge bins are now weighted by their fraction)")
             fam.check(f"band +-{h * 1e9:g} nm fraction (sharp edges)", eng[-1], a, abs=1e-3,
-                      known="the band edges snap to whole spectral bins (no fractional edge weights): error up to half a bin of spectral density at each edge, "
-                            "4 % for a 4 nm band at the default grid (repro/energymeter_band_bins.py)" if h < 12e-9 else "")
+                      formula="Gaussian spectrum between the band edges (edge bins weighted by the fraction inside the band)")
         overlay(f, half * 1e9, eng, ana, label="engine", xlabel="band half-width (nm)", ylabel="transmitted fraction", marker="o", analytic_label="Gaussian CDF")
     with fam.figure("energymeter-malus", "energyMeter behind a polariser on x-polarised light: Malus' law",
                     "E(theta) = E cos^2(theta)") as f:
@@ -167,9 +166,7 @@ def interferometric_ac(fam: Family):
                 ratio_samples = float(full.max() / full[0])   # the instrument's own definition: highest delay sample over the window edge
                 fam.check(f"IAC peak-to-background vs the analytic trace at the engine's delay samples {label_wl(lam)} {label_dur(tau)}", v["peakToBackground"],
                           ratio_samples, rel=2e-3, formula="max_d S(d) / S(window edge), S analytic, d = the instrument's delay samples")
-                fam.check(f"IAC peak-to-background {label_wl(lam)} {label_dur(tau)}", v["peakToBackground"], 8.0, rel=2e-3, formula="16 / 2",
-                          known=("the delay grid has an even number of points and no sample at d = 0, so the fringe peak is under-sampled (16 points per period): "
-                                 "7.84 instead of 8 for 30 fs at 1030 nm and 100 fs at 2 um (repro/iac_peak_undersampled.py)") if abs(ratio_samples - 8) > 0.016 else "")
+                fam.check(f"IAC peak-to-background {label_wl(lam)} {label_dur(tau)}", v["peakToBackground"], 8.0, rel=2e-3, formula="16 / 2")
         lam, tau = 1030e-9, 30 * FS
         r = run(b.pulse(lam, tau, energy=1e-9), [b.instrument("autocorrelator", type="interferometric", name="iac")])
         d, s = np.asarray(r["iac_delay_s"]), np.asarray(r["iac_signal"])

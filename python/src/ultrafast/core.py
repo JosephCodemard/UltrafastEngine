@@ -156,14 +156,38 @@ def retrieve(method: str, trace: Any, kind: Optional[str] = None, fundamental: O
              instrument: Optional[str] = None, **options: Any) -> dict:
     """Pulse retrieval (docs/reference/retrieval.md): ``method`` "pcgpa" | "epie" (FROG) or "dscan"; ``trace`` an NPZ /
     JSON file or a dict of arrays (delay_s or insertion_m, omega_rad_s or wavelength_m, trace). A results folder's
-    ``result.npz`` works too: ``instrument`` names the frog / dscan instrument when there are several. Returns the
-    result with a ready-to-use run-spec ``"pulse"`` (the retrieved spectrum and phase)."""
+    ``result.npz`` works too: ``instrument`` names the frog / xfrog / dscan instrument when there are several (its kind is read
+    from ``summary.json``). ``kind`` is "shg-frog", "pg-frog", "sd-frog", "xfrog" or "dscan"; a dict may carry it as ``"kind"``.
+    Without a kind an SHG-FROG is assumed only if the trace is symmetric in the delay, otherwise the call fails. An XFROG dict
+    also needs ``reference_time_s``, ``reference_field_re``, ``reference_field_im`` and ``reference_omega_rad_s`` (a one-element
+    list) -- the arrays of an ``xfrog`` instrument. Returns the result with a ready-to-use run-spec ``"pulse"``."""
     req: Dict[str, Any] = {"command": "retrieve", "method": method, "trace": _as_source(trace) if isinstance(trace, (str, os.PathLike)) else
                            {k: (np.asarray(v).tolist()) for k, v in trace.items()}, "options": options, "energyJ": energy}
     if kind: req["kind"] = kind
     if fundamental: req["fundamental"] = os.path.abspath(os.fspath(fundamental))
     if material: req["material"] = material
     if instrument: req["instrument"] = instrument
+    if output is not None: req["output"] = os.path.abspath(os.fspath(output))
+    return command(req)
+
+
+def retrieve_multi(traces: Sequence[dict], output: Optional[PathLike] = None, energy: float = 1e-9, **options: Any) -> dict:
+    """Retrieve several FROG traces that share unknown pulses together (double FROG, docs/reference/retrieval.md#multi-trace-retrieval).
+
+    ``traces``: a list of ``{"trace": <file or dict of arrays>, "kind": "shg-frog" | "pg-frog" | "sd-frog" | "xfrog",
+    "pulse": <name of the pulse it measures>, "gate": <name of the unknown gate pulse, XFROG only>}``. Example (Kida et al. 2014):
+    the SHG-FROG of ``ref``, the SHG-FROG of ``test`` and the XFROG of ``test`` gated by ``ref``. Returns ``{"pulses": {name: {...,
+    "pulse": run-spec pulse}}, "traceErrors": [...], ...}``. Options: ``maxIterations``, ``seed``, ``points``, ``dtS``, ``tolerance``."""
+    items = []
+    for t in traces:
+        e = dict(t)
+        tr = e.get("trace")
+        if tr is not None and not isinstance(tr, (str, os.PathLike)):
+            e["trace"] = {k: (np.asarray(v).tolist() if not isinstance(v, str) else v) for k, v in tr.items()}
+        elif tr is not None:
+            e["trace"] = _as_source(tr)
+        items.append(e)
+    req: Dict[str, Any] = {"command": "retrieve", "method": "multiFrog", "traces": items, "options": options, "energyJ": energy}
     if output is not None: req["output"] = os.path.abspath(os.fspath(output))
     return command(req)
 

@@ -77,10 +77,14 @@ namespace UltrafastEngine.Schema
                 .Num("shgAcceptanceFwhmM", "m", "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited", "0")
                 .Int("acceptancePoints", "Grid of the finite-acceptance computation", "512")
                 .Int("maxN", "Grid cap for the computation", "65536"));
-            add(new ComponentSpec("instrument", "frog", "SHG or PG FROG trace.").DocAt(D + "frog")
-                .Enum("type", new[] { "shg", "pg" }, "FROG geometry", "shg").Int("points", "Delay and frequency points", "256")
+            add(new ComponentSpec("instrument", "frog", "SHG, PG or self-diffraction (SD) FROG trace.").DocAt(D + "frog")
+                .Enum("type", new[] { "shg", "pg", "sd" }, "FROG geometry: shg (E E), pg (E |E|^2), sd (E^2 E*)", "shg").Int("points", "Delay and frequency points", "256")
                 .Num("spectralResolutionM", "m", "Spectrometer resolution (Gaussian FWHM at the signal wavelength)", "0")
                 .Num("shgAcceptanceFwhmM", "m", "Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited", "0"));
+            add(new ComponentSpec("instrument", "xfrog", "Cross-correlation FROG (sum-frequency, SFG-FROG): the pulse gated by a known reference pulse.").Alias("sfgFrog").DocAt(D + "frog")
+                .P("reference", ParamType.Any, "", "The known gate pulse, as a run-spec pulse object (shape, centerWavelengthM, durationFwhmS, gddS2, ...); any carrier. Required")
+                .Int("points", "Delay and frequency points", "256")
+                .Num("spectralResolutionM", "m", "Spectrometer resolution (Gaussian FWHM at the signal wavelength)", "0"));
             add(new ComponentSpec("instrument", "dscan", "Dispersion scan: SHG spectrum vs glass insertion or GDD.").DocAt(D + "dscan")
                 .Str("material", "Wedge material (with insertionM)").Arr("insertionM", "m", "[min, max] insertion").Arr("gddRangeS2", "s^2", "[min, max] GDD (alternative)")
                 .Int("steps", "Scan steps", "101")
@@ -98,6 +102,7 @@ namespace UltrafastEngine.Schema
                 .P("segments", ParamType.Any, "", "Attenuation-range stitching: a list of {fromS, toS, attenuation (or gain), noiseFloor} -- the signal in that delay range is measured through the attenuation (power factor) and divided by it afterwards, so the floor rises as 1/attenuation and saturation moves up accordingly")
                 .Num("resolutionS", "s", "Extra temporal resolution (Gaussian FWHM)", "0").Num("shgAcceptanceFwhmM", "m", "SHG crystal acceptance (SH wavelength FWHM)")
                 .P("polarization", ParamType.Any, "", "\"total\", \"x\", \"y\" or an analyser angle in degrees", "\"total\"")
+                .P("gateArm", ParamType.Any, "", "Elements in the gate arm only: {elements: [...], materials: {...}}. The second-harmonic gate (at lambda0/2) passes them before the sum-frequency step; the probe channel does not. Window: the instrument's (grid.windowS or grid.tail) must hold the replicas")
                 .Arr("probeDelaysS", "s", "Delays at which to report the contrast in dB").Num("windowS", "s", "Pre/post window around the peak", "5 x FWHM"));
             add(new ComponentSpec("instrument", "polarimeter", "Stokes parameters, integrated and vs wavelength.").DocAt(D + "polarimeter").Int("points", "Output points", "1024")
                 .Num("extinctionRatio", "", "Power extinction ratio of the analysers (0: perfect); Stokes readings scale by (1 - e) / (1 + e)", "0"));

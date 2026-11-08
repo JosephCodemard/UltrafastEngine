@@ -61,6 +61,7 @@ namespace UltrafastEngine.Instruments
                     Tools.Put(o, "acFwhmS", fw); Tools.Put(o, "pulseFwhmGaussianS", fw / Math.Sqrt(2)); Tools.Put(o, "pulseFwhmSech2S", fw / 1.5427);
                 } } },
             { "frog", new Readout { Arrays = new[] { "trace" } } },
+            { "xfrog", new Readout { Arrays = new[] { "trace" } } },
             { "dscan", new Readout { Arrays = new[] { "trace", "shg_total" } } },
             { "energyMeter", new Readout { Scalars = new[] { "energyJ", "averagePowerW" } } },
             { "camera", new Readout() },          // has its own sensor model
