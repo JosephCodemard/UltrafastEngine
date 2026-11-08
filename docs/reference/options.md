@@ -177,7 +177,7 @@ Also accepts: `gainCommon` (see *Common key groups*).
 
 ### `aperture`
 
-A hard or soft aperture (clips; acts on a carried transverse profile). More: [elements.md#aperture](system-file.md)
+A hard or soft aperture (clips; acts on a carried transverse profile). More: [system-file.md](system-file.md)
 
 Also accepts: `beamSize` (see *Common key groups*).
 
@@ -205,7 +205,7 @@ Also accepts: `elementCommon` (see *Common key groups*).
 
 ### `bulk` (also `medium`)
 
-Propagation in a material, nonlinear when it has a beam and n2. More: [elements.md#bulk](system-file.md)
+Propagation in a material, nonlinear when it has a beam and n2. More: [system-file.md](system-file.md)
 
 Also accepts: `nonlinearMedium` (see *Common key groups*).
 
@@ -223,7 +223,7 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 
 ### `chirpedMirror`
 
-Chirped (dispersive) mirror: GDD/TOD/FOD per bounce. More: [elements.md#chirpedmirror](system-file.md)
+Chirped (dispersive) mirror: GDD/TOD/FOD per bounce. More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -274,7 +274,7 @@ Chi(2) frequency conversion and parametric amplification (SHG, SFG, OPA, DFG). M
 
 ### `custom`
 
-A spectral filter: any filter model (transmission and phase). More: [elements.md#filter](system-file.md)
+A spectral filter: any filter model (transmission and phase). More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -312,7 +312,7 @@ Also accepts: `elementCommon` (see *Common key groups*).
 
 ### `dispersion`
 
-Linear dispersion: sampled group delay, spectral phase or Taylor coefficients. More: [elements.md#dispersion](system-file.md)
+Linear dispersion: sampled group delay, spectral phase or Taylor coefficients. More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -382,7 +382,7 @@ A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material
 
 ### `filter`
 
-A spectral filter: any filter model (transmission and phase). More: [elements.md#filter](system-file.md)
+A spectral filter: any filter model (transmission and phase). More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -402,7 +402,7 @@ Also accepts: `gainCommon` (see *Common key groups*).
 
 ### `gap`
 
-Free space (air by default); linear unless nonlinear: true. More: [elements.md#bulk](system-file.md)
+Free space (air by default); linear unless nonlinear: true. More: [system-file.md](system-file.md)
 
 Also accepts: `nonlinearMedium` (see *Common key groups*).
 
@@ -420,7 +420,7 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 
 ### `grating`
 
-A diffracting surface (one grating). More: [elements.md#surfaces](system-file.md)
+A diffracting surface (one grating). More: [system-file.md](system-file.md)
 
 Also accepts: `beamSize` (see *Common key groups*).
 
@@ -457,7 +457,7 @@ Also accepts: `beamSize` (see *Common key groups*).
 
 ### `gratingPair`
 
-Treacy grating pair (exact dispersion; negative separation = stretcher). More: [elements.md#gratingpair](system-file.md)
+Treacy grating pair (exact dispersion; negative separation = stretcher). More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -472,7 +472,7 @@ Treacy grating pair (exact dispersion; negative separation = stretcher). More: [
 
 ### `interface` (also `surface`)
 
-A refracting surface: Fresnel or coating, clipping, polarisation basis. More: [elements.md#surfaces](system-file.md)
+A refracting surface: Fresnel or coating, clipping, polarisation basis. More: [system-file.md](system-file.md)
 
 Also accepts: `beamSize` (see *Common key groups*).
 
@@ -524,7 +524,7 @@ Also accepts: `elementCommon` (see *Common key groups*).
 
 ### `lens`
 
-Thin lens on a carried transverse profile (chromatic with a material). More: [elements.md#lens](system-file.md)
+Thin lens on a carried transverse profile (chromatic with a material). More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -559,7 +559,7 @@ A thin mask on the carried transverse profile: axicon, Fresnel zone plate, vorte
 
 ### `mirror`
 
-A reflecting surface: coating, AOI, s/p phases, curvature. More: [elements.md#surfaces](system-file.md)
+A reflecting surface: coating, AOI, s/p phases, curvature. More: [system-file.md](system-file.md)
 
 Also accepts: `beamSize` (see *Common key groups*).
 
@@ -674,7 +674,7 @@ Also accepts: `nonlinearMedium`, `beamSize` (see *Common key groups*).
 
 ### `polarizer`
 
-A linear polariser. More: [elements.md#polarizer](system-file.md)
+A linear polariser. More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -713,7 +713,7 @@ A prism in air: two refracting faces and the glass on the chief ray; disperses t
 
 ### `probe` (also `marker`)
 
-A named place in the beam (does nothing; snapshots and instruments). More: [elements.md#probe](system-file.md)
+A named place in the beam (does nothing; snapshots and instruments). More: [system-file.md](system-file.md)
 
 No parameters of its own.
 
@@ -730,7 +730,7 @@ A passive resonator around nested elements: round-trip matrix, stability, eigenm
 
 ### `rotator`
 
-Rotates the polarisation (and the image). More: [elements.md#rotator](system-file.md)
+Rotates the polarisation (and the image). More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -785,7 +785,7 @@ Fittable physical changes to the beam: spectral phase / amplitude, energy, polar
 
 ### `user`
 
-Your own function of the main beam's spectrum (Python, C#, C). More: [elements.md#user](system-file.md)
+Your own function of the main beam's spectrum (Python, C#, C). More: [system-file.md](system-file.md)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
@@ -915,6 +915,7 @@ Third-order (SHG-gated) cross-correlator: high-dynamic-range contrast with noise
 | `resolutionS` | number | s | 0 | Extra temporal resolution (Gaussian FWHM) |
 | `shgAcceptanceFwhmM` | number | m |  | SHG crystal acceptance (SH wavelength FWHM) |
 | `polarization` | any |  | "total" | "total", "x", "y" or an analyser angle in degrees |
+| `gateArm` | any |  |  | Elements in the gate arm only: {elements: [...], materials: {...}}. The second-harmonic gate (at lambda0/2) passes them before the sum-frequency step; the probe channel does not. Window: the instrument's (grid.windowS or grid.tail) must hold the replicas |
 | `probeDelaysS` | number or array | s |  | Delays at which to report the contrast in dB |
 | `windowS` | number | s | 5 x FWHM | Pre/post window around the peak |
 
@@ -963,11 +964,11 @@ Temporal phase, instantaneous wavelength, group delay, CEP (virtual). More: [ins
 
 ### `frog`
 
-SHG or PG FROG trace. More: [instruments.md#frog](instruments.md#frog)
+SHG, PG or self-diffraction (SD) FROG trace. More: [instruments.md#frog](instruments.md#frog)
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `type` | `"shg"` \| `"pg"` |  | shg | FROG geometry |
+| `type` | `"shg"` \| `"pg"` \| `"sd"` |  | shg | FROG geometry: shg (E E), pg (E \|E\|^2), sd (E^2 E*) |
 | `points` | integer |  | 256 | Delay and frequency points |
 | `spectralResolutionM` | number | m | 0 | Spectrometer resolution (Gaussian FWHM at the signal wavelength) |
 | `shgAcceptanceFwhmM` | number | m | 0 | Phase-matching acceptance of the SHG crystal (FWHM of the SH wavelength window); 0: unlimited |
@@ -1008,6 +1009,31 @@ Detected power vs time with a rise time / bandwidth. More: [instruments.md#scope
 | `riseTimeS` | number | s | 0 | 10-90 % rise time of the detection |
 | `bandwidthHz` | number | Hz |  | Bandwidth (alternative: rise time = 0.35 / bandwidth) |
 | `points` | integer |  | 4096 | Output points |
+
+### `singleShotCorrelator`
+
+Single-shot time-to-space cross-correlator: two beams cross in a nonlinear crystal and the signal across the overlap is a delay trace (window and resolution from the geometry). More: [instruments.md#singleshotcorrelator](instruments.md#singleshotcorrelator)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `crossingAngleDeg` | number | deg |  | Full angle between the pulse under test and the sampling beam INSIDE the crystal (or give externalCrossingAngleDeg) |
+| `externalCrossingAngleDeg` | number | deg |  | Full angle between the beams in air; both hit a face normal to their bisector, each refracts with its own index (alternative to crossingAngleDeg) |
+| `beamWidthM` | number | m |  | Width W of the beam overlap across the signal (sets the delay window T = W x slope) **Required.** |
+| `crystalLengthM` | number | m | 0 | Crystal length L along the signal (sets the geometric resolution L \|n_T cos a - n_S cos b\| / c) |
+| `crystal` | string |  | "BBO" | Crystal of the library whose ordinary (x) index gives the angles and the delay slope |
+| `indexPt` | number |  |  | Refractive index at the pulse under test instead of the crystal's (also the group index unless groupIndexPt) |
+| `indexSampling` | number |  |  | Index at the sampling pulse |
+| `groupIndexPt` | number |  |  | Group index at the pulse under test (with indexPt) |
+| `groupIndexSampling` | number |  |  | Group index at the sampling pulse (with indexSampling) |
+| `delayIndex` | `"group"` \| `"phase"` |  | group | Index in the depth term of the resolution: group (the crystal's dispersion through dk_z/d omega; default) or phase (the form of Ma et al.'s eq. (2)); the window uses the phase indices either way |
+| `samplingPulse` | `"secondHarmonic"` \| `"fundamental"` |  | secondHarmonic | secondHarmonic: the sampling pulse is the second harmonic of the pulse (third-order contrast correlator); fundamental: the pulse itself (single-shot autocorrelator) |
+| `points` | integer |  | 256 | Camera pixels across the overlap |
+| `delayOffsetS` | number | s | 0 | Delay at the centre of the overlap |
+| `dynamicRangeDb` | number | dB | 60 | Camera floor below the peak |
+| `noiseFloor` | number |  |  | Floor relative to the peak (alternative to dynamicRangeDb) |
+| `noise` | boolean |  | true | Fluctuating floor (else flat) |
+| `seed` | integer |  | 1 | Noise seed |
+| `windowAroundPeakS` | number | s | 5 x FWHM | Pre / post-pulse contrast is read outside this distance from the peak |
 
 ### `spaceTime`
 
@@ -1057,6 +1083,16 @@ Wigner distribution or spectrogram (virtual). More: [instruments.md#virtual-inst
 | `points` | integer |  | 256 | Time rows |
 | `gateFwhmS` | number | s | 0 | > 0: spectrogram gate |
 | `maxN` | integer |  | 65536 | Grid cap |
+
+### `xfrog` (also `sfgFrog`)
+
+Cross-correlation FROG (sum-frequency, SFG-FROG): the pulse gated by a known reference pulse. More: [instruments.md#frog](instruments.md#frog)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `reference` | any |  |  | The known gate pulse, as a run-spec pulse object (shape, centerWavelengthM, durationFwhmS, gddS2, ...); any carrier. Required |
+| `points` | integer |  | 256 | Delay and frequency points |
+| `spectralResolutionM` | number | m | 0 | Spectrometer resolution (Gaussian FWHM at the signal wavelength) |
 
 ## Common key groups
 
@@ -1148,6 +1184,9 @@ Keys of elements that propagate nonlinearly in a material.
 | `beam` | model (beam) |  |  | Beam model along the element (z from the element start); needed for nonlinear propagation |
 | `nonlinear` | boolean |  | true (gap: false) | false forces linear propagation |
 | `n2` | number | m^2/W |  | Nonlinear index (overrides the material's) |
+| `kerrAnisotropy` | number |  | the material's (BaF2 -1.2, others 0) | Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] |
+| `kerrCutAxis` | number or array |  | [0, 0, 1] | Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) |
+| `kerrAzimuthDeg` | number | deg | 0 | Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction |
 | `timeResponse` | model (timeResponse) |  |  | An extra time-domain response n(t, I) |
 | `replaceKerr` | boolean |  | false | true switches off the built-in Kerr/Raman (use with your own timeResponse) |
 | `raman` | any |  |  | false, or a delayed-response model |
@@ -1672,6 +1711,7 @@ A material (docs/reference/materials.md).
 | `index` | model (index) |  |  | Refractive index model |
 | `indexReference` | `"air"` \| `"vacuum"` |  | vacuum | The index is relative to air or vacuum |
 | `n2` | number | m^2/W |  | Nonlinear index |
+| `kerrAnisotropy` | number |  | 0 | Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (docs/reference/nonlinear.md#cubic-anisotropy-xpw) |
 | `raman` | model (delayedResponse) |  |  | Raman response |
 | `ramanFraction` | number |  |  | Raman fraction fR |
 | `attenuation` | model (attenuation) |  |  | Absorption model |
@@ -1944,6 +1984,16 @@ Beam radii sampled along z (e.g. from OpticStudio).
 | `radiusXM` | number or array | m |  | x radii |
 | `radiusYM` | number or array | m |  | y radii |
 
+### delayedResponse / `callback`
+
+Delayed response h(t) from a registered callback, normalised to unit integral on the grid and forced causal. More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `name` | string |  |  | Registered callback name **Required.** |
+| `fR` | number |  |  | Raman (delayed) fraction of n2 |
+| `anisotropicFraction` | number |  | 0 | Anisotropic share b of the response, h_b = b h and h_a = (1 - b) h (vector Raman: ellipse rotation, circular light). 0 isotropic, 1 purely anisotropic (h_a = 0), 1.5 purely orientational (h_a = -h_b/3, e.g. liquid CS2). Allowed 0 to 1.5 |
+
 ### delayedResponse / `dampedOscillator`
 
 Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1). More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
@@ -1954,6 +2004,16 @@ Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1). More: [nonlinear.md#ra
 | `tau2` | number | s |  | Damping time |
 | `fR` | number |  |  | Raman fraction |
 | `anisotropicFraction` | number |  | 0 | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
+
+### delayedResponse / `expression`
+
+Delayed response h(t) from an expression in t (s), normalised to unit integral on the grid and forced causal. More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `expr` | string |  |  | Expression in t (s) and the entries of params **Required.** |
+| `fR` | number |  |  | Raman (delayed) fraction of n2 |
+| `anisotropicFraction` | number |  | 0 | Anisotropic share b of the response, h_b = b h and h_a = (1 - b) h (vector Raman: ellipse rotation, circular light). 0 isotropic, 1 purely anisotropic (h_a = 0), 1.5 purely orientational (h_a = -h_b/3, e.g. liquid CS2). Allowed 0 to 1.5 |
 
 ### delayedResponse / `hollenbeck`
 
@@ -1978,6 +2038,17 @@ Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full mo
 | `fb` | number |  | 0.21 | Weight b (boson peak) |
 | `fc` | number |  | 0.04 | Weight c |
 | `anisotropicFraction` | number |  | (fb + fc): h_b = fc h_a + fb h_b | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
+
+### delayedResponse / `orientational`
+
+Molecular reorientation of a liquid (CS2): h(t) = (exp(-t/decayS) - exp(-t/riseS)) / (decayS - riseS), purely anisotropic Kerr tensor (h_a = -h_b/3). More: [nonlinear.md#raman-models](nonlinear.md#raman-models)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `riseS` | number | s | 0.2e-12 | Rise time (molecular inertia) |
+| `decayS` | number | s | 1.6e-12 | Decay time (diffusive reorientation) |
+| `fR` | number |  |  | Delayed fraction of n2 |
+| `anisotropicFraction` | number |  | 1.5 | Anisotropic share b of the response, h_b = b h and h_a = (1 - b) h (vector Raman: ellipse rotation, circular light). 0 isotropic, 1 purely anisotropic (h_a = 0), 1.5 purely orientational (h_a = -h_b/3, e.g. liquid CS2). Allowed 0 to 1.5 |
 
 ### delayedResponse / `silica`
 

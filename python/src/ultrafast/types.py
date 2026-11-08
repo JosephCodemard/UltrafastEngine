@@ -230,6 +230,12 @@ class BulkElement(TypedDict, total=False):
     """false forces linear propagation Default: true (gap: false)."""
     n2: float
     """Nonlinear index (overrides the material's) [m^2/W]"""
+    kerrAnisotropy: float
+    """Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."""
+    kerrCutAxis: Union[float, List[float]]
+    """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
+    kerrAzimuthDeg: float
+    """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -645,6 +651,12 @@ class FaradayRotatorElement(TypedDict, total=False):
     """false forces linear propagation Default: true (gap: false)."""
     n2: float
     """Nonlinear index (overrides the material's) [m^2/W]"""
+    kerrAnisotropy: float
+    """Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."""
+    kerrCutAxis: Union[float, List[float]]
+    """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
+    kerrAzimuthDeg: float
+    """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -913,6 +925,12 @@ class GapElement(TypedDict, total=False):
     """false forces linear propagation Default: true (gap: false)."""
     n2: float
     """Nonlinear index (overrides the material's) [m^2/W]"""
+    kerrAnisotropy: float
+    """Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."""
+    kerrCutAxis: Union[float, List[float]]
+    """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
+    kerrAzimuthDeg: float
+    """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -1513,6 +1531,12 @@ class NdFilterElement(TypedDict, total=False):
     """false forces linear propagation Default: true (gap: false)."""
     n2: float
     """Nonlinear index (overrides the material's) [m^2/W]"""
+    kerrAnisotropy: float
+    """Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."""
+    kerrCutAxis: Union[float, List[float]]
+    """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
+    kerrAzimuthDeg: float
+    """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -1691,6 +1715,12 @@ class PlateElement(TypedDict, total=False):
     """false forces linear propagation Default: true (gap: false)."""
     n2: float
     """Nonlinear index (overrides the material's) [m^2/W]"""
+    kerrAnisotropy: float
+    """Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."""
+    kerrCutAxis: Union[float, List[float]]
+    """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
+    kerrAzimuthDeg: float
+    """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -2109,6 +2139,12 @@ class ThinFilmPolarizerElement(TypedDict, total=False):
     """false forces linear propagation Default: true (gap: false)."""
     n2: float
     """Nonlinear index (overrides the material's) [m^2/W]"""
+    kerrAnisotropy: float
+    """Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."""
+    kerrCutAxis: Union[float, List[float]]
+    """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
+    kerrAzimuthDeg: float
+    """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -2360,7 +2396,7 @@ class WaveplateElement(TypedDict, total=False):
 
 
 class Instrument(TypedDict, total=False):
-    kind: Literal["autocorrelator", "beamProfile", "camera", "compressor", "contrast", "conversion", "crossCorrelator", "delayScan", "dscan", "energyMeter", "farFieldCamera", "fieldProbe", "frog", "nearFieldCamera", "phaseMatchingCurve", "photodiode", "polarimeter", "powerMeter", "pulseSummary", "scope", "spaceTime", "spectrometer", "thirdOrderCorrelator", "wavefrontSensor", "wigner"]
+    kind: Literal["autocorrelator", "beamProfile", "camera", "compressor", "contrast", "conversion", "crossCorrelator", "delayScan", "dscan", "energyMeter", "farFieldCamera", "fieldProbe", "frog", "nearFieldCamera", "phaseMatchingCurve", "photodiode", "polarimeter", "powerMeter", "pulseSummary", "scope", "sfgFrog", "singleShotCorrelator", "spaceTime", "spectrometer", "thirdOrderCorrelator", "wavefrontSensor", "wigner", "xfrog"]
     """Instrument kind."""
 
 
@@ -2620,6 +2656,8 @@ class CrossCorrelatorInstrument(TypedDict, total=False):
     """SHG crystal acceptance (SH wavelength FWHM) [m]"""
     polarization: Any
     """"total", "x", "y" or an analyser angle in degrees Default: "total"."""
+    gateArm: Any
+    """Elements in the gate arm only: {elements: [...], materials: {...}}. The second-harmonic gate (at lambda0/2) passes them before the sum-frequency step; the probe channel does not. Window: the instrument's (grid.windowS or grid.tail) must hold the replicas"""
     probeDelaysS: Union[float, List[float]]
     """Delays at which to report the contrast in dB [s]"""
     windowS: float
@@ -2788,9 +2826,9 @@ class FieldProbeInstrument(TypedDict, total=False):
 
 
 class FrogInstrument(TypedDict, total=False):
-    """SHG or PG FROG trace. (docs/reference/instruments.md#frog)"""
-    type: Literal["shg", "pg"]
-    """FROG geometry Default: shg."""
+    """SHG, PG or self-diffraction (SD) FROG trace. (docs/reference/instruments.md#frog)"""
+    type: Literal["shg", "pg", "sd"]
+    """FROG geometry: shg (E E), pg (E |E|^2), sd (E^2 E*) Default: shg."""
     points: int
     """Delay and frequency points Default: 256."""
     spectralResolutionM: float
@@ -2950,6 +2988,69 @@ class ScopeInstrument(TypedDict, total=False):
     """Free text."""
 
 
+class SingleShotCorrelatorInstrument(TypedDict, total=False):
+    """Single-shot time-to-space cross-correlator: two beams cross in a nonlinear crystal and the signal across the overlap is a delay trace (window and resolution from the geometry). (docs/reference/instruments.md#singleshotcorrelator)"""
+    crossingAngleDeg: float
+    """Full angle between the pulse under test and the sampling beam INSIDE the crystal (or give externalCrossingAngleDeg) [deg]"""
+    externalCrossingAngleDeg: float
+    """Full angle between the beams in air; both hit a face normal to their bisector, each refracts with its own index (alternative to crossingAngleDeg) [deg]"""
+    beamWidthM: float
+    """Width W of the beam overlap across the signal (sets the delay window T = W x slope) [m]"""
+    crystalLengthM: float
+    """Crystal length L along the signal (sets the geometric resolution L |n_T cos a - n_S cos b| / c) [m] Default: 0."""
+    crystal: str
+    """Crystal of the library whose ordinary (x) index gives the angles and the delay slope Default: "BBO"."""
+    indexPt: float
+    """Refractive index at the pulse under test instead of the crystal's (also the group index unless groupIndexPt)"""
+    indexSampling: float
+    """Index at the sampling pulse"""
+    groupIndexPt: float
+    """Group index at the pulse under test (with indexPt)"""
+    groupIndexSampling: float
+    """Group index at the sampling pulse (with indexSampling)"""
+    delayIndex: Literal["group", "phase"]
+    """Index in the depth term of the resolution: group (the crystal's dispersion through dk_z/d omega; default) or phase (the form of Ma et al.'s eq. (2)); the window uses the phase indices either way Default: group."""
+    samplingPulse: Literal["secondHarmonic", "fundamental"]
+    """secondHarmonic: the sampling pulse is the second harmonic of the pulse (third-order contrast correlator); fundamental: the pulse itself (single-shot autocorrelator) Default: secondHarmonic."""
+    points: int
+    """Camera pixels across the overlap Default: 256."""
+    delayOffsetS: float
+    """Delay at the centre of the overlap [s] Default: 0."""
+    dynamicRangeDb: float
+    """Camera floor below the peak [dB] Default: 60."""
+    noiseFloor: float
+    """Floor relative to the peak (alternative to dynamicRangeDb)"""
+    noise: bool
+    """Fluctuating floor (else flat) Default: true."""
+    seed: int
+    """Noise seed Default: 1."""
+    windowAroundPeakS: float
+    """Pre / post-pulse contrast is read outside this distance from the peak [s] Default: 5 x FWHM."""
+    kind: str
+    name: str
+    """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
+    at: str
+    """"input", an element id (after that element) or "end" Default: "end"."""
+    sampling: Union["Sampling", str]
+    """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
+    beam: Union[float, str, Dict[str, Any], List[Any]]
+    """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class SpaceTimeInstrument(TypedDict, total=False):
     """I(r, t) and S(r, lambda) across the beam (virtual). (docs/reference/instruments.md#virtual-instruments)"""
     points: int
@@ -3073,6 +3174,39 @@ class WignerInstrument(TypedDict, total=False):
     """> 0: spectrogram gate [s] Default: 0."""
     maxN: int
     """Grid cap Default: 65536."""
+    kind: str
+    name: str
+    """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
+    at: str
+    """"input", an element id (after that element) or "end" Default: "end"."""
+    sampling: Union["Sampling", str]
+    """What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"""
+    beam: Union[float, str, Dict[str, Any], List[Any]]
+    """Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    filter: Union[float, str, Dict[str, Any], List[Any]]
+    """Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    detector: Any
+    """Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"""
+    axis: Union["InstrumentAxis", str]
+    """Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"""
+    measured: Union["Measured", str]
+    """Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class XfrogInstrument(TypedDict, total=False):
+    """Cross-correlation FROG (sum-frequency, SFG-FROG): the pulse gated by a known reference pulse. (docs/reference/instruments.md#frog)"""
+    reference: Any
+    """The known gate pulse, as a run-spec pulse object (shape, centerWavelengthM, durationFwhmS, gddS2, ...); any carrier. Required"""
+    points: int
+    """Delay and frequency points Default: 256."""
+    spectralResolutionM: float
+    """Spectrometer resolution (Gaussian FWHM at the signal wavelength) [m] Default: 0."""
     kind: str
     name: str
     """Name in the results (unique; repeated names get _2, _3) Default: kind_at."""
@@ -4287,4 +4421,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BeamSplitterElement', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayElement', 'DelayScanInstrument', 'DichroicElement', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LeakMirrorElement', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PolarizingSplitterElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BeamSplitterElement', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayElement', 'DelayScanInstrument', 'DichroicElement', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LeakMirrorElement', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PolarizingSplitterElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SingleShotCorrelatorInstrument', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument', 'XfrogInstrument']

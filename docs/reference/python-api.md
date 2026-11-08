@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `benchmark`, `build`, `capabilities`, `coherence`, `command`, `crystal`, `devices`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `retrieve`, `run`, `set_default_backend`, `study`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `benchmark`, `build`, `capabilities`, `cells`, `coherence`, `command`, `crystal`, `devices`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `study`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -69,7 +69,11 @@ First-order spectral coherence |g12(lambda)| over ``trials`` runs with independe
 
 ### `retrieve(method: str, trace: Any, kind: Optional[str] = None, fundamental: Optional[PathLike] = None, material: Optional[str] = None, output: Optional[PathLike] = None, energy: float = 1e-09, instrument: Optional[str] = None, **options) -> dict`
 
-Pulse retrieval (docs/reference/retrieval.md): ``method`` "pcgpa" | "epie" (FROG) or "dscan"; ``trace`` an NPZ / JSON file or a dict of arrays (delay_s or insertion_m, omega_rad_s or wavelength_m, trace). A results folder's ``result.npz`` works too: ``instrument`` names the frog / dscan instrument when there are several. Returns the result with a ready-to-use run-spec ``"pulse"`` (the retrieved spectrum and phase).
+Pulse retrieval (docs/reference/retrieval.md): ``method`` "pcgpa" | "epie" (FROG) or "dscan"; ``trace`` an NPZ / JSON file or a dict of arrays (delay_s or insertion_m, omega_rad_s or wavelength_m, trace). A results folder's ``result.npz`` works too: ``instrument`` names the frog / xfrog / dscan instrument when there are several (its kind is read from ``summary.json``). ``kind`` is "shg-frog", "pg-frog", "sd-frog", "xfrog" or "dscan"; a dict may carry it as ``"kind"``. Without a kind an SHG-FROG is assumed only if the trace is symmetric in the delay, otherwise the call fails. An XFROG dict also needs ``reference_time_s``, ``reference_field_re``, ``reference_field_im`` and ``reference_omega_rad_s`` (a one-element list) -- the arrays of an ``xfrog`` instrument. Returns the result with a ready-to-use run-spec ``"pulse"``.
+
+### `retrieve_multi(traces: Sequence[dict], output: Optional[PathLike] = None, energy: float = 1e-09, **options) -> dict`
+
+Retrieve several FROG traces that share unknown pulses together (double FROG, docs/reference/retrieval.md#multi-trace-retrieval).
 
 ### class `System(_Handle)`
 

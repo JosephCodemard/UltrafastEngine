@@ -83,7 +83,7 @@ namespace UltrafastEngine.Schema
 
         private static void Body(StringBuilder sb, ComponentSpec s)
         {
-            if (!string.IsNullOrEmpty(s.Summary)) { sb.AppendLine(s.Summary + (string.IsNullOrEmpty(s.Doc) ? "" : " More: [" + s.Doc.Replace("reference/", "") + "](" + Link(s.Doc) + ")")); sb.AppendLine(); }
+            if (!string.IsNullOrEmpty(s.Summary)) { sb.AppendLine(s.Summary + (string.IsNullOrEmpty(s.Doc) ? "" : " More: [" + Link(s.Doc).Replace("../", "") + "](" + Link(s.Doc) + ")")); sb.AppendLine(); }
             if (s.Includes.Count > 0) { sb.AppendLine("Also accepts: " + string.Join(", ", s.Includes.Select(g => "`" + g + "`")) + " (see *Common key groups*)."); sb.AppendLine(); }
             if (s.Params.Count == 0) { sb.AppendLine("No parameters of its own."); sb.AppendLine(); return; }
             sb.AppendLine("| key | type | unit | default | meaning |");

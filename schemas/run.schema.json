@@ -2570,6 +2570,9 @@
         "polarization": {
           "description": "\"total\", \"x\", \"y\" or an analyser angle in degrees Default: \"total\"."
         },
+        "gateArm": {
+          "description": "Elements in the gate arm only: {elements: [...], materials: {...}}. The second-harmonic gate (at lambda0/2) passes them before the sum-frequency step; the probe channel does not. Window: the instrument's (grid.windowS or grid.tail) must hold the replicas"
+        },
         "probeDelaysS": {
           "anyOf": [
             {
@@ -3236,12 +3239,12 @@
     },
     "instrument.frog": {
       "type": "object",
-      "description": "SHG or PG FROG trace. (docs/reference/instruments.md#frog)",
+      "description": "SHG, PG or self-diffraction (SD) FROG trace. (docs/reference/instruments.md#frog)",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["shg", "pg"],
-          "description": "FROG geometry Default: shg."
+          "enum": ["shg", "pg", "sd"],
+          "description": "FROG geometry: shg (E E), pg (E |E|^2), sd (E^2 E*) Default: shg."
         },
         "points": {
           "type": "integer",
@@ -3852,6 +3855,193 @@
       },
       "additionalProperties": false
     },
+    "instrument.singleShotCorrelator": {
+      "type": "object",
+      "description": "Single-shot time-to-space cross-correlator: two beams cross in a nonlinear crystal and the signal across the overlap is a delay trace (window and resolution from the geometry). (docs/reference/instruments.md#singleshotcorrelator)",
+      "properties": {
+        "crossingAngleDeg": {
+          "type": "number",
+          "description": "Full angle between the pulse under test and the sampling beam INSIDE the crystal (or give externalCrossingAngleDeg) [deg]"
+        },
+        "externalCrossingAngleDeg": {
+          "type": "number",
+          "description": "Full angle between the beams in air; both hit a face normal to their bisector, each refracts with its own index (alternative to crossingAngleDeg) [deg]"
+        },
+        "beamWidthM": {
+          "type": "number",
+          "description": "Width W of the beam overlap across the signal (sets the delay window T = W x slope) [m]"
+        },
+        "crystalLengthM": {
+          "type": "number",
+          "description": "Crystal length L along the signal (sets the geometric resolution L |n_T cos a - n_S cos b| / c) [m] Default: 0."
+        },
+        "crystal": {
+          "type": "string",
+          "description": "Crystal of the library whose ordinary (x) index gives the angles and the delay slope Default: \"BBO\"."
+        },
+        "indexPt": {
+          "type": "number",
+          "description": "Refractive index at the pulse under test instead of the crystal's (also the group index unless groupIndexPt)"
+        },
+        "indexSampling": {
+          "type": "number",
+          "description": "Index at the sampling pulse"
+        },
+        "groupIndexPt": {
+          "type": "number",
+          "description": "Group index at the pulse under test (with indexPt)"
+        },
+        "groupIndexSampling": {
+          "type": "number",
+          "description": "Group index at the sampling pulse (with indexSampling)"
+        },
+        "delayIndex": {
+          "type": "string",
+          "enum": ["group", "phase"],
+          "description": "Index in the depth term of the resolution: group (the crystal's dispersion through dk_z/d omega; default) or phase (the form of Ma et al.'s eq. (2)); the window uses the phase indices either way Default: group."
+        },
+        "samplingPulse": {
+          "type": "string",
+          "enum": ["secondHarmonic", "fundamental"],
+          "description": "secondHarmonic: the sampling pulse is the second harmonic of the pulse (third-order contrast correlator); fundamental: the pulse itself (single-shot autocorrelator) Default: secondHarmonic."
+        },
+        "points": {
+          "type": "integer",
+          "description": "Camera pixels across the overlap Default: 256."
+        },
+        "delayOffsetS": {
+          "type": "number",
+          "description": "Delay at the centre of the overlap [s] Default: 0."
+        },
+        "dynamicRangeDb": {
+          "type": "number",
+          "description": "Camera floor below the peak [dB] Default: 60."
+        },
+        "noiseFloor": {
+          "type": "number",
+          "description": "Floor relative to the peak (alternative to dynamicRangeDb)"
+        },
+        "noise": {
+          "type": "boolean",
+          "description": "Fluctuating floor (else flat) Default: true."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Noise seed Default: 1."
+        },
+        "windowAroundPeakS": {
+          "type": "number",
+          "description": "Pre / post-pulse contrast is read outside this distance from the peak [s] Default: 5 x FWHM."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "description": "Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"
+        },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["beamWidthM"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "instrument.spaceTime": {
       "type": "object",
       "description": "I(r, t) and S(r, lambda) across the beam (virtual). (docs/reference/instruments.md#virtual-instruments)",
@@ -4401,13 +4591,136 @@
       },
       "additionalProperties": false
     },
+    "instrument.xfrog": {
+      "type": "object",
+      "description": "Cross-correlation FROG (sum-frequency, SFG-FROG): the pulse gated by a known reference pulse. (docs/reference/instruments.md#frog)",
+      "properties": {
+        "reference": {
+          "description": "The known gate pulse, as a run-spec pulse object (shape, centerWavelengthM, durationFwhmS, gddS2, ...); any carrier. Required"
+        },
+        "points": {
+          "type": "integer",
+          "description": "Delay and frequency points Default: 256."
+        },
+        "spectralResolutionM": {
+          "type": "number",
+          "description": "Spectrometer resolution (Gaussian FWHM at the signal wavelength) [m] Default: 0."
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name in the results (unique; repeated names get _2, _3) Default: kind_at."
+        },
+        "at": {
+          "type": "string",
+          "description": "\"input\", an element id (after that element) or \"end\" Default: \"end\"."
+        },
+        "sampling": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.sampling"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "What part of the beam the instrument sees: near / far field, pinhole, fibre, slit (non-imaging instruments)"
+        },
+        "beam": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "sampled"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Beam model for 1-D locations (cameras, sampling): the instrument images this ideal Gaussian A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, sampled)."
+        },
+        "filter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Spectral transmission in front of the instrument (optics, detector spectral response): applied to the field before it is measured A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "detector": {
+          "description": "Read-out of the recorded trace / readings: an object (calibration, noise, noise floor, bit depth, saturation, spectral response) or the name of a preset from the run spec's detectors, or {preset: name | file, ...overrides}"
+        },
+        "axis": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.instrumentAxis"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Where a curve instrument takes its readings: explicit points or from / to / step, bin (pixel) width, Gaussian resolution"
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/obj.measured"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Recorded data to compare this instrument with: a file name (CSV, NPZ, JSON), or an object (file, columns, normalize, sigma, background, rangeX, units, values, weight, resolutionM / resolutionS). docs/reference/measured-data.md"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "instrument": {
       "type": "object",
       "required": ["kind"],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["autocorrelator", "beamProfile", "camera", "compressor", "contrast", "conversion", "crossCorrelator", "delayScan", "dscan", "energyMeter", "farFieldCamera", "fieldProbe", "frog", "nearFieldCamera", "phaseMatchingCurve", "photodiode", "polarimeter", "powerMeter", "pulseSummary", "scope", "spaceTime", "spectrometer", "thirdOrderCorrelator", "wavefrontSensor", "wigner"],
+          "enum": ["autocorrelator", "beamProfile", "camera", "compressor", "contrast", "conversion", "crossCorrelator", "delayScan", "dscan", "energyMeter", "farFieldCamera", "fieldProbe", "frog", "nearFieldCamera", "phaseMatchingCurve", "photodiode", "polarimeter", "powerMeter", "pulseSummary", "scope", "sfgFrog", "singleShotCorrelator", "spaceTime", "spectrometer", "thirdOrderCorrelator", "wavefrontSensor", "wigner", "xfrog"],
           "description": "Instrument kind."
         }
       },
@@ -4624,6 +4937,19 @@
           "if": {
             "properties": {
               "kind": {
+                "enum": ["singleShotCorrelator"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.singleShotCorrelator"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
                 "enum": ["spaceTime"]
               }
             },
@@ -4670,6 +4996,19 @@
           },
           "then": {
             "$ref": "#/definitions/instrument.wigner"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": ["xfrog", "sfgFrog"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "$ref": "#/definitions/instrument.xfrog"
           }
         }
       ]

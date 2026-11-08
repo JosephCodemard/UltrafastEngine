@@ -2,15 +2,16 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **423 tests** in 47 classes. **227** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **476 tests** in 54 classes. **280** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
-| [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 12 | 11 |
+| [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 13 | 12 |
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 13 | 12 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
 | [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
+| [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
 | [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 21 | 15 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
@@ -21,21 +22,26 @@ Every C# test of the engine: **423 tests** in 47 classes. **227** of them check 
 | [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 9 | 9 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
+| [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 7 | 4 |
+| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
+| [Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms](#instrumentfixestests) | `InstrumentFixesTests` | 5 | 5 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
 | [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 5 | 5 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
+| [Materials and crystals: d_eff of explicit cuts, delayed-response split, CS2, cubic chi(3)](#materialscrystalstests) | `MaterialsCrystalsTests` | 14 | 14 |
 | [Measured input spectra, comparisons and satellite room](#measuredspectrumtests) | `MeasuredSpectrumTests` | 13 | 0 |
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
 | [Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs](#modelledinstrumentstests) | `ModelledInstrumentsTests` | 4 | 3 |
-| [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 7 | 7 |
+| [Multi-trace FROG retrieval (double FROG)](#multitraceretrievaltests) | `MultiTraceRetrievalTests` | 1 | 1 |
+| [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 10 | 10 |
 | [Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain](#noncollinearopatests) | `NoncollinearOpaTests` | 6 | 6 |
 | [Regressions from the open-bug sweep](#openbugregressiontests) | `OpenBugRegressionTests` | 8 | 5 |
 | [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
@@ -46,6 +52,7 @@ Every C# test of the engine: **423 tests** in 47 classes. **227** of them check 
 | [Pulse retrieval (FROG, d-scan)](#retrievaltests) | `RetrievalTests` | 2 | 2 |
 | [Regressions from the review: M^2, second moments, packets at ports, steady-state loops](#reviewregressiontests) | `ReviewRegressionTests` | 8 | 8 |
 | [Schemas, validation and migrations](#schematests) | `SchemaTests` | 5 | 0 |
+| [Single-shot time-to-space cross-correlator (window, resolution, position to delay)](#singleshotcorrelatortests) | `SingleShotCorrelatorTests` | 8 | 8 |
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
@@ -63,6 +70,7 @@ Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured ne
 | `AiryBeam_MainLobeAcceleratesAlongTheParabola` | Siviloglou & Christodoulides, Opt. Lett. 32, 979 (2007): parabolic trajectory x = z^2 / (4 k^2 x0^3) | 3 % |
 | `Axicon_TurnsAGaussianIntoABesselCore` | Axicon on a Gaussian: J0(k r sin(angle)) core, first zero 2.405 / (k sin(angle)) (McLeod 1954) | 2 % |
 | `BesselGauss_CoreDoesNotSpreadOverSeveralRayleighRangesOfItsSpot` | Durnin, JOSA A 4, 651 (1987); Bessel-Gauss (Gori et al. 1987): central lobe 2.405 / k_r unchanged while z << w / angle | 2 % |
+| `BinaryPhaseZonePlate_LosesTheEnergyOfItsSampledEdges_AsTheGridStep` | cell-averaged pi edges: a cell split into fractions f and 1-f of +1 and -1 transmits \|2f-1\|^2, mean 1/3 over a uniform edge position | 25 % of the loss, which falls as the grid step |
 | `DoubleSlit_FringesHaveThePeriodOfYoungsExperiment` | Young's double slit: fringe period lambda z / d, transmission 2 b / W | 2 % |
 | `FileMask_AppliesAmplitudeAndPhase` | T = amplitude^2 for a uniform map; a thin plate's phase scales with frequency | -- |
 | `HermiteGauss_RadiiFollowTheModeOrders_AtTheWaistAndAfterARayleighRange` | Hermite-Gauss modes: second-moment radius w(z) sqrt(2m + 1) (Siegman, Lasers, ch. 16) | -- |
@@ -152,6 +160,20 @@ Resonators, partial coherence, thermal stress birefringence, amplifier thermal l
 | `Resonator_LinearTwoMirrorCavity_MatchesTheMirrorFormulas` | two-mirror cavity: (A + D) / 2 = 2 g1 g2 - 1, g = 1 - L / R; w^2 at a mirror of a symmetric cavity = (lambda L / pi) sqrt(1 / (1 - g^2)) | 1e-3 |
 | `Resonator_Unstable_WarnsAndHasNoMode` | stability \|(A + D) / 2\| < 1: L > 4 f is unstable | -- |
 | `ThermalStress_DepolarisedFraction_MatchesKoechner_AndTendsToAQuarter` | Koechner, Solid-State Laser Engineering, ch. 7: D = (1 - sin C / C) / 4, C = n0^3 alpha C_B P_h / (lambda K) | 2 % |
+
+## CellModeTests
+
+Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells).
+
+| test | reference | tolerance |
+|---|---|---|
+| `EmptyCell_MatchesKogelnikLiForSymmetricAndAsymmetricCells` | Kogelnik & Li, Appl. Opt. 5, 1550 (1966): w0^2 = (lambda d / pi) sqrt(g1 g2 (1 - g1 g2)) / \|g1 + g2 - 2 g1 g2\|, w1^2 = (lambda d / pi) sqrt(g2 / (g1 (1 - g1 g2))) | 1e-9 |
+| `EmptyCell_OfTheSchulteCell_HasThePublishedSpotSizes` | Schulte et al., Opt. Lett. 41, 4511 (2016): empty-cell mode of 540 mm / R = 350 mm: waist 220 um, 459 um on the mirrors (as read in docs/papers/schulte-2016-mpc-fused-silica) | 0.3 % |
+| `HerriottSpacing_ClosesThePatternAfterTheChosenRoundTrips` | Herriott, Kogelnik & Kompfner, Appl. Opt. 3, 523 (1964): the pattern closes after N round trips when N theta = 2 pi k, cos(theta / 2) = g | 1e-9 |
+| `KerrLensOfTheHelper_ReproducesTheRadialModelsRmsRadius` | Vlasov, Petrishchev & Talanov (1971) moment law: the thin-lens power 1/f = n2 I0 dz / w^2 (I0 = 2P / pi w^2) reproduces the rms-radius evolution of the engine's radial Kerr propagation (first order in P / P_cr); the on-axis parabolic lens (4x) does not | 2 % |
+| `MatchedMode_ReproducesItselfAndTendsToTheEmptyCellModeAtLowPower` | self-consistency of the round trip: the matched q reproduces itself with the Kerr lenses it creates (residual < 1e-9); a vanishing power gives the empty-cell mode | 1e-9 |
+| `WeakKerrPlateAtTheWaist_ShiftsTheRoundTripStabilityAsTheThinLensFormula` | first order in a thin Kerr lens: cos(theta') - cos(theta) = -(Phi_total / 2) z_R sin(theta), theta = 2 arccos(g) the round-trip Gouy phase of the symmetric cell, Phi = 2 n2 dz P / (pi w0^4) per pass | 0.3 % |
+| `WhenNoStableMatchedModeExists_TheHelperReportsIt` | the matched mode ceases to exist when the Kerr lens pushes the round trip out of its stability range; the helper says so instead of returning a mode | - |
 
 ## Chi2Tests
 
@@ -350,6 +372,18 @@ Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, 
 | `Npz_WriteReadRoundTrip` | -- | -- |
 | `ThinFilm_QuarterWaveArAndBraggMirror` | quarter-wave AR and Bragg mirror (analytic thin-film results) | 1e-10, 1e-09 |
 
+## FrogKindsTests
+
+FROG geometries: PG, SD, XFROG, kind inference.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Frog_PcgpaAndEpie_RecoverAChirpedPulse_FromSdAndPgTraces_WithTheSign` | known chirped pulse (GDD +300 fs^2, 25 fs) | 3 % duration, 6 % GDD, sign exact |
+| `Frog_PgAndSd_TraceCentroid_TiltsWithTheChirpRate` | Kane and Trebino 1993, App. C: PG slope 2b/3, SD slope 4b/3 | 2 % |
+| `Retrieve_WithoutAKind_DoesNotAssumeShg_ForAPolarisationGateTrace` | SHG-FROG traces are symmetric in the delay; PG traces of a chirped pulse are not | exact |
+| `Xfrog_PcgpaAndEpie_RecoverAChirpedPulse_WithTheSign` | known chirped pulse, known reference | 3 % duration, 6 % GDD, sign exact |
+| `Xfrog_TraceCentroid_TiltsWithTheChirpRate_AtTheSumFrequency` | first moment of a Gaussian product: slope b T^2 / (T^2 + T_R^2) | 2 % |
+
 ## GainTests
 
 Gain media, pumping, thermal lens and position-dependent properties.
@@ -393,6 +427,22 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 | `SmallOrUnsupportedProblems_StayOnTheCpu_WithANote` | -- | -- |
 | `Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver | 1e-09 |
 | `Spatial_UppeCoupling_MatchesTheCpu` | cross-check: the CPU solver | -- |
+
+## GridSolverTests
+
+Grid, carrier and solver accuracy.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CircularAperture_OnAnEllipticalBeam_IsTheTwoDimensionalIntegral` | elliptical Gaussian through a circular aperture: 2-D quadrature; small aperture T = 2 a^2 / (wx wy); round beam 1 - exp(-2 a^2 / w^2) | 1e-6 (quadrature), 1e-5 (small-aperture limit) |
+| `DelayedResponseLongerThanTheWindow_IsWarnedAbout_AndTheAutoGridHoldsIt` | periodic time grid: the response to a pulse must fit the window (convergence against a window four times larger) | total variation of the spectra 0.02 |
+| `FiberDispersionTable_Coarse_ReproducesBeta2_BetweenThePoints` | definition D = -2 pi c beta2 / lambda^2 (Agrawal, Nonlinear Fiber Optics); beta2(w) = b3 (w - wz) + b4 (w - wz)^2 / 2 | 2e-4 relative to beta2 (a linear interpolation of the 53-point table gave ~1e-3) |
+| `Fiber_ElementLevelSelfSteepeningFalse_SwitchesItOff_AndBulkToo` | self-steepening switch: with it off the pulse stays symmetric in time (centroid shift 0); with it on the centroid moves (Agrawal, Nonlinear Fiber Optics, sec. 4.4) | off: centroid shift < 1 % of the on value |
+| `Grating_TrackedAngularDispersion_IsTheGratingEquation_OnAnyGrid` | grating equation: d theta / d lambda = m / (period cos beta) (Treacy, IEEE JQE 5, 454 (1969), eq. 2) | 1e-6 relative |
+| `PulseBroadenedToZeroFrequency_IsReportedAndBooked` | energy conservation of the envelope model: a pulse broadened to zero frequency loses energy there, and says so | exact booking |
+| `Pulse_IsCentredOnTheRequestedCarrier_NotTheSnappedOne` | definition of the carrier: the input spectrum is centred on the requested wavelength | 1e-6 relative |
+| `PureSpm_PhaseIsGammaPL_OnEveryGrid_At515_1030_And2000nm` | pure SPM in a dispersion-free fibre: A_out = A_in exp(i gamma \|A_in\|^2 L) | 2e-5 relative |
+| `Shg_StronglyPhaseMismatchedThickCrystal_FollowsTheSincLaw_AtTheDefaultStepper` | plane-wave SHG at low conversion: eta(L) ~ sin^2(dk L / 2) (Armstrong et al., Phys. Rev. 127, 1918 (1962), eq. 2.14 limit) | 4 % (dispersion of the 5 ps pulse and finite bandwidth) |
 
 ## HitranTests
 
@@ -444,6 +494,18 @@ Instrument device models: resolution, acceptance, detectors, filters.
 | `Polarimeter_ExtinctionRatioScalesStokes` | Malus: S1 = (ER − 1) / (ER + 1) | 1e-09 |
 | `Settings_ListEveryParameterWithItsValueOrDefault` | -- | -- |
 | `Spectrometer_NormalizeModes_IncludingLegacyBooleans` | -- | -- |
+
+## InstrumentFixesTests
+
+Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CrossCorrelator_GateArmPlate_GivesGhostLevelsRToThe2k_AtTheSecondHarmonicSpacing` | Fresnel: ghost k of a plate has intensity R^(2k); spacing 2 n_g(lambda/2) d / c | 3 %, spacing 0.1 % |
+| `CrossCorrelator_WithResolution_TraceFloorAndReportAreConsistent` | linear smoothing: relative height of a distant pre-pulse is unchanged | 0.3 dB |
+| `EnergyMeter_BandEdges_AreWeightedByTheFractionOfTheBin` | Gaussian spectrum: band fraction = CDF(w_hi) - CDF(w_lo) | 0.5 % |
+| `InterferometricAutocorrelator_LongPulse_KeepsZeroDelay_AndSaysTheFringesAreUndersampled` | Diels and Rudolph: IAC peak to background 8:1 | 0.2 % |
+| `InterferometricAutocorrelator_PeakToBackground_IsEight_ForEveryCarrierAndBandwidth` | Diels and Rudolph: IAC peak to background 8:1 | 0.2 % |
 
 ## InstrumentTests
 
@@ -510,6 +572,27 @@ Loss budget and overrides.
 | `Overrides_PriorityAndProvenance` | -- | -- |
 | `SystemFile_RoundTripAndValidation` | -- | -- |
 
+## MaterialsCrystalsTests
+
+Materials and crystals: d_eff of explicit cuts, delayed-response split, CS2, cubic chi(3).
+
+| test | reference | tolerance |
+|---|---|---|
+| `BaF2_RefractiveIndex_AtSodiumD_Matches` | BaF2 at 20 C, sodium D: n = 1.4744 (Li, J. Phys. Chem. Ref. Data 9, 161 (1980)) | 0.001 |
+| `Cs2_Gdd_MatchesTheAnalyticSecondDerivative` | closed-form second derivative of the one-pole Sellmeier formula: GVD = lambda^3 n'' / (2 pi c^2) | 0.3 % |
+| `Cs2_LongPulse_EllipseRotation_UsesTheOrientationalTensor` | NER rotation = B sin(2chi) ((1-fR)/3 + fR b/2) with b = 3/2 for the orientational part (Maker-Terhune-Savage 1964; Hellwarth tensor) | 2 % |
+| `Cs2_Pulse_PeakPhase_FollowsTheRetardedOrientationalResponse_AndCircularSeesLessThanLinear` | B = k0 n2 I0 L; peak phase = B [(1-fR) + fR d] with d = int h(s) I(-s) ds / I0 (retarded response of a Gaussian pulse); circular: (1-fR) 2/3 + fR d/4 (electronic Kerr + purely orientational, Boyd Nonlinear Optics 3rd ed. sec. 4.4) | 0.5 % |
+| `Cs2_RefractiveIndex_AtSodiumD_MatchesKedenburgAndTheHandbook` | CS2 at 20 C, sodium D line: n = 1.6276 (Kedenburg et al. 2012; refractiveindex.info, CC0); CRC Handbook n_D(20 C) = 1.6319 for the liquid | 0.003 |
+| `CubicKerr_RotatingCrystalAndInputTogether_ChangesNothing` | covariance: crystal azimuth and input angle rotate together | 1e-9 |
+| `CubicKerr_SpmIndex_DependsOnTheAngleToTheCubicAxis` | cubic chi(3): index change along beta from [100] is n2 [1 - (sigma/2) sin^2(2 beta)] | 0.3 % |
+| `CubicKerr_WithATransverseModel_IsRejected` | cubic anisotropy needs the envelope model: a spatial model throws instead of ignoring it | exact |
+| `CubicKerr_WithZeroAnisotropy_EqualsTheIsotropicKerr` | sigma = 0 is the isotropic Maker-Terhune Kerr tensor: identical output | 1e-12 |
+| `CubicKerr_Xpw_FollowsSin4BetaSquared_ForTheCutAlong001` | cubic chi(3) tensor (Boyd, Nonlinear Optics, sec. 4.2; Minkovski et al., Opt. Lett. 29, 2237 (2004)): XPW fraction (B sigma sin 4beta / 4)^2 / sqrt(3) | 3 % (O(B) corrections) |
+| `CubicKerr_Xpw_In011Cut_FollowsTheTensorProjection` | cubic chi(3) tensor in the [011] cut: P_perp ~ sin b cos b (sin^2 b / 2 - cos^2 b) | 3 % |
+| `KdpElement_ExplicitCut_RecordsDeffThatVariesSmoothlyWithPhi` | KDP type-I, explicit cut: recorded d_eff is smooth in phi (d36 \|sin 2phi\| E_z) | 3 % |
+| `Kdp_TypeI_Deff_FollowsD36Sin2Phi_ForEveryPhi_AtFixedTheta` | KDP (-42m) type-I o o -> e: d_eff = d36 \|sin 2phi\| E_z (exact E-field vectors); textbook d36 sin(theta) sin(2 phi) within the walk-off angle (Dmitriev, Handbook of NLO crystals) | 1e-6 relative (exact); 4 % (textbook) |
+| `OrientationalResponse_HasUnitIntegral_AndTheAnalyticPeakTime` | response normalisation: unit integral, causal, peak at rise*decay*ln(decay/rise)/(decay-rise) | 1e-3 |
+
 ## MeasuredSpectrumTests
 
 Measured input spectra, comparisons and satellite room.
@@ -561,16 +644,27 @@ Modelled instruments: IAC, FTS, FROG from elements; study node cache and array o
 | `Iac_FromElements_HasTheEightToOneRatio` | interferometric autocorrelation: peak to background 8:1 | 1 % |
 | `NodeCache_RerunsOnlyWhatFollowsTheChange_WithTheSameResult` | -- | -- |
 
+## MultiTraceRetrievalTests
+
+Multi-trace FROG retrieval (double FROG).
+
+| test | reference | tolerance |
+|---|---|---|
+| `DoubleFrog_SixStarts_AllGiveTheRightTimeDirectionForBothPulses` | Kida et al. 2014: double FROG removes the SHG-FROG time-direction ambiguity of both pulses | 6 % GDD, 5 % duration, sign exact |
+
 ## NerTests
 
 Nonlinear ellipse rotation and the vector Kerr / Raman tensor.
 
 | test | reference | tolerance |
 |---|---|---|
+| `AnisotropicFraction_OutsideZeroToOneAndAHalf_IsRejected` | validation: physically meaningful range 0 <= b <= 3/2 | exact |
 | `BIntegral_CircularIsTwoThirdsOfLinear_EllipticalInBetween` | isotropic χ(3): circular light sees 2/3 of the linear phase | 0.5 % |
 | `CircularLight_SeesLessRamanThanLinear` | tensor Raman: (1 − f_R) 2/3 + f_R (1 − b/2) | 1e-09, 1 % |
 | `Circular_AtOneAndAHalfTimesTheEnergy_MatchesLinear` | isotropic χ(3): 3/2 energy compensates 2/3 | 0.5 % |
+| `ExpressionResponse_HonoursAnisotropicFraction_IncludingTheOrientationalValue` | tensor Raman (Hellwarth) for an expression response; purely orientational b = 3/2 gives circular/linear 1/4 (Boyd, Nonlinear Optics 3rd ed., sec. 4.4) | 1 % |
 | `LinAgrawal_AnisotropicPart_IsFcHaPlusFbHb` | Lin & Agrawal, Opt. Lett. 31, 3086 (2006) | 1e-12, 1 % |
+| `LinAgrawal_WithExplicitZeroAnisotropy_IsIsotropic` | tensor Raman: an explicit anisotropicFraction 0 makes linAgrawal isotropic: circular / linear = (1 - fR) 2/3 + fR | 1 % |
 | `Rotation_InstantaneousKerr_IsBsin2chiOverThree` | nonlinear ellipse rotation B sin 2χ / 3 (Maker, Terhune & Savage 1964) | 1 % |
 | `Rotation_WithAnisotropicRaman_UsesTheAnisotropicShare` | steady-state Raman tensor (Hellwarth) | 2 % |
 | `SpatialModel_OnAxisRotationWithAnisotropicRaman_MatchesTheOneDModel` (slow) | cross-model: the 1-D vector model | 5 % |
@@ -709,6 +803,21 @@ Schemas, validation and migrations.
 | `Migration_V1Cameras_BecomeTheUnifiedCamera` | -- | -- |
 | `Schemas_AreGeneratedForEveryElementAndInstrument` | -- | -- |
 | `UnknownKey_IsReportedWithSuggestion` | -- | -- |
+
+## SingleShotCorrelatorTests
+
+Single-shot time-to-space cross-correlator (window, resolution, position to delay).
+
+| test | reference | tolerance |
+|---|---|---|
+| `BboAt40Degrees_FollowsEquations1And2_AndTheQuotedResolution` | Ma et al. 2018 eqs. (1), (2) with the angles a, b of the inputs to the signal from k_T + k_S = k_sig (vector sum written out independently in the test), BBO 1053 nm + 526.5 nm at 40 deg: about 1 ps resolution for 1-2 mm (p. 2) | 1e-9 (indices at the grid carrier); 0.5-1.1 ps |
+| `ExternalAngle_WithASecondHarmonicSamplingBeam_GivesTheAirSlopeOfThePerpendicularFace` | tangential continuity at the entrance face: slope = (sin phi_T + sin phi_S) / c with omega_T sin phi_T = omega_S sin phi_S, phi_T + phi_S = the external angle (second-harmonic sampling beam) | 1e-9 |
+| `PrePulse_AppearsAtThePositionOfItsDelay_WithItsRelativeIntensity` | time-to-space mapping: a pre-pulse of relative intensity e at -T before the main pulse appears at x = -T / slope with height e (third-order correlation, Ma et al. 2018 Fig. 1) | 1 pixel; 2 % |
+| `ShortPulse_TraceWidthIsTheGeometricResolution` | a delta-like correlation read through a crystal of length L shows the rectangle of width dtau = L \|n_T cos a - n_S cos b\| / c of eq. (2) | 3 % |
+| `SignalArea_EqualsTheProductOfTheTwoPulseEnergies_WhenTheWindowHoldsTheCorrelation` | the correlation integral conserves area: sum S dtau = (integral I_PT dt)(integral I_S dt); here the sampling pulse is the pulse itself, so E^2 | 1e-3 |
+| `SpatialSfgOfTwoCrossedBeams_PutsAReplicaAtTheInstrumentsPosition` (slow) | time-to-space mapping in the engine's own spatial model: two beams crossing at 20 deg (external) in BBO on a Cartesian grid; a replica at delay T lands at x = T c / (2 sin(10 deg)) (tangential continuity), the slope of the instrument | 3 % |
+| `SymmetricEqualIndexGeometry_GivesTwoNSinHalfAngleOverC_AndNoSmearing` | Ma et al. 2018 eq. (1) for two beams of equal index n crossing at the full angle g: T = 2 W n sin(g/2) / c; eq. (2): dtau = 0 | 1e-9 |
+| `WithoutSmearing_TheTraceIsTheCrossCorrelatorsTrace` | with no crystal smearing and fine pixels the single-shot trace is the delay trace of the crossCorrelator (same third-order correlation) | 1 % |
 
 ## SmallScaleTests
 

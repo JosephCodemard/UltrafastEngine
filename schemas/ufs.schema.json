@@ -1491,6 +1491,28 @@
           "type": "number",
           "description": "Nonlinear index (overrides the material's) [m^2/W]"
         },
+        "kerrAnisotropy": {
+          "type": "number",
+          "description": "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."
+        },
+        "kerrCutAxis": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."
+        },
+        "kerrAzimuthDeg": {
+          "type": "number",
+          "description": "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."
+        },
         "timeResponse": {
           "anyOf": [
             {
@@ -3479,6 +3501,28 @@
           "type": "number",
           "description": "Nonlinear index (overrides the material's) [m^2/W]"
         },
+        "kerrAnisotropy": {
+          "type": "number",
+          "description": "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."
+        },
+        "kerrCutAxis": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."
+        },
+        "kerrAzimuthDeg": {
+          "type": "number",
+          "description": "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."
+        },
         "timeResponse": {
           "anyOf": [
             {
@@ -4754,6 +4798,28 @@
         "n2": {
           "type": "number",
           "description": "Nonlinear index (overrides the material's) [m^2/W]"
+        },
+        "kerrAnisotropy": {
+          "type": "number",
+          "description": "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."
+        },
+        "kerrCutAxis": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."
+        },
+        "kerrAzimuthDeg": {
+          "type": "number",
+          "description": "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."
         },
         "timeResponse": {
           "anyOf": [
@@ -7298,6 +7364,28 @@
           "type": "number",
           "description": "Nonlinear index (overrides the material's) [m^2/W]"
         },
+        "kerrAnisotropy": {
+          "type": "number",
+          "description": "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."
+        },
+        "kerrCutAxis": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."
+        },
+        "kerrAzimuthDeg": {
+          "type": "number",
+          "description": "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."
+        },
         "timeResponse": {
           "anyOf": [
             {
@@ -7944,6 +8032,28 @@
         "n2": {
           "type": "number",
           "description": "Nonlinear index (overrides the material's) [m^2/W]"
+        },
+        "kerrAnisotropy": {
+          "type": "number",
+          "description": "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."
+        },
+        "kerrCutAxis": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."
+        },
+        "kerrAzimuthDeg": {
+          "type": "number",
+          "description": "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."
         },
         "timeResponse": {
           "anyOf": [
@@ -9505,6 +9615,28 @@
         "n2": {
           "type": "number",
           "description": "Nonlinear index (overrides the material's) [m^2/W]"
+        },
+        "kerrAnisotropy": {
+          "type": "number",
+          "description": "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] Default: the material's (BaF2 -1.2, others 0)."
+        },
+        "kerrCutAxis": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."
+        },
+        "kerrAzimuthDeg": {
+          "type": "number",
+          "description": "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."
         },
         "timeResponse": {
           "anyOf": [
