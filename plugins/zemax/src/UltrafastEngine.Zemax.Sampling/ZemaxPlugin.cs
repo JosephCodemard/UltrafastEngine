@@ -15,7 +15,7 @@ namespace UltrafastEngine.Zemax
     {
         public string Id => "zemax";
         public string Name => "Zemax OpticStudio";
-        public string Version => "2.1.8-beta";
+        public string Version => "2.2.0";
         public string Description => "Exports OpticStudio systems to .ufs files and ships the OpticStudio extension program.";
 
         public void Register(PluginContext ctx)

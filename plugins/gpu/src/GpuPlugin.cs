@@ -12,7 +12,7 @@ namespace UltrafastEngine.Plugins.Gpu
     /// </summary>
     public sealed class GpuPlugin : IPlugin
     {
-        public const string PluginVersion = "2.1.8-beta";
+        public const string PluginVersion = "2.2.0";
         public string Id => "gpu";
         public string Name => "GPU: CUDA and OpenCL compute back-ends";
         public string Version => PluginVersion;

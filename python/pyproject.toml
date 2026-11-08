@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ultrafast-engine"
-version = "2.1.8b0"
+version = "2.2.0"
 description = "Nonlinear ultrafast pulse propagation through complete optical systems (Python bindings for UltrafastEngine)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,6 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "UltrafastEngine contributors" }]
 keywords = ["ultrafast", "nonlinear optics", "pulse propagation", "NLSE", "Zemax", "OpticStudio", "laser"]
 classifiers = [
+  "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
   "Topic :: Scientific/Engineering :: Physics",

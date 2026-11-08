@@ -22,13 +22,13 @@ Check:
 ultrafast plugins list
 ```
 ```
-fitting    2.1.8-beta       Fittable "transform" elements, fits to recorded data with replaceable estimators ("fit") and backward propagation ("backward").
+fitting    2.2.0       Fittable "transform" elements, fits to recorded data with replaceable estimators ("fit") and backward propagation ("backward").
            .../net10.0/plugins/fitting
-gpu        2.1.8-beta       Runs nonlinear propagation (1-D envelope and radial / cartesian spatial) on NVIDIA GPUs through CUDA and on any double-precision OpenCL device ...
+gpu        2.2.0       Runs nonlinear propagation (1-D envelope and radial / cartesian spatial) on NVIDIA GPUs through CUDA and on any double-precision OpenCL device ...
            .../net10.0/plugins/gpu
-hitran     2.1.8-beta       Line-by-line Voigt absorption and Kramers-Kronig-consistent dispersion of H2O, CO2 and O2 from HITRAN line lists ...
+hitran     2.2.0       Line-by-line Voigt absorption and Kramers-Kronig-consistent dispersion of H2O, CO2 and O2 from HITRAN line lists ...
            .../net10.0/plugins/hitran
-zemax      2.1.8-beta       Exports OpticStudio systems to .ufs files and ships the OpticStudio extension program.
+zemax      2.2.0       Exports OpticStudio systems to .ufs files and ships the OpticStudio extension program.
            .../net10.0/plugins/zemax
 ```
 

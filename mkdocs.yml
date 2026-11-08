@@ -1,5 +1,8 @@
 site_name: UltrafastEngine
 site_description: Nonlinear ultrafast pulse propagation through complete optical systems
+site_url: https://josephcodemard.github.io/UltrafastEngine/
+repo_url: https://github.com/JosephCodemard/UltrafastEngine
+edit_uri: edit/main/docs/
 docs_dir: docs
 # CLAUDE.md files are instructions for Claude Code, not pages of the site
 exclude_docs: |

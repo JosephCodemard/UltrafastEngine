@@ -1,9 +1,9 @@
 {
   "id": "gpu",
   "name": "GPU: CUDA and OpenCL compute back-ends",
-  "version": "2.1.8-beta",
+  "version": "2.2.0",
   "description": "Runs nonlinear propagation (1-D envelope and radial / cartesian spatial) on NVIDIA GPUs through CUDA and on any double-precision OpenCL device; back-ends \"cuda\" and \"opencl\", used by \"compute\": {\"backend\": \"auto\"}.",
-  "engine": "2.1.8-beta",
+  "engine": "2.2.0",
   "entry": "UltrafastEngine.Plugins.Gpu.GpuPlugin",
   "assemblies": {
     "net10.0": "lib/net10.0/UltrafastEngine.Plugins.Gpu.dll",

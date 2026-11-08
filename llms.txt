@@ -1,6 +1,6 @@
 # UltrafastEngine
 
-> C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators, interferometers; table-top optics with some fibre support), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 2.1.8-beta.
+> C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators, interferometers; table-top optics with some fibre support), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 2.2.0.
 
 Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change the code; Claude Code: CLAUDE.md). Every option with units and defaults: docs/reference/options.md.
 

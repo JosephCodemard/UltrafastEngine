@@ -25,7 +25,7 @@ from . import materials
 from . import measured
 from . import types
 
-__version__ = "2.1.8b0"
+__version__ = "2.2.0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
            "command", "study", "coherence", "retrieve", "retrieve_multi", "devices", "benchmark", "set_default_backend", "build", "crystal", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load"]
 

@@ -331,6 +331,6 @@ namespace UltrafastEngine.Results
 
     public static class EngineInfo
     {
-        public const string Version = "2.1.8-beta";
+        public const string Version = "2.2.0";
     }
 }

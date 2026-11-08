@@ -10,7 +10,7 @@ namespace UltrafastEngine.Plugins.Hitran
     /// </summary>
     public sealed class HitranPlugin : IPlugin
     {
-        public const string PluginVersion = "2.1.8-beta";
+        public const string PluginVersion = "2.2.0";
         public string Id => "hitran";
         public string Name => "HITRAN: line-by-line absorption and dispersion of gases";
         public string Version => PluginVersion;

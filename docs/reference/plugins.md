@@ -64,7 +64,7 @@ my-plugin/
   "name": "My plugin",
   "version": "1.0.0",
   "description": "One sentence: what it adds.",
-  "engine": "2.1.8-beta",
+  "engine": "2.2.0",
   "entry": "MyCompany.MyPlugin.Plugin",
   "assemblies": { "net10.0": "lib/net10.0/MyPlugin.dll", "net48": "lib/net48/MyPlugin.dll" },
   "python": { "module": "my_plugin" },
@@ -76,7 +76,7 @@ my-plugin/
 |---|---|
 | `id` | unique, lower-case; must equal `IPlugin.Id` |
 | `version` | the plugin's version |
-| `engine` | minimum engine version (`2.1.8-beta`); older engines list the plugin as not loaded |
+| `engine` | minimum engine version (`2.2.0`); older engines list the plugin as not loaded |
 | `entry` | full name of the `IPlugin` class (optional: the first `IPlugin` in the assembly) |
 | `assemblies` | assembly per target framework; a plugin without assemblies is Python-only |
 | `python.module` | module imported from `python/` by the `ultrafast` package |

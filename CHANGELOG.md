@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.2.0 (2026-11-08) -- stable release
+
+The engine leaves beta: the November 2026 consolidation (component tests, twelve paper replications, the bug fixes and features below), a documentation site on GitHub Pages and a rewritten README.
+
 ### Engine fixes and features from the November 2026 consolidation (component tests, 12 paper replications)
 **Changed**
 - The input pulse is built at the **requested carrier**, not at the carrier snapped onto the frequency lattice (up to ~1.5 nm off at 1030 nm / 10 fs). Kerr phase, self-steepening, reported angular dispersion and carrier wavelength follow it (`grid.reportOmega0`). The fibre SPM phase error of 0.1-0.4 % that depended on the grid is gone. The window frame still moves with the lattice-centre group delay; `snapCarrier: false` removes the offset.

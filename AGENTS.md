@@ -5,7 +5,7 @@ documentation index: [llms.txt](llms.txt).
 
 ## What this is
 
-UltrafastEngine 2.1.8-beta: a C# engine for nonlinear ultrafast pulse propagation through optical systems, with a
+UltrafastEngine 2.2.0: a C# engine for nonlinear ultrafast pulse propagation through optical systems, with a
 CLI (`ultrafast`), a C API, a Python package (`ultrafast`) and plugins (fitting, zemax, gpu). Inputs are a system file
 (`.ufs`) and a run spec (`run.json`), both JSON with comments; outputs are `summary.json`, `result.npz`, CSVs.
 

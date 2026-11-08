@@ -23,7 +23,7 @@ namespace UltrafastEngine.Plugins.Fitting
     /// </summary>
     public sealed class FittingPlugin : IPlugin
     {
-        public const string PluginVersion = "2.1.8-beta";
+        public const string PluginVersion = "2.2.0";
         public string Id => "fitting";
         public string Name => "Fitting: transforms, fits and backward propagation";
         public string Version => PluginVersion;

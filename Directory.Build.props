@@ -4,7 +4,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <Version>2.1.8-beta</Version>
+    <Version>2.2.0</Version>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
     <Authors>UltrafastEngine contributors</Authors>
     <Company>UltrafastEngine</Company>
