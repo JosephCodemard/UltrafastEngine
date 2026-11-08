@@ -60,3 +60,14 @@ paper README, then delete `progress-2026-11-consolidate.md` and update capabilit
 * testing.md: MaterialsCrystalsTests (14 tests: KDP d_eff, CS2, BaF2, cubic χ(3)/XPW); NerTests +3.
 * Paper follow-ups: liu-2013 and shimizu-1967 use built-in `CS2`; kaur-2024 can model XPW with `BaF2` + `kerrCutAxis`/`kerrAzimuthDeg`;
   maker-1962 re-check KDP d_eff vs φ.
+
+### Stream 4 (merged): cell mode and single-shot correlator
+* CHANGELOG Added: `cellMode` command and `ultrafast.cells.cell_mode` (Kerr-matched Gaussian eigenmode of a two-mirror multi-pass cell,
+  Herriott or quasi-concentric, gas fill or plates; empty-cell Kogelnik-Li mode, re-entrant spacing, Gouy phase, B-integral; second-moment
+  Kerr lens agrees with the radial model's rms radius to 0.3 %); instrument `singleShotCorrelator` (window and resolution from the crossing
+  geometry, Ma et al. 2018 eqs. 1-2; trace on position and delay axes; area conservation).
+* testing.md: CellModeTests (7), SingleShotCorrelatorTests (8, 1 slow ~150 s), python/tests/test_cells.py (2).
+* Not simulated by `singleShotCorrelator`: beam propagation in the crystal (efficiency, depletion, envelope across the overlap, walk-off), air
+  scatter, stripe filter, crystal-face reflections, fibre array. The spatial `sfg` crystal on a cartesian grid does reproduce the mapping.
+* Not done: cellMode is a command / Python function only (no element option), round beams only, peak power only.
+* Paper follow-ups: schulte-2016 and kaur-2024 should use `cell_mode` for the launch beam instead of trial; ma-2018 compare `singleShotCorrelator`.

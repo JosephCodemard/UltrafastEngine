@@ -148,6 +148,20 @@ namespace UltrafastEngine.Schema
                 .Num("threshold", "", "Relative intensity threshold", "1e-3").Bool("realField", "Also the real field on the optical cycle", "false").Int("maxN", "Grid cap", "8192"));
             add(new ComponentSpec("instrument", "spaceTime", "I(r, t) and S(r, lambda) across the beam (virtual).").DocAt(D + "virtual-instruments")
                 .Int("points", "Time samples", "512").Num("maxRadiusM", "m", "Largest radius", "2.5 w").Enum("axis", new[] { "x", "y" }, "Cartesian cut axis", "x"));
+            add(new ComponentSpec("instrument", "singleShotCorrelator", "Single-shot time-to-space cross-correlator: two beams cross in a nonlinear crystal and the signal across the overlap is a delay trace (window and resolution from the geometry).").DocAt(D + "singleshotcorrelator")
+                .Num("crossingAngleDeg", "deg", "Full angle between the pulse under test and the sampling beam INSIDE the crystal (or give externalCrossingAngleDeg)")
+                .Num("externalCrossingAngleDeg", "deg", "Full angle between the beams in air; both hit a face normal to their bisector, each refracts with its own index (alternative to crossingAngleDeg)")
+                .Num("beamWidthM", "m", "Width W of the beam overlap across the signal (sets the delay window T = W x slope)", required: true)
+                .Num("crystalLengthM", "m", "Crystal length L along the signal (sets the geometric resolution L |n_T cos a - n_S cos b| / c)", "0")
+                .Str("crystal", "Crystal of the library whose ordinary (x) index gives the angles and the delay slope", "\"BBO\"")
+                .Num("indexPt", "", "Refractive index at the pulse under test instead of the crystal's (also the group index unless groupIndexPt)").Num("indexSampling", "", "Index at the sampling pulse")
+                .Num("groupIndexPt", "", "Group index at the pulse under test (with indexPt)").Num("groupIndexSampling", "", "Group index at the sampling pulse (with indexSampling)")
+                .Enum("delayIndex", new[] { "group", "phase" }, "Index in the depth term of the resolution: group (the crystal's dispersion through dk_z/d omega; default) or phase (the form of Ma et al.'s eq. (2)); the window uses the phase indices either way", "group")
+                .Enum("samplingPulse", new[] { "secondHarmonic", "fundamental" }, "secondHarmonic: the sampling pulse is the second harmonic of the pulse (third-order contrast correlator); fundamental: the pulse itself (single-shot autocorrelator)", "secondHarmonic")
+                .Int("points", "Camera pixels across the overlap", "256").Num("delayOffsetS", "s", "Delay at the centre of the overlap", "0")
+                .Num("dynamicRangeDb", "dB", "Camera floor below the peak", "60").Num("noiseFloor", "", "Floor relative to the peak (alternative to dynamicRangeDb)")
+                .Bool("noise", "Fluctuating floor (else flat)", "true").Int("seed", "Noise seed", "1")
+                .Num("windowAroundPeakS", "s", "Pre / post-pulse contrast is read outside this distance from the peak", "5 x FWHM"));
         }
 
         private static void Models(Action<ComponentSpec> add)

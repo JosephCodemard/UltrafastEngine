@@ -123,6 +123,7 @@ namespace UltrafastEngine.Instruments
             { "wigner", s => new WignerInstrument() },
             { "fieldProbe", s => new FieldProbe() },
             { "spaceTime", s => new SpaceTime() },
+            { "singleShotCorrelator", s => new SingleShotCorrelator() },
         };
 
         public static IEnumerable<string> Known => Kinds.Keys.OrderBy(k => k);

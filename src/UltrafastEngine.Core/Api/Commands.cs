@@ -24,6 +24,7 @@ namespace UltrafastEngine
             {
                 case "study": return Study(request, baseDirectory);
                 case "retrieve": return Retrieve(request, baseDirectory);
+                case "cellmode": return Lasers.CellModeSolver.Solve(request);
                 case "materials.list": return MaterialsList();
                 case "materials.show": return MaterialsShow(request.GetRequiredString("name", "materials.show"), baseDirectory);
                 case "materials.import": return MaterialsImport(request, baseDirectory);
@@ -32,7 +33,7 @@ namespace UltrafastEngine
                     if (request.Has("backend")) Numerics.ComputeBackends.DefaultName = request.GetString("backend", null);
                     if (request.Has("fft")) { var note = Numerics.FftProviders.Select(request.GetString("fft", "auto")); if (note != null) return new JsonObject().Set("backend", Numerics.ComputeBackends.DefaultName).Set("fft", Numerics.Fft.Provider.Name).Set("warning", note); }
                     return new JsonObject().Set("backend", Numerics.ComputeBackends.DefaultName).Set("fft", Numerics.Fft.Provider.Name);
-                default: throw new JsonException("unknown command \"" + cmd + "\" (study, retrieve, materials.list, materials.show, materials.import, devices, compute.default)");
+                default: throw new JsonException("unknown command \"" + cmd + "\" (study, retrieve, cellMode, materials.list, materials.show, materials.import, devices, compute.default)");
             }
         }
 
