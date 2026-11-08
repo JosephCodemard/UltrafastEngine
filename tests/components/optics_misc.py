@@ -358,8 +358,7 @@ def prism_single(fam: Family):
             eng.append(D)
             ana.append(Da)
             if lam in CARRIERS_M:
-                fam.check(f"prism dtheta/dlam {label_wl(lam)}", D, Da, rel=1e-5, unit="rad/m", formula="Snell's law, Sellmeier n(lam)",
-                          known="reported dtheta/dlam is off by (lam_req/lam_snap)^2 - 1 (-4e-5 .. 1e-4), the same carrier mismatch as the grating (repro/grating_snapped_carrier.py); the GDD it feeds is consistent")
+                fam.check(f"prism dtheta/dlam {label_wl(lam)}", D, Da, rel=1e-5, unit="rad/m", formula="Snell's law, Sellmeier n(lam)")
                 # transmission: p (x) at Brewster on both faces, s (y) = (1 - Rs)^2 per face
                 for pol, ang in (("p", 0), ("s", 90)):
                     rr = run([b.prism("P", "FusedSilica", math.degrees(apex), math.degrees(thb), 0.0, medium=VAC)], lam, pulse=pol_pulse(lam, ang, 1e-12), beam=gbeam())
@@ -422,8 +421,7 @@ def grating_single(fam: Family):
             if abs(lam - 1030e-9) < 1e-12:
                 fam.check("grating magnification w_out/w_in 1030 nm", val(r, 0, "trackedBeamRadiusXM") / W0, co / math.cos(math.radians(th_in)), rel=1e-6,
                           formula="cos t_out / cos t_in (fixes the diffraction angle)")
-                fam.check("grating angular dispersion 1030 nm", D, Da, rel=1e-5, unit="rad/m",
-                          known="angular dispersion is converted with the grid-snapped wavelength while the angle uses the requested one: error (lam_req/lam_snap)^2 - 1 = 2e-4 here (repro/grating_snapped_carrier.py)")
+                fam.check("grating angular dispersion 1030 nm", D, Da, rel=1e-5, unit="rad/m")
                 fam.check("grating pulse-front tilt tan(gamma) = lam dt/dlam 1030 nm", math.tan(math.radians(val(r, 0, "trackedPulseFrontTiltXDeg"))), lam * abs(Da),
                           rel=1e-3, formula="Hebling 1996")
         overlay(f, xs, np.array(eng_d), np.array(ana_d), label="1200 l/mm, 30 deg", xlabel="carrier wavelength (nm)", ylabel="angular dispersion (rad/m)", residual="rel",
@@ -435,8 +433,7 @@ def grating_single(fam: Family):
         co = math.sqrt(1 - so * so)
         r = run([b.grating("G", lp, 40, order=-1)], lam, beam=gbeam(), tau=1e-12)
         fam.check(f"grating magnification {lp:g} l/mm {label_wl(lam)}", val(r, 0, "trackedBeamRadiusXM") / W0, co / math.cos(math.radians(40)), rel=1e-6)
-        fam.check(f"grating angular dispersion {lp:g} l/mm {label_wl(lam)}", val(r, 0, "trackedAngularDispersionXRadPerM"), -lp * 1e3 / co, rel=1e-5, unit="rad/m",
-                  known="grid-snapped carrier in the dlam conversion (see above)")
+        fam.check(f"grating angular dispersion {lp:g} l/mm {label_wl(lam)}", val(r, 0, "trackedAngularDispersionXRadPerM"), -lp * 1e3 / co, rel=1e-5, unit="rad/m")
 
     # Littrow: t_out = -t_in, magnification 1, dispersion 2 tan(t)/lam
     for lam, lp in ((515e-9, 1800.0), (1030e-9, 1500.0), (2e-6, 600.0)):
@@ -444,7 +441,7 @@ def grating_single(fam: Family):
         r = run([b.grating("G", lp, math.degrees(thl), order=-1)], lam, beam=gbeam(), tau=1e-12)
         fam.check(f"grating Littrow magnification {label_wl(lam)}", val(r, 0, "trackedBeamRadiusXM") / W0, 1.0, abs=2e-6, formula="cos t_out = cos t_in")
         fam.check(f"grating Littrow dispersion {label_wl(lam)}", val(r, 0, "trackedAngularDispersionXRadPerM"), -2 * math.tan(thl) / lam, rel=1e-5, unit="rad/m",
-                  formula="2 tan(t_L) / lam", known="grid-snapped carrier in the dlam conversion (see above)")
+                  formula="2 tan(t_L) / lam")
 
     # efficiency, polarisation resolved
     for pol, ang in (("p", 0), ("s", 90), ("45", 45)):
@@ -981,8 +978,10 @@ def zone_plate_mask(fam: Family):
         lam = 1030e-9
         r = uf.run(b.system("zp", [src(lam), b.mask("zp", "zonePlate", focal_length_m=0.2, binary_phase=True), b.gap("g", 0.0, medium=VAC, transverse=b.transverse("radial", **grid))]),
                    b.run_spec(b.cw(lam, 1.0)))
-        fam.check("phase zone plate transmission", val(r, 1, "transmission"), 1.0, abs=1e-9, formula="pure phase mask",
-              known="binaryPhase zone plate loses ~0.5-1 % of the energy at the pi edges (cell-averaged complex transmission, |avg| < 1) although the docs say pure phase masks keep unit magnitude (repro/binary_phase_zoneplate.py)")
+        dr = grid["radius_m"] / grid["points"]
+        loss = sum(2 / 3 * 4 * math.sqrt(n * lam * 0.2) * dr / w ** 2 * math.exp(-2 * n * lam * 0.2 / w ** 2) for n in range(1, 400))
+        fam.check("phase zone plate transmission", val(r, 1, "transmission"), 1.0 - loss, abs=0.3 * loss + 1e-4,
+                  formula="pi edges in a cell average to |2f-1|: T = 1 - (2/3) sum_edges 4 r dr / w^2 exp(-2 r^2/w^2) (a sampling loss, falls with the grid step)")
 
 
 # ============================================================================================================== wavefront
@@ -1078,8 +1077,7 @@ def apertures(fam: Family):
         inside = X ** 2 + Y ** 2 <= a * a
         I = np.exp(-2 * X ** 2 / wx ** 2 - 2 * Y ** 2 / wy ** 2)
         T = float((I * inside).sum() * (2 * a / n) ** 2 * 2 / (math.pi * wx * wy))
-        fam.check(f"round aperture a={a * 1e3:g} mm on w = 0.5 x 1.2 mm", r.summary["totals"]["energyTransmission"], T, rel=2e-3, formula="2D quadrature of the elliptical Gaussian over the disc",
-                  known="CircularAperture uses 1 - exp(-2 a^2 / (wx wy)) (geometric-mean radius), exact only for a round beam: 8-12 % off here (repro/round_aperture_astigmatic.py)")
+        fam.check(f"round aperture a={a * 1e3:g} mm on w = 0.5 x 1.2 mm", r.summary["totals"]["energyTransmission"], T, rel=2e-3, formula="2D quadrature of the elliptical Gaussian over the disc")
     # grating-made astigmatic beam, then a round aperture
     lp, th = 1200.0, 30.0
     co = math.sqrt(1 - (math.sin(math.radians(th)) - 1030e-9 * lp * 1e3) ** 2)
@@ -1091,8 +1089,7 @@ def apertures(fam: Family):
     X, Y = np.meshgrid(x, x)
     I = np.exp(-2 * X ** 2 / wxg ** 2 - 2 * Y ** 2 / W0 ** 2)
     T = float((I * (X ** 2 + Y ** 2 <= a * a)).sum() * (2 * a / n) ** 2 * 2 / (math.pi * wxg * W0))
-    fam.check("round aperture behind a grating (w_x = 0.78 mm, w_y = 1 mm)", r.summary["totals"]["energyTransmission"], T, rel=2e-3, formula="quadrature with the anamorphic beam",
-              known="same geometric-mean approximation of the round aperture on an astigmatic beam (repro/round_aperture_astigmatic.py)")
+    fam.check("round aperture behind a grating (w_x = 0.78 mm, w_y = 1 mm)", r.summary["totals"]["energyTransmission"], T, rel=2e-3, formula="quadrature with the anamorphic beam")
 
 
 # ======================================================================================================= topology

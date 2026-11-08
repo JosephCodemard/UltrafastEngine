@@ -337,7 +337,7 @@ namespace UltrafastEngine.Engine
             rec.Own = own; rec.System = system; rec.ArrivalS = arrival; rec.CumulativeLengthM = cumLen; rec.CumulativeBIntegralRad = cumB;
             rec.EnergyOutJ = pulse.TotalEnergyJ();
             rec.Out = PulseMetrics.Summarize(pulse);
-            rec.CarrierWavelengthM = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.OmegaCenter;
+            rec.CarrierWavelengthM = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.ReportOmega;
             if (el.BeamOut != null)
             {
                 // Gaussian beam tracking: 1/e^2 radii and wavefront curvature at the exit

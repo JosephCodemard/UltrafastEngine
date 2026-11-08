@@ -196,5 +196,24 @@ namespace UltrafastEngine.Tests
             double bulkOn = shift(bulk(true), O("selfSteepening", false)), bulkOff = shift(bulk(false), O("selfSteepening", true));
             Assert.Greater(Math.Abs(bulkOn), 100 * Math.Abs(bulkOff), "bulk element switch (on in the element, off in the run, versus the reverse)");
         }
+
+        [Test(Reference = "definition D = -2 pi c beta2 / lambda^2 (Agrawal, Nonlinear Fiber Optics); beta2(w) = b3 (w - wz) + b4 (w - wz)^2 / 2", Tolerance = "2e-4 relative to beta2 (a linear interpolation of the 53-point table gave ~1e-3)")]
+        public void FiberDispersionTable_Coarse_ReproducesBeta2_BetweenThePoints()
+        {
+            double wz = 2 * Math.PI * C / 1.55e-6, b3 = 1e-40, b4 = 3e-55;
+            Func<double, double> beta2 = w => b3 * (w - wz) + b4 * (w - wz) * (w - wz) / 2;
+            var wl = Enumerable.Range(0, 53).Select(i => 1000e-9 + i * (2000e-9 / 52)).ToArray();   // 53 points, 1.0 - 3.0 um
+            var d = wl.Select(l => -2 * Math.PI * C * beta2(2 * Math.PI * C / l) / (l * l) * 1e6).ToArray();   // s/m^2 -> ps/(nm km)
+            foreach (double lam in new[] { 1.60e-6, 1.43e-6, 2.17e-6 })
+            {
+                var fib = O("id", "f", "type", "fiber", "lengthM", 1.0, "gamma", 0.0, "raman", "none", "nonlinear", false,
+                            "dispersion", O("wavelengthsM", new JsonArray(wl.Select(x => (JsonValue)x).ToArray()), "dPsNmKm", new JsonArray(d.Select(x => (JsonValue)x).ToArray())));
+                var r = Go(Sys(fib), Spec(Gauss(lam, 100e-15, 1e-12)));
+                var rec = r.Records.First(x => x.Id == "f");
+                double w = 2 * Math.PI * C / rec.CarrierWavelengthM;
+                Assert.Close(beta2(w), rec.Values["beta2S2PerM"], 2e-4, 0, "beta2 at " + lam * 1e9 + " nm");
+                Assert.Close(beta2(w) * 1.0, rec.Own.GddS2, 2e-3, 0, "GDD of 1 m at " + lam * 1e9 + " nm");
+            }
+        }
     }
 }
