@@ -129,11 +129,11 @@ fit: calibrate parameters against the measured instruments ...
 
 | | true (used to make the data) | fitted |
 |---|---|---|
-| energy | 260 nJ | 264.8 ± 1.3 nJ |
-| chirp | +120 fs² | +115 ± 3 fs² |
+| energy | 260 nJ | 264.1 ± 1.3 nJ |
+| chirp | +120 fs² | +116.6 ± 3.1 fs² |
 
-The reduced χ² is 0.86, so the model explains the data down to the noise. The chirp is found within 1.5 error bars.
-The energy is 1.8 % high, with an error bar of 0.5 %: the power meter's reading in the data is itself about 1 % high
+The reduced χ² is 0.86, so the model explains the data down to the noise. The chirp is found within 1.1 error bars.
+The energy is 1.6 % high, with an error bar of 0.5 %: the power meter's reading in the data is itself about 1 % high
 (262.3 nJ), and the energy and chirp are correlated, so a lower chirp is paid for with more energy. Error bars describe random noise, not a miscalibrated instrument.
 
 `fit.png` shows the cost per iteration, the correlation between the two parameters (−0.87: more energy and more
