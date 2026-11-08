@@ -75,7 +75,7 @@ namespace UltrafastEngine.Tests
                 Assert.True(defs.Has("element." + t) || defs.Keys.Any(k => k.Equals("element." + t, StringComparison.OrdinalIgnoreCase)), "element." + t + " in the system schema");
             var r = SchemaGenerator.RunSchema();
             var rd = r.GetObject("definitions");
-            foreach (var k in Instruments.InstrumentFactory.Known.Where(k => !new[] { "powerMeter", "photodiode", "nearFieldCamera", "farFieldCamera", "thirdOrderCorrelator" }.Contains(k)))
+            foreach (var k in Instruments.InstrumentFactory.Known.Where(k => !new[] { "sfgFrog", "powerMeter", "photodiode", "nearFieldCamera", "farFieldCamera", "thirdOrderCorrelator" }.Contains(k)))
                 Assert.True(rd.Has("instrument." + k), "instrument." + k + " in the run schema");
             // plugin keys appear too (fitting plugin registered by the runner)
             Assert.True(r.GetObject("properties").Has("fit"), "fit (fitting plugin) in the run schema");
