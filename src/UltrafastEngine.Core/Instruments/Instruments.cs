@@ -469,7 +469,10 @@ namespace UltrafastEngine.Instruments
                     }
                     y[k] = acc;
                 }
-                double bg = y[0], mxv = y.Max();
+                // background = the signal of fully separated pulses, 2 sum |a|^4 (exact; the edge sample of the scan would carry the
+                // smoothing of the linear envelope interpolation and any residual overlap)
+                double bg = 0; for (int i = 0; i < n; i++) { double q = ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary; bg += 2 * q * q; }
+                double mxv = y.Max();
                 for (int k = 0; k < m; k++) y[k] /= Math.Max(1e-300, bg);
                 o.Add("delay_s", tau, "s", "delay"); o.Add("signal", y, "norm. to background", "interferometric autocorrelation (8:1 peak:background for a clean pulse)");
                 Tools.Put(o, "peakToBackground", mxv / Math.Max(1e-300, bg));

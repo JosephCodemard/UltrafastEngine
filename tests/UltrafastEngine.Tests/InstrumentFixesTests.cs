@@ -128,7 +128,7 @@ namespace UltrafastEngine.Tests
         private static JsonObject PlateArm() => O("elements", A(O("id", "plate", "type", "plate", "material", "FusedSilica", "thicknessM", PlateD, "ghosts", O("orders", 3, "overlap", 1.0))));
 
         /// <summary>A plate with ghosts in the gate arm only (the second-harmonic gate, as in the single-shot cross-correlator of Ma et al.,
-        /// Optica 2018, Fig. 4c): the k-th ghost replica of the gate has intensity R^(2k) (R the Fresnel reflectance of an uncoated face at the
+        /// HPLSE 2018, Fig. 4c): the k-th ghost replica of the gate has intensity R^(2k) (R the Fresnel reflectance of an uncoated face at the
         /// second harmonic, evaluated at lambda0/2) at k times 2 n_g d / c, with n_g at the second harmonic. The probe channel is untouched.</summary>
         [Test(Reference = "Fresnel: ghost k of a plate has intensity R^(2k); spacing 2 n_g(lambda/2) d / c", Tolerance = "3 %, spacing 0.1 %")]
         public void CrossCorrelator_GateArmPlate_GivesGhostLevelsRToThe2k_AtTheSecondHarmonicSpacing()

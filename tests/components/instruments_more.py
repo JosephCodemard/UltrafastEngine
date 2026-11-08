@@ -69,7 +69,7 @@ def energy_meter(fam: Family):
             eng.append(iv(r, "em")["energyJ"] / 1e-6)
             ana.append(a)
             fam.check(f"band +-{h * 1e9:g} nm fraction (quantisation bound)", eng[-1], a, abs=bound,
-                      formula="Gaussian spectrum between the band edges; bound = two half-bins x peak density (edges snap to whole bins)")
+                      formula="Gaussian spectrum between the band edges; bound = two half-bins x peak density (the old whole-bin snapping error; edge bins are now weighted by their fraction)")
             fam.check(f"band +-{h * 1e9:g} nm fraction (sharp edges)", eng[-1], a, abs=1e-3,
                       formula="Gaussian spectrum between the band edges (edge bins weighted by the fraction inside the band)")
         overlay(f, half * 1e9, eng, ana, label="engine", xlabel="band half-width (nm)", ylabel="transmitted fraction", marker="o", analytic_label="Gaussian CDF")
