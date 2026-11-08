@@ -1,5 +1,7 @@
 # Plan: fix the engine bugs and gaps found in the November 2026 consolidation
 
+**Status: complete (2026-11-08, released as 2.2.0).** What remains open is in the roadmap and in `HANDOFF.md`.
+
 Findings and numbers were collected in a progress note that was removed when this plan was completed (2026-11-08); what remains open is in `docs/roadmap.md` ("Open items found by the November 2026 consolidation").
 Four implementers work in separate git worktrees on disjoint code; the lead merges, regenerates the generated files, re-runs the
 component tests and paper replications, and writes each paper's "how well the science matched" section.

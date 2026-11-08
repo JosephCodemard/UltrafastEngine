@@ -31,9 +31,10 @@ spec = b.run_spec(b.pulse(1.03e-6, 250e-15, energy=1e-6, shape="sech2", rep_rate
                                b.instrument("compressor", at="compressor", name="residual_ir"),
                                b.instrument("conversion", at="shg", name="shg_eff")])
 
-# one run, saved like the CLI does (plot it with ultrafast-plot cpa_results)
+# one run, saved like the CLI does (plot it with ultrafast-plot docs/tutorials/files/cpa_results). The folder sits next to this
+# script, not in the current directory, so running the tutorial from the repository root leaves the root clean (it is git-ignored).
 res = uf.run(cpa_system(), spec)
-res.write("cpa_results")
+res.write(os.path.join(os.path.dirname(os.path.abspath(__file__)), "cpa_results"))
 print(f"amplified: {res.instrument('P_amp')['averagePowerW']:.2f} W, "
       f"compressible to {res.instrument('residual_ir')['compressedFwhmS'] * 1e15:.0f} fs, "
       f"SHG efficiency {res.instrument('shg_eff')['efficiencyVsInput']:.1%}")

@@ -82,6 +82,7 @@ nav:
       - Development history: design/history.md
       - Branched systems (design): design/branching.md
       - "Plan: what is next": design/plan-next.md
+      - "Plan: November 2026 fixes (done)": design/plan-fixes-2026-11.md
 markdown_extensions:
   - admonition
   - tables

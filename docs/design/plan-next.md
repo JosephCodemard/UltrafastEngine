@@ -1,8 +1,10 @@
 # Plan for the next work: design plugins, waveguides, fitting, engineering, papers
 
-Status: the T1 branch items, the component sheet and verification scripts, the first paper replications, plots of
-Branched systems and the measured pedestal are done (see the changelog in the repository root). This page keeps the design
-of what is left; the user-facing list is the [roadmap](../roadmap.md). Written 2026-11; sizes are focused agent-days
+Status (2026-11-08, version 2.2.0): done are the T1 branch items, the component sheet and tests (`tests/components/`), twelve paper
+replications, plots of Branched systems, the measured pedestal, the XPW model (cubic χ(3) tensor with BaF2), FROG kinds and
+multi-trace retrieval, the multi-pass-cell mode helper and the single-shot correlator (see the changelog and the
+[November 2026 fix plan](plan-fixes-2026-11.md)). This page keeps the design of what is left; the user-facing list is the
+[roadmap](../roadmap.md) and the handover is `HANDOFF.md` in the repository root. Written 2026-11; sizes are focused agent-days
 (S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here.
 
 ## Decisions (owner)
@@ -18,7 +20,7 @@ of what is left; the user-facing list is the [roadmap](../roadmap.md). Written 2
 | 7 | (asked) Recommendation: **keep the estimators in the fitting plugin**; the design plugins declare `"requires": ["fitting"]` in `plugin.json` (a new, small plugin-manager feature: load order and a clear error if missing), and `ultrafast[coatingdesign]` pulls `ultrafast-fitting` in. One home for optimisers, no core API churn; design is fitting with a target specification instead of data. |
 | 8 | Escoto 2024 uses the Seidel 2022 cell as a labelled hypothesis. |
 | 9 | The owner's separate lab project is not used or modified; only its recorded data files may be **copied into `papers/lab-mpc-ner-contrast/data/`** (the owner's own Pharos MPC recordings, not personal data, not Escoto's system). A separate paper-folder case `papers/lab-mpc-ner-contrast/` is built from scratch from the engine's docs: (1) fit the input and output spectra with `transform` elements; (2) put the fitted transform into the MPC model with the hitran air lines; (3) compare the predicted TOCC contrast with the recordings, then fit what remains. |
-| 10 | Build: `pedestal.kind: "measured"` (a contrast trace as the input pedestal), an XPW model (anisotropic cubic χ(3)), the hollow-capillary model. |
+| 10 | Build: `pedestal.kind: "measured"` (a contrast trace as the input pedestal; done), an XPW model (anisotropic cubic χ(3); done in 1-D, see the roadmap for spatial and carrier-resolved), the hollow-capillary model (open). |
 | 11 | Papers cover a range: MPCs / NER, Yb and Ti:sapphire lasers (oscillators, regenerative and multipass amplifiers), OPA / OPCPA chains, fibres and hollow capillaries, χ(2) conversion, beam propagation / filamentation, contrast cleaning. The goal is each paper's **headline results**; when one cannot be reproduced, its README says why (missing parameter, missing physics, a bug). |
 
 ## B. Engineering
