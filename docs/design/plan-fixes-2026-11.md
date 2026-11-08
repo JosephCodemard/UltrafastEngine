@@ -45,3 +45,18 @@ paper README, then delete `progress-2026-11-consolidate.md` and update capabilit
 * Paper follow-ups: ma-2018: delete `repro_1.py`, make the two `res1ps_*` checks hard, use `gateArm` instead of the Branched workaround.
   kida-2014: use `xfrog` and `retrieve_multi` instead of numpy; drop the "no XFROG / multi-trace" caveat. kane-1993: SD gate + XFROG now exist.
 * Not done: CLI `retrieve` stays single-trace; XFROG with a measured reference from a file; a probe-arm-only element option.
+
+### Stream 3 (merged): materials and crystals
+* CHANGELOG Fixed: KDP type-I d_eff with an explicit cut changed erratically with φ (ordinary-mode eigenvector came from rounding noise);
+  `anisotropicFraction` honoured by `expression` and `callback` delayed responses, range 0..1.5 (1.5 = purely orientational), explicit key
+  on `linAgrawal` replaces its own split. Behaviour change: values > 1.5 or < 0 are errors.
+* CHANGELOG Added: built-in `CS2` (Kedenburg index; n2 3.0e-18 m²/W with 90 % delayed; `orientational` delayed-response kind) and `BaF2`
+  (Li 1980 Sellmeier; n2 2.0e-20; σ = −1.2); cubic Kerr anisotropy (`kerrAnisotropy`, `kerrCutAxis`, `kerrAzimuthDeg`) with XPW.
+* UNVERIFIED literature values: CS2 total n2, 90/10 split, 1.6 / 0.2 ps times; BaF2 n2 and σ (citation from memory). Flagged in docs.
+* XPW law from the tensor: [001] cut ∝ sin²(4β) (zero at 0 and 45°, max at 22.5°); [011] cut ∝ sinβ cosβ (sin²β/2 − cos²β), zero at 54.7°.
+  The Kaur paper's 64.5° angle convention is not tied to this yet.
+* Not done: GPU cubic term; spatial and carrier-resolved cubic term (throws); net48 tests, Python tests, mkdocs and examples not run in the
+  worktree.
+* testing.md: MaterialsCrystalsTests (14 tests: KDP d_eff, CS2, BaF2, cubic χ(3)/XPW); NerTests +3.
+* Paper follow-ups: liu-2013 and shimizu-1967 use built-in `CS2`; kaur-2024 can model XPW with `BaF2` + `kerrCutAxis`/`kerrAzimuthDeg`;
+  maker-1962 re-check KDP d_eff vs φ.
