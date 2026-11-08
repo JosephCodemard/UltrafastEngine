@@ -29,3 +29,19 @@ stale `bin/native`). Open: the phase-matching calculator rejects `noncollinearDe
 After the streams report: merge the four branches into `dev/2026-11-consolidate`, `/regen`, fix the generated "More:" links (B15),
 re-run `tests/components/run_all.py`, `build/paper_check.py` (set ULTRAFAST_LIBRARY first), add "how well the science matched" to each
 paper README, then delete `progress-2026-11-consolidate.md` and update capabilities, roadmap, PROJECT_STATUS, CHANGELOG, testing.md.
+
+## Collected after the streams (changelog lines, paper follow-ups, testing.md rows)
+
+### Stream 2 (merged): instruments and retrieval
+* CHANGELOG Fixed: `energyMeter` and camera `bandM` weight edge bins by the fraction inside the band; interferometric autocorrelator delay
+  axis symmetric with d = 0 and analytic background (peak:background 8 for all carriers; note when `points` under-samples fringes);
+  `crossCorrelator` with `resolutionS` reports trace, floor and `contrastAt_*_db` relative to the resolution-limited peak; `retrieve` no
+  longer silently assumes SHG-FROG (kind from `kind`, from the data, or the instrument's `frogType`; asymmetric trace without kind = error).
+* CHANGELOG Added: `frog` `type: "sd"`; `xfrog` (alias `sfgFrog`) with a known `reference`; retrieval kinds `sd-frog`, `xfrog` for
+  `pcgpa` and `epie`; multi-trace `multiFrog` (double FROG) and Python `uf.retrieve_multi`; `crossCorrelator` `gateArm`.
+* testing.md rows: InstrumentFixesTests (band edges vs Gaussian CDF, IAC 8 for five pulses, cross-correlator resolution consistency, gate-arm
+  ghost levels R^(2k)); FrogKindsTests (PG / SD centroid slopes, Kane & Trebino App. C; XFROG slope and sum frequency; retrieval with sign;
+  kind inference); MultiTraceRetrievalTests (double FROG, six starts, Kida et al. 2014).
+* Paper follow-ups: ma-2018: delete `repro_1.py`, make the two `res1ps_*` checks hard, use `gateArm` instead of the Branched workaround.
+  kida-2014: use `xfrog` and `retrieve_multi` instead of numpy; drop the "no XFROG / multi-trace" caveat. kane-1993: SD gate + XFROG now exist.
+* Not done: CLI `retrieve` stays single-trace; XFROG with a measured reference from a file; a probe-arm-only element option.
