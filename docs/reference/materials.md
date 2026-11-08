@@ -35,6 +35,21 @@ For N2 and air, `n2` is the *electronic* (instantaneous) part only (8.0e-24 and 
 part is the delayed response. Their sum approaches the long-pulse n2 of the literature (~1.1e-23 per bar for N2) for
 pulses much longer than ~100 fs; shorter pulses see less of the rotational part.
 
+### CS2 (liquid carbon disulfide) and BaF2
+
+**CS2** (`"material": "CS2"`, alias `CarbonDisulfide`): index from Kedenburg et al., Opt. Mater. Express 2, 1588 (2012) as published on
+refractiveindex.info (CC0), 20 C: `n^2 = 1 + 1.50387 l^2 / (l^2 - 0.03049)` (l in um; fitted 0.5 - 1.6 um, extrapolated outside; n(589.3 nm) = 1.6276). The
+nonlinearity has an electronic and an orientational part: total `n2 = 3.0e-18 m^2/W` for ps pulses with `fR = 0.9` delayed, i.e. an electronic
+`3e-19 m^2/W` (the fs value quoted by Liu et al., Opt. Lett. 38, 1838 (2013), citing Ganeev 2004) and a delayed orientational response
+`h(t) = (exp(-t/1.6 ps) - exp(-t/0.2 ps)) / 1.4 ps` that is purely anisotropic (`anisotropicFraction` 1.5, `h_a = -h_b/3`: circular light sees a quarter of the
+linear orientational index change). **The total n2, the split and the two time constants are typical values, UNVERIFIED here (the literature spread is a factor 2-3):
+override `n2`, `ramanFraction` or `raman`.** The delayed response is a circular convolution: the grid window must hold the pulse and about 10 ps.
+Use `"raman": {"kind": "orientational", "riseS": ..., "decayS": ..., "fR": ...}` for another liquid (give `fR`, otherwise the response has no weight).
+
+**BaF2**: cubic (m3m) fluoride. Index: Li, J. Phys. Chem. Ref. Data 9, 161 (1980), 293 K, 0.15 - 15 um (refractiveindex.info, CC0). `n2 = 2.0e-20 m^2/W`
+(for light along [100]) and the Kerr anisotropy `kerrAnisotropy` sigma = -1.2 are typical literature values, **UNVERIFIED** (sigma quoted from memory of
+Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005)). See [cubic anisotropy](nonlinear.md#cubic-kerr-anisotropy-xpw).
+
 ## Defining materials
 
 Any material can be defined in the system file (or overridden from the run spec) with the model kinds in

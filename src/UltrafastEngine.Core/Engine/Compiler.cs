@@ -358,6 +358,8 @@ namespace UltrafastEngine.Engine
             foreach (var ce in c.Out.Elements.Where(x => x.Nonlinear != null))
             {
                 ce.Nonlinear.CarrierResolved = fm == "carrier" || (fm == "auto" && ce.Nonlinear.Medium.NeedsCarrierResolution);
+                if (ce.Nonlinear.CarrierResolved && ce.Nonlinear.Medium.HasCubicAnisotropy)
+                    throw new ModelException("element '" + ce.Id + "': the cubic Kerr anisotropy is implemented for the envelope model only (carrier-resolved propagation is scalar)");
                 if (ce.Nonlinear.CarrierResolved && Math.Abs(c.Out.Input.Ay.Sum(z => z.Magnitude)) > 0)
                     c.Out.Warnings.Add("Element '" + ce.Id + "': carrier-resolved propagation is scalar (x); the y component is propagated linearly only.");
             }
@@ -951,6 +953,16 @@ namespace UltrafastEngine.Engine
             var n2r = Find(c, e, "n2");
             if (n2r != null) med.N2 = n2r.RawValue.AsDouble();
             c.Out.Provenance.Record("element:" + e.Id, "n2", med.N2.ToString("G4", CultureInfo.InvariantCulture) + " m^2/W", n2r?.Source ?? (m.Provenance.TryGetValue("n2", out var np) ? np.Source : ModelSource.MaterialDefault), n2r?.Origin ?? "material " + m.Name);
+            // cubic anisotropy of the electronic Kerr response: element > override > material; orientation from the element
+            var kar = Find(c, e, "kerrAnisotropy");
+            med.KerrAnisotropy = kar != null ? kar.RawValue.AsDouble() : e.Json.Has("kerrAnisotropy") ? e.Json.GetDouble("kerrAnisotropy", 0) : m.KerrAnisotropy;
+            if (med.KerrAnisotropy != 0)
+            {
+                med.CubicAxes = CubicAxesInLab(e.Json.GetDoubleArray("kerrCutAxis"), e.Json.GetDouble("kerrAzimuthDeg", 0), e.Id);
+                c.Out.Provenance.Record("element:" + e.Id, "kerrAnisotropy", string.Format(CultureInfo.InvariantCulture, "sigma = {0:G4}, cut {1}, azimuth {2:G4} deg", med.KerrAnisotropy,
+                    e.Json.Has("kerrCutAxis") ? "[" + string.Join(" ", e.Json.GetDoubleArray("kerrCutAxis").Select(x => x.ToString("G4", CultureInfo.InvariantCulture))) + "]" : "[0 0 1]", e.Json.GetDouble("kerrAzimuthDeg", 0)),
+                    kar?.Source ?? (e.Json.Has("kerrAnisotropy") ? ModelSource.SystemData : ModelSource.MaterialDefault), kar?.Origin ?? (e.Json.Has("kerrAnisotropy") ? "element " + e.Id : "material " + m.Name));
+            }
             var rr = Find(c, e, "raman");
             if (rr != null && rr.RawValue.Kind == JsonKind.Bool && !rr.RawValue.AsBool()) med.Rotational = null;
             if (e.Json.TryGet("raman", out var rawRaman) && rawRaman.Kind == JsonKind.Bool && !rawRaman.AsBool()) med.Rotational = null;
@@ -1003,6 +1015,8 @@ namespace UltrafastEngine.Engine
             // transverse (spatial) model: element > override > run default (physics.transverse)
             var tvOv = Find(c, e, "transverse");
             var tv = Transverse.TransverseSpec.FromJson(tvOv != null ? tvOv.RawValue : e.Json.Has("transverse") ? e.Json["transverse"] : c.Run.Physics.Transverse);
+            if (tv.IsSpatial && wantNl && med.HasCubicAnisotropy)
+                throw new ModelException("element '" + e.Id + "': the cubic Kerr anisotropy (kerrAnisotropy " + med.KerrAnisotropy.ToString("G4", CultureInfo.InvariantCulture) + ") is implemented for the 1-D envelope model only; use no \"transverse\" model or set kerrAnisotropy 0");
             if (tv.IsSpatial)
             {
                 var sb = new Transverse.SpatialBulkElement { Spec = tv, Medium = wantNl ? med : null, Material = m, LengthM = ce.LengthM, Properties = props };
@@ -1058,6 +1072,30 @@ namespace UltrafastEngine.Engine
                 if (med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
             }
             else ce.Pre.AddRange(background);
+        }
+
+        /// <summary>Transverse (lab x, y) components of the cubic axes [100], [010], [001] for a crystal cut with the propagation direction
+        /// <paramref name="cutAxis"/> = [h, k, l] (default [001]); the lab x axis is the in-plane reference axis (the projection of [100], or of [010]
+        /// for a [100] cut) rotated by <paramref name="azimuthDeg"/> about the propagation direction, y = z x x. Returns [axis, 0/1].</summary>
+        internal static double[,] CubicAxesInLab(double[] cutAxis, double azimuthDeg, string id)
+        {
+            double[] n = cutAxis ?? new double[] { 0, 0, 1 };
+            if (n.Length != 3) throw new ModelException("element '" + id + "': kerrCutAxis needs three numbers [h, k, l]");
+            double nn = Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+            if (!(nn > 0)) throw new ModelException("element '" + id + "': kerrCutAxis must not be [0, 0, 0]");
+            for (int i = 0; i < 3; i++) n[i] /= nn;
+            double[] r = Math.Abs(n[0]) < 0.99 ? new double[] { 1, 0, 0 } : new double[] { 0, 1, 0 };
+            double rn = r[0] * n[0] + r[1] * n[1] + r[2] * n[2];
+            var e1 = new double[3]; for (int i = 0; i < 3; i++) e1[i] = r[i] - rn * n[i];
+            double l1 = Math.Sqrt(e1[0] * e1[0] + e1[1] * e1[1] + e1[2] * e1[2]); for (int i = 0; i < 3; i++) e1[i] /= l1;
+            double[] Cross(double[] a, double[] b) => new[] { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
+            var e2 = Cross(n, e1);
+            double ph = azimuthDeg * Math.PI / 180, cp = Math.Cos(ph), sp = Math.Sin(ph);
+            var x = new double[3]; for (int i = 0; i < 3; i++) x[i] = cp * e1[i] + sp * e2[i];
+            var y = Cross(n, x);
+            var u = new double[3, 2];
+            for (int a = 0; a < 3; a++) { u[a, 0] = x[a]; u[a, 1] = y[a]; }   // component a of x is x . (unit vector of axis a)
+            return u;
         }
 
         /// <summary>indexProfile / absorptionProfile / n2Scale of an element (docs/reference/spatial-properties.md).</summary>

@@ -75,6 +75,25 @@ than the 12 fs oscillation; with the grid normalisation the engine and pyNLO agr
 longer than 0.5 fs the response is evaluated on a finer sub-grid and band-limited to the grid before it is sampled, so
 its spectrum is the response's own H(ω) at every frequency of the grid and the Raman shift does not depend on the step.
 
+`anisotropicFraction` (b, between 0 and 1.5) works on every delayed-response kind (`silica`, `linAgrawal`, `hollenbeck`, `dampedOscillator`, `orientational`,
+`expression`, `callback`): `h_b = b h`, `h_a = (1 - b) h`. b = 0 is isotropic (circular and linear light see the same delayed index), b = 0.25 is fused silica,
+b = 1.5 is a purely orientational response (`h_a = -h_b/3`; circular light sees a quarter of the linear index change). Values outside 0 - 1.5 are errors.
+An explicit `anisotropicFraction` on `linAgrawal` (even 0) replaces its own fa/fb/fc split. The built-in liquid CS2 uses the `orientational` kind.
+
+### Cubic Kerr anisotropy (XPW)
+
+For a cubic (m3m) crystal chi(3)_ijkl = chi1122 (d_ij d_kl + d_ik d_jl + d_il d_jk) + Delta d_ijkl; sigma = Delta / chi1111 = (chi1111 - 3 chi1122) / chi1111
+(`kerrAnisotropy` on the material or the element; BaF2 -1.2, UNVERIFIED). The electronic Kerr index change becomes
+`n2 [ (1 - sigma) (isotropic Maker-Terhune) + sigma sum_a u_a |u_a.A|^2 (u_a.A) ]` with `u_a` the transverse components of the cubic axes [100], [010], [001]:
+`n2` is the value for light polarised along [100]. Orientation on the element: `kerrCutAxis` ([h, k, l], default [0, 0, 1]) and `kerrAzimuthDeg` (angle of the lab
+x axis from the in-plane reference axis: the projection of [100], or of [010] for a [100] cut; the crystal [100] then lies at minus that angle in the lab frame).
+A linearly polarised pulse then makes the orthogonal polarisation (cross-polarised wave, XPW): the vector propagation is used automatically. In the [001] cut with the
+input at angle beta from [100] the Delta term drives `-(sigma/4) sin(4 beta)` into the orthogonal polarisation, so at low conversion
+`E_perp / E = (B sigma sin(4 beta) / 4)^2 / sqrt(3)` for a Gaussian pulse (B = k0 n2 I0 L): zero at 0 and 45 degrees, maximal at **22.5 degrees**. The SPM index goes
+as `n2 [1 - (sigma/2) sin^2(2 beta)]`. In the [011] cut (lab x = [100], y = [01-1]) the drive is `sin b cos b (sin^2 b / 2 - cos^2 b)` (zero at 54.7 degrees).
+Only the electronic share `1 - fR` is anisotropic. Implemented for the 1-D envelope model (scalar-free vector solver, CPU); a `transverse` model or carrier-resolved
+propagation with sigma != 0 is an error, never silently ignored. Tests: `MaterialsCrystalsTests`.
+
 ### Critical power
 
 The reported ratio of peak power to critical power (`criticalPowerRatio` in the element table, `peakPowerOverCritical` for

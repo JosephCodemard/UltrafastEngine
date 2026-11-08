@@ -136,6 +136,42 @@ namespace UltrafastEngine.Tests
             Assert.Close(RmsSpectralWidth(linIso.Output), RmsSpectralWidth(lin.Output), 1e-9, 0, "linear spectrum unchanged");
         }
 
+        // The tensor result (circular / linear = (1 - fR) 2/3 + fR (1 - b/2); rotation coefficient (1 - fR)/3 + fR b/2) holds for EVERY
+        // delayed-response kind: an "expression" response with anisotropicFraction used to ignore the key (b stayed 0), and b > 1 was rejected,
+        // so a purely orientational response (h_a = -h_b/3, b = 3/2: circular / linear = 1/4, Boyd, Nonlinear Optics, sec. 4.4) could not be built.
+        [Test(Category = "ner", Reference = "tensor Raman (Hellwarth) for an expression response; purely orientational b = 3/2 gives circular/linear 1/4 (Boyd, Nonlinear Optics 3rd ed., sec. 4.4)", Tolerance = "1 %")]
+        public void ExpressionResponse_HonoursAnisotropicFraction_IncludingTheOrientationalValue()
+        {
+            const double fR = 0.5, chi = 0.25;
+            foreach (double b in new[] { 0.0, 0.25, 1.0, 1.5 })
+            {
+                var sys = Plate(O("kind", "expression", "expr", "exp(-t/20e-15)", "anisotropicFraction", b), fR);
+                var lin = Run(sys, 0, 2e-6); var cir = Run(sys, Math.PI / 4, 2e-6);
+                Assert.Close((1 - fR) * 2.0 / 3.0 + fR * (1 - b / 2), PeakPhase(cir) / PeakPhase(lin), 0.01, 0, "circular / linear at b = " + b);
+                double bl = B(lin);
+                Assert.Close(bl * Math.Sin(2 * chi) * ((1 - fR) / 3 + fR * b / 2), Rotation(Run(sys, chi, 2e-6)), 0.02, 0, "rotation at b = " + b);
+            }
+            // pure orientational response: circular light sees a quarter of the linear phase
+            var pure = Plate(O("kind", "expression", "expr", "exp(-t/20e-15)", "anisotropicFraction", 1.5), 1.0);
+            Assert.Close(0.25, PeakPhase(Run(pure, Math.PI / 4, 2e-6)) / PeakPhase(Run(pure, 0, 2e-6)), 0.01, 0, "orientational circular / linear");
+        }
+
+        [Test(Category = "ner", Reference = "tensor Raman: an explicit anisotropicFraction 0 makes linAgrawal isotropic: circular / linear = (1 - fR) 2/3 + fR", Tolerance = "1 %")]
+        public void LinAgrawal_WithExplicitZeroAnisotropy_IsIsotropic()
+        {
+            const double fR = 0.245;
+            var sys = Plate(O("kind", "linAgrawal", "anisotropicFraction", 0.0), fR);
+            double ratio = PeakPhase(Run(sys, Math.PI / 4, 2e-6)) / PeakPhase(Run(sys, 0, 2e-6));
+            Assert.Close((1 - fR) * 2.0 / 3.0 + fR, ratio, 0.01, 0, "circular / linear with an isotropic delayed response");
+        }
+
+        [Test(Category = "ner", Reference = "validation: physically meaningful range 0 <= b <= 3/2", Tolerance = "exact")]
+        public void AnisotropicFraction_OutsideZeroToOneAndAHalf_IsRejected()
+        {
+            foreach (double b in new[] { -0.1, 1.6 })
+                Assert.Throws<Exception>(() => Run(Plate(O("kind", "expression", "expr", "exp(-t/20e-15)", "anisotropicFraction", b), 0.5), 0, 2e-6));
+        }
+
         [Test(Category = "ner", Reference = "Lin & Agrawal, Opt. Lett. 31, 3086 (2006)", Tolerance = "1e-12, 1 %")]
         public void LinAgrawal_AnisotropicPart_IsFcHaPlusFbHb()
         {
