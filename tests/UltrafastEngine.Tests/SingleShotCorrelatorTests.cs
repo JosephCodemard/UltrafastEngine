@@ -42,11 +42,12 @@ namespace UltrafastEngine.Tests
             Assert.Close(x[40] * slope, tau[40], 1e-12, 0, "tau = x slope");
         }
 
-        [Test(Reference = "Ma et al. 2018 eqs. (1), (2) with the angles a, b of the inputs to the signal from k_T + k_S = k_sig (vector sum written out independently in the test), BBO 1053 nm + 526.5 nm at 40 deg: about 1 ps resolution for 1-2 mm (p. 2)", Tolerance = "1e-5 (carrier snapped to the grid); 0.5-1.1 ps")]
+        [Test(Reference = "Ma et al. 2018 eqs. (1), (2) with the angles a, b of the inputs to the signal from k_T + k_S = k_sig (vector sum written out independently in the test), BBO 1053 nm + 526.5 nm at 40 deg: about 1 ps resolution for 1-2 mm (p. 2)", Tolerance = "1e-9 (indices at the grid carrier); 0.5-1.1 ps")]
         public void BboAt40Degrees_FollowsEquations1And2_AndTheQuotedResolution()
         {
             var bbo = CrystalLibrary.Get("BBO");
-            double wT = 2 * Math.PI * C / Lam, wS = 2 * wT;
+            var r0 = Run(Gauss(Lam, 100e-15, 1e-6), Ss("crystal", "BBO", "crossingAngleDeg", 40.0, "beamWidthM", 0.015), 100e-12);   // for the grid carrier
+            double wT = r0.Input.Grid.OmegaCenter, wS = 2 * wT;
             double nT = Idx(bbo, wT), nS = Idx(bbo, wS), g = 40 * Math.PI / 180, W = 0.015, L = 1.5e-3;
             // independent geometry: k_S along z, k_T at the angle g to it; the signal along k_T + k_S
             double kT = nT * wT, kS = nS * wS;
@@ -55,18 +56,17 @@ namespace UltrafastEngine.Tests
             double window = W / C * (nT * Math.Sin(a) + nS * Math.Sin(b)), dtau = L / C * Math.Abs(nT * Math.Cos(a) - nS * Math.Cos(b));
             var r = Run(Gauss(Lam, 100e-15, 1e-6), Ss("crystal", "BBO", "delayIndex", "phase", "crossingAngleDeg", 40.0, "beamWidthM", W, "crystalLengthM", L), 100e-12);
             var v = Inst(r, "ss").Values;
-            // the grid snaps the carrier to its frequency lattice (relative shift ~1e-7), which moves the indices by ~1e-7
-            Assert.Close(window, v.GetDouble("windowS", 0), 1e-5, 0, "eq. (1)");
-            Assert.Close(dtau, v.GetDouble("resolutionGeometricS", 0), 1e-5, 0, "eq. (2)");
-            Assert.Close(a * 180 / Math.PI, v.GetDouble("angleToSignalPtDeg", 0), 1e-5, 0, "angle a");
+                        Assert.Close(window, v.GetDouble("windowS", 0), 1e-9, 0, "eq. (1)");
+            Assert.Close(dtau, v.GetDouble("resolutionGeometricS", 0), 1e-9, 0, "eq. (2)");
+            Assert.Close(a * 180 / Math.PI, v.GetDouble("angleToSignalPtDeg", 0), 1e-9, 0, "angle a");
             Assert.Greater(dtau * 1e12, 0.5, "resolution above 0.5 ps"); Assert.Less(dtau * 1e12, 1.1, "about 1 ps for 1-2 mm of BBO");
             // default (group index): the depth term is (n_g - n sin^2 a) / cos a per beam (dk_z/d omega at fixed k_x); the window is unchanged
             double ngT = GroupIdx(bbo, wT), ngS = GroupIdx(bbo, wS);
             double dzT = (ngT - nT * Math.Sin(a) * Math.Sin(a)) / Math.Cos(a), dzS = (ngS - nS * Math.Sin(b) * Math.Sin(b)) / Math.Cos(b);
             var rg = Run(Gauss(Lam, 100e-15, 1e-6), Ss("crystal", "BBO", "crossingAngleDeg", 40.0, "beamWidthM", W, "crystalLengthM", L), 100e-12);
             var vg = Inst(rg, "ss").Values;
-            Assert.Close(window, vg.GetDouble("windowS", 0), 1e-5, 0, "the window does not depend on the group index");
-            Assert.Close(L / C * Math.Abs(dzT - dzS), vg.GetDouble("resolutionGeometricS", 0), 1e-4, 0, "resolution with group indices");
+            Assert.Close(window, vg.GetDouble("windowS", 0), 1e-9, 0, "the window does not depend on the group index");
+            Assert.Close(L / C * Math.Abs(dzT - dzS), vg.GetDouble("resolutionGeometricS", 0), 1e-6, 0, "resolution with group indices");
             Assert.Greater(Math.Abs(vg.GetDouble("resolutionGeometricS", 0) / dtau - 1), 0.01, "the group index changes the resolution by more than 1 %");
         }
         private static double GroupIdx(CrystalModel c, double w) { double h = w * 1e-4; return Idx(c, w) + w * (Idx(c, w + h) - Idx(c, w - h)) / (2 * h); }
@@ -155,6 +155,18 @@ namespace UltrafastEngine.Tests
             Assert.Close(1.0e-12 / slope, x1, 0.03, 0, "replica at 1 ps");
             Assert.Close(2.0e-12 / slope, x2, 0.03, 0, "replica at 2 ps");
             Assert.Close(x1, x1n, 0.03, 0, "the correlation is symmetric in x");
+        }
+
+        [Test(Reference = "tangential continuity at the entrance face: slope = (sin phi_T + sin phi_S) / c with omega_T sin phi_T = omega_S sin phi_S, phi_T + phi_S = the external angle (second-harmonic sampling beam)", Tolerance = "1e-9")]
+        public void ExternalAngle_WithASecondHarmonicSamplingBeam_GivesTheAirSlopeOfThePerpendicularFace()
+        {
+            var r = Run(Gauss(Lam, 100e-15, 1e-6), Ss("crystal", "BBO", "externalCrossingAngleDeg", 30.0, "beamWidthM", 0.01), 100e-12);
+            double wT = r.Input.Grid.OmegaCenter, ext = 30 * Math.PI / 180;
+            // omega_T sin(phi_T) = 2 omega_T sin(ext - phi_T)  ->  solved by bisection, independent of the closed form in the instrument
+            double lo = 0, hi = ext;
+            for (int i = 0; i < 200; i++) { double m = (lo + hi) / 2; if (Math.Sin(m) - 2 * Math.Sin(ext - m) < 0) lo = m; else hi = m; }
+            double phiT = (lo + hi) / 2, phiS = ext - phiT;
+            Assert.Close((Math.Sin(phiT) + Math.Sin(phiS)) / C, Inst(r, "ss").Values.GetDouble("delayPerPositionSPerM", 0), 1e-9, 0, "slope");
         }
     }
 }

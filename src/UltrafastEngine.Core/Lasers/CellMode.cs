@@ -87,6 +87,15 @@ namespace UltrafastEngine.Lasers
             return new Complex((m[3] - m[0]) / (2 * m[1]), -Math.Sqrt(1 - h * h) / Math.Abs(m[1]));
         }
 
+        /// <summary>Round-trip Gouy phase theta in (0, 2 pi): M = cos(theta) 1 + sin(theta) N with B = beta sin(theta), beta &gt; 0, so the sign of B
+        /// tells which half of the circle it is in (quasi-concentric cells, g &lt; 0, have theta &gt; pi).</summary>
+        private static double GouyPhase(double[] m)
+        {
+            double h = (m[0] + m[3]) / 2, s = Math.Sqrt(Math.Max(0, 1 - h * h));
+            double th = Math.Atan2(m[1] >= 0 ? s : -s, h);
+            return th < 0 ? th + 2 * Math.PI : th;
+        }
+
         /// <summary>Radius of the beam with reduced inverse complex parameter p = 1/q^: w^2 = -lambda0 / (pi Im p).</summary>
         private static double Radius(Complex p, double lambda) => Math.Sqrt(-lambda / (Math.PI * p.Imaginary));
 
@@ -216,7 +225,7 @@ namespace UltrafastEngine.Lasers
             double n0 = segs[0].Index;   // index at the launch plane (just after mirror 1)
             var p0 = Eigen(m0);
             res.Set("emptyCell", Describe(p0, lam, n0, ops, fixedPhi, d));
-            res.Set("roundTripGouyPhaseRad", Math.Acos(h0));
+            res.Set("roundTripGouyPhaseRad", GouyPhase(m0));
 
             // ---- the Kerr-matched mode: damped fixed point, continuation in the power
             var kerrIdx = Enumerable.Range(0, nOps).Where(i => ops[i].Kind == OpKind.Kerr).ToArray();
@@ -266,7 +275,7 @@ namespace UltrafastEngine.Lasers
             double resid = Complex.Abs(pEnd - pCur) / Complex.Abs(pCur);
             foreach (var i in kerrIdx) resid = Math.Max(resid, Math.Abs(phi[i] - lensScale * ops[i].N2Dz * power / Math.Pow(wChk[i], 4)) / phi[i]);
             res.Set("matched", true).Set("residual", resid).Set("stability", hf);
-            res.Set("roundTripGouyPhaseKerrRad", Math.Acos(hf));
+            res.Set("roundTripGouyPhaseKerrRad", GouyPhase(mf));
             res.Set("mode", Describe(pCur, lam, n0, ops, phi, d));
 
             // ---- Kerr numbers on the matched mode

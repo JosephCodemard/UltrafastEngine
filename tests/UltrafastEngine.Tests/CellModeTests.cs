@@ -58,12 +58,12 @@ namespace UltrafastEngine.Tests
         [Test(Reference = "Herriott, Kogelnik & Kompfner, Appl. Opt. 3, 523 (1964): the pattern closes after N round trips when N theta = 2 pi k, cos(theta / 2) = g", Tolerance = "1e-9")]
         public void HerriottSpacing_ClosesThePatternAfterTheChosenRoundTrips()
         {
-            foreach (var (n, k) in new[] { (8, 3), (12, 5), (18, 7), (30, 11) })
+            foreach (var (n, k) in new[] { (8, 3), (12, 5), (18, 7), (30, 11), (18, 12), (12, 7), (30, 19) })
             {
                 var o = Cell(800e-9, 1.5, 3.0);
                 o.Remove("separationM"); o.Set("reentrant", O("roundTrips", n, "order", k)); o.Set("passes", 2 * n);
                 var res = Commands.Execute(o);
-                // round-trip Gouy phase theta = 2 arccos(g) (symmetric cell, g = 1 - d / R): N theta = 2 pi k
+                // round-trip Gouy phase theta = 2 arccos(g) (symmetric cell, g = 1 - d / R, theta > pi when g < 0, e.g. (18, 12): g = -0.5): N theta = 2 pi k
                 Assert.Close(2 * Math.PI * k, n * res.GetDouble("roundTripGouyPhaseRad", 0), 1e-9, 0, "N theta for N = " + n + ", k = " + k);
                 Assert.Close(CellModeSolver.HerriottSpacingM(1.5, n, k), res.GetDouble("separationM", 0), 1e-12, 0, "spacing");
             }

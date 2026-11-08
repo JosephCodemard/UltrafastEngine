@@ -105,9 +105,11 @@ namespace UltrafastEngine.Instruments
             double crossIn;
             if (s.Has("externalCrossingAngleDeg"))
             {
-                // symmetric incidence on a face normal to the bisector: each beam makes half the external angle with the normal
-                double half = s.GetDouble("externalCrossingAngleDeg", 0) * Math.PI / 360;
-                crossIn = Math.Asin(Math.Sin(half) / nT) + Math.Asin(Math.Sin(half) / nS);
+                // the face is perpendicular to the signal: omega_T sin(phi_T) = omega_S sin(phi_S) (tangential continuity of the sum frequency)
+                // with phi_T + phi_S the external angle; the beams then refract with Snell's law at that face
+                double ext = s.GetDouble("externalCrossingAngleDeg", 0) * Math.PI / 180, rr = omegaS / omegaT;
+                double phiT = Math.Atan2(rr * Math.Sin(ext), 1 + rr * Math.Cos(ext)), phiS = ext - phiT;
+                crossIn = Math.Asin(Math.Sin(phiT) / nT) + Math.Asin(Math.Sin(phiS) / nS);
             }
             else if (s.Has("crossingAngleDeg")) crossIn = s.GetDouble("crossingAngleDeg", 0) * Math.PI / 180;
             else throw new InvalidOperationException("singleShotCorrelator needs crossingAngleDeg (inside the crystal) or externalCrossingAngleDeg.");

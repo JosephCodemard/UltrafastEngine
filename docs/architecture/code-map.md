@@ -56,9 +56,9 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Transverse/` | `SpatialPropagation.cs` (the spatial nonlinear solver); `TransverseBasis.cs` (`RadialBasis`, `CartesianBasis`); `TransverseProfile.cs` (`TransverseProfile`, `TransverseOps`: expand, collapse, regrid, `Curvature`, `BeamQuality`); `BeamShapes.cs` (initial profiles) |
 | `Optics/` | `BeamTracking.cs`; `DispersiveSurface.cs` (gratings, prisms); `SurfaceOptics.cs` (lenses, curved mirrors); `MaskElement.cs`; `ComponentTerms.cs` (Zernike, figure); `MirrorSubstrate.cs`, `DelayedTerms.cs` |
 | `Crystals/` | χ(2): `CrystalElement`, phase matching |
-| `Gain/`, `Lasers/` | amplifiers; `Oscillator.cs`, `Resonator.cs`, saturable absorbers |
+| `Gain/`, `Lasers/` | amplifiers; `Oscillator.cs`, `Resonator.cs`, saturable absorbers; `CellMode.cs` (`CellModeSolver.Solve`: Kerr-matched mode of a two-mirror multi-pass cell, command `cellMode`) |
 | `Materials/` | index models, the library, Raman |
-| `Instruments/` | `Instruments.cs` (the registry), `ActiveInstruments.cs` (`beamProfile`, ...), `CameraInstruments.cs`, `Detector.cs`, `Sampling.cs` |
+| `Instruments/` | `Instruments.cs` (the registry), `ActiveInstruments.cs` (`beamProfile`, ...), `CameraInstruments.cs`, `Detector.cs`, `Sampling.cs`, `SingleShotCorrelator.cs` (`singleShotCorrelator`, `SingleShotGeometry.Solve`: time-to-space correlator) |
 | `Measured/` | `Measurements.cs`: comparison of instruments with recorded data |
 | `Retrieval/` | FROG, d-scan, Gerchberg-Saxton |
 | `Numerics/` | FFTs, SIMD kernels, interpolation, constants |
