@@ -63,6 +63,10 @@ Priorities, most useful first.
 - **Retrieval:** multi-trace retrieval from the CLI; XFROG with a measured reference file.
 - **`cellMode`:** an element option or run mode, astigmatic injection, pulse (not only peak-power) Kerr lens.
 - **Delayed responses:** window planning for generic `timeResponse` and gas rotational revivals (only Raman and orientational are planned today); round-aperture decentre.
+- **Carrier snap in a nonlinear cell:** `grid.snapCarrier` still changes the multi-pass-cell result of Schulte et al. by 1.4 % in bandwidth and 0.4 % in B (13.27 vs 13.46 nm) although the input pulse is built at the requested carrier; find which linear or nonlinear term still uses the lattice carrier.
+- **Multi-trace retrieval:** the two-trace case (reference SHG plus XFROG) of `multiFrog` ends in the time-reversed twin in most starts; check the initial guess and step order.
+- **`cellMode`:** a plate touching a mirror is treated as immersing it (power 2n/R), which should be documented; the helper does not check that a matched mode survives a perturbation (a 514 mm cell reading is matched but unstable in the radial model).
+- **Crossed-beam overlap:** test the gain loss of a non-collinear OPA (beams separated by αL) against an analytic Gaussian-overlap average (a 2° crossing roughly halves the gain at 64 / 150 µm radii).
 - **Phase-matching calculator:** accept `noncollinearDeg` for `sfg` as the element does.
 
 ## Zemax plugin (OpticStudio depth)

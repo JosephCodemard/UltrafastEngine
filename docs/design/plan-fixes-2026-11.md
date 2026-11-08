@@ -1,6 +1,6 @@
 # Plan: fix the engine bugs and gaps found in the November 2026 consolidation
 
-Findings, repros and numbers: `docs/design/progress-2026-11-consolidate.md` (removed when this plan is done).
+Findings and numbers were collected in a progress note that was removed when this plan was completed (2026-11-08); what remains open is in `docs/roadmap.md` ("Open items found by the November 2026 consolidation").
 Four implementers work in separate git worktrees on disjoint code; the lead merges, regenerates the generated files, re-runs the
 component tests and paper replications, and writes each paper's "how well the science matched" section.
 
@@ -28,7 +28,7 @@ Lead checks: `externalAngleDeg` works (declared on `interaction`, tested in Nonc
 stale `bin/native`). Open: the phase-matching calculator rejects `noncollinearDeg` for `sfg` although the schema allows it.
 After the streams report: merge the four branches into `dev/2026-11-consolidate`, `/regen`, fix the generated "More:" links (B15),
 re-run `tests/components/run_all.py`, `build/paper_check.py` (set ULTRAFAST_LIBRARY first), add "how well the science matched" to each
-paper README, then delete `progress-2026-11-consolidate.md` and update capabilities, roadmap, PROJECT_STATUS, CHANGELOG, testing.md.
+paper README, then update capabilities, roadmap, PROJECT_STATUS, CHANGELOG, testing.md (done).
 
 ## Collected after the streams (changelog lines, paper follow-ups, testing.md rows)
 
@@ -95,7 +95,7 @@ paper README, then delete `progress-2026-11-consolidate.md` and update capabilit
 * **Regression to diagnose:** shimizu-1967 hard check "engine (CS2 dispersion off) = lowest-order model" went from 6e-4 to 5.8e-3 (tol 5e-3)
   after the merge (requested-carrier pulse or longer auto window?). Kida soft checks 2 -> 4.
 * Next: four paper agents re-run the papers with the new features and add "How well the science matched" to every README;
-  then delete `progress-2026-11-consolidate.md` and this plan's findings are folded into capabilities / roadmap / CHANGELOG / testing.md / PROJECT_STATUS.
+  the progress note was deleted and the findings are folded into capabilities / roadmap / CHANGELOG / testing.md / PROJECT_STATUS.
 
 ### Paper re-runs (FROG, Kida, Ma) — open engine question
 * Two-trace `multiFrog` (reference SHG trace + XFROG trace only) ends in the wrong-direction basin in 13 of 16 noisy starts and in 6 of 6
