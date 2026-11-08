@@ -96,3 +96,11 @@ paper README, then delete `progress-2026-11-consolidate.md` and update capabilit
   after the merge (requested-carrier pulse or longer auto window?). Kida soft checks 2 -> 4.
 * Next: four paper agents re-run the papers with the new features and add "How well the science matched" to every README;
   then delete `progress-2026-11-consolidate.md` and this plan's findings are folded into capabilities / roadmap / CHANGELOG / testing.md / PROJECT_STATUS.
+
+### Paper re-runs (FROG, Kida, Ma) — open engine question
+* Two-trace `multiFrog` (reference SHG trace + XFROG trace only) ends in the wrong-direction basin in 13 of 16 noisy starts and in 6 of 6
+  noise-free starts (deep local minimum, not an exact twin: trace error does not drop from 600 to 3000 iterations); with the third trace
+  all starts find the truth. Whether `multiFrog`'s initial guess / step order should differ is open. Repro:
+  `docs/papers/kida-2014-double-frog/repro_2.py` (~10 s).
+* ePIE SD GDD fit needs the >5 %-of-peak spectrum threshold (wing phase gives a fit artefact); `singleShotCorrelator` places a −60 dB peak at
+  +20 ps for a pre-pulse at −20 ps when the SH gate carries e²: documented, not a paper statement.
