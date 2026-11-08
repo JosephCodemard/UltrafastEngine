@@ -18,3 +18,14 @@ the lines instead), no push, commit in the worktree branch.
 
 Deferred (recorded in the roadmap): air scatter and stripe filter of a single-shot correlator, crystal-face reflection spikes,
 a multi-order Fabry-Perot of finite beams.
+
+## Status (2026-11-08)
+Four implementers run in git worktrees under `.claude/worktrees/` (branches `worktree-agent-<id>`):
+stream 1 `a29b2025f815cde80`, stream 2 `a3949310445871089`, stream 3 `a210869c846351b77`, stream 4 `a4524c7a8bd6287c1`.
+They were stopped twice by the usage limit and resumed with SendMessage; their work is saved in their worktrees. To continue after
+another interruption: `git worktree list`, `git log` in each, SendMessage "continue" to the agent id.
+Lead checks: `externalAngleDeg` works (declared on `interaction`, tested in NoncollinearOpaTests; the earlier "unknown parameter" was a
+stale `bin/native`). Open: the phase-matching calculator rejects `noncollinearDeg` for `sfg` although the schema allows it.
+After the streams report: merge the four branches into `dev/2026-11-consolidate`, `/regen`, fix the generated "More:" links (B15),
+re-run `tests/components/run_all.py`, `build/paper_check.py` (set ULTRAFAST_LIBRARY first), add "how well the science matched" to each
+paper README, then delete `progress-2026-11-consolidate.md` and update capabilities, roadmap, PROJECT_STATUS, CHANGELOG, testing.md.
