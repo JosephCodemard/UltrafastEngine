@@ -188,6 +188,34 @@ pre-pulses, and widen the window when the features are far from the peak. [Tutor
 follows a pre-pulse through an amplifier chain.
 
 
+## singleShotCorrelator
+
+Time-to-space cross-correlator (Ma et al., High Power Laser Sci. Eng. 6, e61 (2018)): the pulse under test and a sampling pulse (its second
+harmonic, `samplingPulse: "secondHarmonic"`, or the pulse itself, `"fundamental"`, for an autocorrelator) cross at an angle in a crystal. The signal at
+position x across the overlap measures the correlation S(tau) = integral I_PT(t) I_S(t - tau) dt at tau = tau0 + x * slope, so a camera reads a delay trace
+in one shot.
+
+| key | meaning |
+|---|---|
+| `crossingAngleDeg` or `externalCrossingAngleDeg` | full angle between the beams inside the crystal, or in air (symmetric incidence, each beam refracted with its own index) |
+| `beamWidthM` | width W of the overlap across the signal; window T = W x slope |
+| `crystalLengthM` | L; geometric resolution dtau = L \|(n_g,T - n_T sin^2 a) / cos a - (n_g,S - n_S sin^2 b) / cos b\| / c |
+| `crystal` (default BBO) or `indexPt`, `indexSampling`, `groupIndexPt`, `groupIndexSampling` | ordinary (x) index of the library crystal, or given indices |
+| `delayIndex` | `group` (default) or `phase`: with `phase` the resolution is exactly Ma et al.'s eq. (2), L \|n_T cos a - n_S cos b\| / c |
+| `points`, `delayOffsetS`, `dynamicRangeDb`, `noise`, `seed` | camera pixels across W, delay at the centre, floor |
+
+The angles a, b of the two inputs to the signal follow from k_T + k_S = k_signal with the phase indices (k_T sin a = k_S sin b). The slope
+(n_T sin a + n_S sin b) / c is eq. (1): beams that enter from air at fixed angles keep their tangential wave number, so the phase index enters.
+Outputs: `x_m`, `delay_s`, `signal`, `signal_db`, `signal_ideal`, `signal_raw`; values `windowS`, `resolutionGeometricS`, `resolutionPixelS`,
+`resolutionS`, `delayPerPositionSPerM`, angles, `windowCoverage`, `fwhmS`, pre / post-pulse contrast.
+
+**What is simulated.** The correlation of the temporal intensities at the instrument, a rectangle of width dtau (each position collects all depths of the
+crystal) and the pixel average, with a flat-top overlap. Area is conserved: the raw signal integrated over delay equals (integral I_PT dt)(integral I_S dt),
+`windowCoverage` reports how much of it falls inside the window. **What is not.** The beams are not propagated through the crystal here: no conversion
+efficiency or depletion, no beam profile across the overlap, no walk-off, no air scatter of the signal, no stripe filter, no reflections between the crystal
+faces. The engine's own spatial model (a Branched `sfg` crystal with two crossed arms on a Cartesian grid) does reproduce the mapping: the test
+`SpatialSfgOfTwoCrossedBeams_PutsAReplicaAtTheInstrumentsPosition` puts replicas at x = T c / (2 sin(10 deg)) at 20 degrees (slow, about 2.5 minutes).
+
 ## Sampling: where the instrument looks
 <span id="sampling"></span>
 

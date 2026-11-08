@@ -18,6 +18,7 @@ from .core import (ElementContext, Result, ResponseContext, Run, System, Ultrafa
                    retrieve, run, set_default_backend, study, version)
 from . import build
 from . import crystal
+from . import cells
 from . import laser
 from . import plugins
 from . import materials
@@ -26,7 +27,7 @@ from . import types
 
 __version__ = "2.1.8b0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
-           "command", "study", "coherence", "retrieve", "devices", "benchmark", "set_default_backend", "build", "crystal", "laser", "plugins", "materials", "measured", "types", "plot", "load"]
+           "command", "study", "coherence", "retrieve", "devices", "benchmark", "set_default_backend", "build", "crystal", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load"]
 
 
 def plot(result, what: str = "overview", ax=None):

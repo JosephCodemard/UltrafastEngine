@@ -125,5 +125,36 @@ namespace UltrafastEngine.Tests
                 O("kind", "crossCorrelator", "name", "cc", "noise", false, "rangeS", new[] { -1e-12, 1e-12 }, "stepS", 2e-15, "dynamicRangeDb", 200.0)))));
             Assert.Close(Inst(r, "cc").Values.GetDouble("fwhmS", 0), Inst(r, "ss").Values.GetDouble("fwhmS", 0), 0.01, 0, "FWHM of the correlation");
         }
+
+        [Test(Category = "physics", Slow = true, Reference = "time-to-space mapping in the engine's own spatial model: two beams crossing at 20 deg (external) in BBO on a Cartesian grid; a replica at delay T lands at x = T c / (2 sin(10 deg)) (tangential continuity), the slope of the instrument", Tolerance = "3 %")]
+        public void SpatialSfgOfTwoCrossedBeams_PutsAReplicaAtTheInstrumentsPosition()
+        {
+            double w = 2e-3, ang = 20;
+            double Peak(double delay, bool positive)
+            {
+                var x = O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", 100e-6, "chi3", false, "cut", "auto", "interaction", O("process", "sfg", "type", "I", "externalAngleDeg", ang),
+                    "beam", O("kind", "gaussian", "w0M", w), "output", "sum", "next", "end", "aux", A(O("role", "b", "fromPort", true, "beam", O("kind", "gaussian", "radiusM", w))),
+                    "transverse", O("model", "cartesian", "nx", 1024, "ny", 1, "halfWidthM", 5e-3, "spectralSamples", 4));
+                var sys = Sys(O("id", "bs", "type", "beamSplitter", "reflectivity", 0.5, "next", O("c", "f", "d", "stage")), O("id", "f", "type", "delay", "delayS", 0.0, "next", "x"),
+                    O("id", "stage", "type", "delay", "delayS", 0.0, "next", "x:b"), x);
+                sys.Topology = UltrafastEngine.Systems.SystemGraph.Branched;
+                var pu = Gauss(1030e-9, 100e-15, 1e-9);
+                pu.Set("pedestal", A(O("kind", "prePulse", "delayS", -delay, "relativeIntensity", 0.5)));
+                var r = Go(sys, Spec(pu, O("grid", O("windowS", 12e-12), "instruments", A(O("kind", "beamProfile", "name", "bp", "at", "end")))));
+                var bp = r.Instruments.First(i => i.Name == "bp");
+                var xs = bp.Arrays.First(a => a.Name.EndsWith("x_m")).Data; var f = bp.Arrays.First(a => a.Name.EndsWith("fluence_x_j_m2")).Data;
+                // centroid of the lobe on one side of the main peak, beyond 0.4 mm
+                double sw = 0, sx = 0;
+                for (int i = 0; i < xs.Length; i++) if ((positive ? xs[i] : -xs[i]) > 0.4e-3) { sw += f[i]; sx += f[i] * xs[i]; }
+                return Math.Abs(sx / sw);
+            }
+            var inst = Run(Gauss(1030e-9, 100e-15, 1e-6), Ss("samplingPulse", "fundamental", "crystal", "BBO", "externalCrossingAngleDeg", ang, "beamWidthM", 4e-3, "points", 64), 40e-12);
+            double slope = Inst(inst, "ss").Values.GetDouble("delayPerPositionSPerM", 0);
+            Assert.Close(2 * Math.Sin(ang / 2 * Math.PI / 180) / C, slope, 1e-6, 0, "the instrument's slope is the air value");
+            double x1 = Peak(1.0e-12, true), x2 = Peak(2.0e-12, true), x1n = Peak(1.0e-12, false);
+            Assert.Close(1.0e-12 / slope, x1, 0.03, 0, "replica at 1 ps");
+            Assert.Close(2.0e-12 / slope, x2, 0.03, 0, "replica at 2 ps");
+            Assert.Close(x1, x1n, 0.03, 0, "the correlation is symmetric in x");
+        }
     }
 }

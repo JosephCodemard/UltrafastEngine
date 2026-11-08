@@ -282,3 +282,35 @@ isolator. The built-in TGG index is an approximate two-point fit and has no n2: 
 GDD_r(ω) = A sin(2π (ω - ω0) / Ω + φ) per bounce, i.e. the phase -A (Ω / 2π)² sin(...). Complementary pairs
 alternate φ and φ + π, so an even number of bounces cancels the ripple. The coating kind `"gddRipple"` gives the
 same for a `mirror` coating (with an optional reflectance ripple).
+
+## Multi-pass cell mode (`cellMode`)
+
+A Herriott or quasi-concentric cell is stable only for a beam whose complex parameter q reproduces itself after one round trip. In the empty cell
+this is the Kogelnik-Li eigenmode; at high peak power the Kerr lens of the gas or the glass plates changes it, and the matched mode depends on the
+power. `cellMode` finds it, so no trial runs in the radial model are needed. It is a command (`uf_command`), reached from Python as
+`ultrafast.cells.cell_mode(...)` and from C# as `Lasers.CellModeSolver.Solve`.
+
+```python
+from ultrafast import cells
+r = cells.cell_mode(1030e-9, mirror_radius=0.35, separation=0.54)                      # empty cell: waist 220 um, 459 um on the mirrors
+r = cells.cell_mode(800e-9, mirror_radius=1.5, separation=2.9, peak_power=2e9, gas={"species": "Ar", "pressureBar": 0.4})
+r["matched"], r["mode"]["waistRadiusM"], r["bIntegralTotalRad"]
+```
+
+Keys (SI): `wavelengthM`, `mirrorRadiusM` or `mirrorRadiiM [R1, R2]` (concave, positive), `separationM` (or `reentrant {roundTrips N, order k}`:
+d = R (1 - cos(pi k / N)), the Herriott closing condition N theta = 2 pi k with theta = 2 arccos(g)), `passes` (traversals; the total B-integral
+is `passes / 2` round trips), `peakPowerW`, `gas {species, pressureBar, temperatureK, n2M2PerW}` (index and n2 from the gas library), `plates`
+(`thicknessM`, `positionM` of the centre from mirror 1, `material` or `index`, `n2M2PerW`), `lensModel`, `slices` (Kerr lenses per medium segment, 12).
+The launch plane is just after mirror 1. The reply has `emptyCell` and `mode` (`waistRadiusM`, `waistDistanceFromLaunchM`, `radiusAtLaunchM`,
+`radiusAtMirror1M`, `radiusAtMirror2M`, reduced q), `matched`, `stability` ((A + D) / 2), `residual`, `bIntegralPerRoundTripRad`,
+`overlapEmptyModeWithMatchedMode` (power coupling of the empty-cell mode into the matched one), `shiftOfWaistRadius`. If the Kerr lens drives the round
+trip out of its stability range, `matched` is false with a message instead of a mode.
+
+**Method.** The round trip is a product of reduced-coordinate ABCD matrices (mirrors 2n/R, media length/n). A Kerr slice of length dz has the
+thin-lens power 1/f = n2 dz I0 / w^2 with I0 = 2P / (pi w^2), w the beam radius at the slice. This is the second-moment lens: it reproduces the
+Vlasov-Petrishchev-Talanov evolution of the rms radius, and agrees with the radial Kerr propagation of the engine to 0.3 % in the test
+`KerrLensOfTheHelper_ReproducesTheRadialModelsRmsRadius` (the on-axis parabolic lens, `lensModel: "paraxial"`, is 4 times stronger and does not).
+The self-consistent mode is found by a damped fixed point over the lens powers with continuation in the power (10 steps).
+
+**Limits.** Round beams (astigmatism at the injection angle is not included); the peak power only (the wings of a pulse see a weaker lens, so the match
+holds at the peak); instantaneous Kerr effect, no dispersion, ionisation or loss; mirrors at normal incidence.
