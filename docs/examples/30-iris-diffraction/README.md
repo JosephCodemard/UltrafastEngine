@@ -41,20 +41,20 @@ beam      at      z (m)      N  T iris    F(0) engine   F(0) Fresnel    max err
 gaussian  n3     0.3236      3  0.3926          499.6          500.1      0.09%
 gaussian  n2     0.4854      2  0.3926          7.976          7.949      0.03%
 gaussian  n1     0.9709      1  0.3926          502.3          500.1      0.45%
-gaussian  far    5.0000   0.19  0.3926          44.95          44.95      0.00%
+gaussian  far    5.0000   0.19  0.3926          44.94          44.95      0.01%
 flattop   n3     0.3236      3  0.4992          632.2          632.9      0.10%
 flattop   n2     0.4854      2  0.4992        0.00482       0.001678      0.03%
 flattop   n1     0.9709      1  0.4992          640.3            637      0.52%
-flattop   far    5.0000   0.19  0.4992          57.49          57.49      0.00%
+flattop   far    5.0000   0.19  0.4992          57.48          57.49      0.01%
 tophat    n3     0.3236      3  0.1108          140.4          140.5      0.05%
-tophat    n2     0.4854      2  0.1108        0.00105      0.0003552      0.05%
+tophat    n2     0.4854      2  0.1108        0.001049      0.0003552      0.06%
 tophat    n1     0.9709      1  0.1108          142.2          141.4      0.57%
-tophat    far    5.0000   0.19  0.1108          12.76          12.76      0.05%
-square    n3     0.3236      3  0.4945            212          213.8      1.29%
+tophat    far    5.0000   0.19  0.1108          12.76          12.76      0.04%
+square    n3     0.3236      3  0.4945            212          213.8      1.30%
 square    n2     0.4854      2  0.4945          63.55          63.81      0.75%
 square    n1     0.9709      1  0.4945          313.4          313.3      0.25%
-square    far    5.0000   0.19  0.4945          70.57          70.94      0.51%
-largest difference over all patterns: 1.29 % of the peak
+square    far    5.0000   0.19  0.4945          70.59          70.94      0.48%
+largest difference over all patterns: 1.30 % of the peak
 ```
 
 ![Fluence cuts: engine (solid) and Fresnel integral (dashed)](diffraction-cuts.png)

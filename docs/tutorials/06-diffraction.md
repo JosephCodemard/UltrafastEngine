@@ -112,11 +112,11 @@ python compare.py
 beam      at      z (m)      N  T iris    F(0) engine   F(0) Fresnel    max err
 gaussian  n2     0.4854      2  0.3926          7.976          7.949      0.03%
 tophat    n3     0.3236      3  0.1108          140.4          140.5      0.05%
-tophat    n2     0.4854      2  0.1108        0.00105      0.0003552      0.05%
+tophat    n2     0.4854      2  0.1108        0.001049      0.0003552      0.06%
 tophat    n1     0.9709      1  0.1108          142.2          141.4      0.57%
-square    far    5.0000   0.19  0.4945          70.57          70.94      0.51%
+square    far    5.0000   0.19  0.4945          70.59          70.94      0.48%
 ...
-largest difference over all patterns: 1.29 % of the peak
+largest difference over all patterns: 1.30 % of the peak
 ```
 
 ![Engine (solid) and Fresnel integral (dashed)](../examples/30-iris-diffraction/diffraction-cuts.png)

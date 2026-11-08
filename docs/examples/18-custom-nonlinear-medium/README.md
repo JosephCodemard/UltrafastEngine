@@ -23,8 +23,8 @@ python custom_medium.py                               # the same in Python, and 
 ```
 
 ```
-expression (medium.ufs)              B = 0.416 rad, spectrum FWHM 7.85 nm, beam after 200 mm 351 x 351 um, centroid x = -0.0 um
-Python callback, same physics        B = 0.416 rad, spectrum FWHM 7.85 nm, beam after 200 mm 351 x 351 um, centroid x = +0.0 um
+expression (medium.ufs)              B = 0.418 rad, spectrum FWHM 7.85 nm, beam after 200 mm 351 x 351 um, centroid x = -0.0 um
+Python callback, same physics        B = 0.418 rad, spectrum FWHM 7.85 nm, beam after 200 mm 351 x 351 um, centroid x = +0.0 um
 cartesian grid, no Kerr effect       B = 0.000 rad, spectrum FWHM 7.81 nm, beam after 200 mm 381 x 381 um, centroid x = +0.0 um
 Python: n2 (1 + x / 0.5 mm)          B = 0.368 rad, spectrum FWHM 7.83 nm, beam after 200 mm 361 x 361 um, centroid x = +3.4 um
 ```

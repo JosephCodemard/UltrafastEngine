@@ -14,7 +14,7 @@ python pump_probe.py
 ```
 probe energy at the output 49.987 nJ  (expected 50.000 nJ; the pump is blocked)
 peak cross-phase B = 2.43 rad; largest centroid shift 1.745e+12 rad/s (analytic 1.735e+12)
-largest deviation from the analytic shift  1.77e-02 of the peak shift
+largest deviation from the analytic shift  1.76e-02 of the peak shift
 packets at the end: [1]
 ```
 

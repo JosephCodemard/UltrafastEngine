@@ -52,9 +52,9 @@ its peak, with the data scaled onto it by least squares). The run reports a χ²
 
 ```
   measured data:
-    fibre_spectrum         spectrometer   chi^2 36.85      (401 points)  rms error 0.91 %
+    fibre_spectrum         spectrometer   chi^2 37.38      (401 points)  rms error 0.92 %
     ac_out                 autocorrelator chi^2 262.8      (201 points)  rms error 2.29 %
-    dscan_out              dscan          chi^2 8996       (3751 points)  rms error 4.65 %
+    dscan_out              dscan          chi^2 9017       (3751 points)  rms error 4.65 %
     power_out              energyMeter    chi^2 31.27      (1 points)
       energyJ: measured 1.441E-07 +- 4.3E-09, simulated 1.2E-07 (-5.6 sigma)
 ```
@@ -83,14 +83,14 @@ The fit (Levenberg–Marquardt) minimises the total χ² over every measured ins
 
 ```
 fit: calibrate parameters against the measured instruments ...
-  fit: chi^2 9324 -> 1613 (4354 points, reduced 0.371), 7 iterations, 33 runs
-  input chirp                               462.739 +- 9.01         (start 300)
-  input energy                          1.4254E-07 +- 3.73E-09     (start 1.2E-07)
-  compressor GDD                           -532.569 +- 8.13         (start -300)
-  fibre_spectrum                     rms error 0.91 % -> 0.76 %
+  fit: chi^2 9346 -> 1611 (4354 points, reduced 0.37), 5 iterations, 25 runs
+  input chirp                               463.968 +- 9.01         (start 300)
+  input energy                          1.42969E-07 +- 3.74E-09     (start 1.2E-07)
+  compressor GDD                           -533.69 +- 8.13         (start -300)
+  fibre_spectrum                     rms error 0.92 % -> 0.76 %
   ac_out                             rms error 2.28 % -> 0.92 %
-  dscan_out                          rms error 4.65 % -> 1.93 %
-  power_out                          chi^2 31.3 -> 0.14
+  dscan_out                          rms error 4.65 % -> 1.92 %
+  power_out                          chi^2 31.3 -> 0.0758
   WARNING: Fit: parameters input chirp and compressor GDD are strongly correlated (-0.989): ...
 ```
 

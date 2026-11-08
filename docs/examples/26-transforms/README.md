@@ -56,13 +56,13 @@ transform numbers are found automatically. The levels are in dB because contrast
 
 ```
   fit (levenbergMarquardt):
-  fit: chi^2 9.264E+04 -> 4164 (5344 points, reduced 0.78), 5 iterations, 54 runs
+  fit: chi^2 9.437E+04 -> 4164 (5344 points, reduced 0.78), 5 iterations, 54 runs
   lab.spectralPhase.gddFs2                  817.811 +- 34.5         (start 0)
   lab.spectralPhase.todFs3                 -16526.4 +- 6.57E+03     (start 0)
   lab.spectralPhase.fodFs4                 -1847.88 +- 8.9E+05      (start 0)
   lab.spectralAmplitude.fwhmNm              13.0161 +- 0.0229       (start 20)
   lab.spectralAmplitude.centerWavelengthNm  1031.51 +- 0.00745      (start 1030)
-  lab.energy.transmission                  0.419743 +- 0.00841      (start 0.5)
+  lab.energy.transmission                  0.420278 +- 0.00842      (start 0.5)
   lab.replica.relativeIntensityDb          -45.8705 +- 0.291        (start -50)
   lab.pedestal.relativeIntensityDb         -87.9834 +- 0.0851       (start -100)
 ```

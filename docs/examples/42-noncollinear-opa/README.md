@@ -12,7 +12,7 @@ python report.py
 cut 21.96 deg; pump 4.00 deg outside, 2.42 deg inside the crystal; idler 6.82 deg inside
 leaving at 0.00 deg (signal), 4.00 deg (pump), 11.28 deg (idler)
 transverse momentum balance 0.0e+00
-signal 14.07 uJ from a 10 nJ seed; idler 7.78 uJ; Manley-Rowe residual -1e-08
+signal 14.12 uJ from a 10 nJ seed; idler 7.81 uJ; Manley-Rowe residual -2e-08
 ```
 
 The crystal's face is normal to the seed, which enters along the lab axis. The pump arm's tilt is therefore the pump's external angle. Inside the crystal the pump refracts to 2.42°, close to BBO's broadband "magic" angle for 515 nm pumping (about 2.4° to 2.55°). `cut: "auto"` solves the phase matching for that geometry.

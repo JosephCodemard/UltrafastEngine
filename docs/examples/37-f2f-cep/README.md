@@ -8,7 +8,7 @@ python f2f.py
 ```
 
 ```
-modulation at one cycle per 2 pi of CEP   0.643 of the mean
+modulation at one cycle per 2 pi of CEP   0.637 of the mean
 at two cycles                             0.0000 of the one-cycle part
 ```
 

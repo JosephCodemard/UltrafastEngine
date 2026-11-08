@@ -80,7 +80,7 @@ system: tutorial-plate (2 elements, 1 nonlinear)
   Grid auto-sized: N = 512, window = 1.707 ps, dt = 3.333 fs.
   ...
 done in 0.08 s -> results-1
-  energy 1.998E-07 J (T = 99.91 %), FWHM 51.1 fs (TL 29.29 fs), peak 3.836E+06 W, B = 0.767 rad
+  energy 1.998E-07 J (T = 99.91 %), FWHM 51.1 fs (TL 29.28 fs), peak 3.835E+06 W, B = 0.766 rad
   WARNING: Element 'plate': peak power is 1.85 x the critical power for self-focusing; spatial effects (Kerr lensing, ...
 ```
 

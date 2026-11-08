@@ -83,8 +83,8 @@ ultrafast run plate.ufs run-measured.json -o results-4a
 
 ```
   measured data:
-    spectrum               spectrometer   chi^2 2.474E+04  (481 points)  rms error 3.59 %
-    ac                     autocorrelator chi^2 837.3      (201 points)  rms error 2.04 %
+    spectrum               spectrometer   chi^2 2.462E+04  (481 points)  rms error 3.58 %
+    ac                     autocorrelator chi^2 824.3      (201 points)  rms error 2.03 %
     power                  energyMeter    chi^2 63.1       (1 points)
       energyJ: measured 2.623E-07 +- 7.9E-09, simulated 1.998E-07 (-7.9 sigma)
 ```
@@ -119,12 +119,12 @@ ultrafast-plot results-4b
 
 ```
 fit: calibrate parameters against the measured instruments ...
-  fit: chi^2 2.566E+04 -> 583.8 (683 points, reduced 0.857), 4 iterations, 16 runs
-  energy                                 2.64443E-07 +- 1.29E-09     (start 2E-07)
-  chirp                                     116.219 +- 3.08         (start 0)
-  spectrum                           rms error 3.59 % -> 0.46 %
-  ac                                 rms error 2.06 % -> 0.92 %
-  power                              chi^2 63.1 -> 0.0544
+  fit: chi^2 2.553E+04 -> 581.1 (683 points, reduced 0.853), 4 iterations, 16 runs
+  energy                                 2.64066E-07 +- 1.29E-09     (start 2E-07)
+  chirp                                     116.593 +- 3.09         (start 0)
+  spectrum                           rms error 3.58 % -> 0.46 %
+  ac                                 rms error 2.05 % -> 0.92 %
+  power                              chi^2 63.1 -> 0.0344
 ```
 
 | | true (used to make the data) | fitted |
