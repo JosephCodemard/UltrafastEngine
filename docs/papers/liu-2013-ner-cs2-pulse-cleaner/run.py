@@ -7,7 +7,7 @@
 Chain (Fig. 1 of the paper): linear x input -> QWP1 (axis alpha) -> CS2 Kerr cell -> QWP2 (axis perpendicular to QWP1)
 -> crossed polariser.  All of it runs as engine elements (waveplate, bulk, waveplate, polarizer); no Jones shortcut.
 
-CS2 IS NOT A BUILT-IN MATERIAL (finding).  It is supplied here as a user material:
+CS2 (since 2026-11 a built-in material, used in section 4 of main()).  The paper's Eq. (1) model (instantaneous Kerr effect only) is run with a user material:
   * index: Sellmeier-type formula of Kedenburg et al., Opt. Mater. Express 2, 1588 (2012), 20 C, 0.5-1.6 um, as published on
     refractiveindex.info (CC0): n^2 = 1 + 1.50387 l^2 / (l^2 - 0.03049), l in um.  NOT from either paper.
   * n2 = 3e-19 m^2/W: the value the paper quotes (p. 1838, "n2 = (3 +- 0.6) 1e-19 m^2/W", citing Ganeev 2004), used as an
@@ -33,14 +33,20 @@ N2_PAPER = 3e-19                      # m^2/W, p. 1838
 CS2_INDEX = "sqrt(1+1.50387*lambda_um^2/(lambda_um^2-0.03049))"   # Kedenburg 2012 (external)
 
 
-def system(alpha_deg, lam, length_m, n2=N2_PAPER, er=1e8, qwp2_offset=90.0):
+def system(alpha_deg, lam, length_m, n2=N2_PAPER, er=1e8, qwp2_offset=90.0, builtin=False):
+    """builtin=True: the engine's built-in material CS2 (Kedenburg index, electronic n2 3e-19 plus the delayed orientational response,
+    n2_total 3e-18, fR 0.9, 0.2/1.6 ps, anisotropicFraction 1.5; docs/reference/materials.md).  Otherwise the user material of the
+    paper's Eq. (1): same index, instantaneous Kerr n2 = 3e-19 only."""
     mat = {"index": {"kind": "expression", "expr": CS2_INDEX}, "n2": n2}
     el = [{"id": "q1", "type": "waveplate", "plate": "quarter", "axisDeg": alpha_deg, "designWavelengthM": lam},
           {"id": "cs2", "type": "bulk", "material": "CS2", "lengthM": length_m, "beam": {"kind": "constant", "radiusM": 100e-6}},
           {"id": "q2", "type": "waveplate", "plate": "quarter", "axisDeg": alpha_deg + qwp2_offset, "designWavelengthM": lam}]
     if er:
         el.append({"id": "pol", "type": "polarizer", "axisDeg": 90, "extinctionRatio": er})
-    return {"format": "ultrafast-system", "version": 2, "name": "liu-ner", "materials": {"CS2": mat}, "elements": el}
+    out = {"format": "ultrafast-system", "version": 2, "name": "liu-ner", "materials": {"CS2": mat}, "elements": el}
+    if builtin:
+        del out["materials"]
+    return out
 
 
 def spec(lam, tau, energy_j, n=2048, window=3e-12):
@@ -62,10 +68,11 @@ def power(r, which):
 class Chain:
     """One wavelength / duration / cell length; calibrated so that energies are given as B of linear light."""
 
-    def __init__(self, lam, tau, length, n=2048, window=3e-12):
-        self.lam, self.tau, self.length, self.n, self.window = lam, tau, length, n, window
+    def __init__(self, lam, tau, length, n=2048, window=3e-12, builtin=False):
+        self.lam, self.tau, self.length, self.n, self.window, self.builtin = lam, tau, length, n, window, builtin
         # B per joule of LINEAR light at the input peak: calibrated on a 10 um cell where dispersion cannot change the pulse
         # (the engine's reported B follows the pulse inside the cell, so in a 2 mm cell it is lower than k0 n2 I0 L), scaled with length
+        # (always with the user material of n2 = 3e-19, also when builtin=True: B and the intensity axis are defined by the paper's n2)
         lc = 10e-6
         r = uf.run(system(0.0, lam, lc, er=0), spec(lam, tau, 1e-6, n, window))
         self.b_per_j = r.summary["totals"]["bIntegralRad"] / 1e-6 * length / lc
@@ -74,7 +81,7 @@ class Chain:
         self.k0 = 2 * math.pi / lam
 
     def run(self, alpha, b, er=1e8, n2=N2_PAPER):
-        r = uf.run(system(alpha, self.lam, self.length, n2=n2, er=er), spec(self.lam, self.tau, b / self.b_per_j, self.n, self.window))
+        r = uf.run(system(alpha, self.lam, self.length, n2=n2, er=er, builtin=self.builtin), spec(self.lam, self.tau, b / self.b_per_j, self.n, self.window))
         t = np.asarray(r["output_time_s"])
         pin, pout = power(r, "input"), power(r, "output")
         return t, pin, pout
@@ -135,6 +142,21 @@ def split_step_check(ch, b, steps=400):
     ps = np.abs(a) ** 2
     return {"peak": float(abs(ps.max() - pe.max()) / pe.max()), "fwhm": float(abs(fwhm(t, ps) - fwhm(t, pe)) / fwhm(t, pe)),
             "fwhmEngineFs": fwhm(t, pe) * 1e15, "fwhmSplitStepFs": fwhm(t, ps) * 1e15}
+
+
+def anisotropic_fraction_check():
+    """Regression of the 2026-11 fix (old repro_1.py): the NER chain with a user delayed response of kind 'expression' must depend on
+    anisotropicFraction (it was silently ignored), and the value 1.5 of a purely orientational response must be accepted (was an error)."""
+    lam = 800e-9
+    def t(b):
+        mat = {"index": {"kind": "expression", "expr": "1.6"}, "n2": 3e-19, "ramanFraction": 0.6,
+               "raman": {"kind": "expression", "expr": "exp(-t/30e-15)/30e-15*step(t)", "anisotropicFraction": b}}
+        s = system(20.0, lam, 2e-3)
+        s["materials"] = {"CS2": mat}
+        r = uf.run(s, spec(lam, 100e-15, 2e-6, 2048, 4e-12))
+        return float(power(r, "output").sum() / power(r, "input").sum())
+    t0, t1, t15 = t(0.0), t(1.0), t(1.5)
+    return {"anisotropicExprT_b0": t0, "anisotropicExprT_b1": t1, "anisotropicExprT_b1p5": t15, "anisotropicExprEffect": abs(t1 - t0)}
 
 
 def peak_x(x, y):
@@ -278,11 +300,59 @@ def main():
     ss = split_step_check(ex, b320)
     num["splitStepPeakRelErr"], num["splitStepFwhmRelErr"] = ss["peak"], ss["fwhm"]
     num["splitStepLinearFwhmEngineFs"], num["splitStepLinearFwhmNumpyFs"] = ss["fwhmEngineFs"], ss["fwhmSplitStepFs"]
+
+    # ---------------- 4. the same experiment with the BUILT-IN CS2 (electronic 3e-19 + delayed orientational part, anisotropicFraction 1.5)
+    bi = Chain(808e-9, 70e-15, 2e-3, n=32768, window=40e-12, builtin=True)
+    us = Chain(808e-9, 70e-15, 2e-3, n=32768, window=40e-12, builtin=False)      # user material on the same fine grid (controls the grid)
+    ints_b = np.linspace(100, 900, 9 if p.fast else 17)
+    tb_us, tb_bi, wb_us, wb_bi = [], [], [], []
+    for g in ints_b:
+        b = k_n2 * g * 1e13
+        _, pi_, po_ = us.run(12.5, b)
+        tb_us.append(float(po_.sum() / pi_.sum()))
+        wb_us.append(fwhm(_, po_) * 1e15)
+        t_, pi_, po_ = bi.run(12.5, b)
+        tb_bi.append(float(po_.sum() / pi_.sum()))
+        wb_bi.append(fwhm(t_, po_) * 1e15)
+    tb_us, tb_bi, wb_us, wb_bi = map(np.array, (tb_us, tb_bi, wb_us, wb_bi))
+    num["builtinSweepPeakIntensityGWcm2"] = peak_x(ints_b, tb_bi)
+    num["builtinSweepPeakT"] = float(tb_bi.max())
+    num["userFineGridSweepPeakIntensityGWcm2"] = peak_x(ints_b, tb_us)
+    num["userFineGridSweepPeakT"] = float(tb_us.max())
+    for tag, ch in (("builtin", bi), ("userFineGrid", us)):      # exactly 320 GW/cm2 (not on the sweep axis)
+        t_, pi_, po_ = ch.run(12.5, b320)
+        num[tag + "TAt320"] = float(po_.sum() / pi_.sum())
+        num[tag + "WidthAt320Fs"] = float(fwhm(t_, po_) * 1e15)
+    angs_b = np.arange(2.0, 50.1, 4.0 if p.fast else 2.0)
+    ta_b = np.array([bi.transmission(a, b320) for a in angs_b])
+    num["builtinAngleScanBestAlphaPaperConventionDeg"] = float(45 - peak_x(angs_b, ta_b))
+    num["builtinAngleScanTmax"] = float(ta_b.max())
+    # grid adequacy at the highest intensity of the sweep (Chain.run drops the summary, so look directly)
+    rg = uf.run(system(12.5, 808e-9, 2e-3, builtin=True), spec(808e-9, 70e-15, k_n2 * ints_b.max() * 1e13 / bi.b_per_j, bi.n, bi.window))
+    num["builtinGridWarningsAtTopIntensity"] = float(sum("Grid" in w for w in rg.summary["warnings"]))
+    # anisotropicFraction acts on a delayed response of kind 'expression', and 1.5 (purely orientational) is accepted (was repro_1.py, fixed 2026-11)
+    num.update(anisotropic_fraction_check())
+    num["curveBuiltinSweep"] = {"x": ints_b, "y": tb_bi}
     num["curveEng"] = {"x": alphas, "y": eng[:, int(np.argmin(np.abs(bs - 4 * math.pi)))]}
     num["curveSweep"] = {"x": ints, "y": s0}
 
     p.write_numbers(num)
     plots(p, num, alphas, bs, eng, mapped, aa, pp, tl, cont, ints, sweeps, angs, ta, (t, pin, pout), keys, th, a_opt, wid_thick, wid_thin)
+    fig, ax = p.figure(2, 1, 9.6, 3.9)
+    ax[0].plot(ints_b, tb_us, color=BLUE, label="user CS2: instantaneous n2 = 3e-19 (paper's Eq. 1 model)")
+    ax[0].plot(ints_b, tb_bi, color=ORANGE, label="built-in CS2: + delayed orientational part")
+    ax[0].axvline(320, color=REF, ls="--", lw=1)
+    ax[0].set_xlabel("peak intensity of linear light (GW/cm2), electronic n2 = 3e-19")
+    ax[0].set_ylabel("energy transmissivity (engine)")
+    ax[0].legend(fontsize=7, loc="lower right")
+    ax[1].plot(ints_b, wb_us, color=BLUE, label="user CS2")
+    ax[1].plot(ints_b, wb_bi, color=ORANGE, label="built-in CS2")
+    ax[1].axhline(70, color=REF2, ls=":", lw=1)
+    ax[1].plot([320], [60], "s", color=REF, label="paper: ~60 fs (Fig. 5b)")
+    ax[1].set_xlabel("peak intensity of linear light (GW/cm2)")
+    ax[1].set_ylabel("cleaned-pulse FWHM (fs), input 70 fs dotted")
+    ax[1].legend(fontsize=7, loc="upper left")
+    p.save(fig, "builtin-cs2")
 
 
 def plots(p, num, alphas, bs, eng, mapped, aa, pp, tl, cont, ints, sweeps, angs, ta, pulses, keys, th, a_opt, wthick, wthin):

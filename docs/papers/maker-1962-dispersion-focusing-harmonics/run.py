@@ -9,6 +9,7 @@
     paper's 13.9 um (theory) and 14 um (experiment). A tilted plate is modelled by the path d / cos(theta_r) (the engine has no
     oblique incidence); the exact oblique formula dk_z = (4 pi / lambda)(sqrt(n_b^2 - s^2) - sqrt(n_r^2 - s^2)) is shown next to it.
 (2) KDP (Fig. 2): phase-matching angle theta_0 = 52 +- 2 deg, phi_0 = 45 deg, deff ~ sin 2 phi, angular width.
+    (2026-11: the engine's d_eff with an explicit cut now follows sin 2 phi; the old erratic behaviour was fixed, repro_1.py deleted.)
 (3) Focusing (p. 22): conversion of a focused vs a collimated beam in 1.5 mm KDP (cartesian model, walk-off included).
     The beam sizes are ASSUMPTIONS (the paper gives none): the 'ratio of photon numbers' is compared with the 1/area law only.
 """
@@ -37,6 +38,25 @@ def ne_q(l):
     return math.sqrt(1.28851804 + 1.09509924 * x / (x - 1.02101864e-2) + 1.15662475 * x / (x - 100))
 
 
+def kdp_no(l):
+    """KDP ordinary index, Zernike 1964 form used by the engine (refractiveindex.info formula 4), re-implemented here as an independent reference."""
+    x = (l * 1e6) ** 2
+    return math.sqrt(2.259276 + 13.00522 * x / (x - 400) + 0.01008956 / (x - 0.0129426))
+
+
+def kdp_ne(l):
+    x = (l * 1e6) ** 2
+    return math.sqrt(2.132668 + 3.2279924 * x / (x - 400) + 0.008637494 / (x - 0.0122810))
+
+
+def kdp_walkoff_rad(theta_deg):
+    """Walk-off of the extraordinary SH wave: tan(rho) = (n_e(theta)^2 / 2) (1/n_e^2 - 1/n_o^2) sin 2 theta, negative uniaxial crystal."""
+    th = math.radians(theta_deg)
+    no, ne = kdp_no(LAM / 2), kdp_ne(LAM / 2)
+    nth = 1 / math.sqrt(math.cos(th) ** 2 / no ** 2 + math.sin(th) ** 2 / ne ** 2)
+    return math.atan(0.5 * nth ** 2 * (1 / ne ** 2 - 1 / no ** 2) * math.sin(2 * th))
+
+
 def vals(res):
     return res.summary["elements"][0]["values"]
 
@@ -44,9 +64,9 @@ def vals(res):
 def quartz(L):
     el = b.crystal("q", "quartz", float(L), process="shg", type="0", cut={"thetaDeg": 90, "phiDeg": 0},
                    overlap={"model": "planeWave", "radiusM": 1e-3}, chi3=False, deff_pm_per_v=0.3)
-    # stepper tolerance 1e-11: with the default (1e-6) the adaptive step does not resolve the rapid phase mismatch of a thick plate
-    # (delta k L = 370 rad) and the SH energy is wrong by 2-3 orders of magnitude (repro_2.py)
-    r = uf.run(b.system("q", [el], materials={"quartz": QUARTZ}), b.run_spec(b.pulse(LAM, 5e-12, energy=1e-6), stepper={"tolerance": 1e-11}))
+    # default stepper tolerance: since 2026-11 the step is capped by the phase mismatch (<= 0.5 rad per step), so a thick plate
+    # (delta k L = 370 rad) is resolved; before, tolerance 1e-11 was needed (old repro_2.py, deleted)
+    r = uf.run(b.system("q", [el], materials={"quartz": QUARTZ}), b.run_spec(b.pulse(LAM, 5e-12, energy=1e-6)))
     return vals(r)
 
 
@@ -139,8 +159,25 @@ def main():
     phis = np.linspace(0, 90, 19)
     ef = np.array([kdp(1.5e-3, th0, float(f))["conversionEfficiency"] for f in phis])
     ref = np.sin(2 * np.radians(phis)) ** 2
-    refn = ef[np.argmin(abs(phis - 30))] / ref[np.argmin(abs(phis - 30))]      # normalise at 30 deg (a smooth point; see repro_1.py)
+    refn = ef[np.argmin(abs(phis - 30))] / ref[np.argmin(abs(phis - 30))]      # normalise at 30 deg
     out["kdpPhiLaw_fractionOffBy1pct"] = float(np.mean(np.abs(ef / refn - ref) > 0.01 * ref.clip(1e-3)))
+    # d_eff itself against the textbook d36 sin(theta) sin(2 phi) (type I, -42m, o o -> e); the engine projects the polarisation onto the
+    # E vector of the extraordinary wave, which differs from the textbook angle theta by the walk-off angle (about 1.4 deg here)
+    dv = np.array([abs(kdp(1.5e-3, th0, float(f))["deffPmPerV"]) for f in phis[1:-1]])
+    d36 = 0.39                                                     # pm/V: the engine library value (Eckardt et al. 1990)
+    form = d36 * math.sin(math.radians(th0)) * np.sin(2 * np.radians(phis[1:-1]))
+    rr = dv / form
+    out["kdpDeffOverTextbook_mean"] = float(rr.mean())
+    out["kdpDeffOverTextbook_spreadAcrossPhi"] = float((rr.max() - rr.min()) / rr.mean())
+    out["kdpDeffOverTextbook_walkoffProjection"] = float(rr.mean() - 1)
+    rho = abs(kdp_walkoff_rad(th0))
+    out["kdpWalkoffMrad_independent"] = rho * 1e3
+    out["kdpWalkoffMrad_calculator"] = float(next(w["walkOffMrad"] for w in r["waves"] if w["polarization"] == "e"))
+    out["kdpTheta0_check_nOfTheta_vs_no"] = kdp_no(LAM) - 1 / math.sqrt(math.cos(math.radians(th0)) ** 2 / kdp_no(LAM / 2) ** 2 + math.sin(math.radians(th0)) ** 2 / kdp_ne(LAM / 2) ** 2)
+    # if the engine projects onto the E vector (angle theta + rho to the optic axis): d_eff / textbook = sin(theta + rho)/sin(theta)
+    pred = math.sin(math.radians(th0) + rho) / math.sin(math.radians(th0))
+    out["kdpDeffOverTextbook_predictedByWalkoff"] = pred
+    out["kdpDeffOverTextbook_minus_predicted"] = float(rr.mean() - pred)
     out["kdpPhi45_explicitCut_over_auto"] = kdp(1.5e-3, th0, 45.0)["conversionEfficiency"] / kdp_detune(1.5e-3, 0.0)
     # angular width: engine scan, FWHM in internal theta
     dets = np.linspace(-0.5, 0.5, 41 if p.fast else 81)

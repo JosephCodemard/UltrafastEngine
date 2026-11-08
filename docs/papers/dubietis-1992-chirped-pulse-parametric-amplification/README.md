@@ -14,7 +14,7 @@ and a single-pass grating compressor (600 lines/mm, 170 mm) gives 70 fs, 65 uJ, 
 
 ## How it is reproduced
 
-`run.py` (fast tier about 25 s; full tier a few minutes) runs these stages with the engine:
+`run.py` (fast tier about 1 min; full tier a few minutes) runs these stages with the engine:
 
 | stage | engine model |
 |---|---|
@@ -50,10 +50,10 @@ engine's own fibre output (green). The paper's 170 mm and 70 fs are marked.
 | fibre output duration | about 5 ps (p. 438) | 5.3 ps | agrees |
 | fibre sweep rate | about 30 cm^-1/ps | 50 cm^-1/ps | follows from the width |
 | pump intensity for G = 2e4 in 8 mm | not given | 2.1 GW/cm^2 (inferred, G = exp(2 Gamma L)/4) | inferred only |
-| pump energy for 100 uJ signal (seed 5 nJ) | not given (3 mJ of second harmonic made) | 0.55-0.76 mJ at a 0.3 mm spot: 180-250 GW/cm^2 peak | inferred; see below |
-| shorter pump narrows the amplified spectrum | argued (p. 437) | 56 cm^-1 at 2.8 ps, 108 at 8 ps, 130 at 15 ps | agrees in sign |
+| pump energy for 100 uJ signal (seed 5 nJ) | not given (3 mJ of second harmonic made) | 0.75 mJ (fast tier) to 0.86 mJ (full tier) at a 0.3 mm spot: 250-290 GW/cm^2 peak (README before: 0.55-0.76 mJ) | inferred; see below |
+| shorter pump narrows the amplified spectrum | argued (p. 437) | 63 cm^-1 at 2.8 ps, 113 at 8 ps, 132 at 15 ps (before: 56, 108, 130) | agrees in sign |
 | grating separation | 170 mm (p. 439) | 202 mm perpendicular (213 mm slant) | **disagrees by 19 %** |
-| compressed duration | 70 fs (Fig. 3a) | 133 fs (amplified), 114 fs (ideal seed), 98 fs (fibre output) | **disagrees** |
+| compressed duration | 70 fs (Fig. 3a) | 129 fs (amplified; before 133), 114 fs (ideal seed), 98 fs (fibre output) | **disagrees** |
 
 ## Commentary
 
@@ -66,11 +66,11 @@ point is the analytic value to 5 digits).
 "about 30 cm^-1/ps"; 170 mm would need 36 cm^-1/ps. The angle is only "near Littrow": plus or minus 4 degrees moves our value from 186 to
 214 mm. The folded layout (one grating, two mirrors) may also not map onto a perpendicular pair distance one to one. Not resolved.
 
-**Compressed duration (133 fs against 70 fs).** The compressor's third-order dispersion is 3.6e-40 s^3 at this separation (engine value, equal to
+**Compressed duration (129 fs against 70 fs).** The compressor's third-order dispersion is 3.6e-40 s^3 at this separation (engine value, equal to
 the effect of a chirped mirror with that TOD). On a 155 cm^-1 sech^2 spectrum it lengthens 68 fs to 114 fs. The paper reaches 70 fs, so the TOD of its chirp (from the
 fibre) must largely have cancelled the grating's, as is known for fibre and grating compressors. The engine's fibre gives a different spectrum and therefore a
 different TOD: its fibre output compresses to 98 fs at 105 mm. So the 70 fs depends on the exact shape of the fibre chirp, which is not given.
-The OPA adds a further 20 fs (133 against 114): the saturated 1-D amplifier distorts the pulse.
+The OPA adds a further 15 fs (129 against 114): the saturated 1-D amplifier distorts the pulse.
 
 **Fibre (264 against 155 cm^-1).** A scalar silica fibre with A_eff 50 um^2 and the full 8 nJ gives a B-integral of 39 rad and 1.7 times the reported
 spectral width. Likely reasons (not tested): the fibre is not polarisation-preserving, so only part of the power acts as a scalar
@@ -83,13 +83,41 @@ above what BBO survives with 8 ps pulses, so the real pump was surely larger or 
 At this level of saturation the 1-D Gaussian-overlap model is not reliable: the left plot is not monotonic (for example 50 uJ gives
 more signal than 100 uJ), as the strongly depleted pump and signal back-convert; the crystals documentation says high conversion
 needs a transverse model. The output pulse in this regime is distorted (duration 1.6 ps, shifted centroid), so the bandwidth and compression
-numbers use the lower-gain stage (gain about 15, pump depletion 11 %). A transverse (cartesian, non-collinear) run at 100 uJ is the next step and was not done.
-A separate point: results from an earlier run of the same script, made while the engine library may have been rebuilt by another session, differed
-(20 uJ pump: 2.6 uJ against 1.33 uJ). Eight repeats of the current library gave identical values, even under CPU load; no engine bug is claimed.
+numbers use the lower-gain stage (gain 6.9 with the 2 degree crossing, pump depletion 4.7 %; the previous engine gave gain about 15 and 11 %, see "Changes since the previous engine"). A transverse (cartesian, non-collinear) run at 100 uJ is the next step and was not done.
+## Changes since the previous engine (2026-11 re-run)
+Unchanged (identical to the digits quoted): the fibre stage (264 cm^-1, 5.3 ps, 50 cm^-1/ps, B = 38.6 rad), the analytic numbers, the compressor
+(202 mm, matches Treacy to 5 digits), the ideal-seed compression (114.3 fs), the fibre-output compression (98.5 fs at 105 mm), the pump intensity for G = 2e4 (2.13 GW/cm^2).
+Changed: the OPA stage. With the same inputs, the unsaturated stage (pump 1.25 uJ, ln-gain exponent 2.5) now gives **gain 6.9** (was about 15), pump depletion 4.7 % (was 11 %),
+amplified bandwidth 113 cm^-1 (was 108), the compressed amplified pulse 129 fs (was 133). **Cause (tested): the 2 degree crossing of the beams.**
+The same stage collinear gives gain 15.8 (22.0 with a plane-wave overlap instead of the Gaussian beams; 20.3 at 2 degrees), so the previous 15 equals the collinear value; at 2 degrees the pump and signal separate by
+alpha L = 280 um over the crystal, larger than their radii (64 and 150 um), and the Gaussian overlap of the crossing beams now accounts for it (gain 6.9; with beams about 5 and 15 times
+larger at the same pump intensity the loss from the 2 degree crossing is 12 % and 9 %: 17.3 -> 15.2 and 15.5 -> 14.2). With the angle given outside the crystal
+(`externalAngleDeg = 2`, about 1.2 degrees inside, key works now) the gain is 11.4 and the bandwidth 115 cm^-1. I take this as a physical effect of the geometry, not an engine problem,
+but I did not have the previous engine at hand to confirm that the old model ignored it (UNVERIFIED). The paper's beam sizes and the exact crossing are not given, so the gain, the
+saturated energy and the narrowing are assumption-dependent; none of the paper-versus-ours verdicts changes.
 
 ## What is missing
 
 * Transverse OPA at saturation; idler compression; beam ellipticity of the single-pass compressor.
+* Resolve whether the 2 degrees are inside or outside the crystal and the real beam sizes (the gain depends on them, see above).
 * A fibre model that reproduces 155 cm^-1 (polarisation, mode area) and the real fibre's TOD, which would decide the compressed duration.
 * The gain bandwidth "up to 400 cm^-1": not compared (the calculator's gain spectrum needs a pump intensity input; not run).
-* The `externalAngleDeg` interaction key gave "unknown parameter, ignored" with the library used for these runs, although the schema declares it; the angle was given inside the crystal instead.
+
+## How well the science matched
+| quantity | paper | ours | verdict | most likely reason |
+|---|---|---|---|---|
+| transform limit of 155 cm^-1 sech^2; time-bandwidth product; AC deconvolution; compression ratio; peak power | 67 fs, 0.325, 70 fs, 24, 0.9 GW | 67.8 fs, 0.3253, 71.3 fs, 24.3, 0.93 GW | agrees | arithmetic of the paper's own numbers |
+| GDD of a 30 cm^-1/ps chirp | about 5 ps | 1.77e5 fs^2, consistent | agrees | |
+| fibre output duration | about 5 ps | 5.3 ps | agrees | |
+| fibre output width / sweep rate | 155 cm^-1, 30 cm^-1/ps | 264, 50 | does not | paper does not specify polarisation state, mode area or the operating point (assumption: scalar 50 um^2 fibre); possibly engine limitation (scalar model of a non-PM fibre) |
+| pump intensity for G = 2e4 | not given | 2.1 GW/cm^2 (inferred) | assumption | |
+| pump energy for 100 uJ | not given | 0.75-0.86 mJ, 250-290 GW/cm^2 | assumption | beam sizes and crossing not specified; the 1-D Gaussian-overlap model at deep saturation is not reliable (engine limitation: needs a transverse run, not done) |
+| shorter pump narrows the spectrum | argued | 63 / 113 / 132 cm^-1 for 2.8 / 8 / 15 ps | agrees (sign) | |
+| grating separation | 170 mm | 202 mm | does not | paper does not specify the grating angle or the folded geometry (assumption: Littrow, perpendicular distance); chirp rate "about 30" |
+| compressed duration | 70 fs | 129 fs (amplified), 98 fs (fibre output) | does not | third-order dispersion: depends on the real fibre chirp shape (paper does not give it); engine fibre differs (see above); OPA adds 15 fs |
+| gain bandwidth up to 400 cm^-1 | p. 439 | not compared | UNVERIFIED reading | calculator needs a pump-intensity input; not run |
+
+Overall: every number that is arithmetic of the paper's own statements is reproduced, the chirp, the stretching in the fibre (duration) and the CPA principle of a matched
+pump (a shorter pump narrows the spectrum) as well. What fails is what depends on the unreported hardware: the fibre spectrum (264 against 155 cm^-1), the compressor distance
+and, through the third-order dispersion, the final 70 fs. Closing the gap needs the measured chirped pulse (spectrum and phase) as input instead of an idealised linear chirp, the grating
+angle and layout, and the beam sizes and crossing of the amplifier; the engine would then only need a transverse (cartesian) OPA run at saturation.

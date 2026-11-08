@@ -54,9 +54,9 @@ def seed_pulse(energy=5e-9):
     return b.pulse(LS, T_SEED_TL, energy=energy, shape="sech2", gdd_s2=gdd_seed())
 
 
-def opa_el(pump_e, pump_tau, delay="auto", length=L_BBO, nc=NC_DEG):
+def opa_el(pump_e, pump_tau, delay="auto", length=L_BBO, nc=NC_DEG, ext=None):
     aux = b.aux_beam("pump", b.pulse(LP, pump_tau, energy=pump_e), radius_m=W_PUMP, delay_s=delay)
-    return b.crystal("opa", "BBO", length, process="opa", type="I", cut="auto", noncollinear=nc, aux=[aux], output="signal",
+    return b.crystal("opa", "BBO", length, process="opa", type="I", cut="auto", noncollinear=None if ext else nc, external_angle_deg=ext, aux=[aux], output="signal",
                      record=["idler", "pump"], beam={"kind": "gaussian", "w0M": W_SIG}, chi3=False, spectralMargin=4)
 
 
@@ -145,6 +145,16 @@ def main():
     out["linearStage_pumpDepletion"] = 1 - v["energy_pump_J"] / ep
     out["linearStage_outputSpectrum_cm"] = spec_width_cm(r)
     out["seed_spectrum_cm"] = SPEC_CM
+    # control: the same stage collinear. The crossing beams of the 2 deg case separate by alpha L = 280 um >> the beam radii (64 / 150 um) and
+    # the engine's crossing-beam overlap lowers the gain (6.9 against 15.8); with 5x larger beams at the same intensity the loss is 12 %.
+    rc = run_chain(ep, 8e-12, nc=0.0)
+    out["linearStage_collinear_gain"] = rc.summary["elements"][0]["values"]["energy_signal_J"] / 5e-9
+    out["linearStage_collinear_spectrum_cm"] = spec_width_cm(rc)
+    # the paper says the beams are 'crossed at about 2 deg' (outside the crystal?): the same stage with externalAngleDeg = 2 (about 1.2 deg inside)
+    rx = run_chain(ep, 8e-12, ext=2.0)
+    vx = rx.summary["elements"][0]["values"]
+    out["linearStage_external2deg_gain"] = vx["energy_signal_J"] / 5e-9
+    out["linearStage_external2deg_spectrum_cm"] = spec_width_cm(rx)
     # pump duration scan at constant peak pump power (energy ~ duration)
     taus = np.array([2.8, 4, 5, 6, 8, 10, 12, 15]) * 1e-12
     pw = []

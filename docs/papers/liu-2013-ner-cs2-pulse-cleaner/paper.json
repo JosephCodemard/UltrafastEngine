@@ -6,22 +6,82 @@
   "fullTextRead": "Yes: the licensed PDF (3 pages) was read through its text layer (PyMuPDF; the Read tool's PDF mode needs pdftoppm, which is not installed) and the equations and figures through rendered page images. Eq. (1) and the n2 value were checked on a rendered crop. Figure values are read off the plots. The PDF is not in the repository.",
   "topic": "temporal-contrast enhancement by nonlinear ellipse rotation: QWP, CS2 Kerr cell, perpendicular QWP, crossed polariser",
   "referenceNumbers": [
-    {"key": "eq1", "value": "I_NER = I_in sin^2(2 alpha) sin^2(phi_SPM cos(2 alpha)/6)", "where": "p. 1838, Eq. (1)", "status": "verified (rendered crop)"},
-    {"key": "theory", "value": "input contrast 1e5, 800 nm, 100 fs Gaussian; transmissivity maximum > 60 % at alpha ~ 34 deg", "where": "p. 1839, Fig. 2a and text", "status": "verified in text"},
-    {"key": "fig2a", "value": "T(phi_SPM) rises to ~0.65-0.7 near phi = 9-10 pi (alpha = 34 deg), axis 0-12 pi", "where": "Fig. 2a", "status": "read off"},
-    {"key": "fig3a", "value": "ideal-polariser contrast improved to ~1e15 (C_out = C_in^3)", "where": "p. 1839, Fig. 3a", "status": "verified in text"},
-    {"key": "eq2", "value": "C_out = C_in^3 [1 + R/(C_in^2 eta)] / (1 + R/eta)", "where": "p. 1839, Eq. (2)", "status": "verified"},
-    {"key": "fourOrders", "value": "contrast improved by four orders of magnitude when the polariser-analyser extinction ratio is better than 1e4", "where": "p. 1839, Fig. 3b", "status": "verified in text"},
-    {"key": "n2", "value": "n2 = (3 +- 0.6)e-19 m2/W; breakdown 2e13 W/cm2; response 70 fs (refs 12-14)", "where": "p. 1838", "status": "verified (rendered crop)"},
-    {"key": "experiment", "value": "808 nm, 70 fs, spectrum 20 nm; two achromatic zero-order QWPs; f = 500 mm lenses; 2 mm quartz cell of CS2 at the focus; polarising splitter ER > 1e4", "where": "p. 1839", "status": "verified in text"},
-    {"key": "optAlpha", "value": "optimal alpha 32.5 deg (xi = tan alpha) for the highest transmissivity", "where": "p. 1839, Fig. 4a", "status": "verified in text"},
-    {"key": "transmissivity", "value": ">30 % at 6 mJ and ~320 GW/cm2 (lower than theory: optics losses and quality)", "where": "p. 1839, Fig. 4b", "status": "verified in text"},
-    {"key": "contrastExp", "value": "contrast enhanced ~3 orders of magnitude (limited by scatter, ER, waveplate accuracy)", "where": "p. 1840, Fig. 5a", "status": "verified in text"},
-    {"key": "width", "value": "cleaned pulse ~60 fs FWHM, narrower than the 70 fs input, not distorted", "where": "p. 1840, Fig. 5b", "status": "verified in text"}
+    {
+      "key": "eq1",
+      "value": "I_NER = I_in sin^2(2 alpha) sin^2(phi_SPM cos(2 alpha)/6)",
+      "where": "p. 1838, Eq. (1)",
+      "status": "verified (rendered crop)"
+    },
+    {
+      "key": "theory",
+      "value": "input contrast 1e5, 800 nm, 100 fs Gaussian; transmissivity maximum > 60 % at alpha ~ 34 deg",
+      "where": "p. 1839, Fig. 2a and text",
+      "status": "verified in text"
+    },
+    {
+      "key": "fig2a",
+      "value": "T(phi_SPM) rises to ~0.65-0.7 near phi = 9-10 pi (alpha = 34 deg), axis 0-12 pi",
+      "where": "Fig. 2a",
+      "status": "read off"
+    },
+    {
+      "key": "fig3a",
+      "value": "ideal-polariser contrast improved to ~1e15 (C_out = C_in^3)",
+      "where": "p. 1839, Fig. 3a",
+      "status": "verified in text"
+    },
+    {
+      "key": "eq2",
+      "value": "C_out = C_in^3 [1 + R/(C_in^2 eta)] / (1 + R/eta)",
+      "where": "p. 1839, Eq. (2)",
+      "status": "verified"
+    },
+    {
+      "key": "fourOrders",
+      "value": "contrast improved by four orders of magnitude when the polariser-analyser extinction ratio is better than 1e4",
+      "where": "p. 1839, Fig. 3b",
+      "status": "verified in text"
+    },
+    {
+      "key": "n2",
+      "value": "n2 = (3 +- 0.6)e-19 m2/W; breakdown 2e13 W/cm2; response 70 fs (refs 12-14)",
+      "where": "p. 1838",
+      "status": "verified (rendered crop)"
+    },
+    {
+      "key": "experiment",
+      "value": "808 nm, 70 fs, spectrum 20 nm; two achromatic zero-order QWPs; f = 500 mm lenses; 2 mm quartz cell of CS2 at the focus; polarising splitter ER > 1e4",
+      "where": "p. 1839",
+      "status": "verified in text"
+    },
+    {
+      "key": "optAlpha",
+      "value": "optimal alpha 32.5 deg (xi = tan alpha) for the highest transmissivity",
+      "where": "p. 1839, Fig. 4a",
+      "status": "verified in text"
+    },
+    {
+      "key": "transmissivity",
+      "value": ">30 % at 6 mJ and ~320 GW/cm2 (lower than theory: optics losses and quality)",
+      "where": "p. 1839, Fig. 4b",
+      "status": "verified in text"
+    },
+    {
+      "key": "contrastExp",
+      "value": "contrast enhanced ~3 orders of magnitude (limited by scatter, ER, waveplate accuracy)",
+      "where": "p. 1840, Fig. 5a",
+      "status": "verified in text"
+    },
+    {
+      "key": "width",
+      "value": "cleaned pulse ~60 fs FWHM, narrower than the 70 fs input, not distorted",
+      "where": "p. 1840, Fig. 5b",
+      "status": "verified in text"
+    }
   ],
   "assumptions": [
-    "CS2 is not a built-in material of the engine. It is supplied as a user material: index = Kedenburg et al., Opt. Mater. Express 2, 1588 (2012), n^2 = 1 + 1.50387 l^2/(l^2 - 0.03049) (l in um, 20 C, 0.5-1.6 um) as published on refractiveindex.info (CC0); not from the paper and not cross-checked against a second source. GDD at 808 nm from it: 218 fs2/mm.",
-    "n2 = 3e-19 m2/W (the paper's value) as an instantaneous Kerr effect, which is what Eq. (1) assumes. The paper cites a 70 fs response but no delayed part; the engine cannot express a purely orientational response (repro_1.py), so no delayed-response variant is run.",
+    "The paper-model runs use a user material: index = Kedenburg et al., Opt. Mater. Express 2, 1588 (2012), n^2 = 1 + 1.50387 l^2/(l^2 - 0.03049) (l in um, 20 C, 0.5-1.6 um) as published on refractiveindex.info (CC0); not from the paper and not cross-checked against a second source. GDD at 808 nm from it: 218 fs2/mm. Since 2026-11 the engine's built-in material CS2 has the same index (checked: identical result in the Shimizu replication).",
+    "n2 = 3e-19 m2/W (the paper's value) as an instantaneous Kerr effect, which is what Eq. (1) assumes. The paper cites a 70 fs response but no delayed part. A sensitivity run uses the built-in CS2 (electronic 3e-19 plus a delayed orientational part, total 3e-18, 0.2/1.6 ps, anisotropicFraction 1.5; all UNVERIFIED typical values) on a 40 ps window; it is not a claim about the paper.",
     "1-D plane wave. The experiment is a focused beam (P/Pcr ~ 4e5 at 6 mJ, 70 fs); self-focusing and the beam size in the cell are not modelled and not given.",
     "Eq. (1) is reproduced only if the angle is measured from the other waveplate axis, alpha_paper = 45 deg - alpha_fast-axis, and phi_SPM = 2 B(linear) (derived with Jones calculus, see README), not with the paper's literal definitions.",
     "Waveplates and polariser are ideal (achromatic, retardance exactly lambda/4); the experiment's 99 % purity and optics losses are not modelled, so the measured 30 % is not a check.",
