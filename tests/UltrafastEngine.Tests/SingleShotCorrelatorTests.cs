@@ -60,11 +60,16 @@ namespace UltrafastEngine.Tests
             Assert.Close(dtau, v.GetDouble("resolutionGeometricS", 0), 1e-5, 0, "eq. (2)");
             Assert.Close(a * 180 / Math.PI, v.GetDouble("angleToSignalPtDeg", 0), 1e-5, 0, "angle a");
             Assert.Greater(dtau * 1e12, 0.5, "resolution above 0.5 ps"); Assert.Less(dtau * 1e12, 1.1, "about 1 ps for 1-2 mm of BBO");
-            // the group-index delays (default) differ from the phase-index ones by a few per cent, in the direction of n_g > n
+            // default (group index): the depth term is (n_g - n sin^2 a) / cos a per beam (dk_z/d omega at fixed k_x); the window is unchanged
+            double ngT = GroupIdx(bbo, wT), ngS = GroupIdx(bbo, wS);
+            double dzT = (ngT - nT * Math.Sin(a) * Math.Sin(a)) / Math.Cos(a), dzS = (ngS - nS * Math.Sin(b) * Math.Sin(b)) / Math.Cos(b);
             var rg = Run(Gauss(Lam, 100e-15, 1e-6), Ss("crystal", "BBO", "crossingAngleDeg", 40.0, "beamWidthM", W, "crystalLengthM", L), 100e-12);
-            double ratio = Inst(rg, "ss").Values.GetDouble("windowS", 0) / window;
-            Assert.Greater(ratio, 1.0, "group index above phase index in BBO"); Assert.Less(ratio, 1.1, "a few per cent");
+            var vg = Inst(rg, "ss").Values;
+            Assert.Close(window, vg.GetDouble("windowS", 0), 1e-5, 0, "the window does not depend on the group index");
+            Assert.Close(L / C * Math.Abs(dzT - dzS), vg.GetDouble("resolutionGeometricS", 0), 1e-4, 0, "resolution with group indices");
+            Assert.Greater(Math.Abs(vg.GetDouble("resolutionGeometricS", 0) / dtau - 1), 0.01, "the group index changes the resolution by more than 1 %");
         }
+        private static double GroupIdx(CrystalModel c, double w) { double h = w * 1e-4; return Idx(c, w) + w * (Idx(c, w + h) - Idx(c, w - h)) / (2 * h); }
 
         [Test(Reference = "time-to-space mapping: a pre-pulse of relative intensity e at -T before the main pulse appears at x = -T / slope with height e (third-order correlation, Ma et al. 2018 Fig. 1)", Tolerance = "1 pixel; 2 %")]
         public void PrePulse_AppearsAtThePositionOfItsDelay_WithItsRelativeIntensity()

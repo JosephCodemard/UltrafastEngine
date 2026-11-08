@@ -5,8 +5,9 @@
 // the overlap is generated where the two pulse envelopes meet, i.e. it measures the correlation S(tau) = integral I_PT(t) I_S(t - tau) dt
 // at the delay tau(x) = tau0 + x * (n_T sin a + n_S sin b) / c, so a camera or a position axis reads a delay trace in one shot
 // (Ma et al., High Power Laser Sci. Eng. 6, e61 (2018), eqs. (1) and (2)). The instrument reports
-//   - the delay window T = W * slope and the geometric resolution dtau = L / c |n_T cos a - n_S cos b| (a, b: the angles of the two inputs
-//     to the signal direction, fixed by transverse momentum conservation of the phase indices; n: the group index unless "delayIndex": "phase"),
+//   - the delay window T = W * slope, slope = (n_T sin a + n_S sin b) / c, and the geometric resolution dtau = L / c |n_T cos a - n_S cos b|
+//     (a, b: the angles of the two inputs to the signal direction, fixed by transverse momentum conservation of the phase indices n; with
+//     "delayIndex": "group" (default) the group index of the crystal enters the resolution through dk_z/d omega, see SingleShotGeometry.Solve),
 //   - the trace on the position axis x_m and on the delay axis delay_s, as a camera of "points" pixels of width W / points would record it.
 // Model: the correlation is that of the temporal intensities at the instrument's location (a flat-top overlap of width W, uniform
 // across the beam), convolved with a rectangle of width dtau (each position collects light from all depths of the crystal, whose
@@ -16,7 +17,7 @@
 // (integral I_PT dt) (integral I_S dt) when the delay window contains the whole correlation ("windowCoverage" = 1).
 //
 // Main classes and signatures:
-//   SingleShotGeometry.Solve(nT, nS, ngT, ngS, omegaT, omegaS, crossingInsideRad) -> Geometry   (a, b, slope, resolution per length)
+//   SingleShotGeometry.Solve(nT, nS, ngT, ngS, omegaT, omegaS, crossingInsideRad)   (a, b, slope, resolution per length)
 //   SingleShotCorrelator : IInstrument                                                          (Measure)
 using System;
 using System.Globalization;
@@ -37,9 +38,16 @@ namespace UltrafastEngine.Instruments
         public double ResolutionSPerM;                 // d tau / d z across the crystal: |n_T cos a - n_S cos b| / c
 
         /// <param name="nT">Phase index at the PT frequency.</param><param name="nS">Phase index at the sampling frequency.</param>
-        /// <param name="ngT">Index that sets the arrival time of the PT envelope (group index; phase index to follow the paper's eqs.).</param>
+        /// <param name="ngT">Group index at the PT frequency (set equal to nT for the form of Ma et al.'s eq. (2)).</param>
         /// <param name="ngS">The same for the sampling pulse.</param>
         /// <param name="crossingInsideRad">Full angle between the two beams inside the crystal.</param>
+        /// <remarks>
+        /// The beams enter from air at fixed angles through a face perpendicular to the signal. Each frequency keeps its tangential wave
+        /// number k_x = omega sin(phi) / c, so an envelope arrives at x at t = x dk_x/d omega = x n sin(a) / c: the PHASE index enters the
+        /// slope (eq. (1) exactly). Along the depth z the arrival time is z dk_z/d omega with k_z = sqrt(n^2 omega^2 / c^2 - k_x^2), which gives
+        /// (n_g - n sin^2 a) / (c cos a); for n_g = n this is n cos a / c, the form of eq. (2). The difference between the two beams is the
+        /// resolution.
+        /// </remarks>
         public static SingleShotGeometry Solve(double nT, double nS, double ngT, double ngS, double omegaT, double omegaS, double crossingInsideRad)
         {
             // k_T + k_S = k_signal: the transverse parts cancel about the signal axis, k_T sin a = k_S sin b, a + b = crossing angle
@@ -47,11 +55,12 @@ namespace UltrafastEngine.Instruments
             double a = Math.Atan2(kS * Math.Sin(crossingInsideRad), kT + kS * Math.Cos(crossingInsideRad));
             double b = crossingInsideRad - a;
             double c = PhysicalConstants.SpeedOfLightMPerS;
+            double dzT = (ngT - nT * Math.Sin(a) * Math.Sin(a)) / Math.Cos(a), dzS = (ngS - nS * Math.Sin(b) * Math.Sin(b)) / Math.Cos(b);
             return new SingleShotGeometry
             {
                 AngleTRad = a, AngleSRad = b,
-                SlopeSPerM = (ngT * Math.Sin(a) + ngS * Math.Sin(b)) / c,
-                ResolutionSPerM = Math.Abs(ngT * Math.Cos(a) - ngS * Math.Cos(b)) / c
+                SlopeSPerM = (nT * Math.Sin(a) + nS * Math.Sin(b)) / c,
+                ResolutionSPerM = Math.Abs(dzT - dzS) / c
             };
         }
     }
@@ -163,7 +172,7 @@ namespace UltrafastEngine.Instruments
             o.Add("signal_db", meas.Select(v => 10 * Math.Log10(Math.Max(v / mm, 1e-300))).ToArray(), "dB", "normalised signal");
             o.Add("signal_ideal", ideal, "", "signal without noise or floor");
             o.Add("signal_raw", raw, "W^2 s", "S(tau) = integral I_PT(t) I_S(t - tau) dt before normalisation (W^2 s for powers in W)");
-            Tools.Put(o, "indexPt", nT); Tools.Put(o, "indexSampling", nS); Tools.Put(o, "delayIndexPt", ngT); Tools.Put(o, "delayIndexSampling", ngS);
+            Tools.Put(o, "indexPt", nT); Tools.Put(o, "indexSampling", nS); Tools.Put(o, "groupIndexPt", ngT); Tools.Put(o, "groupIndexSampling", ngS);
             Tools.Put(o, "angleToSignalPtDeg", geo.AngleTRad * 180 / Math.PI); Tools.Put(o, "angleToSignalSamplingDeg", geo.AngleSRad * 180 / Math.PI);
             Tools.Put(o, "crossingAngleInsideDeg", crossIn * 180 / Math.PI);
             Tools.Put(o, "delayPerPositionSPerM", geo.SlopeSPerM);
@@ -185,7 +194,7 @@ namespace UltrafastEngine.Instruments
                 if (taus[k] > taus[jp] + guard && ideal[k] > post) post = ideal[k];
             }
             Tools.Put(o, "prePulseContrastDb", 10 * Math.Log10(Math.Max(pre, floor))); Tools.Put(o, "postPulseContrastDb", 10 * Math.Log10(Math.Max(post, floor)));
-            o.Notes.Add("single-shot geometry: indices from " + how + (phaseDelay ? "; delays from phase indices (the paper's eqs.)" : "; delays from group indices")
+            o.Notes.Add("single-shot geometry: indices from " + how + (phaseDelay ? "; resolution from phase indices (the form of the paper's eq. (2))" : "; resolution with the crystal's group index")
                 + "; window " + (window * 1e12).ToString("G4", CultureInfo.InvariantCulture) + " ps for W = " + (W * 1e3).ToString("G3", CultureInfo.InvariantCulture)
                 + " mm, geometric resolution " + (resGeo * 1e12).ToString("G3", CultureInfo.InvariantCulture) + " ps, pixel " + (pixDelay * 1e12).ToString("G3", CultureInfo.InvariantCulture)
                 + " ps; the beams are not propagated through the crystal (flat-top overlap, no efficiency, depletion, scattering or face reflections)");

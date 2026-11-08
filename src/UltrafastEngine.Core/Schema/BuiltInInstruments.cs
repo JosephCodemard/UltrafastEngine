@@ -151,7 +151,7 @@ namespace UltrafastEngine.Schema
                 .Str("crystal", "Crystal of the library whose ordinary (x) index gives the angles and the delay slope", "\"BBO\"")
                 .Num("indexPt", "", "Refractive index at the pulse under test instead of the crystal's (also the group index unless groupIndexPt)").Num("indexSampling", "", "Index at the sampling pulse")
                 .Num("groupIndexPt", "", "Group index at the pulse under test (with indexPt)").Num("groupIndexSampling", "", "Group index at the sampling pulse (with indexSampling)")
-                .Enum("delayIndex", new[] { "group", "phase" }, "Index that sets the arrival time of each envelope: group (physical) or phase (the form of Ma et al.'s eqs. (1), (2))", "group")
+                .Enum("delayIndex", new[] { "group", "phase" }, "Index in the depth term of the resolution: group (the crystal's dispersion through dk_z/d omega; default) or phase (the form of Ma et al.'s eq. (2)); the window uses the phase indices either way", "group")
                 .Enum("samplingPulse", new[] { "secondHarmonic", "fundamental" }, "secondHarmonic: the sampling pulse is the second harmonic of the pulse (third-order contrast correlator); fundamental: the pulse itself (single-shot autocorrelator)", "secondHarmonic")
                 .Int("points", "Camera pixels across the overlap", "256").Num("delayOffsetS", "s", "Delay at the centre of the overlap", "0")
                 .Num("dynamicRangeDb", "dB", "Camera floor below the peak", "60").Num("noiseFloor", "", "Floor relative to the peak (alternative to dynamicRangeDb)")
