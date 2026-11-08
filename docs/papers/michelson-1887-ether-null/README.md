@@ -48,7 +48,7 @@ Gaussian pulse for the white-light case). At each azimuth the readout scans arm 
 | velocity bound from 0.02 / 0.01 fringe | < 1/4, < 1/6 of v_orbit (p. 341) | 0.224, 0.158 (from the engine's 0.4-fringe scale) |
 | no ether, table turns | no displacement | 0 (built in) |
 | narrow-line fringes | (1 - cos)/2 with period lambda | error 1.4e-9 |
-| white-light fringes | only near zero path (p. 339) | follow the Gaussian visibility envelope to 2e-5; coherence length (V = 1/e) about 1.07 um for 150 nm |
+| white-light fringes | only near zero path (p. 339) | follow the Gaussian visibility envelope to 2.3e-5 (the reference phase uses the carrier the pulse is built at, `outputGrid.reportOmega0`, since the 2026-11 grid fix; with the old lattice carrier it would read 3.6e-4); coherence length (V = 1/e) about 1.07 um for 150 nm |
 
 Most rows are **circular by construction**: the engine is given the paper's path difference and returns it as a fringe shift.
 What they test is the engine's interferometer: fringe period, fringe phase against delay at a 22 m arm length (phase of
@@ -73,3 +73,26 @@ uses to find the central fringe. Dashed: the analytic envelope.
 * Nothing disagrees. Nothing can: the experiment's physics (the null) is not in the engine.
 * Not done: the p. 340 tables and Fig. 6 (data and the one-eighth-theory curves), UNVERIFIED because the OCR is unusable; the
   paper's supplementary proposals (reflection from moving mirrors, p. 342) are not simulated.
+
+## How well the science matched
+
+Re-run after the 2026-11 engine fixes: all ten checks pass; the one number that moved is the white-light envelope error (3.6e-4 if the old lattice carrier is
+used for the reference phase, 2.3e-5 now), because pulses are built at the requested carrier and `run.py` now reads `reportOmega0`. This is a
+change in how the test reads the carrier, not a physics change.
+
+| quantity | paper | ours | verdict | most likely reason |
+|---|---|---|---|---|
+| expected shift 2 D v^2/V^2, D = 11 m | 0.4 fringe (p. 341) | 0.4000 | agrees (circular) | the paper's own first-order formula is the input; the engine only reads it out |
+| first experiment, D = 2e6 waves | 0.04 fringe (p. 336) | 0.0400 | agrees (circular) | same |
+| shift at v/4, v/6 | 1/16; 0.0111 | 0.0625; 0.0111 | agrees (arithmetic) | same |
+| observed displacement | less than about 0.01 fringe (p. 340) | no ether: 0 | agrees trivially | engine limitation: no ether, no moving frame, so the null is built in and cannot be tested |
+| velocity bounds | < 1/6 probable, < 1/4 certain (p. 341) | 0.158, 0.224 | agrees (arithmetic) | |
+| the 16 readings and the p. 340 tables, Fig. 6 | data and curves | not compared | not tested | UNVERIFIED reading: the OCR of the tables was unusable (digits garbled) and no numbers were taken |
+| white-light central fringe (p. 339) | fringes only near zero path | Gaussian envelope, coherence length 1.07 um for 150 nm | agrees | the paper gives no bandwidth: the 150 nm is our assumption |
+
+**Overall judgement.** The engine reproduces the instrument (fringe period, visibility, sensitivity to 0.01 fringe, phase stability at a 22 m arm length)
+but none of the science: the experiment tests whether light speed depends on the Earth's motion, and the engine propagates light at c in every
+direction, so a null is the only possible outcome and a match carries no information. A meaningful test would need a model with a preferred frame
+(arms whose round-trip times depend on a velocity relative to a medium, with an ether-drag or Lorentz-contraction option) and then a prediction that
+differs between the hypotheses, together with the real error sources (thermal drift, strain from rotation, vibration, reading noise) and the digitised
+p. 340 data to compare against. The first two do not exist in the engine.

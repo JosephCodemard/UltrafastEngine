@@ -213,6 +213,54 @@
    "b": "engine_pg_trace_plus_minus_gdd_maxdiff",
    "margin": 0.1,
    "source": "Appendix C: PG/SD traces show the sign of the chirp"
+  },
+  {
+   "id": "App. C: engine SD instrument slope = (4/3) x chirp rate",
+   "kind": "number",
+   "key": "engine_sd_slope_over_chirp",
+   "expected": 1.3333,
+   "tolerance": 0.01,
+   "source": "Appendix C (p. 577), engine `frog` type sd"
+  },
+  {
+   "id": "engine SD delay marginal FWHM = third-order autocorrelation (fs)",
+   "kind": "number",
+   "key": "engine_sd_delay_marginal_fwhm_fs",
+   "expected": 244.9,
+   "tolerance": 2.4,
+   "source": "p. 575 identity; analytic sqrt(3/2) x 200 fs"
+  },
+  {
+   "id": "SD-FROG retrieval (engine PCGPA, kind sd-frog): GDD with sign (fs^2)",
+   "kind": "number",
+   "key": "sd_retrieval_pcgpa_gdd_fs2",
+   "expected": 6247,
+   "tolerance": 190,
+   "source": "SD has no time-direction ambiguity (paper, Sec. on SD FROG); truth = input GDD"
+  },
+  {
+   "id": "SD-FROG retrieval (engine ePIE): GDD with sign (fs^2)",
+   "kind": "number",
+   "key": "sd_retrieval_epie_gdd_fs2",
+   "expected": 6247,
+   "tolerance": 310,
+   "source": "as above"
+  },
+  {
+   "id": "SD-FROG retrieval: all 6 seeds give positive GDD (PCGPA)",
+   "kind": "number",
+   "key": "sd_retrieval_all_positive",
+   "expected": 1,
+   "tolerance": 0,
+   "source": "no ambiguity of SD-FROG (paper)"
+  },
+  {
+   "id": "SD-FROG retrieval: all 6 seeds give positive GDD (ePIE)",
+   "kind": "number",
+   "key": "sd_retrieval_epie_all_positive",
+   "expected": 1,
+   "tolerance": 0,
+   "source": "no ambiguity of SD-FROG (paper)"
   }
  ]
 }

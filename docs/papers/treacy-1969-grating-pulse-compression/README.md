@@ -42,7 +42,7 @@ confirms the sign convention end to end. Grid: 16384 points, 60 ps window (3.7 f
 | compression optimum | b = 10 cm (p. 456) | **9.51 cm** (engine scan; the chirp divided by eq. (8)'s rate: 9.51 cm) |
 | minimum duration | "compressed to its minimum length" | 182.5 fs (165.4 fs transform limit; 1.10 times, from the cubic phase) |
 | pulse before, after | 5.8 ps, minimum | 5.80 ps, 182.5 fs: factor 32 |
-| angular dispersion per 100 A (p. 457) | about 2e-2 rad | 1.31e-2 rad (1/(d cos theta_d) x 100 A) |
+| angular dispersion per 100 A (p. 457) | about 2e-2 rad (read from a scan) | 1.313e-2 rad: the engine's own report (`trackedAngularDispersionXRadPerM` of a single grating) equals 1/(d cos theta_d) x 100 A to 1e-15 |
 
 ## Disagreements, and where they come from (none is in the engine)
 
@@ -59,8 +59,12 @@ confirms the sign convention end to end. Grid: 16384 points, 60 ps window (3.7 f
    printed equation in this copy, not about the engine; a later erratum or correction may exist, which was not looked for. The size of the cubic
    effect decides how far a real pulse compresses: with the exact phase, at the optimum b the minimum duration is 182.5 fs, 10 % above the
    165 fs transform limit; the quadratic-only closed form would say 165 fs.
-3. **Angular dispersion "about 2e-2 rad per 100 A"** (p. 457): the grating equation gives 1.31e-2. Soft: the digit was read from a scan and
-   the paper calls it approximate.
+3. **Angular dispersion "about 2e-2 rad per 100 A"** (p. 457): the grating equation gives 1.313e-2 rad. Re-examined after the 2026-11 fix of the
+   grating angular-dispersion report: the engine's tracked-beam report for a single 1200 l/mm grating at 60 degrees, 1.06 um is now
+   -1.31308e6 rad/m, i.e. 1.3131e-2 rad per 100 A, identical to the grating equation (a hard check, `angularDispersion_engineOverFormula`). So the
+   earlier figure was not an engine report error, and the engine does not explain the paper's number either. The gap (factor 1.5) is on the paper's
+   side or in our reading: the exponent was read from a scan and the paper calls it approximate. Nothing in the stated numbers (1200 lines/mm, 60 degrees,
+   1.06 um, 100 A) yields 2e-2 from the grating equation. Status: unresolved, UNVERIFIED reading.
 
 ## Plots
 
@@ -83,3 +87,26 @@ as printed.
   `gratingPair` with `passes: 1` leaves it, see `docs/reference/components.md`), and the paper's Table I Fresnel analogy beyond the Gaussian case.
 * The sign of Treacy's convention (exp(-i omega t)) was not compared symbol by symbol; the physical statement (positive chirp is compressed, negative
   lengthened) was tested instead.
+
+## How well the science matched
+
+Re-run after the 2026-11 engine fixes: every number above is unchanged (the pair uses the engine's exact grating phase; the only new item is the
+engine-report check of the angular dispersion). The scan was read from page images; the OCR text layer garbled all equations.
+
+| quantity | paper | ours | verdict | most likely reason |
+|---|---|---|---|---|
+| group delay tau_0 (eq. 7) | b (1 + cos theta)/c | 603.271 ps vs 603.264 ps | agrees | (engine reproduces the formula to 1e-5) |
+| chirp rate / GDD (eq. 8) | -1/mu | -3.6364e5 vs -3.6367e5 fs^2 | agrees | |
+| compression of a linearly swept pulse, sign | positive chirp compressed | 5.8 ps -> 182.5 fs; opposite chirp 11.9 ps | agrees | |
+| delay per cm for 100 A (p. 456) | 0.58 ps/cm | 0.610 (engine and eq. 5a) | partly (5 % off) | paper erratum / internal inconsistency: the paper's own eq. (5a) gives 0.610. Could also be a misread digit (UNVERIFIED: scan) |
+| optimum separation (p. 456) | 10 cm | 9.51 cm | partly | follows from the 0.58 above (5.8 ps / 0.58); same cause |
+| cubic phase, eq. (17) | sigma = (2 omega_0 mu)^-1 (1 + (lambda/d) sin gamma + sin^2 gamma) | printed form is 1.76 x the exact derivative; engine matches the derivative to 1.3e-4 | does not (printed form) | paper erratum / internal inconsistency, or UNVERIFIED reading of the sign and of a possible 1/cos^2 theta_d factor at 4x magnification. Reading the sign as minus would still leave a 1.2 x gap, so a pure misread is unlikely. Not an engine issue |
+| minimum duration with the cubic term | not quoted | 182.5 fs (1.10 x transform limit) | not comparable | paper does not specify inputs (our 10 nm bandwidth is an assumption for the "100 A band") |
+| angular dispersion per 100 A (p. 457) | about 2e-2 rad | 1.313e-2 rad (engine report = grating equation) | does not (x1.5) | not an engine bug (report verified exact); UNVERIFIED reading of the exponent, or the paper's loose figure |
+| resolving power, grating size, spatial chirp (p. 457) | discussed | not simulated | not tested | engine limitation: `gratingPair` with passes 1 is the exact temporal phase only; finite aperture and beam walk-off are not modelled |
+
+**Overall judgement.** The engine reproduces every quantity that can be computed from the paper's equations (group delay, GDD, TOD, optimum
+separation, compression against separation) to 1e-4 or better, and exposes three places where the printed paper is inconsistent with its own formulas
+(0.58 ps/cm, 10 cm, eq. 17) plus one number (angular dispersion) it cannot reproduce. None of them is an engine fault as far as we can tell. To close
+the gap: the original journal scan or an erratum list (to settle eq. 17 and p. 457), and a model of finite grating width and spatial chirp for the
+resolving-power discussion.

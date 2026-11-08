@@ -57,7 +57,8 @@ class Etalon:
     def __init__(self, lam, r, forth):
         self.r, self.forth = r, forth
         self.system = etalon(r, forth)
-        self.run = b.run_spec(b.cw(lam, 1.0), grid=b.grid(window_s=1e-6))      # a 1 us window puts the carrier within 1e-9 of the request
+        self.run = b.run_spec(b.cw(lam, 1.0), grid=b.grid(window_s=1e-6))      # a 1 us window puts the carrier within 1e-9 of the request. Still needed after the 2026-11 grid fix: that fix builds PULSES at the requested
+        # carrier, but a cw source is one line of the frequency grid, so it still sits on the nearest bin (2.8e-7 off at the default window; checked, snapCarrier:false does not change it)
         s = uf.run(self.system, self.run).summary
         self.omega0 = s["outputGrid"]["omega0"]
         self.lam = 2 * math.pi * C0 / self.omega0          # the carrier the grid actually uses

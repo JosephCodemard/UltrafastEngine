@@ -80,14 +80,15 @@ def fwhm(x, y):
     return hi - lo
 
 
-def gdd_from_pulse_dict(pulse):
+def gdd_from_pulse_dict(pulse, thr=0.0):
     sp = pulse["spectrum"]
     lam, I, ph = np.array(sp["wavelengthsM"]), np.array(sp["intensity"]), np.array(sp["phaseRad"])
     w = 2 * np.pi * C0 / lam
     o = np.argsort(w)
     w, I, ph = w[o], I[o], np.unwrap(ph[o])
     wm = (w * I).sum() / I.sum()
-    c = np.polyfit(w - wm, ph, 2, w=np.sqrt(I))
+    k = I > thr * I.max()                 # thr > 0: ignore the noisy phase in the spectral wings (ePIE leaves some)
+    c = np.polyfit(w[k] - wm, ph[k], 2, w=np.sqrt(I[k]))
     return 2 * c[0]
 
 
@@ -96,7 +97,8 @@ GDD = np.sqrt(3.0) * TAU_TL ** 2 / (4 * LN2)           # lengthens a 100 fs Gaus
 T0sq = TAU_TL ** 2 / (4 * LN2)
 b_an = GDD / (T0sq ** 2 + GDD ** 2)                      # analytic chirp rate d(omega)/dt of a chirped Gaussian
 fwhm_an = TAU_TL * np.sqrt(1 + (GDD / T0sq) ** 2)
-instr = [{"kind": "frog", "name": "pg", "type": "pg", "points": 128}, {"kind": "frog", "name": "sh", "type": "shg", "points": 128}]
+instr = [{"kind": "frog", "name": "pg", "type": "pg", "points": 128}, {"kind": "frog", "name": "sh", "type": "shg", "points": 128},
+         {"kind": "frog", "name": "sd", "type": "sd", "points": 128}]
 res = uf.run(uf.System.load(PROBE), b.run_spec(b.pulse(LAM, TAU_TL, energy=1e-9, gdd_s2=GDD), instruments=instr))
 t, E = field(res)
 dt = t[1] - t[0]
@@ -135,6 +137,15 @@ eg_tau, eg_w, eg_tr = np.asarray(res["pg_delay_s"]), np.asarray(res["pg_omega_ra
 eg_c = (eg_tr * eg_w).sum(1) / eg_tr.sum(1)
 m = abs(eg_tau) <= 150e-15
 N["engine_pg_slope_over_chirp"] = float(np.polyfit(eg_tau[m], eg_c[m], 1)[0] / b_eng)
+# engine self-diffraction instrument (frog type "sd"): centroid slope, delay marginal, agreement with the numpy SD trace above
+sd_tau, sd_w, sd_tr = np.asarray(res["sd_delay_s"]), np.asarray(res["sd_omega_rad_s"]) - W0, np.asarray(res["sd_trace"])
+sd_c = (sd_tr * sd_w).sum(1) / sd_tr.sum(1)
+m = abs(sd_tau) <= 150e-15
+N["engine_sd_slope_over_chirp"] = float(np.polyfit(sd_tau[m], sd_c[m], 1)[0] / b_eng)
+N["engine_sd_delay_marginal_fwhm_fs"] = ins["sd"]["values"]["delayMarginalFwhmS"] * 1e15
+N["engine_sd_asymmetry"] = float(abs(sd_tr[1:] - sd_tr[1:][::-1]).max() / sd_tr.max())
+# centroid of the numpy SD trace interpolated to the engine's delays (different grids): rms difference over the +-150 fs window, in units of the max
+N["engine_sd_vs_numpy_centroid_rms_over_max"] = float(np.sqrt(np.mean((sd_c[m] - np.interp(sd_tau[m], tau, c_sd)) ** 2)) / np.abs(c_sd[abs(tau) <= 150e-15]).max())
 eg_shc = np.asarray(res["sh_trace"])
 N["engine_shg_asymmetry"] = float(abs(eg_shc[1:] - eg_shc[1:][::-1]).max() / eg_shc.max())   # delay axis runs -N/2..N/2-1: skip the unpaired sample
 
@@ -148,15 +159,29 @@ N["engine_shg_trace_plus_minus_gdd_maxdiff"] = float(abs(shp / shp.max() - shm /
 N["engine_pg_trace_plus_minus_gdd_maxdiff"] = float(abs(pgp / pgp.max() - pgm / pgm.max()).max())
 
 # retrieval (engine PCGPA) from the engine's PG and SHG traces
-def retrieve(prefix, kind, seed=None):
+def retrieve(prefix, kind, seed=None, method="pcgpa", thr=0.0):
     opt = {} if seed is None else {"seed": seed}
     tr = {"delay_s": res[prefix + "_delay_s"], "omega_rad_s": res[prefix + "_omega_rad_s"], "trace": res[prefix + "_trace"]}
-    out = uf.retrieve("pcgpa", tr, kind=kind, **opt)
-    return out["error"], out["fwhmS"], gdd_from_pulse_dict(out["pulse"])
+    out = uf.retrieve(method, tr, kind=kind, **opt)
+    return out["error"], out["fwhmS"], gdd_from_pulse_dict(out["pulse"], thr)
 
 
 err, fw, g = retrieve("pg", "pg-frog")
 N["pg_retrieval_error"], N["pg_retrieval_fwhm_fs"], N["pg_retrieval_gdd_fs2"] = err, fw * 1e15, g * 1e30
+# SD-FROG: the paper's own geometry, now retrieved by the engine (PCGPA and ePIE); no time-direction ambiguity
+for meth in ("pcgpa", "epie"):
+    err, fw, g = retrieve("sd", "sd-frog", method=meth, thr=0.05)
+    N["sd_retrieval_%s_error" % meth], N["sd_retrieval_%s_fwhm_fs" % meth], N["sd_retrieval_%s_gdd_fs2" % meth] = err, fw * 1e15, g * 1e30
+sd_signs = []
+for sd_ in range(1, 7):
+    sd_signs.append(retrieve("sd", "sd-frog", seed=sd_, thr=0.05)[2] * 1e30)
+sd_signs_epie = [retrieve("sd", "sd-frog", seed=sd_, method="epie", thr=0.05)[2] * 1e30 for sd_ in range(1, 7)]
+N["sd_retrieval_epie_gdd_fs2_list"] = sd_signs_epie
+N["sd_retrieval_epie_all_positive"] = int(all(x > 0 for x in sd_signs_epie))
+N["sd_retrieval_gdd_fs2_list"] = sd_signs
+N["sd_retrieval_all_positive"] = int(all(x > 0 for x in sd_signs))
+# the wrong kind on an SD trace (PG model) fits worse: the kind matters
+N["sd_trace_as_pg_error"] = retrieve("sd", "pg-frog")[0]
 shg_g = []
 for sd_ in range(1, 7 if p.fast else 13):
     e_, f_, g_ = retrieve("sh", "shg-frog", seed=sd_)
@@ -287,10 +312,11 @@ N["derived_g3_fwhm_fs"] = fwhm(tau_d, g3d) * 1e15
 
 # ------------------------------------------------------------------ figures
 fig, ax = p.figure(width_in=6.4, height_in=4.2)
-ax.plot(tau * 1e15, c_sd * 1e-12, color=BLUE, label="SD-FROG (computed from engine field)")
-ax.plot(tau * 1e15, c_pg * 1e-12, color=ORANGE, label="PG-FROG (computed from engine field)")
+ax.plot(tau * 1e15, c_sd * 1e-12, color=BLUE, label="SD-FROG (numpy cross-check)")
+ax.plot(tau * 1e15, c_pg * 1e-12, color=ORANGE, label="PG-FROG (numpy cross-check)")
 ax.plot(tau * 1e15, c_sh * 1e-12, color=AQUA, label="SHG-FROG (computed)")
 ax.plot(eg_tau * 1e15, eg_c * 1e-12, "o", ms=2.5, color=ORANGE, mfc="none", label="engine `frog` instrument, type pg")
+ax.plot(sd_tau * 1e15, sd_c * 1e-12, "o", ms=2.5, color=BLUE, mfc="none", label="engine `frog` instrument, type sd")
 ax.plot(tau * 1e15, 4 / 3 * b_an * tau * 1e-12, "--", color=REF, label="App. C: (4/3) b tau (SD)")
 ax.plot(tau * 1e15, 2 / 3 * b_an * tau * 1e-12, "--", color=REF2, label="App. C: (2/3) b tau (PG)")
 ax.set_xlim(-200, 200)

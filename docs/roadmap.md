@@ -27,15 +27,19 @@ Priorities, most useful first.
      conversion); then 1-D photonic lattices. First-principles prediction of a new material's χ(2) is out of scope.
    - Both use the fitting plugin's estimators (`requires: ["fitting"]`); gradients are written per problem (thin-film
      matrices, undepleted QPM) before any general automatic differentiation.
-2. **More paper replications** (`docs/papers/`, `/replicate`): Yb and Ti:sapphire amplifiers and oscillators, OPCPA chains,
-   gas-filled capillaries, filaments, multipass cells. Each states what reproduces and what does not.
+2. **More paper replications** (`docs/papers/`, `/replicate`): twelve are done (see the [index](papers/README.md)); each README says how well the
+   science matched. Next, to cover polarisation, diffraction, nonlinear effects, OPCPA and diagnostics (PDFs to be supplied):
+   Maker, Terhune & Savage, PRL 12, 507 (1964) (intensity-dependent index, ellipse rotation); Dudley, Genty & Coen, Rev. Mod. Phys. 78, 1135 (2006)
+   (supercontinuum); Nisoli et al., Opt. Lett. 22, 522 (1997) (hollow-fibre compression); Durnin, PRL 58, 1499 (1987) (Bessel beams); a classic
+   Fresnel edge or circular-aperture diffraction paper; Ross et al., Opt. Commun. 144, 125 (1997) (OPCPA design); Iaconis & Walmsley, Opt. Lett. 23, 792 (1998)
+   (SPIDER); Miranda et al., Opt. Express 20, 18732 (2012) (d-scan); and Michelson's 1892 paper (the PDF supplied as such was Perot & Fabry 1899).
 3. **Waveguides and gain** (open-air focus)
    - [ ] Frequency-dependent effective area
    - [ ] Hollow-capillary (Marcatili) gas waveguide with gas dispersion, loss and ionisation
    - [ ] z-dependent dispersion within one fibre element (tapers)
    - [ ] Saturated rate-equation gain in fibres, and forward / backward, spectrally resolved ASE shared with the bulk gain elements. Today the bulk `gain` / `amplifier` elements have rate equations and one-dimensional ASE seeded in the signal polarisation, and fibre gain is unsaturated
    - Not planned: multimode fibres beyond a graded-index example
-4. **Cross-polarised-wave generation** (anisotropic cubic χ(3)) for contrast cleaning, with the BaF2 tensor.
+4. **Cross-polarised-wave generation** (anisotropic cubic χ(3)) for contrast cleaning: the 1-D tensor and BaF2 are in; spatial and carrier-resolved versions are open (see below).
 5. **Fitting plugin**
    - [ ] Ensemble Kalman and Bayesian-optimisation estimators
    - [ ] General low-rank and learned field operators as transform kinds
@@ -49,6 +53,17 @@ Priorities, most useful first.
    - [ ] Speed: profile the hot paths (Hankel, Cartesian FFTs, instruments) and keep them allocation-free
 7. **A catalogue**: the materials, coatings, crystals and substrates the engine knows in one place, checked against published
    sources, with the user's own entries beside them. Users bring vendor data; none is shipped.
+
+## Open items found by the November 2026 consolidation
+
+- **Carrier frame:** move the window frame to the pulse carrier (today it follows the lattice centre; a dispersive pulse off the lattice drifts by GDD x offset x L); then a 10 fs soliton on the coarse default grid is exact without `snapCarrier: false`.
+- **Pulses near one cycle:** SPM that reaches zero frequency (10 fs at 2 µm, B = 3) is cut and reported; a carrier-resolved path for it.
+- **XPW and cubic Kerr:** spatial and carrier-resolved implementations, GPU support, and verified literature values for BaF2 n2 and σ and for CS2 n2, split and time constants.
+- **Single-shot cross-correlator:** conversion efficiency and beam envelope in the crystal, air scatter with a stripe filter, crystal-face reflection spikes, fibre-array readout; an option to put elements in the probe arm only.
+- **Retrieval:** multi-trace retrieval from the CLI; XFROG with a measured reference file.
+- **`cellMode`:** an element option or run mode, astigmatic injection, pulse (not only peak-power) Kerr lens.
+- **Delayed responses:** window planning for generic `timeResponse` and gas rotational revivals (only Raman and orientational are planned today); round-aperture decentre.
+- **Phase-matching calculator:** accept `noncollinearDeg` for `sfg` as the element does.
 
 ## Zemax plugin (OpticStudio depth)
 

@@ -19,6 +19,8 @@
      "source": "p. 456: 5.8 ps for a 100 A band at b = 10 cm; ours 6.10"},
     {"id": "angular dispersion per 100 A (rad)", "kind": "number", "key": "angularDispersion_radPer100A", "expected": 0.02, "tolerance": 0.003, "hard": false,
      "source": "p. 457 'about 2e-2 rad/100 A' (read from the page image); exact 1/(d cos theta_d) x 100 A = 0.0131"},
+    {"id": "engine-reported grating angular dispersion over the grating equation 1/(d cos theta_d)", "kind": "number", "key": "angularDispersion_engineOverFormula", "expected": 1.0, "tolerance": 1e-4,
+     "source": "grating equation; the engine's tracked-beam report of a single 1200 l/mm grating at 60 degrees, 1.06 um"},
     {"id": "input pulse is 5.8 ps (fs)", "kind": "number", "key": "input_fwhm_fs", "expected": 5800, "tolerance": 1, "source": "p. 456 (set up from the paper's pulsewidth)"},
     {"id": "optimum slant separation: engine vs the pair's chirp rate", "kind": "number", "key": "bOpt_engine_cm", "expected": 9.510, "tolerance": 0.05,
      "source": "b where |phi''(b)| equals the input group-delay dispersion (eq. (8)); the engine's minimum is located from its own scan"},

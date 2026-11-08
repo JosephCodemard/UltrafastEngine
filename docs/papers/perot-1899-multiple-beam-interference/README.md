@@ -31,6 +31,9 @@ separate when their rings are 1/5 of a ring spacing apart (p. 99).
   films and the long-length measurements, the plate-parallelism adjustment and every instrument detail.
 * Note: the engine moves a cw source's wavelength to a sample of its frequency grid. With the default window that is up to 3e-7
   relative, which is not negligible for lines 1e-6 apart. `run.py` sets a 1 microsecond window (shift below 1e-9).
+  Re-checked after the 2026-11 grid fix (pulses are now built at the requested carrier): a cw source is a single grid line, so it still
+  sits on the nearest bin (measured: fringe spacing 2.8e-7 off the requested wavelength at the default window, 6e-10 with the 1 us
+  window, also with `snapCarrier: false`). The workaround stays; it is an engine limitation of cw sources, harmless once known.
 
 Run: `python run.py --tier fast` (about one minute, a few thousand cw runs); mirrors R = 0.8 (and 0.9 for the bright-part remark).
 The fringe spacing of each line is measured from the positions of two peaks 2 mm and 4 mm of path difference apart (about 4000
@@ -82,3 +85,25 @@ shows two peaks, the paper's criterion for "just resolved". Black: the sum of tw
 * Michelson's 1892 paper: not available, not replicated. Fringe visibility versus path difference for a source with structure
   (the Michelson interferometer) is exercised in the sibling folder `michelson-1887-ether-null` (white-light visibility
   envelope against the analytic Gaussian result), but that is not a check of any value from the 1892 paper.
+
+## How well the science matched
+
+Re-run after the 2026-11 engine fixes: all 19 checks pass with the same numbers as the table above. The carrier-snapping workaround (1 microsecond window) was
+re-examined and is **still needed**: the fix builds pulses at the requested carrier, but a cw source is one grid line and still sits on the nearest bin
+(`snapCarrier: false` does not change it). A transverse (cartesian) Fabry-Perot ring check was not attempted.
+
+| quantity | paper | ours | verdict | most likely reason |
+|---|---|---|---|---|
+| Airy fringe, coefficient 80 at f = 0.8 | p. 91 | 80; curve matches to 3e-7 | agrees | |
+| bright part of a fringe "not more than 1/20" (p. 92) | silver, f about 0.90 | FWHM 1/30 at R = 0.9, 1/14 at R = 0.8 | agrees at 0.9 (soft) | paper does not specify inputs: f is not given at that point, and "bright part" is read as FWHM (assumption) |
+| coincidence periods (Hg yellow, Cd green/Hg green, Cd green/Cd red) | 311.9; 14.56515; 4.759901 | 311.914; 14.56515; 4.759902 | agrees | fixed by the printed wavelengths; the test shows the engine's fringe lattice is exact over thousands of orders |
+| Na D period | "about 1000" (p. 98) | 987 | agrees (soft) | paper gives no wavelengths; tabulated D lines assumed |
+| resolving power, 1/5 spacing | p = 20,000 at e = 5 mm; 200,000 at 5 cm | 19,999; 199,861 | agrees | the 5 cm case differs by 7e-4 because the engine's eps/lambda is 1.0007e-6 (cw frequency snap of the second line) |
+| silver absorption, I_max < I0 | discussed (p. 92) | lossless, I_max = I0 | not tested | engine limitation: mirrors are lossless in this graph (a `beamSplitter` with loss could be tried) |
+| rings in convergent light, Delta = 2 e cos i | the paper's main observation | not simulated | not tested | engine limitation here: needs a transverse model; a cartesian-grid etalon was not tried |
+| standard-film and long-length measurements (pp. 108-115) | numbers given | not used | not tested | UNVERIFIED: only skimmed; the OCR was garbled for tables |
+
+**Overall judgement.** The engine reproduces the paper's spectral content completely: the Airy lineshape, the geometry of coincidences and the resolving-power
+criterion are matched to the printed digits. What is not covered is everything about the real apparatus: silver absorption, rings with angle, plate defects
+and the metrology of lengths. Closing the gap needs lossy mirrors in the etalon graph and a transverse (cartesian-grid) Fabry-Perot with a tilted or
+converging beam. Note that this is the Perot-Fabry paper, not the Michelson 1892 paper that was requested; the latter remains unread.

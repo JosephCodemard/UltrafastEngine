@@ -54,9 +54,11 @@ def scan_b(system, run, values):
     return np.array([row["energy:end"] for row in s["rows"]])
 
 
-def carrier(system, run):
+def carrier(system, run, pulse=False):
+    """Carrier angular frequency and input energy. A pulse is built at the requested carrier (since the 2026-11 grid fix), reported as
+    outputGrid.reportOmega0; a cw source still sits on a grid line (outputGrid.omega0)."""
     r = uf.run(system, run).summary
-    return r["outputGrid"]["omega0"], r["graph"]["energyInJ"]
+    return r["outputGrid"]["reportOmega0" if pulse else "omega0"], r["graph"]["energyInJ"]
 
 
 def fringe_shift_curve(d, beta, nsamp):
@@ -133,7 +135,7 @@ def main():
     dl_nm = 150.0
     tl = 0.4413 * LAM ** 2 / (C0 * dl_nm * 1e-9)               # transform-limited FWHM giving ~150 nm of spectrum
     run_wl = b.run_spec(b.pulse(LAM, tl, energy=1e-9), grid=b.grid(n=8192, window_s=2e-12))
-    w0w, e_inw = carrier(michelson(1.0, 1.0), run_wl)
+    w0w, e_inw = carrier(michelson(1.0, 1.0), run_wl, pulse=True)
     dpw = np.linspace(-8e-6, 8e-6, 401 if p.fast else 801)
     pw = scan_b(michelson(1.0, 1.0), run_wl, 1.0 + dpw) / e_inw
     dom = 2 * math.pi * 0.4413 / tl                            # FWHM of the intensity spectrum, rad/s

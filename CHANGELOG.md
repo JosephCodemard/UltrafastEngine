@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+### Engine fixes and features from the November 2026 consolidation (component tests, 12 paper replications)
+**Changed**
+- The input pulse is built at the **requested carrier**, not at the carrier snapped onto the frequency lattice (up to ~1.5 nm off at 1030 nm / 10 fs). Kerr phase, self-steepening, reported angular dispersion and carrier wavelength follow it (`grid.reportOmega0`). The fibre SPM phase error of 0.1-0.4 % that depended on the grid is gone. The window frame still moves with the lattice-centre group delay; `snapCarrier: false` removes the offset.
+- `retrieve` no longer silently assumes SHG-FROG: the kind comes from `kind`, from the data, or from the instrument's `frogType`; an asymmetric trace without a kind is an error. `anisotropicFraction` outside 0..1.5 is an error (1 < b <= 1.5 is now allowed).
+- `energyMeter` and camera `bandM` weight edge bins by the fraction inside the band.
+
+**Fixed**
+- `trackedAngularDispersion` of gratings and prisms carried an error of (lambda_req/lambda_snap)^2 - 1.
+- A round aperture on an elliptical beam uses the exact integral (0.7897, not 0.8816, for 0.6 x 1.2 mm and a = 0.8 mm).
+- A strongly phase-mismatched thick chi(2) crystal is integrated with at most 0.5 rad of mismatch phase per step (it was 150-960 times off the sinc^2 law with no warning).
+- The grid planner includes the memory of a delayed response; a fixed window that is too short is reported.
+- An element-level `selfSteepening` on fibres and bulk elements is honoured.
+- Fibre D(lambda) / beta2 tables use a cubic spline (a 53-point table was 0.8 % off).
+- KDP type-I d_eff with an explicit cut changed erratically with phi (the ordinary-mode eigenvector came from rounding noise).
+- `anisotropicFraction` is honoured by `expression` and `callback` delayed responses; an explicit key on `linAgrawal` replaces its own split.
+- The interferometric autocorrelator delay axis includes d = 0 and the background is analytic (peak:background 8, was 7.84).
+- `crossCorrelator` with `resolutionS` reports trace, floor and `contrastAt_*_db` relative to the same (resolution-limited) peak.
+- Generated option reference: the "More:" labels show the page they link to.
+
+**Added**
+- Warning, and the loss booked as `spectrum at non-positive frequency`, when nonlinear broadening reaches omega <= 0 (a 1.5-cycle pulse at 2 um with B = 3 is cut; a carrier-resolved model is needed there).
+- FROG: `frog` `type: "sd"` (self-diffraction), instrument `xfrog` (alias `sfgFrog`) with a known `reference` pulse, retrieval kinds `sd-frog` and `xfrog` for `pcgpa` and `epie`, multi-trace retrieval `multiFrog` (double FROG) and Python `uf.retrieve_multi`. `crossCorrelator` `gateArm` (elements in the second-harmonic gate arm only).
+- Built-in `CS2` (Kedenburg index; electronic + `orientational` delayed response) and `BaF2`; cubic Kerr anisotropy (`kerrAnisotropy`, `kerrCutAxis`, `kerrAzimuthDeg`) with cross-polarised-wave generation. CS2 n2 and split, and BaF2 n2 and sigma, are unverified literature values.
+- `cellMode` command and `ultrafast.cells.cell_mode`: the Kerr-matched Gaussian eigenmode of a two-mirror multi-pass cell (Herriott or quasi-concentric) with gas or plates.
+- Instrument `singleShotCorrelator`: the time-to-space cross-correlator (window and resolution from the crossing geometry, Ma et al. 2018 eqs. 1-2).
+- `tests/components/` (was `verification/`): ten families, 1691 checks (see docs/component-tests.md). `docs/papers/`: twelve replications, each with a "How well the science matched" section.
+
 ### Added (plan of 2026-11: docs/design/plan-2026-11.md)
 - `tests/components/` (was `verification/`): one script per component family (linear, splitters and masks, polarisation, crystals, instruments, optics_misc, media, crystals_chi2, spatial, instruments_more; 1691 checks) that runs each component alone, overlays the analytic answer and writes an HTML gallery (`run_all.py`); a CI job runs it without plots. C# component sheet (`tests/.../Components/`): every listed component at 515 nm / 1030 nm / 2 µm and 1 ps / 10 fs, energy, reported GDD, bandwidth, Sequential = Branched.
 - `docs/papers/` (published results reproduced, with our plots and commentary; harness `build/paper_check.py`, a CI job for the fast tier) and the plan for November 2026. First four: Escoto 2022 (compression quality), Gordon 1986 (soliton self-frequency shift), Boyd-Kleinman 1968 (focused SHG), Bespalov-Talanov 1966 (small-scale self-focusing).

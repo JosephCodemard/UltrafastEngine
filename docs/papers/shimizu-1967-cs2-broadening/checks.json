@@ -2,11 +2,11 @@
  "paper": "shimizu-1967-cs2-broadening",
  "checks": [
   {
-   "id": "engine (CS2 dispersion off) = the paper's lowest-order model E exp(i dphi) with the Debye integral, all tau (total variation of the spectra)",
+   "id": "engine (CS2 dispersion off) = the paper's lowest-order model E exp(i dphi) with the Debye integral, all tau (total variation of the spectra; reference includes the sub-bin carrier offset of the engine's input pulse)",
    "kind": "number",
    "key": "modelVsEngineTVMax",
    "expected": 0,
-   "tolerance": 0.005,
+   "tolerance": 0.002,
    "source": "p. 1098-1099 model, evaluated in numpy"
   },
   {
@@ -117,6 +117,47 @@
    "tolerance": 3,
    "hard": false,
    "source": "p. 1098; depends on the unknown intensity (B) and duration"
+  },
+  {
+   "id": "built-in CS2 (orientational response, dispersion off) = the paper's model with the 10 % instant + 90 % orientational response (total variation)",
+   "kind": "number",
+   "key": "builtinOrientationalVsNumpyModelTV",
+   "expected": 0,
+   "tolerance": 0.002,
+   "source": "p. 1098-1099 model, numpy; response from docs/reference/materials.md (UNVERIFIED typical values)"
+  },
+  {
+   "id": "built-in CS2 = the same material written out as a user material (Kedenburg index, n2 3e-18, orientational 0.2/1.6 ps, fR 0.9)",
+   "kind": "number",
+   "key": "builtinCs2VsUserMaterialTV",
+   "expected": 0,
+   "tolerance": 1e-06,
+   "source": "engine self-consistency"
+  },
+  {
+   "id": "auto grid holds the delayed-response memory: tau = 18 ps spectrum = the paper's model (total variation)",
+   "kind": "number",
+   "key": "autoGridTau18psVsModelTV",
+   "expected": 0,
+   "tolerance": 0.002,
+   "source": "regression of the 2026-11 grid-planner fix (was repro_1.py)"
+  },
+  {
+   "id": "a fixed 120 ps window too short for tau = 18 ps now gives the 'Grid looks too small' warning",
+   "kind": "number",
+   "key": "fixedShortWindowWarns",
+   "expected": 1,
+   "tolerance": 0.01,
+   "source": "regression of the 2026-11 grid-planner fix"
+  },
+  {
+   "id": "built-in CS2: low-frequency side carries about 90 % of the energy (ps pulse, 90 % delayed response)",
+   "kind": "number",
+   "key": "builtinRedFraction",
+   "expected": 0.9,
+   "tolerance": 0.05,
+   "hard": false,
+   "source": "p. 1098; depends on B and the unverified response"
   }
  ]
 }

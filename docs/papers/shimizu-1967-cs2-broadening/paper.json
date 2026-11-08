@@ -6,23 +6,78 @@
   "fullTextRead": "Yes. The PDF (5 pages; pages 1 and 4-5 hold other papers of the same issue) has a text layer from OCR that is garbled in places (exponents, minus signs). It was read through that text layer (PyMuPDF; the Read tool's PDF mode needs pdftoppm, which is not installed) and every quoted number and equation was confirmed on rendered page images (pp. 1098 and 1099). Fig. 1 is a photograph of spectra: only its scale bar (100 cm^-1) and the 6943 A label are used. The PDF is not in the repository.",
   "topic": "self-phase modulation with a finite relaxation time: low-frequency-side broadening and periodic spectral structure of filaments in CS2",
   "referenceNumbers": [
-    {"key": "laser", "value": "Q-switched ruby laser, 694.3 nm (6943 A), beam diameter 3 mm, CS2 cell 7.5 cm; laser = 4-5 groups of axial modes", "where": "p. 1098, Fig. 1", "status": "verified"},
-    {"key": "model", "value": "dphi = -(k0/n0) L dn; dn = (n2/tau) int_-inf^t <E^2>(t') exp(-(t-t')/tau) dt'", "where": "p. 1098-1099, Eq. (1)-(2) (unnumbered)", "status": "verified (rendered)"},
-    {"key": "limits", "value": "tau = 0: shift ~ -d<E^2>/dt, broadening on both sides; tau large: shift ~ -<E^2>, broadening only on the low-frequency side", "where": "p. 1099", "status": "verified"},
-    {"key": "period", "value": "regular periodic structure on the low-frequency side; period 10 +- 3 cm^-1 on average, increasing linearly with the distance from the centre", "where": "p. 1098", "status": "verified"},
-    {"key": "ratio", "value": "ratio between intensity maxima and minima at least 10", "where": "p. 1098", "status": "verified"},
-    {"key": "energy", "value": "about 90 % of the energy on the low-frequency side; intensity roughly uniform there with a maximum at the low-frequency extremity; also a peak at the laser frequency", "where": "p. 1098", "status": "verified"},
-    {"key": "blue", "value": "periodic structure with larger spacing also on the high-frequency side (if tau is short enough compared with the pulse)", "where": "p. 1098-1099", "status": "verified"},
-    {"key": "stationary", "value": "power spectrum I1^2 + I2^2 + 2 I1 I2 cos(psi2 - psi1), psi2 - psi1 = (dphi(t2) - dphi(t1)) - (t2 - t1) d(omega); t1, t2 where d(dphi)/dt = d(omega)", "where": "p. 1099", "status": "verified"},
-    {"key": "duration", "value": "filament duration ~ the inverse of the average period, given as 6e-12 s", "where": "p. 1099", "status": "verified; note 1/(c 10 cm^-1) = 3.3 ps, not 6 ps"},
-    {"key": "broadening", "value": "broadening at most 5 % of the laser frequency; Raman shift of CS2 656 cm^-1 not given in the paper (smaller-than-Raman-shift condition is stated)", "where": "p. 1098", "status": "verified (5 %)"},
-    {"key": "scale", "value": "scale bar 100 cm^-1 in Fig. 1", "where": "Fig. 1", "status": "read off"}
+    {
+      "key": "laser",
+      "value": "Q-switched ruby laser, 694.3 nm (6943 A), beam diameter 3 mm, CS2 cell 7.5 cm; laser = 4-5 groups of axial modes",
+      "where": "p. 1098, Fig. 1",
+      "status": "verified"
+    },
+    {
+      "key": "model",
+      "value": "dphi = -(k0/n0) L dn; dn = (n2/tau) int_-inf^t <E^2>(t') exp(-(t-t')/tau) dt'",
+      "where": "p. 1098-1099, Eq. (1)-(2) (unnumbered)",
+      "status": "verified (rendered)"
+    },
+    {
+      "key": "limits",
+      "value": "tau = 0: shift ~ -d<E^2>/dt, broadening on both sides; tau large: shift ~ -<E^2>, broadening only on the low-frequency side",
+      "where": "p. 1099",
+      "status": "verified"
+    },
+    {
+      "key": "period",
+      "value": "regular periodic structure on the low-frequency side; period 10 +- 3 cm^-1 on average, increasing linearly with the distance from the centre",
+      "where": "p. 1098",
+      "status": "verified"
+    },
+    {
+      "key": "ratio",
+      "value": "ratio between intensity maxima and minima at least 10",
+      "where": "p. 1098",
+      "status": "verified"
+    },
+    {
+      "key": "energy",
+      "value": "about 90 % of the energy on the low-frequency side; intensity roughly uniform there with a maximum at the low-frequency extremity; also a peak at the laser frequency",
+      "where": "p. 1098",
+      "status": "verified"
+    },
+    {
+      "key": "blue",
+      "value": "periodic structure with larger spacing also on the high-frequency side (if tau is short enough compared with the pulse)",
+      "where": "p. 1098-1099",
+      "status": "verified"
+    },
+    {
+      "key": "stationary",
+      "value": "power spectrum I1^2 + I2^2 + 2 I1 I2 cos(psi2 - psi1), psi2 - psi1 = (dphi(t2) - dphi(t1)) - (t2 - t1) d(omega); t1, t2 where d(dphi)/dt = d(omega)",
+      "where": "p. 1099",
+      "status": "verified"
+    },
+    {
+      "key": "duration",
+      "value": "filament duration ~ the inverse of the average period, given as 6e-12 s",
+      "where": "p. 1099",
+      "status": "verified; note 1/(c 10 cm^-1) = 3.3 ps, not 6 ps"
+    },
+    {
+      "key": "broadening",
+      "value": "broadening at most 5 % of the laser frequency; Raman shift of CS2 656 cm^-1 not given in the paper (smaller-than-Raman-shift condition is stated)",
+      "where": "p. 1098",
+      "status": "verified (5 %)"
+    },
+    {
+      "key": "scale",
+      "value": "scale bar 100 cm^-1 in Fig. 1",
+      "where": "Fig. 1",
+      "status": "read off"
+    }
   ],
   "assumptions": [
     "Not in the paper: n2, intensity, filament size, relaxation time tau, pulse shape. Used here: Gaussian pulse, FWHM 6 ps (the paper's own inferred duration), tau = 2 ps (literature orientational relaxation of CS2; UNVERIFIED, not from the paper) plus a scan of tau, peak phase of the stationary response B = 120 rad (chosen to give ~100-150 cm^-1 of broadening, the order of the scale bar; it is a free parameter of the experiment).",
     "1-D plane wave: the filament (self-trapped beam) is not modelled; the paper too treats only phase modulation in the lowest order (intensity envelope undistorted).",
-    "CS2 is not a built-in material: index = Kedenburg et al. 2012 formula via refractiveindex.info (CC0), not from the paper; n2 = 3e-19 m2/W only sets the intensity scale (the result depends on B only). The single-exponential response is a user delayed response h(t) = exp(-t/tau)/tau with fR = 1.",
-    "The delayed response needs a window that holds ~25 tau (circular convolution): 480 ps for tau >= 12 ps (repro_1.py).",
+    "CS2: the main run uses a user material (Kedenburg et al. 2012 index via refractiveindex.info, not from the paper; n2 = 3e-19 m2/W only sets the intensity scale) with a single-exponential user delayed response h(t) = exp(-t/tau)/tau, fR = 1, because that is the paper's model. A second run uses the built-in material CS2 (orientational response 0.2/1.6 ps, fR 0.9, n2 3e-18; UNVERIFIED typical values, docs/reference/materials.md).",
+    "The delayed response needs a window that holds its memory (circular convolution); the auto grid now adds it (2026-11 fix), a too-short fixed window warns.",
     "The mode structure of the ruby laser (the pulse is not a smooth Gaussian) is not modelled."
   ]
 }

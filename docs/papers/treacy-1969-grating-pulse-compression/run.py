@@ -163,6 +163,11 @@ def main():
     out["delay100A_at10cm_paper_ps"] = 5.8
     # the angular dispersion quoted on p. 457: "about 2e-2 rad / 100 A"
     out["angularDispersion_radPer100A"] = dlam / (D * math.cos(pr.td))
+    # the engine's own report (tracked-beam angular dispersion of a single grating, after the 2026-11 report fix): rad per m of wavelength
+    gp = uf.run(b.system("treacyOne", [b.grating("g1", LINES_PER_MM, GAMMA_DEG, order=-1)]),
+                dict(b.run_spec(b.pulse(LAM, 1e-12, energy=1e-9)), inputBeam={"kind": "gaussian", "w0M": 1e-3, "zWaistM": 0.0}))
+    out["angularDispersion_engineReport_radPer100A"] = abs(gp.summary["elements"][0]["values"]["trackedAngularDispersionXRadPerM"]) * dlam
+    out["angularDispersion_engineOverFormula"] = out["angularDispersion_engineReport_radPer100A"] / out["angularDispersion_radPer100A"]
 
     # ---- 3. compression scan
     tl = 0.4413 * LAM ** 2 / (C0 * SPEC_FWHM_M)
