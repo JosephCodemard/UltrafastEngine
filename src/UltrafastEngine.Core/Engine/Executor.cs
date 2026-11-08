@@ -269,11 +269,12 @@ namespace UltrafastEngine.Engine
                         res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));
                 }
                 var stats = new StepStatistics();
+                double deadFraction = 0;
                 var pulseBefore = pulse;
                 double tauEl = seg.Background.Sum(b => b.GroupDelayAt(grid.OmegaCenter));
                 pulse = seg.CarrierResolved
                     ? PropagateField(cr, pulse, seg, arrival, tauEl, el.Id, stats, rec, prog)
-                    : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog);
+                    : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog, out deadFraction);
                 foreach (var b in seg.Background) { var d = Reported(b, grid); own += d; rec.Terms.Add(b.Description); }
                 tail?.PropagateTail(seg.Background, (m, dE) => AddLoss(rec, m, dE));
                 if (tail != null && cr.Run.Grid.TailCrossPhase && !seg.CarrierResolved && !seg.Medium.ReplaceKerr && seg.Medium.N2 > 0 && ReferenceEquals(pulseBefore.Grid, pulse.Grid))
@@ -286,6 +287,16 @@ namespace UltrafastEngine.Engine
                 // energy change inside a nonlinear segment: absorption if the medium absorbs (linear attenuation or
                 // an imaginary index response); otherwise Raman (energy given to the medium) plus solver error
                 bool absorbs = seg.Background.Any(b => b.Mechanism == "absorption") || seg.Medium.ExtraResponses.Count > 0;
+                // energy the nonlinear step moved into frequency bins where the medium has no index (omega <= 0): the envelope model
+                // cannot follow it (the analytic signal has no negative frequencies), so it is dropped there -- book it and say so
+                double eDead = absorbs || seg.Medium.EffectiveRamanFraction > 0 ? 0 : Math.Min(Math.Max(0, eBefore - eAfter), deadFraction * eBefore);   // with Raman or absorption the deficit cannot be told apart
+                if (eDead > 1e-7 * eBefore)
+                {
+                    AddLoss(rec, "spectrum at non-positive frequency", eDead);
+                    string msg = string.Format(CultureInfo.InvariantCulture, "Element '{0}': nonlinear broadening reached zero frequency of the envelope grid; {1:G3} of the pulse energy was dropped there (an envelope model has no negative frequencies). The pulse is too short for its carrier (a few cycles) or too strongly broadened: the result is not reliable; use a carrier-resolved model (a time response with carrierResolved) or less nonlinearity.", el.Id, eDead / eBefore);
+                    if (!res.Warnings.Contains(msg)) res.Warnings.Add(msg);
+                    eBefore -= eDead;
+                }
                 AddLoss(rec, absorbs ? "absorption" : (seg.Medium.EffectiveRamanFraction > 0 ? "raman+numerical" : "numerical"), eBefore - eAfter);
                 rec.Steps = stats; rec.BIntegralRad = stats.BIntegralRad;
                 foreach (var rr in seg.Medium.ExtraResponses.OfType<IReportingResponse>()) rr.Report(rec.Values);
@@ -326,7 +337,7 @@ namespace UltrafastEngine.Engine
             rec.Own = own; rec.System = system; rec.ArrivalS = arrival; rec.CumulativeLengthM = cumLen; rec.CumulativeBIntegralRad = cumB;
             rec.EnergyOutJ = pulse.TotalEnergyJ();
             rec.Out = PulseMetrics.Summarize(pulse);
-            rec.CarrierWavelengthM = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.OmegaCenter;
+            rec.CarrierWavelengthM = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / pulse.Grid.ReportOmega;
             if (el.BeamOut != null)
             {
                 // Gaussian beam tracking: 1/e^2 radii and wavefront curvature at the exit
@@ -618,7 +629,7 @@ namespace UltrafastEngine.Engine
             }
         }
 
-        private static PulseField PropagateEnvelope(CompiledRun cr, PulseField p, NonlinearSegment seg, OmegaAxis axis, double arrival, double tauEl, string id, StepStatistics stats, Action<double> prog)
+        private static PulseField PropagateEnvelope(CompiledRun cr, PulseField p, NonlinearSegment seg, OmegaAxis axis, double arrival, double tauEl, string id, StepStatistics stats, Action<double> prog, out double deadFraction)
         {
             var g = p.Grid; int n = g.N;
             Combine(seg.Background, axis, out var phX, out var ampX, out var phY, out var ampY);
@@ -632,6 +643,25 @@ namespace UltrafastEngine.Engine
             var ax = new Complex[n]; var ay = new Complex[n];
             Array.Copy(outS, 0, ax, 0, n);
             if (!scalar) Array.Copy(outS, n, ay, 0, n);
+            // fraction of the energy that the linear background alone would have kept but the run did not: it went into bins with amplitude 0 (omega <= 0)
+            deadFraction = 0;
+            if (ampX.Any(a => a < 1e-12))
+            {
+                double expected = 0, got = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    expected += (p.Ax[i].Real * p.Ax[i].Real + p.Ax[i].Imaginary * p.Ax[i].Imaginary) * ampX[i] * ampX[i];
+                    got += ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary;
+                    if (!scalar)
+                    {
+                        double a2 = (ampY ?? ampX)[i]; a2 *= a2;
+                        expected += (p.Ay[i].Real * p.Ay[i].Real + p.Ay[i].Imaginary * p.Ay[i].Imaginary) * a2;
+                        got += ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary;
+                    }
+                }
+                double tot = 0; for (int i = 0; i < n; i++) tot += p.Ax[i].Real * p.Ax[i].Real + p.Ax[i].Imaginary * p.Ax[i].Imaginary + p.Ay[i].Real * p.Ay[i].Real + p.Ay[i].Imaginary * p.Ay[i].Imaginary;
+                if (tot > 0 && expected > got) deadFraction = (expected - got) / tot;
+            }
             return p.WithSpectrum(ax, ay);
         }
 

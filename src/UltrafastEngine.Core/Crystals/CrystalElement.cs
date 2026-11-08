@@ -176,6 +176,9 @@ namespace UltrafastEngine.Crystals
             return t;
         }
 
+        /// <summary>Largest phase (rad) the mismatch exp(i dk z) may advance in one integration step.</summary>
+        public const double MaxMismatchPhasePerStepRad = 0.5;
+
         public PulseField Execute(ActiveContext ctx, PulseField p) => Run(ctx, p, double.NaN, out _);
 
         /// <summary>Run the crystal; <paramref name="delayOverride"/> replaces the aux beams' delay (delay scans).</summary>
@@ -549,11 +552,21 @@ namespace UltrafastEngine.Crystals
             double eTot0 = 0; for (int k = 0; k < K; k++) eTot0 += FieldEnergy(fields[k].Initial, fields[k].Grid, basis);
             var prob = new Chi2Problem(fields, K == 2, gamma, overlap, dk0, LengthM, basis, qpmPhase, domainSign, Chi3 ? N2 : 0, SelfSteepening, vRefInv, Paraxial, maxStep) { Walls = walls, Crossing = crossing };
             var st = ctx.Run.Run.Stepper;
+            // The coupled-wave rates carry exp(i phi(z)) with phi' = dk0 (less the QPM grating wave). The adaptive error estimate is relative to the
+            // (huge) fundamental, so a 1e-9 generated amplitude never limits the step and the integrator can step over many mismatch periods
+            // (0.8 mm quartz SHG, dk L = 370 rad: second-harmonic energy 150-960 x the plane-wave law). Keep the oscillation of the coupling
+            // to at most MaxMismatchPhasePerStepRad per step.
+            double dkNet = Math.Abs(dk0);
+            bool dkCapped = true;
+            if (Qpm) { if (QpmPeriodOfZ != null || QpmModel == "domains") dkCapped = false; else { double per = double.IsNaN(QpmPeriodM) ? 2 * Math.PI / Math.Abs(dk0) : QpmPeriodM; dkNet = Math.Abs(dk0 - Math.Sign(dk0 == 0 ? 1 : dk0) * 2 * Math.PI / per); } }
+            double mismatchStep = dkCapped && dkNet > 0 ? MaxMismatchPhasePerStepRad / dkNet : double.PositiveInfinity;
+            if (st.FixedSteps == 0 && mismatchStep < LengthM / Math.Max(1, st.MaxSteps) * 1.0001)
+                notes.Add(string.Format(CultureInfo.InvariantCulture, "phase mismatch dk L = {0:G3} rad needs more than the {1} steps allowed (stepper.maxSteps): the generated field is under-resolved. Raise stepper.maxSteps.", dkNet * LengthM, st.MaxSteps));
             var settings = new StepperSettings
             {
                 Method = st.Method, Tolerance = st.Tolerance, MaxNonlinearPhasePerStepRad = st.MaxNonlinearPhasePerStepRad, MaxAreaChangePerStep = st.MaxAreaChangePerStep,
                 MinStepM = st.MinStepM, MaxSteps = st.MaxSteps, FixedSteps = st.FixedSteps,
-                MaxStepM = Math.Min(st.MaxStepM, Math.Min(maxStep, LengthM / 20))
+                MaxStepM = st.FixedSteps > 0 ? Math.Min(st.MaxStepM, Math.Min(maxStep, LengthM / 20)) : Math.Min(Math.Min(st.MaxStepM, Math.Min(maxStep, LengthM / 20)), mismatchStep)
             };
             var stats = new StepStatistics();
             var outS = LengthM > 0 ? Steppers.Propagate(prob, state, settings, stats, ctx.Progress) : state;

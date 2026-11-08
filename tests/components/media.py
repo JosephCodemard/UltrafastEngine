@@ -77,8 +77,9 @@ def unwrap_about_peak(d, ip):
 
 # ======================================================================================================= fibre
 
-KNOWN_2UM_10FS = ("2 µm, 10 fs, B = 3 on the auto grid: pure SPM changes |A(t)|² by 6 % and loses energy (2e-5) although the run is "
-                  "dispersion-free; repro/fiber_spm_2um_10fs.py")
+KNOWN_2UM_10FS = ("2 µm, 10 fs is 1.5 optical cycles: the B = 3 SPM spectrum reaches omega = 0, where an envelope model has no field. The engine "
+                  "drops that part, books it as 'spectrum at non-positive frequency' and warns (GridSolverTests."
+                  "PulseBroadenedToZeroFrequency_IsReportedAndBooked); the result is outside the model's range, not a numerical error")
 
 def fiber_spm(fam: Family):
     """gamma P(t) L at B = 3 for every carrier and both bandwidths; the Gaussian broadening factor."""
@@ -183,8 +184,8 @@ def fiber_dispersion(fam: Family):
             fam.check(f"D(λ) → β2 {label_wl(lam)}", got, want, rel=3e-4, unit="s²/m", formula="β2 = -D λ²/(2πc) at the (grid-snapped) carrier")
             lrep = 2 * math.pi * C / r.summary["grid"]["reportOmega0"]
             wantg = -beta_curve_D(lrep) * 1e-6 * lrep ** 2 / (2 * math.pi * C) * 0.1
-            fam.check(f"D(λ) → GDD of 0.1 m {label_wl(lam)}", element(r)["own"]["gddS2"], wantg, rel=5e-3, unit="s²",
-                      formula="reported GDD is at grid.reportOmega0; 0.5 % allowed (2 µm: the table's strong β3 and the finite-difference GDD)")
+            fam.check(f"D(λ) → GDD of 0.1 m {label_wl(lam)}", element(r)["own"]["gddS2"], wantg, rel=1e-3, unit="s²",
+                      formula="reported GDD is at grid.reportOmega0 (cubic spline of β2(ω) through the table)")
             eng.append(got)
             ana.append(want)
             lams.append(lc * 1e9)

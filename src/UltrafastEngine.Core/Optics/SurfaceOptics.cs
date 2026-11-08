@@ -61,7 +61,7 @@ namespace UltrafastEngine.Optics
             {
                 if (Aberration != null && Aberration.Any)
                 {
-                    double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / p.Grid.OmegaCenter;
+                    double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / p.Grid.ReportOmega;
                     double w = BeamRadiusForStrehlM;
                     if (double.IsNaN(w) && ctx.Element.BeamIn != null) w = Math.Sqrt(ctx.Element.BeamIn.RadiusX * ctx.Element.BeamIn.RadiusY);
                     if (!double.IsNaN(w) && w > 0)

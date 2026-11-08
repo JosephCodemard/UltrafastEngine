@@ -63,7 +63,7 @@ See [Delayed light](delayed-light.md#delayed-scatter).
 | `fresnel` | bare interface reflection/transmission |
 | `coating` | coated surfaces, chirped mirrors |
 | `grating` | diffraction efficiency |
-| `clip` | Gaussian beam on a hard aperture: T = 1 - exp(-2 a^2 / w^2) (circular), erf product (rectangular); per-wavelength when the beam size is; chief-ray vignetting from OpticStudio |
+| `clip` | Gaussian beam on a hard aperture: T = 1 - exp(-2 a^2 / w^2) (circular, round beam; an elliptical beam wx x wy gives the exact integral over the disk, (1 / pi wx wy) ∫ (1 - exp(-a^2 q)) / q dφ with q = 2 (cos²φ / wx² + sin²φ / wy²)), erf product (rectangular); per-wavelength when the beam size is; chief-ray vignetting from OpticStudio |
 | `scatter` | total integrated scatter of rough surfaces: reflection (4 pi sigma n cos(theta) / lambda)^2, transmission (2 pi sigma |n1 cos t1 - n2 cos t2| / lambda)^2 |
 | `absorption` | material attenuation, internal transmission, absorbing time responses |
 | `filter`, `transmission`, `custom` | filters and tabulated transmissions |

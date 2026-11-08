@@ -126,6 +126,25 @@ namespace UltrafastEngine.Engine
         public static int NextPow2(long v) { long p = 1; while (p < v) p <<= 1; return (int)Math.Min(p, 1L << 30); }
 
         /// <summary>Grid with the carrier moved to the nearest multiple of the frequency step.</summary>
+        /// <summary>
+        /// The memory of a delayed response h(t) (integral 1, h = 0 for t &lt; 0): the time after which less than <paramref name="tailFraction"/> of
+        /// its weight remains. A nonlinear index change driven by a pulse lasts this long after the pulse; on a periodic time grid it wraps
+        /// around to the leading edge unless the window holds pulse + memory (CS2, tau = 18 ps: 9.2 tau = 166 ps for 1e-4). Found by
+        /// sampling h on a geometric time axis from 1 fs to 10 us.
+        /// </summary>
+        public static double ResponseMemoryS(Models.IDelayedResponse r, double tailFraction = 1e-4)
+        {
+            const int N = 1200; double t0 = 1e-15, ratio = Math.Pow(1e10, 1.0 / N);
+            var t = new double[N + 1]; for (int i = 0; i <= N; i++) t[i] = t0 * Math.Pow(ratio, i);
+            double[] h;
+            try { h = r.Evaluate(t); } catch { return 0; }
+            var cum = new double[N + 1]; double total = 0;
+            for (int i = 1; i <= N; i++) { total += 0.5 * (Math.Abs(h[i]) + Math.Abs(h[i - 1])) * (t[i] - t[i - 1]); cum[i] = total; }
+            if (!(total > 0) || double.IsNaN(total) || double.IsInfinity(total)) return 0;
+            for (int i = N; i > 0; i--) if (total - cum[i - 1] > tailFraction * total) return t[i];
+            return 0;
+        }
+
         public static FrequencyGrid Create(int n, double windowS, double omega0, bool snap, out double snappedOmega0)
         {
             double dt = windowS / n;

@@ -32,6 +32,8 @@ namespace UltrafastEngine.Pulses
         /// <summary>The frequency at which element dispersion is reported: the requested carrier when it is on this grid, else the centre.</summary>
         public double ReportOmega => !double.IsNaN(RequestedOmega) && Math.Abs(RequestedOmega - OmegaCenter) <= DOmega ? RequestedOmega : OmegaCenter;
         public double[] OmegaOffset { get; }
+        /// <summary>Frequency offsets from <see cref="ReportOmega"/> (equal to <see cref="OmegaOffset"/> when the carrier is not snapped).</summary>
+        public double[] OmegaOffsetFromReport() { double r = ReportOmega; if (r == OmegaCenter) return OmegaOffset; var o = new double[N]; for (int i = 0; i < N; i++) o[i] = OmegaAbsolute[i] - r; return o; }
         public double[] OmegaAbsolute { get; }
         public double DOmega { get; }
         public int CarrierIndex => N / 2;

@@ -175,7 +175,7 @@ namespace UltrafastEngine.Engine
         private static void FiberMetrics(PulseField pulse, double gamma, Func<double, double> beta2At, double[] betas, double wRef, double L, ElementRecord rec)
         {
             var s = PulseMetrics.Summarize(pulse);
-            double w0 = pulse.Grid.OmegaCenter, b2 = beta2At(w0), p0 = s.PeakPowerW, t0 = s.FwhmS / 1.763;
+            double w0 = pulse.Grid.ReportOmega, b2 = beta2At(w0), p0 = s.PeakPowerW, t0 = s.FwhmS / 1.763;
             if (double.IsNaN(b2) || !(t0 > 0) || !(p0 > 0)) return;
             double ld = t0 * t0 / Math.Abs(b2), lnl = 1 / (gamma * p0), N = Math.Sqrt(ld / lnl);
             rec.Values["beta2S2PerM"] = b2; rec.Values["dispersionLengthM"] = ld; rec.Values["nonlinearLengthM"] = lnl; rec.Values["solitonNumber"] = N;
@@ -246,11 +246,12 @@ namespace UltrafastEngine.Engine
         }
     }
 
-    /// <summary>n(omega) of a fibre mode from a tabulated beta2(omega): beta is integrated twice from the carrier (cubic
-    /// interpolation of beta2, constant beyond the data).</summary>
+    /// <summary>n(omega) of a fibre mode from a tabulated beta2(omega): beta is integrated twice from the carrier (natural cubic
+    /// spline of beta2 in omega, constant beyond the data). A linear interpolation was off by h^2 beta2'' / 8 between the points: up to
+    /// 0.8 % of beta2 for a 53-point D(lambda) table near D = 0.</summary>
     public sealed class TabulatedFiberIndex : IRefractiveIndex
     {
-        private readonly double _w0, _n; private readonly double[] _w, _b2, _gw, _beta;
+        private readonly double _w0, _n; private readonly double[] _w, _b2, _gw, _beta; private readonly IInterpolator _b2Spline;
         public TabulatedFiberIndex(double w0, double nEff, double[] wavelengthsM, double[] beta2)
         {
             _w0 = w0; _n = nEff;
@@ -258,6 +259,7 @@ namespace UltrafastEngine.Engine
             var w = wavelengthsM.Select(l => 2 * Math.PI * c / l).ToArray();
             var o = Enumerable.Range(0, w.Length).OrderBy(i => w[i]).ToArray();
             _w = o.Select(i => w[i]).ToArray(); _b2 = o.Select(i => beta2[i]).ToArray();
+            _b2Spline = _w.Length >= 4 ? (IInterpolator)new NaturalCubicSpline(_w, _b2) : new LinearInterpolator(_w, _b2);
             // integrate on a fine grid spanning the data and +-60 % around the carrier, with the carrier on a node
             double lo = Math.Min(_w[0], 0.4 * w0), hi = Math.Max(_w[_w.Length - 1], 1.6 * w0);
             int n = 20001; double dw = (hi - lo) / (n - 1);
@@ -270,7 +272,7 @@ namespace UltrafastEngine.Engine
             for (int i = i0 + 1; i < n; i++) _beta[i] = _beta[i - 1] + 0.5 * (b1[i - 1] + b1[i]) * dw;
             for (int i = i0 - 1; i >= 0; i--) _beta[i] = _beta[i + 1] - 0.5 * (b1[i + 1] + b1[i]) * dw;
         }
-        public double Beta2At(double w) => w <= _w[0] ? _b2[0] : w >= _w[_w.Length - 1] ? _b2[_b2.Length - 1] : Interpolation.Linear(_w, _b2, w);
+        public double Beta2At(double w) => w <= _w[0] ? _b2[0] : w >= _w[_w.Length - 1] ? _b2[_b2.Length - 1] : _b2Spline.Evaluate(w);
         public string Description => "fiber mode, tabulated dispersion (" + _w.Length + " points)";
         public void Evaluate(double[] omega, double[] nOut)
         {

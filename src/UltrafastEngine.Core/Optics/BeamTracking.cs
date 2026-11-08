@@ -383,7 +383,7 @@ namespace UltrafastEngine.Optics
         {
             double E = x ? b.Ex : b.Ey, F = x ? b.Fx : b.Fy; var q = x ? b.Qx : b.Qy;
             if (E == 0 && F == 0) return 0;
-            var g = p.Grid; int n = g.N; double k0 = b.K0, w0 = g.OmegaCenter;
+            var g = p.Grid; int n = g.N; double k0 = b.K0, w0 = g.ReportOmega;
             double w = x ? b.RadiusX : b.RadiusY;
             if (double.IsNaN(w)) return double.NaN;
             // spectral power and group delay of each polarisation (central differences of the phase, on the support)
@@ -438,7 +438,7 @@ namespace UltrafastEngine.Optics
         public static PulseField WithTrackedProfile(BeamState b, PulseField p, bool x)
         {
             double E = x ? b.Ex : b.Ey, F = x ? b.Fx : b.Fy, w = x ? b.RadiusX : b.RadiusY; var q = x ? b.Qx : b.Qy;
-            var g = p.Grid; int n = g.N; double w0 = g.OmegaCenter;
+            var g = p.Grid; int n = g.N; double w0 = g.ReportOmega;
             var sp = p.SpectralIntensity(); double s0 = 0, s2 = 0;
             for (int i = 0; i < n; i++) { double d = g.OmegaAbsolute[i] - w0; s0 += sp[i]; s2 += sp[i] * d * d; }
             double half = 4 * Math.Sqrt(w * w + 4 * E * E * s2 / Math.Max(1e-300, s0));
@@ -467,7 +467,7 @@ namespace UltrafastEngine.Optics
         public static void Report(BeamState b, PulseField p, System.Collections.Generic.IDictionary<string, double> values)
         {
             if (b == null || !b.HasCouplings) return;
-            double w0 = p.Grid.OmegaCenter, lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w0, dwdl = -w0 / lam, n = b.MediumIndex > 0 ? b.MediumIndex : 1;
+            double w0 = p.Grid.ReportOmega, lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / w0, dwdl = -w0 / lam, n = b.MediumIndex > 0 ? b.MediumIndex : 1;
             foreach (bool x in new[] { true, false })
             {
                 double E = x ? b.Ex : b.Ey, F = x ? b.Fx : b.Fy; string a = x ? "X" : "Y";

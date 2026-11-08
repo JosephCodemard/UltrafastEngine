@@ -279,6 +279,15 @@ namespace UltrafastEngine.Pulses
             int n = grid.N;
             var a = new Complex[n];
             string shape = Shape.ToLowerInvariant();
+            // The grid centre is the requested carrier snapped onto the frequency lattice (up to half a bin away). The pulse is built at the
+            // requested carrier, as an offset of the lattice (a pulse whose own centre is more than one bin from the grid centre is built at the grid centre): A(t) = envelope x exp(-i dw t), so its spectral centre, the Kerr phase
+            // (n2 w / c), the dispersion and the angles of an optical system all refer to the same frequency.
+            double carrierShift = 0;
+            if (shape != "cw")
+            {
+                double wc = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / ResolveCenterWavelengthM();
+                if (Math.Abs(wc - grid.OmegaCenter) <= grid.DOmega) carrierShift = wc - grid.OmegaCenter;
+            }
             if (shape == "cw")
             {
                 int best = 0;
@@ -350,7 +359,7 @@ namespace UltrafastEngine.Pulses
                         }
                         default: throw new JsonException("pulse: unknown shape \"" + Shape + "\" (gaussian, sech2, superGaussian, spectrum, cw).");
                     }
-                    at[i] = env;
+                    at[i] = carrierShift == 0 ? env : Complex.FromPolarCoordinates(env, -carrierShift * grid.Time[i]);
                 }
                 a = SpectralTransform.TimeToFreq(at);
             }
@@ -358,7 +367,7 @@ namespace UltrafastEngine.Pulses
             if (Gdd != 0 || Tod != 0 || Fod != 0)
                 for (int i = 0; i < n; i++)
                 {
-                    double d = grid.OmegaOffset[i];
+                    double d = grid.OmegaAbsolute[i] - grid.OmegaCenter - carrierShift;
                     a[i] *= Complex.FromPolarCoordinates(1, Gdd * d * d / 2 + Tod * d * d * d / 6 + Fod * d * d * d * d / 24);
                 }
             if (shape == "spectrum" && DelayS != 0)
