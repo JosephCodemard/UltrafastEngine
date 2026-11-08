@@ -160,5 +160,151 @@ namespace UltrafastEngine.Tests
             Assert.Close(tp, t[kmax], 0.01, 0, "peak time");
             Assert.Close(1.5, h.AnisotropicFraction, 0, 0, "purely orientational");
         }
+
+        // ------------------------------------------------------------------------------------------------ G1: cubic chi(3), XPW
+
+        private static RunResult Cubic(double sigma, double angleDeg, double energy, double[] cut = null, double azimuthDeg = 0)
+        {
+            var mat = FlatMaterial(2e-20); mat.Set("kerrAnisotropy", sigma);
+            var el = O("id", "cell", "type", "bulk", "material", "X", "lengthM", 1e-3, "beam", O("kind", "constant", "radiusM", 100e-6));
+            if (cut != null) el.Set("kerrCutAxis", JsonValue.FromArray(cut));
+            if (azimuthDeg != 0) el.Set("kerrAzimuthDeg", azimuthDeg);
+            var j = O("format", "ultrafast-system", "version", 2, "name", "xpw");
+            j.Set("materials", O("X", mat)); j.Set("elements", A(el));
+            var pulse = O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 100e-15, "energyJ", energy,
+                "polarization", O("angleDeg", angleDeg, "ellipticity", 0.0));
+            return Go(SystemDescription.FromJson(j), Spec(pulse, O("physics", O("selfSteepening", false), "grid", O("auto", false, "n", 1024, "windowS", 1.5e-12))));
+        }
+
+        /// <summary>Energy of the output in the polarisation orthogonal to the input's, relative to the output energy.</summary>
+        private static double PerpFraction(RunResult r, double angleDeg)
+        {
+            double a = angleDeg * Math.PI / 180, par = 0, perp = 0;
+            var ax = r.Output.TemporalAx(); var ay = r.Output.TemporalAy();
+            for (int i = 0; i < ax.Length; i++)
+            {
+                var p = Math.Cos(a) * ax[i] + Math.Sin(a) * ay[i]; var q = -Math.Sin(a) * ax[i] + Math.Cos(a) * ay[i];
+                par += p.Magnitude * p.Magnitude; perp += q.Magnitude * q.Magnitude;
+            }
+            return perp / (par + perp);
+        }
+
+        private static double EnergyForB(double b)   // 100 fs, w0 = 100 um, 1 mm, n2 = 2e-20, 800 nm: B = k0 n2 I0 L
+        {
+            double k0 = 2 * Math.PI / 800e-9, w0 = 100e-6, tau = 100e-15;
+            double i0 = b / (k0 * 2e-20 * 1e-3);
+            return i0 * Math.PI * w0 * w0 / 2 * tau / Math.Sqrt(4 * Math.Log(2) / Math.PI);
+        }
+
+        // m3m chi(3) = chi1122 (dd + dd + dd) + Delta d_ijkl, sigma = Delta / chi1111. [001] cut, input at beta to [100]: the Delta term drives
+        // P_perp ~ -(sigma/4) sin(4 beta) |A|^2 A, so at low conversion E_perp / E = (B sigma sin(4 beta) / 4)^2 / sqrt(3) for a Gaussian pulse
+        // (int I^3 dt / int I dt = I0^2 / sqrt(3)). Zero at 0 and 45 deg, maximal at 22.5 deg (NOT at 45 deg as the task text assumed).
+        [Test(Category = "physics", Reference = "cubic chi(3) tensor (Boyd, Nonlinear Optics, sec. 4.2; Minkovski et al., Opt. Lett. 29, 2237 (2004)): XPW fraction (B sigma sin 4beta / 4)^2 / sqrt(3)", Tolerance = "3 % (O(B) corrections)")]
+        public void CubicKerr_Xpw_FollowsSin4BetaSquared_ForTheCutAlong001()
+        {
+            const double sigma = -1.2, b = 0.01;
+            double e = EnergyForB(b);
+            foreach (double beta in new[] { 10.0, 22.5, 30.0, 60.0 })
+            {
+                double amp = b * sigma * Math.Sin(4 * beta * Math.PI / 180) / 4;
+                Assert.Close(amp * amp / Math.Sqrt(3), PerpFraction(Cubic(sigma, beta, e), beta), 0.03, 1e-12, "XPW fraction at beta = " + beta);
+            }
+            foreach (double beta in new[] { 0.0, 45.0, 90.0 })
+                Assert.Less(PerpFraction(Cubic(sigma, beta, e), beta), 1e-12, "no XPW at beta = " + beta);
+        }
+
+        [Test(Category = "physics", Reference = "sigma = 0 is the isotropic Maker-Terhune Kerr tensor: identical output", Tolerance = "1e-12")]
+        public void CubicKerr_WithZeroAnisotropy_EqualsTheIsotropicKerr()
+        {
+            double e = EnergyForB(0.5);
+            var iso = Cubic(0, 30, e);
+            var mat = FlatMaterial(2e-20);
+            var j = O("format", "ultrafast-system", "version", 2, "name", "iso");
+            j.Set("materials", O("X", mat));
+            j.Set("elements", A(O("id", "cell", "type", "bulk", "material", "X", "lengthM", 1e-3, "beam", O("kind", "constant", "radiusM", 100e-6))));
+            var pulse = O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 100e-15, "energyJ", e, "polarization", O("angleDeg", 30.0, "ellipticity", 0.0));
+            var ref0 = Go(SystemDescription.FromJson(j), Spec(pulse, O("physics", O("selfSteepening", false), "grid", O("auto", false, "n", 1024, "windowS", 1.5e-12))));
+            var a = iso.Output.TemporalAx(); var c = ref0.Output.TemporalAx(); double dev = 0, mx = 0;
+            for (int i = 0; i < a.Length; i++) { dev = Math.Max(dev, (a[i] - c[i]).Magnitude); mx = Math.Max(mx, c[i].Magnitude); }
+            Assert.Less(dev / mx, 1e-12, "sigma = 0 equals isotropic");
+        }
+
+        // SPM index along beta from [100]: n2 [(1 - sigma) + sigma (cos^4 + sin^4)] = n2 [1 - (sigma/2) sin^2(2 beta)]
+        [Test(Category = "physics", Reference = "cubic chi(3): index change along beta from [100] is n2 [1 - (sigma/2) sin^2(2 beta)]", Tolerance = "0.3 %")]
+        public void CubicKerr_SpmIndex_DependsOnTheAngleToTheCubicAxis()
+        {
+            const double sigma = -1.2;
+            double e = EnergyForB(0.05);
+            double Bof(double beta) => Cubic(sigma, beta, e).Records.Sum(x => x.BIntegralRad);
+            double b0 = Bof(0.0);
+            Assert.Close(1 - 0.5 * sigma, Bof(45.0) / b0, 0.003, 0, "[110] vs [100]");
+            Assert.Close(1 - 0.5 * sigma * Math.Pow(Math.Sin(2 * 20 * Math.PI / 180), 2), Bof(20.0) / b0, 0.003, 0, "20 deg");
+        }
+
+        [Test(Category = "physics", Reference = "covariance: crystal azimuth and input angle rotate together", Tolerance = "1e-9")]
+        public void CubicKerr_RotatingCrystalAndInputTogether_ChangesNothing()
+        {
+            double e = EnergyForB(0.3);
+            double f1 = PerpFraction(Cubic(-1.2, 22.5, e), 22.5);
+            double f2 = PerpFraction(Cubic(-1.2, 22.5 - 17, e, null, 17), 22.5 - 17);   // lab x is 17 deg from [100]: [100] lies at -17 deg in the lab
+            Assert.Close(f1, f2, 1e-9, 1e-15, "XPW fraction");
+        }
+
+        // [011] cut: lab x = [100], lab y = [01-1]/sqrt2. Perp drive ~ sin b cos b (sin^2 b / 2 - cos^2 b): zero at 0, 90 and tan^2 b = 2 (54.7 deg).
+        [Test(Category = "physics", Reference = "cubic chi(3) tensor in the [011] cut: P_perp ~ sin b cos b (sin^2 b / 2 - cos^2 b)", Tolerance = "3 %")]
+        public void CubicKerr_Xpw_In011Cut_FollowsTheTensorProjection()
+        {
+            const double sigma = -1.2, b = 0.01;
+            double e = EnergyForB(b);
+            var cut = new double[] { 0, 1, 1 };
+            foreach (double beta in new[] { 20.0, 30.0, 70.0 })
+            {
+                double r = beta * Math.PI / 180, s = Math.Sin(r), c = Math.Cos(r);
+                double amp = b * sigma * s * c * (s * s / 2 - c * c);
+                Assert.Close(amp * amp / Math.Sqrt(3), PerpFraction(Cubic(sigma, beta, e, cut), beta), 0.03, 1e-12, "011 cut, beta = " + beta);
+            }
+            double bz = Math.Atan(Math.Sqrt(2)) * 180 / Math.PI;
+            Assert.Less(PerpFraction(Cubic(sigma, bz, e, cut), bz), 1e-12, "no XPW at tan^2 = 2");
+        }
+
+        [Test(Category = "physics", Reference = "BaF2 at 20 C, sodium D: n = 1.4744 (Li, J. Phys. Chem. Ref. Data 9, 161 (1980))", Tolerance = "0.001")]
+        public void BaF2_RefractiveIndex_AtSodiumD_Matches()
+        {
+            var m = MaterialLibrary.BuiltIn("BaF2");
+            Assert.Close(1.4744, m.IndexAt(W(589.3e-9)), 0.001, 0, "n_D");
+            Assert.Close(-1.2, m.KerrAnisotropy, 0, 0, "sigma (UNVERIFIED literature value)");
+        }
+
+        [Test(Category = "physics", Reference = "cubic anisotropy needs the envelope model: a spatial model throws instead of ignoring it", Tolerance = "exact")]
+        public void CubicKerr_WithATransverseModel_IsRejected()
+        {
+            var mat = FlatMaterial(2e-20); mat.Set("kerrAnisotropy", -1.2);
+            var j = O("format", "ultrafast-system", "version", 2, "name", "t");
+            j.Set("materials", O("X", mat));
+            j.Set("elements", A(O("id", "cell", "type", "bulk", "material", "X", "lengthM", 1e-3, "beam", O("kind", "constant", "radiusM", 100e-6),
+                "transverse", O("model", "radial", "points", 64, "radiusM", 400e-6))));
+            var pulse = O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 100e-15, "energyJ", 1e-6, "polarization", O("angleDeg", 20.0, "ellipticity", 0.0));
+            Assert.Throws<Exception>(() => Go(SystemDescription.FromJson(j), Spec(pulse)));
+        }
+
+        // ------------------------------------------------------------------------------------------------ B8 at the element level
+
+        [Test(Category = "physics", Reference = "KDP type-I, explicit cut: recorded d_eff is smooth in phi (d36 |sin 2phi| E_z)", Tolerance = "3 %")]
+        public void KdpElement_ExplicitCut_RecordsDeffThatVariesSmoothlyWithPhi()
+        {
+            double d36 = CrystalLibrary.Get("KDP", 20).D[2, 5] * 1e12;
+            double first = 0;
+            foreach (double phi in new[] { 44.75, 45.0, 45.25, 46.0 })
+            {
+                var sys = Sys(O("id", "x", "type", "crystal", "crystal", "KDP", "lengthM", 1e-3, "cut", O("thetaDeg", 50.5478, "phiDeg", phi),
+                    "interaction", O("process", "shg", "type", "I"), "overlap", O("model", "planeWave", "radiusM", 100e-6), "chi3", false, "output", "sh"));
+                var r = Go(sys, Spec(Gauss(1064e-9, 1e-12, 1e-9)));
+                double deff = Math.Abs(r.Records.First().Values["deffPmPerV"]);
+                if (phi == 44.75) first = deff;
+                double expect = Math.Abs(d36) * Math.Abs(Math.Sin(2 * phi * Math.PI / 180)) * Math.Sin(50.5478 * Math.PI / 180);
+                Assert.Close(expect, deff, 0.03, 0, "recorded deff at phi " + phi);
+                Assert.Close(first, deff, 0.01, 0, "deff stays at its 44.75 deg value near 45 deg");
+            }
+        }
     }
 }
