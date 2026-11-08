@@ -89,3 +89,10 @@ paper README, then delete `progress-2026-11-consolidate.md` and update capabilit
 * Not covered: delayed-response memory only for Raman (not generic `timeResponse` or gas revivals); decentre of round aperture still ignored; GPU
   untested; carrier offset in the carrier-resolved model only covered by existing tests.
 * Paper follow-up: maker-1962 `repro_2.py` and shimizu-1967 `repro_1.py` now behave as expected: convert to documented regression checks or delete.
+
+## Status: all four streams merged into dev/2026-11-consolidate (2026-11-08)
+* C# suite 467 + schema fix green; component tests 1688 / 1691 (3 KNOWN = B1 2 µm / 10 fs); paper_check 11 of 12 green.
+* **Regression to diagnose:** shimizu-1967 hard check "engine (CS2 dispersion off) = lowest-order model" went from 6e-4 to 5.8e-3 (tol 5e-3)
+  after the merge (requested-carrier pulse or longer auto window?). Kida soft checks 2 -> 4.
+* Next: four paper agents re-run the papers with the new features and add "How well the science matched" to every README;
+  then delete `progress-2026-11-consolidate.md` and this plan's findings are folded into capabilities / roadmap / CHANGELOG / testing.md / PROJECT_STATUS.
