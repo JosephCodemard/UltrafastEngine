@@ -1,18 +1,223 @@
 {
  "paper": "kaur-2024-mpc-ner-xpw",
  "checks": [
-  {"id": "crossed QWP pair + crossed polariser block linear light", "kind": "number", "key": "linearLeak", "expected": 0, "tolerance": 1e-9, "source": "Jones calculus; convention check of run.py"},
-  {"id": "engine vs instantaneous-Kerr analytic efficiency (short cell)", "kind": "number", "key": "engineVsAnalyticMaxDev", "expected": 0, "tolerance": 0.03, "source": "docs/reference/nonlinear.md NER law; absolute efficiency difference"},
-  {"id": "time-averaged NER ceiling, eps 0.25 (analytic) vs measured/simulated 58 %", "kind": "number", "key": "analyticMaxEff_eps25", "expected": 0.58, "tolerance": 0.05, "source": "p. 4: maximum internal efficiency 58 % (measured; simulation 'particularly good')"},
-  {"id": "time-averaged NER ceiling, eps 0.18 (analytic) vs 69 %", "kind": "number", "key": "analyticMaxEff_eps18", "expected": 0.69, "tolerance": 0.05, "source": "p. 4: 69 % at eps 0.18"},
-  {"id": "ceiling at eps 0.15 below the paper's 75 %", "kind": "ordering", "a": "analyticMaxEff_eps15", "b": "paperCeiling", "source": "p. 3: 'should not exceed 75 %'"},
-  {"id": "engine reaches the 58 % level for eps 0.25 (any pressure)", "kind": "number", "key": "maxEff_eps25", "expected": 0.58, "tolerance": 0.05, "source": "p. 4"},
-  {"id": "optimum pressure eps 0.25, constant 1.45 mm beam", "kind": "number", "key": "pAtMaxEff_eps25_bar", "expected": 0.35, "tolerance": 0.1, "hard": false, "source": "p. 4: ~350 mbar. DOES NOT REPRODUCE (beam size unknown, B undefined): see README"},
-  {"id": "efficiency at 350 mbar, eps 0.25, constant beam", "kind": "number", "key": "effAt350mbar_eps25", "expected": 0.58, "tolerance": 0.05, "hard": false, "source": "p. 4. DOES NOT REPRODUCE with the stated beam; see README"},
-  {"id": "efficiency at 420 mbar, eps 0.18, constant beam", "kind": "number", "key": "effAt420mbar_eps18", "expected": 0.69, "tolerance": 0.05, "hard": false, "source": "p. 5. DOES NOT REPRODUCE; see README"},
-  {"id": "B(linear) at 400 mbar, constant beam", "kind": "number", "key": "bLinAt420mbar_eps25", "expected": 6, "tolerance": 0.25, "relative": true, "hard": false, "source": "p. 3: 'B-integral ... 6 rad, around 400 mbar' (definition of B not given)"},
-  {"id": "FTL duration of the eps 0.18 output at 420 mbar", "kind": "number", "key": "ftlAt420mbarFs_eps18", "expected": 5.8, "tolerance": 0.2, "relative": true, "hard": false, "source": "p. 4: nearly FTL 5.8 fs pulses"},
-  {"id": "contrast improvement limit of a 5e-3 leak is >= 3 orders", "kind": "number", "key": "contrastImprovementLimitOrders", "expected": 3, "tolerance": 0.5, "hard": false, "source": "p. 4: 'at least three orders of magnitude', limited by the TFP extinction (5e-3)"},
-  {"id": "BaF2 peak power over critical (n2 UNVERIFIED)", "kind": "number", "key": "baf2PowerOverCritical", "expected": 5000, "tolerance": 0.6, "relative": true, "hard": false, "source": "p. 7: about 5e3; n2 of BaF2 assumed 1.6e-20 m2/W, UNVERIFIED"}
+  {
+   "id": "crossed QWP pair + crossed polariser block linear light",
+   "kind": "number",
+   "key": "linearLeak",
+   "expected": 0,
+   "tolerance": 1e-09,
+   "source": "Jones calculus; convention check of run.py"
+  },
+  {
+   "id": "engine vs instantaneous-Kerr analytic efficiency (short cell)",
+   "kind": "number",
+   "key": "engineVsAnalyticMaxDev",
+   "expected": 0,
+   "tolerance": 0.03,
+   "source": "docs/reference/nonlinear.md NER law; absolute efficiency difference"
+  },
+  {
+   "id": "time-averaged NER ceiling, eps 0.25 (analytic) vs measured/simulated 58 %",
+   "kind": "number",
+   "key": "analyticMaxEff_eps25",
+   "expected": 0.58,
+   "tolerance": 0.05,
+   "source": "p. 4: maximum internal efficiency 58 % (measured; simulation 'particularly good')"
+  },
+  {
+   "id": "time-averaged NER ceiling, eps 0.18 (analytic) vs 69 %",
+   "kind": "number",
+   "key": "analyticMaxEff_eps18",
+   "expected": 0.69,
+   "tolerance": 0.05,
+   "source": "p. 4: 69 % at eps 0.18"
+  },
+  {
+   "id": "ceiling at eps 0.15 below the paper's 75 %",
+   "kind": "ordering",
+   "a": "analyticMaxEff_eps15",
+   "b": "paperCeiling",
+   "source": "p. 3: 'should not exceed 75 %'"
+  },
+  {
+   "id": "engine reaches the 58 % level for eps 0.25 (any pressure)",
+   "kind": "number",
+   "key": "maxEff_eps25",
+   "expected": 0.58,
+   "tolerance": 0.05,
+   "source": "p. 4"
+  },
+  {
+   "id": "optimum pressure eps 0.25, constant 1.45 mm beam",
+   "kind": "number",
+   "key": "pAtMaxEff_eps25_bar",
+   "expected": 0.35,
+   "tolerance": 0.1,
+   "hard": false,
+   "source": "p. 4: ~350 mbar. DOES NOT REPRODUCE (beam size unknown, B undefined): see README"
+  },
+  {
+   "id": "efficiency at 350 mbar, eps 0.25, constant beam",
+   "kind": "number",
+   "key": "effAt350mbar_eps25",
+   "expected": 0.58,
+   "tolerance": 0.05,
+   "hard": false,
+   "source": "p. 4. DOES NOT REPRODUCE with the stated beam; see README"
+  },
+  {
+   "id": "efficiency at 420 mbar, eps 0.18, constant beam",
+   "kind": "number",
+   "key": "effAt420mbar_eps18",
+   "expected": 0.69,
+   "tolerance": 0.05,
+   "hard": false,
+   "source": "p. 5. DOES NOT REPRODUCE; see README"
+  },
+  {
+   "id": "B(linear) at 400 mbar, constant beam",
+   "kind": "number",
+   "key": "bLinAt420mbar_eps25",
+   "expected": 6,
+   "tolerance": 0.25,
+   "relative": true,
+   "hard": false,
+   "source": "p. 3: 'B-integral ... 6 rad, around 400 mbar' (definition of B not given)"
+  },
+  {
+   "id": "FTL duration of the eps 0.18 output at 420 mbar",
+   "kind": "number",
+   "key": "ftlAt420mbarFs_eps18",
+   "expected": 5.8,
+   "tolerance": 0.2,
+   "relative": true,
+   "hard": false,
+   "source": "p. 4: nearly FTL 5.8 fs pulses"
+  },
+  {
+   "id": "contrast improvement limit of a 5e-3 leak is >= 3 orders",
+   "kind": "number",
+   "key": "contrastImprovementLimitOrders",
+   "expected": 3,
+   "tolerance": 0.5,
+   "hard": false,
+   "source": "p. 4: 'at least three orders of magnitude', limited by the TFP extinction (5e-3)"
+  },
+  {
+   "id": "BaF2 peak power over critical (engine n2 2e-20, UNVERIFIED)",
+   "kind": "number",
+   "key": "baf2PowerOverCritical",
+   "expected": 5000,
+   "tolerance": 0.6,
+   "relative": true,
+   "hard": false,
+   "source": "p. 7: about 5e3. The engine's built-in BaF2 n2 (2.0e-20, UNVERIFIED) gives 9.6e3; the paper's 5e3 implies n2 3.8e-20 (or a lower peak power)"
+  },
+  {
+   "id": "XPW [001] cut: optimum polarisation angle (low conversion)",
+   "kind": "location",
+   "key": "xpwCurveLowB_001",
+   "expected": 22.5,
+   "tolerance": 1.0,
+   "source": "cubic tensor, sin^2(4 beta): maximum at 22.5 deg (docs/reference/nonlinear.md)"
+  },
+  {
+   "id": "XPW [011] cut: optimum polarisation angle from [100]",
+   "kind": "location",
+   "key": "xpwCurveLowB_011",
+   "expected": 25.5,
+   "tolerance": 1.0,
+   "source": "cubic tensor, (sin b cos b (sin^2 b/2 - cos^2 b))^2: global maximum at 25.5 deg from [100]"
+  },
+  {
+   "id": "XPW [011] cut: no XPW at 54.7 deg",
+   "kind": "number",
+   "key": "xpwFractionAt54p7deg_011",
+   "expected": 0,
+   "tolerance": 1e-09,
+   "source": "tensor zero, tan^2 b = 2"
+  },
+  {
+   "id": "XPW peak [011] / [001] (low conversion) = (0.2805/0.25)^2",
+   "kind": "number",
+   "key": "xpwLowBRatio_011_over_001",
+   "expected": 1.259,
+   "tolerance": 0.03,
+   "relative": true,
+   "source": "tensor: peak amplitudes 0.2805 and 0.25 of B sigma"
+  },
+  {
+   "id": "paper's 64.5 deg = 90 deg - optimum of the [011] cut (reading of the angle convention, UNVERIFIED)",
+   "kind": "number",
+   "key": "xpwOptAngleFrom01m1Deg_011",
+   "expected": 64.5,
+   "tolerance": 1.0,
+   "hard": false,
+   "source": "p. 8: 'input polarization 64.5 deg with respect to the optical axes of the BaF2 crystals' (holographic cut); which axis is not stated"
+  },
+  {
+   "id": "XPW internal efficiency after 16 passes, plate beam from the stated waist 330 um at 1 m (w = 840 um), [011]",
+   "kind": "number",
+   "key": "xpw_w840_011_internal16",
+   "expected": 0.65,
+   "tolerance": 0.1,
+   "hard": false,
+   "source": "p. 8: 65 % internal for 16 passes. DOES NOT REPRODUCE with this beam size (B = 5.9 rad per pass): see README"
+  },
+  {
+   "id": "XPW overall efficiency after 16 passes, w = 840 um, [011]",
+   "kind": "number",
+   "key": "xpw_w840_011_overall16",
+   "expected": 0.34,
+   "tolerance": 0.1,
+   "hard": false,
+   "source": "p. 8 / 10: 34 % overall (-500 fs2 case) / 28 % measured"
+  },
+  {
+   "id": "[011] cut beats [001] at the same beam (internal efficiency, 16 passes, w = 1.41 mm)",
+   "kind": "ordering",
+   "a": "zeroRef",
+   "b": "xpw_011_beats_001_w1410",
+   "source": "holographic cut > [001] cut (engine tensor); paper only states the holographic cut was used"
+  },
+  {
+   "id": "2.9 m cell: empty-mode diameter on the mirrors",
+   "kind": "number",
+   "key": "cell29_emptyMirrorDiameterMm",
+   "expected": 2.9,
+   "tolerance": 0.03,
+   "relative": true,
+   "hard": false,
+   "source": "p. 2: 2.9 mm beam diameter on the end mirrors; the mirror distance 2.9 m is our reading of 'about 3 m' (UNVERIFIED)"
+  },
+  {
+   "id": "2.9 m cell: empty-mode waist vs the stated 450 um",
+   "kind": "number",
+   "key": "cell29_emptyWaistUm",
+   "expected": 450,
+   "tolerance": 0.1,
+   "relative": true,
+   "hard": false,
+   "source": "p. 2: 450 um waist. DOES NOT REPRODUCE: the same cell has 262 um (the confocal limit for R = 1.5 m is 437 um)"
+  },
+  {
+   "id": "Kerr-matched mode exists at 350 mbar and 31 GW (fraction of the peak power with a mode = 1)",
+   "kind": "number",
+   "key": "cell29_maxMatchedPowerFraction_350mbar",
+   "expected": 1.0,
+   "tolerance": 0.05,
+   "hard": false,
+   "source": "the experiment ran at ~350 mbar; the helper finds no mode above 0.2 of the peak power. DOES NOT REPRODUCE"
+  },
+  {
+   "id": "NER optimum pressure in the 2.9 m cell caustic (eps 0.25)",
+   "kind": "number",
+   "key": "pAtMaxEff_eps25_cell29_bar",
+   "expected": 0.35,
+   "tolerance": 0.1,
+   "hard": false,
+   "source": "p. 4: ~350 mbar. DOES NOT REPRODUCE: optimum at 75 mbar"
+  }
  ]
 }

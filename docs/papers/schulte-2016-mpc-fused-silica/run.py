@@ -27,6 +27,7 @@ from paperlib import Paper, BLUE, ORANGE, AQUA, REF, REF2  # noqa: E402
 
 import ultrafast as uf  # noqa: E402
 from ultrafast import build as b  # noqa: E402
+from ultrafast import cells  # noqa: E402
 
 LAM, TAU, F_REP = 1.03e-6, 850e-15, 10e6
 C0 = 299792458.0
@@ -45,6 +46,31 @@ def bare_cell(R=R_EFF, d=D_MIRROR):
 
 
 W_MIRROR, W_WAIST = bare_cell()
+
+
+def helper_mode(p_peak_w, air_len=D_MIRROR):
+    """Kerr-matched launch beam from the engine's cellMode helper (ultrafast.cells.cell_mode).
+
+    Mapping of our bounce [air][26 mm glass][mirror] on the helper's cell: the 26 mm plate sits against mirror 2 (1 um air gap, so the
+    mirror stays in air as in the radial model), mirror 1 has none; one traversal then equals one bounce (air, glass, mirror), launch
+    plane = start of the first air gap. Mirror separation = air + glass. 36 traversals. peak_power = peak power of the pulse.
+    NOT equivalent to the radial model's period-1 bounce in the nonlinear case: the helper cell has glass at mirror 2 only, so its radii on the two
+    mirrors differ (540 / 465 um at 375 W) while every bounce of the radial model is the same. In the linear case (peak_power = 0) the mapping is exact:
+    the radial model launched with this mode keeps 476.8 um in the glass on every bounce (numbers: helperLinearSpreadUm)."""
+    d = air_len + 2 * L_GLASS + 1e-6
+    r = cells.cell_mode(LAM, mirror_radius=R_EFF, separation=d, peak_power=p_peak_w, passes=NBOUNCE,
+                        plates=[{"thicknessM": 2 * L_GLASS, "positionM": d - L_GLASS - 1e-6, "material": "FusedSilica"}])
+    return r
+
+
+def mean_peak_power(r):
+    """Mean over the 36 bounces of the peak power entering each air gap (the engine reports it per element)."""
+    pp = [e["pulse"]["peakPowerW"] for e in r.summary["elements"] if e["id"].startswith("air")]
+    return float(np.mean(pp)), float(pp[0])
+
+
+def glass_radii(r):
+    return np.array([e["beam"]["radiusXM"] for e in r.summary["elements"] if e["id"].startswith("gl")])
 
 
 def system(nb=NBOUNCE, gdd=GDD_MIRROR, air_nonlinear=True, air_len=D_MIRROR, points=96, radius=1.5e-3, start=None, spectral_samples=None):
@@ -77,8 +103,11 @@ def system_1d(nb=NBOUNCE, gdd=GDD_MIRROR):
     return b.system("schulte-mpc-1d", els, coatings=co)
 
 
-def spec(e_j):
-    return {"format": "ultrafast-run", "version": 2, "name": "schulte",
+SNAP_CARRIER = False      # carrier exactly at the requested 1030 nm (the engine default snaps it onto the frequency lattice: 1.4 % in the bandwidth, README)
+
+
+def spec(e_j, snap=None):
+    return {"format": "ultrafast-run", "version": 2, "name": "schulte", "grid": {"snapCarrier": SNAP_CARRIER if snap is None else snap},
             "pulse": {"shape": "sech2", "centerWavelengthM": LAM, "durationFwhmS": TAU, "energyJ": e_j, "repRateHz": F_REP, "polarization": "x"},
             "physics": {"selfSteepening": True, "raman": False}, "stepper": {"method": "adaptive", "tolerance": 1e-6}}
 
@@ -214,12 +243,22 @@ def main():
     p = Paper(__file__)
     nums = {"mirrorRadiusUm_bareCell": W_MIRROR * 1e6, "waistUm_bareCell": W_WAIST * 1e6}
     powers = [354.0, 375.0, 446.0]
-    res = {}
+    res, trial, rad_curves = {}, {}, {}
     for pw in powers:
         e = energy_in(pw)
-        r = uf.run(system(), spec(e))
-        res[pw] = analyse(r, pw, with_compression=(pw == 375.0))
         k = "%d" % pw
+        # (1) the earlier launch beam: Gaussian mode of the empty AIR-ONLY 540 mm cell (a trial value, kept for comparison)
+        r0 = uf.run(system(), spec(e))
+        trial[pw] = analyse(r0, pw)
+        p_mean, p_first = mean_peak_power(r0)
+        if pw == 375.0:
+            p_mean_375 = p_mean
+        # (2) launch beam from the Kerr-matched cell mode at the mean peak power of the pulse along the cell (rule, not tuned)
+        hm = helper_mode(p_mean)
+        m = hm["mode"]
+        r = uf.run(system(start=(m["waistRadiusM"], m["waistDistanceFromLaunchM"])), spec(e))
+        res[pw] = analyse(r, pw, with_compression=(pw == 375.0))
+        rad_curves[pw] = (glass_radii(r0), glass_radii(r))
         nums["inputEnergyUj_%sW" % k] = e * 1e6
         nums["bwOuterNm_%sW" % k] = res[pw]["bwOuterNm"]
         nums["bwFwhmNm_%sW" % k] = res[pw]["bwFwhmNm"]
@@ -228,11 +267,26 @@ def main():
         nums["bTotalOverPi_%sW" % k] = res[pw]["bTotalRad"] / math.pi
         nums["transmission_%sW" % k] = res[pw]["transmission"]
         nums["bwRatio_%sW" % k] = res[pw]["bwOuterNm"] / 1.6
+        nums["trialStart_bwOuterNm_%sW" % k] = trial[pw]["bwOuterNm"]
+        nums["trialStart_bTotalRad_%sW" % k] = trial[pw]["bTotalRad"]
+        nums["trialStart_tlFs_%sW" % k] = trial[pw]["tlFs"]
+        nums["helper_peakPowerUsedMW_%sW" % k] = p_mean / 1e6
+        nums["helper_peakPowerFirstBounceMW_%sW" % k] = p_first / 1e6
+        nums["helper_waistUm_%sW" % k] = m["waistRadiusM"] * 1e6
+        nums["helper_waistDistanceMm_%sW" % k] = m["waistDistanceFromLaunchM"] * 1e3
+        nums["helper_radiusMirror1Um_%sW" % k] = m["radiusAtMirror1M"] * 1e6
+        nums["helper_radiusMirror2Um_%sW" % k] = m["radiusAtMirror2M"] * 1e6
+        nums["helper_bTotalRad_%sW" % k] = hm["bIntegralTotalRad"]
+        nums["helper_overlapWithEmptyMode_%sW" % k] = hm["overlapEmptyModeWithMatchedMode"]
+        nums["helper_emptyCellMirrorRadiusUm"] = hm["emptyCell"]["radiusAtMirror1M"] * 1e6
+        nums["helper_emptyCellWaistUm"] = hm["emptyCell"]["waistRadiusM"] * 1e6
+        nums["glassRadiusMinUm_trial_%sW" % k], nums["glassRadiusMaxUm_trial_%sW" % k] = rad_curves[pw][0].min() * 1e6, rad_curves[pw][0].max() * 1e6
+        nums["glassRadiusMinUm_%sW" % k], nums["glassRadiusMaxUm_%sW" % k] = rad_curves[pw][1].min() * 1e6, rad_curves[pw][1].max() * 1e6
         if pw == 375.0:
             elements = r.summary["elements"]
             nums["powerOverCriticalFirstGlass"] = next(e_["values"]["peakPowerOverCritical"] for e_ in elements if e_["id"] == "gl00")
-            rad = [e_["beam"]["radiusXM"] for e_ in elements if e_["id"].startswith("gl")]
-            nums["glassBeamRadiusMinUm"], nums["glassBeamRadiusMaxUm"] = min(rad) * 1e6, max(rad) * 1e6
+            rad = glass_radii(r)
+            nums["glassBeamRadiusMinUm"], nums["glassBeamRadiusMaxUm"] = rad.min() * 1e6, rad.max() * 1e6
             nums["bAirRad_375W"] = sum(e_["bIntegralRad"] for e_ in elements if e_["id"].startswith("air"))
             nums["bGlassRad_375W"] = sum(e_["bIntegralRad"] for e_ in elements if e_["id"].startswith("gl"))
     c = res[375.0]
@@ -247,13 +301,34 @@ def main():
     a1 = analyse(r1, "1d")
     nums["oneD_bwOuterNm_375W"], nums["oneD_bTotalRad_375W"] = a1["bwOuterNm"], a1["bTotalRad"]
 
+    # linear check of the launch mapping: 1 nJ, the helper's empty-cell mode must keep its radius at every bounce
+    hm0 = helper_mode(0.0)["mode"]
+    rl = uf.run(system(nb=6, start=(hm0["waistRadiusM"], hm0["waistDistanceFromLaunchM"])), spec(1e-9))
+    rad0 = glass_radii(rl) * 1e6
+    nums["helperLinearRadiusUm"], nums["helperLinearSpreadUm"] = float(rad0.mean()), float(rad0.max() - rad0.min())
     sens = {}
     if not p.fast:
+        # carrier snapping: the default grid moves the carrier onto the frequency lattice (README: this explains the shift against the earlier README numbers)
+        for pwk in (354.0, 375.0):
+            a_s = analyse(uf.run(system(), spec(energy_in(pwk), snap=True)), "snap")
+            nums["snapDefault_bwOuterNm_%dW" % pwk], nums["snapDefault_tlFs_%dW" % pwk], nums["snapDefault_bTotalRad_%dW" % pwk] = a_s["bwOuterNm"], a_s["tlFs"], a_s["bTotalRad"]
+        # diagnostic: the helper cell with 13 mm of glass against EACH mirror (1 um gaps) is periodic per traversal like the physical cell
+        dd = D_MIRROR + 2 * L_GLASS + 2e-6
+        hs = cells.cell_mode(LAM, mirror_radius=R_EFF, separation=dd, peak_power=p_mean_375, passes=NBOUNCE,
+                             plates=[{"thicknessM": L_GLASS, "positionM": 1e-6 + L_GLASS / 2, "material": "FusedSilica"},
+                                     {"thicknessM": L_GLASS, "positionM": dd - 1e-6 - L_GLASS / 2, "material": "FusedSilica"}])["mode"]
+        n_glass = 1.4503
+        rs = uf.run(system(start=(hs["waistRadiusM"], hs["waistDistanceFromLaunchM"] - L_GLASS / n_glass)), spec(energy_in(375.0)))
+        radc = glass_radii(rs) * 1e6
+        nums["symPlates_radiusMinUm"], nums["symPlates_radiusMaxUm"], nums["symPlates_mirrorRadiusUm"] = float(radc.min()), float(radc.max()), hs["radiusAtMirror1M"] * 1e6
+        nums["symPlates_bwOuterNm"] = analyse(rs, "sym")["bwOuterNm"]
         # power sweep (curve)
         pws = [100.0, 200.0, 300.0, 354.0, 375.0, 400.0, 446.0, 500.0]
         sweep = []
         for pw in pws:
-            r = res[pw]["_r"] if False else uf.run(system(), spec(energy_in(pw)))
+            r = uf.run(system(), spec(energy_in(pw)))
+            mm = helper_mode(mean_peak_power(r)[0])["mode"]
+            r = uf.run(system(start=(mm["waistRadiusM"], mm["waistDistanceFromLaunchM"])), spec(energy_in(pw)))
             a = analyse(r, pw)
             sweep.append((pw, a["bwOuterNm"], a["bwFwhmNm"], a["tlFs"], a["bTotalRad"]))
         sweep = np.array(sweep)
@@ -271,6 +346,15 @@ def main():
             nums["sens_%s_bTotalRad" % name] = a["bTotalRad"]
             rad = [e_["beam"]["radiusXM"] for e_ in r.summary["elements"] if e_["id"].startswith("gl")]
             nums["sens_%s_radiusMaxUm" % name] = max(rad) * 1e6
+        # the 514 mm air gap (glass inside the 540 mm) again, now launched with the helper's Kerr-matched mode
+        hm514 = helper_mode(p_mean_375, air_len=0.514)     # peak power: the mean of the 540 mm reference run (the 514 mm run itself blows up)
+        m514 = hm514["mode"]
+        rh = uf.run(system(air_len=0.514, start=(m514["waistRadiusM"], m514["waistDistanceFromLaunchM"])), spec(e375))
+        ah = analyse(rh, "airGap514helper")
+        nums["sens_airGap514helper_bwOuterNm"], nums["sens_airGap514helper_bTotalRad"] = ah["bwOuterNm"], ah["bTotalRad"]
+        nums["sens_airGap514helper_radiusMaxUm"] = glass_radii(rh).max() * 1e6
+        nums["helper514_radiusMirror1Um"], nums["helper514_waistUm"] = m514["radiusAtMirror1M"] * 1e6, m514["waistRadiusM"] * 1e6
+        nums["radiusCurves"] = {"bounce": list(range(1, NBOUNCE + 1)), "trial375": list(rad_curves[375.0][0] * 1e6), "helper375": list(rad_curves[375.0][1] * 1e6)}
 
     p.write_numbers({k: v for k, v in nums.items()})
     plots(p, res, a1, nums, sens)
@@ -298,6 +382,18 @@ def plots(p, res, a1, nums, sens):
     ax[1].set_ylabel("compressed power (peak = 1)")
     ax[1].legend(fontsize=7)
     p.save(fig, "spectra-compression")
+    if "radiusCurves" in nums:
+        fig, ax = p.figure(1, 1, 6.0, 4.0)
+        rc = nums["radiusCurves"]
+        ax.plot(rc["bounce"], rc["trial375"], "s--", color=AQUA, ms=3, label="launch: empty-cell mode (trial value)")
+        ax.plot(rc["bounce"], rc["helper375"], "o-", color=BLUE, ms=3, label="launch: cellMode helper, mean peak power")
+        ax.axhline(nums["helper_radiusMirror1Um_375W"], color=ORANGE, ls=":", label="helper: radius at mirror 1")
+        ax.axhline(nums["helper_radiusMirror2Um_375W"], color=ORANGE, ls="-.", label="helper: radius at mirror 2")
+        ax.set_xlabel("bounce number")
+        ax.set_ylabel("beam radius in the glass (um)")
+        ax.set_title("375 W: beam radius from the radial model", fontsize=9)
+        ax.legend(fontsize=7)
+        p.save(fig, "beam-radius")
     if "sweep" in nums:
         fig, ax = p.figure(1, 1, 6.0, 4.0)
         sw = nums["sweep"]
