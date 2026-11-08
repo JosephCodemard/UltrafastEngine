@@ -56,7 +56,7 @@
    "hard": false
   },
   {
-   "id": "XFROG fit with the time-reversed reference has a larger G error (worst right < best wrong)",
+   "id": "XFROG fit with the time-reversed reference has a larger G error (worst right < best wrong) (numpy cross-check)",
    "kind": "ordering",
    "a": "xfrog_right_ref_Gx_max",
    "b": "xfrog_wrong_ref_Gx_min",
@@ -64,16 +64,19 @@
    "source": "p. 3007-3008: 0.4-0.5 % (right) vs 0.9-1.0 % (reversed)"
   },
   {
-   "id": "XFROG with the time-reversed reference gives a shorter test pulse",
+   "id": "XFROG with the time-reversed reference gives a shorter test pulse (numpy cross-check)",
    "kind": "ordering",
    "a": "xfrog_wrong_ref_test_fwhm_fs",
    "b": "xfrog_right_ref_test_fwhm_fs",
    "margin": 3,
-   "source": "p. 3008: 34 fs (reversed) vs 58 fs (right). Not reproduced for chirped Gaussians (README)",
-   "hard": false
+   "source": "p. 3008: 34 fs (reversed) vs 58 fs (right). Not reproduced for chirped Gaussians (README) | fast tier (6 starts) flips with the noise seed (5 seeds: 1 to 3 of these fail), so full only",
+   "hard": false,
+   "tiers": [
+    "full"
+   ]
   },
   {
-   "id": "SHG-FROG then XFROG: fraction retrieved in the right time direction (random, ~50 %)",
+   "id": "SHG-FROG then XFROG: fraction retrieved in the right time direction (random, ~50 %) (numpy cross-check)",
    "kind": "number",
    "key": "conventional_both_correct_fraction",
    "expected": 0.5,
@@ -82,25 +85,31 @@
    "hard": false
   },
   {
-   "id": "double FROG: fraction retrieved in the right time direction",
+   "id": "double FROG: fraction retrieved in the right time direction (numpy cross-check)",
    "kind": "number",
    "key": "double_both_correct_fraction",
    "expected": 1.0,
    "tolerance": 0.0,
-   "source": "p. 3008: six of six retrievals identical, no time-reversed replica. FINDING: ours gets stuck in a wrong-direction minimum in some starts (README)",
-   "hard": false
+   "source": "p. 3008: six of six retrievals identical, no time-reversed replica. FINDING: ours gets stuck in a wrong-direction minimum in some starts (README) | fast tier (6 starts) flips with the noise seed (5 seeds: 1 to 3 of these fail), so full only",
+   "hard": false,
+   "tiers": [
+    "full"
+   ]
   },
   {
-   "id": "double FROG: spread of the retrieved test FWHM smaller than conventional",
+   "id": "double FROG: spread of the retrieved test FWHM smaller than conventional (numpy cross-check)",
    "kind": "ordering",
    "a": "double_test_fwhm_fs_std",
    "b": "conventional_test_fwhm_fs_std",
    "margin": 0,
-   "source": "p. 3008: higher convergence/reproducibility",
-   "hard": false
+   "source": "p. 3008: higher convergence/reproducibility | fast tier (6 starts) flips with the noise seed (5 seeds: 1 to 3 of these fail), so full only",
+   "hard": false,
+   "tiers": [
+    "full"
+   ]
   },
   {
-   "id": "double FROG: mean XFROG G error lower than conventional",
+   "id": "double FROG: mean XFROG G error lower than conventional (numpy cross-check)",
    "kind": "ordering",
    "a": "double_Gx_mean",
    "b": "conventional_Gx_mean",
@@ -109,12 +118,70 @@
    "hard": false
   },
   {
-   "id": "double FROG: G error separates right from wrong direction",
+   "id": "double FROG: G error separates right from wrong direction (numpy cross-check)",
    "kind": "ordering",
    "a": "double_right_direction_Gmax",
    "b": "double_wrong_direction_Gmin",
    "margin": 0,
    "source": "consequence of the third trace (wrong-direction solutions do not fit all three)",
+   "hard": false
+  },
+  {
+   "id": "ENGINE multiFrog double FROG: fraction retrieved in the right time direction",
+   "kind": "number",
+   "key": "eng_double_both_correct_fraction",
+   "expected": 1.0,
+   "tolerance": 0.0,
+   "source": "p. 3008: six retrievals, no time-reversed replica (engine retrieve_multi, 3 traces)"
+  },
+  {
+   "id": "ENGINE double FROG without noise reaches the truth (G max, 3 starts)",
+   "kind": "number",
+   "key": "eng_double_noisefree_G_max_list_max",
+   "expected": 0.0,
+   "tolerance": 0.001,
+   "source": "truth has G = 0; engine retrieve_multi"
+  },
+  {
+   "id": "ENGINE XFROG fit, right reference: worst G below time-reversed reference's best G",
+   "kind": "ordering",
+   "a": "eng_xfrog_right_ref_G_max",
+   "b": "eng_xfrog_wrong_ref_G_min",
+   "margin": 0.001,
+   "source": "pp. 3007-3008: 0.4-0.5 % vs 0.9-1.0 %"
+  },
+  {
+   "id": "ENGINE XFROG G ratio (reversed / right reference)",
+   "kind": "number",
+   "key": "eng_xfrog_G_ratio_wrong_over_right",
+   "expected": 2.1,
+   "tolerance": 0.5,
+   "source": "pp. 3007-3008: (0.9-1.0)/(0.4-0.5) = 1.8-2.5"
+  },
+  {
+   "id": "ENGINE XFROG with the time-reversed reference gives a shorter test pulse (fs)",
+   "kind": "ordering",
+   "a": "eng_xfrog_wrong_ref_test_fwhm_fs",
+   "b": "eng_xfrog_right_ref_test_fwhm_fs",
+   "margin": 2,
+   "source": "p. 3008: 34 fs vs 58 fs (direction; magnitude not reproduced)"
+  },
+  {
+   "id": "ENGINE SHG-FROG then XFROG: fraction in the right time direction (random, ~50 %)",
+   "kind": "number",
+   "key": "eng_conventional_both_correct_fraction",
+   "expected": 0.5,
+   "tolerance": 0.4,
+   "source": "p. 3007: the direction is random",
+   "hard": false
+  },
+  {
+   "id": "ENGINE ref SHG + XFROG only: fraction in the right time direction (paper: random)",
+   "kind": "number",
+   "key": "eng_two_both_correct_fraction",
+   "expected": 0.5,
+   "tolerance": 0.2,
+   "source": "p. 3009: twin appears randomly; ours is biased to the wrong direction (repro_2.py)",
    "hard": false
   }
  ]

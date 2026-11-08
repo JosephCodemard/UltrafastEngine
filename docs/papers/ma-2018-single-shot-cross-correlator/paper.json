@@ -23,8 +23,8 @@
   "assumptions": [
     "The crossing angle is the angle between the two input beams inside the crystal; the engine's phase-matching calculator gives each beam's internal angle to the sum wave (alpha, beta). BBO type-I SFG, PT 800 nm + sampling 400 nm and PT 1053 nm + sampling 526.5 nm (SH sampling, p. 2), L = 1.5 mm. The largest angle the calculator can phase-match (34 deg at 800 nm, 40 deg at 1053 nm) is used for the paper's 'about 40 deg'.",
     "PPLN: the PT wavelength is taken as 800 nm (Ti:sapphire; Fig. 3 caption names a 50 fs Ti:sapphire PT) with 3.3 um sampling; m = 3 on the 6 um grating is modelled as a first-order grating of 2 um.",
-    "Fig. 4c: 800 nm PT, 50 fs (assumption, as Fig. 3) and 200 fs (to remove the plate's dispersion from the level check) Gaussian; sampling = SH of the PT in 100 um BBO; the BK7 plate sits in the sampling arm after the SHG at normal incidence, mode overlap 1 (no wedge, no tilt), no coatings; collinear 1-D SFG (the engine's 1-D model has no time-to-space encoding).",
-    "The engine scans the PT delay (delay-scanning stand-in); the paper's single-shot mapping x -> tau is geometry (eq. (1)) and is not simulated.",
+    "Fig. 4c: 800 nm PT, 50 fs (assumption, as Fig. 3) and 200 fs (to remove the plate's dispersion from the level check) Gaussian; sampling = SH of the PT; the BK7 plate sits in the gate (sampling) arm (crossCorrelator gateArm, compiled at the second-harmonic wavelength) at normal incidence, mode overlap 1 (no wedge, no tilt), no coatings; third-order correlation of the instrument (no spatial encoding).",
+    "The engine's singleShotCorrelator instrument maps position x to delay tau from the crossing geometry (eqs. (1)-(2)); beam propagation in the crystal, air scatter, stripe filter, face reflections and the fibre array are not simulated.",
     "The fibre array, PMT, attenuators, the stripe filter and air scattering are not modelled."
   ]
 }

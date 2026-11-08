@@ -1,37 +1,282 @@
 {
-  "paper": "ma-2018-single-shot-cross-correlator",
-  "checks": [
-    {"id": "BK7 plate replica spacing: engine vs 2 n_g d / c (ps)", "kind": "number", "key": "spacing1_ps", "expected": 11.628, "tolerance": 0.01,
-     "source": "2 n_g(400 nm) d / c for d = 1.1 mm (engine's N-BK7 group index 1.5846); paper: 'equally spaced', 1.1 mm BK7, p. 5"},
-    {"id": "replica spacing is equal: 3rd spike / 3 (ps)", "kind": "number", "key": "spacing3_ps", "expected": 11.628, "tolerance": 0.01, "source": "p. 5 'equally spaced spikes'"},
-    {"id": "replica I level / R^2 (200 fs, no dispersion)", "kind": "number", "key": "level1_over_R2k_200fs", "expected": 1.0, "tolerance": 0.02, "source": "Fresnel: double reflection R^2 per order (docs/reference/components.md)"},
-    {"id": "replica II level / R^4 (200 fs)", "kind": "number", "key": "level2_over_R2k_200fs", "expected": 1.0, "tolerance": 0.02, "source": "R^(2k)"},
-    {"id": "replica III level / R^6 (200 fs)", "kind": "number", "key": "level3_over_R2k_200fs", "expected": 1.0, "tolerance": 0.03, "source": "R^(2k)"},
-    {"id": "replica I against Fig. 4c (decades, ours - paper)", "kind": "number", "key": "level1_decades_vs_paper", "expected": 0.0, "tolerance": 0.3, "hard": false,
-     "source": "read off Fig. 4c: about 6e-4; ours 1.9e-3; the paper does not give the plate's angle / coating or the calibration of the attenuators"},
-    {"id": "replica II against Fig. 4c (decades)", "kind": "number", "key": "level2_decades_vs_paper", "expected": 0.0, "tolerance": 0.3, "hard": false, "source": "read off Fig. 4c: about 2.7e-6"},
-    {"id": "replica III against Fig. 4c (decades)", "kind": "number", "key": "level3_decades_vs_paper", "expected": 0.0, "tolerance": 0.3, "hard": false,
-     "source": "read off Fig. 4c: about 8e-10 (sits among 1e-9 background fluctuations)"},
-    {"id": "replica III against the text '~1e-9' (decades)", "kind": "number", "key": "level3_vs_text_1e-9_decades", "expected": 0.0, "tolerance": 0.3, "hard": false, "source": "p. 6: 'relative intensity of ~1e-9'; R^6 = 7.3e-9 for bare BK7 at 400 nm"},
-    {"id": "spacing: ours vs mean of the paper's three read-off spacings (ps)", "kind": "number", "key": "spacing1_ps", "expected": 11.54, "tolerance": 0.5, "hard": false, "source": "read off Fig. 4c: -11.8, -23.1/2, -33.8/3 ps"},
-    {"id": "resolution at L = 1 mm is below 1 ps (about 40 deg, BBO 1053 nm)", "kind": "ordering", "a": "dtau1053_L1.0mm_ps", "b": "dtau_reference_ps",
-     "source": "p. 2: 'approximately 1 ps' for 1-2 mm at about 40 deg; eq. (2) with the engine's indices"},
-    {"id": "resolution at L = 2 mm is above 1 ps", "kind": "ordering", "a": "dtau_reference_ps", "b": "dtau1053_L2.0mm_ps", "source": "p. 2; eq. (2)"},
-    {"id": "window per cm of width: 1053 nm larger than 800 nm", "kind": "ordering", "a": "bbo800_windowPsPerCm", "b": "bbo1053_windowPsPerCm",
-     "source": "p. 9: 70 ps (1053 nm) vs 50 ps (800 nm) for the same kind of crystal"},
-    {"id": "PPLN m = 1 window per cm (ps/cm), PT wavelength assumed 800 nm", "kind": "number", "key": "ppln_m1_windowPsPerCm", "expected": 45.0, "tolerance": 0.1, "relative": true, "hard": false,
-     "source": "p. 4: about 45 ps/cm (UNVERIFIED PT wavelength: ref. [26])"},
-    {"id": "PPLN m = 3 window larger than m = 1", "kind": "ordering", "a": "ppln_m1_windowPsPerCm", "b": "ppln_m3_windowPsPerCm", "source": "p. 4: higher-order QPM gives a larger window (about 70 ps/cm)"},
-    {"id": "PPLN m = 3 window per cm (ps/cm)", "kind": "number", "key": "ppln_m3_windowPsPerCm", "expected": 70.0, "tolerance": 0.2, "relative": true, "hard": false,
-     "source": "p. 4: about 70 ps/cm with m = 3, 5 (the grating period of that case is not given; 6 um used)"},
-    {"id": "crystal-face artefact at 15 ps implies L in 1-2 mm (mm)", "kind": "number", "key": "artefact15ps_impliedLength_mm", "expected": 1.5, "tolerance": 0.5, "hard": false,
-     "source": "2 n_S L / c = 15 ps (p. 7, Fig. 6a); crystal thickness 1-2 mm (p. 2); L of Fig. 6a not given"},
-    {"id": "crossCorrelator, 105 dB floor: 1e-6 pre-pulse reads -60 dB", "kind": "number", "key": "instr_pre1e-6_db", "expected": -60.0, "tolerance": 0.1, "source": "analytic: probe channel is linear in intensity"},
-    {"id": "crossCorrelator: 1e-9 pre-pulse reads -90 dB (+ floor 3e-11)", "kind": "number", "key": "instr_pre1e-9_db", "expected": -89.9, "tolerance": 0.1, "source": "1e-9 + 10^-10.5 (floor adds to the signal)"},
-    {"id": "crossCorrelator: a 1e-11 pre-pulse is hidden by the floor (reads -103.8 dB = 1e-11 + 10^-10.5)", "kind": "number", "key": "instr_pre1e-11_db", "expected": -103.8, "tolerance": 0.1, "source": "analytic: floor 10^-10.5 adds to the signal; only 1.2 dB above the bare floor, i.e. not resolved (3e10 range, p. 6)"},
-    {"id": "crossCorrelator with resolutionS 1 ps: floor of the trace (dB)", "kind": "number", "key": "res1ps_floor_trace_db", "expected": -105.0, "tolerance": 1.0, "hard": false,
-     "source": "FINDING (repro_1.py): the floor is defined against the unsmoothed peak but the trace is normalised to the smoothed one, so it rises by 12 dB"},
-    {"id": "crossCorrelator with resolutionS 1 ps: reported contrastAt_m10ps_db", "kind": "number", "key": "res1ps_pre1e-6_reported_db", "expected": -60.0, "tolerance": 1.0, "hard": false,
-     "source": "FINDING (repro_1.py): the trace says -60.0 dB, the report -72.1 dB"}
-  ]
+ "paper": "ma-2018-single-shot-cross-correlator",
+ "checks": [
+  {
+   "id": "BK7 plate replica spacing: engine vs 2 n_g d / c (ps)",
+   "kind": "number",
+   "key": "spacing1_ps",
+   "expected": 11.628,
+   "tolerance": 0.01,
+   "source": "2 n_g(400 nm) d / c for d = 1.1 mm (engine's N-BK7 group index 1.5846); paper: 'equally spaced', 1.1 mm BK7, p. 5"
+  },
+  {
+   "id": "replica spacing is equal: 3rd spike / 3 (ps)",
+   "kind": "number",
+   "key": "spacing3_ps",
+   "expected": 11.628,
+   "tolerance": 0.01,
+   "source": "p. 5 'equally spaced spikes'"
+  },
+  {
+   "id": "replica I level / R^2 (200 fs, no dispersion)",
+   "kind": "number",
+   "key": "level1_over_R2k_200fs",
+   "expected": 1.0,
+   "tolerance": 0.02,
+   "source": "Fresnel: double reflection R^2 per order (docs/reference/components.md)"
+  },
+  {
+   "id": "replica II level / R^4 (200 fs)",
+   "kind": "number",
+   "key": "level2_over_R2k_200fs",
+   "expected": 1.0,
+   "tolerance": 0.02,
+   "source": "R^(2k)"
+  },
+  {
+   "id": "replica III level / R^6 (200 fs)",
+   "kind": "number",
+   "key": "level3_over_R2k_200fs",
+   "expected": 1.0,
+   "tolerance": 0.03,
+   "source": "R^(2k)"
+  },
+  {
+   "id": "replica I against Fig. 4c (decades, ours - paper)",
+   "kind": "number",
+   "key": "level1_decades_vs_paper",
+   "expected": 0.0,
+   "tolerance": 0.3,
+   "hard": false,
+   "source": "read off Fig. 4c: about 6e-4; ours 1.9e-3; the paper does not give the plate's angle / coating or the calibration of the attenuators"
+  },
+  {
+   "id": "replica II against Fig. 4c (decades)",
+   "kind": "number",
+   "key": "level2_decades_vs_paper",
+   "expected": 0.0,
+   "tolerance": 0.3,
+   "hard": false,
+   "source": "read off Fig. 4c: about 2.7e-6"
+  },
+  {
+   "id": "replica III against Fig. 4c (decades)",
+   "kind": "number",
+   "key": "level3_decades_vs_paper",
+   "expected": 0.0,
+   "tolerance": 0.3,
+   "hard": false,
+   "source": "read off Fig. 4c: about 8e-10 (sits among 1e-9 background fluctuations)"
+  },
+  {
+   "id": "replica III against the text '~1e-9' (decades)",
+   "kind": "number",
+   "key": "level3_vs_text_1e-9_decades",
+   "expected": 0.0,
+   "tolerance": 0.3,
+   "hard": false,
+   "source": "p. 6: 'relative intensity of ~1e-9'; R^6 = 7.3e-9 for bare BK7 at 400 nm"
+  },
+  {
+   "id": "spacing: ours vs mean of the paper's three read-off spacings (ps)",
+   "kind": "number",
+   "key": "spacing1_ps",
+   "expected": 11.54,
+   "tolerance": 0.5,
+   "hard": false,
+   "source": "read off Fig. 4c: -11.8, -23.1/2, -33.8/3 ps"
+  },
+  {
+   "id": "resolution at L = 1 mm is below 1 ps (about 40 deg, BBO 1053 nm)",
+   "kind": "ordering",
+   "a": "dtau1053_L1.0mm_ps",
+   "b": "dtau_reference_ps",
+   "source": "p. 2: 'approximately 1 ps' for 1-2 mm at about 40 deg; eq. (2) with the engine's indices"
+  },
+  {
+   "id": "resolution at L = 2 mm is above 1 ps",
+   "kind": "ordering",
+   "a": "dtau_reference_ps",
+   "b": "dtau1053_L2.0mm_ps",
+   "source": "p. 2; eq. (2)"
+  },
+  {
+   "id": "window per cm of width: 1053 nm larger than 800 nm",
+   "kind": "ordering",
+   "a": "bbo800_windowPsPerCm",
+   "b": "bbo1053_windowPsPerCm",
+   "source": "p. 9: 70 ps (1053 nm) vs 50 ps (800 nm) for the same kind of crystal"
+  },
+  {
+   "id": "PPLN m = 1 window per cm (ps/cm), PT wavelength assumed 800 nm",
+   "kind": "number",
+   "key": "ppln_m1_windowPsPerCm",
+   "expected": 45.0,
+   "tolerance": 0.1,
+   "relative": true,
+   "hard": false,
+   "source": "p. 4: about 45 ps/cm (UNVERIFIED PT wavelength: ref. [26])"
+  },
+  {
+   "id": "PPLN m = 3 window larger than m = 1",
+   "kind": "ordering",
+   "a": "ppln_m1_windowPsPerCm",
+   "b": "ppln_m3_windowPsPerCm",
+   "source": "p. 4: higher-order QPM gives a larger window (about 70 ps/cm)"
+  },
+  {
+   "id": "PPLN m = 3 window per cm (ps/cm)",
+   "kind": "number",
+   "key": "ppln_m3_windowPsPerCm",
+   "expected": 70.0,
+   "tolerance": 0.2,
+   "relative": true,
+   "hard": false,
+   "source": "p. 4: about 70 ps/cm with m = 3, 5 (the grating period of that case is not given; 6 um used)"
+  },
+  {
+   "id": "crystal-face artefact at 15 ps implies L in 1-2 mm (mm)",
+   "kind": "number",
+   "key": "artefact15ps_impliedLength_mm",
+   "expected": 1.5,
+   "tolerance": 0.5,
+   "hard": false,
+   "source": "2 n_S L / c = 15 ps (p. 7, Fig. 6a); crystal thickness 1-2 mm (p. 2); L of Fig. 6a not given"
+  },
+  {
+   "id": "crossCorrelator, 105 dB floor: 1e-6 pre-pulse reads -60 dB",
+   "kind": "number",
+   "key": "instr_pre1e-6_db",
+   "expected": -60.0,
+   "tolerance": 0.1,
+   "source": "analytic: probe channel is linear in intensity"
+  },
+  {
+   "id": "crossCorrelator: 1e-9 pre-pulse reads -90 dB (+ floor 3e-11)",
+   "kind": "number",
+   "key": "instr_pre1e-9_db",
+   "expected": -89.9,
+   "tolerance": 0.1,
+   "source": "1e-9 + 10^-10.5 (floor adds to the signal)"
+  },
+  {
+   "id": "crossCorrelator: a 1e-11 pre-pulse is hidden by the floor (reads -103.8 dB = 1e-11 + 10^-10.5)",
+   "kind": "number",
+   "key": "instr_pre1e-11_db",
+   "expected": -103.8,
+   "tolerance": 0.1,
+   "source": "analytic: floor 10^-10.5 adds to the signal; only 1.2 dB above the bare floor, i.e. not resolved (3e10 range, p. 6)"
+  },
+  {
+   "id": "crossCorrelator with resolutionS 1 ps: floor of the trace (dB)",
+   "kind": "number",
+   "key": "res1ps_floor_trace_db",
+   "expected": -105.0,
+   "tolerance": 1.0,
+   "source": "analytic: smoothing smears the pre-pulse and the peak alike (docs/reference/instruments.md, crossCorrelator resolution); fixed in the engine, formerly repro_1.py"
+  },
+  {
+   "id": "crossCorrelator with resolutionS 1 ps: reported contrastAt_m10ps_db",
+   "kind": "number",
+   "key": "res1ps_pre1e-6_reported_db",
+   "expected": -60.0,
+   "tolerance": 1.0,
+   "source": "analytic: smoothing smears the pre-pulse and the peak alike (docs/reference/instruments.md, crossCorrelator resolution); fixed in the engine, formerly repro_1.py"
+  },
+  {
+   "id": "crossCorrelator with resolutionS 1 ps: 1e-6 pre-pulse in the trace (dB)",
+   "kind": "number",
+   "key": "res1ps_pre1e-6_trace_db",
+   "expected": -60.0,
+   "tolerance": 1.0,
+   "source": "analytic: smoothing smears the pre-pulse and the peak alike"
+  },
+  {
+   "id": "gateArm plate: replica I level over R^2 at 50 fs is below 1 (plate stretches the gate, dispersion at 400 nm)",
+   "kind": "ordering",
+   "a": "level1_50fs_over_R2k",
+   "b": "level1_over_R2k_200fs",
+   "source": "BK7 GDD at 400 nm 122 fs^2/mm (engine); stretched replicas are lower"
+  },
+  {
+   "id": "gateArm: without the plate nothing above 1e-12 beyond 2 ps",
+   "kind": "number",
+   "key": "noplate_max_level_beyond_2ps",
+   "expected": 0.0,
+   "tolerance": 1e-12,
+   "source": "no gate replicas without the plate"
+  },
+  {
+   "id": "singleShotCorrelator window per cm, BBO 1053 nm at its largest angle, vs eq. (1) from the phase-matching calculator",
+   "kind": "number",
+   "key": "ss1053_window_over_eq1",
+   "expected": 1.0,
+   "tolerance": 0.0001,
+   "source": "Ma et al. eq. (1)"
+  },
+  {
+   "id": "singleShotCorrelator window per cm, BBO 800 nm, vs eq. (1)",
+   "kind": "number",
+   "key": "ss800_window_over_eq1",
+   "expected": 1.0,
+   "tolerance": 0.0001,
+   "source": "Ma et al. eq. (1)"
+  },
+  {
+   "id": "singleShotCorrelator resolution (delayIndex phase), 1053 nm, L = 1.5 mm, vs eq. (2)",
+   "kind": "number",
+   "key": "ss1053_res_over_eq2",
+   "expected": 1.0,
+   "tolerance": 0.0001,
+   "source": "Ma et al. eq. (2)"
+  },
+  {
+   "id": "singleShotCorrelator resolution (delayIndex phase), 800 nm, vs eq. (2)",
+   "kind": "number",
+   "key": "ss800_res_over_eq2",
+   "expected": 1.0,
+   "tolerance": 0.0001,
+   "source": "Ma et al. eq. (2)"
+  },
+  {
+   "id": "singleShotCorrelator at 40 deg: resolution about 1 ps for L = 1.5 mm (phase indices)",
+   "kind": "number",
+   "key": "ss1053_res_L1.5mm_ps",
+   "expected": 1.0,
+   "tolerance": 0.3,
+   "source": "p. 2: approximately 1 ps for 1-2 mm of BBO at about 40 deg"
+  },
+  {
+   "id": "singleShotCorrelator: pre-pulse at -20 ps lands at x = T/slope (pixels)",
+   "kind": "number",
+   "key": "ss_pre20ps_position_error_pixels",
+   "expected": 0.0,
+   "tolerance": 1.0,
+   "source": "time-to-space mapping, Ma et al. Fig. 1 / eq. (1)"
+  },
+  {
+   "id": "singleShotCorrelator: pre-pulse at -35 ps lands at x = T/slope (pixels)",
+   "kind": "number",
+   "key": "ss_pre35ps_position_error_pixels",
+   "expected": 0.0,
+   "tolerance": 1.0,
+   "source": "time-to-space mapping"
+  },
+  {
+   "id": "singleShotCorrelator: pre-pulse 1e-3 reads its relative intensity",
+   "kind": "number",
+   "key": "ss_pre20ps_level_over_injected",
+   "expected": 1.0,
+   "tolerance": 0.02,
+   "source": "third-order correlation of a pre-pulse e reads e"
+  },
+  {
+   "id": "singleShotCorrelator: area conservation",
+   "kind": "number",
+   "key": "ss_area_over_expected",
+   "expected": 1.0,
+   "tolerance": 0.001,
+   "source": "engine self-check: integral of the signal over delay = product of the pulse energies"
+  }
+ ]
 }

@@ -3,10 +3,10 @@
     python run.py --tier fast|full [--figures]
 
 Engine part: the two pulses (800 nm reference, 1200 nm test through the 3 mm fused-silica dichroic substrate), the engine's
-SHG-FROG instrument and PCGPA retrieval (time-direction ambiguity), the GDD of the substrate, and the BBO phase-matching
-calculator for the 5 um crystal at 33.2 deg. The engine has no XFROG / SFG-FROG instrument and no multi-trace retrieval, so
-the sum-frequency trace and the double-FROG algorithm (Fig. 6 of the paper) are written here in numpy on the engine's
-fields: this is a missing capability, not an engine result. Physics sign convention: A(t) exp(-i w0 t); GDD > 0 is a
+`frog` (shg) and `xfrog` instruments (traces), `uf.retrieve` (pcgpa, kinds shg-frog / xfrog) and `uf.retrieve_multi` (multiFrog:
+the double FROG), the GDD of the substrate, and the BBO phase-matching calculator for the 5 um crystal at 33.2 deg (block "ENGINE").
+The numpy sum-frequency trace and numpy version of the Fig. 6 algorithm stay as an independent cross-check (keys without the eng_
+prefix). Physics sign convention: A(t) exp(-i w0 t); GDD > 0 is a
 positive chirp; transform kernel exp(+i W t).
 """
 import os
@@ -258,40 +258,169 @@ N["double_right_direction_Gmax"] = max(_ok) if _ok else None
 N["double_wrong_direction_Gmin"] = min(_bad) if _bad else None
 N["double_wrong_direction_count"] = len(_bad)
 
+# ------------------------------------------------------------------ ENGINE: xfrog instrument + multi-trace retrieval (uf.retrieve_multi)
+# Same synthetic experiment, but the traces come from the engine's `frog` (shg) and `xfrog` instruments and all retrievals are the engine's
+# (`pcgpa` for single traces, `multiFrog` for the double FROG). The numpy code above is kept as an independent cross-check.
+E_REF = {k: v for k, v in b.pulse(800e-9, REF_TL, energy=1e-9, gdd_s2=REF_GDD).items() if k != "energyJ"}
+SYS_P = uf.System.load(b.system("p", [{"id": "x", "type": "probe"}]))
+SYS_S = uf.System.load(b.system("s", [b.bulk("sub", "FusedSilica", 3e-3)]))
+_ref_pulse = b.pulse(800e-9, REF_TL, energy=1e-9, gdd_s2=REF_GDD)
+_test_pulse = b.pulse(1200e-9, TEST_TL, energy=1e-9, gdd_s2=TEST_GDD)
+e_rr = uf.run(SYS_P, b.run_spec(_ref_pulse, instruments=[{"kind": "frog", "name": "fr", "type": "shg", "points": 128}]))
+e_rt = uf.run(SYS_S, b.run_spec(_test_pulse, instruments=[{"kind": "frog", "name": "ft", "type": "shg", "points": 128}]))
+e_rx = uf.run(SYS_S, b.run_spec(_test_pulse, instruments=[{"kind": "xfrog", "name": "fx", "points": 128, "reference": E_REF}]))
+erng = np.random.default_rng(2014)
+
+def e_trace(r, nm, noisy_=True):
+    tr = np.asarray(r[nm + "_trace"], float)
+    tr = tr / tr.max()
+    if noisy_:
+        tr = np.maximum(tr + NOISE * erng.standard_normal(tr.shape), 0)
+    d = {"delay_s": np.asarray(r[nm + "_delay_s"]), "omega_rad_s": np.asarray(r[nm + "_omega_rad_s"]), "trace": tr}
+    return d
+
+T_REF, T_TEST, T_X = e_trace(e_rr, "fr"), e_trace(e_rt, "ft"), e_trace(e_rx, "fx")
+REF_ARR = {k: np.asarray(e_rx["fx_" + k]) for k in ("reference_time_s", "reference_field_re", "reference_field_im", "reference_omega_rad_s")}
+EMAP = lambda d, kind, **kw: dict(trace=d, kind=kind, **kw)
+
+def pulse_gdd(pulse, thr=0.05):
+    sp = pulse["spectrum"]
+    lam, I, ph = np.array(sp["wavelengthsM"]), np.array(sp["intensity"]), np.array(sp["phaseRad"])
+    w = 2 * np.pi * C0 / lam
+    o = np.argsort(w); w, I, ph = w[o], I[o], np.unwrap(ph[o])
+    wm = (w * I).sum() / I.sum()
+    k = I > thr * I.max()
+    return 2 * np.polyfit(w[k] - wm, ph[k], 2, w=np.sqrt(I[k]))[0] * 1e30
+
+def reference_arrays(pulse):
+    """Field of a retrieved reference pulse, packed like the xfrog instrument's reference arrays (so it can gate an XFROG retrieval)."""
+    r_ = uf.run(SYS_P, b.run_spec(pulse, grid={"windowS": 2e-12}))
+    A = np.asarray(r_["output_ax_re"]) + 1j * np.asarray(r_["output_ax_im"])
+    Et = np.fft.fftshift(np.fft.fft(np.fft.ifftshift(A)))
+    return {"reference_time_s": np.asarray(r_["output_time_s"]), "reference_field_re": Et.real, "reference_field_im": Et.imag,
+            "reference_omega_rad_s": REF_ARR["reference_omega_rad_s"]}
+
+def reversed_reference(arr):
+    t_ = arr["reference_time_s"]
+    E_ = arr["reference_field_re"] + 1j * arr["reference_field_im"]
+    Er = np.conj(np.interp(-t_, t_, E_.real) + 1j * np.interp(-t_, t_, E_.imag))
+    return {**arr, "reference_field_re": Er.real, "reference_field_im": Er.imag}
+
+E_ITERS = int(os.environ.get("KIDA_ENG_ITERS", 600 if p.fast else 1000))
+G_TRUE_REF, G_TRUE_TEST = N["ref_true_gdd_fs2"], e_rt.summary["output"]["pulseGddS2"] * 1e30
+N["eng_true_gdd_ref_fs2"], N["eng_true_gdd_test_fs2"] = G_TRUE_REF, G_TRUE_TEST
+N["eng_test_fwhm_true_fs"] = e_rt.summary["output"]["fwhmS"] * 1e15
+N["eng_noise_floor_note"] = "traces: peak-normalised, additive gaussian noise %.4f" % NOISE
+
+def eng_xfrog_fit(ref_arr, seed):
+    o = uf.retrieve("pcgpa", {**T_X, **ref_arr}, kind="xfrog", seed=seed, maxIterations=E_ITERS)
+    return o["error"], o["fwhmS"] * 1e15, pulse_gdd(o["pulse"])
+
+n_fit = 6
+right_ref = [eng_xfrog_fit(REF_ARR, 500 + i) for i in range(n_fit)]
+wrong_ref = [eng_xfrog_fit(reversed_reference(REF_ARR), 500 + i) for i in range(n_fit)]
+N["eng_xfrog_right_ref_G_list"] = [x[0] for x in right_ref]
+N["eng_xfrog_wrong_ref_G_list"] = [x[0] for x in wrong_ref]
+N["eng_xfrog_right_ref_G_mean"] = float(np.mean([x[0] for x in right_ref])); N["eng_xfrog_right_ref_G_max"] = max(x[0] for x in right_ref)
+N["eng_xfrog_wrong_ref_G_mean"] = float(np.mean([x[0] for x in wrong_ref])); N["eng_xfrog_wrong_ref_G_min"] = min(x[0] for x in wrong_ref)
+N["eng_xfrog_G_ratio_wrong_over_right"] = N["eng_xfrog_wrong_ref_G_mean"] / N["eng_xfrog_right_ref_G_mean"]
+N["eng_xfrog_right_ref_test_fwhm_fs_list"] = [x[1] for x in right_ref]
+N["eng_xfrog_wrong_ref_test_fwhm_fs_list"] = [x[1] for x in wrong_ref]
+N["eng_xfrog_right_ref_test_fwhm_fs"] = float(np.mean([x[1] for x in right_ref]))
+N["eng_xfrog_wrong_ref_test_fwhm_fs"] = float(np.mean([x[1] for x in wrong_ref]))
+N["eng_xfrog_wrong_ref_test_gdd_fs2_list"] = [x[2] for x in wrong_ref]
+N["eng_xfrog_right_ref_test_gdd_fs2_list"] = [x[2] for x in right_ref]
+
+def classify(gref, gtest):
+    return int(np.sign(gref) == np.sign(G_TRUE_REF)), int(np.sign(gtest) == np.sign(G_TRUE_TEST))
+
+def eng_conventional(seed):
+    o = uf.retrieve("pcgpa", T_REF, kind="shg-frog", seed=seed, maxIterations=E_ITERS)
+    arr = reference_arrays(o["pulse"])
+    ox = uf.retrieve("pcgpa", {**T_X, **arr}, kind="xfrog", seed=seed, maxIterations=E_ITERS)
+    gr, gt = pulse_gdd(o["pulse"]), pulse_gdd(ox["pulse"])
+    return dict(G=ox["error"], fs=ox["fwhmS"] * 1e15, gr=gr, gt=gt, dirs=classify(gr, gt), Gs=[o["error"], None, ox["error"]])
+
+def multi(terms, seed):
+    o = uf.retrieve_multi(terms, maxIterations=E_ITERS, seed=seed)
+    gr, gt = pulse_gdd(o["pulses"]["ref"]["pulse"]), pulse_gdd(o["pulses"]["test"]["pulse"])
+    return dict(G=o["traceErrors"][-1], Gs=list(o["traceErrors"]), fs=o["pulses"]["test"]["fwhmS"] * 1e15, fr=o["pulses"]["ref"]["fwhmS"] * 1e15,
+                gr=gr, gt=gt, dirs=classify(gr, gt))
+
+TERMS_DOUBLE = [EMAP(T_REF, "shg-frog", pulse="ref"), EMAP(T_TEST, "shg-frog", pulse="test"), EMAP(T_X, "xfrog", pulse="test", gate="ref")]
+TERMS_TWO = [EMAP(T_REF, "shg-frog", pulse="ref"), EMAP(T_X, "xfrog", pulse="test", gate="ref")]
+eng_rows = {"conventional": [], "two": [], "double": []}
+for i in range(n_starts):
+    sd_ = 1000 + i
+    eng_rows["conventional"].append(eng_conventional(sd_))
+    eng_rows["two"].append(multi(TERMS_TWO, sd_))
+    eng_rows["double"].append(multi(TERMS_DOUBLE, sd_))
+for kind, rows in eng_rows.items():
+    N["eng_%s_both_correct_fraction" % kind] = float(np.mean([r["dirs"][0] * r["dirs"][1] for r in rows]))
+    N["eng_%s_ref_correct_fraction" % kind] = float(np.mean([r["dirs"][0] for r in rows]))
+    N["eng_%s_test_correct_fraction" % kind] = float(np.mean([r["dirs"][1] for r in rows]))
+    N["eng_%s_Gx_list" % kind] = [r["G"] for r in rows]
+    N["eng_%s_Gx_mean" % kind] = float(np.mean([r["G"] for r in rows]))
+    N["eng_%s_test_fwhm_fs_list" % kind] = [r["fs"] for r in rows]
+    N["eng_%s_test_fwhm_fs_std" % kind] = float(np.std([r["fs"] for r in rows]))
+    N["eng_%s_test_gdd_fs2_list" % kind] = [r["gt"] for r in rows]
+    N["eng_%s_ref_gdd_fs2_list" % kind] = [r["gr"] for r in rows]
+_d = eng_rows["double"]
+_gmax = lambda r: max(g for g in r["Gs"] if g is not None)
+_ok = [_gmax(r) for r in _d if r["dirs"] == (1, 1)]
+_bad = [_gmax(r) for r in _d if r["dirs"] != (1, 1)]
+N["eng_double_all_traces_Gmax_right_direction"] = max(_ok) if _ok else None
+N["eng_double_all_traces_Gmin_wrong_direction"] = min(_bad) if _bad else None
+N["eng_double_wrong_direction_count"] = len(_bad)
+N["eng_double_test_gdd_rel_err_right_runs"] = float(max([abs(r["gt"] - G_TRUE_TEST) / abs(G_TRUE_TEST) for r in _d if r["dirs"] == (1, 1)] or [np.nan]))
+# noise-free double FROG with the engine (does the correct solution reach G ~ 0?)
+clean = [dict(trace={**T, "trace": np.asarray(r_[n_ + "_trace"]) / np.asarray(r_[n_ + "_trace"]).max()}, **kw)
+         for T, r_, n_, kw in ((T_REF, e_rr, "fr", dict(kind="shg-frog", pulse="ref")), (T_TEST, e_rt, "ft", dict(kind="shg-frog", pulse="test")),
+                               (T_X, e_rx, "fx", dict(kind="xfrog", pulse="test", gate="ref")))]
+cl = [multi(clean, 1000 + i) for i in range(3)]
+N["eng_double_noisefree_G_max_list"] = [max(r["Gs"]) for r in cl]
+N["eng_double_noisefree_G_max_list_max"] = max(N["eng_double_noisefree_G_max_list"])
+N["eng_double_noisefree_dirs_ok"] = [int(r["dirs"] == (1, 1)) for r in cl]
+
 # ------------------------------------------------------------------ figures
 fig, axs = p.figure(ncols=3, width_in=9.6, height_in=3.2)
-W = np.fft.fftshift(np.fft.fftfreq(NG, DT)) * 1e-12
-for a, (I, nm) in zip(axs, ((I_ref, "SHG-FROG, 800 nm reference"), (I_test, "SHG-FROG, 1200 nm test"), (I_x, "XFROG (sum frequency)"))):
-    a.imshow(np.roll(I, NG // 2, axis=0).T, origin="lower", aspect="auto", cmap="viridis",
-             extent=[tau[0] * 1e15, tau[-1] * 1e15, W[0], W[-1]])
-    a.set_xlim(-150, 150); a.set_ylim(-80, 80); a.grid(False); a.set_title(nm, fontsize=9); a.set_xlabel("delay (fs)")
-axs[0].set_ylabel("signal frequency - mean (THz)")
+for a, (T, nm) in zip(axs, ((T_REF, "SHG-FROG, 800 nm reference"), (T_TEST, "SHG-FROG, 1200 nm test"), (T_X, "XFROG (sum frequency)"))):
+    om = T["omega_rad_s"] / 2 / np.pi * 1e-15          # signal frequency (PHz)
+    a.imshow(T["trace"].T, origin="lower", aspect="auto", cmap="viridis",
+             extent=[T["delay_s"][0] * 1e15, T["delay_s"][-1] * 1e15, om[0], om[-1]])
+    a.set_xlim(-150, 150); a.grid(False); a.set_title(nm, fontsize=9); a.set_xlabel("delay (fs)")
+axs[0].set_ylabel("signal frequency (PHz)")
 p.save(fig, "synthetic-traces")
 
 fig, axs = p.figure(ncols=2, width_in=9.0, height_in=3.8)
 names = {"conventional": "SHG-FROG, then XFROG", "two": "ref SHG + XFROG together", "double": "double FROG (3 traces)"}
 for i, (kind, col) in enumerate((("conventional", BLUE), ("two", ORANGE), ("double", AQUA))):
-    rows = res_all[kind]
-    axs[0].plot(np.full(len(rows), i) + 0.08 * np.arange(len(rows)) / len(rows), [x["fs"] for x in rows], "o", color=col)
-    axs[1].plot(np.full(len(rows), i) + 0.08 * np.arange(len(rows)) / len(rows), [100 * x["Gx"] for x in rows], "o", color=col)
+    rows = res_all[kind]; er = eng_rows[kind]
+    x0 = np.full(len(rows), i) + 0.08 * np.arange(len(rows)) / len(rows)
+    x1 = np.full(len(er), i) - 0.12 + 0.08 * np.arange(len(er)) / len(er)
+    axs[0].plot(x0, [x["fs"] for x in rows], "o", mfc="none", color=col, label="numpy cross-check" if i == 0 else None)
+    axs[0].plot(x1, [x["fs"] for x in er], "o", color=col, label="engine `multiFrog` / `xfrog`" if i == 0 else None)
+    axs[1].plot(x0, [100 * x["Gx"] for x in rows], "o", mfc="none", color=col)
+    axs[1].plot(x1, [100 * x["G"] for x in er], "o", color=col)
 axs[0].axhline(N["true_fwhm_test_fs"], color=REF, ls="--", label="true test pulse (%.0f fs)" % N["true_fwhm_test_fs"])
 axs[0].axhline(58, color=REF2, ls=":", label="paper: 58 fs (right direction)")
 axs[0].axhline(34, color=REF2, ls="-.", label="paper: 34 fs (time-reversed reference)")
-axs[1].axhline(100 * N["G_floor_x"], color=REF, ls="--", label="noise floor (true pulses)")
+axs[1].axhline(100 * N["G_floor_x"], color=REF, ls="--", label="numpy noise floor (true pulses; numpy G only)")
 axs[1].axhspan(0.4, 0.5, color=REF2, alpha=0.25, label="paper: 0.4-0.5 % (right ref.)")
 axs[1].axhspan(0.9, 1.0, color=REF2, alpha=0.5, label="paper: 0.9-1.0 % (reversed ref.)")
 for a in axs:
     a.set_xticks([0, 1, 2]); a.set_xticklabels([names[k] for k in ("conventional", "two", "double")], rotation=15, fontsize=8)
-    a.legend(fontsize=8)
-axs[0].set_ylabel("retrieved test-pulse FWHM (fs)"); axs[1].set_ylabel("XFROG G error (%)")
+    a.legend(fontsize=7)
+axs[0].set_ylabel("retrieved test-pulse FWHM (fs)"); axs[1].set_ylabel("XFROG G error (%) (last trace of the multi-trace fit)")
 p.save(fig, "retrievals")
 
 fig, ax = p.figure(width_in=6.4, height_in=3.8)
 for i, (kind, col) in enumerate((("conventional", BLUE), ("two", ORANGE), ("double", AQUA))):
-    ax.bar(i, 100 * N[kind + "_both_correct_fraction"], color=col)
+    ax.bar(i - 0.2, 100 * N["eng_%s_both_correct_fraction" % kind], width=0.4, color=col, label="engine" if i == 0 else None)
+    ax.bar(i + 0.2, 100 * N[kind + "_both_correct_fraction"], width=0.4, color=col, alpha=0.4, hatch="//", label="numpy cross-check" if i == 0 else None)
 ax.plot([0, 1, 2], [50, 50, 100], "D", color=REF, ms=9, label="paper: random (~50 %), random, 6 of 6")
 ax.set_xticks([0, 1, 2]); ax.set_xticklabels([names[k] for k in ("conventional", "two", "double")], fontsize=8)
-ax.set_ylabel("retrievals with the right time direction (%)"); ax.axhline(50, color=REF2, ls=":"); ax.legend(fontsize=8, loc="lower right")
+ax.set_ylabel("retrievals with the right time direction (%)"); ax.axhline(50, color=REF2, ls=":"); ax.legend(fontsize=8, loc="center right")
 p.save(fig, "time-direction")
 
 p.write_numbers(N)

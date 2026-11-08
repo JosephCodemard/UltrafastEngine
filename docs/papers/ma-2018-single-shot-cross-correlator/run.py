@@ -113,79 +113,58 @@ nS_bbo = g800["nS"]
 N["artefact15ps_impliedLength_mm"] = 15e-12 * C0 / (2 * nS_bbo) * 1e3
 
 # ---------------------------------------------------------------------------------------------- 2. BK7 plate replicas (Fig. 4c)
-W = 200e-6
-beam = {"kind": "gaussian", "w0M": W}
-fed = {"role": "b", "fromPort": True, "beam": {"kind": "gaussian", "radiusM": W}}
+# crossCorrelator with `gateArm`: the second harmonic (the gate) goes through a 1.1 mm N-BK7 plate with three ghost orders compiled at 400 nm;
+# the probe (fundamental) does not see it. Replica k: level R^(2k) at -2 k n_g d / c.
 D_PLATE = 1.1e-3
-
-def sscc_system():
-    """Beam splitter -> PT arm (delay) and sampling arm (SHG, then the BK7 plate with ghosts) -> SFG crystal (collinear 1-D model)."""
-    return b.system("sscc-fig4c", b.Branched([
-        b.link(b.beam_splitter("bs"), {"c": "ptarm", "d": "sarm"}),
-        b.link(b.delay("ptarm", 0.0), "x"),
-        b.link(b.delay("sarm", 0.0), "shg"),
-        b.link(b.crystal("shg", "BBO", 100e-6, "shg", "I", output="sh", beam=beam, chi3=False), {"out": "gp", "fundamental": "virtual"}),
-        b.link(b.plate("gp", "N-BK7", D_PLATE, ghosts={"orders": 3, "overlap": 1.0}), "x:b"),
-        b.link(b.crystal("x", "BBO", 100e-6, "sfg", "I", aux=[fed], output="sum", record=["a", "b"], beam=beam, chi3=False),
-               {"out": "end", "a": "virtual", "b": "virtual"}),
-    ]))
-
-SYS = None
-
-def energies(tau, delays):
-    spec = b.run_spec(b.pulse(800e-9, tau, energy=1e-6), grid={"windowS": 200e-12, "satelliteLevel": 1e-11})
-    rows = uf.study(SYS, spec, parameters=[{"path": "element:ptarm/delayS", "values": [float(x) for x in delays], "nominal": 0.0}],
-                    outputs=["energy:end"])["rows"]
-    return np.array([r["energy:end"] for r in rows])
-
-def peak(tau, centre, half, step):
-    d = np.arange(centre - half, centre + half + step / 2, step)
-    e = energies(tau, d)
-    return d[e.argmax()], e.max(), d, e
-
-def spikes(tau, step, with_profiles):
-    d_coarse = np.arange(5.8e-12, 7.4e-12, 0.1e-12)
-    e = energies(tau, d_coarse)
-    c0 = d_coarse[e.argmax()]
-    d0, e0, d, ee = peak(tau, c0, 0.25e-12, step)
-    out = {"d0": d0, "levels": [], "positions": [], "profiles": []}
-    for k in (1, 2, 3):
-        dk, ek, dd, eee = peak(tau, d0 + k * DELTA, 0.3e-12, step)
-        out["levels"].append(ek / e0); out["positions"].append(dk - d0)
-    if with_profiles:
-        for k in (0, 1, 2, 3):
-            dd = np.arange(d0 + k * DELTA - 1.0e-12, d0 + k * DELTA + 1.0e-12 + 1e-15, 40e-15)
-            out["profiles"].append((dd - d0, energies(tau, dd) / e0))
-    return out
-
-# the plate's group delay at 400 nm is the engine's own: the ghost spacing 2 n_g d / c
 tab = {t["wavelengthM"]: t for t in uf.materials.show("N-BK7")["table"]}
-NG400, N400, N800 = tab[4e-07]["groupIndex"], tab[4e-07]["n"], tab[8e-07]["n"]
+NG400, N400 = tab[4e-07]["groupIndex"], tab[4e-07]["n"]
 DELTA = 2 * NG400 * D_PLATE / C0
 N["plate_spacing_expected_ps"] = DELTA * 1e12
 R400 = ((N400 - 1) / (N400 + 1)) ** 2
 N["plate_R400"] = R400
-SYS = uf.System.load(sscc_system())
+PROBE_SYS = uf.System.load(b.system("probe", [{"id": "x", "type": "probe"}]))
 
-s200 = spikes(200e-15, 50e-15, False)
-N["spacing1_ps"] = s200["positions"][0] * 1e12
-N["spacing2_ps"] = s200["positions"][1] * 1e12 / 2
-N["spacing3_ps"] = s200["positions"][2] * 1e12 / 3
+def plate_trace(tau, with_plate=True):
+    fine = tau / 10
+    gate = {"gateArm": {"elements": [b.plate("gp", "N-BK7", D_PLATE, ghosts={"orders": 3, "overlap": 1.0})]}} if with_plate else {}
+    inst = b.instrument("crossCorrelator", name="xc", rangeS=[-45e-12, 5e-12], stepS=0.1e-12, fineStepS=fine, fineRangeS=50e-12,
+                        dynamicRangeDb=200, noise=False, **gate)
+    r = uf.run(PROBE_SYS, b.run_spec(b.pulse(800e-9, tau, energy=1e-6), grid={"windowS": 200e-12}, instruments=[inst]))
+    d, s_ = np.asarray(r["xc_delay_s"]), np.asarray(r["xc_signal"])
+    return d, s_ / s_.max()
+
+def replica_levels(d, s_):
+    lv, pos = [], []
+    for k in (1, 2, 3):
+        m = abs(d + k * DELTA) < 0.3e-12
+        i = np.argmax(np.where(m, s_, 0))
+        lv.append(float(s_[i])); pos.append(float(d[i]))
+    return lv, pos
+
+d200, s200_tr = plate_trace(200e-15)
+lv200, pos200 = replica_levels(d200, s200_tr)
+N["spacing1_ps"] = -pos200[0] * 1e12
+N["spacing2_ps"] = -pos200[1] * 1e12 / 2
+N["spacing3_ps"] = -pos200[2] * 1e12 / 3
 for k in (1, 2, 3):
-    N["level%d_200fs" % k] = s200["levels"][k - 1]
-    N["level%d_over_R2k_200fs" % k] = s200["levels"][k - 1] / R400 ** (2 * k)
+    N["level%d_200fs" % k] = lv200[k - 1]
+    N["level%d_over_R2k_200fs" % k] = lv200[k - 1] / R400 ** (2 * k)
     N["level%d_analytic" % k] = R400 ** (2 * k)
-s50 = spikes(50e-15, 25e-15, not p.fast)
+d50, s50_tr = plate_trace(50e-15)
+lv50, pos50 = replica_levels(d50, s50_tr)
 for k in (1, 2, 3):
-    N["level%d_50fs" % k] = s50["levels"][k - 1]
-    N["level%d_50fs_over_R2k" % k] = s50["levels"][k - 1] / R400 ** (2 * k)
+    N["level%d_50fs" % k] = lv50[k - 1]
+    N["level%d_50fs_over_R2k" % k] = lv50[k - 1] / R400 ** (2 * k)
+# without the plate the gate has no replicas: the trace below the main peak stays at the pulse's own level
+d0_, s0_tr = plate_trace(200e-15, with_plate=False)
+N["noplate_max_level_beyond_2ps"] = float(s0_tr[abs(d0_) > 2e-12].max())
 # what the paper's Fig. 4c shows (read off the 7x magnified page, +-0.15 decade)
 PAPER_T = [-11.8, -23.1, -33.8]
 PAPER_LV = [6e-4, 2.7e-6, 8e-10]
 N["paper_spacing_mean_ps"] = float(np.mean([PAPER_T[0], PAPER_T[1] / 2, PAPER_T[2] / 3])) * -1
 for k in (1, 2, 3):
-    N["level%d_decades_vs_paper" % k] = math.log10(s200["levels"][k - 1] / PAPER_LV[k - 1])
-N["level3_vs_text_1e-9_decades"] = math.log10(s200["levels"][2] / 1e-9)
+    N["level%d_decades_vs_paper" % k] = math.log10(lv200[k - 1] / PAPER_LV[k - 1])
+N["level3_vs_text_1e-9_decades"] = math.log10(lv200[2] / 1e-9)
 
 # ---------------------------------------------------------------------------------------------- 3. instrument at 105 dB, 1 ps
 ped = [{"kind": "prePulse", "delayS": d, "relativeIntensity": e} for d, e in zip((-10e-12, -23e-12, -34e-12), (1e-6, 1e-9, 1e-11))]
@@ -210,12 +189,69 @@ N["instr_pre1e-9_db"] = at(-23e-12)
 N["instr_pre1e-11_db"] = at(-34e-12)
 N["instr_reported_contrastAt_m10ps_db"] = v0["contrastAt_m10ps_db"]
 N["instr_trace"] = {"x": dx * 1e12, "y": 10 * np.log10(np.maximum(sx, 1e-30))}
-# the same with the SSCC's 1 ps resolution (resolutionS): see repro_1.py
+# the same with the SSCC's 1 ps resolution (resolutionS): the pre-pulse, the floor and the report must all agree with the no-resolution case
 dr_, sr_, atr, v1 = xc_run(1e-12)
 N["res1ps_pre1e-6_trace_db"] = atr(-10e-12)
 N["res1ps_pre1e-6_reported_db"] = v1["contrastAt_m10ps_db"]
 N["res1ps_floor_trace_db"] = atr(-20e-12)
 N["res1ps_trace"] = {"x": dr_ * 1e12, "y": 10 * np.log10(np.maximum(sr_, 1e-30))}
+
+
+# ---------------------------------------------------------------------------------------------- 4. singleShotCorrelator instrument
+SS_PULSE = lambda lam, fw=100e-15, pre=None: _ss_pulse(lam, fw, pre)
+def _ss_pulse(lam, fw, pre):
+    pu = b.pulse(lam, fw, energy=1e-6)
+    if pre:
+        pu["pedestal"] = [{"kind": "prePulse", "delayS": d, "relativeIntensity": e} for d, e in pre]
+    return pu
+
+def ss_run(lam, ang, W, L, pre=None, fw=100e-15, points=1024, delay_index="phase", **kw):
+    inst = {"kind": "singleShotCorrelator", "name": "ss", "crystal": "BBO", "crossingAngleDeg": ang, "beamWidthM": W, "crystalLengthM": L,
+            "delayIndex": delay_index, "points": points, "noise": False, "dynamicRangeDb": 120, **kw}
+    r = uf.run(PROBE_SYS, b.run_spec(_ss_pulse(lam, fw, pre), grid={"windowS": 150e-12}, instruments=[inst]))
+    return r, [i for i in r.summary["instruments"] if i["name"] == "ss"][0]["values"]
+
+# (a) window and resolution of the instrument vs the paper's eqs. (1)-(2) evaluated from the phase-matching calculator (section 1)
+for tag, lam, g in (("800", 800e-9, g800), ("1053", 1053e-9, g1053)):
+    ang = N["bbo%s_maxAngleDeg" % tag]
+    _, v = ss_run(lam, ang, 0.01, 1.5e-3)
+    N["ss%s_windowPsPerCm" % tag] = v["windowS"] * 1e12 / 1.0
+    N["ss%s_window_over_eq1" % tag] = N["ss%s_windowPsPerCm" % tag] / g["windowPsPerCm"]
+    N["ss%s_res_ps_phase_index" % tag] = v["resolutionGeometricS"] * 1e12
+    N["ss%s_res_over_eq2" % tag] = N["ss%s_res_ps_phase_index" % tag] / g["dtauPs"]
+    _, vg = ss_run(lam, ang, 0.01, 1.5e-3, delay_index="group")
+    N["ss%s_res_ps_group_index" % tag] = vg["resolutionGeometricS"] * 1e12
+for L in (1e-3, 1.5e-3, 2e-3):
+    _, v = ss_run(1053e-9, 40, 0.015, L)
+    N["ss1053_res_L%.1fmm_ps" % (L * 1e3)] = v["resolutionGeometricS"] * 1e12
+    _, vg = ss_run(1053e-9, 40, 0.015, L, delay_index="group")
+    N["ss1053_res_group_L%.1fmm_ps" % (L * 1e3)] = vg["resolutionGeometricS"] * 1e12
+# the window per cm from the instrument for W = 1 cm is in ps: N["ss1053_windowPsPerCm"]. Window of a 1.5 cm beam at 40 deg:
+r_w, v_w = ss_run(1053e-9, 40, 0.015, 1.5e-3)
+N["ss1053_window_1p5cm_ps"] = v_w["windowS"] * 1e12
+
+# (b) a pre-pulse lands at x = -T / slope with its relative intensity (third-order correlation read in one shot)
+PRE = [(-20e-12, 1e-3), (-35e-12, 1e-4)]
+r_p, v_p = ss_run(1053e-9, 40, 0.02, 1.0e-3, pre=PRE, fw=50e-15, points=2048)
+x = np.asarray(r_p["ss_x_m"]); ideal = np.asarray(r_p["ss_signal_ideal"])
+slope = v_p["delayPerPositionSPerM"]
+pix = x[1] - x[0]
+def centroid(c, half):
+    m = abs(x - c) < half
+    return float((ideal[m] * x[m]).sum() / ideal[m].sum()), float(ideal[m].max())
+xm, hm = centroid(0.0, 1.5e-3)
+N["ss_window_ps"] = v_p["windowS"] * 1e12
+N["ss_main_peak_offset_pixels"] = xm / pix
+for (T, e), tag in zip(PRE, ("20ps", "35ps")):
+    xp, hp = centroid(T / slope, 1.5e-3)
+    N["ss_pre%s_position_error_pixels" % tag] = (xp - T / slope) / pix
+    N["ss_pre%s_level_over_injected" % tag] = hp / hm / e
+N["ss_pre_slope_ps_per_mm"] = slope * 1e12 * 1e-3
+N["ss_curve_signal_db"] = {"x": x * 1e3, "y": 10 * np.log10(np.maximum(ideal / ideal.max(), 1e-30))}
+
+# (c) area conservation (engine self-check of the instrument)
+N["ss_area_over_expected"] = v_p["areaMeasuredWSquaredS"] / v_p["areaExpectedWSquaredS"]
+N["ss_window_coverage"] = v_p["windowCoverage"]
 
 # ---------------------------------------------------------------------------------------------- figures
 fig, axs = p.figure(ncols=2, width_in=10.5, height_in=4.0)
@@ -243,24 +279,39 @@ ax.set(ylabel="window per cm of beam width (ps/cm)"); ax.legend(fontsize=8)
 p.save(fig, "geometry")
 
 fig, ax = p.figure(width_in=7.2, height_in=4.4)
-if s50["profiles"]:
-    for k, (dd, ee) in enumerate(s50["profiles"]):
-        ax.semilogy(-dd * 1e12, ee, color=BLUE, lw=1.4, label="engine, 50 fs pulse" if k == 0 else None)
-tt = [0] + [-x * 1e12 for x in s200["positions"]]
-ax.semilogy(tt, [1] + s200["levels"], "o", color=ORANGE, label="engine peaks, 200 fs pulse (no dispersion)")
-ax.semilogy([0] + [-x * 1e12 for x in s50["positions"]], [1] + s50["levels"], "s", color=BLUE, mfc="none", label="engine peaks, 50 fs pulse")
+ax.semilogy(d50 * 1e12, np.maximum(s50_tr, 1e-14), color=BLUE, lw=1.0, label="engine crossCorrelator + gateArm plate, 50 fs pulse")
+tt = [0] + [x * 1e12 for x in pos200]
+ax.semilogy(tt, [1] + lv200, "o", color=ORANGE, label="engine replica peaks, 200 fs pulse (no dispersion)")
+ax.semilogy([0] + [x * 1e12 for x in pos50], [1] + lv50, "s", color=BLUE, mfc="none", label="engine replica peaks, 50 fs pulse")
 ax.semilogy(tt, [1] + [R400 ** (2 * k) for k in (1, 2, 3)], "_", ms=18, mew=2, color=REF2, label="R^(2k), Fresnel (BK7, 400 nm)")
 ax.semilogy([0] + PAPER_T, [1] + PAPER_LV, "D", color=REF, label="paper Fig. 4c, read off (about +-0.15 decade)")
 ax.axhline(10 ** -10.5, color=REF2, ls=":"); ax.annotate("3e10 dynamic range (p. 6)", (-40, 10 ** -10.3), fontsize=8, color=REF2)
-ax.set(xlabel="time (ps)", ylabel="sum-frequency signal / main peak", ylim=(1e-11, 3), xlim=(-40, 5)); ax.legend(fontsize=8, loc="center left")
+ax.set(xlabel="delay of the probe against the gate (ps)", ylabel="third-order signal / main peak", ylim=(1e-11, 3), xlim=(-40, 5)); ax.legend(fontsize=8, loc="center left")
 p.save(fig, "bk7-replicas")
 
 fig, ax = p.figure(width_in=7.2, height_in=4.2)
 ax.plot(dx * 1e12, 10 * np.log10(np.maximum(sx, 1e-30)), color=BLUE, lw=1.4, label="engine crossCorrelator, 105 dB floor, no resolution smoothing")
-ax.plot(dr_ * 1e12, 10 * np.log10(np.maximum(sr_, 1e-30)), color=ORANGE, lw=1.2, label="same with resolutionS = 1 ps (floor moves up)")
+ax.plot(dr_ * 1e12, 10 * np.log10(np.maximum(sr_, 1e-30)), color=ORANGE, lw=1.2, label="same with resolutionS = 1 ps (pre-pulses and floor unchanged)")
 ax.plot([-10, -23, -34], [-60, -90, -110], "D", color=REF, label="injected pre-pulses: 1e-6, 1e-9, 1e-11")
 ax.axhline(-105, color=REF2, ls=":"); ax.annotate("3e10 range (paper, p. 6)", (-44, -103.5), fontsize=8, color=REF2)
 ax.set(xlabel="delay (ps)", ylabel="signal / peak (dB)", ylim=(-115, 3), xlim=(-45, 10)); ax.legend(fontsize=8, loc="center left")
 p.save(fig, "instrument-dynamic-range")
+
+
+fig, axs = p.figure(ncols=2, width_in=10.0, height_in=3.9)
+ax = axs[0]
+xs_ = np.asarray(N["ss_curve_signal_db"]["x"]); ys_ = np.asarray(N["ss_curve_signal_db"]["y"])
+ax.plot(xs_, ys_, color=BLUE, lw=1.2, label="engine singleShotCorrelator (BBO, 1053 nm, 40 deg, W = 20 mm, L = 1 mm)")
+for T, e in PRE:
+    ax.plot(T / slope * 1e3, 10 * np.log10(e), "D", color=REF, ms=7, label="injected pre-pulse at T = %g ps, %g (at x = T / slope)" % (T * 1e12, e) )
+ax.set(xlabel="position x across the overlap (mm)", ylabel="signal / main peak (dB)", ylim=(-80, 3)); ax.legend(fontsize=7, loc="upper left")
+ax = axs[1]
+Ls = [1.0, 1.5, 2.0]
+ax.plot(Ls, [N["ss1053_res_L%.1fmm_ps" % L] for L in Ls], "o-", color=BLUE, label="engine instrument, phase indices (= eq. 2)")
+ax.plot(Ls, [N["ss1053_res_group_L%.1fmm_ps" % L] for L in Ls], "s--", color=ORANGE, label="engine instrument, group indices")
+ax.plot(Ls, [N["dtau1053_L%.1fmm_ps" % L] for L in Ls], "x", color=REF, ms=9, mew=2, label="eq. (2) from the phase-matching calculator")
+ax.axhline(1.0, color=REF2, ls=":"); ax.annotate("paper: about 1 ps for 1-2 mm (p. 2)", (1.0, 1.03), fontsize=8, color=REF2)
+ax.set(xlabel="crystal length L (mm)", ylabel="resolution (ps)", ylim=(0, 1.4)); ax.legend(fontsize=8, loc="lower right")
+p.save(fig, "single-shot-instrument")
 
 p.write_numbers(N)

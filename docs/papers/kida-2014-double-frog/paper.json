@@ -22,6 +22,6 @@
     "Reference: Gaussian, 30 fs transform limit, GDD +195 fs^2 -> 35 fs. Test: Gaussian, 40 fs transform limit, GDD +580 fs^2 before 3 mm fused silica -> 57.6 fs. The paper's retrieved phases (Figs. 4, 5, 7) were not visible; only 'positive chirp' of the test pulse is stated.",
     "Synthetic traces on a 128 x 128 grid (3 fs), additive noise 0.4 % of the peak (chosen a priori as a typical spectrometer noise; the absolute G errors depend on it, only comparisons are made).",
     "XFROG delay range = the same full range as the SHG traces (the paper limits it to one signal at +tau).",
-    "The retrieval is written in numpy: generalised projections with PCGPA steps for the SHG traces and a least-squares step for the XFROG (Fig. 6 of the paper); the initial guess is a 40 fs Gaussian with random phase noise (not stated in the paper)."
+    "Retrieval with the engine (pcgpa for single traces, multiFrog / uf.retrieve_multi for the double FROG); a numpy version of Fig. 6 (PCGPA steps for the SHG traces, least squares for the XFROG) is kept as a cross-check; the initial guess is a 40 fs Gaussian with random phase noise (not stated in the paper)."
   ]
 }
