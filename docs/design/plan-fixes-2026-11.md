@@ -71,3 +71,21 @@ paper README, then delete `progress-2026-11-consolidate.md` and update capabilit
   scatter, stripe filter, crystal-face reflections, fibre array. The spatial `sfg` crystal on a cartesian grid does reproduce the mapping.
 * Not done: cellMode is a command / Python function only (no element option), round beams only, peak power only.
 * Paper follow-ups: schulte-2016 and kaur-2024 should use `cell_mode` for the launch beam instead of trial; ma-2018 compare `singleShotCorrelator`.
+
+### Stream 1 (merged): grid and solver
+* **User-visible change:** the input pulse is built at the REQUESTED carrier (sub-bin offset on the lattice), not the carrier snapped onto the
+  lattice; Kerr, self-steepening, angular-dispersion reports and carrier wavelength follow it (`grid.ReportOmega`). Window frame still moves
+  with the lattice-centre group delay: a dispersive pulse drifts by GDD × offset × L relative to the window (73 fs for a 1 ps soliton at
+  515 nm over 3 L_D); pulse intact. Moving the frame to the pulse carrier is a larger change, not done. Coarse default grid (12 points per
+  FWHM): a 10 fs soliton with off-lattice carrier is 0.3 % off; exact with `snapCarrier: false`.
+* CHANGELOG Changed: input pulse built at the requested carrier; grid-dependent fibre SPM phase error (0.1-0.4 %) gone. Fixed:
+  `trackedAngularDispersion` of gratings and prisms; round aperture on an elliptical beam (exact integral); strongly phase-mismatched thick
+  χ(2) crystal (≤ 0.5 rad mismatch phase per step); grid planner includes the memory of a delayed response, short fixed windows reported;
+  element-level `selfSteepening` on fibres and bulk; fibre D(λ)/β2 tables use a cubic spline. Added: warning and `spectrum at non-positive
+  frequency` loss booking when nonlinear broadening reaches ω ≤ 0. Docs: binaryPhase edge loss is a sampling effect (formula in transverse.md).
+* testing.md: GridSolverTests (9 tests), BeamSourceTests +1.
+* **B1 profile distortion at 2 µm / 10 fs is NOT fixed, only reported:** the SPM spectrum of a 1.5-cycle pulse at B = 3 reaches ω ≤ 0 (analytic
+  signal has no negative frequencies). Three media.py checks stay KNOWN. Fix would need a carrier-resolved model.
+* Not covered: delayed-response memory only for Raman (not generic `timeResponse` or gas revivals); decentre of round aperture still ignored; GPU
+  untested; carrier offset in the carrier-resolved model only covered by existing tests.
+* Paper follow-up: maker-1962 `repro_2.py` and shimizu-1967 `repro_1.py` now behave as expected: convert to documented regression checks or delete.
