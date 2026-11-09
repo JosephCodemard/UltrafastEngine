@@ -5,6 +5,10 @@ includes the rotational Raman response of N2 and O2 ([Gases](../../../reference/
 (PPT rates, Drude plasma) is on ([Ionisation](../../../reference/ionization.md)). A SHG-FROG measures the output,
 and the pulse is retrieved from the simulated trace.
 
+![24 -- Air at a focus: rotational Raman, ionisation and pulse retrieval](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 ultrafast run cell.ufs run.json -o results                        # ~2 s
 ultrafast retrieve pcgpa results/result.npz -o retrieved           # FROG -> pulse (the frog instrument's trace)

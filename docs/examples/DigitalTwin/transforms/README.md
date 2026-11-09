@@ -4,6 +4,10 @@ A CPA line on paper: a stretcher (+100 000 fs², −300 000 fs³) and a compress
 the compressed pulse is 157 fs instead of 100 fs, the spectrum is narrower, and the contrast trace shows a post-pulse
 and a pedestal. This example:
 
+![26 -- Transforms: fit what the design does not know, then reuse it](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 1. **fits** a `transform` element between stretcher and compressor to four recordings: a spectrum, a d-scan, a
    third-order cross-correlation and a power reading (`run-fit.json`);
 2. **reuses** the fitted line on a different seed pulse (`run-new-input.json`);

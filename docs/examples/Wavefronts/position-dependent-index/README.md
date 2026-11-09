@@ -4,6 +4,10 @@
 θ). Combined with time responses, that gives n(t, r, θ, z, I). See
 [docs/spatial-properties.md](../../../reference/spatial-properties.md).
 
+![16 -- Position-dependent material properties](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 ultrafast run grin.ufs run.json -o results     # GRIN rod written as an expression
 python grin_variants.py                         # expression, table, Python function, tapered profile

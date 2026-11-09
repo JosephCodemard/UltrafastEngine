@@ -3,6 +3,10 @@
 One beam line with the optical-component models ([Optical components](../../../reference/components.md)). No
 element has a `beam` of its own: the run's `inputBeam` (w0 = 1 mm at the input) is tracked through every element.
 
+![23 -- Optical components and beam tracking](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 ultrafast run components.ufs run.json -o results
 ```

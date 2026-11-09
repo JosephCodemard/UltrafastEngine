@@ -4,6 +4,10 @@ A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radi
 self-focusing. A 1 % random amplitude noise with a 40 µm correlation length seeds the break-up. The beam is propagated in 2-D (x, y) on a
 128 x 128 grid over 4 beam radii ([Small-scale self-focusing](../../../reference/transverse.md#small-scale-self-focusing)).
 
+![29 -- Small-scale self-focusing in a 2-D plate (P / P_cr ≈ 100)](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 cd docs/examples/Nonlinear/small-scale-self-focusing
 ultrafast run plate.ufs run.json -o results            # about 1 minute on a laptop CPU

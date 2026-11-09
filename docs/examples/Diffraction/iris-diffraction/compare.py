@@ -126,7 +126,7 @@ def main():
             ax[i, j].set_title("%s, %s" % (s, "N = %d" % n if n else "far zone"), fontsize=9)
             ax[i, j].set_xlabel("x (mm)", fontsize=8)
     fig.tight_layout()
-    fig.savefig(os.path.join(HERE, "diffraction-images.png"), dpi=110)
+    fig.savefig(os.path.join(HERE, "diffraction-images.png"), dpi=82)
     print("wrote diffraction-cuts.png and diffraction-images.png")
 
 

@@ -4,6 +4,10 @@ A 1064 nm pump (1 uJ, 1 ps) and a 1550 nm signal (10 nJ) generate a 3.39 um idle
 MgO:LiNbO3 (type 0, all extraordinary, d33). `"output": "idler"` makes the mid-IR the main beam from here on; the
 signal and pump are kept as by-products.
 
+![10 -- Mid-IR difference-frequency generation in MgO:PPLN](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 ultrafast run dfg.ufs run.json -o results
 ultrafast-plot results

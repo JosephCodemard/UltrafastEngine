@@ -3,6 +3,10 @@
 A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod once, end-pumped by 60 W at 940 nm (super-Gaussian,
 0.6 mm, double pass). The rod is modelled on a radial grid, and then the beam travels 0.4 m in free space.
 
+![15 -- Spatially resolved gain and the thermal lens](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 ultrafast run rod.ufs run.json -o results-60W
 ultrafast run rod.ufs run-lowpump.json -o results-5W     # same system, 5 W pump (a run-spec override)

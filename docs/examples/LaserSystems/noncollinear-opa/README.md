@@ -2,6 +2,10 @@
 
 A NOPA on the command line, as a Branched system. A 1030 nm pulse is doubled in BBO. The second harmonic goes to an arm tilted by 4° and pumps a second BBO crystal. The 800 nm seed is a virtual input on that crystal's `signal` port. The crystal takes the crossing angle from the arm's tilt.
 
+![42 -- A non-collinear OPA with the angle from the pump arm](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 cd docs/examples/LaserSystems/noncollinear-opa
 ultrafast run nopa.ufs run.json -o results

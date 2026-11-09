@@ -2,6 +2,10 @@
 
 A Michelson interferometer on the command line, in a Branched `.ufs` file. One arm is tilted by 2 mrad, and carried profiles add point by point at the return, so straight fringes appear with no fringe model.
 
+![35 -- Fringes from a tilted mirror](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 The plate is met twice: the return is a second element with `"sameAs": "bs"` and `"side": 2`, which reverses the sign of r ([Beam splitters](../../../reference/branches.md#beam-splitters)).
 
 ```bash

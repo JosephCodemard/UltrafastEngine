@@ -3,6 +3,10 @@
 Every instrument kind used once along one beam line. A 30 fs, 50 nJ pulse at 800 nm (pre-chirped with 300 fs²)
 goes through:
 
+![17 -- A tour of every instrument](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 1. a 3 mm fused-silica plate on a radial grid (SPM, weak Kerr lens);
 2. 30 cm of air;
 3. chirped mirrors;

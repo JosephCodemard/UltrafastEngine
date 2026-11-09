@@ -5,6 +5,10 @@ ultrafast run system.ufs run.json -o results
 ultrafast-plot results          # system, oscillator, gain, instruments ...
 ```
 
+![20 -- A complete Yb laser system: oscillator → stretcher → amplifier → compressor](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 1. **Oscillator** (`oscillator`, cavity model). A real 2 mm Yb:YAG crystal (8 W at 969 nm, double pass) in a
    cavity with 12 bounces on −1500 fs² chirped mirrors, a SESAM (1 % modulation depth, 50 µJ/cm², 1 ps) and a
    5 % output coupler at 80 MHz.

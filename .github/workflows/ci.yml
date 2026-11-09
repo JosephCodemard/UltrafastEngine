@@ -22,8 +22,8 @@ jobs:
     name: Build (net10.0, net48) and C# tests
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - name: Install Mono (net48 reference assemblies and runtime)
@@ -43,11 +43,11 @@ jobs:
       matrix:
         os: [ubuntu-24.04-arm, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Build the tests and the CLI (net10.0)
@@ -71,8 +71,8 @@ jobs:
       matrix:
         rid: [linux-x64, linux-arm64, win-x64, osx-arm64, osx-x64]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - name: Publish the CLI (framework-dependent; NativeAOT needs its own OS and is built at release)
@@ -82,11 +82,11 @@ jobs:
     name: Python tests (hosted engine, pyNLO)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install the package
@@ -103,11 +103,11 @@ jobs:
     name: Component test scripts (numbers only)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install the package
@@ -116,7 +116,7 @@ jobs:
         run: python python/tools/build_engine.py
       - name: Every component against its analytic answer
         run: python tests/components/run_all.py --no-plots
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: components-report
@@ -126,11 +126,11 @@ jobs:
     name: Paper replications (fast tier)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install the package
@@ -139,7 +139,7 @@ jobs:
         run: python python/tools/build_engine.py
       - name: Run every paper's fast tier, check the published numbers
         run: python build/paper_check.py --report paper-check.json --markdown paper-check.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: paper-check
@@ -152,11 +152,11 @@ jobs:
     name: Docs and example check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install the package and mkdocs
@@ -169,7 +169,7 @@ jobs:
           python python/tools/build_engine.py
       - name: Run every example and tutorial, check the quoted numbers
         run: python build/example_check.py --report example-check.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: example-check

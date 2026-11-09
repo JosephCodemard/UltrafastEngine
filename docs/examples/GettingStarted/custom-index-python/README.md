@@ -4,6 +4,10 @@
 built-in Kerr effect of a fused-silica plate -- the kind of model the engine cannot know about, supplied as a
 vectorised NumPy function:
 
+![04 -- Your own n(t, I) in Python](hero.png)
+
+*The spectra of the two runs (`python custom_response.py` draws it; copied to `hero.png` by `make_figures.py`).*
+
 ```python
 def plasma(ctx):                       # ctx.t, ctx.t_lab, ctx.intensity, ctx.z, ctx.omega0, ... (NumPy views)
     rho = np.cumsum(SIGMA_K * ctx.intensity**K) * dt

@@ -2,6 +2,10 @@
 
 A compressor on the command line. Each `grating` and slant path is its own element, so the tracker follows the beam's spatial chirp through the line ([Components](../../../reference/components.md)).
 
+![38 -- A four-grating compressor, grating by grating](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 cd docs/examples/LaserSystems/four-grating-compressor
 ultrafast run compressor.ufs run.json -o results

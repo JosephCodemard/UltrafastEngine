@@ -2,6 +2,10 @@
 
 You have a few-cycle line in the lab and some recorded diagnostics. This example shows how to:
 
+![21 -- Measured data: compare, calibrate, predict](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 1. **compare** the model with your recordings (`run-compare.json`);
 2. **calibrate** the numbers you do not know well by fitting them to all the recordings at once (`run-fit.json`);
 3. **predict**, with error bars, what instruments you do *not* have would show.

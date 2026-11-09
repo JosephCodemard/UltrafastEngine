@@ -2,6 +2,10 @@
 
 Jones calculus with s/p decomposition at every surface. Things to check in the results:
 
+![05 -- Polarisation, coatings and Fresnel losses](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 * `after_mirror`: the 45-degree quarter-wave stack reflects s and p with different phase -> the 30-degree linear
   input becomes slightly elliptical (`s3` != 0).
 * `after_window`: the Brewster window transmits p (x) fully and loses ~15 % of s (y) per surface -> the

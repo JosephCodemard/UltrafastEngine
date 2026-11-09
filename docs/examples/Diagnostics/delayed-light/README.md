@@ -5,6 +5,10 @@ A 100 fs pulse passes a fused-silica window with a wavelength-dependent AR coati
 ripple pedestal -- is 10⁻⁶ of the pulse and 49 to 124 ps behind it. A cross-correlator reads it. The nonlinear grid
 stays 4.3 ps long: the delayed light lives on the tail grid ([Delayed light](../../../reference/delayed-light.md)).
 
+![28 -- Delayed light: a plate ghost, a mirror-substrate echo and a coating pedestal on the tail grid](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```bash
 cd docs/examples/Diagnostics/delayed-light
 ultrafast run cell.ufs run.json -o results

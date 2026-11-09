@@ -3,6 +3,10 @@
 A 10 mm "doped glass" rod on a radial grid. The built-in Kerr effect is replaced (`"replaceKerr": true`) by an
 expression that uses every variable a time response sees:
 
+![18 -- A nonlinear medium you define: n(x, y, z, t, I, F)](hero.png)
+
+*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+
 ```text
 dn = n2 (1 + z/L) exp(-(r/rc)^2) I  -  kF F  +  dn_mod sin(2 pi f_mod t_lab)
 ```
