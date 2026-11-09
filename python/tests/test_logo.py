@@ -77,3 +77,29 @@ def test_ico_holds_every_size_as_png(tmp_path):
     ml.write_ico(p)
     im = Image.open(p)
     assert sorted(im.info["sizes"]) == [(s, s) for s in (16, 24, 32, 48, 64, 128, 256)]
+
+
+def test_long_logo_is_five_modes_in_a_row_with_one_line_of_text_to_their_right():
+    for dark in (False, True):
+        svg = ml.svg_long(96, dark)
+        xml.dom.minidom.parseString(svg)
+        assert svg.count("<image ") == 5, "five Zernike tiles"
+        width, height = (int(v) for v in re.search(r'width="(\d+)" height="(\d+)"', svg).groups())
+        assert width > 6 * height, "a long, one-line logo"
+        tiles = sorted(int(x) for x in re.findall(r'<image x="(\d+)"', svg))
+        assert tiles == sorted(tiles) and len(set(tiles)) == 5
+        xs = [float(x) for p in re.findall(r'<path fill="[^"]+" d="([^"]+)"', svg) for x in re.findall(r'(-?\d+\.\d+) -?\d+\.\d+', p)]
+        assert min(xs) > tiles[-1] + 96 - 1, "the text starts to the right of the last tile"
+        assert max(xs) < width
+        ys = [float(y) for p in re.findall(r'<path fill="[^"]+" d="([^"]+)"', svg) for y in re.findall(r'-?\d+\.\d+ (-?\d+\.\d+)', p)]
+        assert 0 <= min(ys) and max(ys) <= height, "the text stays inside the canvas"
+    light, dark = ml.long_logo(64, False), ml.long_logo(64, True)
+    assert light.size == dark.size and light.size[1] == 64
+
+
+def test_docs_copies_are_written(tmp_path):
+    out, docs = tmp_path / "o", tmp_path / "docs-img"
+    written = ml.generate(out, docs=docs)
+    names = {p.name for p in written}
+    assert {"ultrafast-logo-long.svg", "ultrafast-logo-long-dark.svg", "ultrafast-logo-large-dark.svg", "favicon.ico"} <= names
+    assert (docs / "logo" / "ultrafast-logo-long.svg").exists() and (docs / "favicon.ico").exists()

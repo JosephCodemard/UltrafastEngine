@@ -11,9 +11,13 @@ become mush at 16-32 px. The large logo puts "Ultrafast Engine" to the right of 
     python assets/logo/make_logo.py --png-sizes 32 256     # optional PNGs of the mark (and large logos, 128 px high), into --out
     python assets/logo/make_logo.py --out /tmp/logo --no-ico
 
+The long logo (footer of the README and of the docs) is five of the modes in a horizontal line with "Ultrafast Engine" on one
+line to their right: ultrafast-logo-long.svg (dark text) and ultrafast-logo-long-dark.svg (light text).
+
 Default outputs: ultrafast-logo-large.svg (dark text, light pages), ultrafast-logo-large-dark.svg (light text, dark pages),
-ultrafast-logo-small.svg (the mark alone, flat cells), and ../ultrafast.ico, the multi-size icon the CLI and the Zemax
-binding embed in their .exe (Windows cannot embed an SVG). Needs numpy, Pillow and matplotlib (for its bundled DejaVu Sans,
+ultrafast-logo-small.svg (the mark alone, flat cells), the two long logos, and ../ultrafast.ico, the multi-size icon the CLI
+and the Zemax binding embed in their .exe (Windows cannot embed an SVG). With --docs (default: docs/img) the files the
+documentation site uses are copied there: the sidebar logo, the long logo and favicon.ico. Needs numpy, Pillow and matplotlib (for its bundled DejaVu Sans,
 so the text is the same on every machine).
 """
 from __future__ import annotations
@@ -33,6 +37,7 @@ SS = 4                    # supersampling factor for anti-aliasing
 HERE = Path(__file__).resolve().parent
 
 # One coefficient per mode (Noll 2..10), in [-1, 1]. Chosen for contrast between neighbours, not for physics.
+LONG_MODES: Tuple[int, ...] = (0, 2, 4, 6, 8)   # indices into COEFFS for the long logo: Noll 2, 4, 6, 8, 10 (tilt, defocus, astigmatism, coma, trefoil)
 COEFFS: Tuple[float, ...] = (0.80, -0.60, 1.00, -0.85, 0.65, -1.00, 0.55, 0.90, -0.70)
 MODE_NAMES: Tuple[str, ...] = ("tip", "tilt", "defocus", "oblique astigmatism", "vertical astigmatism",
                                "vertical coma", "horizontal coma", "vertical trefoil", "oblique trefoil")
@@ -232,9 +237,53 @@ def svg_large(height: int = 256, dark: bool = False) -> str:
         r, c = divmod(k, 3)
         tiles.append('<image x="%d" y="%d" width="%d" height="%d" href="data:image/png;base64,%s"><title>Zernike %s</title></image>'
                      % (off + c * (cell + gap), off + r * (cell + gap), cell, cell,
-                        _png_b64(_cell_image(k, cell * 2, False).resize((cell * 2, cell * 2))), MODE_NAMES[k]))
+                        _png_b64(_cell_image(k, cell, False)), MODE_NAMES[k]))
     return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d"><title>UltrafastEngine</title>'
             '<path fill="%s" d="%s"/><path fill="%s" d="%s"/>%s</svg>' % (width, height, width, height, _hex(col), t1, accent, t2, "".join(tiles)))
+
+
+def _long_geometry(height: int):
+    """Layout of the long logo: five cells of `height` px in a row, then one line of text. Returns (cell, gap, fonts, x_text, width, baseline)."""
+    gap = max(2, round(0.10 * height))
+    cell = height
+    px = 100
+    f1 = _font(True, px)
+    px = int(px * 0.52 * height / f1.getmetrics()[0])      # text cap height about half the cell height
+    f1, f2 = _font(True, px), _font(False, px)
+    x_text = len(LONG_MODES) * cell + len(LONG_MODES) * gap + round(0.25 * height)
+    w1, w2 = f1.getlength("Ultrafast"), f2.getlength(" Engine")
+    width = int(round(x_text + w1 + w2 + 0.04 * height))
+    asc = f1.getmetrics()[0]
+    baseline = int(round(height / 2 + 0.36 * asc))          # vertical centre of the lower-case x-height on the cell centre line
+    return cell, gap, (f1, f2, w1), x_text, width, baseline
+
+
+def long_logo(height: int, dark: bool = False) -> Image.Image:
+    """Raster long logo (RGBA, transparent): five Zernike cells in a row, "Ultrafast Engine" on one line to their right."""
+    cell, gap, (f1, f2, w1), x_text, width, base = _long_geometry(height)
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    for i, k in enumerate(LONG_MODES):
+        img.alpha_composite(_cell_image(k, cell, False), (i * (cell + gap), 0))
+    d = ImageDraw.Draw(img)
+    col = TEXT_DARK_BG if dark else TEXT_LIGHT_BG
+    d.text((x_text, base), "Ultrafast", font=f1, fill=col + (255,), anchor="ls")
+    d.text((x_text + w1, base), " Engine", font=f2, fill=(ACCENT if not dark else (244, 160, 100)) + (255,), anchor="ls")
+    return img
+
+
+def svg_long(height: int = 96, dark: bool = False) -> str:
+    """Vector long logo: text as paths, the five Zernike maps as embedded PNG tiles."""
+    cell, gap, (f1, f2, w1), x_text, width, base = _long_geometry(height)
+    col = TEXT_DARK_BG if dark else TEXT_LIGHT_BG
+    accent = _hex(ACCENT if not dark else (244, 160, 100))
+    t1 = _text_path("Ultrafast", True, f1.size, x_text, base)
+    t2 = _text_path("Engine", False, f2.size, x_text + w1 + f2.getlength(" "), base)
+    tiles = []
+    for i, k in enumerate(LONG_MODES):
+        tiles.append('<image x="%d" y="0" width="%d" height="%d" href="data:image/png;base64,%s"><title>Zernike %s</title></image>'
+                     % (i * (cell + gap), cell, cell, _png_b64(_cell_image(k, cell, False)), MODE_NAMES[k]))
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d"><title>UltrafastEngine</title>'
+            '%s<path fill="%s" d="%s"/><path fill="%s" d="%s"/></svg>' % (width, height, width, height, "".join(tiles), _hex(col), t1, accent, t2))
 
 
 # ------------------------------------------------------------------------------------------------------- ICO
@@ -254,21 +303,33 @@ def write_ico(path: Path, sizes: Sequence[int] = (16, 24, 32, 48, 64, 128, 256))
     path.write_bytes(head + entries + b"".join(blobs))
 
 
-def generate(out: Path, png_sizes: Sequence[int] = (), ico: Path = None) -> List[Path]:
-    """Write the three SVGs into `out`, the icon to `ico` (if given) and, for each of `png_sizes`, PNGs of the mark."""
+def generate(out: Path, png_sizes: Sequence[int] = (), ico: Path = None, docs: Path = None) -> List[Path]:
+    """Write the SVGs into `out`, the icon to `ico` (if given), the files the docs site uses into `docs` (if given: logo/ and
+    favicon.ico) and, for each of `png_sizes`, PNGs of the mark."""
     out.mkdir(parents=True, exist_ok=True)
     written: List[Path] = []
     for name, text in (("ultrafast-logo-small.svg", svg_small()), ("ultrafast-logo-large.svg", svg_large(256, False)),
-                       ("ultrafast-logo-large-dark.svg", svg_large(256, True))):
+                       ("ultrafast-logo-large-dark.svg", svg_large(256, True)),
+                       ("ultrafast-logo-long.svg", svg_long(96, False)), ("ultrafast-logo-long-dark.svg", svg_long(96, True))):
         (out / name).write_text(text, encoding="utf-8")
         written.append(out / name)
     for sz in png_sizes:
         for img, name in ((mark(sz), "small-%d.png" % sz), (large(sz, False), "large-%d.png" % sz), (large(sz, True), "large-dark-%d.png" % sz)):
             img.save(out / name, "PNG", optimize=True)
             written.append(out / name)
+        long_logo(sz, False).save(out / ("long-%d.png" % sz), "PNG", optimize=True)
+        long_logo(sz, True).save(out / ("long-dark-%d.png" % sz), "PNG", optimize=True)
+        written += [out / ("long-%d.png" % sz), out / ("long-dark-%d.png" % sz)]
     if ico is not None:
         write_ico(ico)
         written.append(ico)
+    if docs is not None:
+        (docs / "logo").mkdir(parents=True, exist_ok=True)
+        for name in ("ultrafast-logo-large-dark.svg", "ultrafast-logo-long.svg"):
+            (docs / "logo" / name).write_text((out / name).read_text(encoding="utf-8"), encoding="utf-8")
+            written.append(docs / "logo" / name)
+        write_ico(docs / "favicon.ico")
+        written.append(docs / "favicon.ico")
     return written
 
 
@@ -278,8 +339,10 @@ def main() -> None:
     ap.add_argument("--png-sizes", type=int, nargs="*", default=[], help="optional: also write PNGs (mark and large logos) at these heights in px")
     ap.add_argument("--ico", type=Path, default=HERE.parent / "ultrafast.ico", help="application icon (default: assets/ultrafast.ico)")
     ap.add_argument("--no-ico", action="store_true", help="do not write the icon")
+    ap.add_argument("--docs", type=Path, default=HERE.parent.parent / "docs" / "img", help="folder of the docs site images (default: docs/img)")
+    ap.add_argument("--no-docs", action="store_true", help="do not write the docs-site copies")
     a = ap.parse_args()
-    for p in generate(a.out, a.png_sizes, None if a.no_ico else a.ico):
+    for p in generate(a.out, a.png_sizes, None if a.no_ico else a.ico, None if a.no_docs else a.docs):
         print(p)
 
 

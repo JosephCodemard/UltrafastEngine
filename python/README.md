@@ -17,3 +17,10 @@ print(res.summary["output"])
 ```
 
 Full documentation: `docs/python.md` in the repository.
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="../assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

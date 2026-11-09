@@ -223,3 +223,10 @@ UltrafastEngine was written with substantial help from AI: the code, tests and d
 **Anthropic's Claude** (Opus 5.5 and Sonnet 5.5), working under the direction and review of the author. The physics is
 checked against analytic results and an independent code (pyNLO) by the test suite, but as with any simulation tool,
 validate the results that matter to you against your own measurements before relying on them.
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

@@ -7,7 +7,7 @@
 - **CI:** the unavailable `macos-14` job is replaced by `ubuntu-24.04-arm` (arm64 Linux, the stand-in for Apple silicon). macOS is verified by hand.
 
 **Added**
-- A logo generated from code (`assets/logo/make_logo.py`): a 3 x 3 grid of Zernike modes 2-10 with "Ultrafast Engine" to its right (dark and light text variants as SVG), and a flat-cell design for small sizes. The script also writes `assets/ultrafast.ico`, the icon of the CLI and the Zemax binding. README header uses it.
+- A logo generated from code (`assets/logo/make_logo.py`): a 3 x 3 grid of Zernike modes 2-10 with "Ultrafast Engine" to its right (dark and light text variants as SVG), and a flat-cell design for small sizes. The script also writes `assets/ultrafast.ico`, the icon of the CLI and the Zemax binding. README header uses it. A long logo (five modes in a row, "Ultrafast Engine" on one line, dark and light text) is the footer of the README, of `python/README.md` and of every page of the documentation site; the site also gets the sidebar logo and the favicon (`docs/img/`, `overrides/main.html`).
 
 ## 2.2.0 (2026-11-08) -- stable release
 

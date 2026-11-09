@@ -10,12 +10,12 @@ work, the tests and the acceptance criteria. Sizes: S ≈ 1 focused agent-day, M
 | session | what | depends on | executor / advisor | size |
 |---|---|---|---|---|
 | **S0** (done, in the planning session) | CI fixes, logo, licence, README, this plan | - | - | done |
-| **S1 Foundation** | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 | L |
-| **S2 Core and spikes** | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / Fable 5.1 | XL |
-| **S3 AO plugin** | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Opus 5.5 / Fable 5.1 | XL |
-| **S4 Fitting and twin** | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 | L-XL |
-| **S5 Examples, docs, verification** | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 | L |
-| *S6, later, optional* | repetition and switching: Pockels cell, pulse picker, pulse-train mode (see section 6) | S2 | Opus 5.5 / Fable 5.1 | L |
+| **S1 Foundation** | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
+| **S2 Core and spikes** | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
+| **S3 AO plugin** | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
+| **S4 Fitting and twin** | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
+| **S5 Examples, docs, verification** | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
+| *S6, later, optional* | repetition and switching: Pockels cell, pulse picker, pulse-train mode (see section 6) | S2 | Opus 5.5 / none | L |
 
 **Order.** S1 first, because it restructures the Python package and moves the examples; any example written before that would
 be written twice. After S1, **S2 and S4 can run in parallel** (they own different files). S3 waits for S2. S5 is last.
@@ -27,26 +27,32 @@ S0 ── S1 ──┬── S2 ── S3 ──┐
 
 ## 2. Which model and which advisor
 
-*Reasoning, not measurement*: the split below follows how much physics judgement each session needs against how much plain
-plumbing it contains. Check `/usage` after S1 and move a session up or down a model if the numbers surprise you.
+**Available to you: Sonnet 5.5 (`claude-sonnet-5-5`) and Opus 5.5 (`claude-opus-5-5`); no Fable, and a limited token budget.**
+Opus 5.5 is the strongest model you have, so **nothing can advise it**: where a session needs the strongest model it runs *on*
+Opus with no advisor, and the safety net is the reference-value tests and the owner's gate. Everywhere else the cheaper
+combination is a **Sonnet executor with an Opus advisor**, called a few times at the decisions that matter.
 
-| session | executor | advisor (stronger reviewer) | effort | why |
+*Reasoning, not measurement*: the split follows how much physics judgement each session needs against how much plumbing it
+contains. Check `/usage` after S1 and move a session up or down if the numbers surprise you.
+
+| session | executor | advisor | effort | why |
 |---|---|---|---|---|
-| S1 | **Sonnet 5.5** (`claude-sonnet-5-5`) | **Opus 5.5** (`claude-opus-5-5`) | medium | a wide, mostly mechanical refactor and move; the risk is breaking links and imports, not physics. Advisor at the structure design and before "done" |
-| S2 | **Opus 5.5** | **Fable 5.1** (`claude-fable-5-1`) | high | the chromatic SLM model and the streaming / sparse-sampling error control are the places a wrong physics decision is expensive. Advisor after the spikes (design choice) and before "done" |
-| S3 | **Opus 5.5** | **Fable 5.1** | high | device physics and control algorithms with reference values; the advisor reviews the chromatic pulse test, the control-matrix design and the final diff |
-| S4 | **Sonnet 5.5** | **Opus 5.5** | medium (high for F1, F4) | mostly plumbing, statistics and a server; advisor at the multi-condition fit design (F1), the network-transform constraints (F4) and the MCP security design (T6) |
-| S5 | **Sonnet 5.5** | **Opus 5.5** | medium | examples, docs and verification; `test-runner` (haiku) runs the long jobs |
+| S1 | **Sonnet 5.5** | **Opus 5.5**, one call | medium | a wide, mostly mechanical refactor and move; the risk is broken imports and links, not physics. One advisor call on the old → new name table and the example regrouping, before any file moves |
+| S2 | **Opus 5.5** | none | high | the chromatic SLM model and the streaming / sparse-sampling error control are where a wrong physics decision is expensive, so this is the one session that runs on the strongest model. Safety net: the reference tests, gate G0 (the owner reads the spike note), and one `physics-reviewer` pass |
+| S3 | **Sonnet 5.5** | **Opus 5.5**, two calls | medium (high for the SLM pulse model) | S2 has settled the physics design; S3 is device models and algorithms with reference values. Advisor (1) before the SLM chromatic model and (2) before "done". If Sonnet cannot make a reference test pass in two attempts, switch the session to Opus for that step only |
+| S4 | **Sonnet 5.5** | **Opus 5.5**, three calls | medium | plumbing, statistics and a server. Advisor at the multi-condition fit design (F1), the MCP security design (T6) and before "done" |
+| S5 | **Sonnet 5.5** | **Opus 5.5**, one call | medium | examples, docs and verification; one call before the merge to `main`. `test-runner` (haiku) runs the long jobs |
+| S6 | **Opus 5.5** | none | high | switch physics (Pockels cell, regen timing) |
 
-* **An advisor must be at least as capable as the executor.** Opus 5.5 advising Sonnet 5.5 is valid; Fable 5.1 advising Opus 5.5
-  is the step up. If your Claude Code lets you choose the advisor model, choose the one in the table; otherwise leave the
-  default and say so in your first message (I could not check how your setup selects it).
-* **Advisor calls are the expensive part: three per session.** (1) after orientation, before the first edit; (2) when a result
-  disagrees with a reference value or an approach is not converging; (3) once, before declaring done, with the work already
-  committed. Not after every step.
+* **An advisor must be at least as capable as the executor.** Opus 5.5 advising Sonnet 5.5 is valid. If your Claude Code lets you
+  choose the advisor model, choose Opus 5.5; otherwise leave the default and say so in your first message (I could not check how
+  your setup selects it). Where the table says *none*, do not use an advisor.
+* **Advisor calls are the expensive part.** Make them where the table says, no more: once after orientation and before the first
+  edit (where listed), when a result disagrees with a reference value and two attempts did not fix it, and once before declaring
+  done with the work already committed.
 * **Use `test-runner` (already `haiku`) for builds and test runs.** Do not start `paper-replicator`, `bug-hunter` or
-  `physics-reviewer` agents unless a brief says so; each starts cold. A `physics-reviewer` pass is required once, at the end
-  of S2 and S3.
+  `physics-reviewer` agents unless a brief says so; each starts cold and runs on the session's model. A `physics-reviewer` pass
+  is required once, at the end of S2 and of S3.
 * **Keep context small.** Give a session only its brief, read only the files its brief lists, and follow the token-economy
   rules in `CLAUDE.md` (never read generated files).
 
@@ -224,7 +230,7 @@ fixes only), `build/example_check.py`, `build/package.py` (the examples wheel), 
 it into the plotting package, keeping its names).
 
 **Order of work.**
-1. **Advisor call 1 after reading**, before any edit: the old-name → new-name table (4.1) and the example regrouping table (4.3).
+1. **The one advisor call (Opus 5.5), after reading**, before any edit: the old-name → new-name table (4.1) and the example regrouping table (4.3).
 2. Python structure (4.1): create the packages, move code, add shims, add the import-every-old-name test. Keep
    `ultrafast.build` as it is.
 3. Plotting (4.2): split and consolidate, theme, helpers, `animate`, `algorithms.zernike`, the Zernike decomposition plot and
@@ -236,7 +242,7 @@ it into the plotting package, keeping its names).
 7. The `Computing/` examples (4.4) with their figures and animations; add them to the gallery.
 8. Docs: `docs/reference/python.md` structure section, `docs/examples/README.md` (group index and old → new table),
    changelog lines in the notes file.
-9. **Advisor call 3** before declaring done, work committed.
+9. Commit; no second advisor call (the budget is one); the tests and `mkdocs --strict` are the check.
 
 **Tests.** Import of every old public name; TypedDict autocompletion test still green; Zernike orthonormality and core
 cross-check; GIF writer; figure-budget check; `ultrafast-examples copy` into a temp folder; the full Python suite after
@@ -251,7 +257,7 @@ regenerate figures, the animation budget numbers.
 
 ---
 
-### S2 Core and spikes (Opus 5.5, advisor Fable 5.1)
+### S2 Core and spikes (Opus 5.5, no advisor)
 
 **Goal.** Measure first, then build the few core primitives that the AO plugin, the tile array and the shapers need:
 `modulator`, in-memory maps, streaming and sparse spectral sampling, a coherent tile source, a fast spatial path. Core physics
@@ -281,8 +287,8 @@ the skills `engine-physics` and `physics-change`.
      for S4, not built here).
    * **S7-repetition:** read how the amplifier handles a regenerative switch and round trips, and how `repRateHz` / steady state
      is used (the input for the Pockels comment in section 6).
-2. **Advisor call 1 (Fable 5.1)** with the spike numbers: choose streaming, sparse sampling and the chromatic rules. Record the
-   decision in the notes file. **Gate G0: stop and show the owner the spike note if any spike contradicts the plan** (a full
+2. **Decide** (no advisor): with the spike numbers, choose streaming, sparse sampling and the chromatic rules, and write the
+   reasoning and the alternatives rejected into the notes file, because nobody reviews this choice before the owner does. **Gate G0: stop and show the owner the spike note if any spike contradicts the plan** (a full
    1920 × 1080 SLM at pulse bandwidth is the biggest risk).
 3. **C1 `modulator`:** cell grid (count, pitch, offset, rotation), array of complex transmission / OPD / phase;
    `fillFactor`, `crosstalkKernel`, `quantisationLevels`, `phaseWrapRad`; `chromatic`: `opd`, `phaseAtDesign`, `index`;
@@ -293,7 +299,7 @@ the skills `engine-physics` and `physics-change`.
 6. **C4 coherent tile source** (`initialProfile` kind `tiles`).
 7. **C5 fast path:** cw / narrow-band spatial runs; zonal sensor outputs (slope maps, wavefront map as a stable array).
 8. **C6 GPU parity** of C1/C3/C4 on the spatial back-end (skipped without a device).
-9. `physics-reviewer` on the diff, fix findings; `/regen`; **advisor call 3 (Fable 5.1)**; merge wave: docs, changelog.
+9. `physics-reviewer` on the diff, fix findings; `/regen`; merge wave: docs, changelog.
 
 **Tests (reference values).** Pure tilt moves the focus by f·θ; defocus gives the thin-lens shift; N-level blazed grating first
 order [sin(π/N)/(π/N)]²; replica orders at λ/pitch; a ramp disperses a pulse like a grating (S3); streamed result equals the
@@ -309,7 +315,7 @@ numbers, and what the `ao` plugin may rely on.
 
 ---
 
-### S3 AO plugin (Opus 5.5, advisor Fable 5.1)
+### S3 AO plugin (Sonnet 5.5, advisor Opus 5.5)
 
 **Goal.** The `ao` plugin: deformable mirror, SLM, coherent tiled-aperture array; wavefront sensing with Zernike modal and
 zonal reconstruction; calibration and control; holograms; sensorless optimisers and phase locking; temporal shaping
@@ -327,7 +333,7 @@ the plan page B1-B9, `docs/design/notes/s2-core.md`, `docs/design/notes/spikes.m
 **Order of work** (package ids from the first version of this plan in brackets).
 1. **Scaffold** (AO0): `plugin.json` (`requires: ["fitting"]` if the estimators are reused), the Python module, the docs page.
 2. **Devices:** `deformableMirror` (AO1), `slm` (AO2), `tiledArray` (AO3), each compiling to the core `modulator` or tile source.
-   **Advisor call 1 (Fable 5.1)** before the SLM: the chromatic model and the pulse test.
+   **Advisor call 1 (Opus 5.5)** before the SLM: the chromatic model (settled in S2) and the pulse test.
 3. **Sensing and control:** `shackHartmann` model with Zernike modal and zonal (Southwell) reconstructors (AO4); `ao calibrate`,
    `ao correct`, `ao loop` (AO5).
 4. **Holograms** (AO6): GS, weighted GS, MRAF, complex-to-phase-only encoding (double-phase, Bolduc-type),
@@ -336,7 +342,7 @@ the plan page B1-B9, `docs/design/notes/s2-core.md`, `docs/design/notes/spikes.m
 5. **Temporal shaping** (TS1, TS2): `spectralShaper` (pixels → wavelength, resolution kernel, fill factor, gaps, wrapping),
    `aopdf` (spectral phase and amplitude, finite window, efficiency, ripple), closed-loop shaping with FROG or d-scan as the
    metric. (TS3, the full 4f line with spatial chirp, is later.)
-6. `physics-reviewer` on the diff; **advisor call 3 (Fable 5.1)**; docs, changelog lines in the notes file.
+6. `physics-reviewer` on the diff; **advisor call 2 (Opus 5.5)** before done; docs, changelog lines in the notes file.
 
 **Tests (reference values).** DM influence at a neighbour equals the coupling; surface-to-wavefront factor 2 cos(aoi); Zernike
 fit residual falls with the actuator count; Strehl of the corrected beam against Maréchal exp(−σ²); Shack-Hartmann spot shift =
@@ -377,15 +383,15 @@ if the core needs a hook, write it in the notes file and let S2/S5 add it.
    (tensor-product splines or Chebyshev; penalties in both directions; the existing passivity, causality and
    Kramers-Kronig constraints).
 3. **F4 network transforms** (`kind: "network"`, a small MLP with constraints built into the output layer; trained by the
-   existing estimators; described in the docs as *physics-constrained network transforms*, not as a PINN). **Advisor call 2**
-   on the constraints. **F5** is a short note on gradients through linear elements: measured, not promised.
+   existing estimators; described in the docs as *physics-constrained network transforms*, not as a PINN); write the constraints
+   down in the notes file. **F5** is a short note on gradients through linear elements: measured, not promised.
 4. **`twin` plugin:** T1 project layout and `ultrafast twin init / fit / validate`; T2 validation report with credible bands;
    T3 placement planner and experiment design; T4 what-if explorer; T5 drift tracking (ensemble Kalman).
 5. **T6 MCP server** (stdio, optional extra `ultrafast[mcp]`): about eight coarse tools (`describe`, `validate`, `run`,
    `compare_to_measured`, `scan`, `fit`, `explain_warning`, `plot`), workspace-scoped, **user expressions and callbacks refused
-   by default**, a time and memory budget per call, read-only with respect to any lab hardware. **Advisor call 3** on the security
+   by default**, a time and memory budget per call, read-only with respect to any lab hardware. **Advisor call 2** on the security
    design before it is written. **T7** goal file and checker, and a small benchmark of design tasks with known answers.
-6. Docs, changelog lines in the notes file, **advisor call 4** before done (one extra here: the MCP surface is a security
+6. Docs, changelog lines in the notes file, **advisor call 3** before done (the MCP surface is a security
    boundary).
 
 **Tests (reference values).** Two synthetic conditions recover known shared parameters (1e-3); a held-out condition is
@@ -430,7 +436,7 @@ the docs reference pages for the new elements, and (as the merging session) the 
 4. **Merge wave** (as the merging session): `CHANGELOG.md`, `docs/testing.md` rows, `PROJECT_STATUS.md` counts,
    `docs/capabilities.md`, `ROADMAP.md`, `docs/roadmap.md`, `llms.txt`, `mkdocs.yml`; `/regen`; an "adaptive optics and digital
    twin" section in `docs/agents.md`; the README badges (test counts).
-5. `/verify` (builds, all tests, examples in strict mode, docs), CI green on Linux and Windows. **Advisor call 3** before the
+5. `/verify` (builds, all tests, examples in strict mode, docs), CI green on Linux and Windows. **The one advisor call (Opus 5.5)** before the
    merge. Merge `dev/2026-11` to `main` only then. A tag or release **only when the owner asks**.
 
 **Acceptance.** Every example runs under `ULTRAFAST_STRICT_OPTIONS=1`, asserts its key number, produces its figures and
@@ -486,7 +492,7 @@ Is the contrast of the switch (extinction, edge time) a quantity you measure and
 | risk | handled by |
 |---|---|
 | a full-size SLM does not fit a laptop | spikes S1-scale and S2-sparse before any design; streaming and sparse sampling in S2; examples carry a time and memory budget |
-| the chromatic SLM model is wrong | spike S3 first; the blazed-grating-as-a-grating reference test before the SLM element exists; Fable 5.1 advisor |
+| the chromatic SLM model is wrong | spike S3 first; the blazed-grating-as-a-grating reference test before the SLM element exists; S2 runs on Opus 5.5 and records its reasoning for the owner; the S3 advisor re-reads it |
 | the Python restructure breaks users | shims with `DeprecationWarning`, an import-every-old-name test, the autocompletion test |
 | moving the examples breaks docs and CI | one `git mv` pass, an old → new table, `mkdocs --strict` and `example_check.py` as proof |
 | multi-condition fitting is bigger than expected | spike S6-multi-condition reads the code first; F2 (parametric) ships before F4 (network) |
@@ -494,7 +500,7 @@ Is the contrast of the switch (extinction, edge time) a quantity you measure and
 | animations bloat the repository | budget check (≤ 2.5 MB each); decision below |
 | MCP executes untrusted code | refused by default; workspace-scoped; read-only with respect to the lab; advisor review of the design |
 | parallel sessions collide | file ownership (section 3); the merging session edits the shared files |
-| token cost | model split in section 2, three advisor calls, `test-runner` on haiku, briefs that list what to read |
+| token cost | model split in section 2, at most three advisor calls per session, `test-runner` on haiku, briefs that list what to read |
 
 ## 8. Open points for the owner
 
