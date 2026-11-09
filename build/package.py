@@ -13,7 +13,7 @@ Each platform gives ``dist/UltrafastEngine-<version>-<platform>/`` (and a .zip /
     cpp/        C API: include/ultrafast.h, lib/ (NativeAOT library), example/ (CMake)
     csharp/     UltrafastEngine.Core.dll for net10.0 and net48, plugin assemblies, how to reference them
     zemax/      OpticStudio extension (Windows; only when built against your ZOS-API, never containing it)
-    schemas/, examples/ (--examples), docs/ (--docs), README.md, LICENSE, CHANGELOG.md, manifest.json
+    schemas/, examples/ (--examples), docs/ (--docs), README.md, LICENSE, NOTICE, CITATION.cff, CHANGELOG.md, manifest.json
 
 Needs the .NET 10 SDK and Python 3.9+ (which runs this script; nothing else: the wheel is written directly). NativeAOT
 (``--cpp``, ``--python-engine native``) must be built on the target OS (Windows: "Desktop development with C++";
@@ -355,7 +355,7 @@ class Builder:
     def common(self, rid, root: Path, parts):
         if Log.dry:
             return
-        for n in ("LICENSE", "CHANGELOG.md"):
+        for n in ("LICENSE", "NOTICE", "CITATION.cff", "CHANGELOG.md"):
             shutil.copy2(REPO / n, root / n)
         copy_tree(REPO / "schemas", root / "schemas")
         if self.a.examples:
@@ -468,7 +468,7 @@ def build_wheel(stage: Path, out: Path, plat: str) -> Path:
         lines.append("Summary: " + meta["description"])
     if meta.get("requires-python"):
         lines.append("Requires-Python: " + meta["requires-python"])
-    lines.append("License: MIT")
+    lines.append("License: Apache-2.0")
     for dep in meta.get("dependencies", []):
         lines.append("Requires-Dist: " + dep)
     for extra, deps in (meta.get("optional-dependencies") or {}).items():
@@ -524,7 +524,7 @@ def release_readme(ver, rid, parts, plugins):
     if "zemax-extension" in parts:
         s += ["## OpticStudio (`zemax/`)", "", "Run `zemax\\install-zemax.bat` once (it copies ZOSAPI_NetHelper.dll from your OpticStudio installation); see zemax/README.md.", ""]
     s += ["`schemas/` holds the JSON schemas for system files and run specs (editor completion). `manifest.json` lists",
-          "every file with its SHA-256. Licence: MIT (LICENSE). The Ansys ZOS-API assemblies are not part of this package.", ""]
+          "every file with its SHA-256. Licence: Apache-2.0 (LICENSE, NOTICE). The Ansys ZOS-API assemblies are not part of this package.", ""]
     return "\n".join(s)
 
 

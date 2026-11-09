@@ -8,13 +8,13 @@ version = "2.2.0"
 description = "Nonlinear ultrafast pulse propagation through complete optical systems (Python bindings for UltrafastEngine)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "UltrafastEngine contributors" }]
+license = { text = "Apache-2.0" }
+authors = [{ name = "Joseph Codemard", email = "jac318@bath.ac.uk" }]
 keywords = ["ultrafast", "nonlinear optics", "pulse propagation", "NLSE", "Zemax", "OpticStudio", "laser"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: Apache Software License",
   "Topic :: Scientific/Engineering :: Physics",
   "Operating System :: Microsoft :: Windows",
   "Operating System :: MacOS",
@@ -32,7 +32,11 @@ test = ["pytest>=7"]
 ultrafast-plot = "ultrafast.plot:main"
 
 [project.urls]
-Documentation = "https://github.com/your-org/UltrafastEngine/tree/main/docs"
+Homepage = "https://github.com/JosephCodemard/UltrafastEngine"
+Documentation = "https://josephcodemard.github.io/UltrafastEngine/"
+Source = "https://github.com/JosephCodemard/UltrafastEngine"
+Issues = "https://github.com/JosephCodemard/UltrafastEngine/issues"
+Citation = "https://github.com/JosephCodemard/UltrafastEngine/blob/main/CITATION.cff"
 
 [tool.setuptools.packages.find]
 where = ["src"]

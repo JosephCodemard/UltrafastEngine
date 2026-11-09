@@ -1,4 +1,9 @@
-<h1 align="center">UltrafastEngine</h1>
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo/ultrafast-logo-large-dark.svg">
+  <img alt="UltrafastEngine" src="assets/logo/ultrafast-logo-large.svg" height="110">
+</picture>
+</p>
 
 <p align="center">
 <b>Simulate an ultrafast laser system end to end: from the oscillator to the measurement your lab instruments would report.</b>
@@ -9,7 +14,7 @@
 <a href="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml"><img alt="Docs" src="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml/badge.svg"></a>
 <a href="https://josephcodemard.github.io/UltrafastEngine/"><img alt="Documentation" src="https://img.shields.io/badge/docs-GitHub%20Pages-blue"></a>
 <img alt="Version" src="https://img.shields.io/badge/version-2.2.0-blue">
-<img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green">
+<img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-green">
 </p>
 <p align="center">
 <img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-468%20passing-brightgreen">
@@ -180,7 +185,37 @@ results and reference codes. What is planned next (coating and crystal design pl
 waveguides and fibre gain, deeper OpticStudio integration) is on the [roadmap](docs/roadmap.md); changes are in the
 [changelog](CHANGELOG.md). The Python package and the C library are built from source (no PyPI or NuGet packages).
 
-Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Licensed under the [MIT licence](LICENSE).
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Citing
+
+If UltrafastEngine contributes to published work (a paper, thesis, report or talk), **please cite it**. GitHub's
+"Cite this repository" button reads [CITATION.cff](CITATION.cff); the BibTeX entry is:
+
+```bibtex
+@software{codemard_ultrafastengine_2026,
+  author    = {Codemard, Joseph},
+  title     = {{UltrafastEngine}: nonlinear ultrashort-pulse propagation through complete optical systems},
+  year      = {2026},
+  version   = {2.2.0},
+  url       = {https://github.com/JosephCodemard/UltrafastEngine},
+  license   = {Apache-2.0}
+}
+```
+
+Please also cite the published papers whose results you use; each replication in [docs/papers](docs/papers/README.md) names its source.
+
+## Licence and attribution
+
+UltrafastEngine is licensed under the [Apache License 2.0](LICENSE). The licence requires that redistributions and derivative
+works keep the copyright notice and the [NOTICE](NOTICE) file, which names the author; the request to cite the software in
+published work is in the NOTICE and above, and is a request, not a licence condition. The Ansys ZOS-API assemblies used by the
+optional Zemax plugin are Ansys property and are never part of this repository or its packages.
+
+## Contact
+
+Joseph Codemard, [jac318@bath.ac.uk](mailto:jac318@bath.ac.uk): questions, collaboration, and bug reports that do not belong
+in a public issue. Public bugs and feature requests: [GitHub issues](https://github.com/JosephCodemard/UltrafastEngine/issues).
 
 ## About this project and AI assistance
 

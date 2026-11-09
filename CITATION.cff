@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use UltrafastEngine in published work, please cite it using these metadata."
+title: "UltrafastEngine"
+type: software
+version: 2.2.0
+date-released: 2026-11-08
+license: Apache-2.0
+repository-code: "https://github.com/JosephCodemard/UltrafastEngine"
+url: "https://josephcodemard.github.io/UltrafastEngine/"
+abstract: >-
+  UltrafastEngine simulates nonlinear ultrashort-pulse propagation through complete table-top optical systems
+  (stretchers, compressors, amplifiers, multi-pass cells, fibres, crystals, gas cells, mirrors, coatings) and reads the
+  result out with virtual instruments (spectrometer, autocorrelator, FROG, d-scan, cross-correlator, cameras).
+authors:
+  - family-names: Codemard
+    given-names: Joseph
+    email: jac318@bath.ac.uk
+keywords:
+  - ultrafast optics
+  - nonlinear optics
+  - pulse propagation
+  - femtosecond lasers
+  - simulation

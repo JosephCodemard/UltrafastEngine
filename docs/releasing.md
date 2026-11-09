@@ -30,7 +30,7 @@ executable bits):
 | `cpp/` | `include/ultrafast.h`, `lib/` (`ultrafast.dll` + `ultrafast.lib` / `libultrafast.so` / `libultrafast.dylib`), `example/` (CMake) | nothing (NativeAOT library) |
 | `csharp/` | `lib/net10.0/` and `lib/net48/UltrafastEngine.Core.dll` (+ XML docs), `plugins/` | .NET 10 or .NET Framework 4.8 |
 | `zemax/` | OpticStudio extension `UltrafastEngine.Zemax.exe` (Windows x64), `install-zemax.bat` | OpticStudio; run `install-zemax.bat` once |
-| top level | `README.md` (what is inside, how to start), `LICENSE`, `CHANGELOG.md`, `schemas/`, `manifest.json` (every file with SHA-256), optional `examples/`, `docs/` | |
+| top level | `README.md` (what is inside, how to start), `LICENSE`, `NOTICE`, `CITATION.cff`, `CHANGELOG.md`, `schemas/`, `manifest.json` (every file with SHA-256), optional `examples/`, `docs/` | |
 
 ## Options
 

@@ -6,10 +6,10 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Version>2.2.0</Version>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
-    <Authors>UltrafastEngine contributors</Authors>
+    <Authors>Joseph Codemard</Authors>
     <Company>UltrafastEngine</Company>
     <Product>UltrafastEngine</Product>
-    <Copyright>UltrafastEngine contributors (MIT licence)</Copyright>
+    <Copyright>Copyright 2026 Joseph Codemard (Apache-2.0 licence)</Copyright>
     <Deterministic>true</Deterministic>
     <!-- Public API docs: XML comments are generated; missing ones are warnings for now (see CONTRIBUTING.md). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

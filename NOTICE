@@ -1,0 +1,16 @@
+UltrafastEngine
+Copyright 2026 Joseph Codemard
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Attribution: redistributions of the source code, of the binary packages and of derivative works must keep this
+NOTICE file (or its text, in a NOTICE file or in the documentation or about box that ships with the work), as Section 4(d)
+of the License requires.
+
+Citation: if you use UltrafastEngine in work that is published (a paper, a thesis, a report, a talk), please cite it. The
+BibTeX entry is in the README ("Citing") and in CITATION.cff. This is a request; it is not a condition of the License.
+
+Contact: Joseph Codemard, jac318@bath.ac.uk
+
+The Ansys ZOS-API assemblies (ZOSAPI*.dll) used by the optional Zemax plugin are the property of Ansys, Inc.; they are supplied
+by the user's own OpticStudio installation and are not part of this software or of its packages.

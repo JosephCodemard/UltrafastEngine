@@ -19,7 +19,7 @@ What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md)
 ## Continuous integration (GitHub Actions)
 
 On every push to `main` and `dev/**` and every pull request: build net10.0 and net48 and the C# tests (including slow) on Linux
-and on Mono; C# and Python tests on macOS (Apple silicon) and Windows; the CLI compiled for linux-x64, linux-arm64, win-x64,
+and on Mono; C# and Python tests on Linux arm64 (the stand-in for Apple silicon: the macOS runner is not available to this repository) and on Windows; the CLI compiled for linux-x64, linux-arm64, win-x64,
 osx-x64 and osx-arm64; Python tests with pyNLO; component tests; the paper replications (fast tier); the docs build and the
 example check.
 
@@ -30,6 +30,7 @@ example check.
 | GPU back-ends (CUDA, OpenCL) | need a device with FP64; the tests skip without one |
 | OpticStudio / Zemax | needs a Windows machine with OpticStudio; the binding is built against stubs in CI |
 | Release packages | built and smoke-tested per platform with `build.sh` on request; no release workflow yet |
+| macOS in CI | not run on GitHub (the `macos-14` runner configuration is not available to this repository); the macOS arm64 build and tests are run by hand on the development machine, and the Linux arm64 job covers the arm64 code paths |
 | Mono / net48 test run | Mono is not installed on the development machine; CI runs it on Linux |
 | `docs.yml` (GitHub Pages) | written, not yet run on GitHub; needs Settings → Pages → Source: GitHub Actions |
 | Code coverage | not measured: `dotnet-coverage` does not attach on macOS arm64; to be run on a Linux CI job |

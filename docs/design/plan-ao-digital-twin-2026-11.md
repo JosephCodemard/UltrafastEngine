@@ -20,6 +20,19 @@ spike must confirm before anything is built on it.
 | 7 | An **MCP** server is of interest; explain the trade-offs | new section C6 |
 | 8 | `paper-replicator` runs on `haiku` (its usage was very high) | done in `.claude/agents/paper-replicator.md`; separate from this plan |
 
+Second round (2026-11-09, after the first roadmap):
+
+| # | decision | effect |
+|---|---|---|
+| 9 | Condense into **4-5 Claude Code sessions** to save tokens; choose a model and advisor per session | the roadmap is now five session briefs (S1-S5) with a model and advisor table |
+| 10 | Plotting: **consolidate** the existing plotting code, add **animation**, add a **Zernike decomposition plot** (may need core work) | S1; *checked:* the core already has `Zernike.Fit`, so only a numpy port plus a cross-check test is needed |
+| 11 | **Python package structure**: `ultrafast.algorithms`, `.system` (Sequential, Branched), `.components` (BeamSplitter, LeakyMirror, ...) and more | S1, roadmap section 4.1; lowercase module names recommended over the capitalised form |
+| 12 | CI: macOS is not available as a runner; run the tests on **Linux** | done in the planning session: `macos-14` replaced by `ubuntu-24.04-arm` |
+| 13 | **Group the examples** (Computing, Wavefronts, Diffraction, Branched, Diagnostics, LaserSystems, ...); an installable `ultrafast[examples]`; **optical-computing examples** with processing time against theory | S1, roadmap sections 4.3-4.4; a pip extra installs dependencies, not folders, so it needs a separate `ultrafast-examples` package |
+| 14 | A **run-all script** per example (and per group) that writes the figures and animations; the owner runs it locally, not in CI | S1, roadmap section 4.3 |
+| 15 | A **logo from code**, licence with attribution and a citation request, contact email | done in the planning session (Apache-2.0 + NOTICE; the owner chose this over MIT) |
+| 16 | **Pockels cells** and repetition: comment in the plan | roadmap section 6 (later session S6) |
+
 The work packages, their order and their acceptance criteria are in
 [roadmap-ao-twin-2026-11.md](roadmap-ao-twin-2026-11.md).
 

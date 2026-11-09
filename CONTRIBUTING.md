@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping! A few rules keep the engine trustworthy:
+Thank you for helping! Contributions are accepted under the project's [Apache License 2.0](LICENSE) (Section 5 of the licence). A few rules keep the engine trustworthy:
 
 1. **Every physics change comes with a test** against an analytic result, a conservation law, or another code
    (see docs/testing.md). Run `dotnet run --project tests/UltrafastEngine.Tests -f net10.0 -- --slow` and

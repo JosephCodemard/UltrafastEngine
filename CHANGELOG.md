@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+**Changed**
+- **Licence: MIT -> Apache-2.0**, with a `NOTICE` file naming the author (attribution is a licence condition). `CITATION.cff` and a README "Citing" section with BibTeX ask users to cite the software in published work (a request, not a licence condition). Author and contact (jac318@bath.ac.uk) added to the package metadata; the release packages ship `LICENSE`, `NOTICE` and `CITATION.cff`.
+- **CI:** the unavailable `macos-14` job is replaced by `ubuntu-24.04-arm` (arm64 Linux, the stand-in for Apple silicon). macOS is verified by hand.
+
+**Added**
+- A logo generated from code (`assets/logo/make_logo.py`): a 3 x 3 grid of Zernike modes 2-10 with "Ultrafast Engine" to its right (dark and light text variants as SVG), and a flat-cell design for small sizes. The script also writes `assets/ultrafast.ico`, the icon of the CLI and the Zemax binding. README header uses it.
+
 ## 2.2.0 (2026-11-08) -- stable release
 
 The engine leaves beta: the November 2026 consolidation (component tests, twelve paper replications, the bug fixes and features below), a documentation site on GitHub Pages and a rewritten README.

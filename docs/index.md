@@ -64,3 +64,4 @@ polarimeter, camera, each with its own resolution and detector.
 | check the validation | [Testing and validation](testing.md), [paper replications](papers/README.md) |
 | see what is planned | [Roadmap](roadmap.md) |
 | drive it from an AI agent | [For AI agents](agents.md) |
+| cite it, licence, contact | the [README](https://github.com/JosephCodemard/UltrafastEngine#citing): BibTeX, Apache-2.0 and NOTICE, jac318@bath.ac.uk |
