@@ -81,6 +81,8 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Development history](docs/design/history.md)
 - [Branched systems (design)](docs/design/branching.md)
 - [Plan: what is next](docs/design/plan-next.md)
+- [Assessment: adaptive optics and digital twin](docs/design/plan-ao-digital-twin-2026-11.md)
+- [Roadmap: adaptive optics, shaping, digital twin](docs/design/roadmap-ao-twin-2026-11.md)
 - [Architecture](docs/architecture/index.md)
 - [Code map](docs/architecture/code-map.md)
 - [Key processes](docs/architecture/processes.md)

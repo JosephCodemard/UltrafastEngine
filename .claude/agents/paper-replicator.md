@@ -2,6 +2,7 @@
 name: paper-replicator
 description: Reproduces the headline results of a published paper with UltrafastEngine and writes up the comparison (setup, plots, commentary, what agrees and what does not). Use for "replicate this paper", "check this published number", or to add a folder to docs/papers.
 tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
+model: haiku
 ---
 Follow the `replicate-paper` skill (`.claude/skills/replicate-paper/SKILL.md`) and the layout in `docs/papers/README.md`.
 Read the paper in full text where it is open; mark everything else UNVERIFIED. Work in `docs/papers/<author>-<year>-<topic>/`,
