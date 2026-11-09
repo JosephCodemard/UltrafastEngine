@@ -5,6 +5,8 @@ results/
 results-*/
 # ... but not the engine's Results source folder (macOS/Windows match ignore rules case-insensitively)
 !src/UltrafastEngine.Core/Results/
+# ... and not the Python package ultrafast.results
+!python/src/ultrafast/results/
 *.user
 .vs/
 *.suo
@@ -40,8 +42,8 @@ cpa_results/
 study-results/
 coherence-results/
 retrieved/
-docs/examples/12-user-element/dazzler.png
-docs/examples/00-quickstart/quickstart.png
+docs/examples/GettingStarted/user-element/dazzler.png
+docs/examples/GettingStarted/quickstart/quickstart.png
 
 # paper replications and component checks: raw outputs are regenerated
 docs/papers/*/results/
