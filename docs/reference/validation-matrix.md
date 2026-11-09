@@ -378,7 +378,7 @@ FROG geometries: PG, SD, XFROG, kind inference.
 
 | test | reference | tolerance |
 |---|---|---|
-| `Frog_PcgpaAndEpie_RecoverAChirpedPulse_FromSdAndPgTraces_WithTheSign` | known chirped pulse (GDD +300 fs^2, 25 fs) | 3 % duration, 6 % GDD, sign exact |
+| `Frog_PcgpaAndEpie_RecoverAChirpedPulse_FromSdAndPgTraces_WithTheSign` | known chirped pulse; PCGPA 3 % duration, 6 % GDD; ePIE median of 3 seeds 5 % duration, 8 % GDD each | see summary |
 | `Frog_PgAndSd_TraceCentroid_TiltsWithTheChirpRate` | Kane and Trebino 1993, App. C: PG slope 2b/3, SD slope 4b/3 | 2 % |
 | `Retrieve_WithoutAKind_DoesNotAssumeShg_ForAPolarisationGateTrace` | SHG-FROG traces are symmetric in the delay; PG traces of a chirped pulse are not | exact |
 | `Xfrog_PcgpaAndEpie_RecoverAChirpedPulse_WithTheSign` | known chirped pulse, known reference | 3 % duration, 6 % GDD, sign exact |

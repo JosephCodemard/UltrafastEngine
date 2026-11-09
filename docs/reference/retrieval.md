@@ -7,7 +7,7 @@ instrument would let you recover.
 | method | trace | algorithm |
 |---|---|---|
 | `pcgpa` | SHG-, PG-, SD-FROG, XFROG | principal-component generalised projections (Kane 1999): project on the measured magnitudes, rebuild the outer product, one power iteration per step |
-| `epie` | SHG-, PG-, SD-FROG, XFROG | ptychographic iterative engine adapted to FROG (Sidorenko et al. 2016): delays in random order, object and gate updated |
+| `epie` | SHG-, PG-, SD-FROG, XFROG | ptychographic iterative engine adapted to FROG (Sidorenko et al. 2016): delays in random order, object and gate updated. Stochastic: it stops at a trace error of about 1e-3 and the retrieved duration scatters by about 2 % rms (rare tails to 15 % in tests over 20 seeds), so use PCGPA when the trace is clean and ePIE for noisy traces, and compare several `seed`s |
 | `dscan` | SHG d-scan (glass insertion or GDD) | the measured fundamental spectrum is kept; the spectral phase (a spline through `nodes` points) is fitted by Levenberg-Marquardt, with a per-column calibration of the SHG detection eliminated |
 
 | `multiFrog` (`doubleFrog`) | several FROG traces sharing unknown pulses | all traces together ([below](#multi-trace-retrieval)) |

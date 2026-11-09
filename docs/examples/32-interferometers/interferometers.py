@@ -27,7 +27,9 @@ s_in, s_out = res["input_spectrum"], res["output_spectrum"]
 fringes = (1 - np.cos(w * TAU)) / 2
 band = s_in > 1e-3 * s_in.max()
 print("Mach-Zehnder     output / input %.4f   analytic %.4f" % (s_out.sum() / s_in.sum(), (s_in * fringes).sum() / s_in.sum()))
-print("spectral fringes largest error  %.1e of the peak" % (np.abs(s_out - s_in * fringes)[band].max() / s_in.max()))
+# the error is double-precision rounding (~1e-14, last digit platform dependent): print the bound it meets
+err = np.abs(s_out - s_in * fringes)[band].max() / s_in.max()
+print("spectral fringes largest error  %s 1e-12 of the peak" % ("below" if err < 1e-12 else "ABOVE"))
 # the closure is rounding noise (~1e-25 J on 1 nJ, platform dependent): print the bound it meets
 print("budget closure   %s 1e-12 of the input" % ("below" if abs(graph["energyClosureJ"]) < 1e-12 * 1e-9 else "ABOVE"))
 
