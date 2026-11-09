@@ -27,3 +27,10 @@ Documentation: [docs/plugins/fitting.md](../../docs/plugins/fitting.md). Worked 
 Build: `dotnet build plugins/fitting/src -c Release` lays out the installable folder in `artifacts/plugins/fitting`.
 It is also built and copied with the CLI, the test runner and `python python/tools/build_engine.py`. Installing it
 elsewhere: [docs/plugins/installing.md](../../docs/plugins/installing.md).
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="../../assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

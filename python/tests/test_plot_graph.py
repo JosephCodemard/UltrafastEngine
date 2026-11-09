@@ -6,7 +6,8 @@ matplotlib.use("Agg")
 
 import ultrafast as uf
 from ultrafast import build as b
-from ultrafast import diagram, plotting as up
+from ultrafast import plotting as up
+from ultrafast.plotting import diagrams as diagram
 
 
 @pytest.fixture(scope="module")

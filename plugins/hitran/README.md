@@ -7,3 +7,10 @@ Docs: [docs/plugins/hitran.md](../../docs/plugins/hitran.md). Delayed light: [do
 * `python/ultrafast_hitran/` -- builders (`air`, `species`) and the downloader (`python -m ultrafast_hitran download H2O`; needs the
   HITRAN API, `pip install hitran-api`).
 * No HITRAN data are shipped; HITRAN has its own terms of use (https://hitran.org).
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="../../assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

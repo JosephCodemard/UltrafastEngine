@@ -11,3 +11,10 @@ The OpticStudio (Zemax) integration:
 
 Documentation: [docs/plugins/zemax.md](../../docs/plugins/zemax.md). Example: `docs/examples/07-zemax-workflow`.
 Planned extensions are on the roadmap (ROADMAP.md).
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="../../assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

@@ -19,3 +19,10 @@ Code style: 4 spaces, braces on new lines for types/methods (see `.editorconfig`
 
 AI coding agents: see `AGENTS.md`; Claude Code reads `CLAUDE.md` and `.claude/` ([docs/claude-code.md](docs/claude-code.md)).
 Release packages: `./build.sh` / `build.bat` ([docs/releasing.md](docs/releasing.md)).
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

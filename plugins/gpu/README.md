@@ -24,3 +24,10 @@ have no double precision; the CPU uses Accelerate instead.
 
 Docs: [docs/plugins/gpu.md](../../docs/plugins/gpu.md) (setup per OS, troubleshooting, internals),
 [docs/reference/speed.md](../../docs/reference/speed.md) (what gains from a GPU).
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="../../assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

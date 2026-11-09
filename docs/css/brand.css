@@ -1,0 +1,11 @@
+/* UltrafastEngine brand colours (the logo palette in assets/logo/make_logo.py). The readthedocs theme is light only. */
+:root { --uf-blue: #2a78d6; --uf-blue-dark: #184f95; --uf-ink: #0b0b0b; }
+.wy-side-nav-search, .wy-nav-top { background: var(--uf-blue-dark); }
+.wy-side-nav-search > a, .wy-side-nav-search .wy-dropdown > a { color: #fcfcfb; }
+.wy-side-nav-search > a img.logo { width: 100%; max-width: 220px; margin: 0.4em auto 0.6em; }
+.wy-menu-vertical a:hover { background: var(--uf-blue-dark); }
+.wy-menu-vertical li.current > a, .wy-menu-vertical li.on a { border-left: 3px solid var(--uf-blue); }
+a { color: var(--uf-blue-dark); }
+a:hover { color: var(--uf-blue); }
+.rst-content code, .rst-content tt, code { color: var(--uf-ink); }
+.rst-content img { max-width: 100%; height: auto; }

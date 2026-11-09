@@ -88,3 +88,10 @@ Planned after the items above; needs the user's OpticStudio installation.
 - Live-data and machine-learning surrogate plugins: after the stable release.
 
 Ideas and priorities are tracked in issues; contributions are welcome ([CONTRIBUTING.md](CONTRIBUTING.md)).
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

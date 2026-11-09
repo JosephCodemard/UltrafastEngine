@@ -38,11 +38,11 @@ contains. Check `/usage` after S1 and move a session up or down if the numbers s
 | session | executor | advisor | effort | why |
 |---|---|---|---|---|
 | S1 | **Sonnet 5.5** | **Opus 5.5**, one call | medium | a wide, mostly mechanical refactor and move; the risk is broken imports and links, not physics. One advisor call on the old → new name table and the example regrouping, before any file moves |
-| S2 | **Opus 5.5** | none | high | the chromatic SLM model and the streaming / sparse-sampling error control are where a wrong physics decision is expensive, so this is the one session that runs on the strongest model. Safety net: the reference tests, gate G0 (the owner reads the spike note), and one `physics-reviewer` pass |
-| S3 | **Sonnet 5.5** | **Opus 5.5**, two calls | medium (high for the SLM pulse model) | S2 has settled the physics design; S3 is device models and algorithms with reference values. Advisor (1) before the SLM chromatic model and (2) before "done". If Sonnet cannot make a reference test pass in two attempts, switch the session to Opus for that step only |
-| S4 | **Sonnet 5.5** | **Opus 5.5**, three calls | medium | plumbing, statistics and a server. Advisor at the multi-condition fit design (F1), the MCP security design (T6) and before "done" |
+| S2 | **Opus 5.5** | none | medium | the chromatic SLM model and the streaming / sparse-sampling error control are where a wrong physics decision is expensive, so this is the one session that runs on the strongest model. Safety net: the reference tests, gate G0 (the owner reads the spike note), and one `physics-reviewer` pass |
+| S3 | **Sonnet 5.5** | **Opus 5.5**, two calls | medium (medium/high if needed for the SLM pulse model) | S2 has settled the physics design; S3 is device models and algorithms with reference values. Advisor (1) before the SLM chromatic model and (2) before "done". If Sonnet cannot make a reference test pass in two attempts, switch the session to Opus for that step only |
+| S4 | **Sonnet 5.5** | **Opus 5.5**, three calls | medium/high | plumbing, statistics and a server. Advisor at the multi-condition fit design (F1), the MCP security design (T6) and before "done" |
 | S5 | **Sonnet 5.5** | **Opus 5.5**, one call | medium | examples, docs and verification; one call before the merge to `main`. `test-runner` (haiku) runs the long jobs |
-| S6 | **Opus 5.5** | none | high | switch physics (Pockels cell, regen timing) |
+| S6 | **Opus 5.5** | none | medium | switch physics (Pockels cell, regen timing) |
 
 * **An advisor must be at least as capable as the executor.** Opus 5.5 advising Sonnet 5.5 is valid. If your Claude Code lets you
   choose the advisor model, choose Opus 5.5; otherwise leave the default and say so in your first message (I could not check how
@@ -254,6 +254,26 @@ animation within budget; the example check passes with the new paths; the exampl
 
 **Handoff.** `docs/design/notes/s1-foundation.md`: the old → new table, the example move table, anything left, the commands to
 regenerate figures, the animation budget numbers.
+
+**Progress (2026-11-09, branch `dev/2026-11-s1-foundation`; details in `docs/design/notes/s1-foundation.md`).**
+
+| step | state |
+|---|---|
+| 1 advisor call (Opus 5.5) | done; its corrections are applied (public-surface snapshot first, no module named like a figure function, shim warns, fold decision written down) |
+| 2 Python structure | **done**: `system`, `components` (optics, splitters, polarisation, crystals, fibres, `amplifiers`, media), `sources`, `instruments` (18 real factories), `algorithms`, `results`; CapWords names are aliases of the `build` functions, so typed returns are unchanged; builders kept in `build` only are listed in a test |
+| 3 plotting | **done**: `plotting.py` split into a package (`style, data, time_domain, spectral, run_figures, spatial, instrument_panels, diagrams, zernike, animate`); every 2.2.0 public and underscore name still imports (`python/tests/data/public_surface_2_2_0.json`); `ultrafast.diagram` is a shim with a `DeprecationWarning`; matplotlib and Pillow stay lazy |
+| Zernike and animation | **done**: `algorithms.zernike` (orthonormal to 1e-12 by polar quadrature; agrees with the engine's `wavefrontSensor` coefficients to 1e-6), the decomposition figure (one or several wavefronts, complex-field input, animated variant), GIF writer with a size-budget check |
+| 4 regroup examples, 5 `make_all`, 6 examples wheel, 7 Computing examples, 8 docs | **not started** |
+
+Findings that change later sessions:
+
+* `lens` has no cylindrical or separate x/y focal length, so the Goodman vector-matrix multiplier of 4.4 cannot be built from
+  existing elements. The `matrix-vector` example will use a lens as an exact DFT matrix and a 4f system for circulant matrices;
+  a cylindrical lens is a note for S2.
+* `plotting/zernike.py` and the fitting plugin's `figures.py`: the plugin figure stays in the plugin (it reads the fitting
+  result format and is registered only when the plugin loads); it uses the stable names re-exported by `ultrafast.plotting`.
+  This is the "fold" of 4.2, with the reason written down.
+* Full Python suite on the branch: 162 passed, 2 skipped (before the new `/verify` run, which is still in progress).
 
 ---
 

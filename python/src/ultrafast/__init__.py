@@ -24,10 +24,12 @@ from . import plugins
 from . import materials
 from . import measured
 from . import types
+from . import algorithms, components, instruments, results, sources, system
 
 __version__ = "2.2.0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
-           "command", "study", "coherence", "retrieve", "retrieve_multi", "devices", "benchmark", "set_default_backend", "build", "crystal", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load"]
+           "command", "study", "coherence", "retrieve", "retrieve_multi", "devices", "benchmark", "set_default_backend", "build", "crystal", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load",
+           "algorithms", "components", "instruments", "results", "sources", "system"]
 
 
 def plot(result, what: str = "overview", ax=None):

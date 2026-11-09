@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `benchmark`, `build`, `capabilities`, `cells`, `coherence`, `command`, `crystal`, `devices`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `study`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `algorithms`, `benchmark`, `build`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -590,13 +590,41 @@ Plot results written by the ``ultrafast`` CLI.
 
 ## `ultrafast.plotting`
 
-Plot helpers used by `plot`.
+Plotting package: `report`, `plot`, `register_figure`, the figures (re-exported from the modules below).
 
 Publication-style plots of UltrafastEngine results (needs matplotlib: ``pip install ultrafast-engine[plot]``).
+
+### `register_figure(name: str, maker: Callable, after: Optional[str] = None) -> None`
+
+Add a figure to :func:`report` and ``ultrafast-plot`` (used by plugins, e.g. the fitting plugin's ``measurements`` and ``fit``). ``maker(res)`` returns a matplotlib figure, or None when the result has no data for it. ``after`` places it after an existing figure in the default order.
+
+### `report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] = ('png',), pdf: bool = True, only: Optional[Iterable[str]] = None, db: bool = False, dpi: int = 160, close: bool = True) -> Dict[str, object]`
+
+Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (optionally) all of them in one ``report.pdf``. ``out_dir`` defaults to ``<results folder>/plots``. Returns {name: figure or path}.
+
+### `plot(result, what = 'overview', ax = None)`
+
+``uf.plot(result, what)``: "overview" or "measurements" (figures), or a single panel "temporal" / "spectrum" / "phase" / "losses" / "elements" on ``ax``.
+
+## `ultrafast.plotting.style`
+
+Themes, matplotlib style, SI-prefix formatting.
+
+Colour themes, matplotlib style, SI-prefix formatting and small axis helpers shared by every figure.
 
 ### `set_theme(dark: bool = False) -> None`
 
 Switch the colour theme for figures created afterwards.
+
+### `fmt(x, unit: str = '', digits: int = 3) -> str`
+
+Engineering formatting: fmt(2.2e-13, 's') -> '220 fs'.
+
+## `ultrafast.plotting.data`
+
+Reading a saved results folder.
+
+Reading a results folder (``summary.json`` + ``result.npz``) written by the CLI: :class:`SavedResult`, :func:`load`.
 
 ### class `SavedResult`
 
@@ -613,13 +641,21 @@ A results folder written by the CLI / ``Result.write``: same interface as a live
 
 A results folder (str/Path) -> :class:`SavedResult`; a live Result / SavedResult is returned as is.
 
-### `fmt(x, unit: str = '', digits: int = 3) -> str`
+## `ultrafast.plotting.time_domain`
 
-Engineering formatting: fmt(2.2e-13, 's') -> '220 fs'.
+Temporal panels.
+
+Temporal panels: the pulse in time, input and output.
 
 ### `temporal(res, ax = None, compressed: bool = True, normalize: bool = False)`
 
 Input and output power vs time (plus the ideally compressed output, if an ideal compressor ran).
+
+## `ultrafast.plotting.spectral`
+
+Spectral panels.
+
+Spectral panels: spectrum (linear or dB) and spectral phase.
 
 ### `spectrum(res, ax = None, db: bool = False, floor_db: Optional[float] = None)`
 
@@ -628,6 +664,12 @@ Input and output spectral density vs wavelength (linear, normalised; or dB). Wit
 ### `spectral_phase(res, ax = None, xlim = None)`
 
 Output (and input) spectral phase with offset and group delay removed, where the spectrum is > 1 %.
+
+## `ultrafast.plotting.run_figures`
+
+Whole-run figures: overview, losses, gain, oscillator, comparison.
+
+Whole-run figures: overview, element-by-element evolution, losses, gain, oscillator, by-products, run comparison.
 
 ### `evolution(res, axs = None)`
 
@@ -644,22 +686,6 @@ Text panel with the headline numbers, warnings and notes.
 ### `overview(res, db: bool = False)`
 
 Six-panel summary: pulse, spectrum, spectral phase, evolution, losses, key numbers.
-
-### `system_diagram(res, ax = None, compact: bool = False)`
-
-Schematic of the system on ``ax``: elements, beam line coloured by carrier wavelength, aux beams in, by-products out, probes and numbered instrument locations (the numbers used in every instrument title).
-
-### `system(res)`
-
-Stand-alone system schematic with a numbered list of the instruments and where they sit.
-
-### `instruments(res)`
-
-One panel per instrument (d-scan / FROG traces as images). Returns None if no instrument has data.
-
-### `probes(res, db: bool = True, floor_db: Optional[float] = None)`
-
-Spectral and temporal evolution through the probes (heat maps, one row per probe, input at the bottom). The dB floor follows the data (down to -60 dB) unless ``floor_db`` is given. Returns None if the run recorded fewer than two probes.
 
 ### `elements(res)`
 
@@ -681,25 +707,35 @@ Gain and amplifier elements: one row per element with the single-pass small-sign
 
 Oscillator elements: build-up of the output energy over the round trips, the evolution of the output pulse (time) and spectrum (wavelength) from start-up to steady state, and the final pulse with the key numbers. Returns None if the run has no iterated oscillator.
 
+## `ultrafast.plotting.spatial`
+
+Image panels.
+
+Spatial (image) panels shared by the instrument and probe figures.
+
+(No public functions; see the exported names above.)
+
+## `ultrafast.plotting.instrument_panels`
+
+Instrument panels, probes, measured versus simulated.
+
+One panel per instrument, probes and the measured-versus-simulated figure.
+
+### `instruments(res)`
+
+One panel per instrument (d-scan / FROG traces as images). Returns None if no instrument has data.
+
+### `probes(res, db: bool = True, floor_db: Optional[float] = None)`
+
+Spectral and temporal evolution through the probes (heat maps, one row per probe, input at the bottom). The dB floor follows the data (down to -60 dB) unless ``floor_db`` is given. Returns None if the run recorded fewer than two probes.
+
 ### `measurements(res)`
 
 Recorded data against the simulation (instruments with ``measured`` data, docs/reference/measured-data.md): one row per instrument with "measured" data -- the measured curve (points), the simulated reading on the same axis (line, with its 1-sigma band after a fit) and the residual; for 2-D traces (FROG, d-scan, cameras) the measured and simulated traces and their difference; for scalar readings a table. Returns None if the run compared nothing.
 
-### `register_figure(name: str, maker: Callable, after: Optional[str] = None) -> None`
+## `ultrafast.plotting.diagrams`
 
-Add a figure to :func:`report` and ``ultrafast-plot`` (used by plugins, e.g. the fitting plugin's ``measurements`` and ``fit``). ``maker(res)`` returns a matplotlib figure, or None when the result has no data for it. ``after`` places it after an existing figure in the default order.
-
-### `report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] = ('png',), pdf: bool = True, only: Optional[Iterable[str]] = None, db: bool = False, dpi: int = 160, close: bool = True) -> Dict[str, object]`
-
-Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (optionally) all of them in one ``report.pdf``. ``out_dir`` defaults to ``<results folder>/plots``. Returns {name: figure or path}.
-
-### `plot(result, what = 'overview', ax = None)`
-
-``uf.plot(result, what)``: "overview" or "measurements" (figures), or a single panel "temporal" / "spectrum" / "phase" / "losses" / "elements" on ``ax``.
-
-## `ultrafast.diagram`
-
-Layout diagrams of a system.
+Layout diagrams of a system (the old `ultrafast.diagram`).
 
 Schematic of a simulated system for the plots: elements in order, the beam line coloured by its carrier wavelength, auxiliary beams coming in, by-products leaving, probes, and numbered instrument locations.
 
@@ -726,3 +762,225 @@ Draw the schematic of ``res`` (live Result or results folder) on ``ax``.
 ### `draw_graph(res, ax, theme: dict, compact: bool = False)`
 
 Draw a Branched system as a graph on ``ax``: elements as boxes by layer, arms as lanes, links coloured by the carrier after their source element, virtual inputs and outputs as small open markers, the energy at the end, loops as arcs.
+
+### `system_diagram(res, ax = None, compact: bool = False)`
+
+Schematic of the system on ``ax``: elements, beam line coloured by carrier wavelength, aux beams in, by-products out, probes and numbered instrument locations (the numbers used in every instrument title).
+
+### `system(res)`
+
+Stand-alone system schematic with a numbered list of the instruments and where they sit.
+
+## `ultrafast.plotting.zernike`
+
+Zernike decomposition figure.
+
+Zernike decomposition figure: the wavefront, its Zernike reconstruction, the residual and a bar chart of the Noll coefficients (rms, in waves) coloured by radial order, with the rms and the Marechal Strehl estimate in the title.
+
+### `wavefront_from(source: Any, x = None, y = None, wavelength: Optional[float] = None, radius: Optional[float] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]`
+
+Normalise the accepted inputs to ``(map_in_waves[x][y], x, y, radius)``.
+
+### `decomposition(sources: Union[Any, Sequence[Any]], labels: Optional[Sequence[str]] = None, *, x = None, y = None, wavelength: Optional[float] = None, radius: Optional[float] = None, max_noll: int = 15, remove_tilt: bool = False, vlim_waves: Optional[float] = None, coeff_lim_waves: Optional[float] = None)`
+
+The Zernike decomposition figure for one wavefront (see the module docstring for the accepted inputs) or a list of them, one row each.
+
+### `animate_decomposition(wavefronts: Sequence[Any], path, labels: Optional[Sequence[str]] = None, *, fps: float = 6, dpi: int = 70, pause_last_s: float = 1.5, **kw) -> Dict[str, Any]`
+
+Step through a list of wavefronts (e.g. the iterations of a deformable-mirror correction) and write an animated GIF with one decomposition per frame, on one fixed colour and coefficient scale. ``kw`` goes to :func:`decomposition`.
+
+## `ultrafast.plotting.animate`
+
+Animated GIF (and optional MP4) writer; the figure size budget.
+
+Animations: one function draws a figure per frame, :func:`animate` writes an animated GIF (Pillow; no ffmpeg needed) and, when ``ffmpeg`` is on the path and ``mp4=True``, an MP4 as well.
+
+### `render_frame(fig, dpi: int = 80) -> np.ndarray`
+
+Draw a figure to an RGB uint8 array (Agg; no display needed).
+
+### `animate(frame: Callable[[Any], Any], frames: Iterable[Any], path: Union[str, Path], fps: float = 15, dpi: int = 80, loop: int = 0, pause_last_s: float = 1.0, progress_bar: bool = False, colors: int = 128, mp4: bool = False, close: bool = True) -> Dict[str, Any]`
+
+Draw ``frame(f)`` for every ``f`` in ``frames`` (it returns a matplotlib Figure) and write ``path`` (``.gif``).
+
+### `check_budget(root: Union[str, Path]) -> list`
+
+Files under ``root`` over the size budget: PNG over 300 kB, GIF over 2.5 MB. Returns ``[(path, bytes, limit), ...]``.
+
+## `ultrafast.diagram`
+
+Deprecated alias of `ultrafast.plotting.diagrams`.
+
+Moved to :mod:`ultrafast.plotting.diagrams`. This module keeps the old import path working and warns when it is imported.
+
+(No public functions; see the exported names above.)
+
+## `ultrafast.system`
+
+Sequential and Branched systems, load and save.
+
+Building and loading systems: :class:`Sequential` and :class:`Branched` element lists, :func:`link`, :func:`loop`, :func:`virtual_input`, the :func:`system` builder and :class:`System`. The classes live in :mod:`ultrafast.build` (the low-level builders); this package is where to look for them by what they are.
+
+### `load(source: Any) -> System`
+
+Open a system from a ``.ufs`` path, JSON text or a dict (same as :meth:`System.load`).
+
+### `save(system_dict: Mapping[str, Any], path: Union[str, Path], indent: int = 2) -> Path`
+
+Write a system dict (from :func:`system`) as a ``.ufs`` file and return the path.
+
+## `ultrafast.components`
+
+Optical components by kind (CapWords aliases of the builders).
+
+Optical components by kind. ``components.BeamSplitter`` is :func:`ultrafast.build.beam_splitter`: same function, same typed return value, a CapWords name (the snake_case names work here too).
+
+(No public functions; see the exported names above.)
+
+## `ultrafast.sources`
+
+Pulses, beams, measured spectra (CapWords aliases).
+
+Pulses, beams and measured spectra: everything that describes the light entering a system.
+
+(No public functions; see the exported names above.)
+
+## `ultrafast.instruments`
+
+One factory per instrument kind.
+
+Instruments, one factory per kind, plus :func:`axis` and :func:`detector`.
+
+### `EnergyMeter(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Pulse energy (or power) through a range. Kind ``energyMeter``; parameters: docs/reference/instruments.md.
+
+### `Spectrometer(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Spectrum on a wavelength axis, with resolution. Kind ``spectrometer``; parameters: docs/reference/instruments.md.
+
+### `Scope(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Photodiode / oscilloscope trace with a finite rise time. Kind ``scope``; parameters: docs/reference/instruments.md.
+
+### `Autocorrelator(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Intensity or interferometric autocorrelation. Kind ``autocorrelator``; parameters: docs/reference/instruments.md.
+
+### `Frog(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Second-harmonic, polarisation-gate or self-diffraction FROG trace. Kind ``frog``; parameters: docs/reference/instruments.md.
+
+### `XFrog(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Cross-correlation FROG with a known reference pulse. Kind ``xfrog``; parameters: docs/reference/instruments.md.
+
+### `DScan(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Dispersion scan: SHG spectrum versus inserted material or GDD. Kind ``dscan``; parameters: docs/reference/instruments.md.
+
+### `Contrast(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Intensity in dB versus time: pre- and post-pulses. Kind ``contrast``; parameters: docs/reference/instruments.md.
+
+### `Polarimeter(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Stokes parameters. Kind ``polarimeter``; parameters: docs/reference/instruments.md.
+
+### `PulseSummary(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Every scalar pulse metric. Kind ``pulseSummary``; parameters: docs/reference/instruments.md.
+
+### `Compressor(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Ideal compressor: the GDD / TOD that compresses best. Kind ``compressor``; parameters: docs/reference/instruments.md.
+
+### `Conversion(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Energy and photon number conversion in an active element. Kind ``conversion``; parameters: docs/reference/instruments.md.
+
+### `PhaseMatchingCurve(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Phase-matching efficiency versus angle, wavelength or temperature. Kind ``phaseMatchingCurve``; parameters: docs/reference/instruments.md.
+
+### `DelayScan(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Conversion versus delay between pump and signal. Kind ``delayScan``; parameters: docs/reference/instruments.md.
+
+### `BeamProfile(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Fluence versus position after an element with a transverse model. Kind ``beamProfile``; parameters: docs/reference/instruments.md.
+
+### `CrossCorrelator(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Third-order cross-correlator (contrast). Kind ``crossCorrelator``; parameters: docs/reference/instruments.md.
+
+### `Camera(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Near-field or far-field camera with a described sensor. Kind ``camera``; parameters: docs/reference/instruments.md.
+
+### `WavefrontSensor(at: str = 'end', name: Optional[str] = None, **params) -> dict`
+
+Shack-Hartmann-like wavefront map and Zernike coefficients (Noll, rms waves). Kind ``wavefrontSensor``; parameters: docs/reference/instruments.md.
+
+## `ultrafast.algorithms.zernike`
+
+Zernike polynomials (Noll), fit and evaluate, in NumPy.
+
+Zernike polynomials in Noll ordering and normalisation, in plain NumPy (no engine needed).
+
+### `noll_to_nm(j: int) -> Tuple[int, int]`
+
+Noll index (1-based) -> radial order n and azimuthal order m (m < 0: sine term).
+
+### `name(j: int) -> str`
+
+A name for the first 11 terms (piston ... spherical); ``Z<j>`` for the others.
+
+### `radial_order_of(j: int) -> int`
+
+### `radial(n: int, m: int, rho: np.ndarray) -> np.ndarray`
+
+Radial polynomial R_n^|m|(rho).
+
+### `value(j: int, rho: np.ndarray, theta: np.ndarray) -> np.ndarray`
+
+Noll-normalised Z_j at polar coordinates (rho in units of the pupil radius).
+
+### `basis(js: Iterable[int], x, y, radius: float, centre: Tuple[float, float] = (0.0, 0.0)) -> np.ndarray`
+
+Z_j on a grid, shape ``(len(js), nx, ny)``; ``x``, ``y`` are the axes (the map is indexed ``[x][y]``).
+
+### `evaluate_map(coefficients: Sequence[float], x, y, radius: float, centre: Tuple[float, float] = (0.0, 0.0), first: int = 1, outside: float = np.nan) -> np.ndarray`
+
+sum_j c_j Z_j on a grid; ``coefficients[0]`` belongs to Noll index ``first``. Points outside the pupil get ``outside``.
+
+### `fit(wavefront: np.ndarray, x, y, radius: float, max_noll: int = 15, centre: Tuple[float, float] = (0.0, 0.0), mask: Optional[np.ndarray] = None, first: int = 1, return_residual: bool = False)`
+
+Least-squares Zernike coefficients ``c[0 .. max_noll - first]`` of ``wavefront[x][y]`` over the disc of ``radius`` (points with a non-finite value or ``mask == False`` are skipped). Same unit as ``wavefront``. With ``return_residual=True`` also returns ``wavefront - fit`` on the pupil (NaN outside).
+
+### `rms(coefficients: Sequence[float], first: int = 1, skip: Sequence[int] = (1,)) -> float`
+
+rms of the wavefront from its coefficients (orthonormal basis): sqrt(sum c_j^2), leaving out the Noll indices in ``skip`` (piston by default).
+
+### `strehl_marechal(rms_waves: float) -> float`
+
+Marechal estimate exp(-(2 pi sigma)^2) of the Strehl ratio for an rms wavefront error in waves (valid for sigma < ~0.1).
+
+## `ultrafast.results`
+
+Results and curve metrics.
+
+Results and simple metrics: the live :class:`Result`, a saved results folder (:class:`SavedResult`, :func:`load`) and a few curve metrics that need only NumPy.
+
+### `fwhm(x: Sequence[float], y: Sequence[float]) -> float`
+
+Full width at half maximum of a single-peaked curve, with linear interpolation at the two half-maximum crossings.
+
+### `rms_width(x: Sequence[float], y: Sequence[float]) -> float`
+
+sqrt of the second central moment of the weights ``y`` along ``x``.
+
+### `strehl_marechal(rms_waves: float) -> float`
+
+Marechal estimate of the Strehl ratio from the rms wavefront error in waves.

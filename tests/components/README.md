@@ -24,3 +24,10 @@ python3 tests/components/crystals.py   # one family
 
 How to read the report, the conventions behind the checks and how to add one: [docs/component-tests.md](../docs/component-tests.md).
 The C# component sheet in `tests/UltrafastEngine.Tests/Components/` asserts the same numbers.
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../assets/logo/ultrafast-logo-long-dark.svg">
+  <img alt="UltrafastEngine" src="../../assets/logo/ultrafast-logo-long.svg" height="44">
+</picture>
+</p>

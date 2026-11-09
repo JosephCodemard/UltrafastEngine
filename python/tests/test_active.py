@@ -110,7 +110,8 @@ def test_system_diagram_numbers_instruments_in_system_order(tmp_path):
     pytest.importorskip("matplotlib")
     import matplotlib
     matplotlib.use("Agg")
-    from ultrafast import diagram, plotting
+    from ultrafast.plotting import diagrams as diagram
+    from ultrafast import plotting
     sysd = b.system("line", [b.bulk("glass", "FusedSilica", 5e-3), b.probe("mid"), b.gap("air", 0.1)])
     spec = b.run_spec(b.pulse(800e-9, 30e-15, energy=1e-9),
                       instruments=[b.instrument("spectrometer", at="end"), b.instrument("autocorrelator", at="input"),
