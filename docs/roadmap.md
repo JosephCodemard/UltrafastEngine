@@ -18,6 +18,8 @@ reproduced in [papers](papers/README.md).
 
 Priorities, most useful first.
 
+**In progress (November 2026):** adaptive optics, temporal shaping, conditioned transforms and a digital twin, in five sessions ([roadmap](design/roadmap-ao-twin-2026-11.md)). S1 (Python package structure, plotting, Zernike plot, animation, grouped examples, optical-computing examples, gallery) is done; S2 (core primitives and spikes) is next.
+
 1. **Design plugins** (separate plugins; each emits ordinary `.ufs` objects that the core re-checks)
    - *Coating design*: analysis of R, T, group delay and GDD over band, angle and polarisation, and the field inside a
      stack; then design (needle and gradual evolution, chirped, double-chirped and Gires-Tournois mirrors) against a goal; then

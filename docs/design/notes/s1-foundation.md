@@ -1,6 +1,6 @@
 # S1 Foundation: handoff notes
 
-Branch `dev/2026-11-s1-foundation` (from `dev/2026-11`), written 2026-11-09. **Status: all eight steps of the S1 brief are done.** What is not,
+Branch `dev/2026-11-s1-foundation` (from `dev/2026-11`), written 2026-11-09. **Status: S1 is done and merged to `main` (2026-11-09, commit `a875aec` plus the follow-ups in section 10).** What is not,
 and what the next sessions must know, is at the end.
 
 ## 1. The advisor call (Opus 5.5) and what it changed
@@ -53,15 +53,14 @@ Branched (4), Diagnostics (7), Components (2), DigitalTwin (1: transforms), Inte
   convolution theorem. Numbers against numpy: lens as DFT 9e-3 relative l2 (random sparse complex vector), 4f identity 2e-3, blur 1e-4, edge filter 3.8e-3,
   matched filter 3.8e-2 over the whole map with peak positions identical and heights within 0.5 %.
 * **`docs/examples/make_all.py`** (`--group`, `--only`, `--no-animations`, `--jobs`, `--report`, size-budget check, table) and a `make_figures.py` in every example
-  (42) plus `make_all.py` per group. The generic `make_figures.py` runs the README commands and writes `figures/overview-*.png` and `figures/hero.png` (git-ignored);
-  Computing has purpose-made scripts that write a committed `hero.png` and `animation.gif`. READMEs link only the committed files (a missing image breaks `mkdocs --strict`).
+  (42) plus `make_all.py` per group. The generic `make_figures.py` runs the README commands and writes `figures/overview-*.png` (git-ignored) and, **only when the README shows no figure yet**, a committed `hero.png` next to it (19 READMEs now embed one);
+  it falls back to `ultrafast run <ufs> run.json`, to the picture an example's own script wrote, and to the system schematic. Computing has purpose-made scripts that write a committed `hero.png` and `animation.gif`. READMEs link only committed files (a missing image breaks `mkdocs --strict`).
 * **`build/package.py --examples-wheel`** -> `ultrafast_examples-2.2.0-py3-none-any.whl` (3.8 MB) with the `ultrafast-examples` command; extras `animate` and `examples` in `pyproject.toml`.
 * **`build/gallery.py`** -> `docs/gallery.md` (in nav and `llms.txt`); `--hero NAME` copies an animation to `assets/hero.gif` for the README (S5 decides).
 
 ## 5. Numbers
 
-* Animation budget: four GIFs, 39-329 kB (limit 2.5 MB); four hero PNGs 55-282 kB (limit 300 kB; one example, `Diffraction/iris-diffraction/diffraction-images.png`, was already
-  over 300 kB before S1 and is not touched).
+* Animation budget: four GIFs, 39-329 kB (limit 2.5 MB); 23 committed hero PNGs, all within the 300 kB limit (the one file that was over it before S1, `Diffraction/iris-diffraction/diffraction-images.png`, was redrawn at 289 kB); 4.6 MB of committed media in total.
 * `make_all.py --group Computing`: 4 examples in about 12 s on the owner's Mac. `parallelism-and-time` (N up to 1024): engine 0.02 ... 1.6 s, numpy FFT 0.00004 ... 0.02 s, optical model about 1e-6 s (4 f / c = 0.4 ... 6.8 ns plus an *assumed* 1 us exposure).
 * Python tests: 173 pass, 1 skipped (was 127 at the last status update; the 38 new tests are `test_structure`, `test_zernike`, `test_computing`, `test_examples_package`).
 
@@ -89,7 +88,7 @@ examples wheel (metadata, contents, `list` / `copy` / `run`).
 ## 8. Not done, and for the next sessions
 
 * **Not run here:** `net48` (no Mono on the owner's Mac); `ultrafast-examples run` of a CLI-driven example needs the `ultrafast` program on the PATH (only Python-driven ones were exercised end to end).
-* **The other 38 examples have only the generic hero** (`figures/`, git-ignored); the 4 Computing examples are the only ones with committed figures and animations. S5 decides which others get a purpose-made figure and a committed animation (and the repository-size question of section 8 of the roadmap).
+* **Figures:** 23 examples have a committed hero (19 generic overviews + 4 purpose-made), 25 already embedded their own figure, and `Branched/cavity-and-coherence` has none (a cw / resonator run has no pulse to draw; its schematic is a single box). S5 decides which examples get a purpose-made figure and a committed animation, and the repository-size question of section 8 of the roadmap.
 * **Mask phase is sampled on the grid.** A phase map with detail at every pixel (a matched filter) costs about 4e-2 relative l2 over the whole map; smooth filters cost 1e-4. S2 (`modulator`) should keep this in mind.
 * **The lens is round.** A general matrix-vector multiplier needs an anamorphic layout (cylindrical lenses). Note for S2: a `lens` with separate x/y focal lengths.
 * **Thin grids:** a "1-D" system uses `ny = 4` rows with `halfWidthYM = ny dx / 2` (so dy = dx). `ny = 1` fails with a `measured` profile (the input was not reproduced); not investigated further.
@@ -105,3 +104,19 @@ the hosted build they all reproduce their README numbers. **One was a real regre
 and `compare_pynlo.py` ran only because `PYTHONPATH` was set; they now add the extra level (checked by evaluating each path). Lesson: after moving folders, grep for `"..", ".."` and `parents[`.
 The test runner's example runs also rewrote two tracked PNGs (`f2f-cep/f2f.png`, `interferometers/interferometers.png`); they were restored from the index.
 `google417a1b176c5dfb1e.html` (Search Console) was moved into `docs/` so it is published at the site root; the meta tag in `overrides/main.html` covers every page.
+
+## 10. Merge to `main` and follow-ups
+
+* `dev/2026-11` and `main` were fast-forwarded to `a875aec` (the branch point `3b875af` was an ancestor), at the owner's request, **before S5**: the roadmap's rule "merge to main after S5, `/verify` and green CI" was set aside for this one merge so the new examples, branding and the Search Console tag go live. The C# job of that run had not finished when the merge was made.
+* The Windows Python job failed on `test_run_executes_the_readme_commands_in_a_copy`: `ultrafast-examples run` ran README lines through `bash -c`, which is not usable on a Windows runner. Fixed on `dev/2026-11`: plain `python ...` / `ultrafast ...` lines run directly (comments stripped), lines with shell syntax need a working `bash` and are skipped with a message when there is none. Not yet confirmed by a Windows run.
+* CI warnings removed: Node 20 actions (`checkout` v7, `setup-python` v7, `setup-dotnet` v6, `upload-artifact` v7) and the TOML-table license in `pyproject.toml`.
+* Lessons, for the next sessions: (1) a `.gitignore` rule such as `results/` can hide a new Python package: check `git status --ignored` after adding a folder; (2) after moving folders, grep for `".."`, `parents[` and relative paths in scripts, and run the examples **without** `PYTHONPATH` set (the editable install of `ultrafast-engine` hides path bugs) and with `ULTRAFAST_LIBRARY` pointing at the hosted build (a stale `bin/native` made 8 examples fail in one verification); (3) print errors as bounds, never as rounded last digits, when a README quotes them.
+
+## 11. What S2 should know first
+
+* S2 owns `src/UltrafastEngine.Core/**` (and the tests there). Nothing in `src/**` or `plugins/**` was touched in S1.
+* The cartesian grid is `x_i = (i - N/2) dx`; a `mask` file or `measured` profile on half-pixel-centred axes is interpolated and blurred. A thin grid needs `halfWidthYM` for a y pitch equal to dx.
+* The existing `mask` of kind `file` already takes amplitude and `phase_rad` maps; it reproduces smooth filters to 1e-4 and a per-pixel phase map (a matched filter) to about 4e-2 over the map. The `modulator` should say how it samples.
+* A `lens` is round: no cylindrical or separate x / y focal length (S2 note for anamorphic optics and the matrix-vector multiplier).
+* `ny = 1` with a `measured` profile did not reproduce the input; `ny = 4` works.
+* The spike scripts can start from `docs/examples/Computing/_optics.py` (a 4f and a single-lens processor with a numpy twin); critical sampling f = N dx² / lambda is the rule that makes the engine's lens the DFT.

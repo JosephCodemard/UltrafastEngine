@@ -278,7 +278,7 @@ Findings that change later sessions:
 * `plotting/zernike.py` and the fitting plugin's `figures.py`: the plugin figure stays in the plugin (it reads the fitting
   result format and is registered only when the plugin loads); it uses the stable names re-exported by `ultrafast.plotting`.
   This is the "fold" of 4.2, with the reason written down.
-* Full verification of the finished S1 is recorded in `docs/design/notes/s1-foundation.md` (section 9).
+* Full verification of the finished S1 is recorded in `docs/design/notes/s1-foundation.md` (sections 9 and 10). **S1 was merged to `main` on 2026-11-09 (`a875aec`), before S5, at the owner's request;** S2 starts from `dev/2026-11` in a new session (what it should know first: section 11 of the notes).
 * **Open for the owner:** repository size (section 8, point 1): only the four Computing animations (39-329 kB each) are committed so far; the other 38 examples draw a generic hero into a git-ignored `figures/` folder.
 
 ---

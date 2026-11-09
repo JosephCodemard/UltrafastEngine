@@ -3,7 +3,7 @@
 What is verified, where, and what is not checked yet. Capabilities and limits: [docs/capabilities.md](docs/capabilities.md).
 What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
-## Verified (latest full run, macOS arm64, .NET 10, Python 3.12, 2026-11-08)
+## Verified (latest full run, macOS arm64, .NET 10, Python 3.12, 2026-11-09)
 
 | check | result |
 |---|---|
@@ -12,7 +12,7 @@ What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md)
 | Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **173 pass, 1 skipped** |
 | Component tests (`tests/components/run_all.py`: 10 families covering linear optics, splitters, polarisation, crystals, nonlinear media, spatial components, instruments) | **1688 / 1691 checks** pass against analytic answers; **3 are marked KNOWN** (a 1.5-cycle pulse broadened to zero frequency at 2 µm / 10 fs, reported by a warning), 0 fail |
 | Paper replications (`build/paper_check.py`) | 12 folders, 0 hard failures (fast tier); each README ends with *How well the science matched*; the soft checks mark what does not reproduce ([index](docs/papers/README.md)) |
-| Examples and tutorials (`build/example_check.py`, strict options) | 0 problems; the C++ example and the OpticStudio export (07) are manual |
+| Examples and tutorials (`build/example_check.py`, strict options) | 0 problems (46 example folders in 11 groups, 23 with a committed figure); the C++ example and the OpticStudio export (`Interop/`) are manual |
 | `mkdocs build --strict` | 0 warnings |
 | Generated files (schemas, options.md, Python types, python-api.md, validation matrix) | current (checked by tests) |
 

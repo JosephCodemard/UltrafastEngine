@@ -116,6 +116,12 @@ OpticStudio (Zemax) export and the C API from C++.
 | [zemax-workflow](Interop/zemax-workflow/README.md) | 07 | CLI | OpticStudio export -> system file -> run; try it with the fake MPC | `ultrafast zemax-demo mpc export.json` |
 | [cpp](Interop/cpp/README.md) | - | C++ | the C API from C++: run a system with callbacks, list compute devices (CMake / Visual Studio) | see README |
 
+## Figures
+
+Every example folder has a `make_figures.py`; `python docs/examples/make_all.py` runs them (`--group`, `--only`, `--no-animations`, `--jobs`). The
+overview of each run is written to `figures/` (git-ignored). An example whose README showed no figure has a committed `hero.png`, embedded in
+the README; the Computing examples also commit an `animation.gif`. The [gallery](../gallery.md) collects them. Size budget: PNG 300 kB, GIF 2.5 MB.
+
 ## Planned groups
 
 `Computing/` (optical computing: 4f correlator, optical convolution, matrix-vector, parallelism and time) is described in [Computing](Computing/README.md). [`AdaptiveOptics/`](AdaptiveOptics/README.md) is created empty with a README and is filled by the adaptive-optics session.

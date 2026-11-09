@@ -3,10 +3,18 @@
 ## Unreleased
 
 **Changed**
+- **Python package structure:** `ultrafast.plotting` is a package (`style`, `data`, `time_domain`, `spectral`, `run_figures`, `spatial`, `instrument_panels`, `diagrams`, `zernike`, `animate`); `ultrafast.diagram` moved to `ultrafast.plotting.diagrams` (the old name still imports and warns). New `ultrafast.system`, `components`, `sources`, `instruments`, `algorithms` and `results` group the builders by what they are (CapWords names are aliases of the `build` functions, so typed returns are unchanged). Every 2.2.0 public name still imports (a test checks a committed list).
+- **Examples regrouped** from `docs/examples/NN-name` into `docs/examples/<Group>/<name>` (GettingStarted, LaserSystems, Nonlinear, Diffraction, Wavefronts, Branched, Diagnostics, Components, Computing, DigitalTwin, Interop, AdaptiveOptics); the index keeps the old numbers; `build/example_check.py` accepts a name, a group or an old number.
+- CI: `checkout` v7, `setup-python` v7, `setup-dotnet` v6, `upload-artifact` v7 (Node 24); `pyproject.toml` uses an SPDX license string (setuptools >= 77).
 - **Licence: MIT -> Apache-2.0**, with a `NOTICE` file naming the author (attribution is a licence condition). `CITATION.cff` and a README "Citing" section with BibTeX ask users to cite the software in published work (a request, not a licence condition). Author and contact (jac318@bath.ac.uk) added to the package metadata; the release packages ship `LICENSE`, `NOTICE` and `CITATION.cff`.
 - **CI:** the unavailable `macos-14` job is replaced by `ubuntu-24.04-arm` (arm64 Linux, the stand-in for Apple silicon). macOS is verified by hand.
 
 **Added**
+- `ultrafast.algorithms.zernike` (Noll polynomials, fit, evaluate; agrees with the engine's `wavefrontSensor` coefficients to 1e-6), `ultrafast.plotting.zernike` (decomposition figure: wavefront, fit, residual, coefficient bars, rms and Maréchal Strehl; several wavefronts side by side; animated), `ultrafast.plotting.animate` (animated GIF with Pillow, MP4 when ffmpeg exists, size budget check).
+- **Computing examples:** 4f correlator, optical convolution, matrix-vector multiplication and parallelism-and-time. A lens at critical sampling f = N dx² / lambda is the DFT; each example is checked against numpy.
+- `docs/examples/make_all.py` and a `make_figures.py` in every example (figures, animations, size budget: PNG 300 kB, GIF 2.5 MB); a hero figure in the README of every example that had none; `build/gallery.py` and `docs/gallery.md`.
+- `build/package.py --examples-wheel` and the `ultrafast-examples` command (`list`, `copy`, `run`); extras `animate` and `examples`.
+- Docs site: brand colours, long-logo footer on the plugin READMEs, Google Search Console verification (meta tag and HTML file).
 - A logo generated from code (`assets/logo/make_logo.py`): a 3 x 3 grid of Zernike modes 2-10 with "Ultrafast Engine" to its right (dark and light text variants as SVG), and a flat-cell design for small sizes. The script also writes `assets/ultrafast.ico`, the icon of the CLI and the Zemax binding. README header uses it. A long logo (five modes in a row, "Ultrafast Engine" on one line, dark and light text) is the footer of the README, of `python/README.md` and of every page of the documentation site; the site also gets the sidebar logo and the favicon (`docs/img/`, `overrides/main.html`).
 
 ## 2.2.0 (2026-11-08) -- stable release
