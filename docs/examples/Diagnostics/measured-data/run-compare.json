@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "compare",
   // our best guess before calibrating: 300 fs^2 of input chirp, 120 nJ, a -300 fs^2 compressor

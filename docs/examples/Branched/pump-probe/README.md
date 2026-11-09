@@ -1,13 +1,13 @@
 # 41 -- Pump-probe: cross-phase modulation of a delayed probe
 
 A strong pump and a weak probe come from one pulse on a 98:2 splitter and travel in two arms of a Branched system
-([Branched systems](../../reference/branches.md)). A quarter-wave plate at +45° in the pump arm and one at −45° in the
+([Branched systems](../../../reference/branches.md)). A quarter-wave plate at +45° in the pump arm and one at −45° in the
 probe arm make them **opposite circular polarisations**; the probe arm is delayed by τ. The arms recombine on a 50:50
 splitter and cross a 2 mm fused-silica plate (Kerr only: no Raman, no self-steepening). A quarter-wave plate and a
 polarizer then pass only the probe, and the probe's spectrum is measured.
 
 ```bash
-cd docs/examples/41-pump-probe
+cd docs/examples/Branched/pump-probe
 python pump_probe.py
 ```
 

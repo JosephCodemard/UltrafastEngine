@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "mpc",
   "pulse": { "shape": "sech2", "centerWavelengthM": 1.03e-6, "durationFwhmS": 220e-15,

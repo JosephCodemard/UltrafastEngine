@@ -26,6 +26,8 @@ dependencies = ["numpy>=1.21"]
 # Development mode: load the engine through the .NET host instead of the NativeAOT library.
 hosted = ["clr_loader>=0.2"]
 plot = ["matplotlib>=3.5"]
+animate = ["matplotlib>=3.5", "pillow>=9"]            # plotting.animate writes GIFs with Pillow
+examples = ["ultrafast-examples"]                    # a separate wheel built locally: python build/package.py --examples-wheel; install with --find-links
 test = ["pytest>=7"]
 
 [project.scripts]

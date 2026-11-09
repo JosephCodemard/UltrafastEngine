@@ -44,7 +44,7 @@ uf_set_default_backend("auto");
 ```
 
 The C library and the native Python wheel have the plugin compiled in (they cannot load plugin folders); the CLI,
-the hosted Python wheel and C# load it from `plugins/gpu`. Example program: `docs/examples/cpp/devices.cpp`.
+the hosted Python wheel and C# load it from `plugins/gpu`. Example program: `docs/examples/Interop/cpp/devices.cpp`.
 
 Each nonlinear element's notes say where it ran (`device: cuda #0 NVIDIA RTX A5000 (cuFFT)`) or why it stayed on the
 CPU (`cuda: small problem (4096 samples < gpuMinPoints 8192); ran on the CPU`).

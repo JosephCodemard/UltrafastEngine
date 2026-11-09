@@ -15,7 +15,7 @@ dn = n2 (1 + z/L) exp(-(r/rc)^2) I  -  kF F  +  dn_mod sin(2 pi f_mod t_lab)
 | 1 THz modulation | `t_lab` | a co-propagating driver |
 
 On top of that the rod has a static GRIN (`indexProfile`) and a lossy cladding (`absorptionProfile`)
-([docs/spatial-properties.md](../../reference/spatial-properties.md)).
+([docs/spatial-properties.md](../../../reference/spatial-properties.md)).
 
 ```bash
 ultrafast run medium.ufs run.json -o results         # the expression in the system file
@@ -32,4 +32,4 @@ Python: n2 (1 + x / 0.5 mm)          B = 0.368 rad, spectrum FWHM 7.83 nm, beam 
 The expression and the Python function agree exactly. A Kerr coefficient that grows across the rod tilts the
 nonlinear phase front and steers the beam towards +x. A Python response is called for every grid point at
 every step, with `ctx.x`, `ctx.y`, `ctx.r`, `ctx.theta`, `ctx.z`, `ctx.t`, `ctx.t_lab` and `ctx.intensity`
-([docs/python.md](../../reference/python.md)). It is slower than an expression on large cartesian grids.
+([docs/python.md](../../../reference/python.md)). It is slower than an expression on large cartesian grids.

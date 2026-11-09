@@ -44,6 +44,7 @@ executable bits):
 | `--python-engine hosted\|native` | hosted (default): one wheel for every OS, loads plugins, needs the .NET runtime. native: NativeAOT library in a platform wheel, nothing else needed, **no plugins** |
 | `--zos-api-dir DIR` | your OpticStudio folder, to build the extension (the ZOS-API assemblies are never packaged) |
 | `--examples`, `--docs` | include `docs/examples` and the documentation |
+| `--examples-wheel` | build only `ultrafast_examples-<ver>-py3-none-any.whl`: the examples as package data and the `ultrafast-examples` command (`list`, `copy`, `run`). No .NET needed. Install it next to the engine wheel with `pip install --find-links <folder> ultrafast-examples` (also the extra `ultrafast-engine[examples]`); it is never uploaded to PyPI |
 | `--symbols` | keep `.pdb` debug symbols |
 | `--test` | run the C# tests first |
 | `--out DIR`, `--no-archive`, `--version LABEL`, `--dry-run`, `-v` | output folder, no zip/tar, version label, print commands only, full build output |
@@ -78,7 +79,7 @@ the program. Check a package with `find dist -iname "ZOSAPI*"` (no output).
 
 ```bash
 dist/UltrafastEngine-*/bin/ultrafast plugins list
-dist/UltrafastEngine-*/bin/ultrafast run docs/examples/01-spm-plate/plate.ufs docs/examples/01-spm-plate/run.json -o /tmp/r
+dist/UltrafastEngine-*/bin/ultrafast run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o /tmp/r
 python3 -m venv /tmp/v && /tmp/v/bin/pip install "dist/UltrafastEngine-*/python/*.whl[hosted]" && /tmp/v/bin/python -c "import ultrafast; print(ultrafast.version())"
 cmake -S dist/UltrafastEngine-*/cpp/example -B /tmp/c -DULTRAFAST_DIR=$PWD/dist/UltrafastEngine-*/cpp && cmake --build /tmp/c
 ```

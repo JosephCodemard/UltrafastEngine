@@ -70,6 +70,34 @@ functions: `uf.run(..., fields={"name": lambda x, y, z: ...})` or `Run.field("na
 `ElementContext` fields: `omega` (absolute, ascending), `t`, `omega0`, `dt`, `arrival`, `element_id`, `params`
 (the element's `params` dict), `ax`, `ay` (complex spectra, copies), `set(ax, ay)`, `time_x()`.
 
+## Package structure
+
+Find things by what they are. The lowercase module names follow PEP 8; classes and factories are CapWords. Everything that was public in 2.2.0
+still imports (a test checks a list of the old names); only `ultrafast.diagram` moved, and its old name warns.
+
+| module | contents |
+|---|---|
+| `ultrafast` | `run`, `load`, `System`, `Run`, `Result`, `study`, `retrieve`, ... and the submodules below |
+| `ultrafast.build` | the dict builders with TypedDict autocompletion (`b.beam_splitter(...)`); the low-level truth, unchanged |
+| `ultrafast.system` | `Sequential`, `Branched`, `link`, `loop`, `virtual_input`, `system`, `System`, `load`, `save` |
+| `ultrafast.components` | the same builders by kind with CapWords names: `optics` (`Mirror`, `Lens`, `Grating`, `Mask`, `Wavefront` ...), `splitters` (`BeamSplitter`, `Dichroic`, `Delay` ...), `polarisation`, `crystals`, `fibres`, `amplifiers` (`Gain`, `Pump`, ...), `media` (`Bulk`, `Gap`) |
+| `ultrafast.sources` | `Pulse`, `Cw`, `GaussianBeam`, `MeasuredSpectrum`, `Pedestal`, `InitialProfile` ... |
+| `ultrafast.instruments` | one factory per kind: `Spectrometer`, `Frog`, `DScan`, `Camera`, `WavefrontSensor` ..., plus `Axis`, `Detector` |
+| `ultrafast.algorithms` | NumPy-only algorithms: `zernike` (Noll polynomials, fit, evaluate), `retrieval`, `optimisation` |
+| `ultrafast.results` | `Result`, `SavedResult`, `load`, curve metrics (`fwhm`, `rms_width`, `strehl_marechal`) |
+| `ultrafast.plotting` | figures and reports (below) |
+
+The CapWords names are the *same functions* as the snake_case builders (`components.BeamSplitter is build.beam_splitter`), so the typed return
+values and editor completion are unchanged. Builders that describe a whole run or a global setting stay in `build` only (`run_spec`, `physics`,
+`grid`, `compute`, `transverse`, `material`, `gas`, `override`, ...). `import ultrafast` does not import matplotlib or Pillow.
+
+```python
+from ultrafast.system import Sequential, Branched, link
+from ultrafast.components import BeamSplitter, Waveplate, Mirror
+from ultrafast.sources import Pulse
+from ultrafast.instruments import Spectrometer
+```
+
 ## Building systems in Python
 
 Gain media: `b.pump(...)`, `b.gain(...)`, `b.multipass_amplifier(...)`, `b.regenerative_amplifier(...)`
@@ -140,8 +168,8 @@ res = uf.run(sysd, b.run_spec(b.pulse(800e-9, 15e-15, energy=50e-9)))
 res.elements()[0]["values"]["conversionEfficiency"]
 ```
 
-Examples: `docs/examples/00-quickstart/quickstart.py`, `docs/examples/04-custom-index-python`, `docs/examples/03-mpc-argon/make_mpc.py`,
-`docs/examples/12-user-element/dazzler.py`, `docs/examples/10-ppln-dfg/compare_pynlo.py`.
+Examples: `docs/examples/GettingStarted/quickstart/quickstart.py`, `docs/examples/GettingStarted/custom-index-python`, `docs/examples/Nonlinear/mpc-argon/make_mpc.py`,
+`docs/examples/GettingStarted/user-element/dazzler.py`, `docs/examples/Nonlinear/ppln-dfg/compare_pynlo.py`.
 
 ## Performance notes
 
@@ -157,7 +185,7 @@ thousand times.
 CLI into figures. It needs only NumPy and matplotlib, not the engine:
 
 ```bash
-ultrafast run docs/examples/03-mpc-argon/mpc.ufs docs/examples/03-mpc-argon/run.json -o results
+ultrafast run docs/examples/Nonlinear/mpc-argon/mpc.ufs docs/examples/Nonlinear/mpc-argon/run.json -o results
 ultrafast-plot results/                         # -> results/plots/{system,overview,instruments,measurements,fit,probes,elements,byproducts,...}.png + report.pdf
 ultrafast-plot results/ --show --db             # open windows too; spectra in dB
 ultrafast-plot results/ --only overview --format svg,pdf --dark
@@ -190,3 +218,22 @@ up.measurements(res)                           # measured vs simulated (runs wit
 up.fit(res)                                    # calibration report (runs with "fit")
 up.set_theme(dark=True)
 ```
+
+### Package, themes, Zernike plot and animation
+
+`ultrafast.plotting` is a package (`style`, `data`, `time_domain`, `spectral`, `run_figures`, `spatial`, `instrument_panels`, `diagrams`, `zernike`,
+`animate`); every old function name (`plotting.overview`, `plotting.report`, `plotting.register_figure`, ...) is still importable from
+`ultrafast.plotting`, and the fitting plugin's `fit` figure uses the same helpers.
+
+```python
+from ultrafast.plotting import zernike as zp, animate
+fig = zp.decomposition(res.instrument("wfs"))                         # wavefront, Zernike fit, residual, Noll bar chart, rms and Strehl
+fig = zp.decomposition([before, after], ["before", "after"], radius=1e-3)        # side by side on one colour scale
+fig = zp.decomposition(field, x=x_m, y=y_m, wavelength=800e-9)       # a complex field: its phase is the wavefront
+zp.animate_decomposition(list_of_wavefronts, "correction.gif")        # one frame per wavefront
+animate.animate(frame_fn, frames, "converge.gif", fps=15)             # any figure per frame -> animated GIF (Pillow; MP4 too if ffmpeg exists)
+animate.check_budget("docs/examples")                                 # PNG over 300 kB or GIF over 2.5 MB
+```
+
+The Zernike convention is the engine's (Noll index from 1, rms-normalised, `m < 0` the sine term), so coefficients agree with the
+`wavefrontSensor` instrument (a test compares them to 1e-6). The decomposition accepts a `wavefrontSensor` result, a map with its axes, or a complex field.

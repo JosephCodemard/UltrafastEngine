@@ -6,7 +6,7 @@ spectrum it returns. The function also gets the frequency axis, the carrier, the
 `params`, so one callback serves many elements.
 
 ```bash
-python docs/examples/12-user-element/dazzler.py
+python docs/examples/GettingStarted/user-element/dazzler.py
 ```
 
 The script measures the dispersion of 25 mm of SF11 plus 1 m of air with the engine itself

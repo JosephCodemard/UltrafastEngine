@@ -1,8 +1,8 @@
 # 24 -- Air at a focus: rotational Raman, ionisation and pulse retrieval
 
 A 0.4 mJ, 40 fs pulse at 800 nm focused (w0 = 100 µm) in the middle of 1 m of air. The Kerr response of air
-includes the rotational Raman response of N2 and O2 ([Gases](../../reference/gases.md)), and photo-ionisation
-(PPT rates, Drude plasma) is on ([Ionisation](../../reference/ionization.md)). A SHG-FROG measures the output,
+includes the rotational Raman response of N2 and O2 ([Gases](../../../reference/gases.md)), and photo-ionisation
+(PPT rates, Drude plasma) is on ([Ionisation](../../../reference/ionization.md)). A SHG-FROG measures the output,
 and the pulse is retrieved from the simulated trace.
 
 ```bash

@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "mpc-argon-2bar",

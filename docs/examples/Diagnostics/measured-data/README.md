@@ -11,7 +11,7 @@ weak Kerr lens, radial grid), then recompressed by a compressor modelled as pure
 the input chirp, the pulse energy and the compressor GDD. Our first guesses are 300 fs², 120 nJ and −300 fs².
 
 ```bash
-cd docs/examples/21-measured-data
+cd docs/examples/Diagnostics/measured-data
 ultrafast run line.ufs run-compare.json -o results-compare     # model vs data, a few seconds
 ultrafast run line.ufs run-fit.json     -o results-fit         # calibration, ~2 minutes (45 runs)
 ultrafast-plot results-fit                                     # plots/measurements.png and plots/fit.png
@@ -26,7 +26,7 @@ ultrafast-plot results-fit                                     # plots/measureme
 | `dscan.npz` | d-scan with fused-silica wedges after the compressor | NPZ with `insertion_mm` (31), `wavelength_nm` (121) and `trace` (31 × 121); 2 % noise |
 | `power_meter.json` | power meter after the compressor | `{"energyJ": 1.441e-07}`; 3 % calibration uncertainty |
 
-The units come from the column names (`_nm`, `_fs`, `_mm`, ... see [Measured data](../../reference/measured-data.md#units-from-column-names)).
+The units come from the column names (`_nm`, `_fs`, `_mm`, ... see [Measured data](../../../reference/measured-data.md#units-from-column-names)).
 In real life these files come from your lab. Here `make_data.py` generated them from the same model with the
 **true** values (450 fs², 140 nJ, −520 fs²), then added noise and a background. Rerun it to regenerate them.
 
@@ -148,5 +148,5 @@ The plots show these as ±1σ bands on the simulated curves (`<instrument>_simul
   the wrong instrument model biases the chirp.
 * Set `"freezeGrid": false` in `"fit"` to let each run size its own grid (slower, and less smooth for the fit).
 
-See [Measured data](../../reference/measured-data.md) for every comparison option, [the fitting plugin](../../plugins/fitting.md) for the fit, and
-[the tutorial](../../tutorials/04-measured-data.md) for a step-by-step walkthrough with your own data.
+See [Measured data](../../../reference/measured-data.md) for every comparison option, [the fitting plugin](../../../plugins/fitting.md) for the fit, and
+[the tutorial](../../../tutorials/04-measured-data.md) for a step-by-step walkthrough with your own data.

@@ -3,7 +3,7 @@
   // profile Delta n(r) = -1/2 n0 g^2 r^2 (a GRIN lens, f = 1 / (n0 g^2 L) = 0.2 m) focuses a 0.5 mm beam at the
   // end of a 0.2 m gap. indexProfile / absorptionProfile / n2Scale accept a number, an expression in
   // x, y, z, r, theta, a table, a Gaussian, or a callback ("@name") registered from Python, C# or C.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "grin-rod",

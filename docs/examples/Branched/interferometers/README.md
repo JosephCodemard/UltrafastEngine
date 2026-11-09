@@ -1,13 +1,13 @@
 # 32 -- Two interferometers
 
-Branched systems with a known answer, written with the Python API ([Branched systems](../../reference/branches.md)).
+Branched systems with a known answer, written with the Python API ([Branched systems](../../../reference/branches.md)).
 
 **A Mach-Zehnder:** two 50:50 splitters, with one arm 300 fs longer. Port `c` holds (1 − cos ω τ) / 2 of each frequency; the other port is a declared virtual output.
 
 **An etalon:** two mirrors of R = 0.8 joined by a loop, with a single-frequency source. The link from `back` to `m1:2` closes the loop. A study moves one path over one wavelength, and the transmission follows the Airy function.
 
 ```bash
-cd docs/examples/32-interferometers
+cd docs/examples/Branched/interferometers
 python interferometers.py
 ```
 

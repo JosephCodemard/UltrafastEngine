@@ -53,3 +53,4 @@ tests/components/report/
 # licensed paper PDFs are never committed
 docs/papers/*.pdf
 docs/papers/**/*.pdf
+docs/examples/**/figures/

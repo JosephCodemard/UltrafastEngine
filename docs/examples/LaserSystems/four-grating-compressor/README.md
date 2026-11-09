@@ -1,9 +1,9 @@
 # 38 -- A four-grating compressor, grating by grating
 
-A compressor on the command line. Each `grating` and slant path is its own element, so the tracker follows the beam's spatial chirp through the line ([Components](../../reference/components.md)).
+A compressor on the command line. Each `grating` and slant path is its own element, so the tracker follows the beam's spatial chirp through the line ([Components](../../../reference/components.md)).
 
 ```bash
-cd docs/examples/38-four-grating-compressor
+cd docs/examples/LaserSystems/four-grating-compressor
 ultrafast run compressor.ufs run.json -o results
 python report.py
 ```

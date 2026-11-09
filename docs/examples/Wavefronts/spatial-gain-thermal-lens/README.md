@@ -14,7 +14,7 @@ On the grid:
 * every transverse point has its own inversion, so the gain and depletion follow the pump and beam profiles;
 * the beam diffracts inside the rod;
 * the heat load (quantum defect × absorbed pump) gives ΔT(r, z) and Δn = dn/dT·ΔT, applied as a
-  position-dependent index ([docs/spatial-properties.md](../../reference/spatial-properties.md)).
+  position-dependent index ([docs/spatial-properties.md](../../../reference/spatial-properties.md)).
 
 | | 60 W pump | 5 W pump |
 |---|---|---|

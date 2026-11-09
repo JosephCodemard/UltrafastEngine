@@ -12,6 +12,6 @@ Run the complete verification. Delegate the long runs to the `test-runner` subag
    `PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python3 -m pytest -q tests` (fetch pyNLO once with
    `python3 tools/get_pynlo.py`; skipped pyNLO tests are not a pass).
 5. Examples: every `docs/examples/*/run*.json` with `ULTRAFAST_STRICT_OPTIONS=1` and the right system file
-   (see docs/CLAUDE.md for the pairings); `python3 docs/examples/27-ner-measured-input/ner.py`.
+   (see docs/CLAUDE.md for the pairings); `python3 docs/examples/Nonlinear/ner-measured-input/ner.py`.
 6. `python3 -m mkdocs build --strict` with 0 warnings.
 7. Report a table: step, result, time. Update `PROJECT_STATUS.md` counts if they changed.

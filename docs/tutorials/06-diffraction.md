@@ -4,7 +4,7 @@
 the result against the Fresnel diffraction integral. Along the way: how to choose a transverse grid for a hard aperture,
 and how to tell a physical pattern from a numerical one.
 
-Files: `docs/examples/30-iris-diffraction/` (`gaussian.ufs`, `flattop.ufs`, `tophat.ufs`, `square.ufs`, `run.json`,
+Files: `docs/examples/Diffraction/iris-diffraction/` (`gaussian.ufs`, `flattop.ufs`, `tophat.ufs`, `square.ufs`, `run.json`,
 `compare.py`, `iris.py`). Run the commands from that folder.
 
 ## 1. What to expect
@@ -93,7 +93,7 @@ narrow spectrum, and the profile's memory scales with the number of stored frequ
 for b in gaussian flattop tophat square; do ultrafast run $b.ufs run.json -o results-$b; done
 ```
 
-![Camera images at the four planes](../examples/30-iris-diffraction/diffraction-images.png)
+![Camera images at the four planes](../examples/Diffraction/iris-diffraction/diffraction-images.png)
 
 The uniform and flat-top beams show the textbook behaviour: a bright centre at N = 3 and N = 1, a dark one at N = 2. The
 Gaussian's edge field is e^−0.25 of its centre, so its edge wave is weaker and the centre at N = 2 is dim rather than black.
@@ -119,7 +119,7 @@ square    far    5.0000   0.19  0.4945          70.59          70.94      0.48%
 largest difference over all patterns: 1.30 % of the peak
 ```
 
-![Engine (solid) and Fresnel integral (dashed)](../examples/30-iris-diffraction/diffraction-cuts.png)
+![Engine (solid) and Fresnel integral (dashed)](../examples/Diffraction/iris-diffraction/diffraction-cuts.png)
 
 The uniform beam's centre reaches 4 x 35.4 = 141.5 J/m² at N = 1 and 3 and vanishes at N = 2, as 4 sin²(πN/2) says. The
 largest difference over all 16 patterns is 1.3 % of the peak (square beam, near field, 21 samples across the aperture); for the

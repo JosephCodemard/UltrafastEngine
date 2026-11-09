@@ -2,10 +2,10 @@
 
 The `autocorrelator` instrument is an ideal calculation on the field. Here is the apparatus, written with the Python API: a splitter, a delay stage, and a BBO crystal summing the two beams, with the sum-frequency energy recorded against delay. The comparison shows how far the real device can be trusted.
 
-The crystal's second input comes from the `stage` arm (`b.aux_beam("b", from_port=True)`, [Branched systems](../../reference/branches.md#crystals)). The beams are collinear here, because crossing angles are not modelled. `uf.study` scans the delay, 81 points per pulse, and reuses every element upstream of the stage.
+The crystal's second input comes from the `stage` arm (`b.aux_beam("b", from_port=True)`, [Branched systems](../../../reference/branches.md#crystals)). The beams are collinear here, because crossing angles are not modelled. `uf.study` scans the delay, 81 points per pulse, and reuses every element upstream of the stage.
 
 ```bash
-cd docs/examples/33-modelled-autocorrelator
+cd docs/examples/Diagnostics/modelled-autocorrelator
 python autocorrelator.py
 ```
 

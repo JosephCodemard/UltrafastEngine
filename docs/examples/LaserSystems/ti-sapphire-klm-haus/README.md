@@ -1,6 +1,6 @@
 # 19 -- Kerr-lens mode-locked Ti:sapphire oscillator (Haus model)
 
-The master-equation model of a KLM Ti:sapphire laser at 80 MHz ([docs/oscillators.md](../../reference/oscillators.md)).
+The master-equation model of a KLM Ti:sapphire laser at 80 MHz ([docs/oscillators.md](../../../reference/oscillators.md)).
 Each round trip applies:
 
 * saturated gain with a 100 nm bandwidth;

@@ -4,7 +4,7 @@
   // -500 fs^2 of net GDD, SPM of the crystal (delta = 1.5e-6 rad/W, from n2 L / A_eff) and the Kerr-lens
   // loss modulation (an aperture-like fast absorber: q(P) = q0 - kappa P). Starts from quantum noise.
   // The result is a soliton: its duration follows the area theorem tau = 3.53 |GDD| / (delta E).
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "ti-sapphire-klm",

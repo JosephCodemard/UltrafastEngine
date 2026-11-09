@@ -1,7 +1,7 @@
 """Example 16: the same GRIN lens written four ways, plus a tapered one -- position-dependent properties from
 an expression, a table, a Python function and a z-dependent function.
 
-    python docs/examples/16-position-dependent-index/grin_variants.py
+    python docs/examples/Wavefronts/position-dependent-index/grin_variants.py
 
 Delta n(r) = -1/2 n0 g^2 r^2 over L acts as a thin lens f = 1 / (n0 g^2 L); a Gaussian beam of waist w0 at the rod
 focuses to w_f = lambda f / (pi w0) at distance f. A profile that tapers linearly to zero along the rod has half
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python" / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "python" / "src"))
 import ultrafast as uf  # noqa: E402
 from ultrafast import build as b  # noqa: E402
 

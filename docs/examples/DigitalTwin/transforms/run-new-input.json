@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "fitted-line-new-input",
   // a different seed pulse: shorter and stronger. Run it through results-fit/fitted-system.ufs (the fitted line)

@@ -27,7 +27,7 @@ ultrafast-plot results          # instruments.png: one numbered panel per instru
 ### Sampling: what the instrument actually sees
 
 Three more instruments look at the beam through an aperture instead of collecting all of it
-(`"sampling"`, see [docs/instruments.md](../../reference/instruments.md#sampling-where-the-instrument-looks)):
+(`"sampling"`, see [docs/instruments.md](../../../reference/instruments.md#sampling-where-the-instrument-looks)):
 
 | instrument | sampling | transmitted | result |
 |---|---|---|---|
@@ -38,4 +38,4 @@ Three more instruments look at the beam through an aperture instead of collectin
 Example 11 shows the same instruments on a beam with strong spatio-temporal coupling, where on-axis and
 whole-beam measurements differ clearly.
 
-See [docs/instruments.md](../../reference/instruments.md) for every parameter.
+See [docs/instruments.md](../../../reference/instruments.md) for every parameter.

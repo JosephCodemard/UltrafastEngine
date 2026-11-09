@@ -2,7 +2,7 @@
 axisymmetric -- a Kerr coefficient that grows across the rod (an x gradient, e.g. a doping gradient) on a
 cartesian grid: the nonlinear phase is tilted, and the beam is steered towards +x.
 
-    python docs/examples/18-custom-nonlinear-medium/custom_medium.py
+    python docs/examples/GettingStarted/custom-nonlinear-medium/custom_medium.py
 
 A time response is called for every transverse grid point (ctx.x, ctx.y, ctx.r, ctx.theta) at every step
 (ctx.z) with the co-moving time ctx.t, lab time ctx.t_lab and the intensity ctx.intensity (W/m^2) at that
@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 
 here = Path(__file__).resolve().parent
-sys.path.insert(0, str(here.parents[2] / "python" / "src"))
+sys.path.insert(0, str(here.parents[3] / "python" / "src"))
 import ultrafast as uf  # noqa: E402
 from ultrafast import build as b  # noqa: E402
 

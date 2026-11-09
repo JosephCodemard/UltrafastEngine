@@ -83,7 +83,7 @@ co = uf.coherence(system, spec, trials=10)
 co["meanCoherence"], co["wavelength_m"], co["g12"]
 ```
 
-The grid is planned without the noise and frozen for all trials. Example: [25 Supercontinuum](../examples/25-supercontinuum/README.md).
+The grid is planned without the noise and frozen for all trials. Example: [25 Supercontinuum](../examples/Nonlinear/supercontinuum/README.md).
 
 ## Compared with pyNLO
 

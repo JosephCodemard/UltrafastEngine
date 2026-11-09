@@ -2,7 +2,7 @@
   // Example 06: a medium whose index is modulated on the femtosecond scale (60 THz, period ~17 fs), fixed in
   // the LAB frame (a pump-driven phonon, a time-varying metamaterial...). The model asks for carrier-resolved
   // propagation, so the engine switches this element to the real-field representation automatically.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "fast-index-modulation",

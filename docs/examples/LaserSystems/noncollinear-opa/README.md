@@ -3,7 +3,7 @@
 A NOPA on the command line, as a Branched system. A 1030 nm pulse is doubled in BBO. The second harmonic goes to an arm tilted by 4° and pumps a second BBO crystal. The 800 nm seed is a virtual input on that crystal's `signal` port. The crystal takes the crossing angle from the arm's tilt.
 
 ```bash
-cd docs/examples/42-noncollinear-opa
+cd docs/examples/LaserSystems/noncollinear-opa
 ultrafast run nopa.ufs run.json -o results
 python report.py
 ```
@@ -21,4 +21,4 @@ The idler takes the transverse momentum of the pump, k_i sin β = k_p sin α. It
 
 The seed's `"delayS": "auto"` centres it on the pump inside the crystal, whatever group delay the pump picked up in the first crystal.
 
-**What this does not model.** This is the 1-D model with Gaussian overlap. The coupling falls as the pump and the seed part along the crystal. The geometric smearing across the beams is reported as `geometricSmearingS` (77 fs here) but is not propagated; a Cartesian grid carries it. The gain is saturated here, and depletion is uniform across the beam in 1-D. See [Crystals](../../reference/crystals.md#non-collinear-opa-and-dfg).
+**What this does not model.** This is the 1-D model with Gaussian overlap. The coupling falls as the pump and the seed part along the crystal. The geometric smearing across the beams is reported as `geometricSmearingS` (77 fs here) but is not propagated; a Cartesian grid carries it. The gain is saturated here, and depletion is uniform across the beam in 1-D. See [Crystals](../../../reference/crystals.md#non-collinear-opa-and-dfg).

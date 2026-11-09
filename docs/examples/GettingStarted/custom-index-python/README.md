@@ -16,7 +16,7 @@ result = run.execute()
 ```
 
 The same model could be given as an expression in the run spec (no code), or as a C/C++ function through the
-C API (`uf_run_set_time_response_callback`, see `docs/examples/cpp`). Use `"mode": "replace"` instead of `"add"` to
+C API (`uf_run_set_time_response_callback`, see `docs/examples/Interop/cpp`). Use `"mode": "replace"` instead of `"add"` to
 switch the built-in Kerr response off and supply the whole Delta n(t) yourself.
 
 Models that vary on the optical-cycle time scale should be registered with `carrier_resolved=True`: the engine

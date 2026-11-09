@@ -45,7 +45,7 @@ command line (`dotnet build UltrafastEngine.sln`), which works with any editor. 
 1. Open `UltrafastEngine.sln`. Build (Ctrl+Shift+B).
 2. Set **UltrafastEngine.Tests** as start-up project and run (Ctrl+F5): all tests should pass.
 3. Set **UltrafastEngine.Cli** as start-up project; in *Debug properties* use the arguments
-   `run ..\..\docs\examples\01-spm-plate\plate.ufs ..\..\docs\examples\01-spm-plate\run.json -o results`.
+   `run ..\..\docs\examples\GettingStarted\spm-plate\plate.ufs ..\..\docs\examples\GettingStarted\spm-plate\run.json -o results`.
 4. **Zemax binding**: the project compiles against the ZOS-API assemblies of your OpticStudio installation
    (`ZOSAPI.dll`, `ZOSAPI_Interfaces.dll`, `ZOSAPI_NetHelper.dll`, Ansys property and never part of this repository),
    by default in `C:\Program Files\Ansys Zemax OpticStudio 2025 R1`; set the MSBuild property `ZosApiDir` for another location. Without ZOS-API it builds against stubs (with a
@@ -61,7 +61,7 @@ SSE2 on x64 and NEON on ARM64.
 ```bash
 dotnet build UltrafastEngine.sln                      # everything (the Zemax binding against stubs)
 dotnet run --project tests/UltrafastEngine.Tests -f net10.0
-dotnet run --project src/UltrafastEngine.Cli -- run docs/examples/01-spm-plate/plate.ufs docs/examples/01-spm-plate/run.json -o results
+dotnet run --project src/UltrafastEngine.Cli -- run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o results
 ```
 
 The .NET Framework 4.8 targets (Core, tests, Zemax binding) build on macOS/Linux when Mono is installed
@@ -78,7 +78,7 @@ pip install -e "python[hosted,plot,test]"
 python python/tools/build_engine.py            # hosted build (needs the .NET 10 SDK; uses clr_loader at run time)
 python python/tools/build_engine.py --aot      # or: NativeAOT library, no .NET needed at run time
 python -m pytest python/tests
-python docs/examples/00-quickstart/quickstart.py
+python docs/examples/GettingStarted/quickstart/quickstart.py
 ```
 
 See [Python](reference/python.md).
@@ -86,7 +86,7 @@ See [Python](reference/python.md).
 ## Your first run
 
 ```bash
-ultrafast run docs/examples/01-spm-plate/plate.ufs docs/examples/01-spm-plate/run.json -o results
+ultrafast run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o results
 ```
 
 `results/` then holds `summary.json` (everything scalar, per element and per instrument), `result.npz`
@@ -95,6 +95,6 @@ instrument. `ultrafast validate <system.ufs>` checks a system without running it
 what the engine will do with each element, and `ultrafast template run.json` writes a commented run spec.
 
 Next: the [tutorials](tutorials/index.md) walk you from this first run to diagnostics, larger systems and
-comparing with your own measured data. Then the examples in `docs/examples/` (README there), e.g. `docs/examples/08-shg-lbo` → `docs/examples/09-nopcpa-bbo` for frequency
+comparing with your own measured data. Then the examples in `docs/examples/` (README there), e.g. `docs/examples/LaserSystems/shg-lbo` → `docs/examples/LaserSystems/nopcpa-bbo` for frequency
 conversion and OPCPA, and `ultrafast crystal BBO --process shg --fundamental 1030e-9` for the phase-matching
 calculator. Plot any results folder with `ultrafast-plot results`.

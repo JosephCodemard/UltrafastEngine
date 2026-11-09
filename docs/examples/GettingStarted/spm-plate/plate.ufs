@@ -1,7 +1,7 @@
 {
   // Example 01: self-phase modulation in a fused-silica plate (written by hand).
   // A 6.35 mm plate at normal incidence with AR-coated faces, beam focused to its centre.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "spm-plate",

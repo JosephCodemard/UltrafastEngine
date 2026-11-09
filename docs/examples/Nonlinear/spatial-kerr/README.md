@@ -13,7 +13,7 @@ ultrafast-plot results-run
 ```
 
 Spatial runs gain most from a GPU: `ultrafast run kerr.ufs run.json --backend auto` puts the radial elements on the
-device when one is found ([GPU](../../plugins/gpu.md)).
+device when one is found ([GPU](../../../plugins/gpu.md)).
 
 Beam radius (1/e^2, second moment, energy-weighted over the spectrum) after each element:
 
@@ -41,7 +41,7 @@ self-steepening on axis) while the wings are not.
 
 A real spectrometer or autocorrelator rarely sees the whole beam: it looks through a fibre, a pinhole or a slit,
 often in the focal plane of a lens. With spatio-temporal coupling the answer depends on where. The run adds
-spectrometers and autocorrelators with a `"sampling"` block (see [docs/instruments.md](../../reference/instruments.md#sampling-where-the-instrument-looks)):
+spectrometers and autocorrelators with a `"sampling"` block (see [docs/instruments.md](../../../reference/instruments.md#sampling-where-the-instrument-looks)):
 
 | instrument (after the plate) | sampling | transmitted | spectral FWHM / rms width | AC FWHM |
 |---|---|---|---|---|

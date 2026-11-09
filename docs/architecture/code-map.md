@@ -9,7 +9,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Api/Simulation.cs` | `Run(system, run)`, `Validate(system, run)`; the entry point for every front end |
 | `src/UltrafastEngine.Cli/Program.cs` | the `ultrafast` command: `run`, `validate`, `study`, `retrieve`, `schema`, ... |
 | `src/UltrafastEngine.Native/` | the C API (`include/ultrafast.h`) |
-| `python/src/ultrafast/` | the Python package: `build.py` builders, `types.py` generated TypedDicts |
+| `python/src/ultrafast/` | the Python package: `build.py` builders, `types.py` generated TypedDicts; `system/`, `components/`, `sources.py`, `instruments/` (the builders by kind, CapWords aliases), `algorithms/` (`zernike`, NumPy only), `results/`, `plotting/` (package: figures, `zernike`, `animate`, `diagrams`), `core.py` (running) |
 
 ## Describing a run
 
@@ -71,3 +71,6 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `tests/UltrafastEngine.Tests/` | the C# suite, with its own runner; every physics test names its reference |
 | `python/tests/` | the Python package; `test_pynlo*.py` and `test_lightpipes.py` are cross-checks with independent codes, skipped when those are absent |
 | `build/example_check.py` | runs every example and compares the numbers quoted in its README |
+| `build/gallery.py` | writes `docs/gallery.md` from the `hero.png` / `animation.gif` files next to the examples |
+| `build/examples_cli.py` | the `ultrafast-examples` command (`list`, `copy`, `run`); `build/package.py --examples-wheel` installs it with the examples as package data |
+| `docs/examples/make_all.py`, `_figures.py`, `<Group>/<name>/make_figures.py` | run every example and write its figures (`figures/`, git-ignored) or, for the Computing group, the committed `hero.png` and `animation.gif`; checks the size budget |

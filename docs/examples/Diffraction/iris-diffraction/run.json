@@ -1,7 +1,7 @@
 {
   // Example 30: a 1 ps pulse (narrowband: the Fresnel number varies by 0.15 % over its spectrum). One beam profile (radial fluence, or x / y
   // cuts on a cartesian grid) and one camera image after the iris and at every distance.
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "iris diffraction",
   "pulse": { "shape": "gaussian", "centerWavelengthM": 1030e-9, "durationFwhmS": 1e-12, "energyJ": 1e-3 },

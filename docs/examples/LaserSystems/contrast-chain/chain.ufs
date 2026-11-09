@@ -2,7 +2,7 @@
   // Example 22: how a post-pulse becomes a pre-pulse in a CPA chain (tutorial 5).
   // Stretcher -> uncoated window (its ghost is a post-pulse) -> Kerr medium (a YAG rod standing in for the
   // amplifier) -> compressor. The Kerr medium turns the ghost into a pre-pulse after compression.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "contrast-chain",

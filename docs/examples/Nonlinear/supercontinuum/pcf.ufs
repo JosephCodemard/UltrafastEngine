@@ -2,7 +2,7 @@
   // Example 25: supercontinuum in a photonic-crystal fibre -- the benchmark of Dudley, Genty & Coen,
   // Rev. Mod. Phys. 78, 1135 (2006), Fig. 3: 50 fs sech pulse at 835 nm, 10 kW peak, 15 cm of PCF
   // (zero dispersion near 780 nm), beta2..beta10, gamma = 0.11 /(W m), Blow-Wood Raman (fR = 0.18).
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "pcf-supercontinuum",

@@ -24,7 +24,7 @@ rounding (1e-12 relative). `ultrafast devices` shows the provider in use.
 * **Nonlinear steps** run on the selected compute back-end: the CPU, or a GPU through the
   [gpu plugin](../plugins/gpu.md).
 
-Measured on one 2-core x64 container (the 25-supercontinuum example, N = 8192, 3109 adaptive steps): 23.4 s before
+Measured on one 2-core x64 container (the supercontinuum example, N = 8192, 3109 adaptive steps): 23.4 s before
 these changes, 8.8 s with the managed Stockham FFT and the allocation-free operator, 5.7 s with FFTW. The output is
 the same to 1e-12.
 

@@ -2,10 +2,10 @@
 // fastest device that supports each element ("auto" back-end). The GPU back-ends are compiled into the native library.
 //
 //   Build the engine:  dotnet publish src/UltrafastEngine.Native -c Release -r win-x64   (or linux-x64 / osx-arm64)
-//   Build this:        cmake -S docs/examples/cpp -B build -DULTRAFAST_DIR=<publish folder> && cmake --build build
+//   Build this:        cmake -S docs/examples/Interop/cpp -B build -DULTRAFAST_DIR=<publish folder> && cmake --build build
 //   Run:               build/devices                       (list)
 //                      build/devices --selftest            (compare every device with the CPU)
-//                      build/devices docs/examples/25-supercontinuum/fiber.ufs docs/examples/25-supercontinuum/run.json
+//                      build/devices docs/examples/Nonlinear/supercontinuum/fiber.ufs docs/examples/Nonlinear/supercontinuum/run.json
 #include "ultrafast.h"
 
 #include <cstdio>

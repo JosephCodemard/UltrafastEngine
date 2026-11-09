@@ -2,7 +2,7 @@
   // Example 23: the Stage 1.2 component models along one beam line, with Gaussian beam tracking.
   // No element below has a "beam" of its own: the nonlinear plate at the end gets the tracked beam,
   // focused by the lens after an astigmatic pair of off-axis mirrors.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "components",

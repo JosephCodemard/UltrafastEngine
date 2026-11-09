@@ -24,7 +24,7 @@ separate when their rings are 1/5 of a ring spacing apart (p. 99).
 ## What the engine can and cannot do
 
 * **Simulable:** the etalon as a branched system (two `beamSplitter` mirrors, two `gap`s, a `ringDown` loop; the engine's own
-  `FabryPerot_LoopGivesTheAiryFunction` test and [example 32](../../examples/32-interferometers/README.md) use the same graph), driven by a single-frequency
+  `FabryPerot_LoopGivesTheAiryFunction` test and [example 32](../../examples/Branched/interferometers/README.md) use the same graph), driven by a single-frequency
   source. Lines are mutually incoherent, so each is run separately and the transmitted intensities add.
 * **Not simulable here (and not attempted):** rings in convergent light (Delta = 2 e cos i; this needs a spatial model),
   the silver's absorption (the mirrors here are lossless, so I0 = 1), the white-light superposition fringes of two plates, the standard

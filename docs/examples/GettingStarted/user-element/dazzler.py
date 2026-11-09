@@ -13,14 +13,14 @@ The script
 
 Run from the repository root after building the engine (python python/tools/build_engine.py):
 
-    python docs/examples/12-user-element/dazzler.py
+    python docs/examples/GettingStarted/user-element/dazzler.py
 """
 import os
 import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "python", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "python", "src"))
 import ultrafast as uf  # noqa: E402
 from ultrafast import build as b  # noqa: E402
 

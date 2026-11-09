@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "components",
   "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 120e-15, "energyJ": 20e-6, "polarization": "x" },

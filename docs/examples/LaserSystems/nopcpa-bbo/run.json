@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "nopcpa-bbo",
   // 15 fs transform-limited seed, stretched to ~0.6 ps with +3000 fs^2 to match the pump duration

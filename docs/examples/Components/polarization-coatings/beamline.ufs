@@ -2,7 +2,7 @@
   // Example 05: polarisation and thin films. A pulse at 30 deg linear polarisation meets a 45-deg dielectric
   // mirror (quarter-wave stack centred for 45 deg: s and p see different phase and reflectance), a fused-silica Brewster window,
   // a zero-order half-wave plate and a thin-film polariser.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "polarization-beamline",

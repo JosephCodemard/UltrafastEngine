@@ -3,7 +3,7 @@
   // goes through a fused-silica plate on a radial grid (SPM and a weak Kerr lens), 30 cm of air,
   // chirped mirrors, a quarter-wave plate and a polariser, and finally seeds a non-collinear OPA in BBO
   // pumped by a 515 nm pulse. run.json puts every instrument kind somewhere along this line.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "instrument-tour",

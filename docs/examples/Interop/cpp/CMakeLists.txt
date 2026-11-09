@@ -6,10 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 # Folder containing the NativeAOT publish output (ultrafast.dll + ultrafast.lib on Windows,
 # libultrafast.so / libultrafast.dylib elsewhere):
 #   dotnet publish src/UltrafastEngine.Native -c Release -r win-x64 -o artifacts/native/win-x64
-set(ULTRAFAST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../artifacts/native/win-x64" CACHE PATH "UltrafastEngine native library folder")
+set(ULTRAFAST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../artifacts/native/win-x64" CACHE PATH "UltrafastEngine native library folder")
 
 add_executable(run_system run_system.cpp)
-target_include_directories(run_system PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/UltrafastEngine.Native/include")
+target_include_directories(run_system PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/UltrafastEngine.Native/include")
 if(WIN32)
   target_link_libraries(run_system PRIVATE "${ULTRAFAST_DIR}/ultrafast.lib")
   add_custom_command(TARGET run_system POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ULTRAFAST_DIR}/ultrafast.dll" $<TARGET_FILE_DIR:run_system>)
@@ -21,7 +21,7 @@ endif()
 
 # devices: list / self-test the compute devices and run on the fastest one (GPU back-ends, docs/plugins/gpu.md)
 add_executable(devices devices.cpp)
-target_include_directories(devices PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/UltrafastEngine.Native/include")
+target_include_directories(devices PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src/UltrafastEngine.Native/include")
 if(WIN32)
   target_link_libraries(devices PRIVATE "${ULTRAFAST_DIR}/ultrafast.lib")
 else()

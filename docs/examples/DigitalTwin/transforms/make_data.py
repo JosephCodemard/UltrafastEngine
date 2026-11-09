@@ -2,7 +2,7 @@
 (which the fit should find), measured through realistic instruments with noise. In real life these files come from
 your lab; rerun this script to regenerate them.
 
-    python docs/examples/26-transforms/make_data.py
+    python docs/examples/DigitalTwin/transforms/make_data.py
 """
 import copy
 import json
@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 here = Path(__file__).resolve().parent
-sys.path.insert(0, str(here.parents[2] / "python" / "src"))
+sys.path.insert(0, str(here.parents[3] / "python" / "src"))
 import ultrafast as uf  # noqa: E402
 
 TRUE = {"gddFs2": 800.0, "todFs3": -15000.0, "fodFs4": 4e5, "fwhmNm": 13.0, "centerWavelengthNm": 1031.5,

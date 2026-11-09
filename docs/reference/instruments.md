@@ -3,7 +3,7 @@
 Instruments read the pulse at a location (`"at": "end"`, `"input"`, or an element id) and report what a real
 device would show, including its resolution. They never modify the pulse. Values go to `summary.json ->
 instruments[]`, arrays to `result.npz` (prefixed with the instrument's `name`) and to `<name>.csv`.
-Example 17 (`docs/examples/17-instrument-tour`) uses every kind once. Every option of every instrument is listed in the
+Example 17 (`docs/examples/Diagnostics/instrument-tour`) uses every kind once. Every option of every instrument is listed in the
 [option reference](options.md#instruments).
 
 **Every instrument is a device model.** Its parameters (resolution, range, sampling, acceptance, detector) are
@@ -383,7 +383,7 @@ output is never mistaken for a lab measurement. (Ideal-device instruments such a
 them on the system schematic (`system.png`, and the strip at the top of `overview.png`) and prefixes every panel
 title with the number and location, e.g. `③ photodiode stretched · after probe_stretched`. Put instruments wherever
 you would put them on the table -- `"at": "input"`, an element id (after that element), `"end"` -- or add a
-`probe` element as a named place in the beam (see `docs/examples/02-stretcher-compressor/run.json`).
+`probe` element as a named place in the beam (see `docs/examples/LaserSystems/stretcher-compressor/run.json`).
 
 Conventions: Stokes s3 = +1 for the `"rcp"` input polarisation; FROG/d-scan use the x polarisation.
 

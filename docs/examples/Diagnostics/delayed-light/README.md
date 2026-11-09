@@ -3,10 +3,10 @@
 A 100 fs pulse passes a fused-silica window with a wavelength-dependent AR coating and reflects from an HR mirror on a
 12.7 mm substrate. The light that is delayed -- the window's ghost, the echo from the mirror's back face, the coating's
 ripple pedestal -- is 10⁻⁶ of the pulse and 49 to 124 ps behind it. A cross-correlator reads it. The nonlinear grid
-stays 4.3 ps long: the delayed light lives on the tail grid ([Delayed light](../../reference/delayed-light.md)).
+stays 4.3 ps long: the delayed light lives on the tail grid ([Delayed light](../../../reference/delayed-light.md)).
 
 ```bash
-cd docs/examples/28-delayed-light
+cd docs/examples/Diagnostics/delayed-light
 ultrafast run cell.ufs run.json -o results
 ```
 

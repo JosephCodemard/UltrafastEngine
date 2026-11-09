@@ -3,7 +3,7 @@
 little noise -- and data/spectrum_osa.csv: the spectrum after the plates as an OSA with 0.5 nm resolution would record
 it (1010-1050 nm only). Rerun to regenerate them.
 
-    python docs/examples/27-ner-measured-input/make_data.py
+    python docs/examples/Nonlinear/ner-measured-input/make_data.py
 """
 import json
 import re
@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 here = Path(__file__).resolve().parent
-sys.path.insert(0, str(here.parents[2] / "python" / "src"))
+sys.path.insert(0, str(here.parents[3] / "python" / "src"))
 rng = np.random.default_rng(27)
 
 wl = np.linspace(950, 1110, 1201)

@@ -28,10 +28,10 @@ How this relates to the core: a measured **input** spectrum (`"pulse": {"shape":
 only. Transforms are the opposite tool. They describe what the system does to *any* pulse, so they are fitted once
 and then reused with other inputs, and they can be undone for backward propagation.
 
-Worked example: [`docs/examples/26-transforms`](../examples/26-transforms/README.md) fits a CPA line's residual
+Worked example: [`docs/examples/DigitalTwin/transforms`](../examples/DigitalTwin/transforms/README.md) fits a CPA line's residual
 dispersion, gain narrowing, post-pulse and ASE pedestal from a spectrum, a d-scan, a cross-correlator and a power
 meter. It then applies the fitted line to a new seed and propagates the measured output back to the seed. Example 21
-([`21-measured-data`](../examples/21-measured-data/README.md)) and [Tutorial 4](../tutorials/04-measured-data.md)
+([`Diagnostics/measured-data`](../examples/Diagnostics/measured-data/README.md)) and [Tutorial 4](../tutorials/04-measured-data.md)
 fit numbers of an existing system by path.
 
 ## Quick start

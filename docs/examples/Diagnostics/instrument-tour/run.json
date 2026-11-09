@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "tour",
   "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 30e-15, "chirp": { "gddFs2": 300 },

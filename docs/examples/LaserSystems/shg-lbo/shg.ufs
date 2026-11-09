@@ -2,7 +2,7 @@
   // Example 08: second-harmonic generation of a 1 ps Yb pulse in LBO -- the pump line for example 09.
   // The main beam enters at 1030 nm and leaves as the 515 nm second harmonic ("output": "sh"); the unconverted
   // fundamental is kept as a by-product (results: "shg#fundamental").
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "shg-lbo",

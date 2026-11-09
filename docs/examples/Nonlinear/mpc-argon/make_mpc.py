@@ -7,7 +7,7 @@ import math
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "python", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "python", "src"))
 from ultrafast import build as b  # noqa: E402
 
 LAM = 1.03e-6
@@ -40,7 +40,7 @@ els += [
 ]
 sysd = b.system("mpc-argon-2bar", els, materials=materials, coatings=coatings,
                 description=f"{PASSES}-pass Herriott cell, {L} m, Ar 2 bar, w0 = {W0 * 1e6:.0f} um (zR = {ZR * 1e3:.1f} mm), -30 fs^2 per bounce")
-sysd = {"$schema": "../../../schemas/ufs.schema.json", **sysd}   # editor completion
+sysd = {"$schema": "../../../../schemas/ufs.schema.json", **sysd}   # editor completion
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpc.ufs")
 b.save(sysd, out)
 print("wrote", out, "-", len(els), "elements; beam on mirrors w =", round(W_MIRROR * 1e3, 3), "mm")

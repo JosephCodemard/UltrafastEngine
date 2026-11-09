@@ -3,7 +3,7 @@
   // A "transverse" model turns a bulk element into an (r, omega) simulation: diffraction, the radially varying
   // Kerr phase and the spatio-temporal coupling between them. The transverse profile then travels with the beam, so
   // the free-space gap after the plate (also radial) shows where the Kerr lens focuses the beam.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "spatial-kerr",

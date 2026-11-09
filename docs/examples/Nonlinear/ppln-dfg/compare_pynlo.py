@@ -6,7 +6,7 @@ by domain; the engine reproduces that with "overlap": {"model": "planeWave"} and
 The set-up is shared with the automated cross-check in python/tests/test_pynlo_dfg.py (see that file for the
 details of the mapping). Needs pyNLO: point PYNLO_SRC at a checkout's src folder (python python/tools/get_pynlo.py).
 
-    PYNLO_SRC=/path/to/pyNLO/src python docs/examples/10-ppln-dfg/compare_pynlo.py [pump_energy_J] [length_m]
+    PYNLO_SRC=/path/to/pyNLO/src python docs/examples/Nonlinear/ppln-dfg/compare_pynlo.py [pump_energy_J] [length_m]
 """
 import os
 import sys
@@ -14,8 +14,8 @@ import sys
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "python", "src"))
-sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "python", "tests"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "..", "python", "src"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "..", "python", "tests"))
 from test_pynlo_dfg import SIGNAL_EPP, _engine, _pynlo  # noqa: E402
 
 

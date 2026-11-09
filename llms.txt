@@ -20,6 +20,8 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 
 ## Examples and concepts
 - [Examples](docs/examples/README.md)
+- [Computing examples (4f correlator, convolution, matrix-vector, scaling)](docs/examples/Computing/README.md)
+- [Gallery](docs/gallery.md)
 - [Assets (synthetic data with answer keys)](docs/assets/README.md)
 - [Concepts](docs/concepts.md)
 - [Model levels](docs/model-levels.md)

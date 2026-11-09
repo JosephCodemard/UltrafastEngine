@@ -26,7 +26,7 @@ plane-wave coupling and domain-resolved poling) and plots the idler spectra:
 
 ```bash
 python python/tools/get_pynlo.py           # once: clones the pinned pyNLO into python/third_party/pynlo
-PYNLO_SRC=$(pwd)/python/third_party/pynlo/src python docs/examples/10-ppln-dfg/compare_pynlo.py
+PYNLO_SRC=$(pwd)/python/third_party/pynlo/src python docs/examples/Nonlinear/ppln-dfg/compare_pynlo.py
 ```
 
 For the default case (0.5 uJ pump, 3 mm) idler, signal and pump energies agree to ~0.1 % and the spectra overlay

@@ -2,7 +2,7 @@
 
 `indexProfile`, `absorptionProfile` and `n2Scale` make any material property a function of position (x, y, z, r,
 θ). Combined with time responses, that gives n(t, r, θ, z, I). See
-[docs/spatial-properties.md](../../reference/spatial-properties.md).
+[docs/spatial-properties.md](../../../reference/spatial-properties.md).
 
 ```bash
 ultrafast run grin.ufs run.json -o results     # GRIN rod written as an expression

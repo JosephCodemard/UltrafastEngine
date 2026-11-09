@@ -1,6 +1,6 @@
 {
   // Example 31: a beam of 0.5 mm waist, one Rayleigh range of free space. The run spec's "coherence" makes it partially coherent.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system", "version": 2, "name": "gaussian schell",
   "elements": [
     { "id": "waist", "type": "gap", "lengthM": 0, "material": "Vacuum",

@@ -1,6 +1,6 @@
 {
   // Example 31: a ring resonator (a lens guide) with an aperture. Round-trip matrix and eigenmode from the tracker; the transverse grid adds the Fox-Li iteration.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system", "version": 2, "name": "lens guide",
   "elements": [
     { "id": "cavity", "type": "resonator", "geometry": "ring",

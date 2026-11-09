@@ -2,7 +2,7 @@
 
 Stretcher → uncoated window (its ghost is a post-pulse) → Kerr medium → compressor. The Kerr medium turns the
 ghost into a pre-pulse after compression; a third-order cross-correlator measures both. Walk-through:
-[Tutorial 5](../../tutorials/05-contrast.md).
+[Tutorial 5](../../../tutorials/05-contrast.md).
 
 ```bash
 ultrafast run chain.ufs run.json -o results          # one run, ~1 s

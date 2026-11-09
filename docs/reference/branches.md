@@ -139,9 +139,9 @@ A `steadyState` loop needs gain. The input enters once, so a passive loop only d
 
 ## Crystals
 
-An `aux` beam with `"fromPort": true` comes from a link to the port named by its `role`. Its timing, phase and carrier come from the paths, so `delayS` is not used, and `cut: "auto"` solves for the colours that arrive: a fundamental and a second harmonic give the third-harmonic cut. Example [39](../examples/39-third-order-cross-correlator/README.md) is such a chain.
+An `aux` beam with `"fromPort": true` comes from a link to the port named by its `role`. Its timing, phase and carrier come from the paths, so `delayS` is not used, and `cut: "auto"` solves for the colours that arrive: a fundamental and a second harmonic give the third-harmonic cut. Example [39](../examples/Diagnostics/third-order-cross-correlator/README.md) is such a chain.
 
-A fed port with no link can hold a virtual beam, `"inputs": {"signal": {"pulse": ..., "delayS": "auto"}}`. It keeps its own carrier and enters along the lab axis, so the tilt of the other arm sets the crossing angle. Example [42](../examples/42-noncollinear-opa/README.md) seeds a NOPA this way. Other elements read `inputs` beams only on splitters (`beamSplitter`, `polarizingSplitter`, `dichroic`).
+A fed port with no link can hold a virtual beam, `"inputs": {"signal": {"pulse": ..., "delayS": "auto"}}`. It keeps its own carrier and enters along the lab axis, so the tilt of the other arm sets the crossing angle. Example [42](../examples/LaserSystems/noncollinear-opa/README.md) seeds a NOPA this way. Other elements read `inputs` beams only on splitters (`beamSplitter`, `polarizingSplitter`, `dichroic`).
 
 ```jsonc
 { "id": "x", "type": "crystal", "crystal": "BBO", "lengthM": 20e-6, "interaction": { "process": "sfg", "type": "I" }, "cut": "auto",

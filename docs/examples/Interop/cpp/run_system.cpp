@@ -1,10 +1,10 @@
 // C++ example: load a system file and a run spec, register a C++ time-response model, run, read results.
 //
 //   Build the engine:  dotnet publish src/UltrafastEngine.Native -c Release -r win-x64   (or linux-x64 / osx-arm64)
-//   Build this:        cmake -S docs/examples/cpp -B build -DULTRAFAST_DIR=<publish folder> && cmake --build build
-//   Run:               build/run_system docs/examples/01-spm-plate/plate.ufs docs/examples/01-spm-plate/run.json out
+//   Build this:        cmake -S docs/examples/Interop/cpp -B build -DULTRAFAST_DIR=<publish folder> && cmake --build build
+//   Run:               build/run_system docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json out
 //
-// In Visual Studio 2022: File > Open > Folder... on docs/examples/cpp (CMake support), set ULTRAFAST_DIR in
+// In Visual Studio 2022: File > Open > Folder... on docs/examples/Interop/cpp (CMake support), set ULTRAFAST_DIR in
 // CMakeSettings / CMakePresets, build, and copy ultrafast.dll next to the exe (done automatically below).
 #include "ultrafast.h"
 

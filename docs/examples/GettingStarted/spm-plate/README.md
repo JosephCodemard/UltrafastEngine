@@ -22,7 +22,7 @@ Try an override without touching the system file -- add to `run.json`:
 
 Note: the peak power is above the critical power for self-focusing in silica; the engine warns because the plate
 is simulated in 1-D. Add `"transverse": {"model": "radial"}` to the plate to resolve diffraction and Kerr lensing
-(see [example 11](../11-spatial-kerr/README.md) and docs/transverse.md).
+(see [example 11](../../Nonlinear/spatial-kerr/README.md) and docs/transverse.md).
 
 ## Result
 

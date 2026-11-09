@@ -12,7 +12,7 @@ The coefficients are ILLUSTRATIVE (chosen so the effect is visible), not materia
 real plate would also self-focus; spatial effects are outside model level L0.
 Run from the repository root after building the engine (python python/tools/build_engine.py):
 
-    python docs/examples/04-custom-index-python/custom_response.py
+    python docs/examples/GettingStarted/custom-index-python/custom_response.py
 """
 import math
 import os
@@ -20,7 +20,7 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "python", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "python", "src"))
 import ultrafast as uf  # noqa: E402
 from ultrafast import build as b  # noqa: E402
 

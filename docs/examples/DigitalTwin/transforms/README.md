@@ -10,7 +10,7 @@ and a pedestal. This example:
 3. **propagates backward** the measured output field to find the seed (`run-backward.json`).
 
 ```bash
-cd docs/examples/26-transforms
+cd docs/examples/DigitalTwin/transforms
 ultrafast run line.ufs run-fit.json -o results-fit                              # ~10 s, 54 runs
 ultrafast run results-fit/fitted-system.ufs run-new-input.json -o results-new    # the fitted line, new seed
 ultrafast run line.ufs run-new-input.json -o results-design                     # the same seed, unfitted values
@@ -119,4 +119,4 @@ seed had, and no measurement downstream can bring them back. The run reports whe
 inversion. The seed is written to `results-backward/reconstructed-pulse.json`, ready to use as the `pulse` of
 another run.
 
-See [Fitting plugin](../../plugins/fitting.md) for every option.
+See [Fitting plugin](../../../plugins/fitting.md) for every option.

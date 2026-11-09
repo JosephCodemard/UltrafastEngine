@@ -10,7 +10,7 @@ ultrafast study coherence.json -o coherence-results    # 6 runs with quantum noi
 ```
 
 With an NVIDIA or OpenCL GPU, add `--backend auto` (or `"compute": {"backend": "auto"}`): the fibre runs on the
-device with the same result ([GPU](../../plugins/gpu.md)). Installing FFTW (Windows / Linux) speeds up the CPU run.
+device with the same result ([GPU](../../../plugins/gpu.md)). Installing FFTW (Windows / Linux) speeds up the CPU run.
 
 What to look at:
 

@@ -3,7 +3,7 @@
   // (ideal stretcher: GDD + TOD), injected into a regen pumped by a frequency-doubled Q-switched laser
   // (10 mJ at 532 nm, double pass) and ejected automatically at the energy maximum. The cavity adds a Pockels
   // cell (KD*P stands in as fused silica here), a thin-film polariser and the round-trip loss.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "ti-sapphire-regen",

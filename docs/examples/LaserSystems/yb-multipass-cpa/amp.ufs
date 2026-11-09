@@ -4,7 +4,7 @@
   // recompressed. The amplifier element iterates the pulse train at the repetition rate to steady state
   // (pumping between pulses with the rate equations), then runs the last pulse with the full model:
   // spectrally resolved gain with time-ordered saturation, gain narrowing, YAG dispersion and SPM.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "yb-cpa",

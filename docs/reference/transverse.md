@@ -12,7 +12,7 @@ beam-quality changes come out of the simulation.
 ```
 
 Set it per element (`"transverse"`), for all elements of a run (`physics.transverse` in the run spec), or as an
-override. Worked example: [11 Spatial Kerr](../examples/11-spatial-kerr/README.md); crystals: [08 radial SHG](../examples/08-shg-lbo/README.md).
+override. Worked example: [11 Spatial Kerr](../examples/Nonlinear/spatial-kerr/README.md); crystals: [08 radial SHG](../examples/LaserSystems/shg-lbo/README.md).
 
 ## Models
 
@@ -165,7 +165,7 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
 * **Narrowband pulses:** `spectralSamples` (default 48) sets how many frequencies the profile holds. A ps pulse needs a few;
   a 2-D grid's memory scales with them.
 
-Worked example and checks: [Example 30](../examples/30-iris-diffraction/README.md) (Gaussian, round flat-top, uniform and square beams
+Worked example and checks: [Example 30](../examples/Diffraction/iris-diffraction/README.md) (Gaussian, round flat-top, uniform and square beams
 at N = 3, 2, 1 and in the far zone, against the Fresnel integral) and [Tutorial 6](../tutorials/06-diffraction.md).
 
 ## Masks
@@ -205,7 +205,7 @@ and mode radius w₀ / √M² (Starikov & Wolf, J. Opt. Soc. Am. 72, 923 (1982))
   Other outputs, such as spectra and `result.npz` fields, belong to the lowest mode.
 * It is a run mode around the engine: elements know nothing of it. In a nonlinear element each mode propagates alone (a warning says so), so coupling between modes is missing.
 
-Example: [31 Cavity and coherence](../examples/31-cavity-and-coherence/README.md). Check: w(z) = w₀ √(1 + (M² z / z_R)²) to 2 %.
+Example: [31 Cavity and coherence](../examples/Branched/cavity-and-coherence/README.md). Check: w(z) = w₀ √(1 + (M² z / z_R)²) to 2 %.
 
 ## Small-scale self-focusing
 
@@ -235,7 +235,7 @@ ripple follows the Talbot law `2 eps |cos(q L)|`.
 laptop CPU (4 cores). 256 x 256 at 2^13 time points is 64 x larger (8.6 GB per field array, several of them held by the solver):
 use a short time window and the [GPU plugin](../plugins/gpu.md) (`"compute": {"backend": "auto"}` runs the cartesian model on the device), or reduce
 `nx` and `N_t` and check that `edge` warnings stay quiet. The grid must resolve the most unstable ripple (period 2 pi / sqrt(2 k Delta) -- about 90 um
-in the example, 9 samples) and the correlation length of the seed; the box (4 beam radii) must hold the beam. [Example 29](../examples/29-small-scale-self-focusing/README.md).
+in the example, 9 samples) and the correlation length of the seed; the box (4 beam radii) must hold the beam. [Example 29](../examples/Nonlinear/small-scale-self-focusing/README.md).
 
 ## Collapse to 1-D, and what the 1-D quantities mean
 

@@ -5,10 +5,10 @@ Four beams pass a 1 mm iris and are imaged at four distances. The beams are a Ga
 flat-top (half-width 1.5 mm). The round beams pass a round iris of radius a = 1 mm; the square beam passes a 2 x 2 mm square aperture. The
 distances are where the Fresnel number N = a² / (λ z) of the opening is 3, 2 and 1, and the far zone at 5 m (N = 0.19). `compare.py`
 checks every pattern against the Fresnel diffraction integral. The step-by-step version is
-[Tutorial 6: Diffraction by an iris](../../tutorials/06-diffraction.md).
+[Tutorial 6: Diffraction by an iris](../../../tutorials/06-diffraction.md).
 
 ```bash
-cd docs/examples/30-iris-diffraction
+cd docs/examples/Diffraction/iris-diffraction
 for b in gaussian flattop tophat square; do ultrafast run $b.ufs run.json -o results-$b; done   # 2-5 s each
 python compare.py            # engine vs Fresnel integral; writes diffraction-cuts.png, diffraction-images.png
 ```
@@ -85,4 +85,4 @@ What to read from it:
 * **A pinhole filter.** Put a `lens` before the iris and the iris in its focal plane (the beam's Fourier plane) to clean a beam up, or replace
   the iris by a soft aperture (`"softRadiusM"`, `"order"`) to suppress the rings.
 * **Broadband light.** Use a 20 fs pulse: every colour has its own Fresnel number, so the fine rings of the near field average out
-  ([Transverse: chromatic diffraction](../../reference/transverse.md#physics-in-a-spatial-bulk-element)); keep the default 48 `spectralSamples`.
+  ([Transverse: chromatic diffraction](../../../reference/transverse.md#physics-in-a-spatial-bulk-element)); keep the default 48 `spectralSamples`.

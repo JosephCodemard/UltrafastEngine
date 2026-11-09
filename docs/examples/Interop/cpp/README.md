@@ -12,7 +12,7 @@ with C++" workload):
 
 ```bash
 dotnet publish src/UltrafastEngine.Native -c Release -r win-x64 -o artifacts/native/win-x64
-cmake -S docs/examples/cpp -B build/cpp -DULTRAFAST_DIR=artifacts/native/win-x64
+cmake -S docs/examples/Interop/cpp -B build/cpp -DULTRAFAST_DIR=artifacts/native/win-x64
 cmake --build build/cpp --config Release
-build/cpp/Release/run_system docs/examples/01-spm-plate/plate.ufs docs/examples/01-spm-plate/run.json out
+build/cpp/Release/run_system docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json out
 ```

@@ -1,9 +1,9 @@
 # 37 -- An f-2f interferometer
 
-A 3 fs pulse is broad enough for its blue wing to meet the red wing of its own second harmonic. This example builds the interferometer with the Python API and shows the fringes following the carrier-envelope phase (`cepRad`). Beams with different carriers merge on the wider grid ([Interference](../../reference/branches.md#interference)).
+A 3 fs pulse is broad enough for its blue wing to meet the red wing of its own second harmonic. This example builds the interferometer with the Python API and shows the fringes following the carrier-envelope phase (`cepRad`). Beams with different carriers merge on the wider grid ([Interference](../../../reference/branches.md#interference)).
 
 ```bash
-cd docs/examples/37-f2f-cep
+cd docs/examples/Branched/f2f-cep
 python f2f.py
 ```
 

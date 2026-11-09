@@ -12,7 +12,7 @@ using static UltrafastEngine.Tests.U;
 namespace UltrafastEngine.Tests
 {
     /// <summary>
-    /// Diffraction by apertures (docs/reference/transverse.md#diffraction-and-apertures, docs/examples/30-iris-diffraction):
+    /// Diffraction by apertures (docs/reference/transverse.md#diffraction-and-apertures, docs/examples/Diffraction/iris-diffraction):
     /// beams of different shapes through a round iris and a square aperture, against the Fresnel diffraction integral
     /// (Born &amp; Wolf, Principles of Optics, ch. 8) and its Fraunhofer limit.
     /// </summary>

@@ -6,7 +6,7 @@
   //   a slow, fluence-driven negative term (F = integral of I dt, e.g. free carriers or a fast thermal effect),
   //   and a 1 THz index modulation in lab time (t_lab), e.g. from a co-propagating driver.
   // The rod also has a weak static GRIN profile (indexProfile) and a lossy cladding (absorptionProfile).
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "custom-medium",

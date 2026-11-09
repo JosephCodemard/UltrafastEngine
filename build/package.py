@@ -453,10 +453,10 @@ def _pyproject():
         return d
 
 
-def build_wheel(stage: Path, out: Path, plat: str) -> Path:
+def build_wheel(stage: Path, out: Path, plat: str, meta=None, readme=None) -> Path:
     """Write a wheel of the package folders in ``stage`` (no setuptools needed). ``plat`` "any" for the hosted engine
     (pure .NET assemblies: one wheel for every OS), a platform tag when it carries the NativeAOT library."""
-    meta = _pyproject()
+    meta = meta or _pyproject()
     name, ver = meta["name"], meta["version"]
     dist = re.sub(r"[-_.]+", "_", name)
     tag = "py3-none-" + plat
@@ -475,7 +475,7 @@ def build_wheel(stage: Path, out: Path, plat: str) -> Path:
         lines.append("Provides-Extra: " + extra)
         for dep in deps:
             lines.append('Requires-Dist: %s ; extra == "%s"' % (dep, extra))
-    readme = REPO / "python" / "README.md"
+    readme = readme or REPO / "python" / "README.md"
     body = readme.read_text(encoding="utf-8") if readme.exists() else ""
     files = {}
     for p in sorted(stage.rglob("*")):
@@ -501,6 +501,45 @@ def build_wheel(stage: Path, out: Path, plat: str) -> Path:
             info.compress_type = zipfile.ZIP_DEFLATED
             z.writestr(info, v)
     return whl
+
+
+# ---------------------------------------------------------------------------------------------------- examples wheel
+EXAMPLES_README = """# ultrafast-examples
+
+The examples of UltrafastEngine {ver}, grouped by topic, with the ``ultrafast-examples`` command.
+
+    pip install --find-links <folder with this wheel and the ultrafast-engine wheel> ultrafast-examples
+    ultrafast-examples list
+    ultrafast-examples copy Computing my-examples        # a group (or one example) into a writable folder
+    ultrafast-examples run 4f-correlator                 # copy to a temporary folder and run its README commands
+
+The examples need the ``ultrafast-engine`` package. Examples that call the command line also need the ``ultrafast`` program on the PATH.
+The figure scripts (``make_figures.py``, ``make_all.py``) are part of the repository only.
+"""
+EXAMPLES_EXCLUDE = ("results", "results-*", "*-results", "figures", "retrieved", "__pycache__", "*.pyc", "make_figures.py", "make_all.py",
+                    "_figures.py", "_figs.py")
+
+
+def build_examples_wheel(out: Path) -> Path:
+    """``ultrafast_examples-<ver>-py3-none-any.whl``: docs/examples/<Group>/<name>/ as package data plus the ``ultrafast-examples`` command.
+    Built locally and installed with ``--find-links`` (never uploaded to PyPI), like the plugin extras of the main wheel."""
+    meta = dict(_pyproject())
+    ver = meta["version"]
+    meta.update({"name": "ultrafast-examples", "description": "Examples of UltrafastEngine, grouped by topic, with the ultrafast-examples command",
+                 "dependencies": ["%s>=%s" % (meta["name"], ver)], "optional-dependencies": {},
+                 "scripts": {"ultrafast-examples": "ultrafast_examples.cli:main"}})
+    stage = Path(tempfile.mkdtemp(prefix="ufex-"))
+    try:
+        pkg = stage / "ultrafast_examples"
+        shutil.copytree(REPO / "docs" / "examples", pkg / "data", ignore=shutil.ignore_patterns(*EXAMPLES_EXCLUDE))
+        shutil.copy2(REPO / "build" / "examples_cli.py", pkg / "cli.py")
+        (pkg / "__init__.py").write_text('"""Examples of UltrafastEngine: see ``ultrafast-examples --help``."""\n__version__ = "%s"\n' % ver)
+        (pkg / "__main__.py").write_text("import sys\nfrom .cli import main\nsys.exit(main())\n")
+        readme = stage / "README.md"
+        readme.write_text(EXAMPLES_README.format(ver=ver), encoding="utf-8")
+        return build_wheel(stage, out, "any", meta=meta, readme=readme)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------------------------------- texts
@@ -647,6 +686,7 @@ def parse(argv):
     ap.add_argument("--single-file", action="store_true", help="CLI as one executable file")
     ap.add_argument("--python-engine", choices=["hosted", "native"], default="hosted", help="hosted: any OS, .NET runtime, plugins (default); native: NativeAOT, this platform")
     ap.add_argument("--examples", action="store_true", help="include docs/examples")
+    ap.add_argument("--examples-wheel", action="store_true", help="build only ultrafast_examples-<ver>-py3-none-any.whl (docs/examples as package data + the ultrafast-examples command; no .NET needed) into --out")
     ap.add_argument("--docs", action="store_true", help="include the documentation (Markdown)")
     ap.add_argument("--symbols", action="store_true", help="keep .pdb debug symbols")
     ap.add_argument("--zos-api-dir", help="OpticStudio folder with ZOSAPI.dll (for the extension; never packaged)")
@@ -702,6 +742,10 @@ def parse(argv):
 def main(argv=None):
     a = parse(sys.argv[1:] if argv is None else argv)
     Log.verbose, Log.dry = a.verbose, a.dry_run
+    if a.examples_wheel:
+        w = build_examples_wheel(Path(a.out))
+        print("examples wheel: %s (%.1f MB)" % (w, w.stat().st_size / 1e6))
+        return 0
     if a.list:
         print("UltrafastEngine %s packaging -- this machine: %s (%s)" % (version(), a.host, host_os()))
         print("platforms: " + ", ".join(RIDS) + ", portable (framework-dependent, any OS), host")

@@ -12,14 +12,14 @@ in, picks one field to continue as the main beam out, and keeps the other fields
   "interaction": { "process": "opa", "type": "I", "noncollinearDeg": "magic" },
   "cut": "auto",                            // phase-match at the nominal wavelengths, or {"thetaDeg":..,"phiDeg":..}
   "beam": { "kind": "gaussian", "w0M": 0.55e-3 },     // the main beam inside the crystal
-  "aux": [ { "role": "pump", "from": "../08-shg-lbo/results",
+  "aux": [ { "role": "pump", "from": "../shg-lbo/results",
              "beam": { "kind": "gaussian", "radiusM": 0.6e-3 }, "delayS": "auto" } ],
   "output": "signal",                       // which field continues as the main beam
   "record": ["idler", "pump"] }             // by-products to keep (default: all others)
 ```
 
-Worked examples: [08 SHG in LBO](../examples/08-shg-lbo/README.md), [09 NOPCPA in BBO](../examples/09-nopcpa-bbo/README.md),
-[10 DFG in MgO:PPLN](../examples/10-ppln-dfg/README.md).
+Worked examples: [08 SHG in LBO](../examples/LaserSystems/shg-lbo/README.md), [09 NOPCPA in BBO](../examples/LaserSystems/nopcpa-bbo/README.md),
+[10 DFG in MgO:PPLN](../examples/Nonlinear/ppln-dfg/README.md).
 
 ## Processes and roles
 
@@ -272,7 +272,7 @@ The sum wave lies along the crystal's axis, and the inputs lie either side of it
 
 Inputs keep their direction. The sum leaves at ω₃ sin t₃ = ω₁ sin t₁ + ω₂ sin t₂, and its path carries that tilt onward, as each port's does.
 
-Example [40](../examples/40-noncollinear-correlators/README.md).
+Example [40](../examples/Diagnostics/noncollinear-correlators/README.md).
 
 ## Non-collinear OPA and DFG
 
@@ -310,7 +310,7 @@ The pump refracts at the face, n_p(α) sin α = sin E. For an extraordinary pump
 
 Each wave leaves at Snell's angle of its internal direction, sin t = n sin(angle to the signal), measured from the face normal. The tilts then obey ω_p sin t_p = ω_s sin t_s + ω_i sin t_i. Each port's path carries its tilt onward, and so does the compiled system, so a crystal linked to the idler port sees the idler's direction.
 
-Checked against the mismatched parametric gain G = 1 + (Γ/g)² sinh²(gL), g² = Γ² − (Δk/2)² (Cerullo & De Silvestri, Rev. Sci. Instrum. 74, 1 (2003)), transverse momentum, and Manley-Rowe in DFG (`NoncollinearOpaTests`). Example [42](../examples/42-noncollinear-opa/README.md).
+Checked against the mismatched parametric gain G = 1 + (Γ/g)² sinh²(gL), g² = Γ² − (Δk/2)² (Cerullo & De Silvestri, Rev. Sci. Instrum. 74, 1 (2003)), transverse momentum, and Manley-Rowe in DFG (`NoncollinearOpaTests`). Example [42](../examples/LaserSystems/noncollinear-opa/README.md).
 
 **Virtual beams on fed ports.** In a Branched system, a fed port (`aux` with `fromPort: true`) with no link can hold a beam: `"inputs": {"<role>": {"pulse": ..., "delayS": ...}}`, the keys of a [virtual input](branches.md#virtual-inputs). The beam keeps its own carrier, on a grid with the run's spacing. `delayS` is measured from the run's source, or `"auto"` centres it on the main beam in the crystal.
 

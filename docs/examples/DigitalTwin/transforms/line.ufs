@@ -3,7 +3,7 @@
   // the "lab" transform holds what the design does not know -- residual dispersion, gain narrowing, a post-pulse from
   // an etalon and an ASE pedestal. Its numbers marked "fit": true are found from the recorded data (run-fit.json);
   // results-fit/fitted-system.ufs is this file with the fitted values, ready for new inputs (run-new-input.json).
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "cpa-with-transforms",

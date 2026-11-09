@@ -57,7 +57,7 @@ focus is free-space optics, with single-mode fibres and gas cells where a system
 ```bash
 git clone https://github.com/JosephCodemard/UltrafastEngine.git && cd UltrafastEngine
 dotnet build UltrafastEngine.sln -c Release
-dotnet run --project src/UltrafastEngine.Cli -c Release -- run docs/examples/01-spm-plate/plate.ufs docs/examples/01-spm-plate/run.json -o results
+dotnet run --project src/UltrafastEngine.Cli -c Release -- run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o results
 ```
 
 ```python
@@ -116,7 +116,7 @@ gap with your measurements:
 * **Backward propagation**: give it the field measured at the output and it finds the field at every plane upstream,
   including through nonlinear elements.
 
-See [Fitting plugin](docs/plugins/fitting.md) and [example 26](docs/examples/26-transforms/README.md).
+See [Fitting plugin](docs/plugins/fitting.md) and [example 26](docs/examples/DigitalTwin/transforms/README.md).
 
 ## Validation
 

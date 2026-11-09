@@ -21,8 +21,8 @@ Makes the model reproduce your lab, then reuses what it learned.
   `measured`, `fit_parameter`), accessors (`fit_report`, `fitted_system`, `reconstructed_pulse`, `comparisons`) and
   the `measurements` and `fit` figures of `ultrafast-plot`.
 
-Documentation: [docs/plugins/fitting.md](../../docs/plugins/fitting.md). Worked examples: `docs/examples/26-transforms`
-(transforms, new inputs, backward propagation) and `docs/examples/21-measured-data` (fitting by path), tutorial 4.
+Documentation: [docs/plugins/fitting.md](../../docs/plugins/fitting.md). Worked examples: `docs/examples/DigitalTwin/transforms`
+(transforms, new inputs, backward propagation) and `docs/examples/Diagnostics/measured-data` (fitting by path), tutorial 4.
 
 Build: `dotnet build plugins/fitting/src -c Release` lays out the installable folder in `artifacts/plugins/fitting`.
 It is also built and copied with the CLI, the test runner and `python python/tools/build_engine.py`. Installing it

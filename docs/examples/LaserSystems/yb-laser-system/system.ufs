@@ -5,7 +5,7 @@
   //  2. a pulse picker down to 10 kHz (the amplifier's repRateHz) and a grating stretcher;
   //  3. the 8-pass Yb:YAG amplifier of example 13 (pulse train iterated to steady state at 10 kHz);
   //  4. the matching compressor.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "yb-laser-system",

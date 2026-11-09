@@ -1,9 +1,9 @@
 # 36 -- Structured beams
 
-Modes and masks on a carried profile, written with the Python API ([Masks](../../reference/transverse.md#masks), [Initial profile](../../reference/transverse.md#initial-profile)).
+Modes and masks on a carried profile, written with the Python API ([Masks](../../../reference/transverse.md#masks), [Initial profile](../../../reference/transverse.md#initial-profile)).
 
 ```bash
-cd docs/examples/36-structured-beams
+cd docs/examples/Diffraction/structured-beams
 python structured.py
 ```
 

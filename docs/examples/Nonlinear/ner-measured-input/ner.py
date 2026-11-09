@@ -11,7 +11,7 @@ for the Gaussian pulse (about theta_peak / sqrt(2) for small angles)
 
 (fR = 0.18, b = anisotropicFraction; with Raman off, (1 - fR)/3 becomes 1/3).
 
-    python docs/examples/27-ner-measured-input/ner.py
+    python docs/examples/Nonlinear/ner-measured-input/ner.py
 """
 import copy
 import json
@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 here = Path(__file__).resolve().parent
-sys.path.insert(0, str(here.parents[2] / "python" / "src"))
+sys.path.insert(0, str(here.parents[3] / "python" / "src"))
 import ultrafast as uf  # noqa: E402
 
 

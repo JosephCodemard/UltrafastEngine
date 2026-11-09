@@ -6,7 +6,7 @@
 * `reference/options.md` and `reference/python-api.md` are generated (`/regen`); never edit them.
 * Numbers quoted from runs (example READMEs, tutorials) must match a fresh run: re-run with `/example-check` when
   physics, defaults or comparisons change.
-* Examples (`examples/NN-name/`): a README with the commands and the expected output, a `.ufs`, `run*.json`; they
-  run with `ULTRAFAST_STRICT_OPTIONS=1`. Example 09 needs example 08's results in 08's folder; example 26's
+* Examples (`examples/<Group>/<name>/`, groups listed in `examples/README.md` with the old 00-42 numbers): a README with the commands and the expected output, a `.ufs`, `run*.json`; they
+  run with `ULTRAFAST_STRICT_OPTIONS=1`. `LaserSystems/nopcpa-bbo` needs `LaserSystems/shg-lbo`'s results in its folder; `DigitalTwin/transforms`'
   `run-new-input.json` / `run-backward.json` use `results-fit/fitted-system.ufs`; tutorial specs use `plate.ufs`
   except `run-cpa.json` (`cpa.ufs`).

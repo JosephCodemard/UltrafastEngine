@@ -104,9 +104,9 @@ the CPU on standard problems (`"selftest": [{"backend", "device", "passed", "che
 `"benchmark": true` it is also timed. `uf_set_default_backend` sets the back-end of runs whose spec names none
 (`"cpu"`, `"auto"`, `"cuda"`, `"opencl"`; NULL restores `ULTRAFAST_BACKEND` or `"cpu"`); an unknown name returns
 `UF_E_ARGUMENT`. The library has the [gpu plugin](../plugins/gpu.md) compiled in (unless it was packaged without it);
-`docs/examples/cpp/devices.cpp` is a complete program.
+`docs/examples/Interop/cpp/devices.cpp` is a complete program.
 
-A complete C++ program is in `docs/examples/cpp` (CMake; opens directly in Visual Studio).
+A complete C++ program is in `docs/examples/Interop/cpp` (CMake; opens directly in Visual Studio).
 
 ## Other languages
 

@@ -1,6 +1,6 @@
 ---
 description: Re-run documentation examples and update the numbers quoted in their READMEs and tutorials
-argument-hint: "[example folder names, e.g. 21-measured-data 26-transforms; empty = all]"
+argument-hint: "[example folder names, e.g. measured-data transforms; empty = all]"
 ---
 Re-check examples: $ARGUMENTS
 

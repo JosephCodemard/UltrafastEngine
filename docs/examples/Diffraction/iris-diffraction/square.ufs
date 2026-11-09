@@ -1,7 +1,7 @@
 {
   // Example 30: a square flat-top beam (separable super-Gaussian of order 10, half-width 1.5 mm) through a 2 x 2 mm square aperture.
   // Grid shared by every element, so the profile is copied, not interpolated, from one element to the next.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "square",

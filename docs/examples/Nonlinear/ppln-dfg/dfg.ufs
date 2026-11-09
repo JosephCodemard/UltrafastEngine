@@ -2,7 +2,7 @@
   // Example 10: mid-IR difference-frequency generation in periodically poled MgO:LiNbO3.
   // Main beam = the 1550 nm signal; aux = a 1064 nm pump; the idler (~3.39 um) is generated. Choosing
   // "output": "idler" makes the mid-IR the main beam from here on (the signal and pump are kept as by-products).
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "ppln-dfg",

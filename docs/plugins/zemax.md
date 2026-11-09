@@ -67,7 +67,7 @@ GBPS/GBPW rows, appended and removed in one go).
 
 ## `export.json`
 
-See `plugins/zemax/src/UltrafastEngine.Zemax/examples/export.json` (fully commented) and `docs/examples/07-zemax-workflow`.
+See `plugins/zemax/src/UltrafastEngine.Zemax/examples/export.json` (fully commented) and `docs/examples/Interop/zemax-workflow`.
 
 | key | |
 |---|---|

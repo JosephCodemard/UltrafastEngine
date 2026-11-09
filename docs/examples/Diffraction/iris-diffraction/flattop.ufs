@@ -1,7 +1,7 @@
 {
   // Example 30: a round flat-top beam (super-Gaussian of order 10, w = 1.5 mm) through a round iris of radius 1 mm.
   // Grid shared by every element, so the profile is copied, not interpolated, from one element to the next.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "flattop",

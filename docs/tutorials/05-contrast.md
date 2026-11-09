@@ -4,7 +4,7 @@
 post-pulse into a pre-pulse; measure it as a third-order cross-correlator would; scan the pulse energy with a
 parameter study and compare with the analytic estimate.
 
-Files: `docs/examples/22-contrast-chain/` (`chain.ufs`, `run.json`, `study.json`). Run the commands from that folder.
+Files: `docs/examples/LaserSystems/contrast-chain/` (`chain.ufs`, `run.json`, `study.json`). Run the commands from that folder.
 
 ## 1. The chain
 

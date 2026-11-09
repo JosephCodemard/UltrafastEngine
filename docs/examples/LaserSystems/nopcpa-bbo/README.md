@@ -1,11 +1,11 @@
 # 09 -- Non-collinear OPCPA in BBO
 
 A 15 fs (transform-limited) 800 nm seed, stretched to ~0.6 ps, is amplified in 2 mm of BBO pumped by the 515 nm
-second harmonic from [example 08](../08-shg-lbo/README.md). **Run example 08 first**: the pump is read from its saved results
-(`"from": "../08-shg-lbo/results"`), so the pump has the exact temporal and spectral shape that the SHG produced.
+second harmonic from [example 08](../shg-lbo/README.md). **Run example 08 first**: the pump is read from its saved results
+(`"from": "../shg-lbo/results"`), so the pump has the exact temporal and spectral shape that the SHG produced.
 
 ```bash
-(cd ../08-shg-lbo && ultrafast run shg.ufs run.json -o results)
+(cd ../shg-lbo && ultrafast run shg.ufs run.json -o results)
 ultrafast run nopcpa.ufs run.json -o results
 ultrafast-plot results
 ```

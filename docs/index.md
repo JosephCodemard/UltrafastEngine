@@ -56,7 +56,7 @@ polarimeter, camera, each with its own resolution and detector.
 | splitters, interferometers, loops | [Branched systems](reference/branches.md) |
 | ghosts, echoes, scatter, ring-down | [Delayed light](reference/delayed-light.md) |
 | model my instruments, compare with measurements | [Instruments](reference/instruments.md), [Measured data](reference/measured-data.md) |
-| fit the model to my lab, reuse it on new inputs, propagate backward | [Fitting plugin](plugins/fitting.md), [example 26](examples/26-transforms/README.md) |
+| fit the model to my lab, reuse it on new inputs, propagate backward | [Fitting plugin](plugins/fitting.md), [example 26](examples/DigitalTwin/transforms/README.md) |
 | install or check plugins | [Installing plugins](plugins/installing.md) |
 | scan, optimise, retrieve a pulse | [Studies](reference/studies.md), [Pulse retrieval](reference/retrieval.md) |
 | plug in my own function or element | [Extending](reference/extending.md), [Python](reference/python.md), [C API](reference/c-api.md) |

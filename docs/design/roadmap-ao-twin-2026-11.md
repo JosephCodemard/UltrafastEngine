@@ -10,7 +10,7 @@ work, the tests and the acceptance criteria. Sizes: S ≈ 1 focused agent-day, M
 | session | what | depends on | executor / advisor | size |
 |---|---|---|---|---|
 | **S0** (done, in the planning session) | CI fixes, logo, licence, README, this plan | - | - | done |
-| **S1 Foundation** | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
+| **S1 Foundation** (**done 2026-11-09**) | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
 | **S2 Core and spikes** | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
 | **S3 AO plugin** | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
 | **S4 Fitting and twin** | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
@@ -263,7 +263,12 @@ regenerate figures, the animation budget numbers.
 | 2 Python structure | **done**: `system`, `components` (optics, splitters, polarisation, crystals, fibres, `amplifiers`, media), `sources`, `instruments` (18 real factories), `algorithms`, `results`; CapWords names are aliases of the `build` functions, so typed returns are unchanged; builders kept in `build` only are listed in a test |
 | 3 plotting | **done**: `plotting.py` split into a package (`style, data, time_domain, spectral, run_figures, spatial, instrument_panels, diagrams, zernike, animate`); every 2.2.0 public and underscore name still imports (`python/tests/data/public_surface_2_2_0.json`); `ultrafast.diagram` is a shim with a `DeprecationWarning`; matplotlib and Pillow stay lazy |
 | Zernike and animation | **done**: `algorithms.zernike` (orthonormal to 1e-12 by polar quadrature; agrees with the engine's `wavefrontSensor` coefficients to 1e-6), the decomposition figure (one or several wavefronts, complex-field input, animated variant), GIF writer with a size-budget check |
-| 4 regroup examples, 5 `make_all`, 6 examples wheel, 7 Computing examples, 8 docs | **not started** |
+| 4 regroup examples | **done**: one `git mv` pass into 10 groups (+ `Computing`, `AdaptiveOptics`); 138 files re-linked; old numbers kept in the `docs/examples/README.md` table; `example_check.py` takes a name, group or old number |
+| 5 `make_figures.py`, `make_all.py`, budget check, `build/gallery.py` | **done**: a `make_figures.py` in every example (42), `make_all.py` per group and at the top (`--group --only --no-animations --jobs --report`); the figure budget is checked; `docs/gallery.md` is generated |
+| 6 examples wheel and `ultrafast-examples` | **done**: `build/package.py --examples-wheel` (3.8 MB), `list` / `copy` / `run`, extras `animate` and `examples`; tested from a fresh venv |
+| 7 optical-computing examples | **done**: `4f-correlator`, `optical-convolution`, `matrix-vector`, `parallelism-and-time` with hero figures and animations (all within budget) |
+| 8 docs | **done**: package structure and Zernike / animation sections in `docs/reference/python.md`, regenerated `python-api.md`, `docs/examples/README.md`, architecture code map, releasing page, notes and changelog lines in `docs/design/notes/s1-foundation.md` |
+| outside the brief (owner's requests) | **done**: brand CSS for the docs sidebar and links, long-logo footer on the plugin READMEs, `CONTRIBUTING.md`, `ROADMAP.md` and `tests/components/README.md`; Google Search Console verification tag in `overrides/main.html`; the `.gitignore` fix that let CI see `ultrafast.results` |
 
 Findings that change later sessions:
 
@@ -273,7 +278,8 @@ Findings that change later sessions:
 * `plotting/zernike.py` and the fitting plugin's `figures.py`: the plugin figure stays in the plugin (it reads the fitting
   result format and is registered only when the plugin loads); it uses the stable names re-exported by `ultrafast.plotting`.
   This is the "fold" of 4.2, with the reason written down.
-* Full Python suite on the branch: 162 passed, 2 skipped (before the new `/verify` run, which is still in progress).
+* Full verification of the finished S1 is recorded in `docs/design/notes/s1-foundation.md` (section 9).
+* **Open for the owner:** repository size (section 8, point 1): only the four Computing animations (39-329 kB each) are committed so far; the other 38 examples draw a generic hero into a git-ignored `figures/` folder.
 
 ---
 

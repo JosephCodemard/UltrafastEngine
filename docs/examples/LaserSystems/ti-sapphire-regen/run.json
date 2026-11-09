@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/run.schema.json",
+  "$schema": "../../../../schemas/run.schema.json",
   "format": "ultrafast-run", "version": 2,
   "name": "regen",
   "pulse": { "shape": "gaussian", "centerWavelengthM": 800e-9, "durationFwhmS": 30e-15, "energyJ": 2e-9, "repRateHz": 1000 },

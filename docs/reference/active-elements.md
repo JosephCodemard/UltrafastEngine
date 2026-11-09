@@ -36,7 +36,7 @@ by-product of a crystal is an output port that can be routed on.
   { "role": "pump",
     // where the beam comes from -- one of:
     "pulse": { "shape": "gaussian", "centerWavelengthM": 515e-9, "durationFwhmS": 0.8e-12, "energyJ": 200e-6 },
-    // "from": "../08-shg-lbo/results",      // the output field of a saved run (summary.json + result.npz)
+    // "from": "../shg-lbo/results",      // the output field of a saved run (summary.json + result.npz)
     // "energyJ": 150e-6,                    //   ... optionally rescaled to this energy
     "beam": { "kind": "gaussian", "radiusM": 0.6e-3 },   // also superGaussian (+ "order"), flatTop;
                                                           // radiusXM/radiusYM; radiusOfCurvatureM
@@ -85,7 +85,7 @@ A user element hands the main beam's spectrum to your function and continues wit
 { "id": "shaper", "type": "user", "callback": "@dazzler", "params": { "gddFs2": -4700, "todFs3": -3100 } }
 ```
 
-**Python** (example [12](../examples/12-user-element/README.md)):
+**Python** (example [12](../examples/GettingStarted/user-element/README.md)):
 
 ```python
 def dazzler(ctx: uf.ElementContext):

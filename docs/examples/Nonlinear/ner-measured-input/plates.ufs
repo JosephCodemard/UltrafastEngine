@@ -2,7 +2,7 @@
   // Example 27: nonlinear ellipse rotation (NER) in a stack of fused-silica plates, driven by a measured spectrum.
   // Ten 3 mm plates at normal incidence; a constant 150 um beam (plane-wave NER, no Kerr lensing); end-face ghosts of
   // AR-coated faces (0.2 % per face) show how the window makes room for satellites.
-  "$schema": "../../../schemas/ufs.schema.json",
+  "$schema": "../../../../schemas/ufs.schema.json",
   "format": "ultrafast-system",
   "version": 2,
   "name": "ner-plates",

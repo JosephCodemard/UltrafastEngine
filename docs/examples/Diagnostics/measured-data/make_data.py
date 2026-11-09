@@ -2,7 +2,7 @@
 fit should find), measured through realistic instruments, with noise and a background added.
 You only need this to regenerate the files; in real life they come from your lab.
 
-    python docs/examples/21-measured-data/make_data.py
+    python docs/examples/Diagnostics/measured-data/make_data.py
 """
 import copy
 import json
@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 here = Path(__file__).resolve().parent
-sys.path.insert(0, str(here.parents[2] / "python" / "src"))
+sys.path.insert(0, str(here.parents[3] / "python" / "src"))
 import ultrafast as uf  # noqa: E402
 
 TRUE = {"chirp_fs2": 450.0, "energy_j": 140e-9, "compressor_fs2": -520.0}

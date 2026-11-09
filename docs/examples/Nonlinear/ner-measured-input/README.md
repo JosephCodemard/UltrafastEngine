@@ -6,7 +6,7 @@ compares the rotation with the analytic result. It also shows what the engine do
 how a recording after the plates is compared.
 
 ```bash
-cd docs/examples/27-ner-measured-input
+cd docs/examples/Nonlinear/ner-measured-input
 python make_data.py                        # optional: regenerates data/ (needs the engine built for Python)
 ultrafast run plates.ufs run.json -o results
 python ner.py                              # rotation vs analytic: Raman anisotropic / isotropic / off
@@ -31,7 +31,7 @@ Without `background` the run warns about the floor, and the floor spreads light 
 transform-limited FWHM drops from 240 fs to below 30 fs (a sharp spike on a weak background), and the reported
 B-integral doubles (3.1 rad instead of 1.4). A repeated
 wavelength used to turn every result into NaN; it is now merged. See
-[Measured data](../../reference/measured-data.md#measured-input-spectra).
+[Measured data](../../../reference/measured-data.md#measured-input-spectra).
 
 ## The window
 
@@ -59,7 +59,7 @@ pulse as the polarimeter does. The engine is within 2 % in all three cases; the 
 pulse shape after cleaning and the plates' dispersion. The anisotropic part of the fused-silica Raman response
 (b = 0.25, Hellwarth) adds 8 % to the rotation compared with an isotropic Raman response; switching Raman off
 gives the largest rotation because all of the nonlinearity is then electronic. The physics is in
-[Nonlinear physics](../../reference/nonlinear.md#polarisation-circular-light-and-nonlinear-ellipse-rotation).
+[Nonlinear physics](../../../reference/nonlinear.md#polarisation-circular-light-and-nonlinear-ellipse-rotation).
 
 ## The recording after the plates
 

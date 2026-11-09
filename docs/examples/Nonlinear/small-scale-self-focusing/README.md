@@ -2,10 +2,10 @@
 
 A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radius 0.3 mm: 3.3·10⁸ W, about 100 times the critical power for
 self-focusing. A 1 % random amplitude noise with a 40 µm correlation length seeds the break-up. The beam is propagated in 2-D (x, y) on a
-128 x 128 grid over 4 beam radii ([Small-scale self-focusing](../../reference/transverse.md#small-scale-self-focusing)).
+128 x 128 grid over 4 beam radii ([Small-scale self-focusing](../../../reference/transverse.md#small-scale-self-focusing)).
 
 ```bash
-cd docs/examples/29-small-scale-self-focusing
+cd docs/examples/Nonlinear/small-scale-self-focusing
 ultrafast run plate.ufs run.json -o results            # about 1 minute on a laptop CPU
 ```
 
@@ -39,6 +39,6 @@ The arrays `el_plate_x_m`, `el_plate_fluence_in_x` and `el_plate_fluence_out_x` 
 * **Resolution.** The grid must resolve the most unstable ripple (86 µm here; 128 points over 1.2 mm give 9.4 µm steps, 9 samples per period) and the
   correlation length of the seed. Run 64 x 64 and 256 x 256 for your beam and check that `smallScaleGain` has converged; 256 x 256 needs 4 x the memory
   and about 4 x the time of 128 x 128 (not run here).
-* **Longer pulses and the GPU.** `"compute": {"backend": "auto"}` runs the 2-D steps on a CUDA / OpenCL device ([GPU plugin](../../plugins/gpu.md)); the time
+* **Longer pulses and the GPU.** `"compute": {"backend": "auto"}` runs the 2-D steps on a CUDA / OpenCL device ([GPU plugin](../../../plugins/gpu.md)); the time
   window of 12.8 ps (N = 512) is what the pulse needs, not 2^13 points.
-* **More plates.** Chain several `bulk` elements: the profile travels with the beam ([Transverse](../../reference/transverse.md#the-profile-travels-with-the-beam)).
+* **More plates.** Chain several `bulk` elements: the profile travels with the beam ([Transverse](../../../reference/transverse.md#the-profile-travels-with-the-beam)).

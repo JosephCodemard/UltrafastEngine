@@ -164,7 +164,7 @@ run without `"measured"`. The prediction can be upstream of the data, at the inp
 
 ## 5. A real case: example 21
 
-`docs/examples/21-measured-data` does this for a few-cycle line: a far-field **fibre** spectrum after an SPM plate
+`docs/examples/Diagnostics/measured-data` does this for a few-cycle line: a far-field **fibre** spectrum after an SPM plate
 (sampled as in tutorial 2), an autocorrelation, a **d-scan** saved as NPZ, and a power meter. Three parameters are
 fitted: input chirp, energy and compressor GDD. It shows a typical result: the instruments after the compressor fix
 the *sum* of input chirp and compressor GDD very well, but each one less well. The fit warns about this correlation

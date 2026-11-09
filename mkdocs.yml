@@ -26,6 +26,7 @@ nav:
       - 5. Contrast of an amplifier chain: tutorials/05-contrast.md
       - 6. Diffraction by an iris: tutorials/06-diffraction.md
   - Examples: examples/README.md
+  - Gallery: gallery.md
   - Assets (synthetic data with answer keys): assets/README.md
   - Concepts: concepts.md
   - Architecture:

@@ -2,11 +2,11 @@
 """Run the documented examples and check the numbers their READMEs quote (the /example-check job, scripted).
 
     python3 build/example_check.py                       # every example; exit 1 if a command fails or a quoted line is not reproduced
-    python3 build/example_check.py 08 30-iris            # examples whose folder starts with these names
+    python3 build/example_check.py shg-lbo Diffraction 08   # a name, a group or an old number (see docs/examples/README.md)
     python3 build/example_check.py --against HEAD~1      # also run the engine of a git ref and diff every number of every summary.json
     python3 build/example_check.py --against path/to/ultrafast.dll --report report.json
 
-For every docs/examples/*/README.md and docs/tutorials/NN-*.md:
+For every docs/examples/<Group>/<name>/README.md and docs/tutorials/NN-*.md:
 
 1. **Commands.** Every line of the README's ```bash blocks is run as written, in the example's folder (or at the repository root
    when the line names a path under docs/examples/ or python/), with ULTRAFAST_STRICT_OPTIONS=1. ``ultrafast`` is the CLI built in
@@ -42,10 +42,22 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXAMPLES = os.path.join(ROOT, "docs", "examples")
 CLI = os.path.join(ROOT, "src", "UltrafastEngine.Cli", "bin", "Release", "net10.0", "ultrafast.dll")
 # examples that need software or files a plain checkout does not have
-MANUAL = {"07-zemax-workflow": "needs an OpticStudio export", "cpp": "C++ / CMake build"}
+MANUAL = {"Interop/zemax-workflow": "needs an OpticStudio export", "Interop/cpp": "C++ / CMake build"}
 NUM = re.compile(r"(?<![\w.])[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?(?![\w])")
 TIMING = re.compile(r"done in|elapsed|took |\bms\b|seconds|laptop|minutes?\b|~\d", re.I)
 SKIP_LINE = re.compile(r"^\s*(ultrafast-plot\b|cd\s+docs/examples)|#.*\b(optional|once)\b", re.I)
+
+
+def old_number_table():
+    """{"08": "LaserSystems/shg-lbo", ...} from the index table of docs/examples/README.md (columns: example, old no.)."""
+    out = {}
+    try:
+        text = open(os.path.join(EXAMPLES, "README.md"), encoding="utf-8").read()
+    except OSError:
+        return out
+    for m in re.finditer(r"^\| \[[^\]]+\]\(([\w.-]+/[\w.-]+)/README\.md\) \| (\d\d) \|", text, re.M):
+        out[m.group(2)] = m.group(1)
+    return out
 
 
 def blocks(readme):
@@ -265,16 +277,28 @@ def main():
     env = dict(os.environ, ULTRAFAST_STRICT_OPTIONS="1")
     # (name, folder the commands run in, the Markdown page): the examples, then the tutorials (in the folder their "Files:"
     # line names, else docs/tutorials/files)
-    pages = [(d, os.path.join(EXAMPLES, d), os.path.join(EXAMPLES, d, "README.md"))
-             for d in sorted(os.listdir(EXAMPLES)) if os.path.isfile(os.path.join(EXAMPLES, d, "README.md"))]
+    # examples live in docs/examples/<Group>/<name>/README.md; a group's own README (docs/examples/<Group>/README.md) is not an example
+    pages = []
+    for g in sorted(os.listdir(EXAMPLES)):
+        if not os.path.isdir(os.path.join(EXAMPLES, g)):
+            continue
+        for n in sorted(os.listdir(os.path.join(EXAMPLES, g))):
+            d = os.path.join(EXAMPLES, g, n)
+            if os.path.isfile(os.path.join(d, "README.md")):
+                pages.append((g + "/" + n, d, os.path.join(d, "README.md")))
     tut = os.path.join(ROOT, "docs", "tutorials")
     for f in sorted(os.listdir(tut)):
         if not re.match(r"\d\d-.*\.md$", f):
             continue
-        m = re.search(r"Files: `docs/examples/([\w.-]+)/", open(os.path.join(tut, f), encoding="utf-8").read())
+        m = re.search(r"Files: `docs/examples/([\w.-]+/[\w.-]+)/", open(os.path.join(tut, f), encoding="utf-8").read())
         pages.append(("tutorials/" + f[:-3], os.path.join(EXAMPLES, m.group(1)) if m else os.path.join(tut, "files"), os.path.join(tut, f)))
     if args.only:
-        pages = [p for p in pages if any(p[0].startswith(o) or p[0].startswith("tutorials/" + o) for o in args.only)]
+        # a selector is a group ("Nonlinear"), a name ("shg-lbo"), "Group/name", a tutorial, or an old number ("08", "26")
+        old_numbers = old_number_table()
+        def selected(name, o):
+            bare = name.split("/")[-1]
+            return (name.startswith(o) or bare.startswith(o) or name.startswith("tutorials/" + o) or old_numbers.get(o) == name)
+        pages = [p for p in pages if any(selected(p[0], o) for o in args.only)]
     report, failures = [], 0
     for name, d, page in pages:
         if name in MANUAL:

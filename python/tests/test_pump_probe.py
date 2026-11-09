@@ -5,7 +5,7 @@ import pathlib
 import numpy as np
 import pytest
 
-PATH = pathlib.Path(__file__).resolve().parents[2] / "docs" / "examples" / "41-pump-probe" / "pump_probe.py"
+PATH = pathlib.Path(__file__).resolve().parents[2] / "docs" / "examples" / "Branched" / "pump-probe" / "pump_probe.py"
 
 
 @pytest.fixture(scope="module")
