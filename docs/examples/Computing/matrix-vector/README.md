@@ -20,14 +20,14 @@ python matrix_vector.py
 
 ```
 vector of N = 128 complex numbers on N pixels of 20 um; wavelength 800 nm; lens f = N dx^2 / lambda = 64.0 mm
-y = A x, A = DFT matrix (one lens):       relative l2 error of |y|^2 8.95e-03, correlation 0.999911
-y = C x, C = circulant matrix (4f system): relative l2 error of |y|^2 2.63e-03, correlation 0.999995
+y = A x, A = DFT matrix (one lens):       relative l2 error of |y|^2 below 0.02, correlation above 0.999
+y = C x, C = circulant matrix (4f system): relative l2 error of |y|^2 below 0.005, correlation above 0.999
 multiply-accumulates done by the optics in one pass: N^2 = 16384 for each product
 checks passed
 ```
 
-**What it shows.** The lens is the DFT matrix to 0.9 % in |y|² (a random vector with sharp pixel edges); the 4f circulant matrix
-to 0.3 %. Each product is N² = 16 384 multiply-accumulates done in one pass of light.
+**What it shows.** The lens is the DFT matrix to about 0.9 % in |y|² (a random vector with sharp pixel edges); the 4f circulant matrix
+to about 0.3 % (the printed values are bounds, 2 % and 0.5 %). Each product is N² = 16 384 multiply-accumulates done in one pass of light.
 
 **What it does not show.** A general matrix needs the anamorphic layout (cylindrical lenses and a mask, Goodman's vector-matrix
 multiplier). The engine's `lens` has one focal length for both axes, so a general A is not buildable with today's elements; the two

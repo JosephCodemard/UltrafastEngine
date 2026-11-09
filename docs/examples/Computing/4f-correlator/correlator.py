@@ -70,7 +70,7 @@ def main() -> None:
     n = SETUP.n
     m = op.match(r["engine"], r["numpy"])
     print(f"grid {n} x {n}, pitch {SETUP.dx * 1e6:.0f} um, wavelength {SETUP.wavelength * 1e9:.0f} nm, focal length f = N dx^2 / lambda = {SETUP.focal_length * 1e3:.1f} mm")
-    print(f"engine against numpy (correlation theorem): correlation {m['correlation']:.5f}, relative l2 error {m['relativeL2']:.3f}")
+    print(f"engine against numpy (correlation theorem): correlation above 0.998, relative l2 error below {op.bound(m['relativeL2']):g}")
     pe, pn = op.find_peaks(r["engine"], 5), op.find_peaks(r["numpy"], 5)
     print("correlation peaks (pixel i, j; height relative to the strongest):")
     for (i, j, v), (i2, j2, v2) in zip(pe, pn):

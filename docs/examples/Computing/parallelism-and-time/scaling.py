@@ -61,9 +61,9 @@ def main(argv=None) -> list:
     work = op.workdir(__file__)
     one(SIZES[0], work, repeats=1)                      # warm-up: the first engine call pays start-up costs
     rows = [one(n, work) for n in SIZES if n <= a.max]
-    print("N      pixels     MACs (direct, N^4)  f (mm)   light 4f/c (ns)  error vs numpy")
+    print("N      pixels     MACs (direct, N^4)  f (mm)   light 4f/c (ns)  error vs numpy (bound)")
     for r in rows:
-        print(f"{r['n']:<6d} {r['pixels']:<10d} {r['macs']:<19.3e} {r['focalLengthM'] * 1e3:<8.1f} {r['transitS'] * 1e9:<16.2f} {r['errorL2']:.4f}")
+        print(f"{r['n']:<6d} {r['pixels']:<10d} {r['macs']:<19.3e} {r['focalLengthM'] * 1e3:<8.1f} {r['transitS'] * 1e9:<16.2f} {max(op.bound(r['errorL2']), 1e-3):g}")
     print("N      engine wall time (s)   digital FFT time (s)   optical time (s) = 4f/c + 1 us sensor (assumed)")
     for r in rows:
         print(f"{r['n']:<6d} {r['engineS']:<22.3f} {r['digitalS']:<22.5f} {r['opticalS']:.3e}")

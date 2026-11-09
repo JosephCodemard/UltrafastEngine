@@ -20,7 +20,7 @@ python correlator.py
 
 ```
 grid 256 x 256, pitch 20 um, wavelength 800 nm, focal length f = N dx^2 / lambda = 128.0 mm
-engine against numpy (correlation theorem): correlation 0.99929, relative l2 error 0.038
+engine against numpy (correlation theorem): correlation above 0.998, relative l2 error below 0.05
 correlation peaks (pixel i, j; height relative to the strongest):
   engine ( 72,  82) 1.000   numpy ( 72,  82) 1.000
   engine ( 52, 192) 0.989   numpy ( 52, 192) 0.994
@@ -35,7 +35,7 @@ checks passed
 
 **What it shows.** Both T copies are the two highest peaks, at their true centres (offset 0, 0 pixels); the nearest decoy (the E)
 reaches 0.64 of the weaker T. Peak positions agree with numpy to the pixel and heights to 0.5 %. The relative l2 error of the whole
-map is 3.8 %: the mask carries a different phase at every pixel, and the engine samples it on the grid.
+map is about 4 % (printed as a bound, 5 %): the mask carries a different phase at every pixel, and the engine samples it on the grid.
 
 **Cost.** A digital correlation with an N x N filter needs N⁴ = 4.3 x 10⁹ multiply-accumulates (or two FFTs). The light crosses the
 system once: 4 f / c = 1.7 ns. See [parallelism-and-time](../parallelism-and-time/README.md) for how this scales, and for what the

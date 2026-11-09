@@ -150,3 +150,14 @@ def fourier_axes(setup: Setup):
     fx = np.fft.fftfreq(setup.n, setup.dx)
     fy = np.fft.fftfreq(setup.ny_, setup.dx)
     return np.meshgrid(fx, fy, indexing="ij")
+
+
+def bound(x: float) -> float:
+    """The smallest of 1, 2, 5 x 10^k that is at least 1.25 x: a stable upper bound to print for an error that is only round-off or
+    sampling noise (a printed last digit would change between platforms and FFT libraries)."""
+    x = max(float(x), 1e-300) * 1.25
+    e = int(np.floor(np.log10(x)))
+    for m in (1, 2, 5, 10):
+        if m * 10.0 ** e >= x:
+            return m * 10.0 ** e
+    return 10.0 ** (e + 1)

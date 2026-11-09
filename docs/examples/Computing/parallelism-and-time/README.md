@@ -13,12 +13,12 @@ python scaling.py
 ```
 
 ```
-N      pixels     MACs (direct, N^4)  f (mm)   light 4f/c (ns)  error vs numpy
-64     4096       1.678e+07           32.0     0.43             0.0013
-128    16384      2.684e+08           64.0     0.85             0.0003
-256    65536      4.295e+09           128.0    1.71             0.0001
-512    262144     6.872e+10           256.0    3.42             0.0000
-1024   1048576    1.100e+12           512.0    6.83             0.0000
+N      pixels     MACs (direct, N^4)  f (mm)   light 4f/c (ns)  error vs numpy (bound)
+64     4096       1.678e+07           32.0     0.43             0.002
+128    16384      2.684e+08           64.0     0.85             0.001
+256    65536      4.295e+09           128.0    1.71             0.001
+512    262144     6.872e+10           256.0    3.42             0.001
+1024   1048576    1.100e+12           512.0    6.83             0.001
 checks passed
 ```
 
@@ -35,5 +35,5 @@ The second table (wall times) is machine dependent and is printed but not quoted
   with the number of pixels once the system exists. A real processor also pays for loading the scene and the filter (an SLM refreshes in
   milliseconds) and for reading the result; those, not the transit, set its speed.
 
-The agreement of the engine with numpy is printed per N: the relative l2 error is at most 1.3 x 10⁻³. The whole example takes a few seconds;
+The agreement of the engine with numpy is printed per N: the relative l2 error is at most 1.3 x 10⁻³ (printed as a bound, never below 10⁻³). The whole example takes a few seconds;
 the largest engine run (N = 1024) about 2 s.

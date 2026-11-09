@@ -51,17 +51,17 @@ def run_kernel(work: str, H: np.ndarray, scene: np.ndarray | None = None) -> dic
 def main() -> None:
     work = op.workdir(__file__)
     print(f"grid {SETUP.n} x {SETUP.n}, pitch {SETUP.dx * 1e6:.0f} um, f = N dx^2 / lambda = {SETUP.focal_length * 1e3:.1f} mm; the output is intensity |scene * kernel|^2")
-    print(f"{'kernel':8s} {'correlation':>12s} {'relative l2':>12s}   (engine against numpy: FFT, multiply by H, inverse FFT)")
+    print("engine against numpy (FFT, multiply by H, inverse FFT); the errors are printed as bounds, their last digits depend on the FFT library:")
     worst = 0.0
     for kind in ("blur", "edges", "motion"):
         r = run_kernel(work, transfer_function(kind))
         m = op.match(r["engine"], r["numpy"])
         worst = max(worst, m["relativeL2"])
-        print(f"{kind:8s} {m['correlation']:12.5f} {m['relativeL2']:12.4f}")
+        print(f"{kind:8s} correlation above 0.999, relative l2 error below {op.bound(m['relativeL2']):g}")
         assert m["correlation"] > 0.999 and m["relativeL2"] < 0.05, (kind, m)
     taps = float(SETUP.n) ** 4
     print(f"each kernel has N x N taps: N^4 = {taps:.2e} multiply-accumulates for a direct digital convolution, done in one pass of light (4 f / c = {4 * SETUP.focal_length / op.C * 1e9:.2f} ns)")
-    print(f"worst relative l2 error {worst:.3f} (the mask and the lens phase are sampled on the grid)")
+    print(f"worst relative l2 error below {op.bound(worst):g} (the mask and the lens phase are sampled on the grid)")
     print("checks passed")
 
 

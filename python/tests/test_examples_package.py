@@ -34,7 +34,7 @@ def unpacked(tmp_path_factory):
 def _cli(site, *args, **env):
     e = dict(os.environ, PYTHONPATH=os.pathsep.join([str(site), str(REPO / "python" / "src")]), **env)
     e.pop("ULTRAFAST_EXAMPLES_DIR", None)
-    return subprocess.run([sys.executable, "-m", "ultrafast_examples", *args], capture_output=True, text=True, env=e, timeout=300)
+    return subprocess.run([sys.executable, "-m", "ultrafast_examples", *args], capture_output=True, encoding="utf-8", errors="replace", env=e, timeout=300)
 
 
 def test_wheel_metadata_and_contents(unpacked):
