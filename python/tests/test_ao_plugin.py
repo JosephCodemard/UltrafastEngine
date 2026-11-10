@@ -139,7 +139,7 @@ def test_a_gs_hologram_written_with_256_grey_levels_focuses_like_the_fourier_pre
     """Gerchberg-Saxton hologram for a ring of radius 0.45 mm in the focal plane (64 x 64 pixels of 40 um, Gaussian illumination), encoded to 256 grey levels
     with the SLM's own rule and run through the engine's slm element + lens (f = 0.2 m): the focal fluence equals the Fourier transform of the written field,
     evaluated at the engine's focal-plane points (x / (lambda f) the spatial frequency), to a correlation above 0.9995 within 1 mm of the axis (measured 0.99993), and
-    more than 85 % of the energy lies on the ring (measured 94 %; the same hologram on the FFT lattice gives 91 % at its own points)."""
+    more than 85 % of the energy lies on the ring (measured 94 %; the Fourier prediction at the same points gives 91 %, the GS design on its own lattice 83 %)."""
     from ultrafast.algorithms import holography
     from ultrafast_ao import Slm
     n, dx, w, lam, f = 64, 40e-6, 0.6e-3, 800e-9, 0.2
@@ -244,7 +244,7 @@ def _peak_power(gdd_aopdf_fs2, chirp_fs2):
 def test_closed_loop_shaping_finds_the_compensating_gdd_from_the_peak_power():
     """The pulse leaves a source with an unknown GDD (a first aopdf, +900 fs^2); modal search on the second aopdf's GDD with the output peak power as the metric
     finds -900 fs^2 (the compensation is exact: the peak power of a Gaussian pulse is maximal for zero total GDD), within 2 fs^2 = 0.2 % after six sweeps (bias 300 fs^2;
-    measured exact to 1e-9: the parabola vertex of a Lorentzian peak lands on the peak once the three points straddle it symmetrically)."""
+    measured -900.0 to the printed precision: the parabola vertex of a Lorentzian peak lands on the peak once the three points straddle it symmetrically)."""
     chirp = 900.0
     metric = lambda g: _peak_power(g[0], chirp)
     r = sensorless.modal_search(metric, np.array([0.0]), bias=300.0, sweeps=6)

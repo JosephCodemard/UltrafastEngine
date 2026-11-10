@@ -33,7 +33,7 @@ def test_gs_recovers_a_known_phase_from_its_far_field_amplitude():
 
 def test_wgs_equalises_a_spot_array_better_than_gs():
     """Di Leonardo et al., Opt. Express 15, 1913 (2007): weighting the spots equalises them. Uniformity (1 - (Imax - Imin)/(Imax + Imin)) is above 0.95 for WGS
-    and clearly better than plain GS, on seeds fixed here (the spread over seeds was measured: GS 0.5-0.8, WGS > 0.97)."""
+    and better than plain GS (measured over seeds 0-9 on this 7-spot target: GS 0.82-0.86, WGS 0.996-0.999; seed 1 is used)."""
     n = 64
     mask = np.zeros((n, n)); pts = [(20, 20), (20, 44), (44, 20), (44, 44), (32, 32), (10, 32), (32, 54)]
     for p in pts:

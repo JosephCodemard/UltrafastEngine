@@ -24,7 +24,7 @@ physics of each device, what each test checks). This page: what shipped, what di
 * 1920 x 1080 `slm`, 256 grey levels from a callback, cw, grid 2048 x 1280, `keepProfiles: "used"`: **2.4 s** (S2 limit 13 s).
 * `DmBench` (128 x 128 cells, f = 0.5 m): about 0.1 s per run; calibration of 100 actuators (200 pokes) 7 s; modal search over six modes (54 runs) about 5 s.
 * One-shot zonal correction of {Z4: 0.3, Z5: -0.2, Z7: 0.15} waves rms: Strehl **0.31 -> 0.87** (10 x 10 actuators of 0.4 mm), modal (Zernike fit) **0.965**; the loop at gain 0.7 reduces the slope rms by 0.3 per step (1 - g).
-* Strehl against theory: the engine's focal peak is 0.5-2.4 % above the exact on-axis value `|<a e^{i phi}>|^2` for rotationally symmetric aberrations (the peak may leave the axis); Marechal `exp(-sigma^2)` is within 1 % at sigma = 0.25 rad and 7 % at 0.5 rad.
+* Strehl against theory: the engine's focal peak is 0.5-2.4 % above the exact on-axis value `|<a e^{i phi}>|^2` for rotationally symmetric aberrations (the peak may leave the axis); Marechal `exp(-sigma^2)` is within 1 % at sigma = 0.25 rad and 5 % at 0.5 rad (defocus + astigmatism).
 * SLM blazed efficiency: within 0.6 % of the sampled staircase for N = 4, 8, 16; at other wavelengths within 1.5 % of the `s(lambda)` law (900, 1030, 1200 nm).
 * Weiner side pulses of a gapped shaper: energy ratio `[sin(pi f)/(pi f)]^2 exp(-2 (pi w0/pitch)^2)` within 1 %, position within 1 fs.
 * Tile delay cost: 0.3 %, 0.04 %, 0.65 % from the Gaussian-overlap formula for rms delays of 10, 25, 40 fs (7 tiles, 30 fs).
