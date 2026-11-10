@@ -7,7 +7,7 @@ or analytic reference in a test; a disagreement is a finding, never tuned away; 
 
 ## 1. Answers to the open questions
 
-* **Repository size:** not a concern; media stays in the repository and is left out of release packages by default (see WP8).
+* **Repository size:** not a concern; media stays in the repository and is the optional `media` component of a release (see WP8). Work stays on `dev/2026-11` for now; no merge to `main` until the owner asks.
 * **`UF_WITH_AO`: what it is.** The Python package and the CLI run the *hosted* engine, which finds plugins as DLLs at run time, so `ao` and `twin` work there. The C API library
   (`UltrafastEngine.Native`, NativeAOT, used by C / C++ and by the optional native Python wheel) cannot load DLLs at run time, so each first-party plugin is **compiled into it**
   behind a build constant: `UF_WITH_GPU` and `UF_WITH_HITRAN` in `src/UltrafastEngine.Native/UltrafastEngine.Native.csproj` and a `#if` in `Exports.cs`. `ao` was never added, so a C++ program
@@ -81,9 +81,9 @@ tolerance, measured first); the old behaviour recovered for a narrow spectrum (1
 
 | item | recommendation |
 |---|---|
-| compile cache | **close.** A 128 x 128 trial costs 10 ms including the compile (spikes S4); revisit only if a loop with a much larger system shows the compile above 30 % of the trial. Write the trigger into `speed.md`. |
-| full streaming executor | **close.** The peak is the .NET GC, not the propagator (2.7-3.4 GB for any block size at 1920 x 1080 x 16). Revisit if a 4096 x 4096 pulse run is wanted; measure it first (spike S1 only did 1920 x 1080). |
-| tiles as a Branched system | **replace by a test:** N sources through a `Branched` system recombined at one point (the on-axis value only) against the tile source's on-axis fluence. A Branched system cannot give an array's far field, which is why the spike was not run. |
+| compile cache | **closed (owner, 2026-11-10).** A 128 x 128 trial costs 10 ms including the compile (spikes S4); revisit only if a loop with a much larger system shows the compile above 30 % of the trial. Write the trigger into `speed.md`. |
+| full streaming executor | **closed (owner, 2026-11-10).** The peak is the .NET GC, not the propagator (2.7-3.4 GB for any block size at 1920 x 1080 x 16). Revisit if a 4096 x 4096 pulse run is wanted; measure it first (spike S1 only did 1920 x 1080). |
+| tiles as a Branched system | **replaced by a test (owner agreed):** N sources through a `Branched` system recombined at one point (the on-axis value only) against the tile source's on-axis fluence. A Branched system cannot give an array's far field, which is why the spike was not run. |
 
 ### WP6. Small fixes found on the way (S each)
 
@@ -102,21 +102,31 @@ tolerance, measured first); the old behaviour recovered for a narrow spectrum (1
 | SPGD gain sensitivity (1.5 → 0.64, 3 → 0.95, 5 → 0.80) | the gain is in units of 1 / metric: normalise the metric by its starting value, add a documented default and a gain sweep to the docs; optionally gain sequences (Spall) | a default that reaches ≥ 0.9 across a stated range of metric scales |
 | cw against pulse: 3e-6, not 1e-9 | build the cw line **at the requested carrier**: shift the lattice so a bin sits on it (as pulses have been since 2.2.0, `snapCarrier`); every cw result moves by about 1e-6, so re-baseline the cw reference tests at their stated tolerances and list them in the changelog | cw and pulse patterns agree to 1e-9 in the S2 test; no test tolerance loosened |
 
-### WP8. Release system with selectable components (M)
+### WP8. Release system: the full repository, plus a selective installer and uninstaller (M)
 
-*Today* `build.sh` / `build/package.py` build one folder per platform with a maintainer's choice of components (`--cli --python --cpp --csharp --zemax --plugins --examples --docs`), and
-there is no release workflow yet. *Goal:* **a user picks what to download.**
+*Decision (owner, 2026-11-10):* a release is the **full repository** (source archive, plus the built per-platform packages as assets), and a **custom installer / uninstaller** lets the user take only
+part of it, e.g. `--include python tests examples.Branched`. *Today* `build.sh` / `build/package.py` build one folder per platform with a maintainer's choice of components
+(`--cli --python --cpp --csharp --zemax --plugins --examples --docs`); there is no release workflow yet.
 
-* **Components as separate assets**, each with its own archive and hash: `cli` (per platform), `python` (wheel, plus `python-native` per platform), `cpp` (per platform), `csharp`, `plugin-<id>` (per platform),
-  `schemas`, `docs` (Markdown; the built site is a separate asset), `examples` (the `ultrafast-examples` wheel; **media** `examples-media` separate, since the figures and animations are not needed to run them),
-  `tests` (the test sources and the data they need, no binaries; and `component-tests`), `papers` (replication folders without licensed material). A `manifest.json` per release lists every asset with its size,
-  SHA-256 and what it contains.
-* **`install.py` (in the repository, standard library only):** `python install.py --components cli python examples --platform auto [--version X] [--dest DIR]` resolves the manifest of a GitHub release, downloads
-  only the chosen assets, checks the hashes and installs (pip for the wheels). `--list` shows the components with sizes. No PyPI (owner rule); the wheels are installed with `--find-links`.
-* **`.github/workflows/release.yml`** on a `v*` tag: builds every component on its OS, smoke-tests it (CLI example 01 strict, the wheel in a fresh venv runs the quickstart, the C example, `ultrafast devices`),
-  fails if any archive contains `ZOSAPI*` (plus a test that plants one), and attaches assets and manifest. **No tag is created without the owner's word.**
-* **Open question for the owner:** do you mean the *end user* chooses at download time (above), the *maintainer* chooses when building (already possible, to be tidied), or both? The plan assumes both: the
-  packager takes `--components`, and the installer consumes what it produced.
+* **Is there a better way using GitHub?** GitHub releases cannot serve part of an asset, and a source archive is all-or-nothing, so selection needs either small assets or a partial clone. The plan uses both,
+  because they suit different users: (1) **built components** as separate release assets (below), downloaded individually; (2) **source selection** with git's own partial clone,
+  `git clone --filter=blob:none --sparse <repo> --branch <tag>` then `git sparse-checkout set <paths>`, which the installer calls when `git` exists (it fetches only the folders asked for, and the tag pins the
+  version). Not available: per-file download from a release; GitHub's "download ZIP" of a folder.
+* **Components** (the names `--include` and `--exclude` accept; dotted names select a part): `cli` (per platform), `python` (wheel; `python-native` per platform), `cpp`, `csharp`, `plugins` or `plugins.<id>`,
+  `schemas`, `docs`, `examples` or `examples.<Group>` or `examples.<Group>.<name>` (so `examples.Branched` is that group; shared helper files such as `_figures.py` and `Computing/_optics.py` travel with it),
+  `media` (hero figures and animations, off by default), `tests` (sources and data, no binaries) and `component-tests`, `papers`, `source` (everything). Each is a release asset with its own archive,
+  size and SHA-256 listed in a `manifest.json`; dependencies are in the manifest (`examples` needs `python`; `python` needs the engine library for the platform; `plugins.twin` needs `plugins.fitting`).
+* **`install.py`** (in the repository and attached to every release; standard library only):
+  `python install.py --include python tests examples.Branched [--exclude media] [--version X | --latest] [--platform auto] [--dest DIR] [--source release|git]`,
+  `--list` (components, sizes, what is installed), `--dry-run`, and `python install.py --uninstall [--include ...]` to remove part or all. It downloads only the chosen assets, verifies the hashes, installs wheels
+  with `pip install --find-links` (no PyPI, owner rule), and writes `<dest>/.ultrafast-install.json` (what was installed from which version, with every file it wrote), so uninstall removes exactly those files and
+  nothing else, and a second `--include` adds to an existing install (also an upgrade path). Never installs or removes the ZOS-API.
+* **Packager:** `build/package.py` takes the same component names (`--components`), writes the per-component assets and the manifest; the existing flags stay as aliases.
+* **`.github/workflows/release.yml`** on a `v*` tag: builds every component on its OS, smoke-tests it (CLI example 01 strict, the wheel in a fresh venv runs the quickstart, the C example, `ultrafast devices`, and
+  `install.py` into a temporary folder with a selection, then `--uninstall` leaves it empty), fails if any archive contains `ZOSAPI*` (plus a test that plants one), and attaches the assets and the manifest.
+  **No tag is created without the owner's word.**
+* **Tests:** component resolution (dotted names, dependencies, excludes); install and uninstall against a local fake release folder (a `file://` manifest) with a changed file left alone on uninstall (warn, do not delete);
+  hash mismatch refuses; the sparse-checkout path in a temporary repository.
 
 ### WP9. Documentation overhaul: from a story to a short scientific presentation (L, in waves)
 
@@ -145,7 +155,7 @@ spline against network) are written directly in the new structure.
 | C | WP3 | mostly plumbing and reading papers; owner supplies the PDFs |
 | D | WP2 | spike first, then ASE, then the pattern |
 | E | WP7 (Raman, SLM, tiled array) | investigations; may run beside B-D |
-| F | WP8 | packaging and a workflow; Sonnet-class |
+| F | WP8 (packager, `install.py`, workflow) | packaging and a workflow; Sonnet-class |
 | G-H | WP9 waves 1-4 | one example group per sitting; `example_lint` first |
 
 ## 4. Definition of done for the iteration
