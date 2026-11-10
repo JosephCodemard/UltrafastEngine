@@ -51,6 +51,7 @@ PLUGINS = {
     "fitting": (REPO / "plugins" / "fitting" / "src" / "UltrafastEngine.Plugins.Fitting.csproj", ("transform", "transforms", "fit")),
     "zemax": (REPO / "plugins" / "zemax" / "src" / "UltrafastEngine.Zemax.Sampling" / "UltrafastEngine.Zemax.Sampling.csproj", ("opticstudio",)),
     "gpu": (REPO / "plugins" / "gpu" / "src" / "UltrafastEngine.Plugins.Gpu.csproj", ("cuda", "opencl")),
+    "ao": (REPO / "plugins" / "ao" / "src" / "UltrafastEngine.Plugins.Ao.csproj", ("adaptive-optics", "slm", "dm")),
     "hitran": (REPO / "plugins" / "hitran" / "src" / "UltrafastEngine.Plugins.Hitran.csproj", ("hapi", "gas", "water")),
 }
 

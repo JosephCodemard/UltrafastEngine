@@ -1,0 +1,13 @@
+{
+  "id": "ao",
+  "name": "Adaptive optics, beam and pulse shaping",
+  "version": "2.2.0",
+  "description": "Parametric deformable mirror, spatial light modulator, programmable spectral shaper and AOPDF elements, with the Python algorithms (wavefront sensing and control, holograms, sensorless optimisers, tiled-aperture combining).",
+  "engine": "2.2.0",
+  "entry": "UltrafastEngine.Plugins.Ao.AoPlugin",
+  "assemblies": {
+    "net10.0": "lib/net10.0/UltrafastEngine.Plugins.Ao.dll",
+    "net48": "lib/net48/UltrafastEngine.Plugins.Ao.dll"
+  },
+  "python": { "module": "ultrafast_ao" }
+}

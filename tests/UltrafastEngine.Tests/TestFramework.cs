@@ -66,6 +66,7 @@ namespace UltrafastEngine.Tests
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Zemax.ZemaxPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Gpu.GpuPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Hitran.HitranPlugin());
+            UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Ao.AoPlugin());
             int mi = Array.IndexOf(args, "--matrix");
             if (mi >= 0)
             {

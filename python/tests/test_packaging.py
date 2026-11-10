@@ -18,7 +18,7 @@ def test_aliases_and_plugin_selection():
     assert a.rids == ["win-x64", "win-x86", "osx-arm64", "linux-x64"]
     assert a.plugins == ["fitting"] and a.cli and a.python and not a.cpp
     assert pkg.parse(["--plugins", "none"]).plugins == []
-    assert pkg.parse([]).plugins == ["fitting", "zemax", "gpu", "hitran"] and pkg.parse([]).cli
+    assert pkg.parse([]).plugins == ["fitting", "zemax", "gpu", "ao", "hitran"] and pkg.parse([]).cli
     assert pkg.parse(["--plugins", "cuda"]).plugins == ["gpu"]
     b = pkg.parse(["--all"])
     assert b.cli and b.python and b.cpp and b.csharp
