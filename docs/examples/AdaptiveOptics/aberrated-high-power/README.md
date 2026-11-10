@@ -17,7 +17,7 @@ so it contains only what the Kerr effect added.
 
 ```bash
 python high_power.py            # four engine runs, about 45 s
-python make_figures.py
+python make_figures.py          # optional: figures
 ```
 
 ```

@@ -17,7 +17,7 @@ the same array with all pistons and delays zero.
 
 ```bash
 python tiled_array.py
-python make_figures.py          # hero.png, animation.gif (about 30 s)
+python make_figures.py          # optional: hero.png, animation.gif (about 30 s)
 ```
 
 ```

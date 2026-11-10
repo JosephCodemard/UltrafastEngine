@@ -17,7 +17,7 @@ from 0 to 2 z₀ for each N and the pictures are the output pulse after each len
 
 ```bash
 python solitons.py
-python make_figures.py          # hero.png, animation.gif (about 25 s)
+python make_figures.py          # optional: hero.png, animation.gif (about 25 s)
 ```
 
 ```

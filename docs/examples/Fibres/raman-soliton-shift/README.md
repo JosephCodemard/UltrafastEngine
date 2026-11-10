@@ -18,7 +18,7 @@ angular frequency of the spectrum. T_R in Gordon's formula is computed from the 
 
 ```bash
 python raman_shift.py
-python make_figures.py          # hero.png, animation.gif (about 40 s)
+python make_figures.py          # optional: hero.png, animation.gif (about 40 s)
 ```
 
 ```

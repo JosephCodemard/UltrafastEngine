@@ -18,7 +18,7 @@ random-phase diffuser (64 x 64 pixels of 20 µm) → 100 mm of free space → ca
 
 ```bash
 python scatterer.py
-python make_figures.py          # hero.png, animation.gif (about 20 s)
+python make_figures.py          # optional: hero.png, animation.gif (about 20 s)
 ```
 
 ```

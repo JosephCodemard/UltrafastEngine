@@ -21,7 +21,7 @@ the quantised phase times the |sinc|² envelope of the square pixel.
 
 ```bash
 python slm_shaping.py
-python make_figures.py          # hero.png, quantisation.png, full-panel.png, animation.gif (about 40 s)
+python make_figures.py          # optional: hero.png, quantisation.png, full-panel.png, animation.gif (about 40 s)
 ```
 
 ```

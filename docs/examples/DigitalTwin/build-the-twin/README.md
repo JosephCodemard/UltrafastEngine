@@ -23,7 +23,7 @@ The same thing from the command line: `ultrafast twin init lab`, `ultrafast twin
 
 ```bash
 python build_twin.py
-python make_figures.py          # hero.png, animation.gif (about 10 s)
+python make_figures.py          # optional: hero.png, animation.gif (about 10 s)
 ```
 
 ```

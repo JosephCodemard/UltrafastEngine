@@ -21,7 +21,7 @@ its diffraction-limited value; the unknown is a vector of six mode coefficients,
 
 ```bash
 python sensorless.py
-python make_figures.py          # hero.png, animation.gif (about 20 s)
+python make_figures.py          # optional: hero.png, animation.gif (about 20 s)
 ```
 
 ```

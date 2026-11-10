@@ -23,7 +23,7 @@ camera (`beamProfile`). Each measurement is one engine run (about 0.1 s). `ultra
 
 ```bash
 python dm_correction.py
-python make_figures.py          # hero.png, zernike.png, animation.gif (about 10 s)
+python make_figures.py          # optional: hero.png, zernike.png, animation.gif (about 10 s)
 ```
 
 ```

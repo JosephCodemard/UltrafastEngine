@@ -13,8 +13,8 @@ work, the tests and the acceptance criteria. Sizes: S ≈ 1 focused agent-day, M
 | **S1 Foundation** (**done 2026-11-09**) | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
 | **S2 Core and spikes** (**done 2026-11-10**) | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
 | **S3 AO plugin** (**done 2026-11-10 on `dev/2026-11-s3-ao`, not merged**) | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
-| **S4 Fitting and twin** | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
-| **S5 Examples, docs, verification** | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
+| **S4 Fitting and twin** (**done 2026-11-10; T6 MCP server not built**) | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
+| **S5 Examples, docs, verification** (**done 2026-11-10 except the items in `notes/s5-release.md` section 3: E1, E6, E13, E14, E15, the older examples' story pass**) | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
 | *S6, later, optional* | repetition and switching: Pockels cell, pulse picker, pulse-train mode (see section 6) | S2 | Opus 5.5 / none | L |
 
 **Order.** S1 first, because it restructures the Python package and moves the examples; any example written before that would

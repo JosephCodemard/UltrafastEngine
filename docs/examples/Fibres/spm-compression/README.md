@@ -17,7 +17,7 @@ the same modal search that tunes a deformable mirror.
 
 ```bash
 python spm_compression.py       # about 1.5 minutes
-python make_figures.py
+python make_figures.py          # optional: figures
 ```
 
 ```

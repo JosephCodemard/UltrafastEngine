@@ -20,7 +20,7 @@ A fitted twin answers what-if questions with credible bands, ranks the next meas
 
 ```bash
 python explore.py
-python make_figures.py          # hero.png, animation.gif (about 30 s)
+python make_figures.py          # optional: hero.png, animation.gif (about 30 s)
 ```
 
 ```

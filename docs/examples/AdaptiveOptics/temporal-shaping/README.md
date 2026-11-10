@@ -17,7 +17,7 @@ transform limit.*
 
 ```bash
 python temporal_shaping.py
-python make_figures.py          # hero.png, animation.gif (a few seconds)
+python make_figures.py          # optional: hero.png, animation.gif (a few seconds)
 ```
 
 ```
