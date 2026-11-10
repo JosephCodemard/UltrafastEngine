@@ -3857,6 +3857,62 @@ Fitting_backward = TypedDict('Fitting_backward', {
 """Backward propagation (fitting plugin). (docs/plugins/fitting.md#backward-propagation) [plugin: fitting]"""
 
 
+class Fitting_condition(TypedDict, total=False):
+    """One operating condition of a multi-condition fit (fitting plugin). (docs/plugins/fitting.md#fitting-across-conditions) [plugin: fitting]"""
+    name: str
+    """Label (unique); used in the report as condition/instrument"""
+    heldOut: bool
+    """Not in the cost: predicted from the fit and compared with its data afterwards Default: false."""
+    weight: float
+    """Weight of this condition's residuals in the cost (chi^2 is multiplied by it) Default: 1."""
+    variables: Any
+    """Named numbers describing the condition ({"energyJ": 2e-6}); the inputs of parametric and smooth dependence on the condition"""
+    set: Any
+    """Path -> value written into the files for this condition (a number, or a string such as instrument:spec/measured/file); same paths as fit.parameters"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Fitting_dependence(TypedDict, total=False):
+    """How a fitted number depends on the condition (fitting plugin). (docs/plugins/fitting.md#fitting-across-conditions) [plugin: fitting]"""
+    kind: Literal["constant", "proportional", "linear", "polynomial", "power", "chebyshev", "network"]
+    """Form: c0 | c0 u | c0 + c1 u | sum ck u^k | c0 u^c1 | sum ck Tk(xi) | a small tanh network with built-in constraints; u = variable / reference Default: linear."""
+    variable: str
+    """Name of the condition variable (conditions[].variables)"""
+    degree: int
+    """polynomial / chebyshev: highest order Default: 2."""
+    reference: float
+    """u = variable / reference Default: mean of the training values."""
+    range: List[Any]
+    """chebyshev: [lo, hi] mapped to xi = -1..1 (outside it the series extrapolates)"""
+    smoothnessPaths: float
+    """surface: weight on second differences across the paths Default: 0."""
+    smoothnessVariable: float
+    """surface (chebyshev): weight on second differences across the variable Default: 0."""
+    coefficients: List[Any]
+    """Per order: {initial, min, max, scale, prior, step} of that coefficient (network: one object {scale, min, max} for all weights)"""
+    hidden: int
+    """network: tanh units Default: 4."""
+    output: Literal["none", "bounded", "positive"]
+    """network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction Default: none."""
+    outputRange: List[Any]
+    """network, output bounded: [lo, hi]"""
+    monotone: Literal["none", "increasing", "decreasing"]
+    """network: output monotone in the variable (squared weights), exact by construction Default: none."""
+    weightDecay: float
+    """network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) Default: 1e-4."""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class Fitting_fit(TypedDict, total=False):
     """Fit (fitting plugin). (docs/plugins/fitting.md#fitting) [plugin: fitting]"""
     parameters: List["Fitting_parameter"]
@@ -3867,6 +3923,10 @@ class Fitting_fit(TypedDict, total=False):
     """Iterations (LM) / generations (CMA-ES) Default: 20 (LM), 60 (CMA-ES)."""
     tolerance: float
     """Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit Default: 1e-4 (LM), 1e-6 (CMA-ES)."""
+    conditions: List["Fitting_condition"]
+    """Operating conditions fitted together with one set of shared parameters (energies, angles, ...); empty: one condition, the run itself"""
+    surfaces: List["Fitting_surface"]
+    """Smooth surfaces: several numbers (e.g. the knots of a spectral phase) as Chebyshev series of a condition variable, with smoothness penalties in both directions"""
     freezeGrid: bool
     """Fix the time/frequency grid (2x the planned bandwidth) for all evaluations Default: true."""
     parallel: int
@@ -3921,7 +3981,7 @@ class Fitting_knots(TypedDict, total=False):
 
 class Fitting_operator(TypedDict, total=False):
     """One transform operator (kind + parameters; numbers may be fit objects). (docs/plugins/fitting.md#operators) [plugin: fitting]"""
-    kind: Literal["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront"]
+    kind: Literal["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront", "nonlinearPhase"]
     """Operator kind (plugins may add more)"""
     enabled: bool
     """false skips the operator Default: true."""
@@ -3975,6 +4035,8 @@ class Fitting_operator(TypedDict, total=False):
     """spectralAmplitude: add the minimum phase (Kramers-Kronig) Default: false."""
     floor: float
     """causal: smallest relative transmission used in the logarithm Default: 1e-8."""
+    bRad: Union[float, "Fitting_value"]
+    """nonlinearPhase: peak nonlinear phase (B-integral of a thin Kerr plate), phi(t) = bRad I(t)/max I [rad] May be a fit object {value, fit, min, max, prior}."""
     transmission: Union[float, "Fitting_value"]
     """energy: power transmission Default: 1. May be a fit object {value, fit, min, max, prior}."""
     gainDb: Union[float, "Fitting_value"]
@@ -4065,8 +4127,56 @@ class Fitting_parameter(TypedDict, total=False):
     """Finite-difference step Default: 1e-3 x scale."""
     unit: str
     """Unit label for reports"""
+    dependence: Union["Fitting_dependence", str]
+    """The value follows the condition variable: its coefficients are fitted instead (fitting across conditions)"""
+    perCondition: bool
+    """Multi-condition fit: one value per training condition instead of one shared value Default: false."""
     prior: Any
     """Gaussian prior: sigma (mean = initial) or {mean, sigma}"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Fitting_surface(TypedDict, total=False):
+    """A smooth surface of several numbers over a condition variable (fitting plugin). (docs/plugins/fitting.md#fitting-across-conditions) [plugin: fitting]"""
+    name: str
+    """Label"""
+    paths: List[Any]
+    """The numbers (same paths as fit.parameters); or pathTemplate + count"""
+    pathTemplate: str
+    """A path with {i} replaced by 0..count-1 (e.g. element:t/operators/0/knots/phaseRad/{i})"""
+    count: int
+    """Number of paths for pathTemplate"""
+    kind: Literal["constant", "proportional", "linear", "polynomial", "chebyshev", "network"]
+    """Basis over the variable Default: chebyshev."""
+    variable: str
+    """Name of the condition variable"""
+    degree: int
+    """Highest order Default: 2."""
+    reference: float
+    """u = variable / reference"""
+    range: List[Any]
+    """[lo, hi] of the Chebyshev map"""
+    smoothnessPaths: float
+    """Weight on second differences across the paths Default: 0."""
+    smoothnessVariable: float
+    """Weight on second differences across the variable Default: 0."""
+    coefficients: List[Any]
+    """Per order: {initial, min, max, scale, prior, step}"""
+    hidden: int
+    """network: tanh units Default: 4."""
+    output: Literal["none", "bounded", "positive"]
+    """network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction Default: none."""
+    outputRange: List[Any]
+    """network, output bounded: [lo, hi]"""
+    monotone: Literal["none", "increasing", "decreasing"]
+    """network: output monotone in the variable (squared weights), exact by construction Default: none."""
+    weightDecay: float
+    """network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) Default: 1e-4."""
     comment: Any
     """Free text."""
     description: Any
@@ -4822,4 +4932,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'AopdfElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BeamSplitterElement', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DeformableMirrorElement', 'DelayElement', 'DelayScanInstrument', 'DichroicElement', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LeakMirrorElement', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'ModulatorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PolarizingSplitterElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SingleShotCorrelatorInstrument', 'SlmElement', 'SpaceTimeInstrument', 'SpectralShaperElement', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument', 'XfrogInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'AopdfElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BeamSplitterElement', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DeformableMirrorElement', 'DelayElement', 'DelayScanInstrument', 'DichroicElement', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_condition', 'Fitting_dependence', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_surface', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LeakMirrorElement', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'ModulatorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PolarizingSplitterElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SingleShotCorrelatorInstrument', 'SlmElement', 'SpaceTimeInstrument', 'SpectralShaperElement', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument', 'XfrogInstrument']

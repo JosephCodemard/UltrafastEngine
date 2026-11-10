@@ -130,7 +130,7 @@ namespace UltrafastEngine.Plugins.Fitting
                 .ListOf("operators", "fitting:operator", "The operators, applied in order", required: true)
                 .Num("regularization", "", "Backward propagation: relative Tikhonov level for inverting this element", "the run's backward.regularization");
             var op = new ComponentSpec("fitting:operator", "", "One transform operator (kind + parameters; numbers may be fit objects).").DocAt(D + "operators")
-                .Enum("kind", new[] { "spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront" }, "Operator kind (plugins may add more)", required: true)
+                .Enum("kind", new[] { "spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront", "nonlinearPhase" }, "Operator kind (plugins may add more)", required: true)
                 .Bool("enabled", "false skips the operator", "true")
                 .Free("fit", ParamType.Array, "Names of parameters to fit (dotted for nested: \"knots.phaseRad\" fits every knot), alternative to fit objects")
                 .Free("bounds", ParamType.Object, "Bounds for the names in \"fit\": {name: [min, max]}")
@@ -150,6 +150,8 @@ namespace UltrafastEngine.Plugins.Fitting
                 .Model("model", "filter", "spectralAmplitude: any filter model (shape: model)")
                 .Bool("passive", "spectralAmplitude: clip the transmission to <= 1", "true").Bool("causal", "spectralAmplitude: add the minimum phase (Kramers-Kronig)", "false")
                 .Num("floor", "", "causal: smallest relative transmission used in the logarithm", "1e-8")
+                // nonlinearPhase
+                .Num("bRad", "rad", "nonlinearPhase: peak nonlinear phase (B-integral of a thin Kerr plate), phi(t) = bRad I(t)/max I").Fittable()
                 // energy, delay
                 .Num("transmission", "", "energy: power transmission", "1").Fittable().Num("gainDb", "dB", "energy: gain (alternative)").Fittable()
                 .Num("delayS", "s", "delay / replica: delay").Fittable().Num("delayFs", "fs", "delay / replica: delay in fs").Fittable().Num("delayPs", "ps", "replica: delay in ps").Fittable()

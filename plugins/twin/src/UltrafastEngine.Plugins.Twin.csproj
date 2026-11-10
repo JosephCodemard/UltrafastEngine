@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The digital-twin plugin: the `ultrafast twin` command (project init, fit, validate, predict, design, track, serve). The work is
+    done by the Python module ultrafast_twin; this assembly registers the command and hands over to it. Laid out as an
+    installable plugin folder in artifacts/plugins/twin (see build/Plugin.targets).
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
+    <RootNamespace>UltrafastEngine.Plugins.Twin</RootNamespace>
+    <AssemblyName>UltrafastEngine.Plugins.Twin</AssemblyName>
+    <PluginId>twin</PluginId>
+    <PluginFolder>$(MSBuildThisFileDirectory)../</PluginFolder>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)src/UltrafastEngine.Core/UltrafastEngine.Core.csproj" Private="false" />
+  </ItemGroup>
+  <Import Project="$(RepoRoot)build/Plugin.targets" />
+</Project>

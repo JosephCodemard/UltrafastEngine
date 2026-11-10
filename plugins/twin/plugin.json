@@ -1,0 +1,15 @@
+{
+  "id": "twin",
+  "name": "Digital twin: projects, validation, experiment design, drift tracking, agent server",
+  "version": "2.2.0",
+  "description": "The `ultrafast twin` command and the ultrafast_twin Python module: a project layout for a digital twin of a lab (conditions, data, fits), validation with held-out conditions and credible bands, a placement and experiment planner, a what-if explorer, drift tracking with an ensemble Kalman filter, and a workspace-scoped MCP server for agents.",
+  "engine": "2.2.0",
+  "entry": "UltrafastEngine.Plugins.Twin.TwinPlugin",
+  "requires": ["fitting"],
+  "assemblies": {
+    "net10.0": "lib/net10.0/UltrafastEngine.Plugins.Twin.dll",
+    "net48": "lib/net48/UltrafastEngine.Plugins.Twin.dll"
+  },
+  "python": { "module": "ultrafast_twin" },
+  "commands": ["twin"]
+}
