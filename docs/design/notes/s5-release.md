@@ -73,3 +73,23 @@ Local run, macOS arm64, .NET 10, Python 3.12, 2026-11-10 (CI is the check for Li
 * `example_check.py` on AdaptiveOptics, DigitalTwin, Fibres, Wavefronts: all ok after one fix (a timing printed in `build-the-twin`).
 * `mkdocs build --strict`: 0 warnings. Validation matrix regenerated.
 * Not run: net48 tests, GPU, OpticStudio, the full `example_check` of the other groups (unchanged), the physics-reviewer agent on the new examples.
+
+## 5. Session log (2026-11-10, S5)
+
+1. Read the roadmap and the S1-S4 notes; wrote the done / to-do summary (sections 1-3 above). Advisor call 1 (before the examples): check CI, find how CI runs examples
+   (hosted engine, so `ao` is available), close the S4 gaps first, do not duplicate the Dudley PCF supercontinuum.
+2. Built `docs/examples/_viz.py`, then the examples in the order DM correction, SLM shaping (incl. the full panel), sensorless, tiled array, temporal shaping,
+   scatterer, aberrated high-power beam, the two twin examples, the three fibre examples, and a new Wavefronts hero. Every physics claim was run first and the
+   README quotes the real output; disagreements are stated (Raman rate 16-36 % above Gordon's formula; engine against Fourier prediction 0.98-0.99, not 0.999).
+3. Closed S4 gaps: `python/tests/test_twin.py` (9 tests), a C# test for the `twin` command, `ultrafast twin init|fit|validate` run from the real CLI, `docs/plugins/twin.md`.
+   Decided **not** to build the MCP server (T6) and E14 in this session; recorded in sections 1 and 3.
+4. Merge wave: changelog, testing rows, status counts, README badges (544 C#, 216 Python), nav, `llms.txt`, plugin index and system page, capabilities, roadmaps,
+   agents guide, gallery (`Fibres`), validation matrix.
+5. Verification: see section 4. **Advisor call 2 (before the merge)** found three things, all fixed: the README commands ran `make_figures.py` in CI (now marked
+   `# optional:` so the check runs only the physics script), the `test_zernike.py` key (`referenceWavelengthM`), and the roadmap status rows.
+6. CI on `dev/2026-11` after the S5 merge: every job green except "Docs and example check", which failed on a wall time printed by `tiled_array.py` (the quoted
+   output must not contain timings; `build-the-twin` had the same problem earlier). Fixed by removing the time from the output; the next run was started.
+7. Merged to `main` on the owner's instruction after that fix. No tag, no release, no version bump (2.3.0 is the convention when the owner asks).
+
+**Rule learned:** a script whose output is quoted in a README must print no wall time, and `example_check` runs every line of a ```bash block, so figure scripts
+need `# optional:`.
