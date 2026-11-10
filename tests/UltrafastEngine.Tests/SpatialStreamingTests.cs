@@ -117,7 +117,11 @@ namespace UltrafastEngine.Tests
             Assert.Close(w * Math.Sqrt(1 + (f / zr) * (f / zr)), v.GetDouble("radiusYM", double.NaN), 0.02, 0, "y: free diffraction");
         }
 
-        [Test(Slow = true, Reference = "S2 scale spike (docs/design/notes/spikes.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y)", Tolerance = "budget 4x the spike time (13 s); keepProfiles used holds at least one profile less than all; transmission 1e-3")]
+        /// <summary>Wall-time budget of the 1920 x 1080 tests: 4x the spike time on the development laptop (13 s); a shared CI runner (environment variable CI set) took
+        /// 21-23 s for the same runs, so it gets 45 s. The budget is a regression guard against an order-of-magnitude slowdown, not a benchmark.</summary>
+        public static double ScaleBudgetS() => Environment.GetEnvironmentVariable("CI") != null ? 45.0 : 13.0;
+
+        [Test(Slow = true, Reference = "S2 scale spike (docs/design/notes/spikes.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y)", Tolerance = "budget 4x the spike time (13 s; 45 s when the CI variable is set); keepProfiles used holds at least one profile less than all; transmission 1e-3")]
         public void FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget()
         {
             int nx = 1920, ny = 1080; double pitch = 8e-6, dx = pitch, w = 6e-3;    // the grid (2048 x 1280 cells of 8 um, one per device cell, aligned) is larger than the panel (15.4 x 8.6 mm)
@@ -140,7 +144,7 @@ namespace UltrafastEngine.Tests
             }
             var used = Run("used"); var all = Run("all");
             Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "1920 x 1080 panel on a 2048 x 1280 grid, cw: {0:F2} s; held after the run {1:F0} MB (used), {2:F0} MB (all)", used.s, used.held / 1e6, all.held / 1e6));
-            Assert.Less(used.s, 13.0, "time");
+            Assert.Less(used.s, ScaleBudgetS(), "time");
             long profile = 2048L * 1280 * 16;
             Assert.Less(used.held + profile, all.held + 1, "used holds at least one profile (42 MB) less");
             // power of exp(-2 r^2 / w^2) inside |x| < a, |y| < b: erf(sqrt2 a / w) erf(sqrt2 b / w), relative to the power the grid holds
