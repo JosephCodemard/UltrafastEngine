@@ -27,12 +27,14 @@ namespace UltrafastEngine.Plugins.Ao
     /// <summary>Base: a complex transfer H(omega) given as magnitude and phase, programmed delay kept in the transfer.</summary>
     public abstract class ShaperTerm : PhaseTerm
     {
-        private double[] _lastW; private Complex[] _lastH;
+        private sealed class Memo { public double[] W; public Complex[] H; }
+        private Memo _memo;                                          // one reference: a concurrent call can never pair one axis with another's transfer function
         protected abstract void Transfer(double[] omega, Complex[] h);
         private Complex[] Get(double[] omega)
         {
-            if (ReferenceEquals(omega, _lastW) && _lastH != null) return _lastH;
-            var h = new Complex[omega.Length]; Transfer(omega, h); _lastW = omega; _lastH = h; return h;
+            var m = _memo;
+            if (m != null && ReferenceEquals(omega, m.W)) return m.H;
+            var h = new Complex[omega.Length]; Transfer(omega, h); _memo = new Memo { W = omega, H = h }; return h;
         }
         protected override void Phase(double[] omega, double[] phi) { var h = Get(omega); for (int i = 0; i < h.Length; i++) phi[i] = h[i] == Complex.Zero ? 0 : h[i].Phase; }
         protected override void Amplitude(double[] omega, double[] amp) { var h = Get(omega); for (int i = 0; i < h.Length; i++) amp[i] = h[i].Magnitude; }

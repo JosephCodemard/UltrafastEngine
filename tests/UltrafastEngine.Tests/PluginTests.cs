@@ -59,6 +59,10 @@ namespace UltrafastEngine.Tests
             Assert.True(PluginManager.Has("fitting") && PluginManager.Has("zemax"), "fitting and zemax registered by the runner");
             Assert.True(PluginManager.CliCommands.ContainsKey("zemax-demo"), "zemax plugin command");
             Assert.True(PluginManager.Modes.Any(m => m.Key == "fit"), "fit run mode");
+            Assert.True(PluginManager.Has("ao"), "ao registered by the runner");
+            foreach (var t in new[] { "deformableMirror", "slm", "spectralShaper", "aopdf" }) Assert.True(UltrafastEngine.Schema.OptionRegistry.Get("element", t)?.Origin == "ao", "element " + t + " is declared by ao");
+            var aoFolder = Path.Combine(AppContext.BaseDirectory, "plugins", "ao");
+            if (Directory.Exists(aoFolder)) { var ai = PluginManager.LoadFolder(aoFolder); Assert.True(ai.Loaded, "ao folder loads: " + ai.Error); Assert.Equal("ao", PluginManifest.Load(aoFolder).Id, "ao manifest id"); }
             // the installable folder copied to bin/plugins loads (as the already-registered plugin)
             var folder = Path.Combine(AppContext.BaseDirectory, "plugins", "fitting");
             if (!Directory.Exists(folder)) Assert.Skip("bin/plugins not laid out");

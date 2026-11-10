@@ -67,6 +67,18 @@ namespace UltrafastEngine.Tests
             try { DmFocus(O("id", "dm", "type", "deformableMirror", "actuatorsX", 2, "pitchM", p, "driveBits", 8)); Assert.True(false, "driveBits without strokeM must be refused"); } catch (UltrafastEngine.Models.ModelException) { }
         }
 
+        [Test(Reference = "drive resolution: a b-bit drive over +-stroke has 2^b - 1 steps, level k = -stroke + k step with step = 2 stroke / (2^b - 1); a tilt ramp driven with driveBits 3 equals the same ramp rounded by hand to those levels and driven continuously", Tolerance = "1e-12 (focus centroid)")]
+        public void DriveBits_QuantiseTheCommandsToTwoToTheBMinusOneSteps()
+        {
+            int n = 12; double p = 125e-6, s = 2e-6, step = 2 * s / 7;
+            var raw = new JsonArray(); var rounded = new JsonArray();
+            for (int i = 0; i < n; i++) { var a = new JsonArray(); var q = new JsonArray(); for (int j = 0; j < n; j++) { double c = (i - (n - 1) / 2.0) * p * 2e-3; a.Add(c); q.Add(-s + step * Math.Round((c + s) / step)); } raw.Add(a); rounded.Add(q); }
+            JsonObject Mk(JsonArray cmd, int bits) { var o = O("id", "dm", "type", "deformableMirror", "actuatorsX", n, "actuatorsY", n, "pitchM", p, "strokeM", s, "driveBits", bits); o.Set("commandsM", cmd); return o; }
+            double cq = Cx(DmFocus(Mk(raw, 3))), ch = Cx(DmFocus(Mk(rounded, 0))), cc = Cx(DmFocus(Mk(raw, 0)));
+            Assert.Close(ch, cq, 1e-12, 1e-15, "3-bit drive = hand-rounded levels");
+            Assert.True(Math.Abs(cq - cc) > 1e-9, "and the quantisation is not a no-op (continuous ramp differs)");
+        }
+
         [Test(Reference = "hex layout: odd rows shifted by half a pitch, row spacing pitch sqrt(3)/2, so every interior actuator has six neighbours at one pitch", Tolerance = "1e-12")]
         public void HexLayout_HasSixNeighboursAtOnePitch()
         {
@@ -80,9 +92,9 @@ namespace UltrafastEngine.Tests
         // ------------------------------------------------------------------------------------------ SLM
         private const double Dx = 2e-6, Pitch = 8e-6, F = 0.05; private const int Nx = 2048, Cells = 512;
         private static JsonObject Line(JsonObject initial = null) { var t = O("model", "cartesian", "nx", Nx, "ny", 1, "halfWidthM", Nx * Dx / 2, "absorbingBoundary", true, "spectralSamples", 4); if (initial != null) t.Set("initialProfile", initial); return t; }
-        private static RunResult SlmFocus(JsonObject slm, double lam = Lam, double w = 0.3e-3) =>
-            Go(Sys(O("id", "src", "type", "gap", "lengthM", 0.0, "material", "Vacuum", "transverse", Line(O("kind", "gaussian", "radiusM", w))), slm, O("id", "lens", "type", "lens", "focalLengthM", F),
-                   O("id", "z", "type", "gap", "lengthM", F, "material", "Vacuum", "transverse", Line())),
+        private static RunResult SlmFocus(JsonObject slm, double lam = Lam, double w = 0.3e-3, double f = F) =>
+            Go(Sys(O("id", "src", "type", "gap", "lengthM", 0.0, "material", "Vacuum", "transverse", Line(O("kind", "gaussian", "radiusM", w))), slm, O("id", "lens", "type", "lens", "focalLengthM", f),
+                   O("id", "z", "type", "gap", "lengthM", f, "material", "Vacuum", "transverse", Line())),
                Spec(Gauss(lam, 1e-12, 1e-3), O("instruments", A(O("kind", "beamProfile", "name", "bp", "at", "z"), O("kind", "beamProfile", "name", "bp0", "at", "src")))));
         private static double[] Arr(RunResult r, string n, string suffix) => r.Instruments.First(i => i.Name == n).Arrays.First(a => a.Name.EndsWith(suffix)).Data;
         private static JsonObject Panel(string key, Func<int, double> f, params object[] extra)
@@ -119,8 +131,18 @@ namespace UltrafastEngine.Tests
             }
         }
 
+        [Test(Reference = "pixel replicas: a panel of pixels with fill factor 3/4 (4 grid cells per pixel, edges on cell edges) transmits 3/4 of the amplitude-squared... power 3/4 and has the discrete Fourier series c_0 = 3/4, |c_1| = 1/4, so the replica at lambda f / pitch carries 1/9 of the zero order (same geometry as the core modulator comb test)", Tolerance = "1e-6 transmission, 1 % order ratio")]
+        public void Slm_FillFactor_SetsTheTransmission_AndTheReplicaAtWavelengthTimesFocalLengthOverPitch()
+        {
+            double f = 0.01;                                                  // short focus: the replica (lambda f / pitch = 1.3 mm) stays on the grid
+            var r = SlmFocus(Panel("greyLevel", i => 0.0, "greyLevels", 2, "dispersion", "none", "fillFactor", 0.75, "offsetXM", 0.0), Lam, 0.3e-3, f);
+            Assert.Close(0.75, r.Records.First(x => x.Id == "slm").Values["transmission"], 1e-6, 0, "open fraction");
+            double x1 = Lam * f / Pitch;
+            Assert.Close(1.0 / 9, Window(r, x1, 0.4 * x1) / Window(r, 0, 0.4 * x1), 0.01, 0, "first replica / zero order = |c1/c0|^2");
+        }
+
         [Test(Reference = "binary phase grating (4 pixels at phase 0, 4 at pi) through two grey levels: diffraction orders at +-lambda f / (8 pixels) carrying the sampled-staircase Fourier weight, none at the zero order (a pi step has c_0 = 0)", Tolerance = "0.6 % of the order efficiency; zero order below 1e-4")]
-        public void Slm_PixelReplicaOrders_SitAtWavelengthTimesFocalLengthOverPeriod()
+        public void Slm_BinaryPhaseGrating_OrdersSitAtWavelengthTimesFocalLengthOverPeriod()
         {
             var r = SlmFocus(Panel("greyLevel", i => (i / 4) % 2, "greyLevels", 2, "dispersion", "none"));
             double x1 = Lam * F / (8 * Pitch);
@@ -216,6 +238,18 @@ namespace UltrafastEngine.Tests
             var r0 = Temporal(O("id", "d", "type", "aopdf", "delayFs", 0.0)); var r1 = Temporal(O("id", "d", "type", "aopdf", "delayFs", 250.0, "efficiency", 0.4));
             Assert.Close(250e-15, TemporalCentroid(r1.Output) - TemporalCentroid(r0.Output), 0, 0.05e-15, "delay");
             Assert.Close(0.4, r1.Output.TotalEnergyJ() / r0.Output.TotalEnergyJ(), 1e-9, 0, "efficiency");
+        }
+
+        [Test(Reference = "sign convention (docs/concepts.md): the aopdf's GDD and TOD are the same spectral phase as the core dispersion element's (+GDD puts red first), so the output pulses agree", Tolerance = "peak power and FWHM 1e-3 (measured 8e-5 for GDD + TOD, 1e-6 for GDD alone: the two expand about carriers that differ by the grid snapping); centroids within 0.1 fs of each other and 6 fs from the undispersed pulse (opposite signs would differ by order 1 and 12 fs)")]
+        public void Aopdf_GddAndTod_HaveTheSameSignAsTheCoreDispersionElement()
+        {
+            var a = Temporal(O("id", "d", "type", "aopdf", "gddFs2", 600.0, "todFs3", 8000.0));
+            var b = Temporal(O("id", "d", "type", "dispersion", "gddFs2", 600.0, "todFs3", 8000.0));
+            var sa = PulseMetrics.Summarize(a.Output); var sb = PulseMetrics.Summarize(b.Output);
+            Assert.Close(sb.PeakPowerW, sa.PeakPowerW, 1e-3, 0, "peak power");
+            Assert.Close(sb.FwhmS, sa.FwhmS, 1e-3, 0, "FWHM");
+            Assert.Close(TemporalCentroid(b.Output), TemporalCentroid(a.Output), 0, 1e-16, "centroids agree");
+            Assert.Close(6.2e-15, TemporalCentroid(a.Output), 0.05, 0, "TOD/2 (omega - omega0)^2 shifts the centroid later: +6.2 fs for (TOD 8000 fs^3, 30 fs): sign");
         }
 
         [Test(Reference = "linear chirp: a transform-limited Gaussian (FWHM t0) through GDD phi2 has FWHM t0 sqrt(1 + (4 ln2 phi2 / t0^2)^2) (Diels and Rudolph, Ultrashort laser pulse phenomena, eq. 2.4.23)", Tolerance = "0.5 %")]

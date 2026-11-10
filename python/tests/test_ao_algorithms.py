@@ -29,6 +29,9 @@ def test_gs_recovers_a_known_phase_from_its_far_field_amplitude():
     res = holography.gerchberg_saxton(T, iterations=400, seed=5, initial_phase=true_phase + 0.4 * np.random.default_rng(0).normal(size=(n, n)))
     A = np.abs(res.field)
     assert np.sqrt(np.mean((A / np.linalg.norm(A) - T / np.linalg.norm(T)) ** 2)) < 0.02 * (T / np.linalg.norm(T)).max()
+    d = np.angle(np.exp(1j * (res.phase - true_phase)))                       # wrapped difference; remove the unknown constant
+    d = np.angle(np.exp(1j * (d - np.angle(np.exp(1j * d).mean()))))
+    assert d.std() < 0.05, d.std()                                            # measured 0.018 rad rms
 
 
 def test_wgs_equalises_a_spot_array_better_than_gs():
@@ -154,6 +157,23 @@ def test_modal_fit_recovers_zernike_coefficients_exactly_without_noise():
     sm.slope_x[valid], sm.slope_y[valid] = b[:n], b[n:]
     got, _ = control.modal_fit(sm, radius, 15)
     assert np.allclose(got, c, atol=1e-9 * 120e-9, rtol=0)
+
+
+def test_shack_hartmann_then_modal_fit_recovers_low_order_zernikes_end_to_end():
+    """Field with defocus 150 nm, astigmatism -100 nm and 60 nm (rms, Noll 4, 5, 6) -> lenslet FFT + windowed centroid -> least-squares Zernike fit. Noll <= 6 have linear
+    gradients, so the subaperture mean equals the centre value: the error is the centroid's (measured: 145.6, -96.3, 61.4 nm; tip and tilt below 1 nm): 8 nm tolerance (about 5 %)."""
+    n, half, w, lam, radius = 96, 3e-3, 1.2e-3, 1030e-9, 2e-3
+    xs = (np.arange(n) - (n - 1) / 2) * (2 * half / n)
+    X, Y = np.meshgrid(xs, xs, indexing="ij")
+    coefs = {4: 150e-9, 5: -100e-9, 6: 60e-9}
+    W = sum(c * zernike.basis([j], xs, xs, radius)[0] for j, c in coefs.items())
+    E = np.exp(-(X ** 2 + Y ** 2) / w ** 2) * np.exp(2j * np.pi / lam * W)
+    s = control.shack_hartmann(E, xs, xs, wavelength_m=lam, lenslet_pitch_m=6 * (xs[1] - xs[0]), focal_length_m=0.05)
+    c, js = control.modal_fit(s, radius, 6)
+    got = dict(zip(js, c))
+    for j, v in coefs.items():
+        assert abs(got[j] - v) < 8e-9, (j, got[j], v)
+    assert abs(got[2]) < 2e-9 and abs(got[3]) < 2e-9
 
 
 def test_southwell_is_exact_for_a_quadratic_wavefront_and_converges_second_order():

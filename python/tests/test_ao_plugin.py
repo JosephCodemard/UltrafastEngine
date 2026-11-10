@@ -29,6 +29,12 @@ def _amp_weights(bench):
 
 def test_the_plugin_is_installed_and_its_python_module_loads():
     assert "ao" in [p.id for p in uf.plugins.installed()]
+    # the way examples import it: no sys.path help, the package finds the plugin's Python module itself
+    import os, subprocess
+    env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"))
+    out = subprocess.run([sys.executable, "-c", "import ultrafast as uf; m = uf.plugins.module('ao'); print('ao' in uf.plugins.loaded(), m is not None and hasattr(m, 'DmBench'))"],
+                         capture_output=True, text=True, env=env, cwd=str(Path(__file__).resolve().parent))
+    assert out.stdout.split() == ["True", "True"], out.stdout + out.stderr
     from ultrafast_ao import DeformableMirror, Slm, SpectralShaper, Aopdf
     assert DeformableMirror("dm", pitch_m=1e-3, actuators_x=4)["type"] == "deformableMirror"
     assert Slm("s", 8e-6, pixels_x=4, pixels_y=2, grey_level=np.zeros((4, 2)))["greyLevel"] == [[0.0, 0.0]] * 4
