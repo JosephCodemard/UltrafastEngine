@@ -85,12 +85,13 @@ transform elements in one system are fine; each one's numbers are fitted togethe
 | `replica` | a coherent pre- (negative delay) or post-pulse from a double reflection or an etalon: H = 1 + √r e^{i(Δτ + φ + GDD Δ²/2)} | `delayS` / `delayFs` / `delayPs`; `relativeIntensity` or `relativeIntensityDb`; `phaseRad`; `gddFs2` |
 | `phaseNoise` | correlated spectral phase and amplitude noise: the coherent pedestal of stretchers and shapers | `rmsRad`, `amplitudeRms`, `correlationNm` / `correlationRadPerS`, `seed` |
 | `pedestal` | an incoherent background that no linear filter makes: an ASE plateau or exponential wings | `type`: `ase` (`relativeIntensity` / `relativeIntensityDb` or `energyFraction`, `durationS`) or `exponential` (`level` / `levelDb`, `riseS`, `fallS`); `bandwidthFwhmNm`; `seed` |
+| `nonlinearPhase` | a Kerr-like nonlinear phase of the temporal intensity, φ(t) = `bRad` · I(t) / max I (the B-integral of a thin plate; exactly invertible; it changes the spectrum, not the temporal intensity) | `bRad` |
 | `wavefront` | wavefront error: Zernike terms (Noll index → waves rms) and pointing | `zernike`: `{"4": 0.1, "11": 0.02}`; `radiusM` (default: the beam's 1/e² radius); `wavelengthM` (default: the carrier); `tiltXRad`, `tiltYRad` |
 
 The parameter reference with types and defaults is generated in the [option reference](../reference/options.md)
 (`fitting:operator`).
 
-**Linear and field operators.** All operators except `pedestal` and `wavefront` are linear: a 2×2 Jones transfer
+**Linear and field operators.** All operators except `pedestal`, `nonlinearPhase` and `wavefront` are linear: a 2×2 Jones transfer
 H(ω). Consecutive linear operators compile into one ordinary linear term of the engine. The grid planner therefore
 sees their dispersion and replica delays, they appear in the loss budget (mechanism `transform`), and backward
 propagation inverts them exactly. `pedestal` adds light and `wavefront` acts on the transverse profile, so they run on
@@ -269,6 +270,104 @@ ultrafast run results-fit/fitted-system.ufs new-input.json -o results-new
 The fitted system is an ordinary system file. Change the seed, the energy or the downstream elements, and the
 transforms carry what the data taught the model. In example 26 the design predicts 114 fs and 730 µJ for a new
 70 fs seed, while the fitted line predicts 150 fs and 460 µJ, with the post-pulse and pedestal included.
+
+## Fitting across conditions
+
+A calibration against one recording fits one operating point. A lab runs at many: pulse energies, angles, temperatures,
+pressures. `fit.conditions` fits **one set of shared parameters to all of them at once**, lets chosen numbers follow
+the condition (a nonlinear phase that grows with the energy), and keeps some conditions **out of the fit** to test
+what the model predicts.
+
+```json
+"fit": {
+  "conditions": [
+    {"name": "E0.4", "variables": {"energyJ": 4e-7}, "set": {"pulse/energyJ": 4e-7, "instrument:spec/measured/file": "e0.4.csv"}},
+    {"name": "E1.2", "variables": {"energyJ": 1.2e-6}, "set": {"pulse/energyJ": 1.2e-6, "instrument:spec/measured/file": "e1.2.csv"}},
+    {"name": "E1.4", "heldOut": true, "variables": {"energyJ": 1.4e-6}, "set": {"pulse/energyJ": 1.4e-6, "instrument:spec/measured/file": "e1.4.csv"}}
+  ],
+  "parameters": [
+    {"path": "element:kerr/operators/0/bRad", "name": "kerr.bRad",
+     "dependence": {"kind": "proportional", "variable": "energyJ", "reference": 1e-6, "coefficients": [{"initial": 2.0, "min": 0, "max": 10}]}}
+  ]
+}
+```
+
+| key | meaning |
+|---|---|
+| `conditions[].name` | label, unique. Reports use `condition/instrument` (for example `E1.4/spec`). |
+| `conditions[].set` | `path → value` written into the files for this condition: a number, or a string such as a data file. Same path language as `fit.parameters[].path`. A path that is also a *shared* fit parameter is an error. |
+| `conditions[].variables` | named numbers describing the condition. The inputs of `dependence`. |
+| `conditions[].heldOut` | not in the cost. The condition is simulated at the start, at the optimum and at the Jacobian points; its chi², its curves and its prediction band come from the same covariance as the others. |
+| `conditions[].weight` | multiplies the condition's chi² (default 1). |
+| `parameters[].perCondition` | one value per training condition (`name[condition]`) instead of one shared value. |
+| `parameters[].dependence` | the value follows a condition variable: its **coefficients** are the fitted parameters. |
+
+Each condition is simulated with its own frozen grid (twice its planned bandwidth). With no `conditions` the fit is
+unchanged: one implicit condition, instrument names without a prefix.
+
+**Held-out conditions.** After the fit the report lists, per condition, the points, chi² and chi² per point
+(`conditions` in `fit.json`) and warns when a held-out condition's chi² per point is more than twice
+max(1, the training value): the model fits what it was given and does not predict what it was not.
+
+### Dependence on the condition
+
+`u = variable / reference` (reference: the mean of the training values). `ξ = 2(variable − lo)/(hi − lo) − 1` on the
+training range, or `range`. A held-out condition outside the range is an **extrapolation**.
+
+| `kind` | value | coefficients |
+|---|---|---|
+| `constant` | c₀ | 1 |
+| `proportional` | c₀ u | 1 (a phase proportional to the energy: the slope) |
+| `linear` | c₀ + c₁ u | 2 |
+| `polynomial` | Σ cₖ uᵏ | `degree` + 1 |
+| `power` | c₀ u^c₁ | 2 (the exponent starts at 1) |
+| `chebyshev` | Σ cₖ Tₖ(ξ) | `degree` + 1 |
+| `network` | a small tanh network of ξ with built-in constraints (below) | 2 H + paths (H + 1) |
+
+Each coefficient takes `initial`, `min`, `max`, `scale`, `prior`, `step` like any fit parameter
+(`dependence.coefficients[k]`), so physical priors apply: a slope that must be positive gets `min: 0`. The number of
+distinct training values of the variable must be at least the number of coefficients.
+
+### Smooth surfaces
+
+`fit.surfaces[]` fits **several numbers at once** as functions of one variable: the knots of a spectral phase or
+amplitude over (wavelength, condition). With `pathTemplate` (`element:t/operators/0/knots/transmission/{i}`) and `count`
+(or `paths`), `kind: "chebyshev"` and `degree`, every knot gets a Chebyshev series of the variable: a tensor-product
+surface. Two penalties keep noise out of it: `smoothnessPaths` (second differences across the knots, per order) and
+`smoothnessVariable` (second differences of the surface sampled across the variable). The existing constraints of
+spline knots (`passive`, `causal`) still apply to the knot values.
+
+A spectrometer reading is normalised, so it cannot fix the **overall scale** of a transmission surface; compare shapes
+(a knot relative to a reference knot).
+
+### Network transforms
+
+`kind: "network"` is a *physics-constrained network transform*, not a physics-informed network: a small network
+(`hidden` tanh units, default 4) from the scaled variable to one output per path, trained by the same estimators as
+every other parameter (so it stays small: about 20 weights). The constraints are exact by construction, for any weights:
+
+* `output: "bounded"` with `outputRange: [lo, hi]`: `lo + (hi − lo) sigmoid(raw)`, always strictly inside the range
+  (a passive transmission: `[0, 1]`);
+* `output: "positive"`: softplus;
+* `monotone: "increasing"` or `"decreasing"`: the input weights and the output weights are squared, so the output cannot
+  decrease (increase) with the variable, also outside the training range.
+
+`weightDecay` (default 1e-4) is an L2 penalty on the weights. A network has more freedom than a parametric form: use
+it when the dependence has no physical form, and compare it with a polynomial on the held-out conditions.
+
+### Outputs
+
+`fitted-conditions.json` lists, per condition, the variables, the `set` edits, the frozen grid and the fitted value of every
+dependent path; `dependences[]` stores each dependence in a form that can be evaluated at any variable value
+(`ultrafast_twin.DependenceModel` does it in Python). `fitted-system.ufs` holds the **shared** parameters; per-condition and
+dependent numbers are applied from `fitted-conditions.json`.
+
+### Gradients
+
+Every cost evaluation is a full simulation, and the Jacobian costs one simulation per parameter and condition: there are no
+analytic gradients through the engine's elements. A network with 20 weights therefore costs about 20 runs per Jacobian
+column set; the estimators are the existing ones (Levenberg–Marquardt, CMA-ES, MCMC). Whether linear elements could supply
+analytic derivatives is open; nothing here depends on it.
 
 ## Backward propagation
 

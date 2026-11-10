@@ -142,6 +142,16 @@ namespace UltrafastEngine.Plugins.Fitting
             else t.C.AsObject().Set(t.K, value);
         }
 
+        /// <summary>Write any JSON value (a number, a string such as a data file name, an object) at a path (created when missing).
+        /// A number replaces the "value" of a fit object there, as <see cref="Set"/> does.</summary>
+        public static void SetValue(JsonObject sys, JsonObject run, string path, JsonValue value)
+        {
+            if (value.Kind == JsonKind.Number || path.StartsWith("material:", StringComparison.OrdinalIgnoreCase)) { Set(sys, run, path, value.AsDouble()); return; }
+            var t = Resolve(sys, run, path, true);
+            if (t.I >= 0) t.C.AsArray()[t.I] = value;
+            else t.C.AsObject().Set(t.K, value);
+        }
+
         /// <summary>Replace the fit object at a path by a plain number (used to write the fitted system).</summary>
         public static void Freeze(JsonObject sys, JsonObject run, string path, double value)
         {

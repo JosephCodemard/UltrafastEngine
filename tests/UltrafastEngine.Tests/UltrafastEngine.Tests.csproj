@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\plugins\fitting\src\UltrafastEngine.Plugins.Fitting.csproj" Private="true" />
     <ProjectReference Include="..\..\plugins\gpu\src\UltrafastEngine.Plugins.Gpu.csproj" Private="true" />
     <ProjectReference Include="..\..\plugins\hitran\src\UltrafastEngine.Plugins.Hitran.csproj" Private="true" />
+    <ProjectReference Include="..\..\plugins\twin\src\UltrafastEngine.Plugins.Twin.csproj" Private="true" />
     <ProjectReference Include="..\..\plugins\ao\src\UltrafastEngine.Plugins.Ao.csproj" Private="true" />
   </ItemGroup>
   <PropertyGroup><NoPluginBuild>true</NoPluginBuild></PropertyGroup>

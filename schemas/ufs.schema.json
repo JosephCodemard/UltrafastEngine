@@ -11174,7 +11174,7 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront"],
+          "enum": ["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront", "nonlinearPhase"],
           "description": "Operator kind (plugins may add more)"
         },
         "enabled": {
@@ -11412,6 +11412,17 @@
         "floor": {
           "type": "number",
           "description": "causal: smallest relative transmission used in the logarithm Default: 1e-8."
+        },
+        "bRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/obj.fitting:value"
+            }
+          ],
+          "description": "nonlinearPhase: peak nonlinear phase (B-integral of a thin Kerr plate), phi(t) = bRad I(t)/max I [rad] May be a fit object {value, fit, min, max, prior}."
         },
         "transmission": {
           "anyOf": [

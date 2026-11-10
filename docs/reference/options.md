@@ -1560,6 +1560,38 @@ Backward propagation (fitting plugin). More: [plugins/fitting.md#backward-propag
 | `active` | `"error"` \| `"linearized"` \| `"identity"` |  | error | Amplifiers, crystals and spatial elements: refuse, undo as the filter they were in a forward reference run, or pass through |
 | `referencePulse` | object (`pulse`) |  |  | active = linearized: the input pulse of the forward reference run |
 
+### `fitting:condition`
+
+One operating condition of a multi-condition fit (fitting plugin). More: [plugins/fitting.md#fitting-across-conditions](../plugins/fitting.md#fitting-across-conditions)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `name` | string |  |  | Label (unique); used in the report as condition/instrument **Required.** |
+| `heldOut` | boolean |  | false | Not in the cost: predicted from the fit and compared with its data afterwards |
+| `weight` | number |  | 1 | Weight of this condition's residuals in the cost (chi^2 is multiplied by it) |
+| `variables` | any |  |  | Named numbers describing the condition ({"energyJ": 2e-6}); the inputs of parametric and smooth dependence on the condition |
+| `set` | any |  |  | Path -> value written into the files for this condition (a number, or a string such as instrument:spec/measured/file); same paths as fit.parameters |
+
+### `fitting:dependence`
+
+How a fitted number depends on the condition (fitting plugin). More: [plugins/fitting.md#fitting-across-conditions](../plugins/fitting.md#fitting-across-conditions)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `kind` | `"constant"` \| `"proportional"` \| `"linear"` \| `"polynomial"` \| `"power"` \| `"chebyshev"` \| `"network"` |  | linear | Form: c0 \| c0 u \| c0 + c1 u \| sum ck u^k \| c0 u^c1 \| sum ck Tk(xi) \| a small tanh network with built-in constraints; u = variable / reference |
+| `variable` | string |  |  | Name of the condition variable (conditions[].variables) **Required.** |
+| `degree` | integer |  | 2 | polynomial / chebyshev: highest order |
+| `reference` | number |  | mean of the training values | u = variable / reference |
+| `range` | array |  |  | chebyshev: [lo, hi] mapped to xi = -1..1 (outside it the series extrapolates) |
+| `smoothnessPaths` | number |  | 0 | surface: weight on second differences across the paths |
+| `smoothnessVariable` | number |  | 0 | surface (chebyshev): weight on second differences across the variable |
+| `coefficients` | array |  |  | Per order: {initial, min, max, scale, prior, step} of that coefficient (network: one object {scale, min, max} for all weights) |
+| `hidden` | integer |  | 4 | network: tanh units |
+| `output` | `"none"` \| `"bounded"` \| `"positive"` |  | none | network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction |
+| `outputRange` | array |  |  | network, output bounded: [lo, hi] |
+| `monotone` | `"none"` \| `"increasing"` \| `"decreasing"` |  | none | network: output monotone in the variable (squared weights), exact by construction |
+| `weightDecay` | number |  | 1e-4 | network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) |
+
 ### `fitting:fit`
 
 Fit (fitting plugin). More: [plugins/fitting.md#fitting](../plugins/fitting.md#fitting)
@@ -1570,6 +1602,8 @@ Fit (fitting plugin). More: [plugins/fitting.md#fitting](../plugins/fitting.md#f
 | `estimator` | `"levenbergMarquardt"` \| `"cmaes"` \| `"mcmc"` |  | levenbergMarquardt | Fitting algorithm (plugins may register more) |
 | `maxIterations` | integer |  | 20 (LM), 60 (CMA-ES) | Iterations (LM) / generations (CMA-ES) |
 | `tolerance` | number |  | 1e-4 (LM), 1e-6 (CMA-ES) | Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit |
+| `conditions` | array of `fitting:condition` |  |  | Operating conditions fitted together with one set of shared parameters (energies, angles, ...); empty: one condition, the run itself |
+| `surfaces` | array of `fitting:surface` |  |  | Smooth surfaces: several numbers (e.g. the knots of a spectral phase) as Chebyshev series of a condition variable, with smoothness penalties in both directions |
 | `freezeGrid` | boolean |  | true | Fix the time/frequency grid (2x the planned bandwidth) for all evaluations |
 | `parallel` | integer |  | 1 | Simulations run at the same time (Jacobian columns, CMA-ES population, MCMC walkers) |
 | `population` | integer |  | 4 + 3 ln n | CMA-ES population |
@@ -1601,7 +1635,7 @@ One transform operator (kind + parameters; numbers may be fit objects). More: [p
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `kind` | `"spectralPhase"` \| `"spectralAmplitude"` \| `"energy"` \| `"delay"` \| `"jones"` \| `"replica"` \| `"phaseNoise"` \| `"pedestal"` \| `"wavefront"` |  |  | Operator kind (plugins may add more) **Required.** |
+| `kind` | `"spectralPhase"` \| `"spectralAmplitude"` \| `"energy"` \| `"delay"` \| `"jones"` \| `"replica"` \| `"phaseNoise"` \| `"pedestal"` \| `"wavefront"` \| `"nonlinearPhase"` |  |  | Operator kind (plugins may add more) **Required.** |
 | `enabled` | boolean |  | true | false skips the operator |
 | `fit` | array |  |  | Names of parameters to fit (dotted for nested: "knots.phaseRad" fits every knot), alternative to fit objects |
 | `bounds` | object |  |  | Bounds for the names in "fit": {name: [min, max]} |
@@ -1628,6 +1662,7 @@ One transform operator (kind + parameters; numbers may be fit objects). More: [p
 | `passive` | boolean |  | true | spectralAmplitude: clip the transmission to <= 1 |
 | `causal` | boolean |  | false | spectralAmplitude: add the minimum phase (Kramers-Kronig) |
 | `floor` | number |  | 1e-8 | causal: smallest relative transmission used in the logarithm |
+| `bRad` | number or fit object | rad |  | nonlinearPhase: peak nonlinear phase (B-integral of a thin Kerr plate), phi(t) = bRad I(t)/max I |
 | `transmission` | number or fit object |  | 1 | energy: power transmission |
 | `gainDb` | number or fit object | dB |  | energy: gain (alternative) |
 | `delayS` | number or fit object | s |  | delay / replica: delay |
@@ -1675,7 +1710,33 @@ One fit parameter.
 | `scale` | number |  | (max - min) / 4 | Typical change |
 | `step` | number |  | 1e-3 x scale | Finite-difference step |
 | `unit` | string |  |  | Unit label for reports |
+| `dependence` | object (`fitting:dependence`) |  |  | The value follows the condition variable: its coefficients are fitted instead (fitting across conditions) |
+| `perCondition` | boolean |  | false | Multi-condition fit: one value per training condition instead of one shared value |
 | `prior` | any |  |  | Gaussian prior: sigma (mean = initial) or {mean, sigma} |
+
+### `fitting:surface`
+
+A smooth surface of several numbers over a condition variable (fitting plugin). More: [plugins/fitting.md#fitting-across-conditions](../plugins/fitting.md#fitting-across-conditions)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `name` | string |  |  | Label **Required.** |
+| `paths` | array |  |  | The numbers (same paths as fit.parameters); or pathTemplate + count |
+| `pathTemplate` | string |  |  | A path with {i} replaced by 0..count-1 (e.g. element:t/operators/0/knots/phaseRad/{i}) |
+| `count` | integer |  |  | Number of paths for pathTemplate |
+| `kind` | `"constant"` \| `"proportional"` \| `"linear"` \| `"polynomial"` \| `"chebyshev"` \| `"network"` |  | chebyshev | Basis over the variable |
+| `variable` | string |  |  | Name of the condition variable **Required.** |
+| `degree` | integer |  | 2 | Highest order |
+| `reference` | number |  |  | u = variable / reference |
+| `range` | array |  |  | [lo, hi] of the Chebyshev map |
+| `smoothnessPaths` | number |  | 0 | Weight on second differences across the paths |
+| `smoothnessVariable` | number |  | 0 | Weight on second differences across the variable |
+| `coefficients` | array |  |  | Per order: {initial, min, max, scale, prior, step} |
+| `hidden` | integer |  | 4 | network: tanh units |
+| `output` | `"none"` \| `"bounded"` \| `"positive"` |  | none | network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction |
+| `outputRange` | array |  |  | network, output bounded: [lo, hi] |
+| `monotone` | `"none"` \| `"increasing"` \| `"decreasing"` |  | none | network: output monotone in the variable (squared weights), exact by construction |
+| `weightDecay` | number |  | 1e-4 | network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) |
 
 ### `fitting:value`
 

@@ -52,6 +52,8 @@ namespace UltrafastEngine.Plugins.Fitting
                 .Enum("estimator", new[] { "levenbergMarquardt", "cmaes", "mcmc" }, "Fitting algorithm (plugins may register more)", "levenbergMarquardt")
                 .Int("maxIterations", "Iterations (LM) / generations (CMA-ES)", "20 (LM), 60 (CMA-ES)")
                 .Num("tolerance", "", "Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit", "1e-4 (LM), 1e-6 (CMA-ES)")
+                .ListOf("conditions", "fitting:condition", "Operating conditions fitted together with one set of shared parameters (energies, angles, ...); empty: one condition, the run itself")
+                .ListOf("surfaces", "fitting:surface", "Smooth surfaces: several numbers (e.g. the knots of a spectral phase) as Chebyshev series of a condition variable, with smoothness penalties in both directions")
                 .Bool("freezeGrid", "Fix the time/frequency grid (2x the planned bandwidth) for all evaluations", "true")
                 .Int("parallel", "Simulations run at the same time (Jacobian columns, CMA-ES population, MCMC walkers)", "1")
                 .Int("population", "CMA-ES population", "4 + 3 ln n").Num("sigma0", "", "CMA-ES initial step (in units of each parameter's scale)", "0.3")
@@ -59,12 +61,43 @@ namespace UltrafastEngine.Plugins.Fitting
                 .Int("walkers", "MCMC walkers", "max(2n + 2, 8)").Int("steps", "MCMC steps", "200").Num("burnIn", "", "MCMC burn-in fraction", "0.5")
                 .Int("thin", "MCMC thinning", "1").Enum("start", new[] { "optimum", "initial" }, "MCMC start: a Levenberg-Marquardt optimum or the initial values", "optimum")
                 .Num("spread", "", "MCMC starting ball (in units of each scale)", "0.1").Int("seed", "Random seed (CMA-ES, MCMC)", "1"));
+            ctx.RegisterSpecKeys(new ComponentSpec("fitting:condition", "", "One operating condition of a multi-condition fit (fitting plugin).").DocAt("plugins/fitting.md#fitting-across-conditions")
+                .Str("name", "Label (unique); used in the report as condition/instrument", required: true)
+                .Bool("heldOut", "Not in the cost: predicted from the fit and compared with its data afterwards", "false")
+                .Num("weight", "", "Weight of this condition's residuals in the cost (chi^2 is multiplied by it)", "1")
+                .P("variables", ParamType.Any, "", "Named numbers describing the condition ({\"energyJ\": 2e-6}); the inputs of parametric and smooth dependence on the condition")
+                .P("set", ParamType.Any, "", "Path -> value written into the files for this condition (a number, or a string such as instrument:spec/measured/file); same paths as fit.parameters"));
+            ctx.RegisterSpecKeys(new ComponentSpec("fitting:dependence", "", "How a fitted number depends on the condition (fitting plugin).").DocAt("plugins/fitting.md#fitting-across-conditions")
+                .Enum("kind", new[] { "constant", "proportional", "linear", "polynomial", "power", "chebyshev", "network" }, "Form: c0 | c0 u | c0 + c1 u | sum ck u^k | c0 u^c1 | sum ck Tk(xi) | a small tanh network with built-in constraints; u = variable / reference", "linear")
+                .Str("variable", "Name of the condition variable (conditions[].variables)", required: true)
+                .Int("degree", "polynomial / chebyshev: highest order", "2")
+                .Num("reference", "", "u = variable / reference", "mean of the training values")
+                .Free("range", ParamType.Array, "chebyshev: [lo, hi] mapped to xi = -1..1 (outside it the series extrapolates)")
+                .Num("smoothnessPaths", "", "surface: weight on second differences across the paths", "0").Num("smoothnessVariable", "", "surface (chebyshev): weight on second differences across the variable", "0")
+                .Free("coefficients", ParamType.Array, "Per order: {initial, min, max, scale, prior, step} of that coefficient (network: one object {scale, min, max} for all weights)")
+                .Int("hidden", "network: tanh units", "4").Enum("output", new[] { "none", "bounded", "positive" }, "network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction", "none")
+                .Free("outputRange", ParamType.Array, "network, output bounded: [lo, hi]").Enum("monotone", new[] { "none", "increasing", "decreasing" }, "network: output monotone in the variable (squared weights), exact by construction", "none")
+                .Num("weightDecay", "", "network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay))", "1e-4"));
+            ctx.RegisterSpecKeys(new ComponentSpec("fitting:surface", "", "A smooth surface of several numbers over a condition variable (fitting plugin).").DocAt("plugins/fitting.md#fitting-across-conditions")
+                .Str("name", "Label", required: true)
+                .Free("paths", ParamType.Array, "The numbers (same paths as fit.parameters); or pathTemplate + count")
+                .Str("pathTemplate", "A path with {i} replaced by 0..count-1 (e.g. element:t/operators/0/knots/phaseRad/{i})").Int("count", "Number of paths for pathTemplate")
+                .Enum("kind", new[] { "constant", "proportional", "linear", "polynomial", "chebyshev", "network" }, "Basis over the variable", "chebyshev")
+                .Str("variable", "Name of the condition variable", required: true).Int("degree", "Highest order", "2")
+                .Num("reference", "", "u = variable / reference").Free("range", ParamType.Array, "[lo, hi] of the Chebyshev map")
+                .Num("smoothnessPaths", "", "Weight on second differences across the paths", "0").Num("smoothnessVariable", "", "Weight on second differences across the variable", "0")
+                .Free("coefficients", ParamType.Array, "Per order: {initial, min, max, scale, prior, step}")
+                .Int("hidden", "network: tanh units", "4").Enum("output", new[] { "none", "bounded", "positive" }, "network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction", "none")
+                .Free("outputRange", ParamType.Array, "network, output bounded: [lo, hi]").Enum("monotone", new[] { "none", "increasing", "decreasing" }, "network: output monotone in the variable (squared weights), exact by construction", "none")
+                .Num("weightDecay", "", "network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay))", "1e-4"));
             ctx.RegisterSpecKeys(new ComponentSpec("fitting:parameter", "", "One fit parameter.")
                 .Str("path", "pulse/..., element:ID/..., instrument:NAME/..., material:NAME/prop, run/..., system/...", required: true)
                 .Str("name", "Label", "the path").Num("initial", "", "Start value", "the value in the files")
                 .Num("min", "", "Lower bound").Num("max", "", "Upper bound")
                 .Num("scale", "", "Typical change", "(max - min) / 4").Num("step", "", "Finite-difference step", "1e-3 x scale")
                 .Str("unit", "Unit label for reports")
+                .Obj("dependence", "The value follows the condition variable: its coefficients are fitted instead (fitting across conditions)", "fitting:dependence")
+                .Bool("perCondition", "Multi-condition fit: one value per training condition instead of one shared value", "false")
                 .P("prior", ParamType.Any, "", "Gaussian prior: sigma (mean = initial) or {mean, sigma}"));
         }
     }
@@ -117,6 +150,7 @@ namespace UltrafastEngine.Plugins.Fitting
                 File.WriteAllText(Path.Combine(directory, "fit.json"), f.ToJson().ToJson(true));
                 if (f.FittedSystem != null) File.WriteAllText(Path.Combine(directory, "fitted-system.ufs"), f.FittedSystem.ToJson(true));
                 if (f.FittedRun != null) File.WriteAllText(Path.Combine(directory, "fitted-run.json"), f.FittedRun.ToJson(true));
+                if (f.FittedConditions != null) File.WriteAllText(Path.Combine(directory, "fitted-conditions.json"), f.FittedConditions.ToJson(true));
             }
             var b = r.Backward();
             if (b?.ReconstructedPulse != null) File.WriteAllText(Path.Combine(directory, "reconstructed-pulse.json"), b.ReconstructedPulse.ToJson(true));
