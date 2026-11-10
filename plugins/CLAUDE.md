@@ -25,4 +25,9 @@ engine. Guide: `docs/reference/plugins.md`; extension points in `src/UltrafastEn
   one complex line shape gives n and alpha; `Faddeeva.cs`; `HitranLines.cs`: `.par` and CSV readers; `HitranPlugin.cs`). Partition sums: `PartitionTable` (`<NAME>.partition.csv`, written by the downloader from `hapi.partitionSum`), else the power law. It implements
   `ISmoothIndex` (the propagation frame ignores the line group delay). No data in the repo: `ultrafast_hitran` (python) downloads
   them with the HITRAN API. Compiled into the NativeAOT library (`UF_WITH_HITRAN`). Docs: `docs/plugins/hitran.md`; tests `HitranTests`.
+* **ao** (`ao/src`): `deformableMirror` and `slm` (`Devices.cs`: build a core `Optics.ModulatorElement` directly -- the core's modulator is the
+  physics), `spectralShaper` and `aopdf` (`TemporalShapers.cs`: `ShaperTerm : PhaseTerm`, the programmed delay stays in the transfer function;
+  frame removes only the carrier phase), `AoMath.cs` (erf for net48, map reader). Python module `ao/python/ultrafast_ao` (builders, device twins,
+  `DmBench`, tile builder); the algorithms are NumPy in `python/src/ultrafast/algorithms/{holography,control,sensorless}.py`. The tile array is the core
+  `initialProfile` kind `tiles`, not an element. Docs: `docs/plugins/ao.md`; tests `AoDeviceTests`, `python/tests/test_ao_*.py`.
 * After changing a plugin's Python: rerun `python3 python/tools/build_engine.py`.

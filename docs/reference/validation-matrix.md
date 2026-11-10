@@ -2,10 +2,11 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **517 tests** in 57 classes. **319** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **532 tests** in 58 classes. **334** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
+| [AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements](#aodevicetests) | `AoDeviceTests` | 15 | 15 |
 | [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 13 | 12 |
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 13 | 12 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
@@ -63,6 +64,28 @@ Every C# test of the engine: **517 tests** in 57 classes. **319** of them check 
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 20 | 3 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
+
+## AoDeviceTests
+
+AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Aopdf_AcousticWindow_CutsTheSpectrumWhereTheProgrammedDelayLeavesIt` | finite acoustic window: with GDD phi2 the programmed group delay is phi2 (omega - omega0); components with \|phi2 (omega - omega0)\| > window/2 are not diffracted, so the transmitted fraction of a Gaussian spectrum (FWHM d_omega = 4 ln2 / t0) is erf(a / (sigma sqrt 2)) with a = window / (2 phi2) and sigma = d_omega / (2 sqrt(2 ln 2)) | 0.3 % of the energy fraction |
+| `Aopdf_Delay_MovesThePulse_AndEfficiencyScalesTheEnergy` | an aopdf with delayFs moves the pulse by that group delay (shift theorem); efficiency scales the energy | centroid 0.05 fs, energy 1e-9 |
+| `Aopdf_Gdd_BroadensTheGaussianAsTheTextbookFormula` | linear chirp: a transform-limited Gaussian (FWHM t0) through GDD phi2 has FWHM t0 sqrt(1 + (4 ln2 phi2 / t0^2)^2) (Diels and Rudolph, Ultrashort laser pulse phenomena, eq. 2.4.23) | 0.5 % |
+| `Aopdf_Replica_AddsASecondPulse_AtTheStatedDelay` | spurious replica H (1 + a exp(i omega tau)): a second pulse at tau with amplitude a (energy a^2), by the shift theorem | energy ratio 1e-3, position 0.2 fs |
+| `Erf_MatchesTabulatedValues` | erf by series and continued fraction against tabulated values (Abramowitz and Stegun table 7.1): erf(0.5) = 0.5204998778130465, erf(1) = 0.8427007929497149, erf(2) = 0.9953222650189527, erf(3.5) = 0.9999992569016276 | 1e-12 |
+| `HexLayout_HasSixNeighboursAtOnePitch` | hex layout: odd rows shifted by half a pitch, row spacing pitch sqrt(3)/2, so every interior actuator has six neighbours at one pitch | 1e-12 |
+| `Slm_FullPanel_1920x1080_8Bit_RunsWithinTheScaleBudget` (slow) | S2 scale spike (docs/design/notes/spikes.md): a 1920 x 1080 panel on a 2048 x 1280 grid, one frequency, ran in 1.9 s; here the panel is the slm element written with 8-bit grey levels (a phase-only lens-and-grating pattern from a callback); a Gaussian overfilling the panel passes the Gaussian power on the panel | budget 13 s (the S2 limit); transmission 1e-3 of the erf product |
+| `Slm_GreyLevelBlaze_FirstOrderEfficiency_FollowsSincOfOneOverN` | N-level blazed grating written with grey levels through the slm element: first-order efficiency of the sampled staircase (4 samples per pixel) and the continuum formula [sin(pi/N) / (pi/N)]^2 (Goodman, Fourier optics, sec. 5.2) | 0.6 % of the efficiency (sampled staircase), 2 % (continuum) |
+| `Slm_PhaseTarget_IsMappedToTheNearestGreyLevel_OfANonlinearCurve` | phase-target input: the target is wrapped to 2 pi and mapped to the nearest grey level of the (here S-shaped) curve; the result is the same as writing those grey levels directly | 1e-12 (identical fields) |
+| `Slm_PixelReplicaOrders_SitAtWavelengthTimesFocalLengthOverPeriod` | binary phase grating (4 pixels at phase 0, 4 at pi) through two grey levels: diffraction orders at +-lambda f / (8 pixels) carrying the sampled-staircase Fourier weight, none at the zero order (a pi step has c_0 = 0) | 0.6 % of the order efficiency; zero order below 1e-4 |
+| `Slm_WrappedRamp_AtOtherWavelengths_FollowsTheLiquidCrystalDispersion` | liquid-crystal dispersion: the 2 pi reset written at the design wavelength is 2 pi s(lambda) at lambda, s = lambda_d dn(lambda) / (lambda dn(lambda_d)); the first order of the wrapped ramp is the sampled Fourier coefficient with the phases scaled by s | 1.5 % of the efficiency |
+| `SpectralShaper_LinearPixelPhase_DelaysThePulse` | shift theorem on the pixelated mask: pixels carrying the linear phase tau (omega_j - omega0) delay the pulse by tau (the main pulse of a staircase; Weiner) | centroid of the main pulse within 2 fs of tau (the replica comb is outside the window of the centroid) |
+| `SpectralShaper_PixelGaps_MakeSidePulses_AtTwoPiOverThePixelBandwidth` | Weiner (Rev. Sci. Instrum. 71, 1929 (2000)): a Fourier-plane mask with pixel gaps is a comb in frequency of period d_omega (one pixel); active fraction f gives side pulses at +-2 pi / d_omega with energy [sin(pi f) / (pi f)]^2 of the main pulse; a Gaussian spot of 1/e^2 radius w0 multiplies the first harmonic by exp(-(pi w0 / pitch)^2) | 1 % of the side-pulse energy ratio, 1 fs position |
+| `StrokeAndDriveBits_ClipAndQuantiseCommands` | stroke limit and drive resolution: commands clip at +-stroke; a b-bit drive over +-stroke has 2^b - 1 steps | exact (1e-12) |
+| `TiltRamp_OnActuators_MovesTheFocus_ByFocalLengthTimesWavefrontTilt` | influence function: the surface at a neighbouring actuator equals the stated coupling (definition), and a tilt ramp on the actuators gives a wavefront tilt 2 cos(aoi) dh/dx that moves the focus of a lens by f theta (geometric optics) | 2 % of the shift (the lattice sum of the influence functions sets dh/dx, computed from the same functions) |
 
 ## BeamSourceTests
 

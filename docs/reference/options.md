@@ -176,6 +176,25 @@ Also accepts: `gainCommon` (see *Common key groups*).
 | `maxRoundTrips` | integer |  | 300 | Limit for auto |
 | `cavity` | object (`betweenPasses`) |  |  | lossPerRoundTrip, gddFs2, todFs3, materials |
 
+### `aopdf` — plugin: ao
+
+An acousto-optic programmable dispersive filter: programmed spectral phase (delay, GDD, TOD, FOD or a table), finite acoustic window, diffraction efficiency, amplitude table and a spurious replica. More: [plugins/ao.md#aopdf](../plugins/ao.md#aopdf)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `centerWavelengthM` | number | m | the carrier | Wavelength at which the polynomial phase is expanded |
+| `delayFs` | number | fs | 0 | Group delay at the centre |
+| `gddFs2` | number | fs^2 | 0 | Group-delay dispersion |
+| `todFs3` | number | fs^3 | 0 | Third-order dispersion |
+| `fodFs4` | number | fs^4 | 0 | Fourth-order dispersion |
+| `spectralPhaseRad` | number or array | rad |  | Extra spectral phase table over tableWavelengthsM |
+| `amplitudeTable` | number or array |  |  | Amplitude transmission table over tableWavelengthsM |
+| `tableWavelengthsM` | number or array | m |  | Wavelengths of the tables |
+| `windowS` | number | s | 0 | Acoustic window: components whose programmed group delay is outside +-window/2 are not diffracted (0 = unlimited) |
+| `efficiency` | number |  | 1 | Diffraction efficiency (power) |
+| `replicaAmplitude` | number |  | 0 | Spurious replica: H x (1 + a exp(i omega tau)) |
+| `replicaDelayS` | number | s | 0 | Delay of the spurious replica |
+
 ### `aperture`
 
 A hard or soft aperture (clips; acts on a carried transverse profile). More: [system-file.md](system-file.md)
@@ -282,6 +301,30 @@ A spectral filter: any filter model (transmission and phase). More: [system-file
 | `filter` | model (filter) |  |  | Filter model |
 | `model` | model (filter) |  |  | Filter model (alternative key) |
 | `mechanism` | string |  | filter | Name of the loss in the budget |
+
+### `deformableMirror` — plugin: ao
+
+A parametric deformable mirror on the carried transverse profile: actuator layout, Gaussian influence function, stroke limit, drive quantisation. Compiles to a modulator with an optical-path (achromatic) map. Generic: no vendor data. More: [plugins/ao.md#deformablemirror](../plugins/ao.md#deformablemirror)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `layout` | `"square"` \| `"hex"` \| `"ring"` \| `"explicit"` |  | square | Actuator layout |
+| `actuatorsX` | integer |  |  | Actuators along x (square), per row (hex) |
+| `actuatorsY` | integer |  | actuatorsX | Actuators along y (square), rows (hex) |
+| `ringCounts` | number or array |  |  | ring layout: actuators on ring k (radius k pitch); the first entry is the centre actuator count |
+| `positionsXM` | number or array | m |  | explicit layout: actuator x positions |
+| `positionsYM` | number or array | m |  | explicit layout: actuator y positions |
+| `pitchM` | number | m |  | Actuator pitch **Required.** |
+| `commandsM` | any | m | 0 | Surface displacement per actuator, positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout |
+| `influenceCoupling` | number |  | 0.15 | Surface value at a neighbouring actuator when one actuator is driven (Gaussian influence function exp(ln(c) (r/pitch)^2)) |
+| `strokeM` | number | m | unlimited | Mechanical stroke limit (commands are clipped to +-strokeM) |
+| `driveBits` | integer |  | 0 | Drive resolution in bits over +-strokeM (needs strokeM); 0 = continuous |
+| `incidenceAngleRad` | number | rad | 0 | Angle of incidence; the wavefront changes by 2 cos(aoi) times the surface |
+| `clearApertureRadiusM` | number | m | 0 | Radius of the circular clear aperture (0 = the actuator footprint) |
+| `marginPitches` | number |  | 0.5 | Border around the outermost actuators, in pitches |
+| `reflectivity` | number |  | 1 | Power reflectivity |
+| `samplesPerActuator` | integer |  | 4 | Surface cells per actuator pitch along x and y |
+| `designWavelengthM` | number | m | the carrier | Wavelength at which the optical path becomes a phase |
 
 ### `delay`
 
@@ -778,6 +821,62 @@ Also accepts: `absorberParams` (see *Common key groups*).
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `absorber` | model (absorber) |  |  | Absorber model (kind slow / fast / kerrLens and its parameters), or the parameters directly on the element |
+
+### `slm` — plugin: ao
+
+A parametric phase-only liquid-crystal spatial light modulator: pixels, fill factor, grey levels through a voltage-to-phase curve, dispersive birefringence, fringing cross-talk. Compiles to a modulator. Generic: no vendor data. More: [plugins/ao.md#slm](../plugins/ao.md#slm)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `pixelsX` | integer |  | from the map | Pixels along x |
+| `pixelsY` | integer |  | from the map | Pixels along y |
+| `pitchM` | number | m |  | Pixel pitch **Required.** |
+| `pitchYM` | number | m | pitchM | Pixel pitch along y |
+| `offsetXM` | number | m | 0 | Centre of the panel in x |
+| `offsetYM` | number | m | 0 | Centre of the panel in y |
+| `rotationRad` | number | rad | 0 | Rotation of the panel |
+| `fillFactor` | number |  | 1 | Active fraction of the pitch (0-1] |
+| `gapTransmission` | number |  | 0 | Amplitude transmission of the gaps |
+| `outsideTransmission` | number |  | 0 | Amplitude transmission outside the panel |
+| `greyLevels` | integer |  | 256 | Number of grey levels |
+| `lutKind` | `"linear"` \| `"tanh"` \| `"table"` |  | linear | Voltage-to-phase curve: linear (maxPhaseRad k / levels), tanh (S-shaped, lutSteepness) or table (lutPhaseRad) |
+| `maxPhaseRad` | number | rad | 2 pi | Phase range of the curve at the design wavelength |
+| `lutSteepness` | number |  | 2 | tanh curve steepness |
+| `lutPhaseRad` | number or array | rad |  | table curve: phase of each grey level (non-decreasing) |
+| `greyLevel` | any |  |  | Grey level of each pixel [pixelsX][pixelsY] |
+| `phaseTargetRad` | any | rad |  | Wanted phase [pixelsX][pixelsY]: wrapped to 2 pi and mapped to the nearest grey level of the curve |
+| `file` | string |  |  | NPZ with grey_level or phase_target_rad [pixelsX][pixelsY]; relative to the system file |
+| `designWavelengthM` | number | m | the carrier | Wavelength at which the curve holds |
+| `dispersion` | `"liquidCrystal"` \| `"none"` |  | liquidCrystal | liquidCrystal: phase scales with omega dn(omega) (the written 2 pi reset is only 2 pi at the design wavelength); none: an achromatic optical path |
+| `deltaIndexCauchy` | number or array |  |  | Birefringence dn = A + B/lambda^2 + C/lambda^4 as [A, B (m^2), C (m^4)]; default a GENERIC nematic preset (unverified) |
+| `crosstalkSigmaCells` | number |  | 0 | Gaussian fringing-field cross-talk, standard deviation in pixels |
+| `crosstalkKernel` | number or array |  |  | Explicit cross-talk kernel (odd length, non-negative) |
+| `zeroOrderLeak` | number |  | 0 | Amplitude fraction that passes unmodulated |
+
+### `spectralShaper` — plugin: ao
+
+A pixelated spectral phase / amplitude mask in the Fourier plane of a 4f line (1-D SLM pulse shaper), as a linear spectral transfer function. The programmed group delay is kept in the transfer (the pulse moves inside the time window). More: [plugins/ao.md#spectralshaper](../plugins/ao.md#spectralshaper)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `pixels` | integer |  |  | Number of pixels **Required.** |
+| `pixelPitchM` | number | m |  | Pixel pitch **Required.** |
+| `fillFactor` | number |  | 1 | Active fraction of the pitch (0-1] |
+| `gapTransmission` | number |  | 0 | Amplitude transmission of the gaps |
+| `outsideTransmission` | number |  | 0 | Amplitude transmission beyond the array |
+| `centerWavelengthM` | number | m | the carrier | Wavelength at the centre of the array |
+| `offsetM` | number | m | 0 | Position of the array centre relative to the centre wavelength's focus |
+| `dispersionMPerM` | number |  | from the grating | Focal-plane position per wavelength (m of position per m of wavelength; 1e3 = 1 mm/nm) |
+| `gratingLinesPerMm` | number | 1/mm |  | Grating line density |
+| `incidenceAngleRad` | number | rad | 0 | Angle of incidence on the grating |
+| `order` | number |  | 1 | Diffraction order |
+| `focalLengthM` | number | m |  | Focal length of the 4f lens |
+| `spotRadiusM` | number | m | lambda f / (pi inputBeamRadiusM) | 1/e^2 field radius of the focused monochromatic spot |
+| `inputBeamRadiusM` | number | m |  | Beam radius at the grating (sets the spot size) |
+| `phaseRad` | any | rad | 0 | Phase per pixel |
+| `amplitude` | any |  | 1 | Amplitude transmission per pixel |
+| `phaseWrapRad` | number | rad | 2 pi | Wrap the phase to [0, phaseWrapRad); 0 = no wrapping |
+| `greyLevels` | integer |  | 0 | Phase levels over 2 pi; 0 = continuous |
 
 ### `thinFilmPolarizer` (also `tfp`)
 

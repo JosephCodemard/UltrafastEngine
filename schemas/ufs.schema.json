@@ -1059,6 +1059,227 @@
       },
       "additionalProperties": false
     },
+    "element.aopdf": {
+      "type": "object",
+      "description": "An acousto-optic programmable dispersive filter: programmed spectral phase (delay, GDD, TOD, FOD or a table), finite acoustic window, diffraction efficiency, amplitude table and a spurious replica. (docs/plugins/ao.md#aopdf) [plugin: ao]",
+      "properties": {
+        "centerWavelengthM": {
+          "type": "number",
+          "description": "Wavelength at which the polynomial phase is expanded [m] Default: the carrier."
+        },
+        "delayFs": {
+          "type": "number",
+          "description": "Group delay at the centre [fs] Default: 0."
+        },
+        "gddFs2": {
+          "type": "number",
+          "description": "Group-delay dispersion [fs^2] Default: 0."
+        },
+        "todFs3": {
+          "type": "number",
+          "description": "Third-order dispersion [fs^3] Default: 0."
+        },
+        "fodFs4": {
+          "type": "number",
+          "description": "Fourth-order dispersion [fs^4] Default: 0."
+        },
+        "spectralPhaseRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Extra spectral phase table over tableWavelengthsM [rad]"
+        },
+        "amplitudeTable": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Amplitude transmission table over tableWavelengthsM"
+        },
+        "tableWavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of the tables [m]"
+        },
+        "windowS": {
+          "type": "number",
+          "description": "Acoustic window: components whose programmed group delay is outside +-window/2 are not diffracted (0 = unlimited) [s] Default: 0."
+        },
+        "efficiency": {
+          "type": "number",
+          "description": "Diffraction efficiency (power) Default: 1."
+        },
+        "replicaAmplitude": {
+          "type": "number",
+          "description": "Spurious replica: H x (1 + a exp(i omega tau)) Default: 0."
+        },
+        "replicaDelayS": {
+          "type": "number",
+          "description": "Delay of the spurious replica [s] Default: 0."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.aperture": {
       "type": "object",
       "description": "A hard or soft aperture (clips; acts on a carried transverse profile). (docs/reference/elements.md#aperture)",
@@ -2913,6 +3134,248 @@
           "description": "Free text."
         }
       },
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.deformableMirror": {
+      "type": "object",
+      "description": "A parametric deformable mirror on the carried transverse profile: actuator layout, Gaussian influence function, stroke limit, drive quantisation. Compiles to a modulator with an optical-path (achromatic) map. Generic: no vendor data. (docs/plugins/ao.md#deformablemirror) [plugin: ao]",
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": ["square", "hex", "ring", "explicit"],
+          "description": "Actuator layout Default: square."
+        },
+        "actuatorsX": {
+          "type": "integer",
+          "description": "Actuators along x (square), per row (hex)"
+        },
+        "actuatorsY": {
+          "type": "integer",
+          "description": "Actuators along y (square), rows (hex) Default: actuatorsX."
+        },
+        "ringCounts": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "ring layout: actuators on ring k (radius k pitch); the first entry is the centre actuator count"
+        },
+        "positionsXM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "explicit layout: actuator x positions [m]"
+        },
+        "positionsYM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "explicit layout: actuator y positions [m]"
+        },
+        "pitchM": {
+          "type": "number",
+          "description": "Actuator pitch [m]"
+        },
+        "commandsM": {
+          "description": "Surface displacement per actuator, positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout [m] Default: 0."
+        },
+        "influenceCoupling": {
+          "type": "number",
+          "description": "Surface value at a neighbouring actuator when one actuator is driven (Gaussian influence function exp(ln(c) (r/pitch)^2)) Default: 0.15."
+        },
+        "strokeM": {
+          "type": "number",
+          "description": "Mechanical stroke limit (commands are clipped to +-strokeM) [m] Default: unlimited."
+        },
+        "driveBits": {
+          "type": "integer",
+          "description": "Drive resolution in bits over +-strokeM (needs strokeM); 0 = continuous Default: 0."
+        },
+        "incidenceAngleRad": {
+          "type": "number",
+          "description": "Angle of incidence; the wavefront changes by 2 cos(aoi) times the surface [rad] Default: 0."
+        },
+        "clearApertureRadiusM": {
+          "type": "number",
+          "description": "Radius of the circular clear aperture (0 = the actuator footprint) [m] Default: 0."
+        },
+        "marginPitches": {
+          "type": "number",
+          "description": "Border around the outermost actuators, in pitches Default: 0.5."
+        },
+        "reflectivity": {
+          "type": "number",
+          "description": "Power reflectivity Default: 1."
+        },
+        "samplesPerActuator": {
+          "type": "integer",
+          "description": "Surface cells per actuator pitch along x and y Default: 4."
+        },
+        "designWavelengthM": {
+          "type": "number",
+          "description": "Wavelength at which the optical path becomes a phase [m] Default: the carrier."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["pitchM"],
       "patternProperties": {
         "^_": {}
       },
@@ -9831,6 +10294,490 @@
       },
       "additionalProperties": false
     },
+    "element.slm": {
+      "type": "object",
+      "description": "A parametric phase-only liquid-crystal spatial light modulator: pixels, fill factor, grey levels through a voltage-to-phase curve, dispersive birefringence, fringing cross-talk. Compiles to a modulator. Generic: no vendor data. (docs/plugins/ao.md#slm) [plugin: ao]",
+      "properties": {
+        "pixelsX": {
+          "type": "integer",
+          "description": "Pixels along x Default: from the map."
+        },
+        "pixelsY": {
+          "type": "integer",
+          "description": "Pixels along y Default: from the map."
+        },
+        "pitchM": {
+          "type": "number",
+          "description": "Pixel pitch [m]"
+        },
+        "pitchYM": {
+          "type": "number",
+          "description": "Pixel pitch along y [m] Default: pitchM."
+        },
+        "offsetXM": {
+          "type": "number",
+          "description": "Centre of the panel in x [m] Default: 0."
+        },
+        "offsetYM": {
+          "type": "number",
+          "description": "Centre of the panel in y [m] Default: 0."
+        },
+        "rotationRad": {
+          "type": "number",
+          "description": "Rotation of the panel [rad] Default: 0."
+        },
+        "fillFactor": {
+          "type": "number",
+          "description": "Active fraction of the pitch (0-1] Default: 1."
+        },
+        "gapTransmission": {
+          "type": "number",
+          "description": "Amplitude transmission of the gaps Default: 0."
+        },
+        "outsideTransmission": {
+          "type": "number",
+          "description": "Amplitude transmission outside the panel Default: 0."
+        },
+        "greyLevels": {
+          "type": "integer",
+          "description": "Number of grey levels Default: 256."
+        },
+        "lutKind": {
+          "type": "string",
+          "enum": ["linear", "tanh", "table"],
+          "description": "Voltage-to-phase curve: linear (maxPhaseRad k / levels), tanh (S-shaped, lutSteepness) or table (lutPhaseRad) Default: linear."
+        },
+        "maxPhaseRad": {
+          "type": "number",
+          "description": "Phase range of the curve at the design wavelength [rad] Default: 2 pi."
+        },
+        "lutSteepness": {
+          "type": "number",
+          "description": "tanh curve steepness Default: 2."
+        },
+        "lutPhaseRad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "table curve: phase of each grey level (non-decreasing) [rad]"
+        },
+        "greyLevel": {
+          "description": "Grey level of each pixel [pixelsX][pixelsY]"
+        },
+        "phaseTargetRad": {
+          "description": "Wanted phase [pixelsX][pixelsY]: wrapped to 2 pi and mapped to the nearest grey level of the curve [rad]"
+        },
+        "file": {
+          "type": "string",
+          "description": "NPZ with grey_level or phase_target_rad [pixelsX][pixelsY]; relative to the system file"
+        },
+        "designWavelengthM": {
+          "type": "number",
+          "description": "Wavelength at which the curve holds [m] Default: the carrier."
+        },
+        "dispersion": {
+          "type": "string",
+          "enum": ["liquidCrystal", "none"],
+          "description": "liquidCrystal: phase scales with omega dn(omega) (the written 2 pi reset is only 2 pi at the design wavelength); none: an achromatic optical path Default: liquidCrystal."
+        },
+        "deltaIndexCauchy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Birefringence dn = A + B/lambda^2 + C/lambda^4 as [A, B (m^2), C (m^4)]; default a GENERIC nematic preset (unverified)"
+        },
+        "crosstalkSigmaCells": {
+          "type": "number",
+          "description": "Gaussian fringing-field cross-talk, standard deviation in pixels Default: 0."
+        },
+        "crosstalkKernel": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Explicit cross-talk kernel (odd length, non-negative)"
+        },
+        "zeroOrderLeak": {
+          "type": "number",
+          "description": "Amplitude fraction that passes unmodulated Default: 0."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["pitchM"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
+    "element.spectralShaper": {
+      "type": "object",
+      "description": "A pixelated spectral phase / amplitude mask in the Fourier plane of a 4f line (1-D SLM pulse shaper), as a linear spectral transfer function. The programmed group delay is kept in the transfer (the pulse moves inside the time window). (docs/plugins/ao.md#spectralshaper) [plugin: ao]",
+      "properties": {
+        "pixels": {
+          "type": "integer",
+          "description": "Number of pixels"
+        },
+        "pixelPitchM": {
+          "type": "number",
+          "description": "Pixel pitch [m]"
+        },
+        "fillFactor": {
+          "type": "number",
+          "description": "Active fraction of the pitch (0-1] Default: 1."
+        },
+        "gapTransmission": {
+          "type": "number",
+          "description": "Amplitude transmission of the gaps Default: 0."
+        },
+        "outsideTransmission": {
+          "type": "number",
+          "description": "Amplitude transmission beyond the array Default: 0."
+        },
+        "centerWavelengthM": {
+          "type": "number",
+          "description": "Wavelength at the centre of the array [m] Default: the carrier."
+        },
+        "offsetM": {
+          "type": "number",
+          "description": "Position of the array centre relative to the centre wavelength's focus [m] Default: 0."
+        },
+        "dispersionMPerM": {
+          "type": "number",
+          "description": "Focal-plane position per wavelength (m of position per m of wavelength; 1e3 = 1 mm/nm) Default: from the grating."
+        },
+        "gratingLinesPerMm": {
+          "type": "number",
+          "description": "Grating line density [1/mm]"
+        },
+        "incidenceAngleRad": {
+          "type": "number",
+          "description": "Angle of incidence on the grating [rad] Default: 0."
+        },
+        "order": {
+          "type": "number",
+          "description": "Diffraction order Default: 1."
+        },
+        "focalLengthM": {
+          "type": "number",
+          "description": "Focal length of the 4f lens [m]"
+        },
+        "spotRadiusM": {
+          "type": "number",
+          "description": "1/e^2 field radius of the focused monochromatic spot [m] Default: lambda f / (pi inputBeamRadiusM)."
+        },
+        "inputBeamRadiusM": {
+          "type": "number",
+          "description": "Beam radius at the grating (sets the spot size) [m]"
+        },
+        "phaseRad": {
+          "description": "Phase per pixel [rad] Default: 0."
+        },
+        "amplitude": {
+          "description": "Amplitude transmission per pixel Default: 1."
+        },
+        "phaseWrapRad": {
+          "type": "number",
+          "description": "Wrap the phase to [0, phaseWrapRad); 0 = no wrapping [rad] Default: 2 pi."
+        },
+        "greyLevels": {
+          "type": "integer",
+          "description": "Phase levels over 2 pi; 0 = continuous Default: 0."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique id"
+        },
+        "type": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "false skips the element Default: true."
+        },
+        "next": {
+          "description": "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)"
+        },
+        "inputs": {
+          "description": "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)"
+        },
+        "loop": {
+          "description": "Branched systems: on the element where light enters a loop: kind (\"ringDown\", \"steadyState\"), maxRoundTrips, tolerance (docs/reference/branches.md)"
+        },
+        "surfaces": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "[first, last] source surfaces (OpticStudio rows), informational"
+        },
+        "wavelengthsM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"
+        },
+        "indexProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "absorptionProfile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "n2Scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["callback", "constant", "expression", "gaussian", "superGaussian", "table"]
+                }
+              }
+            },
+            {
+              "type": "array"
+            }
+          ],
+          "description": "Position-dependent factor on n2 A model: a number, a name / \"@callback\" / expression string, or an object with \"kind\" (callback, constant, expression, gaussian, superGaussian, table)."
+        },
+        "params": {
+          "description": "Free parameters (expressions, user elements)"
+        },
+        "comment": {
+          "description": "Free text."
+        },
+        "description": {
+          "description": "Free text."
+        },
+        "notes": {
+          "description": "Free text."
+        }
+      },
+      "required": ["pixels", "pixelPitchM"],
+      "patternProperties": {
+        "^_": {}
+      },
+      "additionalProperties": false
+    },
     "element.thinFilmPolarizer": {
       "type": "object",
       "description": "Thin-film polariser at its design angle: physical quarter-wave stack (TMM) or ideal, transmitted (p) or reflected (s) port. (docs/reference/components.md#thin-film-polarisers)",
@@ -11695,7 +12642,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["aberration", "amplifier", "aperture", "beamSplitter", "bulk", "chirpedMirror", "crystal", "custom", "delay", "dichroic", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "leakMirror", "lens", "marker", "mask", "medium", "mirror", "modulator", "ndFilter", "oscillator", "plate", "polarizer", "polarizingSplitter", "prism", "probe", "resonator", "rotator", "saturableAbsorber", "sesam", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
+          "enum": ["aberration", "amplifier", "aopdf", "aperture", "beamSplitter", "bulk", "chirpedMirror", "crystal", "custom", "deformableMirror", "delay", "dichroic", "dispersion", "faraday", "faradayRotator", "fiber", "fibre", "filter", "gain", "gap", "grating", "gratingPair", "interface", "leakMirror", "lens", "marker", "mask", "medium", "mirror", "modulator", "ndFilter", "oscillator", "plate", "polarizer", "polarizingSplitter", "prism", "probe", "resonator", "rotator", "saturableAbsorber", "sesam", "slm", "spectralShaper", "surface", "tfp", "thinFilmPolarizer", "transform", "user", "wavefront", "waveguide", "waveplate", "window"],
           "description": "Element type."
         }
       },
@@ -11711,6 +12658,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.amplifier"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["aopdf"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.aopdf"
           }
         },
         {
@@ -11789,6 +12749,19 @@
           },
           "then": {
             "$ref": "#/definitions/element.custom"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["deformableMirror"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.deformableMirror"
           }
         },
         {
@@ -12127,6 +13100,32 @@
           },
           "then": {
             "$ref": "#/definitions/element.saturableAbsorber"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["slm"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.slm"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["spectralShaper"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/definitions/element.spectralShaper"
           }
         },
         {
