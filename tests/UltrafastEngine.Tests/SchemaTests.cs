@@ -86,7 +86,7 @@ namespace UltrafastEngine.Tests
 
         /// <summary>The committed schemas/ and docs/reference/options.md are what the engine generates
         /// (regenerate with ultrafast schema / ultrafast reference).</summary>
-        private static readonly string[] Shipped = { "core", "fitting", "zemax" };
+        private static readonly string[] Shipped = { "core", "fitting", "zemax", "ao" };
 
         [Test(Category = "schema")]
         public void CommittedSchemasAndReference_AreUpToDate()
