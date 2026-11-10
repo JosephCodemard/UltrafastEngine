@@ -188,18 +188,22 @@ def modulator(id: str, pitch_m: float, *, phase_rad: Any = None, opd_m: Any = No
               offset_y_m: Optional[float] = None, rotation_rad: Optional[float] = None, design_wavelength_m: Optional[float] = None,
               chromatic: Optional[str] = None, fill_factor: Optional[float] = None, gap_transmission: Optional[float] = None,
               outside_transmission: Optional[float] = None, zero_order_leak: Optional[float] = None, crosstalk_sigma_cells: Optional[float] = None,
-              quantisation_levels: Optional[int] = None, phase_wrap_rad: Optional[float] = None, **extra) -> "T.ModulatorElement":
+              quantisation_levels: Optional[int] = None, phase_wrap_rad: Optional[float] = None, crosstalk_kernel: Any = None,
+              delta_index_cauchy: Any = None, delta_index: Any = None, delta_index_wavelengths_m: Any = None, **extra) -> "T.ModulatorElement":
     """A pixelated thin phase / amplitude modulator (SLM, deformable-mirror surface, tile mask) on the carried transverse profile
     (docs/reference/modulator.md). ``phase_rad`` (the phase at ``design_wavelength_m``) or ``opd_m`` (an optical path) and ``amplitude`` are
     arrays of shape [cells_x][cells_y] (numpy arrays are converted), a ``"@name"`` callback f(x, y, z) -> values evaluated at the cell centres
     (pass it with ``uf.run(..., fields={"name": f})``: no file, no JSON for a 1920 x 1080 map), or ``file`` (NPZ phase_rad / opd_m / amplitude).
-    ``chromatic``: "opd" (default; a wrapped map is a grating) or "fixedPhase"."""
+    ``chromatic``: "opd" (default, also "phaseAtDesign"; a wrapped map is a grating), "fixedPhase" (the phase does not change with frequency) or
+    "index" (a liquid-crystal cell: the phase scales as omega dn(omega); give ``delta_index_cauchy`` = [A, B_m2, C_m4] or a table ``delta_index``
+    over ``delta_index_wavelengths_m``). ``crosstalk_kernel``: explicit odd-length cross-talk weights in cells (overrides ``crosstalk_sigma_cells``)."""
     return _clean({"id": id, "type": "modulator", "pitchXM": pitch_m, "pitchYM": pitch_y_m, "cellsX": cells_x, "cellsY": cells_y,
                    "phaseRad": _plain(phase_rad), "opdM": _plain(opd_m), "amplitude": _plain(amplitude), "file": file, "offsetXM": offset_x_m,
                    "offsetYM": offset_y_m, "rotationRad": rotation_rad, "designWavelengthM": design_wavelength_m, "chromatic": chromatic,
                    "fillFactor": fill_factor, "gapTransmission": gap_transmission, "outsideTransmission": outside_transmission,
                    "zeroOrderLeak": zero_order_leak, "crosstalkSigmaCells": crosstalk_sigma_cells, "quantisationLevels": quantisation_levels,
-                   "phaseWrapRad": phase_wrap_rad, **extra})
+                   "phaseWrapRad": phase_wrap_rad, "crosstalkKernel": _plain(crosstalk_kernel), "deltaIndexCauchy": _plain(delta_index_cauchy),
+                   "deltaIndex": _plain(delta_index), "deltaIndexWavelengthsM": _plain(delta_index_wavelengths_m), **extra})
 
 
 def tiles_profile(tile_radius_m: float, *, layout: str = "square", pitch_m: Optional[float] = None, count: Optional[int] = None,
@@ -433,14 +437,14 @@ def user(id: str, callback: str, params: Optional[Mapping[str, Any]] = None, len
 def transverse(model: str = "radial", points: Optional[int] = None, radius_m: Optional[float] = None,
                nx: Optional[int] = None, ny: Optional[int] = None, half_width_m: Optional[float] = None,
                transport: Optional[str] = None, initial_profile: Optional[Mapping[str, Any]] = None, *,
-               absorbing_boundary: Any = None, spectral_samples: Optional[int] = None, **extra) -> dict:
+               absorbing_boundary: Any = None, spectral_samples: Optional[int] = None, frequency_block: Optional[int] = None, **extra) -> dict:
     """Transverse (spatial) model for an element: "radial" (Hankel) or "cartesian" (x-y FFT). ``absorbing_boundary`` (True, or
     {"widthFraction": 0.15}) absorbs light leaving the grid in linear elements instead of reflecting / wrapping it (booked as "grid
     boundary"); ``spectral_samples`` (48) is the number of frequencies at which the profile is stored -- fewer is faster for narrowband
-    pulses."""
+    pulses; ``frequency_block`` streams linear propagation over the stored frequencies in blocks of that many (same result; saves memory for blocks under half the stored frequencies)."""
     return _clean({"model": model, "points": points, "radiusM": radius_m, "nx": nx, "ny": ny, "halfWidthM": half_width_m,
                    "transport": transport, "initialProfile": initial_profile, "absorbingBoundary": absorbing_boundary,
-                   "spectralSamples": spectral_samples, **extra})
+                   "spectralSamples": spectral_samples, "frequencyBlock": frequency_block, **extra})
 
 
 def initial_profile(kind: str = "gaussian", *, order: Optional[int] = None, radius_m: Optional[float] = None, geometry: Optional[str] = None,

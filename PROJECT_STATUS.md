@@ -3,13 +3,13 @@
 What is verified, where, and what is not checked yet. Capabilities and limits: [docs/capabilities.md](docs/capabilities.md).
 What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
-## Verified (latest full run, macOS arm64, .NET 10, Python 3.12, 2026-11-09)
+## Verified (latest full run, macOS arm64, .NET 10, Python 3.12, 2026-11-10)
 
 | check | result |
 |---|---|
 | `dotnet build UltrafastEngine.sln -c Release` (net10.0 and net48) | 0 errors; the only warning is the expected missing ZOS-API (the Zemax binding then builds against stubs) |
-| C# tests, `--slow` | **468 pass, 0 fail, 8 skipped** (7 `GpuTests` without a GPU device; the opt-in HAPI test) |
-| Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **173 pass, 1 skipped** |
+| C# tests, `--slow` | **508 pass, 0 fail, 9 skipped** (8 `GpuTests` without a GPU device; the opt-in HAPI test) |
+| Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **176 pass, 1 skipped** |
 | Component tests (`tests/components/run_all.py`: 10 families covering linear optics, splitters, polarisation, crystals, nonlinear media, spatial components, instruments) | **1688 / 1691 checks** pass against analytic answers; **3 are marked KNOWN** (a 1.5-cycle pulse broadened to zero frequency at 2 µm / 10 fs, reported by a warning), 0 fail |
 | Paper replications (`build/paper_check.py`) | 12 folders, 0 hard failures (fast tier); each README ends with *How well the science matched*; the soft checks mark what does not reproduce ([index](docs/papers/README.md)) |
 | Examples and tutorials (`build/example_check.py`, strict options) | 0 problems (46 example folders in 11 groups, 23 with a committed figure); the C++ example and the OpticStudio export (`Interop/`) are manual |

@@ -153,6 +153,7 @@ Files written by the CLI / WriteAll.
 | `npz` | boolean |  | true | result.npz |
 | `csv` | boolean |  | true | CSV files |
 | `maxPoints` | integer |  | 0 | Cap exported traces (0 = full grid incl. complex fields) |
+| `keepProfiles` | `"all"` \| `"used"` |  | all | Transverse profiles kept in the result: all (after every element) or used (only where an instrument or the end reads one, and before such an element); used saves memory on large grids |
 
 ## Elements
 
@@ -612,12 +613,16 @@ A pixelated thin phase / amplitude modulator (spatial light modulator, deformabl
 | `amplitude` | any |  | 1 | Amplitude transmission per cell (same forms) |
 | `file` | string |  |  | NPZ with phase_rad or opd_m, and amplitude, shaped [cellsX][cellsY]; relative to the system file |
 | `designWavelengthM` | number | m | the carrier | Wavelength at which phaseRad holds |
-| `chromatic` | `"opd"` \| `"fixedPhase"` |  | opd | opd: the written phase is an optical path, phase = phaseRad * omega / omega_design (a wrapped map is a grating); fixedPhase: the phase does not change with frequency |
+| `chromatic` | `"opd"` \| `"phaseAtDesign"` \| `"fixedPhase"` \| `"index"` |  | opd | opd (also phaseAtDesign): the written phase is an optical path, phase = phaseRad * omega / omega_design (a wrapped map is a grating); fixedPhase: the phase does not change with frequency; index: phase = phaseRad * omega dn(omega) / (omega_design dn(omega_design)), a liquid-crystal cell with a dispersive index modulation dn |
+| `deltaIndexCauchy` | number or array |  |  | chromatic index: dn = A + B / lambda^2 + C / lambda^4 as [A, B (m^2), C (m^4)]; only the ratio dn(lambda) / dn(design) matters |
+| `deltaIndex` | number or array |  |  | chromatic index: a table of dn (linear in lambda between points), with deltaIndexWavelengthsM |
+| `deltaIndexWavelengthsM` | number or array | m |  | Wavelengths of the deltaIndex table |
 | `fillFactor` | number |  | 1 | Active fraction of the pitch in x and y (0-1] |
 | `gapTransmission` | number |  | 0 | Amplitude transmission of the gaps |
 | `outsideTransmission` | number |  | 0 | Amplitude transmission outside the array |
 | `zeroOrderLeak` | number |  | 0 | Amplitude fraction eta that passes unmodulated (phase 0) inside active cells: t = a [(1 - eta) e^(i phi) + eta]; a flat map stays lossless |
-| `crosstalkSigmaCells` | number |  | 0 | Gaussian fringing-field cross-talk, standard deviation in cells (applied to the written phase) |
+| `crosstalkSigmaCells` | number |  | 0 | Gaussian fringing-field cross-talk, standard deviation in cells (applied to the written phase and amplitude) |
+| `crosstalkKernel` | number or array |  |  | Explicit cross-talk kernel in cells (odd length, centre weight in the middle, normalised to unit sum), applied along x and along y to the written phase and amplitude; overrides crosstalkSigmaCells; weights must be >= 0 |
 | `quantisationLevels` | integer |  | 0 | Phase levels over phaseWrapRad (2 pi if that is 0); 0 = continuous |
 | `phaseWrapRad` | number | rad | 0 | Wrap the commanded phase to [0, phaseWrapRad); 0 = no wrapping |
 
@@ -1967,6 +1972,7 @@ Spatial model of an element (docs/reference/spatial-models.md).
 | `polarization` | `"auto"` \| `"scalar"` \| `"vector"` |  | auto | Jones (vector) fields on the grid: auto = when the beam carries a y component |
 | `equation` | `"envelope"` \| `"uppe"` |  | envelope | Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) |
 | `spectralSamples` | integer |  | 48 | Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses |
+| `frequencyBlock` | integer |  | 0 | Streaming: a linear spatial element propagates the stored frequencies in blocks of this many, so its propagator holds a block instead of all of them and a block-sized work buffer is added (saves memory for blocks under half the stored frequencies); the result does not depend on it. 0 = all at once |
 | `absorbingBoundary` | any |  | false | Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) |
 
 ## Model kinds

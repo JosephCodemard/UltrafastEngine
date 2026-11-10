@@ -169,7 +169,8 @@ namespace UltrafastEngine.Schema
                 .Int("maxSteps", "Step limit per element").Int("steps", "Fixed number of steps (rk4ip)"));
             add(new ComponentSpec("outputs", "", "Files written by the CLI / WriteAll.")
                 .Bool("json", "summary.json and provenance.json", "true").Bool("npz", "result.npz", "true").Bool("csv", "CSV files", "true")
-                .Int("maxPoints", "Cap exported traces (0 = full grid incl. complex fields)", "0"));
+                .Int("maxPoints", "Cap exported traces (0 = full grid incl. complex fields)", "0")
+                .Enum("keepProfiles", new[] { "all", "used" }, "Transverse profiles kept in the result: all (after every element) or used (only where an instrument or the end reads one, and before such an element); used saves memory on large grids", "all"));
             add(new ComponentSpec("transverse", "", "Spatial model of an element (docs/reference/spatial-models.md).")
                 .Enum("model", new[] { "none", "radial", "cartesian" }, "Representation", "none")
                 .Int("points", "Radial samples (cartesian: nx = ny if omitted)", "64")
@@ -183,6 +184,7 @@ namespace UltrafastEngine.Schema
                 .Enum("polarization", new[] { "auto", "scalar", "vector" }, "Jones (vector) fields on the grid: auto = when the beam carries a y component", "auto")
                 .Enum("equation", new[] { "envelope", "uppe" }, "Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave)", "envelope")
                 .Int("spectralSamples", "Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses", "48")
+                .Int("frequencyBlock", "Streaming: a linear spatial element propagates the stored frequencies in blocks of this many, so its propagator holds a block instead of all of them and a block-sized work buffer is added (saves memory for blocks under half the stored frequencies); the result does not depend on it. 0 = all at once", "0")
                 .P("absorbingBoundary", ParamType.Any, "", "Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures)", "false"));
             add(new ComponentSpec("initialProfile", "", "Initial transverse field.")
                 .Enum("kind", new[] { "gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured", "tiles" }, "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file)", "gaussian")

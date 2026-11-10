@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Numerics;
 using UltrafastEngine.Results;
 using UltrafastEngine.Serialization;
 using UltrafastEngine.Specs;
@@ -32,7 +33,7 @@ namespace UltrafastEngine.Tests
         private static JsonObject Mod(JsonArray phase, params object[] extra)
         {
             var o = O("id", "mod", "type", "modulator", "pitchXM", Pitch, "pitchYM", 1.0, "phaseRad", phase, "designWavelengthM", Lam, "offsetXM", 0.5 * Dx);   // device edges on grid-cell edges: every grid cell lies in one device cell
-            for (int i = 0; i < extra.Length; i += 2) o.Set((string)extra[i], (JsonValue)(dynamic)extra[i + 1]);
+            foreach (var kv in O(extra)) o.Set(kv.Key, kv.Value);
             return o;
         }
         private static double X(int i) => (i - (Cells - 1) / 2.0) * Pitch;
@@ -184,6 +185,28 @@ namespace UltrafastEngine.Tests
             Assert.Close(0, Mean("slope_y_rad"), 0, 2e-5, "slope y");
         }
 
+        [Test(Reference = "wavefront sensor slope maps of a diverging beam (radius of curvature R): W = r^2 / (2 R lambda), so lambda dW/dx = x / R and lambda dW/dy = y / R", Tolerance = "2 % of 1/R")]
+        public void WavefrontSensor_SlopeMaps_OfADefocusedBeam_AreLinear()
+        {
+            double R = 1.0, w = 1e-3;          // the wavefront step between lenslets (167 um) stays under pi out to 2 w
+            var grid = O("model", "cartesian", "nx", 128, "ny", 128, "halfWidthM", 4e-3, "spectralSamples", 1,
+                         "initialProfile", O("kind", "gaussian", "radiusM", w, "radiusOfCurvatureM", R));
+            var r = Go(Sys(O("id", "src", "type", "gap", "lengthM", 0.0, "material", "Vacuum", "transverse", grid)),
+                       Spec(Gauss(Lam, 1e-12, 1e-3), O("instruments", A(O("kind", "wavefrontSensor", "name", "wfs", "at", "src", "pixels", 48)))));
+            var wfs = r.Instruments.First(i => i.Name == "wfs");
+            double[] G(string n) => wfs.Arrays.First(x => x.Name.EndsWith(n)).Data;
+            var xm = G("x_m"); var ym = G("y_m"); var sx = G("slope_x_rad"); var sy = G("slope_y_rad"); int px = xm.Length, py = ym.Length;
+            double nx = 0, dx = 0, ny = 0, dy = 0;
+            for (int i = 0; i < px; i++) for (int j = 0; j < py; j++)
+            {
+                double a = sx[i * py + j], b = sy[i * py + j];
+                if (!double.IsNaN(a)) { nx += a * xm[i]; dx += xm[i] * xm[i]; }
+                if (!double.IsNaN(b)) { ny += b * ym[j]; dy += ym[j] * ym[j]; }
+            }
+            Assert.Close(1 / R, nx / dx, 0.02, 0, "d slope_x / dx");
+            Assert.Close(1 / R, ny / dy, 0.02, 0, "d slope_y / dy");
+        }
+
         [Test(Reference = "zeroOrderLeak eta: t = a[(1-eta) e^(i phi) + eta] is passive: a flat map transmits exactly 1; a 2-level 0/pi grating with c0 = 0 has zero-order power eta^2 of the light", Tolerance = "1e-9 transmission, 1 % order power")]
         public void ZeroOrderLeak_IsPassive_AndSetsTheZeroOrder()
         {
@@ -207,9 +230,172 @@ namespace UltrafastEngine.Tests
             Assert.Close(0, cells[1].Phase, 0, 1e-9, "phase of the top half-level");
         }
 
+        [Test(Reference = "a quadratic phase -k x^2 / (2 f) is a thin lens: a Gaussian waist w at the device focuses at z = f to lambda f / (pi w) (Siegman, Lasers, ch. 17), as the lens element does", Tolerance = "2 % of the analytic radius, 1 % of the lens element's")]
+        public void QuadraticPhase_FocusesLikeAThinLens()
+        {
+            double k = 2 * Math.PI / Lam, w = 0.3e-3;
+            double Radius(JsonObject optic) => Go(Sys(Source(w), optic, Free("z", F)), Pulse(Lam, Bp("z"))).Instruments.First(i => i.Name == "bp").Values.GetDouble("radiusXM", double.NaN);
+            double rm = Radius(Mod(Map(i => -k * X(i) * X(i) / (2 * F)))), rl = Radius(Lens(F));
+            Assert.Close(Lam * F / (Math.PI * w), rm, 0.02, 0, "modulator lens: analytic focal radius");
+            Assert.Close(rl, rm, 0.01, 0, "modulator lens: the lens element");
+        }
+
+        [Test(Reference = "chromatic index with a constant index modulation dn: phase = phi omega dn / (omega_d dn) = phi omega / omega_d, the opd rule", Tolerance = "1e-12 of the peak")]
+        public void IndexRule_WithConstantDeltaN_IsTheOpdRule()
+        {
+            double lam2 = 1.2e-6; var map = Map(i => 2 * Math.PI * (i % 16) / 16);
+            var a = Arr(Focal(Mod(map, "phaseWrapRad", 2 * Math.PI), lam2), "fluence_x_j_m2");
+            var b = Arr(Focal(Mod(map, "phaseWrapRad", 2 * Math.PI, "chromatic", "index", "deltaIndexCauchy", A(0.2)), lam2), "fluence_x_j_m2");
+            double peak = a.Max();
+            for (int i = 0; i < a.Length; i++) Assert.Close(a[i], b[i], 0, 1e-12 * peak, "pattern");
+        }
+
+        [Test(Reference = "chromatic index: phase(omega) = phi_d alpha with alpha = omega dn(omega) / (omega_d dn(omega_d)) (liquid-crystal SLM, extended Cauchy dn = A + B / lambda^2); the same device as fixedPhase with the map multiplied by alpha; an n-level wrapped blaze then has the first-order efficiency of a staircase of depth 2 pi alpha, |c_1|^2 = |(1/N) sum_k exp(i 2 pi (alpha level_k - k / N))|^2 (direct Fourier coefficient, Goodman sec. 5.2)", Tolerance = "1e-12 of the peak for the equivalence; 1 % efficiency")]
+        public void IndexRule_ScalesThePhaseByTheDispersion_AndSetsTheBlazeEfficiency()
+        {
+            double lam2 = 1.2e-6, A0 = 0.15, B0 = 0.02e-12, k = 2 * Math.PI / Lam;
+            double Dn(double l) => A0 + B0 / (l * l);
+            double alpha = (Lam / lam2) * Dn(lam2) / Dn(Lam);
+            var cauchy = A(A0, B0);
+            // equivalence on an unwrapped ramp (the wrap is applied at the design wavelength, before the chromatic scaling)
+            // and with a cw source at lam2 (alpha is the factor at one frequency)
+            RunResult Cw(JsonObject mod) => Go(Sys(Source(0.3e-3), mod, Lens(F), Free("z", F)), Spec(O("shape", "cw", "centerWavelengthM", lam2, "powerW", 1.0), O("instruments", A(Bp("z")))));
+            var ri = Cw(Mod(Map(i => k * 2e-3 * X(i)), "chromatic", "index", "deltaIndexCauchy", cauchy));
+            double lamCw = 2 * Math.PI * UltrafastEngine.Numerics.PhysicalConstants.SpeedOfLightMPerS / ri.At["src"].Profile.Omega[0];   // the cw line (snapped to its grid)
+            double alphaCw = (Lam / lamCw) * Dn(lamCw) / Dn(Lam);
+            var a = Arr(ri, "fluence_x_j_m2");
+            var b = Arr(Cw(Mod(Map(i => alphaCw * k * 2e-3 * X(i)), "chromatic", "fixedPhase")), "fluence_x_j_m2");
+            double peak = a.Max();
+            for (int i = 0; i < a.Length; i++) Assert.Close(a[i], b[i], 0, 1e-12 * peak, "index = fixedPhase x alpha");
+            // a 16-level blaze at lam2: depth 2 pi alpha (alpha = 0.833 here, against 0.858 for the opd rule)
+            int n = 16;
+            var r = Focal(Mod(Map(i => 2 * Math.PI * (i % n) / n), "phaseWrapRad", 2 * Math.PI, "chromatic", "index", "deltaIndexCauchy", cauchy), lam2);
+            double x1 = lam2 * F / (n * Pitch), eff = Window(Arr(r, "x_m"), Arr(r, "fluence_x_j_m2"), x1, 0.4 * x1, Incident(r));
+            double re = 0, im = 0; int ns = 4 * n;
+            for (int j = 0; j < ns; j++) { double ph = 2 * Math.PI * alpha * (j / 4) / n - 2 * Math.PI * j / ns; re += Math.Cos(ph) / ns; im += Math.Sin(ph) / ns; }
+            Assert.Close(re * re + im * im, eff, 0.01, 0, "first-order efficiency at depth alpha");
+        }
+
+        [Test(Reference = "cross-talk kernel w applied separably to the written map: a single raised cell of phase 1 with w = [1, 2, 1] / 4 gives 1/4, 1/2, 1/4 (discrete convolution); the Gaussian sigma equals the explicit kernel of its weights", Tolerance = "1e-12")]
+        public void CrosstalkKernel_BlursTheWrittenMap_ByDiscreteConvolution()
+        {
+            Complex[] Cells(Action<UltrafastEngine.Optics.ModulatorElement> set)
+            {
+                var m = new UltrafastEngine.Optics.ModulatorElement { Nx = 5, Ny = 1, PitchXM = 2e-6, PitchYM = 1, PhaseRad = new[] { 0, 0, 1.0, 0, 0 }, DesignOmega = 1e15 };
+                set(m); m.Prepare();
+                // grid cells of 1 um centred at -5 ... 4 um: the odd ones lie inside device cells 0 ... 4
+                var c = m.CellsAt(new UltrafastEngine.Transverse.CartesianBasis(10, 1, 5e-6, 0.5), 1e15);
+                return Enumerable.Range(0, 5).Select(j => c[2 * j + 1]).ToArray();
+            }
+            var k = Cells(m => m.CrosstalkKernel = new[] { 1.0, 2, 1 });
+            var expect = new[] { 0, 0.25, 0.5, 0.25, 0 };
+            for (int j = 0; j < 5; j++) Assert.Close(expect[j], k[j].Phase, 0, 1e-12, "cell " + j);
+            double s = 0.8; var w = Enumerable.Range(-3, 7).Select(i => Math.Exp(-0.5 * i * i / (s * s))).ToArray();
+            var g = Cells(m => m.CrosstalkSigmaCells = s); var e = Cells(m => m.CrosstalkKernel = w);
+            for (int j = 0; j < 5; j++) Assert.Close(e[j].Phase, g[j].Phase, 0, 1e-12, "Gaussian sigma = its kernel, cell " + j);
+        }
+
+        [Test(Reference = "geometry: a device rotated by +theta maps its cell centre (u, v) to the lab point R(theta) (u, v); a 2 x 2 map rotated by 90 deg puts cell (1, 0) at (+1, +1) um", Tolerance = "1e-12")]
+        public void Rotation_TurnsTheCellGrid_AboutTheArrayCentre()
+        {
+            double Phase(double rot, int m)
+            {
+                var d = new UltrafastEngine.Optics.ModulatorElement { Nx = 2, Ny = 2, PitchXM = 2e-6, PitchYM = 2e-6, PhaseRad = new[] { 0, 0.5, 1.0, 1.5 }, DesignOmega = 1e15, RotationRad = rot };
+                d.Prepare();
+                return d.CellsAt(new UltrafastEngine.Transverse.CartesianBasis(4, 4, 2e-6, 2e-6), 1e15)[m].Phase;
+            }
+            // grid cell (ix, iy) = (3, 3) is centred at (+1, +1) um; (1, 3) at (-1, +1) um
+            Assert.Close(1.5, Phase(0, 15), 0, 1e-12, "no rotation: cell (1, 1)");
+            Assert.Close(1.0, Phase(Math.PI / 2, 15), 0, 1e-12, "90 deg: cell (1, 0) at (+1, +1) um");
+            Assert.Close(1.5, Phase(Math.PI / 2, 7), 0, 1e-12, "90 deg: cell (1, 1) at (-1, +1) um");
+        }
+
+        [Test(Reference = "area average over a grid cell: a cell half on the array and half outside gets (t_cell + t_outside) / 2; gaps transmit gapTransmission, so a fill factor 1/2 with gap amplitude g passes 1/2 + g^2 / 2 of the power when every grid cell lies in a cell or a gap", Tolerance = "1e-12 edge cell, 1e-6 power")]
+        public void EdgeCellsAndGaps_AreAreaAverages()
+        {
+            var d = new UltrafastEngine.Optics.ModulatorElement { Nx = 2, Ny = 1, PitchXM = 2e-6, PitchYM = 1, DesignOmega = 1e15, OutsideTransmission = 0.2 };
+            d.Prepare();
+            var c = d.CellsAt(new UltrafastEngine.Transverse.CartesianBasis(4, 1, 2e-6, 0.5), 1e15);
+            Assert.Close(0.6, c[0].Real, 0, 1e-12, "grid cell [-2.5, -1.5] um across the array edge at -2 um");
+            Assert.Close(1, c[1].Real, 0, 1e-12, "inside");
+            var r = Focal(Mod(Map(i => 0.0), "fillFactor", 0.5, "gapTransmission", 0.6), Lam, 0.3e-3, 0.01);
+            Assert.Close(0.5 + 0.5 * 0.36, r.Records.First(x => x.Id == "mod").Values["transmission"], 1e-6, 0, "power through cells and gaps");
+        }
+
+        [Test(Reference = "a callback map is read when the run compiles, so N trials of a loop that changes the callback equal N runs from N map files", Tolerance = "1e-12 of the peak")]
+        public void Trials_WithACallbackMap_EqualRunsFromMapFiles()
+        {
+            double k = 2 * Math.PI / Lam, theta = 0;
+            var reg = UltrafastEngine.Models.ModelRegistry.CreateDefault();
+            reg.RegisterCallback("loop", (UltrafastEngine.Models.FieldCallback)((x, y, z, o) => { for (int i = 0; i < o.Length; i++) o[i] = k * theta * x[i]; }));
+            var cbMod = O("id", "mod", "type", "modulator", "cellsX", Cells, "cellsY", 1, "pitchXM", Pitch, "pitchYM", 1.0, "phaseRad", "@loop", "designWavelengthM", Lam, "offsetXM", 0.5 * Dx);
+            foreach (double th in new[] { 1e-3, -2e-3, 3e-3 })
+            {
+                theta = th;
+                var cb = Arr(Focal(cbMod, reg: reg), "fluence_x_j_m2");
+                string file = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "mod-trial-" + Guid.NewGuid().ToString("N") + ".npz");
+                NpzWriter.Write(file, new[] { new NdArray("phase_rad", Enumerable.Range(0, Cells).Select(i => k * th * X(i)).ToArray(), Cells, 1) });
+                try
+                {
+                    var fl = Arr(Focal(O("id", "mod", "type", "modulator", "pitchXM", Pitch, "pitchYM", 1.0, "file", file, "designWavelengthM", Lam, "offsetXM", 0.5 * Dx)), "fluence_x_j_m2");
+                    double peak = fl.Max();
+                    for (int i = 0; i < fl.Length; i++) Assert.Close(fl[i], cb[i], 0, 1e-12 * peak, "trial theta = " + th);
+                }
+                finally { System.IO.File.Delete(file); }
+            }
+        }
+
+        [Test(Reference = "one stored frequency (spectralSamples = 1) sits at the energy centroid of the spectrum (the carrier of a 1 ns Gaussian, within one grid bin); the cw source's single bin is snapped to its grid lattice, 1.2e-6 from the requested carrier (the run notes print it), so the monochromatic focal patterns agree to the pattern change of that offset", Tolerance = "stored frequency within 1e-7 of the carrier; pattern 3e-6 of the peak")]
+        public void OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches()
+        {
+            double k = 2 * Math.PI / Lam;
+            JsonObject One(JsonObject el) { el["transverse"].AsObject().Set("spectralSamples", 1); return el; }
+            RunResult R(JsonObject pulse) => Go(Sys(One(Source(0.3e-3)), Mod(Map(i => k * 3e-3 * X(i))), Lens(F), One(Free("z", F))), Spec(pulse, O("instruments", A(Bp("z")))));
+            var rp = R(Gauss(Lam, 1e-9, 1e-3)); var rc = R(O("shape", "cw", "centerWavelengthM", Lam, "powerW", 1.0));
+            Assert.Close(W(Lam), rp.At["src"].Profile.Omega[0], 1e-7, 0, "the stored frequency of the pulse is its carrier (it was the low edge of the band before 2026-11-10)");
+            var a = Arr(rp, "fluence_x_j_m2"); var b = Arr(rc, "fluence_x_j_m2");
+            double pa = a.Max(), pb = b.Max();
+            for (int i = 0; i < a.Length; i++) Assert.Close(a[i] / pa, b[i] / pb, 0, 3e-6, "pattern");
+        }
+
+        [Test(Reference = "the reported spectralSamplingError (a whole-bin interpolation residual) bounds the true error of the focal fluence map with K stored frequencies, measured against K = 64 (spike S2)", Tolerance = "bound holds at K = 8, 16, 32; the true error falls with K")]
+        public void SpectralSamplingError_BoundsTheTrueErrorOfTheFocalMap()
+        {
+            var screen = Map(i => 40 * Math.Sin(2 * Math.PI * i / 37.0));
+            (double proxy, double[] map) Run(int kk)
+            {
+                var src = Source(0.3e-3); src["transverse"].AsObject().Set("spectralSamples", kk);
+                var z = Free("z", F); z["transverse"].AsObject().Set("spectralSamples", kk);
+                var r = Go(Sys(src, Mod(screen), Lens(F), z), Spec(Gauss(Lam, 30e-15, 1e-3), O("instruments", A(Bp("z")))));
+                return (r.Records.First(x => x.Id == "mod").Values["spectralSamplingError"], Arr(r, "fluence_x_j_m2"));
+            }
+            var refMap = Run(64).map; double norm = Math.Sqrt(refMap.Sum(v => v * v));
+            double last = double.MaxValue;
+            foreach (int kk in new[] { 8, 16, 32 })
+            {
+                var (proxy, map) = Run(kk);
+                double err = Math.Sqrt(map.Zip(refMap, (a, b) => (a - b) * (a - b)).Sum()) / norm;
+                Assert.True(proxy >= err, "K = " + kk + ": proxy " + proxy + " >= true error " + err);
+                Assert.True(err < last, "true error falls with K: " + err);
+                last = err;
+            }
+        }
+
+        [Test(Reference = "naming (plan-ao-digital-twin-2026-11.md): \"phaseAtDesign\" is a phase given at the design wavelength and scaled with omega, the opd rule", Tolerance = "exact")]
+        public void PhaseAtDesign_IsTheOpdRule()
+        {
+            var map = Map(i => 2 * Math.PI * (i % 16) / 16);
+            var a = Arr(Focal(Mod(map, "phaseWrapRad", 2 * Math.PI), 1.2e-6), "fluence_x_j_m2");
+            var b = Arr(Focal(Mod(map, "phaseWrapRad", 2 * Math.PI, "chromatic", "phaseAtDesign"), 1.2e-6), "fluence_x_j_m2");
+            for (int i = 0; i < a.Length; i++) Assert.Equal(a[i], b[i], "pattern");
+        }
+
         [Test(Reference = "validation: a map of the wrong shape, both phase and path, and a quantisation of one level are refused with a message", Tolerance = "exact")]
         public void BadInput_IsRefusedWithAMessage()
         {
+            Assert.Throws<Exception>(() => Focal(Mod(Map(i => 0.0), "crosstalkKernel", A(-0.2, 1.4, -0.2))));      // negative weights: gain
+            Assert.Throws<Exception>(() => Focal(Mod(Map(i => 0.0), "deltaIndexCauchy", A(0.2))));                // needs chromatic index
+            Assert.Throws<Exception>(() => Focal(Mod(Map(i => 0.0), "chromatic", "index")));                      // needs a dn model
             Assert.Throws<Exception>(() => Focal(O("id", "mod", "type", "modulator", "cellsX", 10, "cellsY", 1, "pitchXM", Pitch, "phaseRad", Map(i => 0.0))));
             Assert.Throws<Exception>(() => Focal(Mod(Map(i => 0.0), "opdM", Map(i => 0.0))));
             Assert.Throws<Exception>(() => Focal(Mod(Map(i => 0.0), "quantisationLevels", 1)));

@@ -694,6 +694,10 @@
           "type": "integer",
           "description": "Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses Default: 48."
         },
+        "frequencyBlock": {
+          "type": "integer",
+          "description": "Streaming: a linear spatial element propagates the stored frequencies in blocks of this many, so its propagator holds a block instead of all of them and a block-sized work buffer is added (saves memory for blocks under half the stored frequencies); the result does not depend on it. 0 = all at once Default: 0."
+        },
         "absorbingBoundary": {
           "description": "Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) Default: false."
         },
@@ -1008,6 +1012,11 @@
         "maxPoints": {
           "type": "integer",
           "description": "Cap exported traces (0 = full grid incl. complex fields) Default: 0."
+        },
+        "keepProfiles": {
+          "type": "string",
+          "enum": ["all", "used"],
+          "description": "Transverse profiles kept in the result: all (after every element) or used (only where an instrument or the end reads one, and before such an element); used saves memory on large grids Default: all."
         },
         "comment": {
           "description": "Free text."

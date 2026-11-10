@@ -42,6 +42,8 @@ namespace UltrafastEngine.Transverse
         public string Equation { get; set; } = "envelope";
         /// <summary>Frequencies at which the carried profile is stored (and linear elements propagate it).</summary>
         public int SpectralSamples { get; set; } = 48;
+        /// <summary>Linear spatial elements propagate the stored frequencies in blocks of this many (streaming; 0 = all at once). The result does not depend on it.</summary>
+        public int FrequencyBlock { get; set; }
         /// <summary>Width of the absorbing boundary layer as a fraction of the grid extent (0 = none; linear elements only).</summary>
         public double AbsorbingBoundary { get; set; }
 
@@ -72,6 +74,8 @@ namespace UltrafastEngine.Transverse
             if (s.Equation != "envelope" && s.Equation != "uppe") throw new JsonException("transverse.equation must be \"envelope\" or \"uppe\".");
             s.SpectralSamples = o.GetInt("spectralSamples", 48);
             if (s.SpectralSamples < 1) throw new JsonException("transverse.spectralSamples must be at least 1.");
+            s.FrequencyBlock = o.GetInt("frequencyBlock", 0);
+            if (s.FrequencyBlock < 0) throw new JsonException("transverse.frequencyBlock must be 0 (all at once) or positive.");
             var ab = o["absorbingBoundary"];
             if (ab != null && !ab.IsNull)
             {
@@ -338,6 +342,20 @@ namespace UltrafastEngine.Transverse
             while (hi > 0 && spectrum[hi] < 1e-6 * mx) hi--;
             if (hi <= lo) return new[] { Array.IndexOf(spectrum, mx) };
             int k = Math.Min(count, hi - lo + 1);
+            if (k == 1)
+            {
+                // one stored frequency: the bin nearest the energy centroid (the carrier of a symmetric spectrum), not the low edge of the band
+                double s0 = 0, s1 = 0; for (int i = lo; i <= hi; i++) { s0 += spectrum[i]; s1 += i * spectrum[i]; }
+                int c = s0 > 0 ? (int)Math.Round(s1 / s0) : Array.IndexOf(spectrum, mx);
+                if (spectrum[c] < 1e-3 * mx)
+                {
+                    // a spectrum with a hole at its centroid (two colours, a notch): the nearest bin that carries light
+                    int best = Array.IndexOf(spectrum, mx);
+                    for (int i = lo; i <= hi; i++) if (spectrum[i] >= 1e-3 * mx && Math.Abs(i - c) < Math.Abs(best - c)) best = i;
+                    c = best;
+                }
+                return new[] { c };
+            }
             var bins = new SortedSet<int>();
             for (int j = 0; j < k; j++) bins.Add(lo + (int)Math.Round((double)j * (hi - lo) / Math.Max(1, k - 1)));
             return bins.ToArray();

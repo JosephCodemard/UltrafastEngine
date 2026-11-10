@@ -559,28 +559,41 @@ namespace UltrafastEngine.Transverse
                 steps = (int)Math.Min(400, Math.Max(1, Math.Ceiling(LengthM * theta / (width * basis.Extent))));
             }
             double dz = LengthM / steps;
-            var prop = new Complex[M * nf];
-            System.Threading.Tasks.Parallel.For(0, M, m =>
-            {
-                double k2 = basis.K2[m];
-                for (int f = 0; f < nf; f++)
-                {
-                    double w = prof.Omega[f], k = idx(w) * w / PhysicalConstants.SpeedOfLightMPerS;
-                    Complex d;
-                    if (Spec.Paraxial) d = new Complex(0, -k2 / (2 * k));
-                    else if (k2 < k * k) d = new Complex(0, Math.Sqrt(k * k - k2) - k);
-                    else d = new Complex(-Math.Sqrt(k2 - k * k), -k);
-                    prop[m * nf + f] = Complex.Exp(d * dz);
-                }
-            });
             var absorber = width > 0 ? TransverseOps.AbsorberMask(basis, width) : null;
-            for (int s = 0; s < steps; s++)
+            // streaming over frequency: the stored frequencies are independent in a linear element, so they are propagated in blocks of B
+            // (transverse.frequencyBlock; 0 = all at once). Same arithmetic per frequency, so the result does not depend on B; the propagator
+            // holds B frequencies instead of all of them, at the cost of a B-frequency work buffer (a saving for B < nf / 2).
+            int B = Spec.FrequencyBlock > 0 ? Math.Min(Spec.FrequencyBlock, nf) : nf;
+            var prop = new Complex[M * B];
+            var work = B == nf ? data : new Complex[M * B];
+            for (int f0 = 0; f0 < nf; f0 += B)
             {
-                basis.ToK(data, nf);
-                for (int k = 0; k < data.Length; k++) data[k] *= prop[k];
-                basis.ToSpace(data, nf);
-                if (absorber != null) for (int m = 0; m < M; m++) { double a = absorber[m]; if (a < 1) for (int f = 0; f < nf; f++) data[m * nf + f] *= a; }
+                int nb = Math.Min(B, nf - f0);
+                if (nb != B) { prop = new Complex[M * nb]; work = new Complex[M * nb]; }
+                System.Threading.Tasks.Parallel.For(0, M, m =>
+                {
+                    double k2 = basis.K2[m];
+                    for (int j = 0; j < nb; j++)
+                    {
+                        double w = prof.Omega[f0 + j], k = idx(w) * w / PhysicalConstants.SpeedOfLightMPerS;
+                        Complex d;
+                        if (Spec.Paraxial) d = new Complex(0, -k2 / (2 * k));
+                        else if (k2 < k * k) d = new Complex(0, Math.Sqrt(k * k - k2) - k);
+                        else d = new Complex(-Math.Sqrt(k2 - k * k), -k);
+                        prop[m * nb + j] = Complex.Exp(d * dz);
+                    }
+                });
+                if (!ReferenceEquals(work, data)) for (int m = 0; m < M; m++) Array.Copy(data, m * nf + f0, work, m * nb, nb);
+                for (int s = 0; s < steps; s++)
+                {
+                    basis.ToK(work, nb);
+                    for (int k = 0; k < work.Length; k++) work[k] *= prop[k];
+                    basis.ToSpace(work, nb);
+                    if (absorber != null) for (int m = 0; m < M; m++) { double a = absorber[m]; if (a < 1) for (int j = 0; j < nb; j++) work[m * nb + j] *= a; }
+                }
+                if (!ReferenceEquals(work, data)) for (int m = 0; m < M; m++) Array.Copy(work, m * nb, data, m * nf + f0, nb);
             }
+            if (B < nf) ctx.Note(string.Format(CultureInfo.InvariantCulture, "streamed over frequency: {0} stored frequencies in blocks of {1}", nf, B));
             if (absorber != null) ctx.Note(string.Format(CultureInfo.InvariantCulture, "absorbing boundary: outer {0:P0} of the grid, {1} step{2}", width, steps, steps == 1 ? "" : "s"));
             // collapse each sample: power kept (evanescent modes are lost) and the area-weighted phase go to the spectrum
             var keep = new Complex[nf];

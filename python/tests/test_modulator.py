@@ -41,3 +41,18 @@ def test_builders_return_plain_dicts_with_the_schema_keys():
     t = TilesProfile(40e-6, layout="hex", rings=2, pitch_m=200e-6, piston_rms_rad=0.3, seed=2)
     assert t["kind"] == "tiles" and t["rings"] == 2 and t["pistonRmsRad"] == 0.3
     assert uf.load  # the package imports without a display or an engine call
+
+
+def test_a_loop_reads_the_callback_each_trial_and_index_mode_with_constant_dn_is_opd():
+    k = 2 * np.pi / LAM
+    common = dict(pitch_m=P, pitch_y_m=1.0, design_wavelength_m=LAM, offset_x_m=0.5 * DX, cells_x=CELLS, cells_y=1)
+    xs = (np.arange(N) - N / 2) * DX
+    for theta in (2e-3, -3e-3):                                                 # one compiled run per trial; the callback is read each time
+        a = _focal(Modulator("m", phase_rad="@ramp", **common), fields={"ramp": lambda X, Y, Z, t=theta: k * t * X})
+        assert abs((xs * a).sum() / a.sum() - F * theta) < 0.01 * abs(F * theta)
+    ramp = "@ramp"; f = {"ramp": lambda X, Y, Z: k * 2e-3 * X}
+    opd = _focal(Modulator("m", phase_rad=ramp, **common), fields=f)
+    idx = _focal(Modulator("m", phase_rad=ramp, chromatic="index", delta_index_cauchy=[0.2], **common), fields=f)
+    assert np.allclose(opd, idx, rtol=0, atol=1e-12 * opd.max())
+    t = b.transverse("cartesian", nx=8, frequency_block=2)
+    assert t["frequencyBlock"] == 2

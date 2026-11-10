@@ -146,6 +146,9 @@ namespace UltrafastEngine.Specs
         /// <summary>Maximum points per exported 1D trace (0 = full grid). Traces are cropped to the region holding
         /// the energy first, then decimated only if still longer.</summary>
         public int MaxPoints { get; set; } = 0;
+        /// <summary>"all" (default): the transverse profile after every element stays in the result; "used": only where an instrument
+        /// or the end reads it (and before such an element; probes keep their 1-D snapshots), so a long chain on a large grid holds one or two profiles, not one per element.</summary>
+        public string KeepProfiles { get; set; } = "all";
 
         public static OutputOptions FromJson(JsonObject o)
         {
@@ -153,6 +156,8 @@ namespace UltrafastEngine.Specs
             if (o == null) return r;
             r.Npz = o.GetBool("npz", true); r.Csv = o.GetBool("csv", true); r.Json = o.GetBool("json", true);
             r.MaxPoints = o.GetInt("maxPoints", 0);
+            r.KeepProfiles = o.GetString("keepProfiles", "all").ToLowerInvariant();
+            if (r.KeepProfiles != "all" && r.KeepProfiles != "used") throw new JsonException("outputs.keepProfiles must be \"all\" or \"used\".");
             return r;
         }
     }

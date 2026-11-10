@@ -1521,8 +1521,14 @@ class ModulatorElement(TypedDict, total=False):
     """NPZ with phase_rad or opd_m, and amplitude, shaped [cellsX][cellsY]; relative to the system file"""
     designWavelengthM: float
     """Wavelength at which phaseRad holds [m] Default: the carrier."""
-    chromatic: Literal["opd", "fixedPhase"]
-    """opd: the written phase is an optical path, phase = phaseRad * omega / omega_design (a wrapped map is a grating); fixedPhase: the phase does not change with frequency Default: opd."""
+    chromatic: Literal["opd", "phaseAtDesign", "fixedPhase", "index"]
+    """opd (also phaseAtDesign): the written phase is an optical path, phase = phaseRad * omega / omega_design (a wrapped map is a grating); fixedPhase: the phase does not change with frequency; index: phase = phaseRad * omega dn(omega) / (omega_design dn(omega_design)), a liquid-crystal cell with a dispersive index modulation dn Default: opd."""
+    deltaIndexCauchy: Union[float, List[float]]
+    """chromatic index: dn = A + B / lambda^2 + C / lambda^4 as [A, B (m^2), C (m^4)]; only the ratio dn(lambda) / dn(design) matters"""
+    deltaIndex: Union[float, List[float]]
+    """chromatic index: a table of dn (linear in lambda between points), with deltaIndexWavelengthsM"""
+    deltaIndexWavelengthsM: Union[float, List[float]]
+    """Wavelengths of the deltaIndex table [m]"""
     fillFactor: float
     """Active fraction of the pitch in x and y (0-1] Default: 1."""
     gapTransmission: float
@@ -1532,7 +1538,9 @@ class ModulatorElement(TypedDict, total=False):
     zeroOrderLeak: float
     """Amplitude fraction eta that passes unmodulated (phase 0) inside active cells: t = a [(1 - eta) e^(i phi) + eta]; a flat map stays lossless Default: 0."""
     crosstalkSigmaCells: float
-    """Gaussian fringing-field cross-talk, standard deviation in cells (applied to the written phase) Default: 0."""
+    """Gaussian fringing-field cross-talk, standard deviation in cells (applied to the written phase and amplitude) Default: 0."""
+    crosstalkKernel: Union[float, List[float]]
+    """Explicit cross-talk kernel in cells (odd length, centre weight in the middle, normalised to unit sum), applied along x and along y to the written phase and amplitude; overrides crosstalkSigmaCells; weights must be >= 0"""
     quantisationLevels: int
     """Phase levels over phaseWrapRad (2 pi if that is 0); 0 = continuous Default: 0."""
     phaseWrapRad: float
@@ -4110,6 +4118,8 @@ class Outputs(TypedDict, total=False):
     """CSV files Default: true."""
     maxPoints: int
     """Cap exported traces (0 = full grid incl. complex fields) Default: 0."""
+    keepProfiles: Literal["all", "used"]
+    """Transverse profiles kept in the result: all (after every element) or used (only where an instrument or the end reads one, and before such an element); used saves memory on large grids Default: all."""
     comment: Any
     """Free text."""
     description: Any
@@ -4472,6 +4482,8 @@ class Transverse(TypedDict, total=False):
     """Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) Default: envelope."""
     spectralSamples: int
     """Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses Default: 48."""
+    frequencyBlock: int
+    """Streaming: a linear spatial element propagates the stored frequencies in blocks of this many, so its propagator holds a block instead of all of them and a block-sized work buffer is added (saves memory for blocks under half the stored frequencies); the result does not depend on it. 0 = all at once Default: 0."""
     absorbingBoundary: Any
     """Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) Default: false."""
     comment: Any

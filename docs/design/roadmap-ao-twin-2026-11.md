@@ -11,7 +11,7 @@ work, the tests and the acceptance criteria. Sizes: S ≈ 1 focused agent-day, M
 |---|---|---|---|---|
 | **S0** (done, in the planning session) | CI fixes, logo, licence, README, this plan | - | - | done |
 | **S1 Foundation** (**done 2026-11-09**) | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
-| **S2 Core and spikes** | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
+| **S2 Core and spikes** (**done 2026-11-10**) | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
 | **S3 AO plugin** | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
 | **S4 Fitting and twin** | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
 | **S5 Examples, docs, verification** | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
@@ -338,6 +338,24 @@ note exists with numbers; a 1920 × 1080 single-frequency propagation runs withi
 
 **Handoff.** `docs/design/notes/s2-core.md` with the API of each primitive as shipped (keys, units, defaults), the spike
 numbers, and what the `ao` plugin may rely on.
+
+**Progress (2026-11-10, branch `dev/2026-11-s2-core`; details in `docs/design/notes/s2-core.md`, numbers and decisions in `docs/design/notes/spikes.md`).**
+
+| step | state |
+|---|---|
+| 1 spikes S1-S7 | **done**: S1-scale (1920 x 1080 cw 3.3 s / 1.05 GB; K = 16 32 s / 3.6 GB), S2-sparse (K = 8-16 give 1e-3 up to 30 rad), S3-chromatic (a wrapped map disperses as a grating), S4-loop (10 ms vs 46 ms per trial), S6, S7 read; **S5-tiles not run as a Branched system** (it cannot give an array's far field: tested against the array theorem instead) |
+| 2 decide / gate G0 | **done**: no spike contradicts the plan; decisions in spikes.md section 8 |
+| 3 C1 `modulator` | **done**: cell grid, offset, rotation, fill factor, gaps, quantisation, wrapping, `crosstalkSigmaCells` and `crosstalkKernel`, zero-order leak; `chromatic` `opd` (the brief's `phaseAtDesign`, a phase at the design wavelength scaled with omega, is accepted as an alias), `fixedPhase` (achromatic, geometric phase), `index` (Δn(λ) by Cauchy or table); 6 x 6 sub-pixel averaging (the `mask` approach) |
+| 4 C2 in-memory maps | **done**: arrays, callbacks `"@name"` (Python `fields=`, C API `uf_run_set_field_callback`), NPZ; N loop trials = N file runs (1e-12). **Compile cache not built**: 10 ms floor per trial including the compile |
+| 5 C3 streaming and sparse sampling | **done**: `transverse.frequencyBlock` (exact), `outputs.keepProfiles: "used"` (live set 1587 -> 336 MB), `spectralSamplingError` bounds the true error. Whole-executor streaming not built (not needed; peak is set by the GC) |
+| 6 C4 tiles | **done**: square, hex, ring, explicit; piston, tilt, delay (sign tested), amplitudes, tophat |
+| 7 C5 fast path, zonal outputs | **done**: `spectralSamples: 1` fixed to store the carrier (it was the band edge); slope maps (tilt, defocus) |
+| 8 C6 GPU parity | **test written, skipped** on this Mac (no FP64 OpenCL, no PoCL wheel); its body checked CPU against CPU |
+| 9 review, regen, docs | **done**: two `physics-reviewer` passes, `/regen`, reference pages, changelog, testing rows, status counts |
+
+Brief items met differently, so the owner can see them: "cw equals the pulse at the carrier (1e-9)" holds for the stored frequency (1e-7, one
+grid bin); the cw source's own bin is 1.2e-6 off the requested carrier, so the patterns agree to 3e-6. The 1920 x 1080 budget is a slow test
+(1.9 s on a 2048 x 1280 grid, limit 13 s). The cylindrical lens (S1 finding) already existed as `focalLengthXM` / `focalLengthYM`; it now has a test.
 
 ---
 
