@@ -12,7 +12,7 @@ work, the tests and the acceptance criteria. Sizes: S ≈ 1 focused agent-day, M
 | **S0** (done, in the planning session) | CI fixes, logo, licence, README, this plan | - | - | done |
 | **S1 Foundation** (**done 2026-11-09**) | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
 | **S2 Core and spikes** (**done 2026-11-10**) | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
-| **S3 AO plugin** | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
+| **S3 AO plugin** (**done 2026-11-10 on `dev/2026-11-s3-ao`, not merged**) | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
 | **S4 Fitting and twin** | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
 | **S5 Examples, docs, verification** | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
 | *S6, later, optional* | repetition and switching: Pockels cell, pulse picker, pulse-train mode (see section 6) | S2 | Opus 5.5 / none | L |
@@ -400,6 +400,19 @@ peak, exp(−σ²), delay-mismatch cost for a 30 fs pulse; focus enhancement (π
 element (keys, units, defaults); no vendor numbers anywhere (presets are labelled generic).
 
 **Handoff.** `docs/design/notes/s3-ao.md`: the shipped API, the numbers, what the AO examples (S5) may call.
+
+**Progress (2026-11-10, branch `dev/2026-11-s3-ao`; details, numbers and the review in `docs/design/notes/s3-ao.md`, user docs in `docs/plugins/ao.md`).**
+
+| step | state |
+|---|---|
+| 1 scaffold | **done**: `plugins/ao`, sln, test reference, host copy targets, packager (`ao`) |
+| 2 devices | **done**: `deformableMirror`, `slm` (compile to the core `modulator`); advisor call 1 settled the SLM model (Delta-n dispersion, grey-level curve, unquantised phases to the modulator, the `s(lambda)` test); `tiledArray` is a Python builder of the core tile source |
+| 3 sensing and control | **done in Python**: lenslet Shack-Hartmann model, modal and Southwell reconstructors, interaction / control matrices, integrator loop, `DmBench`; no `ultrafast ao ...` CLI commands |
+| 4 holograms, sensorless | **done**: GS (quantisation in the loop), WGS, MRAF, double-phase, Bolduc; SPGD, hill climb, modal search, transmission matrix; the (pi/4)(N - 1) + 1 enhancement is tested in NumPy only |
+| 5 temporal shaping | **done**: `spectralShaper`, `aopdf`; closed-loop GDD compensation from the peak power; **FROG / d-scan as the metric not wired** |
+| 6 review | **done**: `physics-reviewer` (15 findings, 9 fixed, the rest documented), advisor call 2 |
+
+Brief items met differently: the pulse through a wrapped phase ramp is three monochromatic runs (900, 1030, 1200 nm) against the `s(lambda)` law, not a pulse; the NativeAOT library does not compile the plugin in (core area); a shaper's side pulses and a large programmed GDD can wrap round the time window without a warning (planner hook, core area).
 
 ---
 

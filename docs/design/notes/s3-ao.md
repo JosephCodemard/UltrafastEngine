@@ -58,14 +58,22 @@ Added:
 
 | test file | tests | what |
 |---|---|---|
-| `AoDeviceTests.cs` | 17 (1 slow) | deformable mirror (tilt, 2 cos(aoi), coupling, stroke, hex), SLM (blaze, orders, liquid-crystal dispersion, nearest level, 1920 x 1080), erf, aopdf (delay, GDD, window, replica), spectral shaper (Weiner side pulses, delay) |
-| `python/tests/test_ao_algorithms.py` | 18 | holography, sensing and control, sensorless, transmission matrix |
+| `AoDeviceTests.cs` | 20 (1 slow) | deformable mirror (tilt, 2 cos(aoi), coupling, stroke, hex), SLM (blaze, orders, liquid-crystal dispersion, nearest level, 1920 x 1080), erf, aopdf (delay, GDD, window, replica), spectral shaper (Weiner side pulses, delay) |
+| `python/tests/test_ao_algorithms.py` | 19 | holography, sensing and control, sensorless, transmission matrix |
 | `python/tests/test_ao_plugin.py` | 12 | Strehl and Marechal, device twins, fit residual, correction and loop, modal search, GS hologram through the slm element, tiled array, SPGD lock, GDD shaping |
 
 ## Physics review
 
 One `physics-reviewer` pass (15 findings). **Fixed:** `spectralShaper.offsetM` cancelled out (now moves the array; test added); the frequency-to-position map is now exact in wavelength (was linear in omega); the AOPDF replica created energy (now split off the main pulse, total = efficiency; test added); the `deformableMirror` `commandsM` are documented as drive coefficients (a uniform command gives a ripple of about 1.7 x at coupling 0.15, not a flat piston); the nearest-grey-level search uses the circular distance for curves that span more than 2 pi (C# and Python; tests added); the Airy radius in `combining_metrics`; the unit hint (1e6 = 1 mm/nm); the `transmission_matrix` docstring (column 0 is a marker, cost 4(n-1)+2); the Weiner test now uses a 150 fs pulse and a 32 ps window because the spectral grid sampled the comb edges (5 samples per pixel gave 2.5 % errors: now in the docs). **Documented, not changed:** the field-overlap model of the spot (the Weiner test checks its implementation, not the choice); no anamorphic grating factor; a large programmed GDD or a shaper's side pulses can wrap around the time window without a warning (needs a planner hook in the core); `modal_fit` uses the gradient at the lenslet centre, not the subaperture mean. **Open (no test yet):** AOPDF GDD/TOD sign (red first for +GDD), grating-derived dispersion against a Littrow reference, SLM fill factor / gap / cross-talk through the plugin (covered by the core modulator tests), end-to-end Bolduc and double-phase through an SLM, drive-bit step size, tiled-array lobe fractions beyond `0 < f < 1`.
 
+## Brief items met differently
+
+* "A pulse through a wrapped phase ramp": three monochromatic runs (900, 1030, 1200 nm) of a blazed `slm` ramp against the `s(lambda)` law (the first-order efficiency of a pulse is the spectrum-weighted sum of these).
+* The (pi/4)(N - 1) + 1 enhancement is tested on a synthetic random matrix in NumPy; no engine scatterer exists.
+* FROG / d-scan is not wired as a loop metric; the closed-loop test uses the output peak power. Any function of a run can be the metric.
+* Calibrate, correct and loop are Python (`DmBench`, `ultrafast.algorithms.control`), not `ultrafast ao ...` CLI commands.
+* Core request: the unknown-element-type message could name the `ao` plugin for `deformableMirror`, `slm`, `spectralShaper`, `aopdf`, as it does for the other first-party types.
+
 ## Verification (test-runner, before the review fixes)
 
-net10.0 `--slow` 523 passed / 0 failed / 9 skipped; Python with pyNLO and slow 205 passed / 1 skipped (no GPU); `example_check.py` 0 problems; `mkdocs build --strict` 0 warnings; solution builds with 0 errors. Not run: net48 tests (no Mono), GPU, OpticStudio. After the review fixes the changed tests, the ao Python tests, the regenerated files and the full net10 suite were re-run (see the commit message).
+After the review fixes and the test hardening (final tree): net10.0 `--slow` **528 passed / 0 failed / 9 skipped** (GPU device and HITRAN reference-dir skips); `AoDeviceTests` 20 (including the slow 1920 x 1080 test); Python `test_ao_algorithms.py` 19 + `test_ao_plugin.py` 12 + `test_packaging.py`, all passed; `mypy` clean; `mkdocs build --strict` 0 warnings; the regenerated files are current. Earlier full run by `test-runner` (before the fixes): Python with pyNLO and slow 205 passed / 1 skipped (no GPU), `example_check.py` 0 problems, solution builds with 0 errors. Not run: net48 tests (no Mono), GPU, OpticStudio, NativeAOT inclusion of the plugin.
