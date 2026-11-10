@@ -127,7 +127,7 @@ class AopdfElement(TypedDict, total=False):
     efficiency: float
     """Diffraction efficiency (power) Default: 1."""
     replicaAmplitude: float
-    """Spurious replica: H x (1 + a exp(i omega tau)) Default: 0."""
+    """Spurious replica split off the main pulse: H x (1 + a exp(i omega tau)) / sqrt(1 + a^2) Default: 0."""
     replicaDelayS: float
     """Delay of the spurious replica [s] Default: 0."""
     label: str
@@ -544,7 +544,7 @@ class DeformableMirrorElement(TypedDict, total=False):
     pitchM: float
     """Actuator pitch [m]"""
     commandsM: Any
-    """Surface displacement per actuator, positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout [m] Default: 0."""
+    """Drive coefficient per actuator (the surface is the sum of the influence functions: a uniform drive gives about 1.7 x the drive in the interior at coupling 0.15, not a uniform piston), positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout [m] Default: 0."""
     influenceCoupling: float
     """Surface value at a neighbouring actuator when one actuator is driven (Gaussian influence function exp(ln(c) (r/pitch)^2)) Default: 0.15."""
     strokeM: float
@@ -2406,7 +2406,7 @@ class SpectralShaperElement(TypedDict, total=False):
     offsetM: float
     """Position of the array centre relative to the centre wavelength's focus [m] Default: 0."""
     dispersionMPerM: float
-    """Focal-plane position per wavelength (m of position per m of wavelength; 1e3 = 1 mm/nm) Default: from the grating."""
+    """Focal-plane position per wavelength (m of position per m of wavelength; 1e6 = 1 mm/nm) Default: from the grating."""
     gratingLinesPerMm: float
     """Grating line density [1/mm]"""
     incidenceAngleRad: float

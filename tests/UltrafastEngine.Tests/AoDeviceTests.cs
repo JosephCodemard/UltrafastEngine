@@ -190,6 +190,26 @@ namespace UltrafastEngine.Tests
         [Test(Reference = "erf by series and continued fraction against tabulated values (Abramowitz and Stegun table 7.1): erf(0.5) = 0.5204998778130465, erf(1) = 0.8427007929497149, erf(2) = 0.9953222650189527, erf(3.5) = 0.9999992569016276", Tolerance = "1e-12")]
         public void Erf_MatchesTabulatedValues() { foreach (var (x, v) in new[] { (0.5, 0.5204998778130465), (1.0, 0.8427007929497149), (2.0, 0.9953222650189527), (3.5, 0.9999992569016276), (-1.0, -0.8427007929497149) }) Assert.Close(v, AoMath.Erf(x), 0, 1e-12, "erf " + x); }
 
+        [Test(Reference = "the mask array moves with offsetM: with unit amplitude on every pixel and outsideTransmission 0, an array centred on the spectrum passes all the energy (the pulse is far narrower than the array), the same array shifted by 1.5 array widths passes none", Tolerance = "pass 1e-4, blocked 1e-6")]
+        public void SpectralShaper_OffsetMovesTheArray_AwayFromTheSpectrum()
+        {
+            double D = 1e5, pitch = 2e-4; int n = 121;
+            var near = Temporal(O("id", "s", "type", "spectralShaper", "pixels", n, "pixelPitchM", pitch, "dispersionMPerM", D, "spotRadiusM", pitch / 10));
+            var away = Temporal(O("id", "s", "type", "spectralShaper", "pixels", n, "pixelPitchM", pitch, "dispersionMPerM", D, "spotRadiusM", pitch / 10, "offsetM", 3 * n * pitch / 2));
+            var ref0 = Temporal(O("id", "s", "type", "aopdf"));
+            Assert.Close(1, near.Output.TotalEnergyJ() / ref0.Output.TotalEnergyJ(), 1e-4, 0, "centred array passes everything");
+            Assert.Less(away.Output.TotalEnergyJ() / ref0.Output.TotalEnergyJ(), 1e-6, "shifted array passes nothing");
+        }
+
+        [Test(Reference = "nearest grey level when the curve spans more than 2 pi (0 .. 2.5 pi in 100 steps): images of the target modulo 2 pi inside the range are all candidates (circular distance)", Tolerance = "exact")]
+        public void Slm_NearestLevel_UsesTheCircularDistance_WhenTheCurveExceedsTwoPi()
+        {
+            var lut = Enumerable.Range(0, 101).Select(k => 2.5 * Math.PI * k / 100).ToArray();
+            int k1 = Slm.NearestLevel(lut, 2 * Math.PI - 0.01, 2 * Math.PI); Assert.True(k1 == 0 || k1 == 80, "just below 2 pi: level 0 and the level at 2 pi are the same phase");
+            int k0 = Slm.NearestLevel(lut, 0.0, 2 * Math.PI); Assert.True(k0 == 0 || k0 == 80, "0 rad: level 0 or the level at 2 pi");
+            int k2 = Slm.NearestLevel(lut, 0.45 * Math.PI, 2 * Math.PI); Assert.True(k2 == 18 || k2 == 98, "0.45 pi has images 0.45 pi and 2.45 pi");
+        }
+
         [Test(Reference = "an aopdf with delayFs moves the pulse by that group delay (shift theorem); efficiency scales the energy", Tolerance = "centroid 0.05 fs, energy 1e-9")]
         public void Aopdf_Delay_MovesThePulse_AndEfficiencyScalesTheEnergy()
         {
@@ -224,18 +244,19 @@ namespace UltrafastEngine.Tests
             var t = TimeAxis(r); var p = Power(r); double dt = t[1] - t[0];
             double main = 0, rep = 0, rc = 0; for (int i = 0; i < t.Length; i++) { if (Math.Abs(t[i]) < 200e-15) main += p[i]; else if (Math.Abs(t[i] - 600e-15) < 200e-15) { rep += p[i]; rc += p[i] * t[i]; } }
             Assert.Close(0.04, rep / main, 1e-3, 0, "replica energy");
+            Assert.Close(1, r.Output.TotalEnergyJ() / Temporal(O("id", "d", "type", "aopdf")).Output.TotalEnergyJ(), 1e-9, 0, "the replica is split off the pulse: total energy = efficiency");
             Assert.Close(600e-15, rc / rep, 0, 0.2e-15, "replica position");
         }
 
-        [Test(Reference = "Weiner (Rev. Sci. Instrum. 71, 1929 (2000)): a Fourier-plane mask with pixel gaps is a comb in frequency of period d_omega (one pixel); active fraction f gives side pulses at +-2 pi / d_omega with energy [sin(pi f) / (pi f)]^2 of the main pulse; a Gaussian spot of 1/e^2 radius w0 multiplies the first harmonic by exp(-(pi w0 / pitch)^2)", Tolerance = "1 % of the side-pulse energy ratio, 1 fs position")]
+        [Test(Reference = "Weiner (Rev. Sci. Instrum. 71, 1929 (2000)): a Fourier-plane mask with pixel gaps (150 fs pulse: its bandwidth is narrow enough for the pixel width in angular frequency to be constant to 0.4 %, the map is exact in wavelength) is a comb in frequency of period d_omega (one pixel); active fraction f gives side pulses at +-2 pi / d_omega with energy [sin(pi f) / (pi f)]^2 of the main pulse; a Gaussian spot of 1/e^2 radius w0 multiplies the first harmonic by exp(-(pi w0 / pitch)^2)", Tolerance = "1 % of the side-pulse energy ratio, 1 fs position")]
         public void SpectralShaper_PixelGaps_MakeSidePulses_AtTwoPiOverThePixelBandwidth()
         {
-            double lam = 800e-9, c = 299792458.0, T = 0.8e-12, dw = 2 * Math.PI / T, D = 1e5, f = 0.75;
+            double lam = 800e-9, c = 299792458.0, T = 1.6e-12, dw = 2 * Math.PI / T, D = 1e5, f = 0.75;
             double pitch = D * lam * lam * dw / (2 * Math.PI * c), w0 = pitch / 40;
-            var r = Temporal(O("id", "s", "type", "spectralShaper", "pixels", 161, "pixelPitchM", pitch, "dispersionMPerM", D, "spotRadiusM", w0, "fillFactor", f, "gapTransmission", 0.0));
+            var r = Temporal(O("id", "s", "type", "spectralShaper", "pixels", 161, "pixelPitchM", pitch, "dispersionMPerM", D, "spotRadiusM", w0, "fillFactor", f, "gapTransmission", 0.0), 150e-15, 32e-12);   // 32 ps: the spectral grid has 20 samples per pixel; a coarser grid samples the comb edges and changes the harmonic
             var t = TimeAxis(r); var p = Power(r);
             double main = 0, plus = 0, minus = 0, pc = 0;
-            for (int i = 0; i < t.Length; i++) { if (Math.Abs(t[i]) < 0.2e-12) main += p[i]; else if (Math.Abs(t[i] - T) < 0.2e-12) { plus += p[i]; pc += p[i] * t[i]; } else if (Math.Abs(t[i] + T) < 0.2e-12) minus += p[i]; }
+            for (int i = 0; i < t.Length; i++) { if (Math.Abs(t[i]) < 0.5e-12) main += p[i]; else if (Math.Abs(t[i] - T) < 0.5e-12) { plus += p[i]; pc += p[i] * t[i]; } else if (Math.Abs(t[i] + T) < 0.5e-12) minus += p[i]; }
                         double c1 = Math.Sin(Math.PI * f) / (Math.PI * f) * Math.Exp(-Math.Pow(Math.PI * w0 / pitch, 2));
             Assert.Close(c1 * c1, plus / main, 0.01, 0, "+T side pulse");
             Assert.Close(c1 * c1, minus / main, 0.01, 0, "-T side pulse");

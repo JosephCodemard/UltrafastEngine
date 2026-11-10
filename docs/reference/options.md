@@ -192,7 +192,7 @@ An acousto-optic programmable dispersive filter: programmed spectral phase (dela
 | `tableWavelengthsM` | number or array | m |  | Wavelengths of the tables |
 | `windowS` | number | s | 0 | Acoustic window: components whose programmed group delay is outside +-window/2 are not diffracted (0 = unlimited) |
 | `efficiency` | number |  | 1 | Diffraction efficiency (power) |
-| `replicaAmplitude` | number |  | 0 | Spurious replica: H x (1 + a exp(i omega tau)) |
+| `replicaAmplitude` | number |  | 0 | Spurious replica split off the main pulse: H x (1 + a exp(i omega tau)) / sqrt(1 + a^2) |
 | `replicaDelayS` | number | s | 0 | Delay of the spurious replica |
 
 ### `aperture`
@@ -315,7 +315,7 @@ A parametric deformable mirror on the carried transverse profile: actuator layou
 | `positionsXM` | number or array | m |  | explicit layout: actuator x positions |
 | `positionsYM` | number or array | m |  | explicit layout: actuator y positions |
 | `pitchM` | number | m |  | Actuator pitch **Required.** |
-| `commandsM` | any | m | 0 | Surface displacement per actuator, positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout |
+| `commandsM` | any | m | 0 | Drive coefficient per actuator (the surface is the sum of the influence functions: a uniform drive gives about 1.7 x the drive in the interior at coupling 0.15, not a uniform piston), positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout |
 | `influenceCoupling` | number |  | 0.15 | Surface value at a neighbouring actuator when one actuator is driven (Gaussian influence function exp(ln(c) (r/pitch)^2)) |
 | `strokeM` | number | m | unlimited | Mechanical stroke limit (commands are clipped to +-strokeM) |
 | `driveBits` | integer |  | 0 | Drive resolution in bits over +-strokeM (needs strokeM); 0 = continuous |
@@ -866,7 +866,7 @@ A pixelated spectral phase / amplitude mask in the Fourier plane of a 4f line (1
 | `outsideTransmission` | number |  | 0 | Amplitude transmission beyond the array |
 | `centerWavelengthM` | number | m | the carrier | Wavelength at the centre of the array |
 | `offsetM` | number | m | 0 | Position of the array centre relative to the centre wavelength's focus |
-| `dispersionMPerM` | number |  | from the grating | Focal-plane position per wavelength (m of position per m of wavelength; 1e3 = 1 mm/nm) |
+| `dispersionMPerM` | number |  | from the grating | Focal-plane position per wavelength (m of position per m of wavelength; 1e6 = 1 mm/nm) |
 | `gratingLinesPerMm` | number | 1/mm |  | Grating line density |
 | `incidenceAngleRad` | number | rad | 0 | Angle of incidence on the grating |
 | `order` | number |  | 1 | Diffraction order |

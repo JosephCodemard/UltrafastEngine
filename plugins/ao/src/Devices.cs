@@ -221,12 +221,14 @@ namespace UltrafastEngine.Plugins.Ao
         public static int NearestLevel(double[] lut, double target, double wrap)
         {
             double t = target - wrap * Math.Floor(target / wrap);
-            int lo = 0, hi = lut.Length - 1;
-            while (lo < hi) { int mid = (lo + hi) / 2; if (lut[mid] < t) lo = mid + 1; else hi = mid; }
-            int best = lo;
-            if (lo > 0 && Math.Abs(lut[lo - 1] - t) <= Math.Abs(lut[lo] - t)) best = lo - 1;
-            // wrap-around: a target just below 2 pi is nearest to level 0 (+2 pi)
-            if (Math.Abs(lut[best] - t) > Math.Abs(lut[0] + wrap - t)) best = 0;
+            int best = 0; double bd = double.MaxValue;
+            // the curve may span more than one wrap (LC cells are often driven past 2 pi): test every image of the target inside its range
+            for (double tt = t - wrap; tt <= lut[lut.Length - 1] + wrap; tt += wrap)
+            {
+                int lo = 0, hi = lut.Length - 1;
+                while (lo < hi) { int mid = (lo + hi) / 2; if (lut[mid] < tt) lo = mid + 1; else hi = mid; }
+                foreach (int c in new[] { lo - 1, lo }) if (c >= 0 && Math.Abs(lut[c] - tt) < bd) { bd = Math.Abs(lut[c] - tt); best = c; }
+            }
             return best;
         }
     }

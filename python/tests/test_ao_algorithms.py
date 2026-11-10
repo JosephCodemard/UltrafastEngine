@@ -82,6 +82,13 @@ def test_grey_levels_invert_a_nonuniform_curve_and_match_the_engine_rule():
     assert np.allclose(holography.quantise_phase(np.array([0.1, 6.2]), 8), [0.0, 0.0])         # 6.2 rad rounds to the top half-step -> level 0
 
 
+def test_grey_levels_use_the_circular_distance_when_the_curve_exceeds_two_pi():
+    lut = 2.5 * np.pi * np.arange(101) / 100
+    assert holography.grey_levels(np.array([2 * np.pi - 0.01]), lut)[0] in (0, 80)        # the same phase
+    assert holography.grey_levels(np.array([0.45 * np.pi]), lut)[0] in (18, 98)
+    assert holography.grey_levels(np.array([0.0]), lut)[0] in (0, 80)
+
+
 def test_double_phase_encoding_reproduces_a_smooth_complex_field():
     """A e^{i phi} = (e^{i(phi + a)} + e^{i(phi - a)})/2 with a = arccos A: averaging the two checkerboard sublattices returns the field (exact for a locally constant field)."""
     n = 64

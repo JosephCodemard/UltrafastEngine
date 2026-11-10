@@ -98,9 +98,9 @@ def transmission_matrix(intensity: Callable[[np.ndarray], np.ndarray], n_inputs:
     ``intensity(phases)`` returns the output intensities (a vector over output modes m) for the input phases. Input 0 is the reference. Stepping inputs
     0 and k together and taking the *mixed second difference* removes everything that is linear in either step, leaving the cross term exactly:
     ``D(a, b) = I(a, b) - I(a, 0) - I(0, b) + I(0, 0) = 2 Re[w (e^{i a} - 1)(e^{-i b} - 1)]`` with ``w_mk = t_m0 conj(t_mk)`` (a = phase of input 0, b of input k).
-    D(pi, pi) = 8 Re w and D(pi, pi/2) = 4 Re w - 4 Im w give w for every output, however dark. Returns ``H[m][k] = conj(w_mk) / |t_m0|`` for k >= 1 and
-    ``H[:, 0] = 1``: the transmission matrix in the gauge t_m0 real and positive, with an unknown positive factor |t_m0| per output row. Phases are exact, which is
-    all a phase-only focusing needs; amplitudes are relative within the row. Cost: 5 (n_inputs - 1) + 3 intensity measurements."""
+    D(pi, pi) = 8 Re w and D(pi, pi/2) = 4 Re w - 4 Im w give w for every output, however dark. Returns ``H[m][k] = conj(w_mk) = |t_m0| t_mk`` (gauge: t_m0 real and positive) for k >= 1,
+    and ``H[:, 0] = 1`` as a marker for the reference input (its true value |t_m0|^2 is not measured). Phases of columns k >= 1 are exact, which is all a
+    phase-only focusing needs; amplitudes are relative among columns k >= 1 only, so do not form H @ exp(i phi) as a field. Cost: 4 (n_inputs - 1) + 2 intensity measurements."""
     n = n_inputs
     def ph(a, k=None, b=0.0):
         p = np.zeros(n); p[0] = a

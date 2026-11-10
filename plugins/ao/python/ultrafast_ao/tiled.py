@@ -33,15 +33,15 @@ def combining_metrics(fluence_map: np.ndarray, x_m: np.ndarray, y_m: np.ndarray,
 
     * ``axis_over_reference``: the fluence on the optical axis over ``reference_axis_fluence`` (the same array run with all pistons and delays zero; the engine
       normalises the total power, so the reference must be an engine run, not a formula). 1 = perfectly combined. Needs the axis on a grid node.
-    * ``central_lobe_fraction``: energy within ``central_lobe_radius_m`` of the fluence peak over the total (default the Airy radius of the filled aperture,
-      0.61 lambda f / (sqrt(N) pitch)).
+    * ``central_lobe_fraction``: energy within ``central_lobe_radius_m`` of the fluence peak over the total (default the first Airy zero of the filled aperture, whose diameter is about 1.05 sqrt(N) pitch for a hex array:
+      1.22 lambda f / D = 1.16 lambda f / (sqrt(N) pitch)).
     * ``grating_lobe_fraction``: energy between that radius and 1.5 lambda f / pitch (the first grating lobes of a lattice of pitch ``pitch_m`` are at lambda f / pitch)
       over the total."""
     F = np.asarray(fluence_map, float)
     ix, iy = np.unravel_index(np.argmax(F), F.shape)
     X, Y = np.meshgrid(x_m, y_m, indexing="ij")
     R = np.hypot(X - x_m[ix], Y - y_m[iy])
-    r_c = central_lobe_radius_m or 0.61 * wavelength_m * focal_length_m / (np.sqrt(n_tiles) * pitch_m)
+    r_c = central_lobe_radius_m or 1.16 * wavelength_m * focal_length_m / (np.sqrt(n_tiles) * pitch_m)
     tot = F.sum()
     ring = (R > r_c) & (R <= 1.5 * wavelength_m * focal_length_m / pitch_m)
     out = {"central_lobe_fraction": float(F[R <= r_c].sum() / tot), "grating_lobe_fraction": float(F[ring].sum() / tot)}

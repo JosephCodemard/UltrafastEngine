@@ -1135,7 +1135,7 @@
         },
         "replicaAmplitude": {
           "type": "number",
-          "description": "Spurious replica: H x (1 + a exp(i omega tau)) Default: 0."
+          "description": "Spurious replica split off the main pulse: H x (1 + a exp(i omega tau)) / sqrt(1 + a^2) Default: 0."
         },
         "replicaDelayS": {
           "type": "number",
@@ -3203,7 +3203,7 @@
           "description": "Actuator pitch [m]"
         },
         "commandsM": {
-          "description": "Surface displacement per actuator, positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout [m] Default: 0."
+          "description": "Drive coefficient per actuator (the surface is the sum of the influence functions: a uniform drive gives about 1.7 x the drive in the interior at coupling 0.15, not a uniform piston), positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout [m] Default: 0."
         },
         "influenceCoupling": {
           "type": "number",
@@ -10598,7 +10598,7 @@
         },
         "dispersionMPerM": {
           "type": "number",
-          "description": "Focal-plane position per wavelength (m of position per m of wavelength; 1e3 = 1 mm/nm) Default: from the grating."
+          "description": "Focal-plane position per wavelength (m of position per m of wavelength; 1e6 = 1 mm/nm) Default: from the grating."
         },
         "gratingLinesPerMm": {
           "type": "number",

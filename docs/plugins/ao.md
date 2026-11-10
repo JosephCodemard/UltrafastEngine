@@ -42,7 +42,7 @@ lengthen the path.
 | `ringCounts` | | | ring: actuators per ring, first entry the centre actuator |
 | `positionsXM`, `positionsYM` | m | | explicit: positions |
 | `pitchM` | m | required | actuator pitch |
-| `commandsM` | m | 0 | surface displacement per actuator: a list in layout order, or `[actuatorsX][actuatorsY]` (square) |
+| `commandsM` | m | 0 | **drive coefficient** per actuator: a list in layout order, or `[actuatorsX][actuatorsY]` (square). The surface is the sum of the influence functions, so one driven actuator among zeros reaches its command at its centre, but a uniform command gives a ripple of about `(1 + 2c + ...)^2` (1.7 at `c = 0.15`) times the command in the interior and 1 at the edge, not a flat piston. `strokeM` and `driveBits` act on the command |
 | `influenceCoupling` | | 0.15 | surface at a neighbouring actuator when one is driven: the influence function is `exp(ln(c) (r/pitch)^2)`, so the value at one pitch is exactly `c` |
 | `strokeM` | m | unlimited | commands are clipped to `+-strokeM`; clipped actuators are listed in the element's note |
 | `driveBits` | | 0 | drive resolution over `+-strokeM` (needs `strokeM`) |
@@ -53,7 +53,7 @@ lengthen the path.
 | `samplesPerActuator` | | 4 | surface cells per pitch (the modulator averages them onto the simulation grid) |
 | `designWavelengthM` | m | carrier | wavelength at which the path becomes a phase |
 
-Use at least two simulation cells per actuator. Hysteresis, creep and print-through are not modelled.
+Use at least two simulation cells per actuator. Hysteresis, creep and print-through are not modelled. A `driveBits` grid has `2^b - 1` steps over `+-strokeM`, so zero is not a level: a zero command becomes a uniform piston of half a step (no tilt).
 
 ## slm
 
@@ -68,7 +68,7 @@ wavelength it is scaled by the liquid crystal's dispersion.
 | `fillFactor`, `gapTransmission`, `outsideTransmission` | | 1, 0, 0 | active fraction, amplitude in the gaps and outside the panel |
 | `greyLevels` | | 256 | number of levels |
 | `lutKind` | | `linear` | `linear`: `maxPhaseRad k / levels`; `tanh`: S-shaped (`lutSteepness`); `table`: `lutPhaseRad` |
-| `greyLevel` or `phaseTargetRad` | | | pixel values `[x][y]`, a callback `"@name"` or an NPZ `file` (`grey_level`, `phase_target_rad`). A phase target is wrapped to 2 pi and mapped to the **nearest grey level** of the curve |
+| `greyLevel` or `phaseTargetRad` | | | pixel values `[x][y]`, a callback `"@name"` or an NPZ `file` (`grey_level`, `phase_target_rad`). A phase target is wrapped to 2 pi and mapped to the **nearest grey level** of the curve by circular distance (a curve that spans more than 2 pi is searched at every image of the target) |
 | `designWavelengthM` | m | carrier | wavelength at which the curve holds |
 | `dispersion` | | `liquidCrystal` | `none`: the written phase is an optical path (scales with 1/lambda); `liquidCrystal`: scales with `omega dn(omega)` |
 | `deltaIndexCauchy` | | generic preset | `dn = A + B/lambda^2 + C/lambda^4`, `[A, B_m2, C_m4]`. The preset `[0.1805, 1.6e-14]` is **generic and unverified** |
@@ -85,10 +85,10 @@ the core modulator unquantised, because the grey-level steps are already in the 
 
 ## spectralShaper
 
-A Fourier-plane mask of a 4f line. Frequency maps to position `x = D (lambda - lambda_c)`, `D` = `dispersionMPerM` (or
+A Fourier-plane mask of a 4f line. Frequency maps to position `x = D (2 pi c / omega - lambda_c)` (exact in wavelength, `D` = `dispersionMPerM` taken as constant over the band; a real grating's `D` also varies with `lambda`, which is not modelled) (or
 `focalLengthM x order x lines / cos(theta_d)` from a grating). Each frequency is a Gaussian spot of 1/e^2 field radius `w0`
 (`spotRadiusM`, or `lambda f / (pi w_in)` from `inputBeamRadiusM`), so the transfer function is the overlap of the spot with the pixels
-(erf differences): finite resolution, fill factor, gaps and phase quantisation all follow from it.
+(erf differences): finite resolution, fill factor, gaps and phase quantisation all follow from it. **Modelling choice:** the overlap is with the spot's *field* profile `exp(-x^2/w0^2)` (the transfer function multiplies the field); weighting by the intensity profile instead would change the blur of the pixel edges (a first-harmonic factor `exp(-(pi w0/p)^2/2)` instead of `exp(-(pi w0/p)^2)`). The Weiner test uses the field overlap, so it checks the implementation of this choice, not the choice. The spot size ignores the `cos(theta_d)/cos(theta_i)` anamorphic factor of an oblique grating (give `spotRadiusM` directly for that). `offsetM` moves the pixel array relative to the spectrum.
 
 | key | unit | default | meaning |
 |---|---|---|---|
@@ -103,7 +103,7 @@ A Fourier-plane mask of a 4f line. Frequency maps to position `x = D (lambda - l
 
 **The programmed delay stays in the transfer function**: a linear phase `tau (omega - omega_0)` moves the pulse by `tau` inside the time
 window; only the carrier phase is taken out of the frame, so the arrival-time bookkeeping is unchanged. A pixelated mask makes side
-pulses at `2 pi / (pixel bandwidth)`: **set `grid.windowS` to cover them**, the grid planner does not know about them. With gaps (active
+pulses at `2 pi / (pixel bandwidth)`: **set `grid.windowS` to cover them**, the grid planner does not know about them (nor about a large programmed GDD, which stretches the pulse: nothing warns when the output wraps round the window). The spectral grid spacing is `2 pi / windowS`: keep at least ~10 samples per pixel, otherwise the sampled mask edges change the harmonics (a window of 8 ps with 1.6 ps side pulses, 5 samples per pixel, gave 2.5 % errors in the side pulses). With gaps (active
 fraction `f`) the side pulses carry `[sin(pi f)/(pi f)]^2` of the main pulse (Weiner, Rev. Sci. Instrum. 71, 1929 (2000)).
 
 ## aopdf
@@ -114,7 +114,7 @@ fraction `f`) the side pulses carry `[sin(pi f)/(pi f)]^2` of the main pulse (We
 | `spectralPhaseRad`, `amplitudeTable`, `tableWavelengthsM` | | | tables, linear in omega |
 | `windowS` | s | 0 (unlimited) | components whose programmed group delay lies outside `+-windowS/2` are not diffracted |
 | `efficiency` | | 1 | power; booked as the mechanism `aopdf` |
-| `replicaAmplitude`, `replicaDelayS` | | 0 | spurious replica: `H x (1 + a exp(i omega tau))` (a second pulse of energy `a^2`) |
+| `replicaAmplitude`, `replicaDelayS` | | 0 | spurious replica split off the main pulse: `H x (1 + a exp(i omega tau)) / sqrt(1 + a^2)`: a second pulse with `a^2` of the main pulse's energy, total energy = `efficiency` |
 
 ## tiledArray (Python)
 
@@ -168,6 +168,8 @@ dark) but the amplitudes only relative within a row.
 
 * Devices are idealised unless you supply measured curves. No hysteresis, creep, thermal drift, polarisation dependence or SLM
   flicker.
+* `commandsM`: see the note in the table. `ultrafast_ao.combining_metrics` uses the first Airy zero of the filled hex aperture as the central lobe.
+* `control.modal_fit` evaluates the Zernike gradient at the lenslet centre, the sensor measures the mean slope over the subaperture: a bias of order `pitch^2/12 W'''` for Noll >= 7 that grows with the lenslet pitch (not tested; the pupil must be centred on `x_m`, `y_m` = 0).
 * The `spectralShaper` is the 1-D spectral transfer function. Spatial chirp and space-time coupling of a misaligned 4f line (stage T3)
   are not modelled.
 * A transverse device acts on the carried profile at every stored frequency; with a pulse, raise `transverse.spectralSamples` until

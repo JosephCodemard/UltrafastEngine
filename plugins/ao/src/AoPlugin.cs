@@ -23,7 +23,7 @@ namespace UltrafastEngine.Plugins.Ao
                 .Arr("ringCounts", "", "ring layout: actuators on ring k (radius k pitch); the first entry is the centre actuator count")
                 .Arr("positionsXM", "m", "explicit layout: actuator x positions").Arr("positionsYM", "m", "explicit layout: actuator y positions")
                 .Num("pitchM", "m", "Actuator pitch", null, required: true)
-                .P("commandsM", ParamType.Any, "m", "Surface displacement per actuator, positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout", "0")
+                .P("commandsM", ParamType.Any, "m", "Drive coefficient per actuator (the surface is the sum of the influence functions: a uniform drive gives about 1.7 x the drive in the interior at coupling 0.15, not a uniform piston), positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout", "0")
                 .Num("influenceCoupling", "", "Surface value at a neighbouring actuator when one actuator is driven (Gaussian influence function exp(ln(c) (r/pitch)^2))", "0.15")
                 .Num("strokeM", "m", "Mechanical stroke limit (commands are clipped to +-strokeM)", "unlimited").Int("driveBits", "Drive resolution in bits over +-strokeM (needs strokeM); 0 = continuous", "0")
                 .Num("incidenceAngleRad", "rad", "Angle of incidence; the wavefront changes by 2 cos(aoi) times the surface", "0")
@@ -52,7 +52,7 @@ namespace UltrafastEngine.Plugins.Ao
                 .Int("pixels", "Number of pixels", null, required: true).Num("pixelPitchM", "m", "Pixel pitch", null, required: true)
                 .Num("fillFactor", "", "Active fraction of the pitch (0-1]", "1").Num("gapTransmission", "", "Amplitude transmission of the gaps", "0").Num("outsideTransmission", "", "Amplitude transmission beyond the array", "0")
                 .Num("centerWavelengthM", "m", "Wavelength at the centre of the array", "the carrier").Num("offsetM", "m", "Position of the array centre relative to the centre wavelength's focus", "0")
-                .Num("dispersionMPerM", "", "Focal-plane position per wavelength (m of position per m of wavelength; 1e3 = 1 mm/nm)", "from the grating")
+                .Num("dispersionMPerM", "", "Focal-plane position per wavelength (m of position per m of wavelength; 1e6 = 1 mm/nm)", "from the grating")
                 .Num("gratingLinesPerMm", "1/mm", "Grating line density").Num("incidenceAngleRad", "rad", "Angle of incidence on the grating", "0").Num("order", "", "Diffraction order", "1").Num("focalLengthM", "m", "Focal length of the 4f lens")
                 .Num("spotRadiusM", "m", "1/e^2 field radius of the focused monochromatic spot", "lambda f / (pi inputBeamRadiusM)").Num("inputBeamRadiusM", "m", "Beam radius at the grating (sets the spot size)")
                 .P("phaseRad", ParamType.Any, "rad", "Phase per pixel", "0").P("amplitude", ParamType.Any, "", "Amplitude transmission per pixel", "1")
@@ -64,7 +64,7 @@ namespace UltrafastEngine.Plugins.Ao
                 .Num("delayFs", "fs", "Group delay at the centre", "0").Num("gddFs2", "fs^2", "Group-delay dispersion", "0").Num("todFs3", "fs^3", "Third-order dispersion", "0").Num("fodFs4", "fs^4", "Fourth-order dispersion", "0")
                 .Arr("spectralPhaseRad", "rad", "Extra spectral phase table over tableWavelengthsM").Arr("amplitudeTable", "", "Amplitude transmission table over tableWavelengthsM").Arr("tableWavelengthsM", "m", "Wavelengths of the tables")
                 .Num("windowS", "s", "Acoustic window: components whose programmed group delay is outside +-window/2 are not diffracted (0 = unlimited)", "0")
-                .Num("efficiency", "", "Diffraction efficiency (power)", "1").Num("replicaAmplitude", "", "Spurious replica: H x (1 + a exp(i omega tau))", "0").Num("replicaDelayS", "s", "Delay of the spurious replica", "0"));
+                .Num("efficiency", "", "Diffraction efficiency (power)", "1").Num("replicaAmplitude", "", "Spurious replica split off the main pulse: H x (1 + a exp(i omega tau)) / sqrt(1 + a^2)", "0").Num("replicaDelayS", "s", "Delay of the spurious replica", "0"));
         }
     }
 }

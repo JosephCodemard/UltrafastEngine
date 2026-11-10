@@ -58,10 +58,14 @@ Added:
 
 | test file | tests | what |
 |---|---|---|
-| `AoDeviceTests.cs` | 15 (1 slow) | deformable mirror (tilt, 2 cos(aoi), coupling, stroke, hex), SLM (blaze, orders, liquid-crystal dispersion, nearest level, 1920 x 1080), erf, aopdf (delay, GDD, window, replica), spectral shaper (Weiner side pulses, delay) |
-| `python/tests/test_ao_algorithms.py` | 17 | holography, sensing and control, sensorless, transmission matrix |
+| `AoDeviceTests.cs` | 17 (1 slow) | deformable mirror (tilt, 2 cos(aoi), coupling, stroke, hex), SLM (blaze, orders, liquid-crystal dispersion, nearest level, 1920 x 1080), erf, aopdf (delay, GDD, window, replica), spectral shaper (Weiner side pulses, delay) |
+| `python/tests/test_ao_algorithms.py` | 18 | holography, sensing and control, sensorless, transmission matrix |
 | `python/tests/test_ao_plugin.py` | 12 | Strehl and Marechal, device twins, fit residual, correction and loop, modal search, GS hologram through the slm element, tiled array, SPGD lock, GDD shaping |
 
 ## Physics review
 
-(appended below after the `physics-reviewer` pass)
+One `physics-reviewer` pass (15 findings). **Fixed:** `spectralShaper.offsetM` cancelled out (now moves the array; test added); the frequency-to-position map is now exact in wavelength (was linear in omega); the AOPDF replica created energy (now split off the main pulse, total = efficiency; test added); the `deformableMirror` `commandsM` are documented as drive coefficients (a uniform command gives a ripple of about 1.7 x at coupling 0.15, not a flat piston); the nearest-grey-level search uses the circular distance for curves that span more than 2 pi (C# and Python; tests added); the Airy radius in `combining_metrics`; the unit hint (1e6 = 1 mm/nm); the `transmission_matrix` docstring (column 0 is a marker, cost 4(n-1)+2); the Weiner test now uses a 150 fs pulse and a 32 ps window because the spectral grid sampled the comb edges (5 samples per pixel gave 2.5 % errors: now in the docs). **Documented, not changed:** the field-overlap model of the spot (the Weiner test checks its implementation, not the choice); no anamorphic grating factor; a large programmed GDD or a shaper's side pulses can wrap around the time window without a warning (needs a planner hook in the core); `modal_fit` uses the gradient at the lenslet centre, not the subaperture mean. **Open (no test yet):** AOPDF GDD/TOD sign (red first for +GDD), grating-derived dispersion against a Littrow reference, SLM fill factor / gap / cross-talk through the plugin (covered by the core modulator tests), end-to-end Bolduc and double-phase through an SLM, drive-bit step size, tiled-array lobe fractions beyond `0 < f < 1`.
+
+## Verification (test-runner, before the review fixes)
+
+net10.0 `--slow` 523 passed / 0 failed / 9 skipped; Python with pyNLO and slow 205 passed / 1 skipped (no GPU); `example_check.py` 0 problems; `mkdocs build --strict` 0 warnings; solution builds with 0 errors. Not run: net48 tests (no Mono), GPU, OpticStudio. After the review fixes the changed tests, the ao Python tests, the regenerated files and the full net10 suite were re-run (see the commit message).

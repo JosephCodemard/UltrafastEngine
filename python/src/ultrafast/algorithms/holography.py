@@ -40,11 +40,16 @@ def grey_levels(phase: np.ndarray, lut: Sequence[float], wrap: float = 2 * np.pi
     Same rule as the engine's ``slm`` element, so a phase target and these grey levels give the same device."""
     lut = np.asarray(lut, dtype=float)
     t = np.mod(phase, wrap)
-    j = np.clip(np.searchsorted(lut, t), 1, len(lut) - 1)
-    lo, hi = lut[j - 1], lut[j]
-    best = np.where(np.abs(t - lo) <= np.abs(hi - t), j - 1, j)
-    # around the wrap: a target just below 2 pi is nearest to level 0 (+ wrap)
-    best = np.where(np.abs(lut[best] - t) > np.abs(lut[0] + wrap - t), 0, best)
+    best = np.zeros(t.shape, int); bd = np.full(t.shape, np.inf)
+    k = -1
+    while k * wrap <= lut[-1] + wrap:                  # the curve may span more than one wrap: test every image of the target inside its range
+        tt = t + k * wrap
+        j = np.clip(np.searchsorted(lut, tt), 1, len(lut) - 1)
+        for c in (j - 1, j):
+            d = np.abs(lut[c] - tt)
+            better = d < bd
+            best, bd = np.where(better, c, best), np.where(better, d, bd)
+        k += 1
     return best.astype(int)
 
 

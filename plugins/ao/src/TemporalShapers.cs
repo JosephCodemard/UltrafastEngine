@@ -1,7 +1,7 @@
 // TemporalShapers.cs -- programmable spectral phase / amplitude devices of the ao plugin (temporal shaping).
 //
 //   SpectralShaperTerm  : PhaseTerm   a pixelated mask in the Fourier plane of a 4f line (element "spectralShaper")
-//     frequency -> position x(omega) = D (lambda - lambda_c) + offset (D = focal length x grating dispersion, or given);
+//     frequency -> position x(omega) = D (2 pi c / omega - lambda_c) (exact in lambda; the array of centre `offset` is what moves) (D = focal length x grating dispersion, or given);
 //     each frequency is a Gaussian spot of 1/e^2 field radius w0, so the transfer function is the overlap of the spot with the
 //     pixel mask (erf differences): finite spectral resolution, fill factor, gaps and phase quantisation fall out of it.
 //     Weiner: a stepwise phase on pixels of spectral width d_omega makes replica pulses at t = 2 pi m / d_omega.
@@ -48,7 +48,7 @@ namespace UltrafastEngine.Plugins.Ao
 
     public sealed class SpectralShaperTerm : ShaperTerm
     {
-        public int Pixels; public double PitchM, FillFactor = 1, GapAmplitude, OutsideAmplitude, SpotRadiusM, CentreOmega, DispersionMPerRadS, OffsetM;
+        public int Pixels; public double PitchM, FillFactor = 1, GapAmplitude, OutsideAmplitude, SpotRadiusM, CentreOmega, DispersionMPerRadS, OffsetM, DxDLambda, CentreLambdaM;
         public Complex[] PixelValue;      // complex amplitude transmission of each pixel
         public string Text = "spectral shaper";
         public override string Description => Text;
@@ -60,7 +60,7 @@ namespace UltrafastEngine.Plugins.Ao
             for (int i = 0; i < omega.Length; i++)
             {
                 if (!(omega[i] > 0)) { h[i] = Complex.Zero; continue; }
-                double xc = OffsetM + DispersionMPerRadS * (omega[i] - CentreOmega);
+                double xc = DxDLambda * (2 * Math.PI * UltrafastEngine.Numerics.PhysicalConstants.SpeedOfLightMPerS / omega[i] - CentreLambdaM);   // exact in lambda; the array (centre OffsetM) is what moves
                 // outside the array
                 Complex acc = OutsideAmplitude * (0.5 * (AoMath.Erf((xl - xc) / w0) + 1) + 0.5 * (1 - AoMath.Erf((xr - xc) / w0)));
                 int j0 = Math.Max(0, (int)Math.Floor((xc - 6 * w0 - xl) / p)), j1 = Math.Min(Pixels - 1, (int)Math.Ceiling((xc + 6 * w0 - xl) / p));
@@ -111,7 +111,7 @@ namespace UltrafastEngine.Plugins.Ao
                     if (Math.Abs(tau) > WindowS / 2) amp = 0;
                 }
                 var t = Complex.FromPolarCoordinates(amp, Phi(w));
-                if (ReplicaAmplitude != 0) t *= 1 + ReplicaAmplitude * Complex.FromPolarCoordinates(1, w * ReplicaDelayS);
+                if (ReplicaAmplitude != 0) t *= (1 + ReplicaAmplitude * Complex.FromPolarCoordinates(1, w * ReplicaDelayS)) / Math.Sqrt(1 + ReplicaAmplitude * ReplicaAmplitude);   // the replica is split off the pulse: total energy = efficiency
                 h[i] = t;
             }
         }
@@ -163,7 +163,7 @@ namespace UltrafastEngine.Plugins.Ao
             var t = new SpectralShaperTerm
             {
                 Pixels = n, PitchM = pitch, FillFactor = s.Num(e, "fillFactor", 1), GapAmplitude = s.Num(e, "gapTransmission", 0), OutsideAmplitude = s.Num(e, "outsideTransmission", 0),
-                SpotRadiusM = w0, CentreOmega = wC, DispersionMPerRadS = dxdw, OffsetM = s.Num(e, "offsetM", 0), PixelValue = px, Mechanism = "spectral shaper"
+                SpotRadiusM = w0, DxDLambda = dxdl, CentreLambdaM = lamC, CentreOmega = wC, DispersionMPerRadS = dxdw, OffsetM = s.Num(e, "offsetM", 0), PixelValue = px, Mechanism = "spectral shaper"
             };
             t.Text = string.Format(CultureInfo.InvariantCulture, "spectral shaper {0}: {1} pixels, pixel bandwidth {2:G4} rad/s (replica pulses at {3:G4} s), spot radius {4:G3} m", e.Id, n, t.PixelBandwidthRadS, 2 * Math.PI / t.PixelBandwidthRadS, w0);
             ce.Post.Add(t);
