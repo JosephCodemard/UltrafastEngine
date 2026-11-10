@@ -13,4 +13,4 @@ Run: `python docs/examples/make_all.py --group DigitalTwin`. Plugin pages: [fitt
 
 **Not here yet:** a comparison of a spline and a network transform (the network transform exists and is tested in the fitting plugin), a
 wavefront twin (needs a spatial project template that does not exist yet), and agent-driven design through an MCP server (the MCP
-server is not built; the design is in [the S4 notes](../../design/notes/s4-twin.md)).
+server is not built; the design is in [the design record](../../design/ao-twin-2026-11.md#7-mcp-server-the-agreed-design-not-built)).

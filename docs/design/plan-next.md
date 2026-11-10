@@ -1,128 +1,164 @@
-# Plan for the next work: design plugins, waveguides, fitting, engineering, papers
+# Plan: the next iteration, toward the first release
 
-Status (2026-11-08, version 2.2.0): done are the T1 branch items, the component sheet and tests (`tests/components/`), twelve paper
-replications, plots of Branched systems, the measured pedestal, the XPW model (cubic χ(3) tensor with BaF2), FROG kinds and
-multi-trace retrieval, the multi-pass-cell mode helper and the single-shot correlator (see the changelog and the
-[November 2026 fix plan](plan-fixes-2026-11.md)). This page keeps the design of what is left; the user-facing list is the
-[roadmap](../roadmap.md) and the handover is `HANDOFF.md` in the repository root. Written 2026-11; sizes are focused agent-days
-(S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here. The adaptive-optics and digital-twin work follows its own [roadmap](roadmap-ao-twin-2026-11.md); its session S1 is done (2026-11-09).
+Written 2026-11-10 after S5. A **smaller** iteration than the AO / twin work: closing physics and data gaps, investigating the open findings, a release system with
+selectable components and an overhaul of the documentation. Sizes are focused agent-days (S ≈ 1, M ≈ 2-3, L ≈ 4-6). What the previous iteration built and left open:
+[ao-twin-2026-11.md](ao-twin-2026-11.md). Longer-term design that is not scheduled: [backlog.md](backlog.md). The rules of `CLAUDE.md` apply (a physics change needs a published
+or analytic reference in a test; a disagreement is a finding, never tuned away; tags and releases only when the owner asks).
 
-## Decisions (owner)
+## 1. Answers to the open questions
 
-| # | decision |
+* **Repository size:** not a concern; media stays in the repository and is left out of release packages by default (see WP8).
+* **`UF_WITH_AO`: what it is.** The Python package and the CLI run the *hosted* engine, which finds plugins as DLLs at run time, so `ao` and `twin` work there. The C API library
+  (`UltrafastEngine.Native`, NativeAOT, used by C / C++ and by the optional native Python wheel) cannot load DLLs at run time, so each first-party plugin is **compiled into it**
+  behind a build constant: `UF_WITH_GPU` and `UF_WITH_HITRAN` in `src/UltrafastEngine.Native/UltrafastEngine.Native.csproj` and a `#if` in `Exports.cs`. `ao` was never added, so a C++ program
+  linking the native library gets "unknown element type deformableMirror". `UF_WITH_AO` is the same two edits for `ao` (the `twin` plugin is a Python module plus a CLI command and needs nothing). It is a
+  15-line change, included as WP0; the packager gets `UF_WITH_AO=false` for a release without the plugin, as for the others.
+* **Grid-planner hook for shaper side pulses: yes** (WP0). **Unknown-element message naming `ao`: yes** (WP0).
+
+## 2. Work packages
+
+Order: WP0 first (small, unblocks), then WP1-WP4 (physics, each on its own branch; files overlap little), WP5 and WP6 (investigations, run in parallel with them), WP7 the findings, WP8 and WP9 last,
+because they describe what the others deliver. Every package ends with tests, docs, the changelog and `/verify`.
+
+### WP0. Housekeeping that was promised (S)
+
+1. `UF_WITH_AO` in the Native project and `Exports.cs`; the packager's plugin switch; a test that a native-library build lists the four `ao` elements (skipped where NativeAOT is not built).
+2. **Planner hook.** `GridPlanner` reads from the `spectralShaper` and `aopdf` terms the time extent they create: side pulses at `2π / pixel bandwidth` and the stretch from a programmed GDD
+   (`GDD x bandwidth`); it widens the window, or when the window is fixed it **warns** that output will wrap. Test: the Weiner example of `temporal-shaping` runs without setting `grid.windowS`;
+   a shaper with a 1 ns programmed GDD on a 10 ps fixed window warns.
+3. The unknown-element message (`Compiler.cs:649`) names the plugin for `deformableMirror`, `slm`, `spectralShaper`, `aopdf` as it already does for the other first-party types.
+4. Mark the open edges of S3 that have no test: grating-derived dispersion of `spectralShaper` against a Littrow reference; end-to-end Bolduc and double phase through an SLM with a varying field; tiled-array
+   lobe fractions beyond `0 < f < 1`. Write the tests (S) or state in the docs why not.
+
+### WP1. Spatial modelling: thermal lenses in beam tracking (M-L; priority 1)
+
+*Today* ([capabilities](../capabilities.md)): the tracked beam is Gaussian; a thermal lens is applied as the **thin parabola** that fits it best over the beam; a multipass amplifier puts it on the tracked
+beam only when given the path between passes; a regenerative amplifier does not; the radial spatial model has the full distributed thermal lens (see `Wavefronts/spatial-gain-thermal-lens`).
+
+*Plan.* (a) Treat the pumped region as a **distributed lens** in the ABCD tracker: a graded-index duct of length L with `n(r) = n0 - ½ n0 g² r²` with `g²` from the heat load (dn/dT, the thermal conductivity and the absorbed pump), i.e. the
+exact ABCD matrix of a quadratic-index medium instead of a thin lens at one end (this changes the beam radius inside long rods and the focal position for thick media). (b) Apply it per pass in
+multipass and per round trip in regenerative amplifiers (today missing). (c) Report the effective focal length and the thin-lens equivalent in the element's `values`. (d) Keep the aberrated part
+(spherical, from the non-parabolic heat profile) on the spatial model; say so in the docs.
+
+*Tests.* The duct matrix against the analytic `cos(gL)`, `sin(gL)/g` form and its thin-lens limit `gL → 0` (1e-12); the engine's tracked beam radius after the `spatial-gain-thermal-lens` rod (60 W: f_th 0.54 m,
+471 µm after the rod, 319 µm after 0.4 m, from the radial model) reproduced by the tracker to a stated tolerance (measure the spread first); a regenerative amplifier with N round trips equals N thin
+duct passes. *Open question:* is end-face bulging worth including (backlog)? Not in this package.
+
+### WP2. Gain modelling: ASE and stress birefringence (L; priority 2)
+
+*Today:* ASE is one-dimensional, in the signal polarisation, and covers only the simulated time window; stress birefringence (`thermalLens.stress`) is the beam-averaged depolarised fraction, not the
+four-lobed pattern.
+
+*Plan, in this order.* (a) **ASE over the inversion lifetime**: a steady-state forward and backward ASE model in the gain rate equations (spectrally resolved, both polarisations) that depletes the inversion
+between pulses, feeds the contrast pedestal and is shared with fibre gain (backlog C3); reference: the closed-form two-level steady state (Saleh et al., IEEE PTL 2, 714 (1990)) and photon balance. (b) **Two
+polarisations** for ASE. (c) **Stress birefringence pattern**: the radial / azimuthal index change of a uniformly heated YAG rod (Koechner, *Solid-State Laser Engineering*, thermal-effects chapter;
+Cousins, IEEE JQE 28, 1992; read the formulas from the sources, do not write them from memory) as a map applied through the spatial model, so the depolarisation of a linearly polarised beam is the four-lobed
+pattern; the beam-averaged value must equal today's `stress` result (consistency test). *Spike first (S):* does the spatial path carry a vector field (both polarisations) today? If not, the pattern is applied as a
+Jones map on a scalar pair and the limits are stated. *Not in this package:* 3-D (transverse-resolved) ASE; say so in the docs.
+
+### WP3. Material models and a catalogue (L; priority 3)
+
+*Goal:* every material parameter lives in **catalogue files with provenance**, none hard-coded in C#.
+
+* **Catalogue.** A `materials/` data folder (one JSON file per material, gas or Raman model) with, per value: the number, its unit in the key name, `source` (paper, page or table), `status`
+  (`verified` | `approximate` | `unverified`), an uncertainty (the literature spread, e.g. a factor 2-3 for CS2 n2) and the temperature / pressure / wavelength it applies to. A schema, a loader that
+  replaces the tables in `MaterialLibrary.cs`, `Gases.cs`, `RamanModels.cs`, and an `ultrafast reference` page **generated** from the catalogue (`reference/materials-catalogue.md`, like `options.md`).
+* **Runs say what they used.** The run notes list every `unverified` / `approximate` value a run touched (and `summary.json` carries it), so a quantitative result is never silently built on one.
+* **Verify the known list** against the original papers (the owner supplies PDFs; licensed PDFs and their figures never enter the repository, only the extracted numbers with citations): CS2 n2 (3.0e-18 m²/W), the
+  90 / 10 electronic-orientational split and the 1.6 / 0.2 ps constants; BaF2 n2 (2.0e-20 m²/W) and σ = -1.2; **rotational Raman dephasing times** (`T2At1Bar` of N2, O2, CO2, H2, air); the **TGG refractive index**
+  (Sellmeier source); other n2 values flagged in `docs/reference/materials.md` and `nonlinear.md`. Re-run `liu-2013`, `shimizu-1967` and `kaur-2024` after the numbers change (HANDOFF).
+* **Tests.** Every built-in material round-trips through the catalogue (the old table and the new files agree to 1e-15 before any value is edited, so the move is a pure refactor); a lint test fails when
+  a catalogue entry has no source or status; user catalogues in `~/.ultrafast/materials` override with a notice.
+
+### WP4. Plasma in envelope mode (M; priority 4)
+
+*Today:* the envelope model evaluates the Drude term at the **carrier frequency**; carrier-resolved mode is exact. *Plan:* apply the plasma's linear response as a spectral operator per step: the Drude
+index `n_p(ω) = sqrt(1 - ω_p²/(ω(ω + iν)))` expanded to first order in the density, frequency-resolved (the 1/ω² dependence across the pulse bandwidth, including the blueshift of the leading and trailing parts), with the
+density from the existing ionisation rate. *Tests:* envelope with the new term against the carrier-resolved model on a 10 fs, 2 µm pulse (the blueshift and the energy loss to ionisation agree to a stated
+tolerance, measured first); the old behaviour recovered for a narrow spectrum (1e-9); energy booked (`plasma`, `ionisation`) closes. Document the new limit (no negative frequencies, already stated).
+
+### WP5. Leftovers from the spikes (S; priority 5, mostly decisions)
+
+| item | recommendation |
 |---|---|
-| 1 | Push to GitHub: yes. PoCL is added to CI so `GpuTests` run there. |
-| 2 | No PyPI publishing. The release workflow builds packages and wheels and attaches them to a GitHub release on a version tag. |
-| 3 | **Plugins as pip extras**: `pip install "ultrafast[hitran,cuda,fitting]"`, `[opencl]`, `[coatingdesign]`, `[crystaldesign]`, `[all]`. The default Python engine is the NativeAOT library, which can only use plugins compiled into it, so: the native library in the `ultrafast` wheel is built with every non-Zemax plugin compiled in (off until used); each extra installs that plugin's Python module (`ultrafast-hitran`, `ultrafast-fitting`, ...) and its third-party dependencies (`[cuda]`: NVIDIA's NVRTC / cuFFT wheels, not on macOS); the hosted engine loads the plugin assemblies shipped in the same extra wheels. Without PyPI, extras resolve only with `pip install "ultrafast[hitran]" --find-links <release assets or dist/>`. Zemax is never an extra. |
-| 4 | (delegated) **FP32 study first; then mixed precision in the existing CUDA / OpenCL back-ends; Metal only if the study shows FP32 is enough for the steps that matter.** Reason: Apple GPUs have no FP64, so Metal is worthless unless FP32 works, and the study is cheap and runs on this Mac. |
-| 5 | (open-air focus) Fibre work is reshaped. **In**: frequency-dependent effective area (also needed by hollow capillaries); a **hollow-capillary (Marcatili) gas waveguide** model, the fibre most relevant to open-air post-compression; **rate-equation gain with ASE as a shared gain model**, used by the bulk `gain` / `amplifier` elements as well as fibres, because the ASE pedestal is a contrast question for CPA chains; multimode tier T0 (GRIN example). **Small**: tapers (C2). **Out for now**: GMMNLSE (T1) and a mode solver (T2). |
-| 6 | ASE is included in the rate-equation gain (forward and backward ASE, spectrally resolved, as an incoherent power spectrum and as a pedestal in the contrast). |
-| 7 | (asked) Recommendation: **keep the estimators in the fitting plugin**; the design plugins declare `"requires": ["fitting"]` in `plugin.json` (a new, small plugin-manager feature: load order and a clear error if missing), and `ultrafast[coatingdesign]` pulls `ultrafast-fitting` in. One home for optimisers, no core API churn; design is fitting with a target specification instead of data. |
-| 8 | Escoto 2024 uses the Seidel 2022 cell as a labelled hypothesis. |
-| 9 | The owner's separate lab project is not used or modified; only its recorded data files may be **copied into `papers/lab-mpc-ner-contrast/data/`** (the owner's own Pharos MPC recordings, not personal data, not Escoto's system). A separate paper-folder case `papers/lab-mpc-ner-contrast/` is built from scratch from the engine's docs: (1) fit the input and output spectra with `transform` elements; (2) put the fitted transform into the MPC model with the hitran air lines; (3) compare the predicted TOCC contrast with the recordings, then fit what remains. |
-| 10 | Build: `pedestal.kind: "measured"` (a contrast trace as the input pedestal; done), an XPW model (anisotropic cubic χ(3); done in 1-D, see the roadmap for spatial and carrier-resolved), the hollow-capillary model (open). |
-| 11 | Papers cover a range: MPCs / NER, Yb and Ti:sapphire lasers (oscillators, regenerative and multipass amplifiers), OPA / OPCPA chains, fibres and hollow capillaries, χ(2) conversion, beam propagation / filamentation, contrast cleaning. The goal is each paper's **headline results**; when one cannot be reproduced, its README says why (missing parameter, missing physics, a bug). |
+| compile cache | **close.** A 128 x 128 trial costs 10 ms including the compile (spikes S4); revisit only if a loop with a much larger system shows the compile above 30 % of the trial. Write the trigger into `speed.md`. |
+| full streaming executor | **close.** The peak is the .NET GC, not the propagator (2.7-3.4 GB for any block size at 1920 x 1080 x 16). Revisit if a 4096 x 4096 pulse run is wanted; measure it first (spike S1 only did 1920 x 1080). |
+| tiles as a Branched system | **replace by a test:** N sources through a `Branched` system recombined at one point (the on-axis value only) against the tile source's on-axis fluence. A Branched system cannot give an array's far field, which is why the spike was not run. |
 
-## B. Engineering
+### WP6. Small fixes found on the way (S each)
 
-| item | plan | Mac-verifiable | size |
-|---|---|---|---|
-| B1 release workflow | `.github/workflows/release.yml` on `v*` tags: linux-x64/arm64, osx-arm64/x64, win-x64 runners, each `build.sh --all --plugins fitting gpu hitran --platform <rid> --test`; smoke tests (CLI example 01 strict, wheel in a fresh venv runs 00-quickstart, C API example, `ultrafast devices`); a step failing if any archive contains `ZOSAPI*`, plus a test planting a fake DLL; publish with `gh release create` | osx-arm64 build only; YAML needs GitHub | M |
-| B2 GPU at install | `ultrafast[cuda]` (nvidia NVRTC/cuFFT wheels, not on Darwin), `ultrafast[opencl]`; a gpu plugin wheel; loader finds the CUDA libs; `ultrafast devices` reports where each back-end came from. NativeAOT can only use compiled-in plugins, so choose hosted-only or per-platform native wheels | packaging + "no device" path | M |
-| B3 GPU coverage | order: gas rotational Raman (today it keeps the air gaps of any MPC on the CPU), expression responses compiled to kernels, χ(2), carrier-resolved, spatial gain; each with CPU parity 1e-9 in `GpuTests` | no (needs PoCL in CI or the 3060 Ti) | XL |
-| B4 FP32 study | CPU FP32-emulation mode; SPM plate, 50-transit MPC, soliton, SHG, contrast floor vs FP64; accept if energy 1e-6, spectrum L1 1e-4, floor unchanged. Then a mixed-precision mode in CUDA/OpenCL (consumer GPUs run FP64 slowly) before Metal | study yes | M (+M; Metal XL) |
-| B5 speed | micro-benchmarks; pooled buffers (25 `new Complex[` in `Nonlinear.cs`); blocked SIMD Hankel; a zero-allocation-per-RHS test (`#if NET`); LightPipes timing benchmark (dev-only tool, tabled in `speed.md`) | yes | M + S |
+* **`ny = 1` grids** (HANDOFF / S1): a grid with `ny = 1` did not reproduce a measured input while `ny = 4` works. Not investigated. Reproduce in a minimal test (a `measured` profile through one gap), find the cause
+  (the y pitch from `halfWidthYM` and `ny`, or the sampling of the measured profile), then either fix it or make the validator refuse `ny < 2` with a clear message. A bug-hunter task.
+* **Cavity figure.** `Branched/cavity-and-coherence` has no figure (a cw / resonator run has no pulse to draw). Draw the Fox-Li iteration (the mode converging round trip by round trip as an animation and the radius
+  against the ABCD eigenmode), and the Gaussian-Schell beam's coherent modes and width against `w(z)`. Done inside WP9.
 
-## C. Fibres (one serial worktree: all three touch the steppers and `CompilerFiber.cs`)
+### WP7. The open findings (S-M each; investigate, then write the cause in the README)
 
-**C1 frequency-dependent A_eff (M).** Table or expression for `effectiveAreaM2` / `modeFieldDiameterM`; Lægsgaard
-pseudo-field (Opt. Express 15, 16110 (2007)): nonlinear factor (1 + Ω/ω0)·[A_eff(ω0)/A_eff(ω)]^{1/4}. Tests: constant
-table equals today's run (1e-12); photon number conserved without Raman (1e-6); a linear A_eff slope shifts τ_shock as
-in Agrawal §2.3 and the Gaussian shock distance (Anderson & Lisak, PRA 27, 1393 (1983)), 5 %.
+| finding | how to find the cause | done when |
+|---|---|---|
+| Raman shift rate 16-36 % above Gordon (`Fibres/raman-soliton-shift`) | (1) the same fibre in pyNLO (already a test dependency); (2) Gordon's rate with the model's **exact** Raman gain: `dΩ/dz ∝ ∫ Ω Im χ_R(Ω) sech²-spectrum dΩ` integrated numerically, not the first-moment `T_R`; (3) a fixed-width-soliton variant | the engine agrees with (1) and (2) to a few percent, or the difference is a stated engine finding |
+| SLM engine against Fourier prediction 0.98-0.99 (`slm-beam-shaping`) | compare the engine with an exact angular-spectrum propagation of the same sampled field in NumPy on the same grid; switch off, one at a time, the 6 x 6 sub-pixel averaging (`fillFactor`, cell averaging), the absorbing edge and the lens model | the example's reference becomes the exact one, with a residual stated as a bound |
+| tiled-array SPGD ends at 1.02 of the in-phase reference | compute each tile's complex on-axis field from single-tile runs on the 128 grid: is the zero-piston sum really the maximum? (tile areas on the grid differ, the on-axis pixel may not be the axis) | explained, or the reference is replaced by the true maximum |
+| SPGD gain sensitivity (1.5 → 0.64, 3 → 0.95, 5 → 0.80) | the gain is in units of 1 / metric: normalise the metric by its starting value, add a documented default and a gain sweep to the docs; optionally gain sequences (Spall) | a default that reaches ≥ 0.9 across a stated range of metric scales |
+| cw against pulse: 3e-6, not 1e-9 | build the cw line **at the requested carrier**: shift the lattice so a bin sits on it (as pulses have been since 2.2.0, `snapCarrier`); every cw result moves by about 1e-6, so re-baseline the cw reference tests at their stated tolerances and list them in the changelog | cw and pulse patterns agree to 1e-9 in the S2 test; no test tolerance loosened |
 
-**Multimode, tiers (owner chooses):**
+### WP8. Release system with selectable components (M)
 
-| tier | what | reference | size |
-|---|---|---|---|
-| T0 | GRIN MMF with the existing `indexProfile`: example + tests | self-imaging period π a/√(2Δ); geometric parametric instability (Krupa et al., PRL 116, 183901 (2016)) | S |
-| T1 | few-mode GMMNLSE (Poletti & Horak, JOSA B 25, 1645 (2008)), `multimodeFiber` element, per-mode betas, overlap tensor given or analytic for HG/LG | one mode equals `fiber` (1e-10); HG00/HG10 overlap ratio 1/2 exactly; linear coupling cos² exchange | L |
-| T2 | built-in mode solver (step-index LP, finite differences) feeding T1 and C1 | LP01 b(V) (Gloge 1971) | XL |
+*Today* `build.sh` / `build/package.py` build one folder per platform with a maintainer's choice of components (`--cli --python --cpp --csharp --zemax --plugins --examples --docs`), and
+there is no release workflow yet. *Goal:* **a user picks what to download.**
 
-**C2 tapers (M).** Betas as expressions in z (or a `taper` table). The linear operator is diagonal in ω, so the
-interaction picture stays exact with exp(i[B(ω,z2) - B(ω,z1)]), B = ∫β dz. Tests: GDD = ∫β2 dz (1e-9); adiabatic
-soliton in exponentially dispersion-decreasing fibre, T(z) = T0 e^{-z/L} (Chernikov & Mamyshev, JOSA B 8, 1633 (1991)), 3 %.
+* **Components as separate assets**, each with its own archive and hash: `cli` (per platform), `python` (wheel, plus `python-native` per platform), `cpp` (per platform), `csharp`, `plugin-<id>` (per platform),
+  `schemas`, `docs` (Markdown; the built site is a separate asset), `examples` (the `ultrafast-examples` wheel; **media** `examples-media` separate, since the figures and animations are not needed to run them),
+  `tests` (the test sources and the data they need, no binaries; and `component-tests`), `papers` (replication folders without licensed material). A `manifest.json` per release lists every asset with its size,
+  SHA-256 and what it contains.
+* **`install.py` (in the repository, standard library only):** `python install.py --components cli python examples --platform auto [--version X] [--dest DIR]` resolves the manifest of a GitHub release, downloads
+  only the chosen assets, checks the hashes and installs (pip for the wheels). `--list` shows the components with sizes. No PyPI (owner rule); the wheels are installed with `--find-links`.
+* **`.github/workflows/release.yml`** on a `v*` tag: builds every component on its OS, smoke-tests it (CLI example 01 strict, the wheel in a fresh venv runs the quickstart, the C example, `ultrafast devices`),
+  fails if any archive contains `ZOSAPI*` (plus a test that plants one), and attaches assets and manifest. **No tag is created without the owner's word.**
+* **Open question for the owner:** do you mean the *end user* chooses at download time (above), the *maintainer* chooses when building (already possible, to be tidied), or both? The plan assumes both: the
+  packager takes `--components`, and the installer consumes what it produced.
 
-**C3 saturated gain (L, needs C2).** `gain.kind: "rateEquations"`: steady-state two-level inversion from average
-signal and pump power (co-pumped initial value, counter-pumped boundary value), g(ω,z) as a z-dependent linear term,
-iterated with the propagated spectrum; reuses `GainCrystal`. Yb:silica cross-sections quoted from Paschotta et al.,
-IEEE JQE 33, 1049 (1997) (read from the paper, not recalled). Tests: closed-form two-level steady state (Saleh et al.,
-IEEE PTL 2, 714 (1990)) to 1e-4; exact photon balance; small-signal limit equals `gainDbPerM`. ASE out of scope.
+### WP9. Documentation overhaul: from a story to a short scientific presentation (L, in waves)
 
-## D. Fitting plugin (all inside `plugins/fitting/src`, no packages: everything hand-written)
+*Decision:* the README of every example and the landing pages follow one structure instead of "the story":
 
-| item | design | reference test | size |
-|---|---|---|---|
-| D1 low-rank operator | `lowRank`: A_out = Σ u_k ⟨v_k, A_in⟩, Tikhonov inverse | recover known singular values (1e-8) | M |
-| D1 learned operator | small MLP (dense + tanh) → spectral phase / amplitude; weights from NPZ; hand-written Adam and backprop | gradient vs finite differences (1e-6); fits a known map | L |
-| D2 ensemble Kalman | ES-MDA (Emerick & Reynolds 2013) | linear-Gaussian posterior equals Kalman within 3/√N | M |
-| D2 Bayesian optimisation | GP (Matérn 5/2, Cholesky) + expected improvement | Branin minimum 0.397887 within 1e-2 in ≤ 60 evaluations | M |
-| D3 spatio-temporal operators | `pulseFrontTilt`, `spatialChirp`, `angularDispersion` on cartesian profiles and the tracked beam | set value read back by the `spaceTime` instrument | M |
-| D4 backward beyond linearisation | exact inverse Frantz-Nodvik through saturated gain; χ(2) by shooting (LM) from the linearised start | forward(backward(y)) = y (1e-6); depleted SHG tanh² inverted analytically | L |
-| D5 autodiff | problem-specific adjoints inside the design plugins first (TMM and QPM have cheap analytic gradients), then a reverse-mode layer over the linear terms; adjoint NLSE later | adjoint vs finite differences (1e-7) | L |
+1. **Question** (one sentence: what is being tested or shown, and why a scientist or engineer cares).
+2. **Setup:** a system diagram (the engine's own schematic) and a **parameter table** (SI units in the keys, as in the files); the exact command.
+3. **What is checked:** the reference (analytic, published or a second code) and the tolerance, stated before the result.
+4. **Results:** a hero figure first, then a heat map or an animation (**always**; every example gets at least one), the table of numbers, the quoted output.
+5. **Extend it:** three or four concrete changes (which keys to turn, what to expect, which other example to look at) and the Python or `.ufs` fragment.
+6. **Limits and provenance:** what the model leaves out, open findings, unverified inputs (from the catalogue, WP3).
 
-The roadmap's condition for autodiff ("if inverse design becomes a goal") is met by the two design plugins below.
+*Mechanics.* `docs/examples/_template.md` and a lint (`build/example_lint.py`: required sections, a hero, an animation or heat map, a quoted-output block, `# optional:` on figure scripts, no wall time in quoted output)
+run in CI beside `example_check.py`. A one-file `example.json` per example (title, group, question, references, figures) feeds the gallery and the per-group index so those pages stop being hand-edited.
+*Waves:* (1) the 12 examples written in S5 (rewrite in the new structure, fix the "story" tone); (2) `Wavefronts`, `LaserSystems` (several results per chain: wavefront, contrast, FROG trace, beam maps), `Nonlinear`;
+(3) `Diffraction`, `Branched` (with the cavity figure of WP6), `Diagnostics`, `Components`, `GettingStarted`, `DigitalTwin/transforms`; (4) the landing pages (`docs/index`, `examples/README`, `concepts`), the README hero
+(assembled from the gallery), and the plugin pages' "what is checked" sections. Reference pages stay reference pages. Missing AO / twin examples from the previous iteration (component gallery, complex-field shaping,
+spline against network) are written directly in the new structure.
 
-## E. Two new plugins
+## 3. Suggested sessions
 
-**Shared architecture (owner decision 8).** Both need estimators that live in the fitting plugin. Recommended: move
-`IEstimator` / `FitProblem` to `UltrafastEngine.Core/Plugins` as public interfaces, so plugins never require plugins.
-Both register through `IPlugin.Register`: a CLI command `ultrafast design ...`, a `"design"` run-spec key, elements and
-result extensions (`Plugins.cs:105-133`). Each emits plain `.ufs` objects, so a design is re-checked in the core.
+| session | packages | executor / notes |
+|---|---|---|
+| A | WP0, WP6 (`ny = 1`), WP5 decisions, WP7 (cw carrier; SPGD gain) | one agent, small tasks; `bug-hunter` for `ny = 1` |
+| B | WP1 and WP4 | physics: Opus-class judgement for the ABCD duct and the Drude operator; `physics-reviewer` at the end |
+| C | WP3 | mostly plumbing and reading papers; owner supplies the PDFs |
+| D | WP2 | spike first, then ASE, then the pattern |
+| E | WP7 (Raman, SLM, tiled array) | investigations; may run beside B-D |
+| F | WP8 | packaging and a workflow; Sonnet-class |
+| G-H | WP9 waves 1-4 | one example group per sitting; `example_lint` first |
 
-### E1. Crystal design (`plugins/crystaldesign`) -- feasibility
+## 4. Definition of done for the iteration
 
-**Feasible:** designing *what a crystal does* from known physics. **Not feasible:** predicting χ(2) or n(λ) of a new
-material from its structure (that needs DFT / ab-initio codes, research in itself).
+Each package: tests with a published or analytic reference; the full C# and Python suites; generated files current (`/regen`); `mkdocs build --strict` 0 warnings; `example_check.py` and `example_lint.py` 0 problems;
+changelog, `docs/testing.md`, `PROJECT_STATUS.md` counts; CI green on Linux, Windows and net48 before a merge to `main`. The first release is cut **only when the owner asks**; the checklist is `docs/releasing.md` plus WP8.
 
-| tier | what | references for tests | size |
-|---|---|---|---|
-| 1 custom crystal | Sellmeier fit from n(λ) data; point-group-allowed d tensors for all 21 non-centrosymmetric classes with Kleinman reduction; Miller's-rule scaling of d with wavelength; phase-matching maps; emits a `"general"` crystal (no core change) | counts of independent coefficients (Boyd §1.5); centrosymmetric and 432 give zero; LiNbO3 3m reproduces the built-in deff (1e-12); Miller scaling of d33 against Shoji et al., JOSA B 14, 2268 (1997) | M |
-| 2 QPM domain engineering | chirped, apodised, aperiodic poling, cascaded THG, adiabatic SFG/DFG; Fourier design of H(Δk) = ∫d(z)e^{iΔkz}dz; core adds `qpm.dutyExpr` and `qpm.wallsM` | uniform QPM η = (2/π)² η_PM; duty cycle sin²(πD) (Fejer et al., IEEE JQE 28, 2631 (1992)); chirp acceptance ≈ \|dK/dz\| L; Landau-Zener adiabatic conversion (Suchowski et al., PRA 78, 063821 (2008)); chirped-SHG compression (Arbore 1997) | L |
-| 3 1-D lattices / superlattices | isotropic TMM reusing `ThinFilm`; undepleted SHG in multilayers (Bethune 1989); 4x4 Berreman for anisotropic layers only if needed (XL) | Bragg gap (4/π)arcsin((nH-nL)/(nH+nL)); single layer equals Bethune's closed form | L-XL |
+## 5. Risks
 
-Most value for least risk: tiers 1 and 2. Tier 2 is where "our own crystals with real physical responses" becomes real
-hardware (custom PPLN / PPKTP masks can be ordered).
-
-### E2. Coating / dielectric design (`plugins/coatingdesign`) -- feasibility: high, most useful to the MPC work
-
-The core already has an Abelès TMM with complex indices, s/p and angle, so this is mostly design and optimisation.
-
-| tier | what | references for tests | size |
-|---|---|---|---|
-| 1 analysis | R, T, phase, GD and GDD from analytic derivatives, band × angle × s/p sweeps, in-stack \|E(z)\|² for LIDT hot spots; output `stack` JSON | quarter-wave stop band and peak R (Macleod) 1e-12; Poynting flux constant in a lossless stack; Gires-Tournois GD (Kuhl & Heppner 1986); equals core `ThinFilm` (1e-13) | M |
-| 2 design | gradual evolution + needle optimisation (Tikhonravov et al., Appl. Opt. 35, 5493 (1996)) with analytic thickness gradients; merit on R/GD/GDD over band, AOI, polarisation; chirped, double-chirped (Szipöcs 1994, Kärtner 1997), GTI mirrors | two-layer V-coat AR thicknesses (Macleod); a DCM reaching a target GDD at 950-1110 nm, re-evaluated in the core | L |
-| 3 tolerances | Monte Carlo of thickness / index errors, GDD-ripple percentiles | small-σ variance equals the delta method | M |
-| core hook | `CoatingFactory.Register(kind, factory)`, like `TransformOperators.Register` | | S |
-
-For MPC work: dispersive mirrors (a GDD per bounce) and a mirror's reflectance edge become physical stacks,
-Kramers-Kronig-consistent by construction, instead of an ideal `gdd` coating.
-
-
-## Papers still to do, by topic
-
-| topic | candidates (first pass) |
+| risk | handling |
 |---|---|
-| MPC / NER | Escoto 2024 (CLEO, NER heatmaps); Escoto 2022 (JOSA B, compression quality); Song 2022 (HPLSE, NER in a solid-state MPC); Pfaff 2022 (OE, thin-disk MPC + NER); Lavenu 2018 / Kaumanns 2018 (gas MPCs) |
-| Yb lasers | Seidel 2022 (LPR, Yb chain + MPC); a Yb:KGW / Yb:YAG regenerative or thin-disk amplifier paper with gain narrowing and output energy |
-| Ti:sapphire | Spence, Kean & Sibbett 1991 (KLM oscillator, 60 fs); Backus et al. 1998 (RSI, CPA design numbers); a regenerative amplifier with gain narrowing |
-| OPA / OPCPA | Dubietis, Jonušauskas & Piskarskas 1992 (first OPCPA); Cerullo & De Silvestri 2003 (NOPA bandwidth); an OPCPA chain paper with stage gains and bandwidths |
-| fibres / capillaries | Dudley, Genty & Coen 2006 (supercontinuum); Gordon 1986 (self-frequency shift); Nisoli 1997 (hollow fibre, 5 fs); Travers 2019 (soliton self-compression) |
-| χ(2) | Boyd & Kleinman 1968 (focused SHG); Bache, Moses & Wise 2007 (cascaded quadratic compression) |
-| beams / filaments | Bespalov & Talanov 1966; Marburger 1975 / Couairon & Mysyrowicz 2007 |
-| contrast | Jullien 2005 (XPW, needs item 10); ASE pedestal in a CPA chain (with decision 6) |
-| fitting showcases | lab-mpc-ner-contrast (decision 9); Song 2022 spectra; Hollenbeck & Cantrell 2002 Raman response |
-
-
-## Rules for work on these items
-
-One working branch per item (`dev/...`), merged to `main` after `/verify` and a green CI. Shared files (changelog, status, roadmap pair, validation matrix) are updated by whoever merges. Hot files kept sequential: `Nonlinear.cs` (speed work, then waveguides, then GPU coverage), `CrystalElement.cs` (crystal design tier 2), `BuiltInElements.cs` (regenerate after each merge), `Gain/` (rate equations only after the waveguide work).
+| moving the cw line (WP7) shifts many reference results by about 1e-6 | list the affected tests, re-baseline each at its stated tolerance, never loosen a physics tolerance; separate commit |
+| the catalogue refactor changes a number by accident (WP3) | the round-trip test (old table = new files to 1e-15) lands first, values change in later commits |
+| a vector spatial path may not exist (WP2) | a one-day spike before any design; state the limits |
+| verifying constants needs the owner's PDFs | list what is needed up front (WP3); unverified values stay flagged and are reported in run notes |
+| the documentation overhaul is large (WP9) | waves; the lint and `example.json` make it mechanical; start with the examples that are most shown |

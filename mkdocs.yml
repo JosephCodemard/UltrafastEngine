@@ -89,10 +89,10 @@ nav:
   - Design notes:
       - Development history: design/history.md
       - Branched systems (design): design/branching.md
-      - "Plan: what is next": design/plan-next.md
-      - "Assessment: adaptive optics and digital twin": design/plan-ao-digital-twin-2026-11.md
-      - "Roadmap: adaptive optics, shaping, digital twin": design/roadmap-ao-twin-2026-11.md
-      - "Plan: November 2026 fixes (done)": design/plan-fixes-2026-11.md
+      - "Plan: next iteration": design/plan-next.md
+      - "Backlog (parked design)": design/backlog.md
+      - "Record: adaptive optics and digital twin": design/ao-twin-2026-11.md
+      - "Spike measurements (S2)": design/notes/spikes.md
 markdown_extensions:
   - admonition
   - tables

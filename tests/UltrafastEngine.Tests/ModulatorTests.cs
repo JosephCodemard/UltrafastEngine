@@ -381,7 +381,7 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Reference = "naming (plan-ao-digital-twin-2026-11.md): \"phaseAtDesign\" is a phase given at the design wavelength and scaled with omega, the opd rule", Tolerance = "exact")]
+        [Test(Reference = "naming (ao-twin-2026-11.md): \"phaseAtDesign\" is a phase given at the design wavelength and scaled with omega, the opd rule", Tolerance = "exact")]
         public void PhaseAtDesign_IsTheOpdRule()
         {
             var map = Map(i => 2 * Math.PI * (i % 16) / 16);

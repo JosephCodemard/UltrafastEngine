@@ -164,4 +164,4 @@ DOIs for the first four were given from memory: check them before downloading.
   in `python/tests/test_callbacks.py` is explained in its comment: the value was 1.99 % off before the changes too).
 * **Generated files** (`schemas/*.json`, `python/src/ultrafast/types.py`, `docs/reference/options.md`, `python-api.md`,
   `validation-matrix.md`) are regenerated with `/regen` and checked by tests; do not edit them by hand.
-* `docs/design/plan-fixes-2026-11.md` records the fix plan with each stream's notes and changelog lines; it is complete.
+* The November 2026 fix plan was completed and removed (2026-11-10); its outcome is in the changelog and in 2.2.0.
