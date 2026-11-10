@@ -53,6 +53,7 @@ nav:
       - Branched systems: reference/branches.md
       - Position-dependent properties: reference/spatial-properties.md
       - Spatial models: reference/transverse.md
+      - Modulator (pixelated devices): reference/modulator.md
       - Instruments: reference/instruments.md
       - Measured data: reference/measured-data.md
       - Pulse retrieval: reference/retrieval.md

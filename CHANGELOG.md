@@ -10,6 +10,10 @@
 - **CI:** the unavailable `macos-14` job is replaced by `ubuntu-24.04-arm` (arm64 Linux, the stand-in for Apple silicon). macOS is verified by hand.
 
 **Added**
+- **`modulator` element** (docs/reference/modulator.md): a pixelated thin phase / amplitude device on the carried profile (SLM, deformable-mirror surface, tile mask): cell grid with pitch, offset and rotation; `phaseRad` / `opdM` / `amplitude` as an array, a callback `"@name"` (no file) or an NPZ; `fillFactor`, gaps, `zeroOrderLeak`, `phaseWrapRad`, `quantisationLevels`, Gaussian cross-talk; chromatic rules `opd` (a wrapped map is a real grating) and `fixedPhase`; exact cell averaging; reports `spectralSamplingError` and warns when `spectralSamples` is too few. Python: `Modulator` / `build.modulator`.
+- **Coherent tile source**: `initialProfile.kind = "tiles"` (square, hex, ring or explicit layouts; per-tile amplitude, piston, tilt, delay; random piston error); Python `TilesProfile`.
+- `wavefrontSensor` reports slope maps `slope_x_rad`, `slope_y_rad` (zonal sensor output).
+- `docs/design/notes/spikes.md`: measurements for the adaptive-optics core (a full 1920 x 1080 SLM panel with a 30 fs pulse: 32 s and 3.6 GB at 16 stored frequencies).
 - `ultrafast.algorithms.zernike` (Noll polynomials, fit, evaluate; agrees with the engine's `wavefrontSensor` coefficients to 1e-6), `ultrafast.plotting.zernike` (decomposition figure: wavefront, fit, residual, coefficient bars, rms and Maréchal Strehl; several wavefronts side by side; animated), `ultrafast.plotting.animate` (animated GIF with Pillow, MP4 when ffmpeg exists, size budget check).
 - **Computing examples:** 4f correlator, optical convolution, matrix-vector multiplication and parallelism-and-time. A lens at critical sampling f = N dx² / lambda is the DFT; each example is checked against numpy.
 - `docs/examples/make_all.py` and a `make_figures.py` in every example (figures, animations, size budget: PNG 300 kB, GIF 2.5 MB); a hero figure in the README of every example that had none; `build/gallery.py` and `docs/gallery.md`.

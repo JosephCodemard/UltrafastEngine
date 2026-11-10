@@ -176,6 +176,45 @@ def mask(id: str, kind: str, *, cone_angle_rad: Optional[float] = None, focal_le
                    "heightM": height_m, "file": file, **extra})
 
 
+def _plain(a: Any) -> Any:
+    """A numpy array or nested sequence as plain lists (JSON); strings ("@callback") and numbers pass through."""
+    if a is None or isinstance(a, (str, int, float, bool)):
+        return a
+    return a.tolist() if hasattr(a, "tolist") else [_plain(v) for v in a]
+
+
+def modulator(id: str, pitch_m: float, *, phase_rad: Any = None, opd_m: Any = None, amplitude: Any = None, file: Optional[str] = None,
+              cells_x: Optional[int] = None, cells_y: Optional[int] = None, pitch_y_m: Optional[float] = None, offset_x_m: Optional[float] = None,
+              offset_y_m: Optional[float] = None, rotation_rad: Optional[float] = None, design_wavelength_m: Optional[float] = None,
+              chromatic: Optional[str] = None, fill_factor: Optional[float] = None, gap_transmission: Optional[float] = None,
+              outside_transmission: Optional[float] = None, zero_order_leak: Optional[float] = None, crosstalk_sigma_cells: Optional[float] = None,
+              quantisation_levels: Optional[int] = None, phase_wrap_rad: Optional[float] = None, **extra) -> "T.ModulatorElement":
+    """A pixelated thin phase / amplitude modulator (SLM, deformable-mirror surface, tile mask) on the carried transverse profile
+    (docs/reference/modulator.md). ``phase_rad`` (the phase at ``design_wavelength_m``) or ``opd_m`` (an optical path) and ``amplitude`` are
+    arrays of shape [cells_x][cells_y] (numpy arrays are converted), a ``"@name"`` callback f(x, y, z) -> values evaluated at the cell centres
+    (pass it with ``uf.run(..., fields={"name": f})``: no file, no JSON for a 1920 x 1080 map), or ``file`` (NPZ phase_rad / opd_m / amplitude).
+    ``chromatic``: "opd" (default; a wrapped map is a grating) or "fixedPhase"."""
+    return _clean({"id": id, "type": "modulator", "pitchXM": pitch_m, "pitchYM": pitch_y_m, "cellsX": cells_x, "cellsY": cells_y,
+                   "phaseRad": _plain(phase_rad), "opdM": _plain(opd_m), "amplitude": _plain(amplitude), "file": file, "offsetXM": offset_x_m,
+                   "offsetYM": offset_y_m, "rotationRad": rotation_rad, "designWavelengthM": design_wavelength_m, "chromatic": chromatic,
+                   "fillFactor": fill_factor, "gapTransmission": gap_transmission, "outsideTransmission": outside_transmission,
+                   "zeroOrderLeak": zero_order_leak, "crosstalkSigmaCells": crosstalk_sigma_cells, "quantisationLevels": quantisation_levels,
+                   "phaseWrapRad": phase_wrap_rad, **extra})
+
+
+def tiles_profile(tile_radius_m: float, *, layout: str = "square", pitch_m: Optional[float] = None, count: Optional[int] = None,
+                  count_x: Optional[int] = None, count_y: Optional[int] = None, rings: Optional[int] = None, ring_radius_m: Optional[float] = None,
+                  positions_m: Any = None, tile_shape: Optional[str] = None, amplitudes: Any = None, piston_rad: Any = None, tile_tilt_x_rad: Any = None,
+                  tile_tilt_y_rad: Any = None, delays_s: Any = None, piston_rms_rad: Optional[float] = None, seed: Optional[int] = None) -> dict:
+    """A coherent tiled-aperture source for ``transverse(initial_profile=...)`` (docs/reference/transverse.md#coherent-tiles): N sub-beams of
+    1/e^2 radius ``tile_radius_m`` on a "square" (``count_x`` x ``count_y``), "hex" (``rings``: 1, 7, 19, 37, 61 tiles) or "ring" layout, or at
+    ``positions_m``. Per-tile ``piston_rad``, ``tile_tilt_*_rad``, ``delays_s`` and ``amplitudes`` take a number or one value per tile."""
+    return initial_profile("tiles", tileRadiusM=tile_radius_m, layout=layout, pitchM=pitch_m, count=count, countX=count_x, countY=count_y, rings=rings,
+                           ringRadiusM=ring_radius_m, positionsM=_plain(positions_m), tileShape=tile_shape, amplitudes=_plain(amplitudes),
+                           pistonRad=_plain(piston_rad), tileTiltXRad=_plain(tile_tilt_x_rad), tileTiltYRad=_plain(tile_tilt_y_rad),
+                           delaysS=_plain(delays_s), pistonRmsRad=piston_rms_rad, seed=seed)
+
+
 def prism(id: str, material: str, apex_deg: float, aoi_deg: float, path_m: float = 0.0, *, medium: str = "Air", fresnel: Optional[bool] = None, **extra) -> dict:
     """A prism: two refracting faces and ``path_m`` of glass on the carrier's ray. ``aoi_deg`` is signed in the unfolded beam; a second prism that
     undoes the angular dispersion takes the first's exit angle (see the note it writes) as its ``aoi_deg``. Disperses the tracked beam

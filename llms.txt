@@ -45,6 +45,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Branched systems: splitters, interferometers, loops](docs/reference/branches.md)
 - [Position-dependent properties](docs/reference/spatial-properties.md)
 - [Spatial models](docs/reference/transverse.md)
+- [Modulator: pixelated phase and amplitude devices](docs/reference/modulator.md)
 - [Instruments](docs/reference/instruments.md)
 - [Measured data: input spectra and comparison with recordings](docs/reference/measured-data.md)
 - [Pulse retrieval](docs/reference/retrieval.md)

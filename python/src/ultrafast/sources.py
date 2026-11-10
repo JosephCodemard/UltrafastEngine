@@ -5,7 +5,7 @@
 CapWords aliases of the builders in :mod:`ultrafast.build` (same functions, typed returns, docstrings).
 """
 from .build import (aux_beam, constant_beam, cw, gaussian_beam, initial_profile, measured_spectrum, measured_spectrum_csv, pedestal,
-                    profile_noise, profile_ripple, pulse, sampled_beam)
+                    profile_noise, profile_ripple, pulse, sampled_beam, tiles_profile)
 
 Pulse = pulse
 Cw = cw
@@ -19,7 +19,8 @@ AuxBeam = aux_beam
 InitialProfile = initial_profile
 ProfileRipple = profile_ripple
 ProfileNoise = profile_noise
+TilesProfile = tiles_profile
 
 __all__ = ["Pulse", "Cw", "MeasuredSpectrum", "MeasuredSpectrumCsv", "Pedestal", "GaussianBeam", "ConstantBeam", "SampledBeam", "AuxBeam",
-           "InitialProfile", "ProfileRipple", "ProfileNoise", "pulse", "cw", "measured_spectrum", "measured_spectrum_csv", "pedestal",
-           "gaussian_beam", "constant_beam", "sampled_beam", "aux_beam", "initial_profile", "profile_ripple", "profile_noise"]
+           "InitialProfile", "ProfileRipple", "ProfileNoise", "TilesProfile", "pulse", "cw", "measured_spectrum", "measured_spectrum_csv", "pedestal",
+           "gaussian_beam", "constant_beam", "sampled_beam", "aux_beam", "initial_profile", "profile_ripple", "profile_noise", "tiles_profile"]

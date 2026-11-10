@@ -470,6 +470,8 @@ animations within budget with `make_all.py`; `example_check.py` 0 problems; docs
 
 **Handoff.** `docs/design/notes/s5-release.md`: counts, what was verified, what was not (GPU, OpticStudio, macOS by hand).
 
+**Aditional Note from the user**: Currently it seems that many of our examples are old, and are fairly unintuitive and a quick glance does not help. I think we need to really go through each and every example and tell a little story with some animations / nice plots - that is to say: for example with Wavefronts/ we want to see a 2d image of out inputs/output wavefronts! Or with LaserSystem/ show a range of results (ie wavefronts, contrast, FROG trace etc.). We also should add examples/Fibres to show our fibre capabilities.
+
 ## 6. Repetition and Pockels cells (a comment for the plan; later session S6)
 
 *What the engine does today (checked in the docs).* Most of the engine is **single shot**: one pulse through a system. The gain
@@ -530,9 +532,7 @@ Is the contrast of the switch (extinction, edge time) a quantity you measure and
 
 ## 8. Open points for the owner
 
-1. **Repository size for animations.** About 15 GIFs of up to 2.5 MB is about 40 MB. Alternatives: attach them to a release, or
-   generate them in the docs workflow. Recommendation: commit the hero animations (a handful), generate the rest at docs build.
-2. **Gate G0** (inside S2) needs your review of the spike numbers.
-3. **Python naming.** Lowercase modules (`ultrafast.system`) are recommended over the capitalised form; say so if you want the
-   other.
-4. **Version.** The merge is a feature release (2.3.0 by the project's convention); tags and releases only on your word.
+1. **Repository size for animations.** About 15 GIFs of up to 2.5 MB is about 40 MB. Alternatives: attach them to a release, or generate them in the docs workflow. Recommendation: commit the hero animations (a handful), generate the rest at docs build. -- GENERATE ALL IMAGES BEFORE BUILD AND COMMIT
+1. **Gate G0** (inside S2) needs your review of the spike numbers.
+2. **Python naming.** Lowercase modules (`ultrafast.system`) are recommended over the capitalised form; say so if you want the other. -- THAT IS FINE
+3. **Version.** The merge is a feature release (2.3.0 by the project's convention); tags and releases only on your word.

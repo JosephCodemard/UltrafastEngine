@@ -357,7 +357,7 @@ instrument's `"beam"`, the element's beam model or the run's input beam, and say
 
 | kind | parameters | reports |
 |---|---|---|
-| `wavefrontSensor` | `pixels` (lenslets, 64), `wavelengthM` (default: spectral centroid), `threshold` (1 % of peak fluence), `apertureRadiusM` (default the 1/e² radius), `halfWidthM`, `zernikeTerms` (15, max 36), `propagateM`, `bandM` | wavefront map in waves (piston and tilt removed), Zernike coefficients (Noll, rms-normalised, waves), rms / PV, rms without defocus, radius of curvature from defocus (R > 0 diverging; the equivalent in air: R in a medium / n), astigmatism, coma, spherical |
+| `wavefrontSensor` | `pixels` (lenslets, 64), `wavelengthM` (default: spectral centroid), `threshold` (1 % of peak fluence), `apertureRadiusM` (default the 1/e² radius), `halfWidthM`, `zernikeTerms` (15, max 36), `propagateM`, `bandM` | wavefront map in waves (piston and tilt removed), **slope maps** `slope_x_rad`, `slope_y_rad` (λ ∂W/∂x and ∂y of the full wavefront, tilt kept, NaN outside the threshold, `[x][y]` on `x_m`, `y_m`: the zonal input of a control matrix), Zernike coefficients (Noll, rms-normalised, waves), rms / PV, rms without defocus, radius of curvature from defocus (R > 0 diverging; the equivalent in air: R in a medium / n), astigmatism, coma, spherical |
 
 Validated against Gaussian optics (`DiagnosticsTests`): near-field radius and refocused waist < 1 %, far-field
 radius λf/(πw0) < 0.5 %, wavefront curvature R(z) < 1 % (radial) / 2 % (cartesian), Zernike fit exact;

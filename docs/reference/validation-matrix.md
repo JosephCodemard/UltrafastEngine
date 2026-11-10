@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **476 tests** in 54 classes. **280** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **494 tests** in 56 classes. **298** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **17** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -40,6 +40,7 @@ Every C# test of the engine: **476 tests** in 54 classes. **280** of them check 
 | [Measured input spectra, comparisons and satellite room](#measuredspectrumtests) | `MeasuredSpectrumTests` | 13 | 0 |
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
 | [Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs](#modelledinstrumentstests) | `ModelledInstrumentsTests` | 4 | 3 |
+| [Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation, fill factor, chromatic rules](#modulatortests) | `ModulatorTests` | 13 | 13 |
 | [Multi-trace FROG retrieval (double FROG)](#multitraceretrievaltests) | `MultiTraceRetrievalTests` | 1 | 1 |
 | [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 10 | 10 |
 | [Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain](#noncollinearopatests) | `NoncollinearOpaTests` | 6 | 6 |
@@ -57,6 +58,7 @@ Every C# test of the engine: **476 tests** in 54 classes. **280** of them check 
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
+| [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 5 | 5 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 20 | 3 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
@@ -644,6 +646,26 @@ Modelled instruments: IAC, FTS, FROG from elements; study node cache and array o
 | `Iac_FromElements_HasTheEightToOneRatio` | interferometric autocorrelation: peak to background 8:1 | 1 % |
 | `NodeCache_RerunsOnlyWhatFollowsTheChange_WithTheSameResult` | -- | -- |
 
+## ModulatorTests
+
+Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation, fill factor, chromatic rules.
+
+| test | reference | tolerance |
+|---|---|---|
+| `BadInput_IsRefusedWithAMessage` | validation: a map of the wrong shape, both phase and path, and a quantisation of one level are refused with a message | exact |
+| `CwRun_EqualsThePulse_AtTheCarrier` | a continuous-wave source and a pulse at the carrier see the same (monochromatic) device: the cw focal fluence pattern equals that of a 1 ns pulse | 2e-5 of the peak: a 1 ns pulse has a 0.4 GHz bandwidth, so the optical-path phase differs from the carrier's by ~1e-6 of its value across the band |
+| `FillFactor_SetsTheTransmission_AndTheReplicaOrders` | comb of active cells (fill 3/4 of a 4-sample pitch, edges on grid-cell edges): transmission 3/4; discrete Fourier series c_0 = 3/4, \|c_1\| = 1/4, so the first replica / zero order = 1/9; replicas at lambda f / pitch | 1e-6 transmission, 1 % order ratio |
+| `FixedPhase_RampDeflectionScalesWithWavelength` | fixedPhase: the written phase does not scale with frequency, so a ramp k0 theta x deflects by theta lambda / lambda0 (diffractive / geometric-phase device) | 1 % |
+| `Maps_InlineFileAndCallback_AreIdentical` | the three ways to give a map (inline array, NPZ file, callback "@name" evaluated at the cell centres) are the same device: identical focal fields | 1e-12 |
+| `OffsetArray_ClipsTheBeam_LikeAnAperture` | arrays outside the device block the light: outsideTransmission = 0 and an array covering half the beam transmits the Gaussian power inside it | 0.5 % |
+| `PhaseRamp_MovesTheFocus_ByFocalLengthTimesAngle` | a pure phase tilt k theta x moves the focus of a lens by f theta (geometric optics, Goodman, Fourier optics ch. 5) | 1 % |
+| `Quantisation_WrapsTheTopHalfLevel_ToLevelZero` | a quantised continuous phase at a wavelength off the design one: the level just below 2 pi wraps to level 0, not to a full turn (which would differ off-design) | exact |
+| `QuantisedBlaze_FirstOrderEfficiency_FollowsSincOfOneOverN` | N-level blazed grating, first-order efficiency [sin(pi/N) / (pi/N)]^2 (Goodman, Fourier optics, sec. 5.2; N = 8: 94.96 %); the sampled field (4 grid cells per device cell) gives sin(pi/4)... exact value of the sampled staircase, within 1.5 % of the continuum for N = 4 | 1.5 % of the efficiency |
+| `SpectralSamplingError_FallsWithTheStoredFrequencies_AndWarnsWhenTooFew` | the interpolation error of the stored frequencies is 0 for a phase-free device and falls as the number of stored frequencies grows (compare K and 2K); too few frequencies warn | error ratio 2.5-6 per doubling of K (1/K^2); below the warning level 0.05 at K = 32; warning at K = 3 |
+| `WavefrontSensor_SlopeMaps_ReportTheTilt` | wavefront sensor slope maps: a tilt of the beam by theta has lambda dW/dx = theta everywhere on the beam and lambda dW/dy = 0 | 1 % |
+| `WrappedRamp_DispersesLikeAGrating_UnwrappedRampDoesNot` | a wrapped optical path is a grating: the first order leaves at lambda / period, so its position scales with lambda; an unwrapped ramp is a prism that deflects every colour by the same angle | 1.5 % |
+| `ZeroOrderLeak_IsPassive_AndSetsTheZeroOrder` | zeroOrderLeak eta: t = a[(1-eta) e^(i phi) + eta] is passive: a flat map transmits exactly 1; a 2-level 0/pi grating with c0 = 0 has zero-order power eta^2 of the light | 1e-9 transmission, 1 % order power |
+
 ## MultiTraceRetrievalTests
 
 Multi-trace FROG retrieval (double FROG).
@@ -866,6 +888,18 @@ FFTs, SIMD kernels and studies.
 | `Sobol_SequenceIsStratified` | -- | -- |
 | `Study_OptimizeAndSensitivities` | -- | -- |
 | `Study_ScanWithPrefixCacheMatchesFullRuns` | B = γ P L | 1e-09, 1 % |
+
+## TileSourceTests
+
+Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors.
+
+| test | reference | tolerance |
+|---|---|---|
+| `BadTileSpec_IsRefused` | validation: per-tile arrays of the wrong length and missing sizes are refused | exact |
+| `DelayMismatch_CostsTheTemporalOverlap_OfTheTwoPulses` | delay mismatch of two in-phase Gaussian pulses (intensity FWHM T): the energy on axis is 2E + 2 Int A(t) A(t - tau) dt, so relative to tau = 0 it is (1 + C) / 2 with the field overlap C = exp(-ln2 (tau / T)^2) | 3 % |
+| `InPhaseTiles_CombinePeakIntensity_ByN` | N equal, in-phase, coherent beams: on-axis far-field peak = N x the peak of one beam carrying all the energy (N^2 for equal power per beam); Goodman ch. 4 (array theorem) | 2 % |
+| `PistonErrors_CostTheRealisedCoherenceSum` | piston errors: the on-axis peak of the realised phases is \|sum exp(i phi)\|^2 / N^2 of the in-phase peak (exact for the draw); its expectation is 1/N + (1 - 1/N) exp(-sigma^2) | 1.5 % |
+| `Tiles_GiveGratingLobes_AtWavelengthOverPitch` | array theorem: the far field of tiles on a pitch p has lobes at lambda / p (grating lobes), spacing F lambda / p on the focal plane | 1.5 % |
 
 ## TransformTests
 

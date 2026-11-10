@@ -718,7 +718,7 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured"],
+          "enum": ["gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured", "tiles"],
           "description": "Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) Default: gaussian."
         },
         "modeX": {
@@ -775,7 +775,67 @@
         },
         "order": {
           "type": "integer",
-          "description": "superGaussian order Default: 4."
+          "description": "superGaussian order (also tiles with tileShape superGaussian) Default: 4."
+        },
+        "layout": {
+          "type": "string",
+          "enum": ["square", "hex", "ring"],
+          "description": "tiles: arrangement of the sub-beams (square: countX x countY; hex: rings around a centre tile; ring: count tiles on a circle) Default: square."
+        },
+        "pitchM": {
+          "type": "number",
+          "description": "tiles: centre-to-centre distance [m]"
+        },
+        "count": {
+          "type": "integer",
+          "description": "tiles: tiles per side (square) or on the ring Default: 2."
+        },
+        "countX": {
+          "type": "integer",
+          "description": "tiles: square layout, tiles along x"
+        },
+        "countY": {
+          "type": "integer",
+          "description": "tiles: square layout, tiles along y Default: 1 if countX is given, else count."
+        },
+        "rings": {
+          "type": "integer",
+          "description": "tiles: hex layout, rings around the centre tile (1: 7 tiles, 2: 19, 3: 37, 4: 61) Default: 1."
+        },
+        "ringRadiusM": {
+          "type": "number",
+          "description": "tiles: ring layout, circle radius [m]"
+        },
+        "positionsM": {
+          "description": "tiles: explicit centres, a list of [x, y] [m]"
+        },
+        "tileRadiusM": {
+          "type": "number",
+          "description": "tiles: 1/e^2 radius of one tile (hard radius for tileShape tophat) [m]"
+        },
+        "tileShape": {
+          "type": "string",
+          "enum": ["gaussian", "tophat", "superGaussian"],
+          "description": "tiles: transverse shape of one tile Default: gaussian."
+        },
+        "amplitudes": {
+          "description": "tiles: amplitude per tile (a number or one per tile) Default: 1."
+        },
+        "pistonRad": {
+          "description": "tiles: piston phase at the carrier per tile [rad] Default: 0."
+        },
+        "tileTiltXRad": {
+          "description": "tiles: tilt about y per tile (a number or one per tile) [rad] Default: 0."
+        },
+        "tileTiltYRad": {
+          "description": "tiles: tilt about x per tile [rad] Default: 0."
+        },
+        "delaysS": {
+          "description": "tiles: envelope delay per tile (adds (omega - omega_centre) tau to the phase; needs enough spectralSamples to resolve it) [s] Default: 0."
+        },
+        "pistonRmsRad": {
+          "type": "number",
+          "description": "tiles: random Gaussian piston error added to pistonRad (seed: seed) [rad] Default: 0."
         },
         "decenterXM": {
           "type": "number",

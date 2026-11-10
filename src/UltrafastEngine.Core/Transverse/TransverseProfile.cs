@@ -220,8 +220,20 @@ namespace UltrafastEngine.Transverse
         {
             string kind = (shape?.GetString("kind", "gaussian") ?? "gaussian").ToLowerInvariant();
             if (kind == "uniform") kind = "tophat";
-            if (kind != "gaussian" && kind != "supergaussian" && kind != "flattop" && kind != "tophat" && !BeamShapes.IsStructured(kind))
-                throw new InvalidOperationException("element " + origin + ": initialProfile.kind must be \"gaussian\", \"superGaussian\", \"flatTop\", \"tophat\", \"hermiteGauss\", \"laguerreGauss\", \"besselGauss\", \"airy\" or \"measured\" (got \"" + kind + "\").");
+            if (kind != "gaussian" && kind != "supergaussian" && kind != "flattop" && kind != "tophat" && kind != "tiles" && !BeamShapes.IsStructured(kind))
+                throw new InvalidOperationException("element " + origin + ": initialProfile.kind must be \"gaussian\", \"superGaussian\", \"flatTop\", \"tophat\", \"hermiteGauss\", \"laguerreGauss\", \"besselGauss\", \"airy\", \"tiles\" or \"measured\" (got \"" + kind + "\").");
+            if (kind == "tiles")
+            {
+                if (basis.Kind == "radial") throw new InvalidOperationException("element " + origin + ": coherent tiles need a cartesian transverse grid (\"model\": \"cartesian\").");
+                var td = TileSource.Field(basis, shape, omegas, origin); int nft = omegas.Length;
+                for (int f = 0; f < nft; f++)
+                {
+                    double nn = 0; for (int m = 0; m < basis.M; m++) { var v = td[m * nft + f]; nn += basis.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary); }
+                    if (!(nn > 0)) throw new InvalidOperationException("transverse profile has no energy on the grid (tiles outside the grid or zero radius)");
+                    double sc = 1 / Math.Sqrt(nn); for (int m = 0; m < basis.M; m++) td[m * nft + f] *= sc;
+                }
+                return new TransverseProfile(basis, omegas, td, origin);
+            }
             int order = kind == "flattop" ? 10 : kind == "supergaussian" ? Math.Max(1, shape.GetInt("order", 4)) : 1;
             string geometry = (shape?.GetString("geometry", "round") ?? "round").ToLowerInvariant();
             if (geometry == "rectangular") geometry = "square";
@@ -544,6 +556,32 @@ namespace UltrafastEngine.Transverse
         }
 
         /// <summary>Weighted quadratic-phase coefficient a (phase ~ a r^2) of each stored frequency of a profile.</summary>
+        /// <summary>
+        /// Interpolation error of the stored frequency samples: how far each interior sample is from the straight line between its
+        /// neighbours (the profile between samples is interpolated linearly, <see cref="TransverseProfile.At(double[])"/>), as
+        /// sqrt(sum w |P_f - P_interp|^2) with unit-norm samples. 0 for a profile that does not change with frequency; compare it for K and 2K
+        /// stored frequencies (it falls roughly as 1/K^2 while the sampling resolves the phase). Returns the largest over the interior samples,
+        /// weighted samples (SampleWeights below 1e-3 of the largest are ignored); 0 with fewer than 3 samples.
+        /// </summary>
+        public static double InterpolationError(TransverseProfile p)
+        {
+            int nf = p.Omega.Length, M = p.Basis.M; double worst = 0;
+            if (nf < 3) return 0;
+            double wmax = p.SampleWeights == null ? 1 : p.SampleWeights.Max();
+            for (int f = 1; f < nf - 1; f++)
+            {
+                if (p.SampleWeights != null && p.SampleWeights[f] < 1e-3 * wmax) continue;
+                double t = (p.Omega[f] - p.Omega[f - 1]) / (p.Omega[f + 1] - p.Omega[f - 1]), e2 = 0;
+                for (int m = 0; m < M; m++)
+                {
+                    var d = p.Data[m * nf + f] - (p.Data[m * nf + f - 1] * (1 - t) + p.Data[m * nf + f + 1] * t);
+                    e2 += p.Basis.Weights[m] * (d.Real * d.Real + d.Imaginary * d.Imaginary);
+                }
+                worst = Math.Max(worst, Math.Sqrt(e2));
+            }
+            return worst;
+        }
+
         public static double[] Curvature(TransverseProfile p)
         {
             int nf = p.Omega.Length;

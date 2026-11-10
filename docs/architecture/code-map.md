@@ -54,7 +54,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 |---|---|
 | `Physics/` | `LinearTerms.cs` (`LinearTerm`, `PhaseTerm`, `GroupDelayTerm`, `JonesTerm`, `DispersionPoint`); `Nonlinear.cs` (`EnvelopeProblem`, `FieldProblem`, steppers); ionisation |
 | `Transverse/` | `SpatialPropagation.cs` (the spatial nonlinear solver); `TransverseBasis.cs` (`RadialBasis`, `CartesianBasis`); `TransverseProfile.cs` (`TransverseProfile`, `TransverseOps`: expand, collapse, regrid, `Curvature`, `BeamQuality`); `BeamShapes.cs` (initial profiles) |
-| `Optics/` | `BeamTracking.cs`; `DispersiveSurface.cs` (gratings, prisms); `SurfaceOptics.cs` (lenses, curved mirrors); `MaskElement.cs`; `ComponentTerms.cs` (Zernike, figure); `MirrorSubstrate.cs`, `DelayedTerms.cs` |
+| `Optics/` | `BeamTracking.cs`; `DispersiveSurface.cs` (gratings, prisms); `SurfaceOptics.cs` (lenses, curved mirrors); `MaskElement.cs`; `ModulatorElement.cs` (pixelated phase / amplitude device: cell grid, fill factor, quantisation, cross-talk, chromatic rule); `ComponentTerms.cs` (Zernike, figure); `MirrorSubstrate.cs`, `DelayedTerms.cs` |
 | `Crystals/` | χ(2): `CrystalElement`, phase matching |
 | `Gain/`, `Lasers/` | amplifiers; `Oscillator.cs`, `Resonator.cs`, saturable absorbers; `CellMode.cs` (`CellModeSolver.Solve`: Kerr-matched mode of a two-mirror multi-pass cell, command `cellMode`) |
 | `Materials/` | index models, the library, Raman |

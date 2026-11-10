@@ -594,6 +594,33 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `focalLengthM` | number | m |  | Focal length (mirror, alternative to the radius) |
 | `aberration` | object (`aberration`) |  |  | Wavefront error / surface figure (Zernike, random figure) |
 
+### `modulator`
+
+A pixelated thin phase / amplitude modulator (spatial light modulator, deformable-mirror surface, tile mask) on the carried transverse profile: a cell grid with a fill factor, gaps, quantisation, phase wrapping, cross-talk and a stated chromatic rule. More: [modulator.md](modulator.md)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `cellsX` | integer |  | from the map | Cells along x |
+| `cellsY` | integer |  | from the map | Cells along y |
+| `pitchXM` | number | m |  | Cell pitch along x **Required.** |
+| `pitchYM` | number | m | pitchXM | Cell pitch along y |
+| `offsetXM` | number | m | 0 | Centre of the array in x |
+| `offsetYM` | number | m | 0 | Centre of the array in y |
+| `rotationRad` | number | rad | 0 | Rotation of the array about its centre |
+| `phaseRad` | any | rad |  | Commanded phase at designWavelengthM: an array [cellsX][cellsY] or a callback "@name" f(x, y, z) (cell centres, z = 0) |
+| `opdM` | any | m |  | Commanded optical path instead of phaseRad (same forms) |
+| `amplitude` | any |  | 1 | Amplitude transmission per cell (same forms) |
+| `file` | string |  |  | NPZ with phase_rad or opd_m, and amplitude, shaped [cellsX][cellsY]; relative to the system file |
+| `designWavelengthM` | number | m | the carrier | Wavelength at which phaseRad holds |
+| `chromatic` | `"opd"` \| `"fixedPhase"` |  | opd | opd: the written phase is an optical path, phase = phaseRad * omega / omega_design (a wrapped map is a grating); fixedPhase: the phase does not change with frequency |
+| `fillFactor` | number |  | 1 | Active fraction of the pitch in x and y (0-1] |
+| `gapTransmission` | number |  | 0 | Amplitude transmission of the gaps |
+| `outsideTransmission` | number |  | 0 | Amplitude transmission outside the array |
+| `zeroOrderLeak` | number |  | 0 | Amplitude fraction eta that passes unmodulated (phase 0) inside active cells: t = a [(1 - eta) e^(i phi) + eta]; a flat map stays lossless |
+| `crosstalkSigmaCells` | number |  | 0 | Gaussian fringing-field cross-talk, standard deviation in cells (applied to the written phase) |
+| `quantisationLevels` | integer |  | 0 | Phase levels over phaseWrapRad (2 pi if that is 0); 0 = continuous |
+| `phaseWrapRad` | number | rad | 0 | Wrap the commanded phase to [0, phaseWrapRad); 0 = no wrapping |
+
 ### `ndFilter`
 
 A neutral-density filter (absorptive or reflective): OD or OD(lambda), substrate, ghosts. More: [components.md#ndfilter](components.md#ndfilter)
@@ -1605,7 +1632,7 @@ Initial transverse field.
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` \| `"tophat"` \| `"hermiteGauss"` \| `"laguerreGauss"` \| `"besselGauss"` \| `"airy"` \| `"measured"` |  | gaussian | Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) |
+| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` \| `"tophat"` \| `"hermiteGauss"` \| `"laguerreGauss"` \| `"besselGauss"` \| `"airy"` \| `"measured"` \| `"tiles"` |  | gaussian | Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) |
 | `modeX` | integer |  | 0 | hermiteGauss: order in x |
 | `modeY` | integer |  | 0 | hermiteGauss: order in y |
 | `modeP` | integer |  | 0 | laguerreGauss: radial index p |
@@ -1619,7 +1646,23 @@ Initial transverse field.
 | `threshold` | number |  | 0 | measured: fluence below this fraction of the peak is set to zero |
 | `center` | boolean |  | false | measured: move the fluence centroid to the axis |
 | `geometry` | `"round"` \| `"square"` |  | round | round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) |
-| `order` | integer |  | 4 | superGaussian order |
+| `order` | integer |  | 4 | superGaussian order (also tiles with tileShape superGaussian) |
+| `layout` | `"square"` \| `"hex"` \| `"ring"` |  | square | tiles: arrangement of the sub-beams (square: countX x countY; hex: rings around a centre tile; ring: count tiles on a circle) |
+| `pitchM` | number | m |  | tiles: centre-to-centre distance |
+| `count` | integer |  | 2 | tiles: tiles per side (square) or on the ring |
+| `countX` | integer |  |  | tiles: square layout, tiles along x |
+| `countY` | integer |  | 1 if countX is given, else count | tiles: square layout, tiles along y |
+| `rings` | integer |  | 1 | tiles: hex layout, rings around the centre tile (1: 7 tiles, 2: 19, 3: 37, 4: 61) |
+| `ringRadiusM` | number | m |  | tiles: ring layout, circle radius |
+| `positionsM` | any | m |  | tiles: explicit centres, a list of [x, y] |
+| `tileRadiusM` | number | m |  | tiles: 1/e^2 radius of one tile (hard radius for tileShape tophat) |
+| `tileShape` | `"gaussian"` \| `"tophat"` \| `"superGaussian"` |  | gaussian | tiles: transverse shape of one tile |
+| `amplitudes` | any |  | 1 | tiles: amplitude per tile (a number or one per tile) |
+| `pistonRad` | any | rad | 0 | tiles: piston phase at the carrier per tile |
+| `tileTiltXRad` | any | rad | 0 | tiles: tilt about y per tile (a number or one per tile) |
+| `tileTiltYRad` | any | rad | 0 | tiles: tilt about x per tile |
+| `delaysS` | any | s | 0 | tiles: envelope delay per tile (adds (omega - omega_centre) tau to the phase; needs enough spectralSamples to resolve it) |
+| `pistonRmsRad` | number | rad | 0 | tiles: random Gaussian piston error added to pistonRad (seed: seed) |
 | `decenterXM` | number | m |  | Decentre in x |
 | `decenterYM` | number | m |  | Decentre in y |
 | `tiltXRad` | number | rad |  | Tilt about y |

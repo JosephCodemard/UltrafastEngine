@@ -168,6 +168,30 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
 Worked example and checks: [Example 30](../examples/Diffraction/iris-diffraction/README.md) (Gaussian, round flat-top, uniform and square beams
 at N = 3, 2, 1 and in the far zone, against the Fresnel integral) and [Tutorial 6](../tutorials/06-diffraction.md).
 
+### Coherent tiles
+
+`initialProfile.kind = "tiles"` builds the input beam from **N coherent sub-beams** (a tiled-aperture amplifier array, or any laser
+array): the complex sum of the tiles' fields, normalised to unit energy at every stored frequency, so the tiles share the pulse energy.
+It needs a cartesian grid; the grid sets the size (no `radiusM` or beam model is needed).
+
+| key | default | meaning |
+|---|---|---|
+| `tileRadiusM` | required | 1/e² radius of one tile (hard radius for `tileShape` `tophat`) |
+| `tileShape` | `gaussian` | `gaussian`, `tophat` or `superGaussian` (`order`) |
+| `layout` | `square` | `square` (`countX` × `countY`, or `count` × `count`), `hex` (`rings`: 1, 7, 19, 37, 61 tiles, ordered by j then i in axial coordinates), `ring` (`count` tiles on a circle of `ringRadiusM`), or explicit `positionsM` `[[x, y], ...]` |
+| `pitchM` | | centre-to-centre distance (square, hex) |
+| `amplitudes`, `pistonRad`, `tileTiltXRad`, `tileTiltYRad`, `delaysS` | 1, 0, 0, 0, 0 | a number, or one value per tile |
+| `pistonRmsRad`, `seed` | 0, 1 | random Gaussian piston error added to `pistonRad` |
+
+The piston is the phase at the carrier; a delay `τ` adds `(ω − ω_centre) τ` (the envelope moves, spectral factor e^{+iωτ}). The profile is
+stored at `spectralSamples` frequencies, so they must resolve `e^{iωτ}`: keep (spacing of stored frequencies) × τ under about 0.5 rad
+(24 samples for 30 fs pulses and delays to 30 fs, 96 for 60 fs).
+
+Reference behaviour (`TileSourceTests`): N in-phase equal tiles give an on-axis far-field peak N × that of one beam carrying all the energy
+(N² for equal power per tile), 2 %; the far field has lobes at λ/pitch, 1.5 %; with piston errors the peak is `|Σ e^{iφ}|²/N²` of the in-phase
+peak (exact for the draw; the expectation over draws is `1/N + (1 − 1/N) e^{−σ²}`), 1.5 %; a delay mismatch between two Gaussian pulses of FWHM T costs
+`(1 + e^{−ln2 (τ/T)²}) / 2` of the energy on axis, 3 %.
+
 ## Masks
 
 A `mask` element multiplies the carried profile at every stored frequency. Without a profile it warns and does nothing; the tracked

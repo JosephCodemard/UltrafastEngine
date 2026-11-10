@@ -378,7 +378,7 @@ namespace UltrafastEngine.Transverse
                 wx = rx; wy = double.IsNaN(ry) ? rx : ry;
                 if (ip.Has("radiusOfCurvatureM")) R = ip.GetDouble("radiusOfCurvatureM", double.PositiveInfinity);
             }
-            if (double.IsNaN(wx) && string.Equals(ip?.GetString("kind", null), "measured", StringComparison.OrdinalIgnoreCase)) wx = wy = 1;   // the map sets the size
+            if (double.IsNaN(wx) && (string.Equals(ip?.GetString("kind", null), "measured", StringComparison.OrdinalIgnoreCase) || string.Equals(ip?.GetString("kind", null), "tiles", StringComparison.OrdinalIgnoreCase))) wx = wy = 1;   // the map / the tile spec sets the size
             if (double.IsNaN(wx)) throw new InvalidOperationException("element '" + elementId + "' is spatial but has neither a beam model (\"beam\" or inputBeam), an initialProfile.radiusM nor a carried transverse profile.");
             notes.Add(string.Format(CultureInfo.InvariantCulture, "transverse field: from the beam model ({0}, w = {1:G4} mm, R = {2:G4} m)", spec.InitialProfile?.GetString("kind", "gaussian") ?? "gaussian", wx * 1e3, R));
             return TransverseOps.FromShape(basis, spec.InitialProfile, wx, wy, R, indexAt, omegas, elementId);
