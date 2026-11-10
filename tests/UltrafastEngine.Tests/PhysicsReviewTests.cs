@@ -62,14 +62,21 @@ namespace UltrafastEngine.Tests
         [Test]
         public void FoxLi_WithNoAperture_DoesNotClaimAMode()
         {
-            // nothing selects a mode: a mismatched start keeps oscillating, with the loss already zero
+            // nothing selects a mode: a mismatched start keeps oscillating, with the loss already zero. The start is a flat Gaussian of the
+            // mode radius; the gaps are unequal (0.2 m, 0.4 m), so the start plane is not the waist and the mode is curved there: the start
+            // is not the eigenmode. (With equal gaps the start plane is the waist and the flat start is the mode, which converges correctly.)
             double w = 0.2e-3;
             var t = O("model", "radial", "points", 128, "radiusM", 8e-3, "spectralSamples", 1);
             var sys = Sys(O("id", "cav", "type", "resonator", "transverse", t, "roundTrips", O("max", 30, "tolerance", 1e-9), "elements", A(
-                O("id", "a", "type", "gap", "lengthM", 0.3, "material", "Vacuum"), O("id", "l", "type", "lens", "focalLengthM", 0.5), O("id", "b", "type", "gap", "lengthM", 0.3, "material", "Vacuum"))));
+                O("id", "a", "type", "gap", "lengthM", 0.2, "material", "Vacuum"), O("id", "l", "type", "lens", "focalLengthM", 0.5), O("id", "b", "type", "gap", "lengthM", 0.4, "material", "Vacuum"))));
             var src = Spec(Gauss(Lam, 1e-12, 1e-6), O("inputBeam", O("kind", "gaussian", "w0M", w)));
             var r = Go(sys, src);
             Assert.Close(0, r.Records[0].Values["converged"], 0, 0, "no convergence is claimed");
+            // equal gaps: the flat start is the eigenmode (stored at the carrier), so the iteration converges on the analytic mode radius
+            var sym = Go(Sys(O("id", "cav", "type", "resonator", "transverse", t, "roundTrips", O("max", 30, "tolerance", 1e-9), "elements", A(
+                O("id", "a", "type", "gap", "lengthM", 0.3, "material", "Vacuum"), O("id", "l", "type", "lens", "focalLengthM", 0.5), O("id", "b", "type", "gap", "lengthM", 0.3, "material", "Vacuum")))), src);
+            Assert.Close(1, sym.Records[0].Values["converged"], 0, 0, "the eigenmode start converges");
+            Assert.Close(sym.Records[0].Values["modeRadiusXM"], sym.Records[0].Values["foxLiRadiusXM"], 1e-3, 0, "on the analytic mode radius");
         }
 
         [Test]

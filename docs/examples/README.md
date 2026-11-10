@@ -101,11 +101,37 @@ Coatings, polarisation, waveplates, beam tracking through curved optics.
 
 ## DigitalTwin
 
-Fitting a simulated line to measurements: transforms, calibration, backward propagation.
+Fitting a simulated line to measurements and trusting it: transforms, calibration, backward propagation, a twin fitted across conditions, what-if, experiment design, drift tracking. See [DigitalTwin](DigitalTwin/README.md).
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
 | [transforms](DigitalTwin/transforms/README.md) | 26 | CLI | fitting plugin: a `transform` (residual dispersion, gain narrowing, post-pulse, ASE pedestal) fitted to a spectrum, d-scan, cross-correlator and power meter; the fitted line on a new seed; backward propagation of the measured output to the seed | `ultrafast run line.ufs run-fit.json -o results-fit` |
+| [build-the-twin](DigitalTwin/build-the-twin/README.md) | - | Python | five energies, one set of shared parameters, held-out predictions with credible bands, a validation report that catches a failing twin | `python build_twin.py` |
+| [explore-the-twin](DigitalTwin/explore-the-twin/README.md) | - | Python | what-if with bands, the most informative next measurement, drift tracking (ensemble Kalman filter) | `python explore.py` |
+
+## AdaptiveOptics
+
+Deformable mirror, SLM, tiled apertures, temporal shaping (the `ao` plugin). See [AdaptiveOptics](AdaptiveOptics/README.md).
+
+| example | old no. | interface | what it shows | run |
+|---|---|---|---|---|
+| [dm-correction](AdaptiveOptics/dm-correction/README.md) | - | Python | calibrate, correct and close the loop on a Zernike aberration; Zernike plots | `python dm_correction.py` |
+| [sensorless-correction](AdaptiveOptics/sensorless-correction/README.md) | - | Python | modal search and SPGD from the focal peak alone | `python sensorless.py` |
+| [aberrated-high-power](AdaptiveOptics/aberrated-high-power/README.md) | - | Python | a DM removes hot spots and nonlinear phase of a 2 GW beam in a Kerr plate | `python high_power.py` |
+| [slm-beam-shaping](AdaptiveOptics/slm-beam-shaping/README.md) | - | Python | Gerchberg-Saxton holograms with 8-bit grey levels; full 1920 x 1080 panel | `python slm_shaping.py` |
+| [tiled-array](AdaptiveOptics/tiled-array/README.md) | - | Python | coherent combining of 7 and 61 beams; piston, delay, SPGD locking | `python tiled_array.py` |
+| [temporal-shaping](AdaptiveOptics/temporal-shaping/README.md) | - | Python | spectral shaper and AOPDF: pulses on demand, side pulses, closed-loop chirp search | `python temporal_shaping.py` |
+| [scatterer-focusing](AdaptiveOptics/scatterer-focusing/README.md) | - | Python | transmission matrix from intensities, focusing through a diffuser | `python scatterer.py` |
+
+## Fibres
+
+Single-mode fibres: solitons, Raman, self-phase modulation. See [Fibres](Fibres/README.md).
+
+| example | old no. | interface | what it shows | run |
+|---|---|---|---|---|
+| [soliton-breathing](Fibres/soliton-breathing/README.md) | - | Python | N = 1 and N = 3 solitons; the soliton period | `python solitons.py` |
+| [raman-soliton-shift](Fibres/raman-soliton-shift/README.md) | - | Python | self-frequency shift against pulse width (Gordon) | `python raman_shift.py` |
+| [spm-compression](Fibres/spm-compression/README.md) | - | Python | SPM broadening and compression in a fibre | `python spm_compression.py` |
 
 ## Interop
 
@@ -116,9 +142,15 @@ OpticStudio (Zemax) export and the C API from C++.
 | [zemax-workflow](Interop/zemax-workflow/README.md) | 07 | CLI | OpticStudio export -> system file -> run; try it with the fake MPC | `ultrafast zemax-demo mpc export.json` |
 | [cpp](Interop/cpp/README.md) | - | C++ | the C API from C++: run a system with callbacks, list compute devices (CMake / Visual Studio) | see README |
 
-## Planned groups
+## Figures
 
-`Computing/` (optical computing: 4f correlator, optical convolution, matrix-vector, parallelism and time) is described in [Computing](Computing/README.md). [`AdaptiveOptics/`](AdaptiveOptics/README.md) is created empty with a README and is filled by the adaptive-optics session.
+Every example folder has a `make_figures.py`; `python docs/examples/make_all.py` runs them (`--group`, `--only`, `--no-animations`, `--jobs`). The
+overview of each run is written to `figures/` (git-ignored). An example whose README showed no figure has a committed `hero.png`, embedded in
+the README; the Computing, AdaptiveOptics, DigitalTwin (new examples) and Fibres examples commit their `hero.png` and `animation.gif`. The [gallery](../gallery.md) collects them. Size budget: PNG 300 kB, GIF 2.5 MB.
+
+## Other groups
+
+`Computing/` (optical computing: 4f correlator, optical convolution, matrix-vector, parallelism and time) is described in [Computing](Computing/README.md).
 
 ## Old numbers
 

@@ -11,10 +11,10 @@ work, the tests and the acceptance criteria. Sizes: S ≈ 1 focused agent-day, M
 |---|---|---|---|---|
 | **S0** (done, in the planning session) | CI fixes, logo, licence, README, this plan | - | - | done |
 | **S1 Foundation** (**done 2026-11-09**) | Python package structure; plotting consolidation, animation, Zernike plot; examples regrouped into folders and an `ultrafast-examples` package; run-all figure scripts; optical-computing examples | S0 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
-| **S2 Core and spikes** | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
-| **S3 AO plugin** | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
-| **S4 Fitting and twin** | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
-| **S5 Examples, docs, verification** | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
+| **S2 Core and spikes** (**done 2026-11-10**) | measurements that decide the design (scale, sparse spectral sampling, chromatic SLM, repetition), then the core primitives: `modulator`, in-memory maps, streaming and sparse spectral sampling, coherent tiles, fast path | S1 | Opus 5.5 / none | XL |
+| **S3 AO plugin** (**done 2026-11-10 on `dev/2026-11-s3-ao`, not merged**) | `ao` plugin: deformable mirror, SLM, tiled array, sensing, calibration and control, holograms, sensorless optimisers, temporal shaping | S2 | Sonnet 5.5 / Opus 5.5 (2 calls) | XL |
+| **S4 Fitting and twin** (**done 2026-11-10; T6 MCP server not built**) | conditioned transforms in the fitting plugin; `twin` plugin; MCP server; goal files | S1 (not S2/S3: runs in parallel with them) | Sonnet 5.5 / Opus 5.5 (3 calls) | L-XL |
+| **S5 Examples, docs, verification** (**done 2026-11-10 except the items in `notes/s5-release.md` section 3: E1, E6, E13, E14, E15, the older examples' story pass**) | the AO and twin examples with plots and animations, docs, status, the full verification and the merge to `main` | S2, S3, S4 | Sonnet 5.5 / Opus 5.5 (1 call) | L |
 | *S6, later, optional* | repetition and switching: Pockels cell, pulse picker, pulse-train mode (see section 6) | S2 | Opus 5.5 / none | L |
 
 **Order.** S1 first, because it restructures the Python package and moves the examples; any example written before that would
@@ -278,7 +278,7 @@ Findings that change later sessions:
 * `plotting/zernike.py` and the fitting plugin's `figures.py`: the plugin figure stays in the plugin (it reads the fitting
   result format and is registered only when the plugin loads); it uses the stable names re-exported by `ultrafast.plotting`.
   This is the "fold" of 4.2, with the reason written down.
-* Full verification of the finished S1 is recorded in `docs/design/notes/s1-foundation.md` (section 9).
+* Full verification of the finished S1 is recorded in `docs/design/notes/s1-foundation.md` (sections 9 and 10). **S1 was merged to `main` on 2026-11-09 (`a875aec`), before S5, at the owner's request;** S2 starts from `dev/2026-11` in a new session (what it should know first: section 11 of the notes).
 * **Open for the owner:** repository size (section 8, point 1): only the four Computing animations (39-329 kB each) are committed so far; the other 38 examples draw a generic hero into a git-ignored `figures/` folder.
 
 ---
@@ -339,6 +339,24 @@ note exists with numbers; a 1920 × 1080 single-frequency propagation runs withi
 **Handoff.** `docs/design/notes/s2-core.md` with the API of each primitive as shipped (keys, units, defaults), the spike
 numbers, and what the `ao` plugin may rely on.
 
+**Progress (2026-11-10, branch `dev/2026-11-s2-core`; details in `docs/design/notes/s2-core.md`, numbers and decisions in `docs/design/notes/spikes.md`).**
+
+| step | state |
+|---|---|
+| 1 spikes S1-S7 | **done**: S1-scale (1920 x 1080 cw 3.3 s / 1.05 GB; K = 16 32 s / 3.6 GB), S2-sparse (K = 8-16 give 1e-3 up to 30 rad), S3-chromatic (a wrapped map disperses as a grating), S4-loop (10 ms vs 46 ms per trial), S6, S7 read; **S5-tiles not run as a Branched system** (it cannot give an array's far field: tested against the array theorem instead) |
+| 2 decide / gate G0 | **done**: no spike contradicts the plan; decisions in spikes.md section 8 |
+| 3 C1 `modulator` | **done**: cell grid, offset, rotation, fill factor, gaps, quantisation, wrapping, `crosstalkSigmaCells` and `crosstalkKernel`, zero-order leak; `chromatic` `opd` (the brief's `phaseAtDesign`, a phase at the design wavelength scaled with omega, is accepted as an alias), `fixedPhase` (achromatic, geometric phase), `index` (Δn(λ) by Cauchy or table); 6 x 6 sub-pixel averaging (the `mask` approach) |
+| 4 C2 in-memory maps | **done**: arrays, callbacks `"@name"` (Python `fields=`, C API `uf_run_set_field_callback`), NPZ; N loop trials = N file runs (1e-12). **Compile cache not built**: 10 ms floor per trial including the compile |
+| 5 C3 streaming and sparse sampling | **done**: `transverse.frequencyBlock` (exact), `outputs.keepProfiles: "used"` (live set 1587 -> 336 MB), `spectralSamplingError` bounds the true error. Whole-executor streaming not built (not needed; peak is set by the GC) |
+| 6 C4 tiles | **done**: square, hex, ring, explicit; piston, tilt, delay (sign tested), amplitudes, tophat |
+| 7 C5 fast path, zonal outputs | **done**: `spectralSamples: 1` fixed to store the carrier (it was the band edge); slope maps (tilt, defocus) |
+| 8 C6 GPU parity | **test written, skipped** on this Mac (no FP64 OpenCL, no PoCL wheel); its body checked CPU against CPU |
+| 9 review, regen, docs | **done**: two `physics-reviewer` passes, `/regen`, reference pages, changelog, testing rows, status counts |
+
+Brief items met differently, so the owner can see them: "cw equals the pulse at the carrier (1e-9)" holds for the stored frequency (1e-7, one
+grid bin); the cw source's own bin is 1.2e-6 off the requested carrier, so the patterns agree to 3e-6. The 1920 x 1080 budget is a slow test
+(1.9 s on a 2048 x 1280 grid, limit 13 s). The cylindrical lens (S1 finding) already existed as `focalLengthXM` / `focalLengthYM`; it now has a test.
+
 ---
 
 ### S3 AO plugin (Sonnet 5.5, advisor Opus 5.5)
@@ -382,6 +400,19 @@ peak, exp(−σ²), delay-mismatch cost for a 30 fs pulse; focus enhancement (π
 element (keys, units, defaults); no vendor numbers anywhere (presets are labelled generic).
 
 **Handoff.** `docs/design/notes/s3-ao.md`: the shipped API, the numbers, what the AO examples (S5) may call.
+
+**Progress (2026-11-10, branch `dev/2026-11-s3-ao`; details, numbers and the review in `docs/design/notes/s3-ao.md`, user docs in `docs/plugins/ao.md`).**
+
+| step | state |
+|---|---|
+| 1 scaffold | **done**: `plugins/ao`, sln, test reference, host copy targets, packager (`ao`) |
+| 2 devices | **done**: `deformableMirror`, `slm` (compile to the core `modulator`); advisor call 1 settled the SLM model (Delta-n dispersion, grey-level curve, unquantised phases to the modulator, the `s(lambda)` test); `tiledArray` is a Python builder of the core tile source |
+| 3 sensing and control | **done in Python**: lenslet Shack-Hartmann model, modal and Southwell reconstructors, interaction / control matrices, integrator loop, `DmBench`; no `ultrafast ao ...` CLI commands |
+| 4 holograms, sensorless | **done**: GS (quantisation in the loop), WGS, MRAF, double-phase, Bolduc; SPGD, hill climb, modal search, transmission matrix; the (pi/4)(N - 1) + 1 enhancement is tested in NumPy only |
+| 5 temporal shaping | **done**: `spectralShaper`, `aopdf`; closed-loop GDD compensation from the peak power; **FROG / d-scan as the metric not wired** |
+| 6 review | **done**: `physics-reviewer` (15 findings, 9 fixed, the rest documented), advisor call 2 |
+
+Brief items met differently: the pulse through a wrapped phase ramp is three monochromatic runs (900, 1030, 1200 nm) against the `s(lambda)` law, not a pulse; the NativeAOT library does not compile the plugin in (core area); a shaper's side pulses and a large programmed GDD can wrap round the time window without a warning (planner hook, core area).
 
 ---
 
@@ -470,6 +501,8 @@ animations within budget with `make_all.py`; `example_check.py` 0 problems; docs
 
 **Handoff.** `docs/design/notes/s5-release.md`: counts, what was verified, what was not (GPU, OpticStudio, macOS by hand).
 
+**Aditional Note from the user**: Currently it seems that many of our examples are old, and are fairly unintuitive and a quick glance does not help. I think we need to really go through each and every example and tell a little story with some animations / nice plots - that is to say: for example with Wavefronts/ we want to see a 2d image of out inputs/output wavefronts! Or with LaserSystem/ show a range of results (ie wavefronts, contrast, FROG trace etc.). We also should add examples/Fibres to show our fibre capabilities.
+
 ## 6. Repetition and Pockels cells (a comment for the plan; later session S6)
 
 *What the engine does today (checked in the docs).* Most of the engine is **single shot**: one pulse through a system. The gain
@@ -530,9 +563,7 @@ Is the contrast of the switch (extinction, edge time) a quantity you measure and
 
 ## 8. Open points for the owner
 
-1. **Repository size for animations.** About 15 GIFs of up to 2.5 MB is about 40 MB. Alternatives: attach them to a release, or
-   generate them in the docs workflow. Recommendation: commit the hero animations (a handful), generate the rest at docs build.
-2. **Gate G0** (inside S2) needs your review of the spike numbers.
-3. **Python naming.** Lowercase modules (`ultrafast.system`) are recommended over the capitalised form; say so if you want the
-   other.
-4. **Version.** The merge is a feature release (2.3.0 by the project's convention); tags and releases only on your word.
+1. **Repository size for animations.** About 15 GIFs of up to 2.5 MB is about 40 MB. Alternatives: attach them to a release, or generate them in the docs workflow. Recommendation: commit the hero animations (a handful), generate the rest at docs build. -- GENERATE ALL IMAGES BEFORE BUILD AND COMMIT
+1. **Gate G0** (inside S2) needs your review of the spike numbers.
+2. **Python naming.** Lowercase modules (`ultrafast.system`) are recommended over the capitalised form; say so if you want the other. -- THAT IS FINE
+3. **Version.** The merge is a feature release (2.3.0 by the project's convention); tags and releases only on your word.

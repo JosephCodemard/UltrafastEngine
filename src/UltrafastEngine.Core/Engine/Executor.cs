@@ -156,6 +156,7 @@ namespace UltrafastEngine.Engine
             }
             var st = new ExecutionState { Cr = cr, Res = res, Tail = tail, TailKeys = tailKeys, SnapPoints = snapPoints, AxisOf = AxisOf, Progress = progress, Cancel = cancel, Count = count };
             bool branched = cr.Graph?.IsBranched == true;
+            if (measure && !branched && cr.Run.Outputs?.KeepProfiles == "used") st.KeepProfiles = ProfilesInUse(cr);
             if (branched) RunGraph(st);
             for (int ei = first; ei < count && !branched; ei++)
             {
@@ -192,6 +193,21 @@ namespace UltrafastEngine.Engine
             public ProgressCallback Progress; public CancellationToken Cancel;
             /// <summary>Branched systems: the input port of this run of an element, and the by-products it gave.</summary>
             public string InputPort; public Dictionary<string, PulseField> LastOutputs; public Dictionary<string, double> LastByproductTilts;
+            /// <summary>outputs.keepProfiles = "used": the element ids whose profile is read later (null = keep all); LastId the previous element.</summary>
+            public HashSet<string> KeepProfiles; public List<string> Pending = new List<string>();
+        }
+
+        /// <summary>Element ids whose output profile is read after the run: where an instrument is, the element before each (instruments that look
+        /// at an element's input) and the last element. Probes take 1-D snapshots only and do not need the profile.</summary>
+        private static HashSet<string> ProfilesInUse(CompiledRun cr)
+        {
+            var at = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "end" };
+            foreach (var i in cr.Run.Instruments) { string a = i.GetString("at", "end").Replace(':', '#'); at.Add(a); at.Add(a.Split('#')[0]); }   // a port location id#port reads its element too
+            var keep = new HashSet<string>(at, StringComparer.OrdinalIgnoreCase);
+            var on = cr.Elements.Where(x => x.Enabled).ToList();
+            for (int i = 1; i < on.Count; i++) if (at.Contains(on[i].Id)) keep.Add(on[i - 1].Id);
+            if (on.Count > 0) keep.Add(on[on.Count - 1].Id);
+            return keep;
         }
 
         /// <summary>Run one element on one pulse, record it, and advance <paramref name="path"/>. A sequential system calls this
@@ -369,6 +385,20 @@ namespace UltrafastEngine.Engine
             res.Records.Add(rec);
             if (el.Probe) res.Snapshots.Add(Snapshot(el.Id, pulse, snapPoints));
             res.At[el.Id] = pulse;
+            if (st.KeepProfiles != null)
+            {
+                // drop the earlier elements' profiles nothing reads (a copy of the pulse without it replaces the stored one); one still shared
+                // with the current pulse waits until the beam has moved on
+                for (int k = st.Pending.Count - 1; k >= 0; k--)
+                {
+                    string id = st.Pending[k];
+                    if (!res.At.TryGetValue(id, out var prev) || prev.Profile == null) { st.Pending.RemoveAt(k); continue; }
+                    if (ReferenceEquals(prev.Profile, pulse.Profile)) continue;
+                    res.At[id] = new PulseField(prev.Grid, prev.Ax, prev.Ay, prev.RepRateHz);
+                    st.Pending.RemoveAt(k);
+                }
+                if (!st.KeepProfiles.Contains(el.Id)) st.Pending.Add(el.Id);
+            }
             if (tail != null && tailKeys.Contains(el.Id)) res.TailAt[el.Id] = tail.TailField(pulse.RepRateHz);
             progress?.Invoke(el.Id, ei, count, 1.0);
             if (el.BeamOut != null)

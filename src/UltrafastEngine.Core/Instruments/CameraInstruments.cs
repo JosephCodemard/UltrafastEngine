@@ -580,6 +580,16 @@ namespace UltrafastEngine.Instruments
             o.Add("x_m", xs, "m", "lenslet x");
             o.Add("y_m", ys, "m", "lenslet y");
             o.Add("wavefront_waves", map, "waves", "wavefront (piston and tilt removed), NaN outside the threshold [x][y]", n, n);
+            // zonal output: the local slope of the full wavefront (tilt kept), lambda dW/dx and lambda dW/dy in rad, central differences, NaN outside
+            var slopeX = new double[n * n]; var slopeY = new double[n * n]; double hstep = xs.Length > 1 ? xs[1] - xs[0] : 1;
+            for (int i = 0; i < n; i++) for (int j = 0; j < n; j++)
+            {
+                int k = i * n + j;
+                slopeX[k] = i > 0 && i < n - 1 ? lam * (wave[(i + 1) * n + j] - wave[(i - 1) * n + j]) / (2 * hstep) : double.NaN;
+                slopeY[k] = j > 0 && j < n - 1 ? lam * (wave[k + 1] - wave[k - 1]) / (2 * hstep) : double.NaN;
+            }
+            o.Add("slope_x_rad", slopeX, "rad", "wavefront slope lambda dW/dx (tilt kept; NaN outside the threshold) [x][y]", n, n);
+            o.Add("slope_y_rad", slopeY, "rad", "wavefront slope lambda dW/dy (tilt kept; NaN outside the threshold) [x][y]", n, n);
             o.Add("zernike_index", Enumerable.Range(1, J).Select(x => (double)x).ToArray(), "", "Noll index");
             o.Add("zernike_waves", coef, "waves", "Zernike coefficients (rms-normalised, Noll)");
             Tools.Put(o, "wavelengthM", lam);

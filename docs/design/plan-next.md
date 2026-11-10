@@ -5,7 +5,7 @@ replications, plots of Branched systems, the measured pedestal, the XPW model (c
 multi-trace retrieval, the multi-pass-cell mode helper and the single-shot correlator (see the changelog and the
 [November 2026 fix plan](plan-fixes-2026-11.md)). This page keeps the design of what is left; the user-facing list is the
 [roadmap](../roadmap.md) and the handover is `HANDOFF.md` in the repository root. Written 2026-11; sizes are focused agent-days
-(S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here.
+(S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here. The adaptive-optics and digital-twin work follows its own [roadmap](roadmap-ao-twin-2026-11.md); its session S1 is done (2026-11-09).
 
 ## Decisions (owner)
 

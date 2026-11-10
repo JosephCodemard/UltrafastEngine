@@ -78,6 +78,22 @@ measured field to the input ([Fitting](plugins/fitting.md)).
   only with a reason; check `edgeEnergyFraction` in `output` (should be < 1e-6).
 * Synthetic data with known answers for testing an analysis: [Assets](assets/README.md).
 
+## Adaptive optics and digital twins
+
+Two plugins, driven from Python (load them with `uf.plugins.load_python_plugins()`; the examples show the pattern):
+
+* **`ao`**: `from ultrafast_ao import DmBench, Slm, DeformableMirror, SpectralShaper, Aopdf, tiled_array`. A deformable mirror and an SLM are
+  elements that compile into the core `modulator`; big maps are passed as a callback (`"phaseTargetRad": "@name"`, `fields={"name": f(x, y, z)}`) or an NPZ
+  file, never as JSON. The algorithms are NumPy: `ultrafast.algorithms.holography` (Gerchberg-Saxton, weighted GS), `.control` (modal and zonal
+  reconstruction, interaction and control matrices, integrator loop) and `.sensorless` (`spgd`, `modal_search`, `transmission_matrix`). Rules that save
+  time: choose the lens `f = N dx^2 / lambda` so that focal pixels are FFT bins; keep patterns in the inner half of the window; set `grid.windowS` to
+  cover a shaper's side pulses (`2 pi / pixel bandwidth`); raise `transverse.spectralSamples` until `spectralSamplingError` is small for a pulse.
+  Examples: [AdaptiveOptics](examples/AdaptiveOptics/README.md); reference page: [ao](plugins/ao.md).
+* **`twin`**: `ultrafast twin init|fit|validate|predict|design|track|check` (set `ULTRAFAST_PYTHON`) or `ultrafast_twin` from Python. A twin is the fit across
+  conditions (the fitting plugin) plus a validation report: **always mark at least one condition `heldOut`**, read the verdict (`ok`, `marginal`,
+  `fits-training-only`, `unvalidated`) before trusting a prediction, and give the drift tracker the expected drift in physical units. The MCP server for
+  agents is not built. Examples: [DigitalTwin](examples/DigitalTwin/README.md); reference page: [twin](plugins/twin.md).
+
 ## Changing the code
 
 * Layout: `src/UltrafastEngine.Core` (engine), `src/UltrafastEngine.Cli`, `src/UltrafastEngine.Native` (C API),

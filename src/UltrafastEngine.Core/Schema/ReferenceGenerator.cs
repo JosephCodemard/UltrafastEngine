@@ -108,7 +108,7 @@ namespace UltrafastEngine.Schema
         { "branches",
             "plugins", "schema", "options", "system-file", "run-spec", "models", "materials", "coatings", "nonlinear", "active-elements", "crystals", "gain",
             "oscillators", "spatial-properties", "transverse", "instruments", "results", "c-api", "python", "extending", "components", "gases", "ionization", "fibers",
-            "retrieval", "studies", "speed", "python-api", "measured-data"
+            "retrieval", "studies", "speed", "python-api", "measured-data", "modulator"
         };
 
         private static string Link(string doc)

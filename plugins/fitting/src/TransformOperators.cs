@@ -98,6 +98,7 @@ namespace UltrafastEngine.Plugins.Fitting
             { "phaseNoise", o => new PhaseNoiseOperator() },
             { "pedestal", o => new PedestalOperator() },
             { "wavefront", o => new WavefrontOperator() },
+            { "nonlinearPhase", o => new NonlinearPhaseOperator() },
         };
 
         /// <summary>Add an operator kind (e.g. from another plugin: a learned operator, a measured transfer matrix).</summary>
@@ -354,6 +355,27 @@ namespace UltrafastEngine.Plugins.Fitting
     }
 
     // =========================================================================================== field operators
+
+    /// <summary>A Kerr-like nonlinear phase of the temporal intensity: phi(t) = bRad x I(t) / max I(t). The B-integral of a
+    /// thin nonlinear plate, as a number to fit (it grows linearly with the pulse energy: fit it across energies with a
+    /// conditioned parameter). Changes the spectrum, not the temporal intensity; exactly invertible.</summary>
+    public sealed class NonlinearPhaseOperator : TransformOperator
+    {
+        public override bool IsLinear => false;
+        public override string Description => string.Format(CultureInfo.InvariantCulture, "nonlinear phase, peak {0:G4} rad", Num("bRad", 0));
+        private PulseField Phase(PulseField p, double sign)
+        {
+            double b = sign * Num("bRad", 0);
+            var tx = p.TemporalAx(); var ty = p.TemporalAy();
+            double max = 0; var inten = new double[tx.Length];
+            for (int i = 0; i < inten.Length; i++) { inten[i] = tx[i].Real * tx[i].Real + tx[i].Imaginary * tx[i].Imaginary + ty[i].Real * ty[i].Real + ty[i].Imaginary * ty[i].Imaginary; if (inten[i] > max) max = inten[i]; }
+            if (max <= 0 || b == 0) return p;
+            for (int i = 0; i < inten.Length; i++) { var ph = Complex.FromPolarCoordinates(1, b * inten[i] / max); tx[i] *= ph; ty[i] *= ph; }
+            return p.WithSpectrum(SpectralTransform.TimeToFreq(tx), SpectralTransform.TimeToFreq(ty));
+        }
+        public override PulseField Apply(PulseField p) => Phase(p, 1);
+        public override PulseField Invert(PulseField p, double regularization) => Phase(p, -1);
+    }
 
     /// <summary>An incoherent background added to the pulse (ASE plateau or exponential wings): contrast degradation
     /// that no linear filter produces. Same parameters as the input pulse's pedestal components. Not invertible

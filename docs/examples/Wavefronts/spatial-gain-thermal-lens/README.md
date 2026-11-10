@@ -5,7 +5,7 @@ A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod once, end-pumped by 60
 
 ![15 -- Spatially resolved gain and the thermal lens](hero.png)
 
-*The overview figure of this example's run (`python make_figures.py` redraws it; the file is `hero.png`).*
+*Top row 60 W pump, bottom row 5 W. Left to right: the beam in the rod (the input is a collimated Gaussian), the wavefront it leaves with (a parabola: the thermal lens), the beam 0.4 m behind the rod, and the Zernike content of the wavefront (the blue bar is defocus, Noll 4). At 60 W the lens converges the beam, so the peak fluence 0.4 m behind the rod is higher than in it (colour bars); at 5 W the lens is 10 times weaker. `python make_figures.py` runs the commands below and redraws it.*
 
 ```bash
 ultrafast run rod.ufs run.json -o results-60W

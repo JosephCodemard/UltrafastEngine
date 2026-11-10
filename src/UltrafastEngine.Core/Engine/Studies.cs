@@ -187,6 +187,7 @@ namespace UltrafastEngine.Engine
             var (s0, r0) = Build(sysJson, runJson, spec.Parameters, nomVals, system.BaseDirectory, run.BaseDirectory);
             bool branched = string.Equals(system.Topology, SystemGraph.Branched, StringComparison.OrdinalIgnoreCase);
             var cache = branched && spec.PrefixCache && spec.FreezeGrid ? new GraphCache() : null;
+            if (spec.PrefixCache && r0.Outputs != null) r0.Outputs.KeepProfiles = "all";   // points resume from the nominal run's pulses: they need their profiles
             var nominal = Simulation.Run(s0, r0, registry);
             if (spec.FreezeGrid)
             {
@@ -195,6 +196,7 @@ namespace UltrafastEngine.Engine
                 gridObj.Set("auto", false).Set("n", nominal.Compiled.Grid.N).Set("windowS", nominal.Compiled.Grid.N * nominal.Compiled.Grid.DTime);
                 runJson.Set("grid", gridObj);
                 (s0, r0) = Build(sysJson, runJson, spec.Parameters, nomVals, system.BaseDirectory, run.BaseDirectory);
+                if (spec.PrefixCache && r0.Outputs != null) r0.Outputs.KeepProfiles = "all";
                 nominal = Simulation.Run(s0, r0, registry);
                 if (cache != null)
                 {

@@ -42,6 +42,8 @@ namespace UltrafastEngine.Transverse
         public string Equation { get; set; } = "envelope";
         /// <summary>Frequencies at which the carried profile is stored (and linear elements propagate it).</summary>
         public int SpectralSamples { get; set; } = 48;
+        /// <summary>Linear spatial elements propagate the stored frequencies in blocks of this many (streaming; 0 = all at once). The result does not depend on it.</summary>
+        public int FrequencyBlock { get; set; }
         /// <summary>Width of the absorbing boundary layer as a fraction of the grid extent (0 = none; linear elements only).</summary>
         public double AbsorbingBoundary { get; set; }
 
@@ -72,6 +74,8 @@ namespace UltrafastEngine.Transverse
             if (s.Equation != "envelope" && s.Equation != "uppe") throw new JsonException("transverse.equation must be \"envelope\" or \"uppe\".");
             s.SpectralSamples = o.GetInt("spectralSamples", 48);
             if (s.SpectralSamples < 1) throw new JsonException("transverse.spectralSamples must be at least 1.");
+            s.FrequencyBlock = o.GetInt("frequencyBlock", 0);
+            if (s.FrequencyBlock < 0) throw new JsonException("transverse.frequencyBlock must be 0 (all at once) or positive.");
             var ab = o["absorbingBoundary"];
             if (ab != null && !ab.IsNull)
             {
@@ -220,8 +224,20 @@ namespace UltrafastEngine.Transverse
         {
             string kind = (shape?.GetString("kind", "gaussian") ?? "gaussian").ToLowerInvariant();
             if (kind == "uniform") kind = "tophat";
-            if (kind != "gaussian" && kind != "supergaussian" && kind != "flattop" && kind != "tophat" && !BeamShapes.IsStructured(kind))
-                throw new InvalidOperationException("element " + origin + ": initialProfile.kind must be \"gaussian\", \"superGaussian\", \"flatTop\", \"tophat\", \"hermiteGauss\", \"laguerreGauss\", \"besselGauss\", \"airy\" or \"measured\" (got \"" + kind + "\").");
+            if (kind != "gaussian" && kind != "supergaussian" && kind != "flattop" && kind != "tophat" && kind != "tiles" && !BeamShapes.IsStructured(kind))
+                throw new InvalidOperationException("element " + origin + ": initialProfile.kind must be \"gaussian\", \"superGaussian\", \"flatTop\", \"tophat\", \"hermiteGauss\", \"laguerreGauss\", \"besselGauss\", \"airy\", \"tiles\" or \"measured\" (got \"" + kind + "\").");
+            if (kind == "tiles")
+            {
+                if (basis.Kind == "radial") throw new InvalidOperationException("element " + origin + ": coherent tiles need a cartesian transverse grid (\"model\": \"cartesian\").");
+                var td = TileSource.Field(basis, shape, omegas, origin); int nft = omegas.Length;
+                for (int f = 0; f < nft; f++)
+                {
+                    double nn = 0; for (int m = 0; m < basis.M; m++) { var v = td[m * nft + f]; nn += basis.Weights[m] * (v.Real * v.Real + v.Imaginary * v.Imaginary); }
+                    if (!(nn > 0)) throw new InvalidOperationException("transverse profile has no energy on the grid (tiles outside the grid or zero radius)");
+                    double sc = 1 / Math.Sqrt(nn); for (int m = 0; m < basis.M; m++) td[m * nft + f] *= sc;
+                }
+                return new TransverseProfile(basis, omegas, td, origin);
+            }
             int order = kind == "flattop" ? 10 : kind == "supergaussian" ? Math.Max(1, shape.GetInt("order", 4)) : 1;
             string geometry = (shape?.GetString("geometry", "round") ?? "round").ToLowerInvariant();
             if (geometry == "rectangular") geometry = "square";
@@ -326,6 +342,20 @@ namespace UltrafastEngine.Transverse
             while (hi > 0 && spectrum[hi] < 1e-6 * mx) hi--;
             if (hi <= lo) return new[] { Array.IndexOf(spectrum, mx) };
             int k = Math.Min(count, hi - lo + 1);
+            if (k == 1)
+            {
+                // one stored frequency: the bin nearest the energy centroid (the carrier of a symmetric spectrum), not the low edge of the band
+                double s0 = 0, s1 = 0; for (int i = lo; i <= hi; i++) { s0 += spectrum[i]; s1 += i * spectrum[i]; }
+                int c = s0 > 0 ? (int)Math.Round(s1 / s0) : Array.IndexOf(spectrum, mx);
+                if (spectrum[c] < 1e-3 * mx)
+                {
+                    // a spectrum with a hole at its centroid (two colours, a notch): the nearest bin that carries light
+                    int best = Array.IndexOf(spectrum, mx);
+                    for (int i = lo; i <= hi; i++) if (spectrum[i] >= 1e-3 * mx && Math.Abs(i - c) < Math.Abs(best - c)) best = i;
+                    c = best;
+                }
+                return new[] { c };
+            }
             var bins = new SortedSet<int>();
             for (int j = 0; j < k; j++) bins.Add(lo + (int)Math.Round((double)j * (hi - lo) / Math.Max(1, k - 1)));
             return bins.ToArray();
@@ -544,6 +574,32 @@ namespace UltrafastEngine.Transverse
         }
 
         /// <summary>Weighted quadratic-phase coefficient a (phase ~ a r^2) of each stored frequency of a profile.</summary>
+        /// <summary>
+        /// Interpolation error of the stored frequency samples: how far each interior sample is from the straight line between its
+        /// neighbours (the profile between samples is interpolated linearly, <see cref="TransverseProfile.At(double[])"/>), as
+        /// sqrt(sum w |P_f - P_interp|^2) with unit-norm samples. 0 for a profile that does not change with frequency; compare it for K and 2K
+        /// stored frequencies (it falls roughly as 1/K^2 while the sampling resolves the phase). Returns the largest over the interior samples,
+        /// weighted samples (SampleWeights below 1e-3 of the largest are ignored); 0 with fewer than 3 samples.
+        /// </summary>
+        public static double InterpolationError(TransverseProfile p)
+        {
+            int nf = p.Omega.Length, M = p.Basis.M; double worst = 0;
+            if (nf < 3) return 0;
+            double wmax = p.SampleWeights == null ? 1 : p.SampleWeights.Max();
+            for (int f = 1; f < nf - 1; f++)
+            {
+                if (p.SampleWeights != null && p.SampleWeights[f] < 1e-3 * wmax) continue;
+                double t = (p.Omega[f] - p.Omega[f - 1]) / (p.Omega[f + 1] - p.Omega[f - 1]), e2 = 0;
+                for (int m = 0; m < M; m++)
+                {
+                    var d = p.Data[m * nf + f] - (p.Data[m * nf + f - 1] * (1 - t) + p.Data[m * nf + f + 1] * t);
+                    e2 += p.Basis.Weights[m] * (d.Real * d.Real + d.Imaginary * d.Imaginary);
+                }
+                worst = Math.Max(worst, Math.Sqrt(e2));
+            }
+            return worst;
+        }
+
         public static double[] Curvature(TransverseProfile p)
         {
             int nf = p.Omega.Length;

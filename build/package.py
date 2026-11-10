@@ -51,6 +51,8 @@ PLUGINS = {
     "fitting": (REPO / "plugins" / "fitting" / "src" / "UltrafastEngine.Plugins.Fitting.csproj", ("transform", "transforms", "fit")),
     "zemax": (REPO / "plugins" / "zemax" / "src" / "UltrafastEngine.Zemax.Sampling" / "UltrafastEngine.Zemax.Sampling.csproj", ("opticstudio",)),
     "gpu": (REPO / "plugins" / "gpu" / "src" / "UltrafastEngine.Plugins.Gpu.csproj", ("cuda", "opencl")),
+    "ao": (REPO / "plugins" / "ao" / "src" / "UltrafastEngine.Plugins.Ao.csproj", ("adaptive-optics", "slm", "dm")),
+    "twin": (REPO / "plugins" / "twin" / "src" / "UltrafastEngine.Plugins.Twin.csproj", ("digital-twin", "mcp")),
     "hitran": (REPO / "plugins" / "hitran" / "src" / "UltrafastEngine.Plugins.Hitran.csproj", ("hapi", "gas", "water")),
 }
 
@@ -517,7 +519,7 @@ The examples need the ``ultrafast-engine`` package. Examples that call the comma
 The figure scripts (``make_figures.py``, ``make_all.py``) are part of the repository only.
 """
 EXAMPLES_EXCLUDE = ("results", "results-*", "*-results", "figures", "retrieved", "__pycache__", "*.pyc", "make_figures.py", "make_all.py",
-                    "_figures.py", "_figs.py")
+                    "_figures.py", "_figs.py", "_viz.py")
 
 
 def build_examples_wheel(out: Path) -> Path:

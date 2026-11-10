@@ -159,5 +159,28 @@ namespace UltrafastEngine.Tests
             var t = r.GetArray("selftest")[0].AsObject();
             Assert.True(t.GetBool("passed", false), "self-test: " + t.ToJson(false));
         }
+
+        [Test(Category = "gpu", Reference = "cross-check (C6 of the S2 roadmap): the S2 primitives -- a coherent tile source and a modulator -- feeding a nonlinear spatial plate give the CPU result on the device", Tolerance = "1e-9 relative")]
+        public void TilesAndModulator_IntoANonlinearPlate_MatchTheCpu()
+        {
+            var b = Device();
+            JsonObject G(JsonObject ip = null) { var t = O("model", "cartesian", "nx", 128, "ny", 32, "halfWidthM", 1.6e-3, "halfWidthYM", 0.4e-3, "spectralSamples", 8); if (ip != null) t.Set("initialProfile", ip); return t; }
+            var phase = new JsonArray();
+            for (int i = 0; i < 32; i++) { var row = new JsonArray(); for (int j = 0; j < 8; j++) row.Add(0.5 * Math.Sin(i / 3.0) + 0.2 * j); phase.Add(row); }
+            var els = new JsonArray(new JsonValue[]
+            {
+                O("id", "src", "type", "gap", "lengthM", 0.0, "material", "Vacuum", "transverse", G(O("kind", "tiles", "layout", "square", "countX", 3, "pitchM", 0.6e-3, "tileRadiusM", 0.2e-3, "pistonRad", A(0.0, 0.4, -0.3)))),
+                O("id", "mod", "type", "modulator", "pitchXM", 100e-6, "pitchYM", 100e-6, "phaseRad", phase, "outsideTransmission", 1.0),
+                O("id", "k", "type", "bulk", "material", "kerr", "lengthM", 2e-3, "transverse", G())
+            });
+            var sys = UltrafastEngine.Systems.SystemDescription.FromJson(O("format", "ultrafast-system", "version", 2, "name", "c6", "materials", O("kerr", O("index", O("kind", "constant", "value", 1.45), "n2", 3e-20)), "elements", els));
+            RunResult R(JsonObject compute) => Simulation.Run(sys, UltrafastEngine.Specs.RunSpec.FromJson(O("format", "ultrafast-run", "version", 2, "pulse", O("shape", "gaussian", "centerWavelengthM", 1030e-9, "durationFwhmS", 100e-15, "energyJ", 2e-6),
+                "physics", O("raman", false, "selfSteepening", false), "compute", compute, "instruments", A(O("kind", "beamProfile", "name", "bp", "at", "end")))));
+            var cpu = R(O("backend", "cpu")); var dev = R(On(b));
+            Assert.True(OnDevice(dev), "the plate ran on the device: " + Notes(dev));
+            Assert.Less(Diff(dev, cpu), 1e-9, "output field");
+            var fc = cpu.Instruments[0].Arrays.First(a => a.Name.EndsWith("fluence_map_j_m2")).Data; var fd = dev.Instruments[0].Arrays.First(a => a.Name.EndsWith("fluence_map_j_m2")).Data;
+            double peak = fc.Max(); for (int i = 0; i < fc.Length; i++) Assert.Close(fc[i], fd[i], 0, 1e-9 * peak, "fluence map");
+        }
     }
 }

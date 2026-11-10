@@ -1,0 +1,113 @@
+# S3 AO plugin: handoff
+
+Branch `dev/2026-11-s3-ao` (from `dev/2026-11` at 5469481). Page for users: [docs/plugins/ao.md](../../plugins/ao.md) (parameter tables, the
+physics of each device, what each test checks). This page: what shipped, what did not, numbers, and what S5 may rely on.
+
+## Shipped
+
+| roadmap item | where | state |
+|---|---|---|
+| AO0 scaffold | `plugins/ao/` (`plugin.json`, `src/*.csproj`, `python/ultrafast_ao`), sln, test project reference, `build/CopyPlugins.targets`, `build/package.py` (`ao`, aliases `adaptive-optics`, `slm`, `dm`), `python/tests/test_packaging.py` | done; the default plugin list is now fitting, zemax, gpu, ao, hitran |
+| AO1 `deformableMirror` | `plugins/ao/src/Devices.cs` | done: square / hex / ring / explicit layouts, Gaussian influence with stated coupling, stroke, drive bits, `2 cos(aoi)`, clear aperture; **hysteresis, creep, print-through, segmented and bimorph kinds not built** |
+| AO2 `slm` | `Devices.cs` | done: pixels, pitch, fill factor, grey levels, linear / tanh / table curves, phase target to the nearest level, liquid-crystal `dn(lambda)` (Cauchy), cross-talk, zero-order leak; 1920 x 1080 as callback or NPZ; **the Delta-n preset is generic and unverified** |
+| AO3 `tiledArray` | `ultrafast_ao.tiled_array`, `combining_metrics` | done as a **builder of the core tile source** (the advisor's correction: a source is not an element); no nested per-channel systems |
+| AO4 sensing | `ultrafast.algorithms.control`: `shack_hartmann` (lenslet FFT + windowed centroid, noise), `modal_fit`, `southwell_reconstructor` | done, NumPy; the bench uses the engine's `wavefrontSensor` as the ideal zonal sensor (the engine has no complex-field output to feed the lenslet model) |
+| AO5 calibrate / correct / loop | `control.interaction_matrix`, `control_matrix` (Tikhonov, TSVD), `correct`, `integrator_loop`; `ultrafast_ao.DmBench.calibrate / correct / loop` | done; **no `ultrafast ao ...` CLI commands** (they are Python) |
+| AO6 holograms | `ultrafast.algorithms.holography`: GS (quantisation in the loop), WGS, MRAF, double-phase, Bolduc, `grey_levels` | done |
+| AO7 sensorless | `sensorless`: SPGD, hill climb, modal search, phase-stepping transmission matrix | done; phase locking = SPGD on the tile pistons (tested through the engine) |
+| TS1 `spectralShaper` | `plugins/ao/src/TemporalShapers.cs` | done (1-D transfer function; spot overlap by erf) |
+| TS2 `aopdf` | same | done (polynomial or table phase, window, efficiency, replica); closed-loop shaping tested with the engine's peak power as the metric (GDD compensation); **FROG / d-scan as the metric is not wired** (the metric is any function; the engine's `frog` / `dscan` instruments can be called by the user) |
+| physics review | `physics-reviewer` pass | see the end of this page |
+
+## Numbers (development laptop, Apple silicon, CPU)
+
+* 1920 x 1080 `slm`, 256 grey levels from a callback, cw, grid 2048 x 1280, `keepProfiles: "used"`: **2.4 s** (S2 limit 13 s).
+* `DmBench` (128 x 128 cells, f = 0.5 m): about 0.1 s per run; calibration of 100 actuators (200 pokes) 7 s; modal search over six modes (54 runs) about 5 s.
+* One-shot zonal correction of {Z4: 0.3, Z5: -0.2, Z7: 0.15} waves rms: Strehl **0.31 -> 0.87** (10 x 10 actuators of 0.4 mm), modal (Zernike fit) **0.965**; the loop at gain 0.7 reduces the slope rms by 0.3 per step (1 - g).
+* Strehl against theory: the engine's focal peak is 0.5-2.4 % above the exact on-axis value `|<a e^{i phi}>|^2` for rotationally symmetric aberrations (the peak may leave the axis); Marechal `exp(-sigma^2)` is within 1 % at sigma = 0.25 rad and 5 % at 0.5 rad (defocus + astigmatism).
+* SLM blazed efficiency: within 0.6 % of the sampled staircase for N = 4, 8, 16; at other wavelengths within 1.5 % of the `s(lambda)` law (900, 1030, 1200 nm).
+* Weiner side pulses of a gapped shaper: energy ratio `[sin(pi f)/(pi f)]^2 exp(-2 (pi w0/pitch)^2)` within 1 %, position within 1 fs.
+* Tile delay cost: 0.3 %, 0.04 %, 0.65 % from the Gaussian-overlap formula for rms delays of 10, 25, 40 fs (7 tiles, 30 fs).
+* Transmission matrix: phases exact to 1e-9 rad; focusing enhancement over 3000 random outputs of N = 64: 50.40 against (pi/4)(N - 1) + 1 = 50.48 (standard error 0.07).
+* GS: quantisation in the loop helps at 2 and 3 levels (6 of 6 seeds), **not** at 4 or 8 on the ring target.
+* SPGD, 16 channels, 400 iterations: final lock 1.000 (minimum over 10 seeds) at gain 10, amplitude 0.2; gain 20 diverges (mean 0.67).
+
+## What S5 (examples) may call
+
+* `ultrafast_ao`: `DeformableMirror`, `Slm`, `SpectralShaper`, `Aopdf` (element dicts), `DmBench`, `tiled_array`, `combining_metrics`, `devices.*` twins. `DmBench(aberration={noll: waves}).strehl() / .calibrate() / .correct(D) / .loop(D) / .zernike_commands(coefs)`.
+* `ultrafast.algorithms.holography / control / sensorless` (no plugin needed). `ultrafast.algorithms.zernike` for the aberration plots (S1).
+* **Pitfalls for example authors** (all in `docs/plugins/ao.md`): the shaper needs `grid.windowS` to cover `2 pi / pixel bandwidth`; the engine's focal plane is sampled at the simulation pitch, not at `lambda f / (N dx)` (keep the pattern inside the window); give big SLM maps as a callback or file; a tile delay moves the envelope only; the tile source is normalised to the total power; the beam profile peak should be refined between pixels (`DmBench.peak_fluence` does).
+
+## Not done / for the owner or later sessions
+
+* **NativeAOT build does not compile the plugin in** (`UF_WITH_AO` in `src/UltrafastEngine.Native` is S2's area). The hosted engine (Python default, CLI) loads it. Request: add `UF_WITH_AO` as for `UF_WITH_HITRAN` if the native Python wheel should carry it.
+* **Grid planner does not know a shaper's time extent** (`2 pi / pixel bandwidth` side pulses): the user sets `grid.windowS`. A hook in `GridPlanner` (core, S2's area) could read it from the term.
+* **GPU parity** of the S2 primitives and the AO elements was never run on a device; the plugin adds nothing GPU-specific (maps are computed in C# and applied by the core modulator).
+* **net48**: the solution builds for net48 (0 errors); the tests were run on net10.0 only (no Mono on this Mac).
+* Edits outside `plugins/ao/**` that were needed: `UltrafastEngine.sln`, `build/CopyPlugins.targets`, `build/package.py`, `tests/UltrafastEngine.Tests/{UltrafastEngine.Tests.csproj,TestFramework.cs}` (reference and register the plugin), `SchemaTests.cs` (the shipped-origins list gained `"ao"`), `python/tests/test_packaging.py`, `python/src/ultrafast/algorithms/{__init__,holography,control,sensorless}.py`, `docs/plugins/ao.md`, `plugins/CLAUDE.md`, and the regenerated `schemas/*`, `docs/reference/options.md`, `python-api.md`, `validation-matrix.md`, `types.py`.
+* **Shared files left for S5** (per the roadmap's ownership rule): `mkdocs.yml` and `llms.txt` (add `plugins/ao.md` to the nav; the page builds under `--strict` without being in the nav), `docs/plugins/index.md`, `docs/reference/plugins.md` (first-party list), `CHANGELOG.md`, `docs/testing.md`, `PROJECT_STATUS.md`, `docs/capabilities.md`, `ROADMAP.md`, `docs/roadmap.md`.
+
+## Changelog lines (for S5 to paste into `CHANGELOG.md`, Unreleased)
+
+Added:
+* `ao` plugin: `deformableMirror`, `slm`, `spectralShaper` and `aopdf` elements (parametric, no vendor data); the first two compile into the core `modulator`.
+* `ultrafast.algorithms.holography` (Gerchberg-Saxton with quantisation in the loop, weighted GS, MRAF, double-phase and Bolduc encoding, grey-level mapping), `.control` (Shack-Hartmann lenslet model, Zernike modal and Southwell reconstructors, interaction / control matrices, integrator loop) and `.sensorless` (SPGD, hill climbing, modal search, phase-stepping transmission matrix).
+* `ultrafast_ao`: `DmBench` (simulated AO bench that drives the engine), `tiled_array` and `combining_metrics` for coherent tiled-aperture arrays, NumPy twins of the devices.
+
+## `docs/testing.md` rows
+
+| test file | tests | what |
+|---|---|---|
+| `AoDeviceTests.cs` | 20 (1 slow) | deformable mirror (tilt, 2 cos(aoi), coupling, stroke, hex), SLM (blaze, orders, liquid-crystal dispersion, nearest level, 1920 x 1080), erf, aopdf (delay, GDD, window, replica), spectral shaper (Weiner side pulses, delay) |
+| `python/tests/test_ao_algorithms.py` | 19 | holography, sensing and control, sensorless, transmission matrix |
+| `python/tests/test_ao_plugin.py` | 12 | Strehl and Marechal, device twins, fit residual, correction and loop, modal search, GS hologram through the slm element, tiled array, SPGD lock, GDD shaping |
+
+## Physics review
+
+One `physics-reviewer` pass (15 findings). **Fixed:** `spectralShaper.offsetM` cancelled out (now moves the array; test added); the frequency-to-position map is now exact in wavelength (was linear in omega); the AOPDF replica created energy (now split off the main pulse, total = efficiency; test added); the `deformableMirror` `commandsM` are documented as drive coefficients (a uniform command gives a ripple of about 1.7 x at coupling 0.15, not a flat piston); the nearest-grey-level search uses the circular distance for curves that span more than 2 pi (C# and Python; tests added); the Airy radius in `combining_metrics`; the unit hint (1e6 = 1 mm/nm); the `transmission_matrix` docstring (column 0 is a marker, cost 4(n-1)+2); the Weiner test now uses a 150 fs pulse and a 32 ps window because the spectral grid sampled the comb edges (5 samples per pixel gave 2.5 % errors: now in the docs). **Documented, not changed:** the field-overlap model of the spot (the Weiner test checks its implementation, not the choice); no anamorphic grating factor; a large programmed GDD or a shaper's side pulses can wrap around the time window without a warning (needs a planner hook in the core); `modal_fit` uses the gradient at the lenslet centre, not the subaperture mean. **Open (no test yet):** AOPDF GDD/TOD sign (red first for +GDD), grating-derived dispersion against a Littrow reference, SLM fill factor / gap / cross-talk through the plugin (covered by the core modulator tests), end-to-end Bolduc and double-phase through an SLM, drive-bit step size, tiled-array lobe fractions beyond `0 < f < 1`.
+
+## Brief items met differently
+
+* "A pulse through a wrapped phase ramp": three monochromatic runs (900, 1030, 1200 nm) of a blazed `slm` ramp against the `s(lambda)` law (the first-order efficiency of a pulse is the spectrum-weighted sum of these).
+* The (pi/4)(N - 1) + 1 enhancement is tested on a synthetic random matrix in NumPy; no engine scatterer exists.
+* FROG / d-scan is not wired as a loop metric; the closed-loop test uses the output peak power. Any function of a run can be the metric.
+* Calibrate, correct and loop are Python (`DmBench`, `ultrafast.algorithms.control`), not `ultrafast ao ...` CLI commands.
+* Core request: the unknown-element-type message could name the `ao` plugin for `deformableMirror`, `slm`, `spectralShaper`, `aopdf`, as it does for the other first-party types.
+
+## Verification (test-runner, before the review fixes)
+
+After the review fixes and the test hardening (final tree): net10.0 `--slow` **528 passed / 0 failed / 9 skipped** (GPU device and HITRAN reference-dir skips); `AoDeviceTests` 20 (including the slow 1920 x 1080 test); Python `test_ao_algorithms.py` 19 + `test_ao_plugin.py` 12 + `test_packaging.py`, all passed; `mypy` clean; `mkdocs build --strict` 0 warnings; the regenerated files are current. Earlier full run by `test-runner` (before the fixes): Python with pyNLO and slow 205 passed / 1 skipped (no GPU), `example_check.py` 0 problems, solution builds with 0 errors. Not run: net48 tests (no Mono), GPU, OpticStudio, NativeAOT inclusion of the plugin.
+
+
+## Session close (2026-11-10): status, deferred and open items
+
+### State of the branch
+* `dev/2026-11-s3-ao` is pushed and was **fast-forwarded into `dev/2026-11`** (bca9210) at the owner's request. **Nothing is merged to `main`; no tag or release.**
+* CI on the push before the last commit: every job green except "Build (net10.0, net48) and C# tests", which failed on two wall-time budgets (23.1 s and 21.2 s against 13 s). Fixed in bca9210 by `SpatialStreamingTests.ScaleBudgetS()` (13 s locally, 45 s when `CI` is set). **That commit's CI run was not watched**: check it. net48 has therefore not been confirmed on this code locally (no Mono) and depends on that run.
+* Final local numbers: net10.0 `--slow` 528 passed / 0 failed / 9 skipped before the budget fix (the two timing tests pass locally and with `CI=true` after it); Python ao tests 38 passed (`test_ao_algorithms.py` 19, `test_ao_plugin.py` 12, `test_packaging.py`); earlier full Python run 205 passed / 1 skipped; `mypy` clean; `mkdocs build --strict` 0 warnings; `example_check.py` 0 problems; regenerated files current.
+
+### Done (all of it)
+* Plugin `ao`: `deformableMirror`, `slm`, `spectralShaper`, `aopdf` (C#); `ultrafast_ao` (builders, device twins, `DmBench`, `tiled_array`, `combining_metrics`); algorithms `holography`, `control`, `sensorless` in `ultrafast.algorithms`.
+* Wiring outside `plugins/ao`: sln, test project reference and registration, `build/CopyPlugins.targets`, `build/package.py`, `test_packaging.py`, `SchemaTests` shipped origins, `PluginTests` (ao registered, folder loads, four elements declared by `ao`), the two scale-budget tests, regenerated schemas / options / types / API docs / validation matrix.
+* Docs: `docs/plugins/ao.md`, `plugins/ao/README.md`, `plugins/CLAUDE.md`, this page, the roadmap Progress table, the memory file.
+* Reviews: advisor call 1 (before the SLM model), advisor call 2 (before done: led to the replica test, drive-step test, AOPDF sign test, plugin-registration test, GS phase check, end-to-end modal fit, attribution trailers), one `physics-reviewer` pass (15 findings).
+* Test hardening after review: Reference strings now say what is checked; measured spreads are quoted instead of remembered; the AOPDF GDD/TOD sign is checked against the core `dispersion` element (peak and FWHM within 1e-3, centroid within 0.1 fs, +6.2 fs from TOD); the fill-factor replica (1/9 at lambda f / pitch) is tested through the `slm` element.
+
+### Not done (by design or for lack of time)
+* Shared files, left for S5: `CHANGELOG.md`, `docs/testing.md`, `PROJECT_STATUS.md`, `docs/capabilities.md`, `ROADMAP.md`, `docs/roadmap.md`, `mkdocs.yml`, `llms.txt`, `docs/plugins/index.md`, `docs/reference/plugins.md`, the README test-count badges. `docs/plugins/ao.md` is not in the nav yet (it builds under `--strict`).
+* Not run: net48 tests locally; GPU (parity of the S2 primitives and the ao elements never ran on a device); OpticStudio; NativeAOT inclusion (needs `UF_WITH_AO` in `src/UltrafastEngine.Native`, core area).
+* Not built: DM hysteresis, creep, print-through, segmented and bimorph kinds; per-channel nested systems in the tile array; FROG / d-scan as a closed-loop metric (the closed-loop test uses peak power; any function of a run can be the metric); `ultrafast ao ...` CLI commands (calibrate / correct / loop are Python); TS3 (the 4f line with spatial chirp); an engine-side Shack-Hartmann instrument (the physical lenslet model is NumPy and needs a complex field you build yourself; the bench uses the ideal `wavefrontSensor`); the plugin's `requires` key (not needed, the optimisers are Python).
+* Untested: the grating-derived dispersion of `spectralShaper` against a Littrow reference; end-to-end Bolduc and double-phase through an SLM with a spatially varying field; the Zernike-gradient bias of `modal_fit` for Noll >= 7 (gradient at the lenslet centre, not the subaperture mean); lobe fractions of `combining_metrics` beyond `0 < f < 1`; SLM fill / gap / cross-talk through the plugin (the core modulator tests cover the core).
+* Known modelling limits (documented in `docs/plugins/ao.md`): field-overlap spot model of the shaper (the Weiner test checks the implementation, not the choice); no anamorphic grating factor; constant `D` over the band; `commandsM` are drive coefficients (a uniform command gives about 1.7 x at coupling 0.15); a zero command with `driveBits` becomes a half-step piston.
+
+### Still to do (owner or later sessions)
+1. **Watch the CI run of bca9210**; if "Build (net10.0, net48) and C# tests" is red for a reason other than timing, fix it before merging to `main`.
+2. **S5** merges the shared files above, adds `docs/plugins/ao.md` to the nav, writes the AO examples (it may call everything under "What S5 may call"), and runs `/verify` before any merge to `main`.
+3. **Core requests** (S2's area, the owner decides): `UF_WITH_AO` in the Native project; a grid-planner hook so a shaper's `2 pi / pixel bandwidth` side pulses and a large programmed GDD extend the time window (today nothing warns when the output wraps round the window); the unknown-element-type message should name `ao` for the four types.
+4. **Run on a GPU / PoCL machine** the S2 parity test `GpuTests.TilesAndModulator_IntoANonlinearPlate_MatchTheCpu`, and net48 under Mono, before a release.
+5. **Replace the generic SLM birefringence preset** with a published or measured Delta-n(lambda) when one is available; until then it is labelled unverified everywhere.
+6. Optional follow-ups: the untested items above; FROG / d-scan as the shaping metric; a GS between tile pistons and the far field for fibre-bundle beam shaping (next section).
+
+### Question answered at the end of the session: beam shaping with a 2-D bundle of fibre outputs
+**Partly supported.** The core tile source (`initialProfile` kind `tiles`, S2) models a grid of closely spaced coherent outputs that interfere: square, hex, ring or explicit positions, with per-tile piston, tilt, delay and amplitude, summed coherently (overlap included, total power normalised). A lens and a gap give the far field. `ultrafast_ao.tiled_array` builds it and `combining_metrics` scores it; the tests check the N-fold peak, the piston cost `|sum e^{i phi}|^2 / N^2`, the delay cost (Gaussian envelope overlap) and SPGD phase locking through the engine.
+**Missing for a fibre bundle:** (a) nothing computes the pistons for a *target pattern* on the tile grid (the GS / WGS routines work on pixel grids; a GS between the tile pistons and the far field is a small addition); (b) every tile has one radius and a simple shape (Gaussian, tophat, truncated): no fibre mode-field / numerical-aperture profile, no per-tile radius; (c) no core-to-core coupling (multicore fibres and imaging bundles were out of scope in the plan); (d) per-channel dispersion or nonlinearity beyond a delay is not modelled. With few tiles the control is coarse (about one phase per tile): beam steering and far-field shaping, not detailed images.

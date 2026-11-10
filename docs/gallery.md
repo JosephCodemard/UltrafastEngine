@@ -158,10 +158,108 @@ The same Gaussian blur on N x N pixels (pitch 20 µm; the aperture and the focal
 
 ![Parallelism and time: animation](examples/Computing/parallelism-and-time/animation.gif)
 
+## AdaptiveOptics
+
+### [An aberrated high-power beam: what a deformable mirror does for the nonlinear phase](examples/AdaptiveOptics/aberrated-high-power/README.md)
+
+A deformable mirror removes the hot spots of an aberrated 2 GW beam and cuts the peak nonlinear phase in a Kerr plate from 1.55 to 0.60 rad.
+
+![An aberrated high-power beam: what a deformable mirror does for the nonlinear phase: figure](examples/AdaptiveOptics/aberrated-high-power/hero.png)
+
+### [Deformable-mirror correction of an aberrated focus](examples/AdaptiveOptics/dm-correction/README.md)
+
+A 10 x 10 deformable mirror, calibrated and run in a closed loop, restores the focus of a beam with defocus, astigmatism and coma (Strehl 0.32 to 0.89).
+
+![Deformable-mirror correction of an aberrated focus: figure](examples/AdaptiveOptics/dm-correction/hero.png)
+
+![Deformable-mirror correction of an aberrated focus: animation](examples/AdaptiveOptics/dm-correction/animation.gif)
+
+### [Focusing through a scatterer by wavefront shaping](examples/AdaptiveOptics/scatterer-focusing/README.md)
+
+Wavefront shaping measures a scatterer's transmission matrix from intensities alone and turns speckle into a focus about 47 times brighter.
+
+![Focusing through a scatterer by wavefront shaping: figure](examples/AdaptiveOptics/scatterer-focusing/hero.png)
+
+![Focusing through a scatterer by wavefront shaping: animation](examples/AdaptiveOptics/scatterer-focusing/animation.gif)
+
+### [Sensorless adaptive optics](examples/AdaptiveOptics/sensorless-correction/README.md)
+
+With only the focal peak as a metric, modal search (36 camera exposures) and SPGD (240) improve a six-mode aberration from Strehl 0.39 to 0.94.
+
+![Sensorless adaptive optics: figure](examples/AdaptiveOptics/sensorless-correction/hero.png)
+
+![Sensorless adaptive optics: animation](examples/AdaptiveOptics/sensorless-correction/animation.gif)
+
+### [Beam shaping with a phase-only SLM](examples/AdaptiveOptics/slm-beam-shaping/README.md)
+
+A phase-only SLM with 256 grey levels turns a Gaussian beam into a smiley, a square, a ring and a spot array (Gerchberg-Saxton holograms), up to a full 1920 x 1080 panel.
+
+![Beam shaping with a phase-only SLM: figure](examples/AdaptiveOptics/slm-beam-shaping/hero.png)
+
+![Beam shaping with a phase-only SLM: animation](examples/AdaptiveOptics/slm-beam-shaping/animation.gif)
+
+### [Temporal pulse shaping](examples/AdaptiveOptics/temporal-shaping/README.md)
+
+A spectral shaper and an AOPDF make double pulses and pulse trains, show the side pulses of pixel gaps, restore a narrowed spectrum and find an unknown chirp in a closed loop.
+
+![Temporal pulse shaping: figure](examples/AdaptiveOptics/temporal-shaping/hero.png)
+
+![Temporal pulse shaping: animation](examples/AdaptiveOptics/temporal-shaping/animation.gif)
+
+### [Coherent tiled-aperture combining](examples/AdaptiveOptics/tiled-array/README.md)
+
+Seven and 61 coherent beams combine to N times the peak; piston and delay errors cost what theory says, and SPGD locks the phases.
+
+![Coherent tiled-aperture combining: figure](examples/AdaptiveOptics/tiled-array/hero.png)
+
+![Coherent tiled-aperture combining: animation](examples/AdaptiveOptics/tiled-array/animation.gif)
+
 ## DigitalTwin
+
+### [Build a digital twin: fit across conditions, predict, validate](examples/DigitalTwin/build-the-twin/README.md)
+
+A digital twin fitted to spectra at five pulse energies recovers the hidden filter and nonlinear phase, predicts two held-out energies with credible bands, and flags a twin that only fits its training data.
+
+![Build a digital twin: fit across conditions, predict, validate: figure](examples/DigitalTwin/build-the-twin/hero.png)
+
+![Build a digital twin: fit across conditions, predict, validate: animation](examples/DigitalTwin/build-the-twin/animation.gif)
+
+### [Explore the twin without beam time](examples/DigitalTwin/explore-the-twin/README.md)
+
+A fitted twin answers what-if questions with credible bands, ranks the next measurement by information gain and follows a drifting filter with an ensemble Kalman filter.
+
+![Explore the twin without beam time: figure](examples/DigitalTwin/explore-the-twin/hero.png)
+
+![Explore the twin without beam time: animation](examples/DigitalTwin/explore-the-twin/animation.gif)
 
 ### [26 -- Transforms: fit what the design does not know, then reuse it](examples/DigitalTwin/transforms/README.md)
 
 A CPA line on paper: a stretcher (+100 000 fs², −300 000 fs³) and a compressor that undoes it exactly.
 
 ![26 -- Transforms: fit what the design does not know, then reuse it: figure](examples/DigitalTwin/transforms/hero.png)
+
+## Fibres
+
+### [Raman self-frequency shift of solitons](examples/Fibres/raman-soliton-shift/README.md)
+
+Raman scattering pushes fundamental solitons to the red at a rate proportional to T0^-4 (Gordon 1986); the engine reproduces the scaling.
+
+![Raman self-frequency shift of solitons: figure](examples/Fibres/raman-soliton-shift/hero.png)
+
+![Raman self-frequency shift of solitons: animation](examples/Fibres/raman-soliton-shift/animation.gif)
+
+### [Solitons in a fibre: shape-keeping and breathing](examples/Fibres/soliton-breathing/README.md)
+
+An N = 1 soliton keeps its shape and an N = 3 soliton breathes and returns after exactly one soliton period z0 = (pi/2) L_D.
+
+![Solitons in a fibre: shape-keeping and breathing: figure](examples/Fibres/soliton-breathing/hero.png)
+
+![Solitons in a fibre: shape-keeping and breathing: animation](examples/Fibres/soliton-breathing/animation.gif)
+
+### [Nonlinear pulse compression in a fibre](examples/Fibres/spm-compression/README.md)
+
+Self-phase modulation in a normal-dispersion fibre and a compressor found from the peak power alone shorten a 300 fs pulse to 88 fs.
+
+![Nonlinear pulse compression in a fibre: figure](examples/Fibres/spm-compression/hero.png)
+
+![Nonlinear pulse compression in a fibre: animation](examples/Fibres/spm-compression/animation.gif)

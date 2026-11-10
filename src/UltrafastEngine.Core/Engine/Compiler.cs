@@ -123,7 +123,7 @@ namespace UltrafastEngine.Engine
     {
         public static readonly string[] ElementTypes =
             { "beamSplitter", "polarizingSplitter", "leakMirror", "dichroic", "delay", "dispersion", "bulk", "gap", "fiber", "interface", "mirror", "grating", "gratingPair", "chirpedMirror", "aperture", "filter", "waveplate", "polarizer", "rotator", "probe", "custom", "lens", "user", "crystal", "gain", "amplifier", "saturableAbsorber", "sesam", "oscillator",
-              "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront", "mask", "prism", "resonator" };
+              "plate", "ndFilter", "thinFilmPolarizer", "faradayRotator", "wavefront", "mask", "modulator", "prism", "resonator" };
 
         private sealed class Ctx
         {
@@ -543,6 +543,7 @@ namespace UltrafastEngine.Engine
                 case "chirpedmirror": CompileChirpedMirror(c, e, ce); break;
                 case "aperture": CompileAperture(c, e, ce); break;
                 case "mask": CompileMask(c, e, ce); break;
+                case "modulator": CompileModulator(c, e, ce); break;
                 case "prism": CompilePrism(c, e, ce); break;
                 case "filter": case "custom":
                 {

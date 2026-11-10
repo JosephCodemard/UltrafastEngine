@@ -153,6 +153,7 @@ Files written by the CLI / WriteAll.
 | `npz` | boolean |  | true | result.npz |
 | `csv` | boolean |  | true | CSV files |
 | `maxPoints` | integer |  | 0 | Cap exported traces (0 = full grid incl. complex fields) |
+| `keepProfiles` | `"all"` \| `"used"` |  | all | Transverse profiles kept in the result: all (after every element) or used (only where an instrument or the end reads one, and before such an element); used saves memory on large grids |
 
 ## Elements
 
@@ -174,6 +175,25 @@ Also accepts: `gainCommon` (see *Common key groups*).
 | `passesPerRoundTrip` | integer |  | 2 | Crystal passes per round trip |
 | `maxRoundTrips` | integer |  | 300 | Limit for auto |
 | `cavity` | object (`betweenPasses`) |  |  | lossPerRoundTrip, gddFs2, todFs3, materials |
+
+### `aopdf` — plugin: ao
+
+An acousto-optic programmable dispersive filter: programmed spectral phase (delay, GDD, TOD, FOD or a table), finite acoustic window, diffraction efficiency, amplitude table and a spurious replica. More: [plugins/ao.md#aopdf](../plugins/ao.md#aopdf)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `centerWavelengthM` | number | m | the carrier | Wavelength at which the polynomial phase is expanded |
+| `delayFs` | number | fs | 0 | Group delay at the centre |
+| `gddFs2` | number | fs^2 | 0 | Group-delay dispersion |
+| `todFs3` | number | fs^3 | 0 | Third-order dispersion |
+| `fodFs4` | number | fs^4 | 0 | Fourth-order dispersion |
+| `spectralPhaseRad` | number or array | rad |  | Extra spectral phase table over tableWavelengthsM |
+| `amplitudeTable` | number or array |  |  | Amplitude transmission table over tableWavelengthsM |
+| `tableWavelengthsM` | number or array | m |  | Wavelengths of the tables |
+| `windowS` | number | s | 0 | Acoustic window: components whose programmed group delay is outside +-window/2 are not diffracted (0 = unlimited) |
+| `efficiency` | number |  | 1 | Diffraction efficiency (power) |
+| `replicaAmplitude` | number |  | 0 | Spurious replica split off the main pulse: H x (1 + a exp(i omega tau)) / sqrt(1 + a^2) |
+| `replicaDelayS` | number | s | 0 | Delay of the spurious replica |
 
 ### `aperture`
 
@@ -281,6 +301,30 @@ A spectral filter: any filter model (transmission and phase). More: [system-file
 | `filter` | model (filter) |  |  | Filter model |
 | `model` | model (filter) |  |  | Filter model (alternative key) |
 | `mechanism` | string |  | filter | Name of the loss in the budget |
+
+### `deformableMirror` — plugin: ao
+
+A parametric deformable mirror on the carried transverse profile: actuator layout, Gaussian influence function, stroke limit, drive quantisation. Compiles to a modulator with an optical-path (achromatic) map. Generic: no vendor data. More: [plugins/ao.md#deformablemirror](../plugins/ao.md#deformablemirror)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `layout` | `"square"` \| `"hex"` \| `"ring"` \| `"explicit"` |  | square | Actuator layout |
+| `actuatorsX` | integer |  |  | Actuators along x (square), per row (hex) |
+| `actuatorsY` | integer |  | actuatorsX | Actuators along y (square), rows (hex) |
+| `ringCounts` | number or array |  |  | ring layout: actuators on ring k (radius k pitch); the first entry is the centre actuator count |
+| `positionsXM` | number or array | m |  | explicit layout: actuator x positions |
+| `positionsYM` | number or array | m |  | explicit layout: actuator y positions |
+| `pitchM` | number | m |  | Actuator pitch **Required.** |
+| `commandsM` | any | m | 0 | Drive coefficient per actuator (the surface is the sum of the influence functions: a uniform drive gives about 1.7 x the drive in the interior at coupling 0.15, not a uniform piston), positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout |
+| `influenceCoupling` | number |  | 0.15 | Surface value at a neighbouring actuator when one actuator is driven (Gaussian influence function exp(ln(c) (r/pitch)^2)) |
+| `strokeM` | number | m | unlimited | Mechanical stroke limit (commands are clipped to +-strokeM) |
+| `driveBits` | integer |  | 0 | Drive resolution in bits over +-strokeM (needs strokeM); 0 = continuous |
+| `incidenceAngleRad` | number | rad | 0 | Angle of incidence; the wavefront changes by 2 cos(aoi) times the surface |
+| `clearApertureRadiusM` | number | m | 0 | Radius of the circular clear aperture (0 = the actuator footprint) |
+| `marginPitches` | number |  | 0.5 | Border around the outermost actuators, in pitches |
+| `reflectivity` | number |  | 1 | Power reflectivity |
+| `samplesPerActuator` | integer |  | 4 | Surface cells per actuator pitch along x and y |
+| `designWavelengthM` | number | m | the carrier | Wavelength at which the optical path becomes a phase |
 
 ### `delay`
 
@@ -594,6 +638,37 @@ Also accepts: `beamSize` (see *Common key groups*).
 | `focalLengthM` | number | m |  | Focal length (mirror, alternative to the radius) |
 | `aberration` | object (`aberration`) |  |  | Wavefront error / surface figure (Zernike, random figure) |
 
+### `modulator`
+
+A pixelated thin phase / amplitude modulator (spatial light modulator, deformable-mirror surface, tile mask) on the carried transverse profile: a cell grid with a fill factor, gaps, quantisation, phase wrapping, cross-talk and a stated chromatic rule. More: [modulator.md](modulator.md)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `cellsX` | integer |  | from the map | Cells along x |
+| `cellsY` | integer |  | from the map | Cells along y |
+| `pitchXM` | number | m |  | Cell pitch along x **Required.** |
+| `pitchYM` | number | m | pitchXM | Cell pitch along y |
+| `offsetXM` | number | m | 0 | Centre of the array in x |
+| `offsetYM` | number | m | 0 | Centre of the array in y |
+| `rotationRad` | number | rad | 0 | Rotation of the array about its centre |
+| `phaseRad` | any | rad |  | Commanded phase at designWavelengthM: an array [cellsX][cellsY] or a callback "@name" f(x, y, z) (cell centres, z = 0) |
+| `opdM` | any | m |  | Commanded optical path instead of phaseRad (same forms) |
+| `amplitude` | any |  | 1 | Amplitude transmission per cell (same forms) |
+| `file` | string |  |  | NPZ with phase_rad or opd_m, and amplitude, shaped [cellsX][cellsY]; relative to the system file |
+| `designWavelengthM` | number | m | the carrier | Wavelength at which phaseRad holds |
+| `chromatic` | `"opd"` \| `"phaseAtDesign"` \| `"fixedPhase"` \| `"index"` |  | opd | opd (also phaseAtDesign): the written phase is an optical path, phase = phaseRad * omega / omega_design (a wrapped map is a grating); fixedPhase: the phase does not change with frequency; index: phase = phaseRad * omega dn(omega) / (omega_design dn(omega_design)), a liquid-crystal cell with a dispersive index modulation dn |
+| `deltaIndexCauchy` | number or array |  |  | chromatic index: dn = A + B / lambda^2 + C / lambda^4 as [A, B (m^2), C (m^4)]; only the ratio dn(lambda) / dn(design) matters |
+| `deltaIndex` | number or array |  |  | chromatic index: a table of dn (linear in lambda between points), with deltaIndexWavelengthsM |
+| `deltaIndexWavelengthsM` | number or array | m |  | Wavelengths of the deltaIndex table |
+| `fillFactor` | number |  | 1 | Active fraction of the pitch in x and y (0-1] |
+| `gapTransmission` | number |  | 0 | Amplitude transmission of the gaps |
+| `outsideTransmission` | number |  | 0 | Amplitude transmission outside the array |
+| `zeroOrderLeak` | number |  | 0 | Amplitude fraction eta that passes unmodulated (phase 0) inside active cells: t = a [(1 - eta) e^(i phi) + eta]; a flat map stays lossless |
+| `crosstalkSigmaCells` | number |  | 0 | Gaussian fringing-field cross-talk, standard deviation in cells (applied to the written phase and amplitude) |
+| `crosstalkKernel` | number or array |  |  | Explicit cross-talk kernel in cells (odd length, centre weight in the middle, normalised to unit sum), applied along x and along y to the written phase and amplitude; overrides crosstalkSigmaCells; weights must be >= 0 |
+| `quantisationLevels` | integer |  | 0 | Phase levels over phaseWrapRad (2 pi if that is 0); 0 = continuous |
+| `phaseWrapRad` | number | rad | 0 | Wrap the commanded phase to [0, phaseWrapRad); 0 = no wrapping |
+
 ### `ndFilter`
 
 A neutral-density filter (absorptive or reflective): OD or OD(lambda), substrate, ghosts. More: [components.md#ndfilter](components.md#ndfilter)
@@ -746,6 +821,62 @@ Also accepts: `absorberParams` (see *Common key groups*).
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `absorber` | model (absorber) |  |  | Absorber model (kind slow / fast / kerrLens and its parameters), or the parameters directly on the element |
+
+### `slm` — plugin: ao
+
+A parametric phase-only liquid-crystal spatial light modulator: pixels, fill factor, grey levels through a voltage-to-phase curve, dispersive birefringence, fringing cross-talk. Compiles to a modulator. Generic: no vendor data. More: [plugins/ao.md#slm](../plugins/ao.md#slm)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `pixelsX` | integer |  | from the map | Pixels along x |
+| `pixelsY` | integer |  | from the map | Pixels along y |
+| `pitchM` | number | m |  | Pixel pitch **Required.** |
+| `pitchYM` | number | m | pitchM | Pixel pitch along y |
+| `offsetXM` | number | m | 0 | Centre of the panel in x |
+| `offsetYM` | number | m | 0 | Centre of the panel in y |
+| `rotationRad` | number | rad | 0 | Rotation of the panel |
+| `fillFactor` | number |  | 1 | Active fraction of the pitch (0-1] |
+| `gapTransmission` | number |  | 0 | Amplitude transmission of the gaps |
+| `outsideTransmission` | number |  | 0 | Amplitude transmission outside the panel |
+| `greyLevels` | integer |  | 256 | Number of grey levels |
+| `lutKind` | `"linear"` \| `"tanh"` \| `"table"` |  | linear | Voltage-to-phase curve: linear (maxPhaseRad k / levels), tanh (S-shaped, lutSteepness) or table (lutPhaseRad) |
+| `maxPhaseRad` | number | rad | 2 pi | Phase range of the curve at the design wavelength |
+| `lutSteepness` | number |  | 2 | tanh curve steepness |
+| `lutPhaseRad` | number or array | rad |  | table curve: phase of each grey level (non-decreasing) |
+| `greyLevel` | any |  |  | Grey level of each pixel [pixelsX][pixelsY] |
+| `phaseTargetRad` | any | rad |  | Wanted phase [pixelsX][pixelsY]: wrapped to 2 pi and mapped to the nearest grey level of the curve |
+| `file` | string |  |  | NPZ with grey_level or phase_target_rad [pixelsX][pixelsY]; relative to the system file |
+| `designWavelengthM` | number | m | the carrier | Wavelength at which the curve holds |
+| `dispersion` | `"liquidCrystal"` \| `"none"` |  | liquidCrystal | liquidCrystal: phase scales with omega dn(omega) (the written 2 pi reset is only 2 pi at the design wavelength); none: an achromatic optical path |
+| `deltaIndexCauchy` | number or array |  |  | Birefringence dn = A + B/lambda^2 + C/lambda^4 as [A, B (m^2), C (m^4)]; default a GENERIC nematic preset (unverified) |
+| `crosstalkSigmaCells` | number |  | 0 | Gaussian fringing-field cross-talk, standard deviation in pixels |
+| `crosstalkKernel` | number or array |  |  | Explicit cross-talk kernel (odd length, non-negative) |
+| `zeroOrderLeak` | number |  | 0 | Amplitude fraction that passes unmodulated |
+
+### `spectralShaper` — plugin: ao
+
+A pixelated spectral phase / amplitude mask in the Fourier plane of a 4f line (1-D SLM pulse shaper), as a linear spectral transfer function. The programmed group delay is kept in the transfer (the pulse moves inside the time window). More: [plugins/ao.md#spectralshaper](../plugins/ao.md#spectralshaper)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `pixels` | integer |  |  | Number of pixels **Required.** |
+| `pixelPitchM` | number | m |  | Pixel pitch **Required.** |
+| `fillFactor` | number |  | 1 | Active fraction of the pitch (0-1] |
+| `gapTransmission` | number |  | 0 | Amplitude transmission of the gaps |
+| `outsideTransmission` | number |  | 0 | Amplitude transmission beyond the array |
+| `centerWavelengthM` | number | m | the carrier | Wavelength at the centre of the array |
+| `offsetM` | number | m | 0 | Position of the array centre relative to the centre wavelength's focus |
+| `dispersionMPerM` | number |  | from the grating | Focal-plane position per wavelength (m of position per m of wavelength; 1e6 = 1 mm/nm) |
+| `gratingLinesPerMm` | number | 1/mm |  | Grating line density |
+| `incidenceAngleRad` | number | rad | 0 | Angle of incidence on the grating |
+| `order` | number |  | 1 | Diffraction order |
+| `focalLengthM` | number | m |  | Focal length of the 4f lens |
+| `spotRadiusM` | number | m | lambda f / (pi inputBeamRadiusM) | 1/e^2 field radius of the focused monochromatic spot |
+| `inputBeamRadiusM` | number | m |  | Beam radius at the grating (sets the spot size) |
+| `phaseRad` | any | rad | 0 | Phase per pixel |
+| `amplitude` | any |  | 1 | Amplitude transmission per pixel |
+| `phaseWrapRad` | number | rad | 2 pi | Wrap the phase to [0, phaseWrapRad); 0 = no wrapping |
+| `greyLevels` | integer |  | 0 | Phase levels over 2 pi; 0 = continuous |
 
 ### `thinFilmPolarizer` (also `tfp`)
 
@@ -1429,6 +1560,38 @@ Backward propagation (fitting plugin). More: [plugins/fitting.md#backward-propag
 | `active` | `"error"` \| `"linearized"` \| `"identity"` |  | error | Amplifiers, crystals and spatial elements: refuse, undo as the filter they were in a forward reference run, or pass through |
 | `referencePulse` | object (`pulse`) |  |  | active = linearized: the input pulse of the forward reference run |
 
+### `fitting:condition`
+
+One operating condition of a multi-condition fit (fitting plugin). More: [plugins/fitting.md#fitting-across-conditions](../plugins/fitting.md#fitting-across-conditions)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `name` | string |  |  | Label (unique); used in the report as condition/instrument **Required.** |
+| `heldOut` | boolean |  | false | Not in the cost: predicted from the fit and compared with its data afterwards |
+| `weight` | number |  | 1 | Weight of this condition's residuals in the cost (chi^2 is multiplied by it) |
+| `variables` | any |  |  | Named numbers describing the condition ({"energyJ": 2e-6}); the inputs of parametric and smooth dependence on the condition |
+| `set` | any |  |  | Path -> value written into the files for this condition (a number, or a string such as instrument:spec/measured/file); same paths as fit.parameters |
+
+### `fitting:dependence`
+
+How a fitted number depends on the condition (fitting plugin). More: [plugins/fitting.md#fitting-across-conditions](../plugins/fitting.md#fitting-across-conditions)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `kind` | `"constant"` \| `"proportional"` \| `"linear"` \| `"polynomial"` \| `"power"` \| `"chebyshev"` \| `"network"` |  | linear | Form: c0 \| c0 u \| c0 + c1 u \| sum ck u^k \| c0 u^c1 \| sum ck Tk(xi) \| a small tanh network with built-in constraints; u = variable / reference |
+| `variable` | string |  |  | Name of the condition variable (conditions[].variables) **Required.** |
+| `degree` | integer |  | 2 | polynomial / chebyshev: highest order |
+| `reference` | number |  | mean of the training values | u = variable / reference |
+| `range` | array |  |  | chebyshev: [lo, hi] mapped to xi = -1..1 (outside it the series extrapolates) |
+| `smoothnessPaths` | number |  | 0 | surface: weight on second differences across the paths |
+| `smoothnessVariable` | number |  | 0 | surface (chebyshev): weight on second differences across the variable |
+| `coefficients` | array |  |  | Per order: {initial, min, max, scale, prior, step} of that coefficient (network: one object {scale, min, max} for all weights) |
+| `hidden` | integer |  | 4 | network: tanh units |
+| `output` | `"none"` \| `"bounded"` \| `"positive"` |  | none | network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction |
+| `outputRange` | array |  |  | network, output bounded: [lo, hi] |
+| `monotone` | `"none"` \| `"increasing"` \| `"decreasing"` |  | none | network: output monotone in the variable (squared weights), exact by construction |
+| `weightDecay` | number |  | 1e-4 | network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) |
+
 ### `fitting:fit`
 
 Fit (fitting plugin). More: [plugins/fitting.md#fitting](../plugins/fitting.md#fitting)
@@ -1439,6 +1602,8 @@ Fit (fitting plugin). More: [plugins/fitting.md#fitting](../plugins/fitting.md#f
 | `estimator` | `"levenbergMarquardt"` \| `"cmaes"` \| `"mcmc"` |  | levenbergMarquardt | Fitting algorithm (plugins may register more) |
 | `maxIterations` | integer |  | 20 (LM), 60 (CMA-ES) | Iterations (LM) / generations (CMA-ES) |
 | `tolerance` | number |  | 1e-4 (LM), 1e-6 (CMA-ES) | Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit |
+| `conditions` | array of `fitting:condition` |  |  | Operating conditions fitted together with one set of shared parameters (energies, angles, ...); empty: one condition, the run itself |
+| `surfaces` | array of `fitting:surface` |  |  | Smooth surfaces: several numbers (e.g. the knots of a spectral phase) as Chebyshev series of a condition variable, with smoothness penalties in both directions |
 | `freezeGrid` | boolean |  | true | Fix the time/frequency grid (2x the planned bandwidth) for all evaluations |
 | `parallel` | integer |  | 1 | Simulations run at the same time (Jacobian columns, CMA-ES population, MCMC walkers) |
 | `population` | integer |  | 4 + 3 ln n | CMA-ES population |
@@ -1470,7 +1635,7 @@ One transform operator (kind + parameters; numbers may be fit objects). More: [p
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `kind` | `"spectralPhase"` \| `"spectralAmplitude"` \| `"energy"` \| `"delay"` \| `"jones"` \| `"replica"` \| `"phaseNoise"` \| `"pedestal"` \| `"wavefront"` |  |  | Operator kind (plugins may add more) **Required.** |
+| `kind` | `"spectralPhase"` \| `"spectralAmplitude"` \| `"energy"` \| `"delay"` \| `"jones"` \| `"replica"` \| `"phaseNoise"` \| `"pedestal"` \| `"wavefront"` \| `"nonlinearPhase"` |  |  | Operator kind (plugins may add more) **Required.** |
 | `enabled` | boolean |  | true | false skips the operator |
 | `fit` | array |  |  | Names of parameters to fit (dotted for nested: "knots.phaseRad" fits every knot), alternative to fit objects |
 | `bounds` | object |  |  | Bounds for the names in "fit": {name: [min, max]} |
@@ -1497,6 +1662,7 @@ One transform operator (kind + parameters; numbers may be fit objects). More: [p
 | `passive` | boolean |  | true | spectralAmplitude: clip the transmission to <= 1 |
 | `causal` | boolean |  | false | spectralAmplitude: add the minimum phase (Kramers-Kronig) |
 | `floor` | number |  | 1e-8 | causal: smallest relative transmission used in the logarithm |
+| `bRad` | number or fit object | rad |  | nonlinearPhase: peak nonlinear phase (B-integral of a thin Kerr plate), phi(t) = bRad I(t)/max I |
 | `transmission` | number or fit object |  | 1 | energy: power transmission |
 | `gainDb` | number or fit object | dB |  | energy: gain (alternative) |
 | `delayS` | number or fit object | s |  | delay / replica: delay |
@@ -1544,7 +1710,33 @@ One fit parameter.
 | `scale` | number |  | (max - min) / 4 | Typical change |
 | `step` | number |  | 1e-3 x scale | Finite-difference step |
 | `unit` | string |  |  | Unit label for reports |
+| `dependence` | object (`fitting:dependence`) |  |  | The value follows the condition variable: its coefficients are fitted instead (fitting across conditions) |
+| `perCondition` | boolean |  | false | Multi-condition fit: one value per training condition instead of one shared value |
 | `prior` | any |  |  | Gaussian prior: sigma (mean = initial) or {mean, sigma} |
+
+### `fitting:surface`
+
+A smooth surface of several numbers over a condition variable (fitting plugin). More: [plugins/fitting.md#fitting-across-conditions](../plugins/fitting.md#fitting-across-conditions)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `name` | string |  |  | Label **Required.** |
+| `paths` | array |  |  | The numbers (same paths as fit.parameters); or pathTemplate + count |
+| `pathTemplate` | string |  |  | A path with {i} replaced by 0..count-1 (e.g. element:t/operators/0/knots/phaseRad/{i}) |
+| `count` | integer |  |  | Number of paths for pathTemplate |
+| `kind` | `"constant"` \| `"proportional"` \| `"linear"` \| `"polynomial"` \| `"chebyshev"` \| `"network"` |  | chebyshev | Basis over the variable |
+| `variable` | string |  |  | Name of the condition variable **Required.** |
+| `degree` | integer |  | 2 | Highest order |
+| `reference` | number |  |  | u = variable / reference |
+| `range` | array |  |  | [lo, hi] of the Chebyshev map |
+| `smoothnessPaths` | number |  | 0 | Weight on second differences across the paths |
+| `smoothnessVariable` | number |  | 0 | Weight on second differences across the variable |
+| `coefficients` | array |  |  | Per order: {initial, min, max, scale, prior, step} |
+| `hidden` | integer |  | 4 | network: tanh units |
+| `output` | `"none"` \| `"bounded"` \| `"positive"` |  | none | network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction |
+| `outputRange` | array |  |  | network, output bounded: [lo, hi] |
+| `monotone` | `"none"` \| `"increasing"` \| `"decreasing"` |  | none | network: output monotone in the variable (squared weights), exact by construction |
+| `weightDecay` | number |  | 1e-4 | network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) |
 
 ### `fitting:value`
 
@@ -1605,7 +1797,7 @@ Initial transverse field.
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` \| `"tophat"` \| `"hermiteGauss"` \| `"laguerreGauss"` \| `"besselGauss"` \| `"airy"` \| `"measured"` |  | gaussian | Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) |
+| `kind` | `"gaussian"` \| `"superGaussian"` \| `"flatTop"` \| `"tophat"` \| `"hermiteGauss"` \| `"laguerreGauss"` \| `"besselGauss"` \| `"airy"` \| `"measured"` \| `"tiles"` |  | gaussian | Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) |
 | `modeX` | integer |  | 0 | hermiteGauss: order in x |
 | `modeY` | integer |  | 0 | hermiteGauss: order in y |
 | `modeP` | integer |  | 0 | laguerreGauss: radial index p |
@@ -1619,7 +1811,23 @@ Initial transverse field.
 | `threshold` | number |  | 0 | measured: fluence below this fraction of the peak is set to zero |
 | `center` | boolean |  | false | measured: move the fluence centroid to the axis |
 | `geometry` | `"round"` \| `"square"` |  | round | round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) |
-| `order` | integer |  | 4 | superGaussian order |
+| `order` | integer |  | 4 | superGaussian order (also tiles with tileShape superGaussian) |
+| `layout` | `"square"` \| `"hex"` \| `"ring"` |  | square | tiles: arrangement of the sub-beams (square: countX x countY; hex: rings around a centre tile; ring: count tiles on a circle) |
+| `pitchM` | number | m |  | tiles: centre-to-centre distance |
+| `count` | integer |  | 2 | tiles: tiles per side (square) or on the ring |
+| `countX` | integer |  |  | tiles: square layout, tiles along x |
+| `countY` | integer |  | 1 if countX is given, else count | tiles: square layout, tiles along y |
+| `rings` | integer |  | 1 | tiles: hex layout, rings around the centre tile (1: 7 tiles, 2: 19, 3: 37, 4: 61) |
+| `ringRadiusM` | number | m |  | tiles: ring layout, circle radius |
+| `positionsM` | any | m |  | tiles: explicit centres, a list of [x, y] |
+| `tileRadiusM` | number | m |  | tiles: 1/e^2 radius of one tile (hard radius for tileShape tophat) |
+| `tileShape` | `"gaussian"` \| `"tophat"` \| `"superGaussian"` |  | gaussian | tiles: transverse shape of one tile |
+| `amplitudes` | any |  | 1 | tiles: amplitude per tile (a number or one per tile) |
+| `pistonRad` | any | rad | 0 | tiles: piston phase at the carrier per tile |
+| `tileTiltXRad` | any | rad | 0 | tiles: tilt about y per tile (a number or one per tile) |
+| `tileTiltYRad` | any | rad | 0 | tiles: tilt about x per tile |
+| `delaysS` | any | s | 0 | tiles: envelope delay per tile (adds (omega - omega_centre) tau to the phase; needs enough spectralSamples to resolve it) |
+| `pistonRmsRad` | number | rad | 0 | tiles: random Gaussian piston error added to pistonRad (seed: seed) |
 | `decenterXM` | number | m |  | Decentre in x |
 | `decenterYM` | number | m |  | Decentre in y |
 | `tiltXRad` | number | rad |  | Tilt about y |
@@ -1924,6 +2132,7 @@ Spatial model of an element (docs/reference/spatial-models.md).
 | `polarization` | `"auto"` \| `"scalar"` \| `"vector"` |  | auto | Jones (vector) fields on the grid: auto = when the beam carries a y component |
 | `equation` | `"envelope"` \| `"uppe"` |  | envelope | Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) |
 | `spectralSamples` | integer |  | 48 | Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses |
+| `frequencyBlock` | integer |  | 0 | Streaming: a linear spatial element propagates the stored frequencies in blocks of this many, so its propagator holds a block instead of all of them and a block-sized work buffer is added (saves memory for blocks under half the stored frequencies); the result does not depend on it. 0 = all at once |
 | `absorbingBoundary` | any |  | false | Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) |
 
 ## Model kinds

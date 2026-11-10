@@ -82,18 +82,38 @@ def readme_commands(readme: Path) -> list:
     return out
 
 
+SHELL_SYNTAX = re.compile(r"[|&;<>$`()*?]")
+
+
+def run_command(line: str, folder: Path, env: dict) -> int:
+    """Run one README line. A plain command (``python script.py args``, ``ultrafast run a.ufs b.json -o out``) runs directly, so it needs no
+    shell and works on Windows; a line with shell syntax needs ``bash``. ``python`` means the interpreter running this command."""
+    import shlex
+    line = re.sub(r"\s+#.*$", "", line)                 # a trailing comment of the README line
+    if SHELL_SYNTAX.search(line):
+        bash = shutil.which("bash")
+        if bash is None or (os.name == "nt" and "system32" in bash.lower()):      # no bash, or the WSL stub of Windows
+            print("skipped (needs a bash shell): " + line)
+            return 0
+        prelude = 'python() { "%s" "$@"; }\npython3() { "%s" "$@"; }\n' % (Path(sys.executable).as_posix(), Path(sys.executable).as_posix())
+        return subprocess.call([bash, "-c", prelude + line], cwd=folder, env=env)
+    parts = shlex.split(line)
+    if parts[0] in ("python", "python3"):
+        parts[0] = sys.executable
+    elif shutil.which(parts[0]) is None:
+        print("skipped (%s is not on the PATH): %s" % (parts[0], line))
+        return 0
+    return subprocess.call(parts, cwd=folder, env=env)
+
+
 def run_example(root: Path, name: str, dest: Path) -> int:
     copy_examples(root, [name], dest)
     folder = dest / name
     env = dict(os.environ, ULTRAFAST_STRICT_OPTIONS="1")
     status = 0
     for line in readme_commands(folder / "README.md"):
-        if re.match(r"ultrafast(\s|$)", line) and not shutil.which("ultrafast"):
-            print("skipped (the ultrafast program is not on the PATH): " + line)
-            continue
-        prelude = 'python() { "%s" "$@"; }\npython3() { "%s" "$@"; }\n' % (sys.executable, sys.executable)
-        print("$ " + line)
-        status |= subprocess.call(["bash", "-c", prelude + line], cwd=folder, env=env)
+        print("$ " + line, flush=True)
+        status |= 1 if run_command(line, folder, env) else 0
     return status
 
 

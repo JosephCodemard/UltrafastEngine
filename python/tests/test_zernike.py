@@ -81,7 +81,7 @@ def test_python_fit_agrees_with_the_engines_wavefront_sensor():
     grid = dict(nx=128, ny=128, half_width_m=3e-3, spectral_samples=2, absorbing_boundary=True)
     sys_ = b.system("wfs", [
         b.gap("source", 0.0, medium="Vacuum", transverse=b.transverse("cartesian", **grid, initial_profile=b.initial_profile("gaussian", radius_m=0.9e-3))),
-        b.wavefront("ab", zernike_noll_waves=terms, radius_m=R, reference_wavelength_m=lam),
+        b.wavefront("ab", zernike_noll_waves=terms, radius_m=R, referenceWavelengthM=lam),
         b.gap("out", 1e-6, medium="Vacuum", transverse=b.transverse("cartesian", **grid)),
     ])
     res = uf.run(sys_, b.run_spec(b.pulse(lam, 100e-15, energy=1e-6), instruments=[

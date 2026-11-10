@@ -53,12 +53,33 @@ namespace UltrafastEngine.Tests
             Assert.True(bad.Any(w => w.Contains("did you mean \"transmission\"")), "plugin options are checked too");
         }
 
+        [Test(Category = "plugins", Reference = "the twin plugin registers `ultrafast twin`; when the interpreter cannot be started the command says so and exits with code 2")]
+        public void TwinPlugin_RegistersItsCommand_AndReportsAMissingInterpreter()
+        {
+            Assert.True(PluginManager.Has("twin"), "twin registered by the runner");
+            Assert.True(PluginManager.CliCommands.ContainsKey("twin"), "twin command");
+            string old = Environment.GetEnvironmentVariable("ULTRAFAST_PYTHON");
+            try
+            {
+                Environment.SetEnvironmentVariable("ULTRAFAST_PYTHON", "/definitely/not/a/python");
+                var err = new StringWriter();
+                int rc = PluginManager.CliCommands["twin"].Run(new[] { "init", "lab" }, new StringWriter(), err);
+                Assert.Equal(2, rc, "exit code");
+                Assert.True(err.ToString().Contains("could not start Python"), "message: " + err);
+            }
+            finally { Environment.SetEnvironmentVariable("ULTRAFAST_PYTHON", old); }
+        }
+
         [Test(Category = "plugins")]
         public void FirstPartyPlugins_AreRegistered_AndDiscoveryReusesThem()
         {
             Assert.True(PluginManager.Has("fitting") && PluginManager.Has("zemax"), "fitting and zemax registered by the runner");
             Assert.True(PluginManager.CliCommands.ContainsKey("zemax-demo"), "zemax plugin command");
             Assert.True(PluginManager.Modes.Any(m => m.Key == "fit"), "fit run mode");
+            Assert.True(PluginManager.Has("ao"), "ao registered by the runner");
+            foreach (var t in new[] { "deformableMirror", "slm", "spectralShaper", "aopdf" }) Assert.True(UltrafastEngine.Schema.OptionRegistry.Get("element", t)?.Origin == "ao", "element " + t + " is declared by ao");
+            var aoFolder = Path.Combine(AppContext.BaseDirectory, "plugins", "ao");
+            if (Directory.Exists(aoFolder)) { var ai = PluginManager.LoadFolder(aoFolder); Assert.True(ai.Loaded, "ao folder loads: " + ai.Error); Assert.Equal("ao", PluginManifest.Load(aoFolder).Id, "ao manifest id"); }
             // the installable folder copied to bin/plugins loads (as the already-registered plugin)
             var folder = Path.Combine(AppContext.BaseDirectory, "plugins", "fitting");
             if (!Directory.Exists(folder)) Assert.Skip("bin/plugins not laid out");

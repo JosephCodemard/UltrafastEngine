@@ -101,6 +101,65 @@ class AmplifierElement(TypedDict, total=False):
     """Free text."""
 
 
+class AopdfElement(TypedDict, total=False):
+    """An acousto-optic programmable dispersive filter: programmed spectral phase (delay, GDD, TOD, FOD or a table), finite acoustic window, diffraction efficiency, amplitude table and a spurious replica. (docs/plugins/ao.md#aopdf) [plugin: ao]"""
+    id: str
+    """Unique id"""
+    type: str
+    centerWavelengthM: float
+    """Wavelength at which the polynomial phase is expanded [m] Default: the carrier."""
+    delayFs: float
+    """Group delay at the centre [fs] Default: 0."""
+    gddFs2: float
+    """Group-delay dispersion [fs^2] Default: 0."""
+    todFs3: float
+    """Third-order dispersion [fs^3] Default: 0."""
+    fodFs4: float
+    """Fourth-order dispersion [fs^4] Default: 0."""
+    spectralPhaseRad: Union[float, List[float]]
+    """Extra spectral phase table over tableWavelengthsM [rad]"""
+    amplitudeTable: Union[float, List[float]]
+    """Amplitude transmission table over tableWavelengthsM"""
+    tableWavelengthsM: Union[float, List[float]]
+    """Wavelengths of the tables [m]"""
+    windowS: float
+    """Acoustic window: components whose programmed group delay is outside +-window/2 are not diffracted (0 = unlimited) [s] Default: 0."""
+    efficiency: float
+    """Diffraction efficiency (power) Default: 1."""
+    replicaAmplitude: float
+    """Spurious replica split off the main pulse: H x (1 + a exp(i omega tau)) / sqrt(1 + a^2) Default: 0."""
+    replicaDelayS: float
+    """Delay of the spurious replica [s] Default: 0."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class ApertureElement(TypedDict, total=False):
     """A hard or soft aperture (clips; acts on a carried transverse profile). (docs/reference/elements.md#aperture)"""
     id: str
@@ -435,6 +494,75 @@ class CustomElement(TypedDict, total=False):
     """Filter model (alternative key) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     mechanism: str
     """Name of the loss in the budget Default: filter."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class DeformableMirrorElement(TypedDict, total=False):
+    """A parametric deformable mirror on the carried transverse profile: actuator layout, Gaussian influence function, stroke limit, drive quantisation. Compiles to a modulator with an optical-path (achromatic) map. Generic: no vendor data. (docs/plugins/ao.md#deformablemirror) [plugin: ao]"""
+    id: str
+    """Unique id"""
+    type: str
+    layout: Literal["square", "hex", "ring", "explicit"]
+    """Actuator layout Default: square."""
+    actuatorsX: int
+    """Actuators along x (square), per row (hex)"""
+    actuatorsY: int
+    """Actuators along y (square), rows (hex) Default: actuatorsX."""
+    ringCounts: Union[float, List[float]]
+    """ring layout: actuators on ring k (radius k pitch); the first entry is the centre actuator count"""
+    positionsXM: Union[float, List[float]]
+    """explicit layout: actuator x positions [m]"""
+    positionsYM: Union[float, List[float]]
+    """explicit layout: actuator y positions [m]"""
+    pitchM: float
+    """Actuator pitch [m]"""
+    commandsM: Any
+    """Drive coefficient per actuator (the surface is the sum of the influence functions: a uniform drive gives about 1.7 x the drive in the interior at coupling 0.15, not a uniform piston), positive away from the incoming beam (lengthens the path): a list in layout order, or [actuatorsX][actuatorsY] for the square layout [m] Default: 0."""
+    influenceCoupling: float
+    """Surface value at a neighbouring actuator when one actuator is driven (Gaussian influence function exp(ln(c) (r/pitch)^2)) Default: 0.15."""
+    strokeM: float
+    """Mechanical stroke limit (commands are clipped to +-strokeM) [m] Default: unlimited."""
+    driveBits: int
+    """Drive resolution in bits over +-strokeM (needs strokeM); 0 = continuous Default: 0."""
+    incidenceAngleRad: float
+    """Angle of incidence; the wavefront changes by 2 cos(aoi) times the surface [rad] Default: 0."""
+    clearApertureRadiusM: float
+    """Radius of the circular clear aperture (0 = the actuator footprint) [m] Default: 0."""
+    marginPitches: float
+    """Border around the outermost actuators, in pitches Default: 0.5."""
+    reflectivity: float
+    """Power reflectivity Default: 1."""
+    samplesPerActuator: int
+    """Surface cells per actuator pitch along x and y Default: 4."""
+    designWavelengthM: float
+    """Wavelength at which the optical path becomes a phase [m] Default: the carrier."""
     label: str
     """Display name"""
     enabled: bool
@@ -1492,6 +1620,89 @@ class MirrorElement(TypedDict, total=False):
     """Free text."""
 
 
+class ModulatorElement(TypedDict, total=False):
+    """A pixelated thin phase / amplitude modulator (spatial light modulator, deformable-mirror surface, tile mask) on the carried transverse profile: a cell grid with a fill factor, gaps, quantisation, phase wrapping, cross-talk and a stated chromatic rule. (docs/reference/modulator.md)"""
+    id: str
+    """Unique id"""
+    type: str
+    cellsX: int
+    """Cells along x Default: from the map."""
+    cellsY: int
+    """Cells along y Default: from the map."""
+    pitchXM: float
+    """Cell pitch along x [m]"""
+    pitchYM: float
+    """Cell pitch along y [m] Default: pitchXM."""
+    offsetXM: float
+    """Centre of the array in x [m] Default: 0."""
+    offsetYM: float
+    """Centre of the array in y [m] Default: 0."""
+    rotationRad: float
+    """Rotation of the array about its centre [rad] Default: 0."""
+    phaseRad: Any
+    """Commanded phase at designWavelengthM: an array [cellsX][cellsY] or a callback "@name" f(x, y, z) (cell centres, z = 0) [rad]"""
+    opdM: Any
+    """Commanded optical path instead of phaseRad (same forms) [m]"""
+    amplitude: Any
+    """Amplitude transmission per cell (same forms) Default: 1."""
+    file: str
+    """NPZ with phase_rad or opd_m, and amplitude, shaped [cellsX][cellsY]; relative to the system file"""
+    designWavelengthM: float
+    """Wavelength at which phaseRad holds [m] Default: the carrier."""
+    chromatic: Literal["opd", "phaseAtDesign", "fixedPhase", "index"]
+    """opd (also phaseAtDesign): the written phase is an optical path, phase = phaseRad * omega / omega_design (a wrapped map is a grating); fixedPhase: the phase does not change with frequency; index: phase = phaseRad * omega dn(omega) / (omega_design dn(omega_design)), a liquid-crystal cell with a dispersive index modulation dn Default: opd."""
+    deltaIndexCauchy: Union[float, List[float]]
+    """chromatic index: dn = A + B / lambda^2 + C / lambda^4 as [A, B (m^2), C (m^4)]; only the ratio dn(lambda) / dn(design) matters"""
+    deltaIndex: Union[float, List[float]]
+    """chromatic index: a table of dn (linear in lambda between points), with deltaIndexWavelengthsM"""
+    deltaIndexWavelengthsM: Union[float, List[float]]
+    """Wavelengths of the deltaIndex table [m]"""
+    fillFactor: float
+    """Active fraction of the pitch in x and y (0-1] Default: 1."""
+    gapTransmission: float
+    """Amplitude transmission of the gaps Default: 0."""
+    outsideTransmission: float
+    """Amplitude transmission outside the array Default: 0."""
+    zeroOrderLeak: float
+    """Amplitude fraction eta that passes unmodulated (phase 0) inside active cells: t = a [(1 - eta) e^(i phi) + eta]; a flat map stays lossless Default: 0."""
+    crosstalkSigmaCells: float
+    """Gaussian fringing-field cross-talk, standard deviation in cells (applied to the written phase and amplitude) Default: 0."""
+    crosstalkKernel: Union[float, List[float]]
+    """Explicit cross-talk kernel in cells (odd length, centre weight in the middle, normalised to unit sum), applied along x and along y to the written phase and amplitude; overrides crosstalkSigmaCells; weights must be >= 0"""
+    quantisationLevels: int
+    """Phase levels over phaseWrapRad (2 pi if that is 0); 0 = continuous Default: 0."""
+    phaseWrapRad: float
+    """Wrap the commanded phase to [0, phaseWrapRad); 0 = no wrapping [rad] Default: 0."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class NdFilterElement(TypedDict, total=False):
     """A neutral-density filter (absorptive or reflective): OD or OD(lambda), substrate, ghosts. (docs/reference/components.md#ndfilter)"""
     id: str
@@ -2062,6 +2273,160 @@ class SaturableAbsorberElement(TypedDict, total=False):
     """Spot area [m^2]"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam on the absorber A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class SlmElement(TypedDict, total=False):
+    """A parametric phase-only liquid-crystal spatial light modulator: pixels, fill factor, grey levels through a voltage-to-phase curve, dispersive birefringence, fringing cross-talk. Compiles to a modulator. Generic: no vendor data. (docs/plugins/ao.md#slm) [plugin: ao]"""
+    id: str
+    """Unique id"""
+    type: str
+    pixelsX: int
+    """Pixels along x Default: from the map."""
+    pixelsY: int
+    """Pixels along y Default: from the map."""
+    pitchM: float
+    """Pixel pitch [m]"""
+    pitchYM: float
+    """Pixel pitch along y [m] Default: pitchM."""
+    offsetXM: float
+    """Centre of the panel in x [m] Default: 0."""
+    offsetYM: float
+    """Centre of the panel in y [m] Default: 0."""
+    rotationRad: float
+    """Rotation of the panel [rad] Default: 0."""
+    fillFactor: float
+    """Active fraction of the pitch (0-1] Default: 1."""
+    gapTransmission: float
+    """Amplitude transmission of the gaps Default: 0."""
+    outsideTransmission: float
+    """Amplitude transmission outside the panel Default: 0."""
+    greyLevels: int
+    """Number of grey levels Default: 256."""
+    lutKind: Literal["linear", "tanh", "table"]
+    """Voltage-to-phase curve: linear (maxPhaseRad k / levels), tanh (S-shaped, lutSteepness) or table (lutPhaseRad) Default: linear."""
+    maxPhaseRad: float
+    """Phase range of the curve at the design wavelength [rad] Default: 2 pi."""
+    lutSteepness: float
+    """tanh curve steepness Default: 2."""
+    lutPhaseRad: Union[float, List[float]]
+    """table curve: phase of each grey level (non-decreasing) [rad]"""
+    greyLevel: Any
+    """Grey level of each pixel [pixelsX][pixelsY]"""
+    phaseTargetRad: Any
+    """Wanted phase [pixelsX][pixelsY]: wrapped to 2 pi and mapped to the nearest grey level of the curve [rad]"""
+    file: str
+    """NPZ with grey_level or phase_target_rad [pixelsX][pixelsY]; relative to the system file"""
+    designWavelengthM: float
+    """Wavelength at which the curve holds [m] Default: the carrier."""
+    dispersion: Literal["liquidCrystal", "none"]
+    """liquidCrystal: phase scales with omega dn(omega) (the written 2 pi reset is only 2 pi at the design wavelength); none: an achromatic optical path Default: liquidCrystal."""
+    deltaIndexCauchy: Union[float, List[float]]
+    """Birefringence dn = A + B/lambda^2 + C/lambda^4 as [A, B (m^2), C (m^4)]; default a GENERIC nematic preset (unverified)"""
+    crosstalkSigmaCells: float
+    """Gaussian fringing-field cross-talk, standard deviation in pixels Default: 0."""
+    crosstalkKernel: Union[float, List[float]]
+    """Explicit cross-talk kernel (odd length, non-negative)"""
+    zeroOrderLeak: float
+    """Amplitude fraction that passes unmodulated Default: 0."""
+    label: str
+    """Display name"""
+    enabled: bool
+    """false skips the element Default: true."""
+    next: Any
+    """Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md)"""
+    inputs: Any
+    """Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {"virtual": true} for an input left empty on purpose (docs/reference/branches.md)"""
+    loop: Any
+    """Branched systems: on the element where light enters a loop: kind ("ringDown", "steadyState"), maxRoundTrips, tolerance (docs/reference/branches.md)"""
+    surfaces: Union[float, List[float]]
+    """[first, last] source surfaces (OpticStudio rows), informational"""
+    wavelengthsM: Union[float, List[float]]
+    """Wavelengths of this element's per-wavelength arrays (default: the file's sampling) [m]"""
+    indexProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    n2Scale: Union[float, str, Dict[str, Any], List[Any]]
+    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    params: Any
+    """Free parameters (expressions, user elements)"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class SpectralShaperElement(TypedDict, total=False):
+    """A pixelated spectral phase / amplitude mask in the Fourier plane of a 4f line (1-D SLM pulse shaper), as a linear spectral transfer function. The programmed group delay is kept in the transfer (the pulse moves inside the time window). (docs/plugins/ao.md#spectralshaper) [plugin: ao]"""
+    id: str
+    """Unique id"""
+    type: str
+    pixels: int
+    """Number of pixels"""
+    pixelPitchM: float
+    """Pixel pitch [m]"""
+    fillFactor: float
+    """Active fraction of the pitch (0-1] Default: 1."""
+    gapTransmission: float
+    """Amplitude transmission of the gaps Default: 0."""
+    outsideTransmission: float
+    """Amplitude transmission beyond the array Default: 0."""
+    centerWavelengthM: float
+    """Wavelength at the centre of the array [m] Default: the carrier."""
+    offsetM: float
+    """Position of the array centre relative to the centre wavelength's focus [m] Default: 0."""
+    dispersionMPerM: float
+    """Focal-plane position per wavelength (m of position per m of wavelength; 1e6 = 1 mm/nm) Default: from the grating."""
+    gratingLinesPerMm: float
+    """Grating line density [1/mm]"""
+    incidenceAngleRad: float
+    """Angle of incidence on the grating [rad] Default: 0."""
+    order: float
+    """Diffraction order Default: 1."""
+    focalLengthM: float
+    """Focal length of the 4f lens [m]"""
+    spotRadiusM: float
+    """1/e^2 field radius of the focused monochromatic spot [m] Default: lambda f / (pi inputBeamRadiusM)."""
+    inputBeamRadiusM: float
+    """Beam radius at the grating (sets the spot size) [m]"""
+    phaseRad: Any
+    """Phase per pixel [rad] Default: 0."""
+    amplitude: Any
+    """Amplitude transmission per pixel Default: 1."""
+    phaseWrapRad: float
+    """Wrap the phase to [0, phaseWrapRad); 0 = no wrapping [rad] Default: 2 pi."""
+    greyLevels: int
+    """Phase levels over 2 pi; 0 = continuous Default: 0."""
     label: str
     """Display name"""
     enabled: bool
@@ -3492,6 +3857,62 @@ Fitting_backward = TypedDict('Fitting_backward', {
 """Backward propagation (fitting plugin). (docs/plugins/fitting.md#backward-propagation) [plugin: fitting]"""
 
 
+class Fitting_condition(TypedDict, total=False):
+    """One operating condition of a multi-condition fit (fitting plugin). (docs/plugins/fitting.md#fitting-across-conditions) [plugin: fitting]"""
+    name: str
+    """Label (unique); used in the report as condition/instrument"""
+    heldOut: bool
+    """Not in the cost: predicted from the fit and compared with its data afterwards Default: false."""
+    weight: float
+    """Weight of this condition's residuals in the cost (chi^2 is multiplied by it) Default: 1."""
+    variables: Any
+    """Named numbers describing the condition ({"energyJ": 2e-6}); the inputs of parametric and smooth dependence on the condition"""
+    set: Any
+    """Path -> value written into the files for this condition (a number, or a string such as instrument:spec/measured/file); same paths as fit.parameters"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Fitting_dependence(TypedDict, total=False):
+    """How a fitted number depends on the condition (fitting plugin). (docs/plugins/fitting.md#fitting-across-conditions) [plugin: fitting]"""
+    kind: Literal["constant", "proportional", "linear", "polynomial", "power", "chebyshev", "network"]
+    """Form: c0 | c0 u | c0 + c1 u | sum ck u^k | c0 u^c1 | sum ck Tk(xi) | a small tanh network with built-in constraints; u = variable / reference Default: linear."""
+    variable: str
+    """Name of the condition variable (conditions[].variables)"""
+    degree: int
+    """polynomial / chebyshev: highest order Default: 2."""
+    reference: float
+    """u = variable / reference Default: mean of the training values."""
+    range: List[Any]
+    """chebyshev: [lo, hi] mapped to xi = -1..1 (outside it the series extrapolates)"""
+    smoothnessPaths: float
+    """surface: weight on second differences across the paths Default: 0."""
+    smoothnessVariable: float
+    """surface (chebyshev): weight on second differences across the variable Default: 0."""
+    coefficients: List[Any]
+    """Per order: {initial, min, max, scale, prior, step} of that coefficient (network: one object {scale, min, max} for all weights)"""
+    hidden: int
+    """network: tanh units Default: 4."""
+    output: Literal["none", "bounded", "positive"]
+    """network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction Default: none."""
+    outputRange: List[Any]
+    """network, output bounded: [lo, hi]"""
+    monotone: Literal["none", "increasing", "decreasing"]
+    """network: output monotone in the variable (squared weights), exact by construction Default: none."""
+    weightDecay: float
+    """network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) Default: 1e-4."""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
 class Fitting_fit(TypedDict, total=False):
     """Fit (fitting plugin). (docs/plugins/fitting.md#fitting) [plugin: fitting]"""
     parameters: List["Fitting_parameter"]
@@ -3502,6 +3923,10 @@ class Fitting_fit(TypedDict, total=False):
     """Iterations (LM) / generations (CMA-ES) Default: 20 (LM), 60 (CMA-ES)."""
     tolerance: float
     """Relative chi^2 change (LM) / cost spread (CMA-ES) that ends the fit Default: 1e-4 (LM), 1e-6 (CMA-ES)."""
+    conditions: List["Fitting_condition"]
+    """Operating conditions fitted together with one set of shared parameters (energies, angles, ...); empty: one condition, the run itself"""
+    surfaces: List["Fitting_surface"]
+    """Smooth surfaces: several numbers (e.g. the knots of a spectral phase) as Chebyshev series of a condition variable, with smoothness penalties in both directions"""
     freezeGrid: bool
     """Fix the time/frequency grid (2x the planned bandwidth) for all evaluations Default: true."""
     parallel: int
@@ -3556,7 +3981,7 @@ class Fitting_knots(TypedDict, total=False):
 
 class Fitting_operator(TypedDict, total=False):
     """One transform operator (kind + parameters; numbers may be fit objects). (docs/plugins/fitting.md#operators) [plugin: fitting]"""
-    kind: Literal["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront"]
+    kind: Literal["spectralPhase", "spectralAmplitude", "energy", "delay", "jones", "replica", "phaseNoise", "pedestal", "wavefront", "nonlinearPhase"]
     """Operator kind (plugins may add more)"""
     enabled: bool
     """false skips the operator Default: true."""
@@ -3610,6 +4035,8 @@ class Fitting_operator(TypedDict, total=False):
     """spectralAmplitude: add the minimum phase (Kramers-Kronig) Default: false."""
     floor: float
     """causal: smallest relative transmission used in the logarithm Default: 1e-8."""
+    bRad: Union[float, "Fitting_value"]
+    """nonlinearPhase: peak nonlinear phase (B-integral of a thin Kerr plate), phi(t) = bRad I(t)/max I [rad] May be a fit object {value, fit, min, max, prior}."""
     transmission: Union[float, "Fitting_value"]
     """energy: power transmission Default: 1. May be a fit object {value, fit, min, max, prior}."""
     gainDb: Union[float, "Fitting_value"]
@@ -3700,8 +4127,56 @@ class Fitting_parameter(TypedDict, total=False):
     """Finite-difference step Default: 1e-3 x scale."""
     unit: str
     """Unit label for reports"""
+    dependence: Union["Fitting_dependence", str]
+    """The value follows the condition variable: its coefficients are fitted instead (fitting across conditions)"""
+    perCondition: bool
+    """Multi-condition fit: one value per training condition instead of one shared value Default: false."""
     prior: Any
     """Gaussian prior: sigma (mean = initial) or {mean, sigma}"""
+    comment: Any
+    """Free text."""
+    description: Any
+    """Free text."""
+    notes: Any
+    """Free text."""
+
+
+class Fitting_surface(TypedDict, total=False):
+    """A smooth surface of several numbers over a condition variable (fitting plugin). (docs/plugins/fitting.md#fitting-across-conditions) [plugin: fitting]"""
+    name: str
+    """Label"""
+    paths: List[Any]
+    """The numbers (same paths as fit.parameters); or pathTemplate + count"""
+    pathTemplate: str
+    """A path with {i} replaced by 0..count-1 (e.g. element:t/operators/0/knots/phaseRad/{i})"""
+    count: int
+    """Number of paths for pathTemplate"""
+    kind: Literal["constant", "proportional", "linear", "polynomial", "chebyshev", "network"]
+    """Basis over the variable Default: chebyshev."""
+    variable: str
+    """Name of the condition variable"""
+    degree: int
+    """Highest order Default: 2."""
+    reference: float
+    """u = variable / reference"""
+    range: List[Any]
+    """[lo, hi] of the Chebyshev map"""
+    smoothnessPaths: float
+    """Weight on second differences across the paths Default: 0."""
+    smoothnessVariable: float
+    """Weight on second differences across the variable Default: 0."""
+    coefficients: List[Any]
+    """Per order: {initial, min, max, scale, prior, step}"""
+    hidden: int
+    """network: tanh units Default: 4."""
+    output: Literal["none", "bounded", "positive"]
+    """network: output constraint (bounded: lo + (hi - lo) sigmoid; positive: softplus), exact by construction Default: none."""
+    outputRange: List[Any]
+    """network, output bounded: [lo, hi]"""
+    monotone: Literal["none", "increasing", "decreasing"]
+    """network: output monotone in the variable (squared weights), exact by construction Default: none."""
+    weightDecay: float
+    """network: L2 penalty on the weights (a prior of sigma 1/sqrt(weightDecay)) Default: 1e-4."""
     comment: Any
     """Free text."""
     description: Any
@@ -3796,7 +4271,7 @@ class Imaging(TypedDict, total=False):
 
 class InitialProfile(TypedDict, total=False):
     """Initial transverse field."""
-    kind: Literal["gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured"]
+    kind: Literal["gaussian", "superGaussian", "flatTop", "tophat", "hermiteGauss", "laguerreGauss", "besselGauss", "airy", "measured", "tiles"]
     """Shape: Gaussian, super-Gaussian (order), flatTop (super-Gaussian of order 10), tophat (hard edge, uniform), Hermite-Gauss (modeX, modeY), Laguerre-Gauss (modeP, modeL), Bessel-Gauss (coneAngleRad), Airy (radiusM = scale, truncation), measured (file) Default: gaussian."""
     modeX: int
     """hermiteGauss: order in x Default: 0."""
@@ -3825,7 +4300,39 @@ class InitialProfile(TypedDict, total=False):
     geometry: Literal["round", "square"]
     """round: a function of r (elliptical with radiusXM != radiusYM); square: separable in x and y (rectangular, cartesian grids) Default: round."""
     order: int
-    """superGaussian order Default: 4."""
+    """superGaussian order (also tiles with tileShape superGaussian) Default: 4."""
+    layout: Literal["square", "hex", "ring"]
+    """tiles: arrangement of the sub-beams (square: countX x countY; hex: rings around a centre tile; ring: count tiles on a circle) Default: square."""
+    pitchM: float
+    """tiles: centre-to-centre distance [m]"""
+    count: int
+    """tiles: tiles per side (square) or on the ring Default: 2."""
+    countX: int
+    """tiles: square layout, tiles along x"""
+    countY: int
+    """tiles: square layout, tiles along y Default: 1 if countX is given, else count."""
+    rings: int
+    """tiles: hex layout, rings around the centre tile (1: 7 tiles, 2: 19, 3: 37, 4: 61) Default: 1."""
+    ringRadiusM: float
+    """tiles: ring layout, circle radius [m]"""
+    positionsM: Any
+    """tiles: explicit centres, a list of [x, y] [m]"""
+    tileRadiusM: float
+    """tiles: 1/e^2 radius of one tile (hard radius for tileShape tophat) [m]"""
+    tileShape: Literal["gaussian", "tophat", "superGaussian"]
+    """tiles: transverse shape of one tile Default: gaussian."""
+    amplitudes: Any
+    """tiles: amplitude per tile (a number or one per tile) Default: 1."""
+    pistonRad: Any
+    """tiles: piston phase at the carrier per tile [rad] Default: 0."""
+    tileTiltXRad: Any
+    """tiles: tilt about y per tile (a number or one per tile) [rad] Default: 0."""
+    tileTiltYRad: Any
+    """tiles: tilt about x per tile [rad] Default: 0."""
+    delaysS: Any
+    """tiles: envelope delay per tile (adds (omega - omega_centre) tau to the phase; needs enough spectralSamples to resolve it) [s] Default: 0."""
+    pistonRmsRad: float
+    """tiles: random Gaussian piston error added to pistonRad (seed: seed) [rad] Default: 0."""
     decenterXM: float
     """Decentre in x [m]"""
     decenterYM: float
@@ -4003,6 +4510,8 @@ class Outputs(TypedDict, total=False):
     """CSV files Default: true."""
     maxPoints: int
     """Cap exported traces (0 = full grid incl. complex fields) Default: 0."""
+    keepProfiles: Literal["all", "used"]
+    """Transverse profiles kept in the result: all (after every element) or used (only where an instrument or the end reads one, and before such an element); used saves memory on large grids Default: all."""
     comment: Any
     """Free text."""
     description: Any
@@ -4365,6 +4874,8 @@ class Transverse(TypedDict, total=False):
     """Nonlinear coupling: paraxial envelope, or UPPE (n omega / c k_z per plane wave) Default: envelope."""
     spectralSamples: int
     """Frequencies at which the transverse profile is stored and (linear elements) propagated; fewer is faster for narrowband pulses Default: 48."""
+    frequencyBlock: int
+    """Streaming: a linear spatial element propagates the stored frequencies in blocks of this many, so its propagator holds a block instead of all of them and a block-sized work buffer is added (saves memory for blocks under half the stored frequencies); the result does not depend on it. 0 = all at once Default: 0."""
     absorbingBoundary: Any
     """Linear elements: absorb light leaving the grid instead of reflecting / wrapping it -- true (outer 15 %) or {widthFraction}; the absorbed energy is booked as 'grid boundary' (docs/reference/transverse.md#diffraction-and-apertures) Default: false."""
     comment: Any
@@ -4375,7 +4886,7 @@ class Transverse(TypedDict, total=False):
     """Free text."""
 
 
-Element = Union["AmplifierElement", "ApertureElement", "BeamSplitterElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DelayElement", "DichroicElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LeakMirrorElement", "LensElement", "MaskElement", "MirrorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "PolarizingSplitterElement", "PrismElement", "ProbeElement", "ResonatorElement", "RotatorElement", "SaturableAbsorberElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
+Element = Union["AmplifierElement", "AopdfElement", "ApertureElement", "BeamSplitterElement", "BulkElement", "ChirpedMirrorElement", "CrystalElement", "CustomElement", "DeformableMirrorElement", "DelayElement", "DichroicElement", "DispersionElement", "FaradayRotatorElement", "FiberElement", "FilterElement", "GainElement", "GapElement", "GratingElement", "GratingPairElement", "InterfaceElement", "LeakMirrorElement", "LensElement", "MaskElement", "MirrorElement", "ModulatorElement", "NdFilterElement", "OscillatorElement", "PlateElement", "PolarizerElement", "PolarizingSplitterElement", "PrismElement", "ProbeElement", "ResonatorElement", "RotatorElement", "SaturableAbsorberElement", "SlmElement", "SpectralShaperElement", "ThinFilmPolarizerElement", "TransformElement", "UserElement", "WavefrontElement", "WaveplateElement", Dict[str, Any]]
 """Any element dictionary (the typed forms first; a plain dict for plugin elements)."""
 
 
@@ -4421,4 +4932,4 @@ RunSpec = TypedDict('RunSpec', {
 """The pulse, instruments and numerical settings of a run (docs/reference/run-spec.md). SI units."""
 
 
-__all__ = ['Aberration', 'Air', 'AmplifierElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BeamSplitterElement', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DelayElement', 'DelayScanInstrument', 'DichroicElement', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LeakMirrorElement', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PolarizingSplitterElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SingleShotCorrelatorInstrument', 'SpaceTimeInstrument', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument', 'XfrogInstrument']
+__all__ = ['Aberration', 'Air', 'AmplifierElement', 'AopdfElement', 'ApertureElement', 'AutocorrelatorInstrument', 'AuxBeam', 'AuxBeamShape', 'BeamProfileInstrument', 'BeamSplitterElement', 'BetweenPasses', 'BulkElement', 'CameraInstrument', 'Chirp', 'ChirpedMirrorElement', 'Coherence', 'CompressorInstrument', 'Compute', 'ContrastInstrument', 'ConversionInstrument', 'CrossCorrelatorInstrument', 'CrystalElement', 'CustomElement', 'DeformableMirrorElement', 'DelayElement', 'DelayScanInstrument', 'DichroicElement', 'DispersionElement', 'DscanInstrument', 'Element', 'EnergyMeterInstrument', 'Environment', 'FaradayRotatorElement', 'FiberDispersion', 'FiberElement', 'FiberGain', 'FiberLossTable', 'FieldProbeInstrument', 'FilterElement', 'Fitting_backward', 'Fitting_condition', 'Fitting_dependence', 'Fitting_fit', 'Fitting_knots', 'Fitting_operator', 'Fitting_parameter', 'Fitting_surface', 'Fitting_value', 'FrogInstrument', 'GainElement', 'GapElement', 'GratingElement', 'GratingPairElement', 'Grid', 'Imaging', 'InitialProfile', 'Instrument', 'InstrumentAxis', 'Interaction', 'InterfaceElement', 'Inversion', 'LeakMirrorElement', 'LensElement', 'Lidt', 'MaskElement', 'MaterialPath', 'Measured', 'MirrorElement', 'ModulatorElement', 'NdFilterElement', 'OscillatorElement', 'Outputs', 'Override', 'PhaseMatchingCurveInstrument', 'Physics', 'PlateElement', 'PolarimeterInstrument', 'PolarizerElement', 'PolarizingSplitterElement', 'PrismElement', 'ProbeElement', 'Pulse', 'PulseNoise', 'PulseSpectrum', 'PulseSummaryInstrument', 'Pump', 'RelayStep', 'ResonatorElement', 'RotatorElement', 'RunSpec', 'Sampling', 'SamplingAperture', 'SamplingWavelengths', 'SaturableAbsorberElement', 'ScopeInstrument', 'Sensor', 'SingleShotCorrelatorInstrument', 'SlmElement', 'SpaceTimeInstrument', 'SpectralShaperElement', 'SpectrometerInstrument', 'Stepper', 'System', 'ThinFilmPolarizerElement', 'TransformElement', 'Transverse', 'UserElement', 'WavefrontElement', 'WavefrontSensorInstrument', 'WaveplateElement', 'WignerInstrument', 'XfrogInstrument']

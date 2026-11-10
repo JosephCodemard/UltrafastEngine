@@ -168,6 +168,59 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
 Worked example and checks: [Example 30](../examples/Diffraction/iris-diffraction/README.md) (Gaussian, round flat-top, uniform and square beams
 at N = 3, 2, 1 and in the far zone, against the Fresnel integral) and [Tutorial 6](../tutorials/06-diffraction.md).
 
+### Coherent tiles
+
+`initialProfile.kind = "tiles"` builds the input beam from **N coherent sub-beams** (a tiled-aperture amplifier array, or any laser
+array): the complex sum of the tiles' fields, normalised to unit energy at every stored frequency, so the tiles share the pulse energy.
+It needs a cartesian grid; the grid sets the size (no `radiusM` or beam model is needed).
+
+| key | default | meaning |
+|---|---|---|
+| `tileRadiusM` | required | 1/e² radius of one tile (hard radius for `tileShape` `tophat`) |
+| `tileShape` | `gaussian` | `gaussian`, `tophat` or `superGaussian` (`order`) |
+| `layout` | `square` | `square` (`countX` × `countY`, or `count` × `count`), `hex` (`rings`: 1, 7, 19, 37, 61 tiles, ordered by j then i in axial coordinates), `ring` (`count` tiles on a circle of `ringRadiusM`), or explicit `positionsM` `[[x, y], ...]` |
+| `pitchM` | | centre-to-centre distance (square, hex) |
+| `amplitudes`, `pistonRad`, `tileTiltXRad`, `tileTiltYRad`, `delaysS` | 1, 0, 0, 0, 0 | a number, or one value per tile |
+| `pistonRmsRad`, `seed` | 0, 1 | random Gaussian piston error added to `pistonRad` |
+
+The piston is the phase at the carrier; a delay `τ` adds `(ω − ω_centre) τ` (the envelope moves, spectral factor e^{+iωτ}). The profile is
+stored at `spectralSamples` frequencies, so they must resolve `e^{iωτ}`: keep (spacing of stored frequencies) × τ under about 0.5 rad
+(24 samples for 30 fs pulses and delays to 30 fs, 96 for 60 fs).
+
+Reference behaviour (`TileSourceTests`): N in-phase equal tiles give an on-axis far-field peak N × that of one beam carrying all the energy
+(N² for equal power per tile), 2 %; the far field has lobes at λ/pitch, 1.5 %; with piston errors the peak is `|Σ e^{iφ}|²/N²` of the in-phase
+peak (exact for the draw; the expectation over draws is `1/N + (1 − 1/N) e^{−σ²}`), 1.5 %; a delay mismatch between two Gaussian pulses of FWHM T costs
+`(1 + e^{−ln2 (τ/T)²}) / 2` of the energy on axis, 3 %; hex, ring and explicit layouts place the tiles as stated, exact; a tilted tile focuses at
+F θ, 1 %; a tophat tile on a line grid has the slit far field (first zero at F λ / 2a), one grid step; amplitudes `[1, 0.5]` give 0.9 of the
+equal-amplitude peak, `|Σ a|² / (N Σ a²)`, 1 %; `delaysS = τ > 0` makes the tile's pulse arrive later (its field moves by +τ in the frame,
+as a `delay` element moves the arrival time by +τ), 3 %.
+
+### Large grids: streaming and memory
+
+Two settings keep long chains on large grids (a full 1920 × 1080 SLM panel, many stored frequencies) within memory. Neither changes a result.
+
+* **`transverse.frequencyBlock`** (default 0 = all at once): a linear spatial element propagates the stored frequencies in blocks of this
+  many. The stored frequencies are independent in a linear element, so the result does not depend on the block size (tested to 1e-12); the
+  propagator then holds one block instead of all K frequencies, and a work buffer of one block is added, so blocks under K/2 save memory (B = 1 saves almost one profile). The element notes "streamed over frequency".
+* **`outputs.keepProfiles`** `"all"` (default) or `"used"`: with `used`, the profile after an element is dropped as soon as the next element
+  has run (or, if the next element passes the same profile on, once the beam has moved past), unless an instrument reads it (an instrument
+  point or its element for `id#port`, the element before it, or the last element). The 1-D pulse at every element stays; probes keep their
+  1-D snapshots. A prefix-cached study keeps every profile of its nominal run, because the points resume from it. Measured on a 1024 × 1024 grid with 16 stored frequencies and five elements: 1587 MB held after the run with `all`, 336 MB with
+  `used` (one profile is 268 MB), bit-identical instruments.
+
+Peak memory *during* a run is set by the .NET garbage collector, which returns large freed arrays late: on the 1920 × 1080 × 16 case of the
+[spikes](../design/notes/spikes.md) the process peak stayed at 2.7-3.4 GB whatever the block size, so `frequencyBlock` lowers the live set
+but not the reported peak. A 1920 × 1080 single-frequency panel on a 2048 × 1280 grid (modulator, 0.2 m gap, beam profile) takes 1.9 s
+and holds 260 MB after the run with `keepProfiles: "used"`, 491 MB with `all` (slow test `FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget`).
+
+**One stored frequency** (`spectralSamples: 1`, the cw / narrow-band fast path) is the bin nearest the energy centroid of the spectrum, i.e.
+the carrier (before 2026-11-10 it was the low edge of the band, 3e-6 off for a 1 ns pulse); if no light falls there (two colours, a notch),
+it is the nearest bin above 1e-3 of the peak. A cw source's single bin is snapped to its grid
+lattice: the run notes print its wavelength (1.2e-6 from the request at 1030 nm).
+
+**Cylindrical lens:** `lens` with `focalLengthXM` and `focalLengthYM`; give the axis without power a very long focal length (`1e30`). Tested:
+x focuses to λ f / (π w) while y diffracts freely, 2 % (`CylindricalLens_FocusesOneAxisOnly`).
+
 ## Masks
 
 A `mask` element multiplies the carried profile at every stored frequency. Without a profile it warns and does nothing; the tracked
