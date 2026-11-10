@@ -32,7 +32,7 @@ delay mismatch of the 30 fs tiles: axis fluence over the aligned value (engine, 
   rms 25 fs   0.707   0.712
   rms 40 fs   0.481   0.472
   rms 60 fs   0.535   0.532
-SPGD locking of the 7 pistons: axis fluence 0.16 -> 1.02 of the in-phase value in 120 iterations (360 engine runs, 4 s)
+SPGD locking of the 7 pistons: axis fluence 0.16 -> 1.02 of the in-phase value in 120 iterations (360 engine runs)
 checks passed
 ```
 

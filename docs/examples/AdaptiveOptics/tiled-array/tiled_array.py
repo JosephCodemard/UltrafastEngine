@@ -80,8 +80,8 @@ def main():
     for d in r["delay"]:
         print("  rms %2.0f fs   %.3f   %.3f" % (d["rms_fs"], d["engine"], d["formula"]))
     k = r["lock"]
-    print("SPGD locking of the 7 pistons: axis fluence %.2f -> %.2f of the in-phase value in %d iterations (%d engine runs, %.0f s)"
-          % (k["start"], k["result"].history[-1], len(k["result"].history), k["result"].evaluations, k["seconds"]))
+    print("SPGD locking of the 7 pistons: axis fluence %.2f -> %.2f of the in-phase value in %d iterations (%d engine runs)"
+          % (k["start"], k["result"].history[-1], len(k["result"].history), k["result"].evaluations))
     assert abs(ip["gain"] / 7 - 1) < 0.01 and abs(r["n61"]["gain"] / 61 - 1) < 0.02
     assert abs(ip["piston_ratio"] / ip["piston_theory"] - 1) < 0.01
     assert all(abs(d["engine"] / d["formula"] - 1) < 0.02 for d in r["delay"])
