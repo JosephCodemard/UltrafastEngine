@@ -70,7 +70,9 @@ def hill_climb(metric: Callable[[np.ndarray], float], x0: np.ndarray, *, step: f
 
 def modal_search(metric: Callable[[np.ndarray], float], x0: np.ndarray, *, bias: float = 0.3, sweeps: int = 2, maximise: bool = True) -> OptimiserResult:
     """Modal search: for each coordinate measure J at x - bias, x, x + bias, fit a parabola and move to its vertex (limited to +-2 bias). Exact in one
-    sweep for a metric that is quadratic and separable in the modes. 2 evaluations per mode per sweep (the centre is reused)."""
+    sweep for a metric that is quadratic and separable in the modes. 2 evaluations per mode per sweep (the centre is reused) plus 1 when it moves. Where the
+    parabola opens the wrong way (far from the optimum, where a peak-type metric is convex) it steps by ``bias`` to the better side instead, so it
+    still climbs, at the speed of one ``bias`` per sweep."""
     x = np.array(x0, float); s = 1.0 if maximise else -1.0
     j0 = s * metric(x); res = OptimiserResult(x.copy(), [s * j0], 1)
     for _ in range(sweeps):
@@ -82,6 +84,9 @@ def modal_search(metric: Callable[[np.ndarray], float], x0: np.ndarray, *, bias:
                 step = 0.5 * bias * (jm - jp) / curv
                 x[i] += float(np.clip(step, -2 * bias, 2 * bias))
                 j0 = s * metric(x); res.evaluations += 1
+            elif max(jp, jm) > j0:
+                x[i] += bias if jp > jm else -bias
+                j0 = max(jp, jm)
         res.history.append(s * j0)
     res.x = x
     return res
