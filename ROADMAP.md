@@ -18,7 +18,7 @@ reproduced in [papers](docs/papers/README.md).
 
 Priorities, most useful first.
 
-**In progress (November 2026):** adaptive optics, temporal shaping, conditioned transforms and a digital twin, in five sessions ([roadmap](docs/design/roadmap-ao-twin-2026-11.md)). S1 (Python package structure, plotting, Zernike plot, animation, grouped examples, optical-computing examples, gallery) is done; S2 (core primitives and spikes: the `modulator` element, coherent tiles, in-memory maps, frequency streaming, spike measurements) is done; S3 (the `ao` plugin) is next.
+**Done (November 2026, merged 2026-11-10):** adaptive optics, temporal shaping, conditioned transforms and a digital twin, in five sessions ([roadmap](docs/design/roadmap-ao-twin-2026-11.md)). S1 (Python package structure, plotting, Zernike plot, animation, grouped examples, optical-computing examples, gallery), S2 (core primitives: the `modulator` element, coherent tiles, in-memory maps, frequency streaming), S3 (the `ao` plugin), S4 (fitting across conditions and the `twin` plugin) and S5 (AdaptiveOptics, DigitalTwin and Fibres examples, documentation, verification) are done. **Still to do from that plan:** the MCP server for agents, a component gallery and a complex-field-shaping example for the `ao` plugin, a spline-against-network twin example, a wavefront twin, `UF_WITH_AO` in the native library, a grid-planner hook for shaper side pulses, and the same figure-and-story treatment for the older examples.
 
 1. **Design plugins** (separate plugins; each emits ordinary `.ufs` objects that the core re-checks)
    - *Coating design*: analysis of R, T, group delay and GDD over band, angle and polarisation, and the field inside a

@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "docs" / "examples"
 OUT = ROOT / "docs" / "gallery.md"
 GROUPS = ["GettingStarted", "LaserSystems", "Nonlinear", "Diffraction", "Wavefronts", "Branched", "Diagnostics", "Components", "Computing",
-          "AdaptiveOptics", "DigitalTwin", "Interop"]
+          "AdaptiveOptics", "DigitalTwin", "Fibres", "Interop"]
 
 
 def summary(readme: Path) -> tuple:

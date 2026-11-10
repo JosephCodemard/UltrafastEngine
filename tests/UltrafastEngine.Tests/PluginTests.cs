@@ -53,6 +53,23 @@ namespace UltrafastEngine.Tests
             Assert.True(bad.Any(w => w.Contains("did you mean \"transmission\"")), "plugin options are checked too");
         }
 
+        [Test(Category = "plugins", Reference = "the twin plugin registers `ultrafast twin`; when the interpreter cannot be started the command says so and exits with code 2")]
+        public void TwinPlugin_RegistersItsCommand_AndReportsAMissingInterpreter()
+        {
+            Assert.True(PluginManager.Has("twin"), "twin registered by the runner");
+            Assert.True(PluginManager.CliCommands.ContainsKey("twin"), "twin command");
+            string old = Environment.GetEnvironmentVariable("ULTRAFAST_PYTHON");
+            try
+            {
+                Environment.SetEnvironmentVariable("ULTRAFAST_PYTHON", "/definitely/not/a/python");
+                var err = new StringWriter();
+                int rc = PluginManager.CliCommands["twin"].Run(new[] { "init", "lab" }, new StringWriter(), err);
+                Assert.Equal(2, rc, "exit code");
+                Assert.True(err.ToString().Contains("could not start Python"), "message: " + err);
+            }
+            finally { Environment.SetEnvironmentVariable("ULTRAFAST_PYTHON", old); }
+        }
+
         [Test(Category = "plugins")]
         public void FirstPartyPlugins_AreRegistered_AndDiscoveryReusesThem()
         {

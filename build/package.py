@@ -519,7 +519,7 @@ The examples need the ``ultrafast-engine`` package. Examples that call the comma
 The figure scripts (``make_figures.py``, ``make_all.py``) are part of the repository only.
 """
 EXAMPLES_EXCLUDE = ("results", "results-*", "*-results", "figures", "retrieved", "__pycache__", "*.pyc", "make_figures.py", "make_all.py",
-                    "_figures.py", "_figs.py")
+                    "_figures.py", "_figs.py", "_viz.py")
 
 
 def build_examples_wheel(out: Path) -> Path:

@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **552 tests** in 59 classes. **348** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **553 tests** in 59 classes. **349** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -48,7 +48,7 @@ Every C# test of the engine: **552 tests** in 59 classes. **348** of them check 
 | [Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain](#noncollinearopatests) | `NoncollinearOpaTests` | 6 | 6 |
 | [Regressions from the open-bug sweep](#openbugregressiontests) | `OpenBugRegressionTests` | 8 | 5 |
 | [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
-| [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 7 | 1 |
+| [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 8 | 2 |
 | [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 3 | 2 |
 | [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 7 |
 | [Instrument axes, resolution and measured-data resolution](#resolutiontests) | `ResolutionTests` | 7 | 1 |
@@ -810,6 +810,7 @@ Plugins: registration, installation, versions, cameras.
 | `Plugin_RegistersElementAndInstrument_AndTheyRun` | -- | -- |
 | `RepeatedInstruments_GetUniqueNames` | -- | -- |
 | `TooNewPlugin_IsReportedNotLoaded` | -- | -- |
+| `TwinPlugin_RegistersItsCommand_AndReportsAMissingInterpreter` | the twin plugin registers `ultrafast twin`; when the interpreter cannot be started the command says so and exits with code 2 | -- |
 | `VersionComparison_OrdersPreReleases` | -- | -- |
 
 ## PolarizationTests

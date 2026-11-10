@@ -47,6 +47,7 @@ in the [option reference](reference/options.md#elements). Aliases in brackets.
 | `resonator` | passive resonator around nested elements: round-trip matrix, stability, eigenmode, Fox-Li mode and loss | [Oscillators](reference/oscillators.md#resonators) |
 | `user` | your own function of the main beam's spectrum (Python, C#, C) | [Active elements](reference/active-elements.md#user-elements) |
 | `probe` (`marker`) | a named place for snapshots and instruments; does nothing to the beam | [System file](reference/system-file.md) |
+| `deformableMirror`, `slm`, `spectralShaper`, `aopdf` (ao plugin) | parametric adaptive-optics devices: a deformable mirror and an SLM (cells, influence, stroke, grey levels, liquid-crystal dispersion), a pixelated spectral shaper and an AOPDF; holograms, wavefront control and sensorless optimisers in Python | [AO plugin](plugins/ao.md) |
 | `transform` (fitting plugin) | fittable spectral phase and amplitude, energy, polarisation, contrast, wavefront | [Fitting plugin](plugins/fitting.md#transform-elements) |
 
 Instruments (energy meter, spectrometer, scope, autocorrelator, FROG, d-scan, cross-correlator, polarimeter, cameras and

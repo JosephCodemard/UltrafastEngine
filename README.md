@@ -17,8 +17,8 @@
 <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-green">
 </p>
 <p align="center">
-<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-468%20passing-brightgreen">
-<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-127%20passing-brightgreen">
+<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-544%20passing-brightgreen">
+<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-216%20passing-brightgreen">
 <img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1688%2F1691-brightgreen">
 <img alt="Paper replications" src="https://img.shields.io/badge/papers%20replicated-12-blueviolet">
 </p>
@@ -122,7 +122,7 @@ See [Fitting plugin](docs/plugins/fitting.md) and [example 26](docs/examples/Dig
 
 | | |
 |---|---|
-| **Unit and physics tests** | 468 C# tests (analytic results, conservation laws, published values) and 127 Python tests, run on Linux, macOS and Windows in [CI](.github/workflows/ci.yml) |
+| **Unit and physics tests** | 544 C# tests (analytic results, conservation laws, published values) and 216 Python tests, run on Linux, macOS and Windows in [CI](.github/workflows/ci.yml) |
 | **Component tests** | [every component alone against its analytic answer](docs/component-tests.md): 1691 checks over lenses, mirrors, gratings, prisms, coatings, polarisation, fibres, gain, gases, crystals, spatial components and instruments, with plots |
 | **Cross-code agreement** | fibre propagation with Raman and gain within 0.5 % and difference-frequency generation in PPLN within 1 % of [pyNLO](https://github.com/pyNLO/PyNLO); diffraction against LightPipes; gas lines against HAPI |
 | **Published experiments** | [twelve papers replicated](docs/papers/README.md), from Michelson–Morley (1887) and Treacy's grating compressor (1969) to FROG, liquid-CS₂ pulse cleaning, multi-pass-cell compression and chirped-pulse parametric amplification. Each README ends with a table of how well the science matched and why any gap remains |

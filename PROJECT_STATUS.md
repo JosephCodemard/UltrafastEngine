@@ -8,11 +8,11 @@ What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md)
 | check | result |
 |---|---|
 | `dotnet build UltrafastEngine.sln -c Release` (net10.0 and net48) | 0 errors; the only warning is the expected missing ZOS-API (the Zemax binding then builds against stubs) |
-| C# tests, `--slow` | **543 pass, 0 fail, 9 skipped** (8 `GpuTests` without a GPU device; the opt-in HAPI test) |
-| Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **207 pass, 1 skipped** |
+| C# tests, `--slow` | **544 pass, 0 fail, 9 skipped** (8 `GpuTests` without a GPU device; the opt-in HAPI test) |
+| Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **216 pass, 1 skipped** |
 | Component tests (`tests/components/run_all.py`: 10 families covering linear optics, splitters, polarisation, crystals, nonlinear media, spatial components, instruments) | **1688 / 1691 checks** pass against analytic answers; **3 are marked KNOWN** (a 1.5-cycle pulse broadened to zero frequency at 2 µm / 10 fs, reported by a warning), 0 fail |
 | Paper replications (`build/paper_check.py`) | 12 folders, 0 hard failures (fast tier); each README ends with *How well the science matched*; the soft checks mark what does not reproduce ([index](docs/papers/README.md)) |
-| Examples and tutorials (`build/example_check.py`, strict options) | 0 problems (46 example folders in 11 groups, 23 with a committed figure); the C++ example and the OpticStudio export (`Interop/`) are manual |
+| Examples and tutorials (`build/example_check.py`, strict options) | 0 problems (60 example folders in 13 groups, 35 with a committed hero figure; the new AdaptiveOptics, DigitalTwin and Fibres examples checked on the last run); the C++ example and the OpticStudio export (`Interop/`) are manual |
 | `mkdocs build --strict` | 0 warnings |
 | Generated files (schemas, options.md, Python types, python-api.md, validation matrix) | current (checked by tests) |
 
@@ -27,7 +27,9 @@ example check.
 
 | | |
 |---|---|
-| GPU back-ends (CUDA, OpenCL) | need a device with FP64; the tests skip without one |
+| GPU back-ends (CUDA, OpenCL) | need a device with FP64; the tests skip without one (this includes the S2 parity test of the modulator and tile source, and the `ao` elements) |
+| MCP server for agents (twin plugin, T6) | designed, **not built**; `ultrafast twin serve` exits with 2 |
+| NativeAOT library with the `ao` plugin | `UF_WITH_AO` is not set in the native project: the hosted engine (Python default, CLI) loads the plugin, the native library does not |
 | OpticStudio / Zemax | needs a Windows machine with OpticStudio; the binding is built against stubs in CI |
 | Release packages | built and smoke-tested per platform with `build.sh` on request; no release workflow yet |
 | macOS in CI | not run on GitHub (the `macos-14` runner configuration is not available to this repository); the macOS arm64 build and tests are run by hand on the development machine, and the Linux arm64 job covers the arm64 code paths |
