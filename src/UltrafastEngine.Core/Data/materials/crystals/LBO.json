@@ -1,0 +1,83 @@
+{
+  "file": "LBO",
+  "id": "LBO",
+  "kind": "crystal",
+  "listOrder": 2,
+  "aliases": [
+    "lib3o5"
+  ],
+  "displayName": "LBO",
+  "opticalClass": "biaxial",
+  "temperatureDependent": false,
+  "notes": "LBO indices are room-temperature (no thermal model): non-critical phase matching by temperature is not modelled",
+  "references": "indices: Kato, IEEE J. Quantum Electron. 30, 2950 (1994) (room temperature); d31 = -0.67, d32 = 0.85, d33 = 0.04 pm/V (Dmitriev, Gurzadyan & Nikogosyan, Handbook of Nonlinear Optical Crystals); n2 ~ 1.9e-20 m^2/W (approximate)",
+  "description": "lithium triborate, biaxial; the Kato (1994) set reproduces the handbook XY-plane type-I SHG angles (phi = 11.6 deg at 1064 nm, 13.8 deg at 1030 nm, 31.7 deg at 800 nm), the Chen / Hanson-Dick fit on refractiveindex.info gives 11.8 / 14.6 / 34.3 deg",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula4",
+      "coefficients": [2.4542, 0.01125, 0, 0.01135, 1, 0, 0, 0, 1, -0.01388, 2],
+      "validRangeUm": [0.19, 2.6],
+      "citation": "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)",
+      "status": "unverified",
+      "uncertainty": "not compared with the database page (none for this form)"
+    },
+    "indexY": {
+      "model": "riiFormula4",
+      "coefficients": [2.539, 0.01277, 0, 0.01189, 1, 0, 0, 0, 1, -0.01849, 2, 4.3025e-05, 4, -2.9131e-05, 6],
+      "validRangeUm": [0.19, 2.6],
+      "citation": "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)",
+      "status": "unverified",
+      "uncertainty": "not compared with the database page (none for this form)"
+    },
+    "indexZ": {
+      "model": "riiFormula4",
+      "coefficients": [2.5865, 0.0131, 0, 0.01223, 1, 0, 0, 0, 1, -0.01862, 2, 4.5778e-05, 4, -3.2526e-05, 6],
+      "validRangeUm": [0.19, 2.6],
+      "citation": "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)",
+      "status": "unverified",
+      "uncertainty": "not compared with the database page (none for this form)"
+    },
+    "d": {
+      "pointGroup": "mm2 (polar axis = Y)",
+      "tensor": "mm2:y",
+      "dPmPerV": {
+        "d31": -0.67,
+        "d32": 0.85,
+        "d33": 0.04
+      },
+      "source": "Dmitriev, Gurzadyan & Nikogosyan, Handbook of Nonlinear Optical Crystals, as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "wavelengthM": 1.064e-06
+      }
+    },
+    "n2": {
+      "valueM2PerW": 1.9e-20,
+      "source": "approximate value of the original code (no source recorded)",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.19, 2.6],
+      "source": "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

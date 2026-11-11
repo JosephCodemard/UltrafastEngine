@@ -117,6 +117,7 @@ Physics switches (docs/reference/run-spec.md#physics).
 | `fieldMode` | `"auto"` \| `"envelope"` \| `"carrier"` |  | auto | Envelope or carrier-resolved (real field) propagation |
 | `fieldHarmonic` | number |  | 3 | Highest harmonic the carrier-resolved grid holds |
 | `absoluteIndex` | boolean |  | true | Add air dispersion to air paths quoted relative to air |
+| `strictMaterials` | boolean |  | false | Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same |
 | `polarization` | `"jones"` \| `"scalar"` |  | jones | Jones (two polarisations) or scalar |
 | `losses` | boolean |  | true | false removes flat loss terms |
 | `beamTracking` | any |  | "auto" | Gaussian beam (q) tracking: "auto" (on with a Gaussian inputBeam), "on", "off" |

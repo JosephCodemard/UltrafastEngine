@@ -180,58 +180,87 @@ namespace UltrafastEngine.Materials
     /// </summary>
     public sealed class CiddorAirIndex : IRefractiveIndex
     {
+        /// <summary>The constants of Ciddor's formulas, from the catalogue entry Air (quantities standardAirDispersion, co2Dependence, waterVaporDispersion, thermodynamics, saturationVapourPressure,
+        /// enhancementFactor, compressibility, referenceStates), read once per loaded catalogue.</summary>
+        private sealed class Constants
+        {
+            public double K0, K1, K2, K3, Co2Slope, Co2Ref, MaMolar, MaSlope, MaRef, Cf, R, Mw, Pstd, Tstd, Pw, Tw;
+            public double[] W, Svp, Enh, Zc;
+            public double T0C, P0Pa, Rh0, Co20Ppm;
+        }
+
+        private static Constants K => Catalogue.Cached("ciddor.constants", () =>
+        {
+            var air = Catalogue.Get("Air", "gas");
+            var sd = air.Q("standardAirDispersion"); var co = air.Q("co2Dependence"); var wv = air.Q("waterVaporDispersion"); var th = air.Q("thermodynamics"); var rs = air.Q("referenceStates"); var ix = air.Q("index");
+            return new Constants
+            {
+                K0 = sd.Number("k0PerUm2"), K1 = sd.Number("k1PerUm2"), K2 = sd.Number("k2PerUm2"), K3 = sd.Number("k3PerUm2"),
+                Co2Slope = co.Number("co2SlopeFractionPerPpm"), Co2Ref = co.Number("co2ReferencePpm"), MaMolar = co.Number("airMolarMassGPerMol"), MaSlope = co.Number("airMolarMassSlopeGPerMolPerPpm"), MaRef = co.Number("airMolarMassReferencePpm"),
+                W = wv.Array("polynomialCoefficients"), Cf = wv.Number("correctionFactor"), R = th.Number("gasConstantJPerMolK"), Mw = th.Number("waterMolarMassKgPerMol"),
+                Svp = air.Q("saturationVapourPressure").Array("coefficients"), Enh = air.Q("enhancementFactor").Array("coefficients"), Zc = air.Q("compressibility").Array("coefficients"),
+                Pstd = rs.Number("standardAirPressurePa"), Tstd = rs.Number("standardAirTemperatureK"), Pw = rs.Number("waterVaporPressurePa"), Tw = rs.Number("waterVaporTemperatureK"),
+                T0C = ix.Number("temperatureC"), P0Pa = ix.Number("pressurePa"), Rh0 = ix.Number("relativeHumidityPercent"), Co20Ppm = ix.Number("co2Ppm")
+            };
+        });
+
         public double TemperatureC { get; }
         public double PressurePa { get; }
         public double RelativeHumidity { get; }
         public double Co2Ppm { get; }
+
+        private static double Svp(Constants k, double T) => Math.Exp(k.Svp[0] * T * T + k.Svp[1] * T + k.Svp[2] + k.Svp[3] / T);
+        private static double Enhancement(Constants k, double p, double t) => k.Enh[0] + k.Enh[1] * p + k.Enh[2] * t * t;
 
         /// <summary>Mole fraction of water vapour: enhancement factor x RH x saturation vapour pressure / pressure (CIPM-2007 / Ciddor).</summary>
         public double WaterVaporMoleFraction
         {
             get
             {
-                double T = TemperatureC + 273.15, p = PressurePa, t = TemperatureC;
-                double svp = Math.Exp(1.2378847e-5 * T * T - 1.9121316e-2 * T + 33.93711047 - 6.3431645e3 / T);
-                return (1.00062 + 3.14e-8 * p + 5.6e-7 * t * t) * RelativeHumidity * svp / p;
+                var k = K; double T = TemperatureC + 273.15, p = PressurePa, t = TemperatureC;
+                return Enhancement(k, p, t) * RelativeHumidity * Svp(k, T) / p;
             }
         }
 
-        public CiddorAirIndex(double temperatureC = 20.0, double pressurePa = 101325.0, double relativeHumidity = 0.0, double co2Ppm = 450.0)
+        /// <summary>Air at the given state; parameters not given (NaN) take the standard environment of the catalogue entry Air (20 C, 101325 Pa, dry, 450 ppm CO2).</summary>
+        public CiddorAirIndex(double temperatureC = double.NaN, double pressurePa = double.NaN, double relativeHumidity = double.NaN, double co2Ppm = double.NaN)
         {
-            TemperatureC = temperatureC; PressurePa = pressurePa; RelativeHumidity = relativeHumidity; Co2Ppm = co2Ppm;
+            var k = K;
+            TemperatureC = double.IsNaN(temperatureC) ? k.T0C : temperatureC; PressurePa = double.IsNaN(pressurePa) ? k.P0Pa : pressurePa;
+            RelativeHumidity = double.IsNaN(relativeHumidity) ? k.Rh0 : relativeHumidity; Co2Ppm = double.IsNaN(co2Ppm) ? k.Co20Ppm : co2Ppm;
         }
 
         public string Description => string.Format(System.Globalization.CultureInfo.InvariantCulture,
             "ciddor air ({0:G4} C, {1:G6} Pa, RH {2:G3}, CO2 {3:G4} ppm)", TemperatureC, PressurePa, RelativeHumidity, Co2Ppm);
 
-        private static double Z(double p, double T, double xw)
+        private static double Z(Constants k, double p, double T, double xw)
         {
-            const double a0 = 1.58123e-6, a1 = -2.9331e-8, a2 = 1.1043e-10, b0 = 5.707e-6, b1 = -2.051e-8,
-                         c0 = 1.9898e-4, c1 = -2.376e-6, d = 1.83e-11, e = -0.765e-8;
+            double a0 = k.Zc[0], a1 = k.Zc[1], a2 = k.Zc[2], b0 = k.Zc[3], b1 = k.Zc[4], c0 = k.Zc[5], c1 = k.Zc[6], d = k.Zc[7], e = k.Zc[8];
             double t = T - 273.15;
             return 1 - (p / T) * (a0 + a1 * t + a2 * t * t + (b0 + b1 * t) * xw + (c0 + c1 * t) * xw * xw) + (p / T) * (p / T) * (d + e * xw * xw);
         }
 
         public void Evaluate(double[] omega, double[] nOut)
         {
-            const double k0 = 238.0185, k1 = 5792105, k2 = 57.362, k3 = 167917;
-            const double w0 = 295.235, w1 = 2.6422, w2 = -0.032380, w3 = 0.004028, cf = 1.022;
-            const double R = 8.314510, Mw = 0.018015;
+            var kc = K;
+            double k0 = kc.K0, k1 = kc.K1, k2 = kc.K2, k3 = kc.K3;
+            double w0 = kc.W[0], w1 = kc.W[1], w2 = kc.W[2], w3 = kc.W[3], cf = kc.Cf;
+            double R = kc.R, Mw = kc.Mw;
             double T = TemperatureC + 273.15, p = PressurePa, t = TemperatureC;
-            double Ma = 1e-3 * (28.9635 + 12.011e-6 * (Co2Ppm - 400));
-            double svp = Math.Exp(1.2378847e-5 * T * T - 1.9121316e-2 * T + 33.93711047 - 6.3431645e3 / T);
-            double f = 1.00062 + 3.14e-8 * p + 5.6e-7 * t * t;
+            double Ma = 1e-3 * (kc.MaMolar + kc.MaSlope * (Co2Ppm - kc.MaRef));
+            double svp = Svp(kc, T);
+            double f = Enhancement(kc, p, t);
             double xw = f * RelativeHumidity * svp / p;
-            double Za = Z(101325, 288.15, 0), Zw = Z(1333, 293.15, 1), Zm = Z(p, T, xw);
-            double rhoAxs = 101325 * Ma / (Za * R * 288.15);
-            double rhoWs = 1333 * Mw / (Zw * R * 293.15);
+            double Za = Z(kc, kc.Pstd, kc.Tstd, 0), Zw = Z(kc, kc.Pw, kc.Tw, 1), Zm = Z(kc, p, T, xw);
+            double rhoAxs = kc.Pstd * Ma / (Za * R * kc.Tstd);
+            double rhoWs = kc.Pw * Mw / (Zw * R * kc.Tw);
             double rhoA = p * Ma * (1 - xw) / (Zm * R * T);
             double rhoW = p * Mw * xw / (Zm * R * T);
             for (int i = 0; i < omega.Length; i++)
             {
                 double s2 = 1.0 / Wl.OmegaToLambdaUm(omega[i]); s2 *= s2;
                 double nas = 1e-8 * (k1 / (k0 - s2) + k3 / (k2 - s2));
-                double naxs = nas * (1 + 0.534e-6 * (Co2Ppm - 450));
+                double naxs = nas * (1 + kc.Co2Slope * (Co2Ppm - kc.Co2Ref));
                 double nws = 1e-8 * cf * (w0 + w1 * s2 + w2 * s2 * s2 + w3 * s2 * s2 * s2);
                 nOut[i] = 1 + (rhoA / rhoAxs) * naxs + (rhoW / rhoWs) * nws;
             }

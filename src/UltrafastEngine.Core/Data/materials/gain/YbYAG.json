@@ -1,0 +1,105 @@
+{
+  "file": "YbYAG",
+  "id": "Yb:YAG",
+  "kind": "gain",
+  "listOrder": 1,
+  "aliases": [
+    "ybyag"
+  ],
+  "description": "Ytterbium-doped YAG (quasi-three-level)",
+  "notes": "Yb:YAG cross sections are an analytic room-temperature fit; the McCumber relation gives reabsorption at the lasing wavelength (~0.1e-20 cm^2 at 1030 nm). Cryogenic linewidths are not modelled (only the Boltzmann factor follows temperatureK)",
+  "quantities": {
+    "doping": {
+      "host": "YAG",
+      "dopingDensityM3": 2.76e+26,
+      "source": "doping density of the original code (2 x 1.38e26 m^-3); give your crystal's doping",
+      "status": "approximate",
+      "uncertainty": "user-specific: set dopingDensityM3 or dopingAtPercent"
+    },
+    "lifetime": {
+      "lifetimeS": 0.00095,
+      "source": "Sumida and Fan, OSA TOPS 1995 (upper-state lifetime 0.95 ms), as cited by the original code; not re-read",
+      "status": "approximate",
+      "relativeUncertainty": 0.1,
+      "conditions": {}
+    },
+    "zeroLine": {
+      "zeroLineWavelengthM": 9.688e-07,
+      "source": "zero-phonon line 968.8 nm of Yb:YAG, as used by the original code for the McCumber relation; not re-read",
+      "status": "approximate",
+      "relativeUncertainty": 0.001,
+      "conditions": {}
+    },
+    "thermal": {
+      "thermalConductivityWPerMK": 9.5,
+      "dnDTPerK": 7.8e-06,
+      "source": "typical values of Yb:YAG (original code); conductivity falls with doping",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "not stated in the original code"
+    },
+    "stress": {
+      "thermalExpansionPerK": 7.5e-06,
+      "stressCr": 0.017,
+      "stressCphi": -0.0025,
+      "source": "photo-elastic constants of YAG after Koechner, Solid-State Laser Engineering (thermal-effects chapter), as cited by the original code; not re-read",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "not stated in the original code"
+    },
+    "emission": {
+      "shape": "gaussians",
+      "bands": [
+        {
+          "wavelengthM": 1.03e-06,
+          "sigmaCm2": 2.1e-20,
+          "fwhmM": 8.5e-09
+        },
+        {
+          "wavelengthM": 1.0485e-06,
+          "sigmaCm2": 3.2e-21,
+          "fwhmM": 1.6e-08
+        },
+        {
+          "wavelengthM": 1.015e-06,
+          "sigmaCm2": 3.5e-21,
+          "fwhmM": 3e-08
+        }
+      ],
+      "description": "Gaussian-band fit: 2.1e-20 cm^2 at 1030 nm (8.5 nm FWHM), 1048 nm shoulder, broad base",
+      "source": "room-temperature values after Koerner et al., Appl. Phys. B 75, 2002 (cross sections) and Sumida & Fan, OSA TOPS 1995 (lifetime 0.95 ms); lasing-band absorption and pump-band emission from the McCumber relation (zero line 968.8 nm); approximate analytic fit (~10-20 %) -- override with measured tables",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {
+        "temperatureK": 293.15
+      }
+    },
+    "absorption": {
+      "shape": "gaussians",
+      "bands": [
+        {
+          "wavelengthM": 9.405e-07,
+          "sigmaCm2": 7.7e-21,
+          "fwhmM": 1.8e-08
+        },
+        {
+          "wavelengthM": 9.688e-07,
+          "sigmaCm2": 8.5e-21,
+          "fwhmM": 2.8e-09
+        },
+        {
+          "wavelengthM": 9.15e-07,
+          "sigmaCm2": 2.5e-21,
+          "fwhmM": 1.5e-08
+        }
+      ],
+      "description": "Gaussian-band fit: 0.77e-20 cm^2 at 940 nm (18 nm FWHM), 0.85e-20 cm^2 at 969 nm (2.8 nm)",
+      "source": "pump-band absorption of Yb:YAG, approximate analytic fit (~10-20 %), after the same references as the emission band -- override with measured tables",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {
+        "temperatureK": 293.15
+      }
+    }
+  }
+}

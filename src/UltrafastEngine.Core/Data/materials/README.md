@@ -7,6 +7,9 @@ form is `docs/reference/materials-catalogue.md`. User files in `~/.ultrafast/mat
 solids/<id>.json   kind "solid": index, n2, raman (a reference to raman/<id>), ramanFraction, kerrAnisotropy, ionization
 gases/<id>.json    kind "gas":   index, n2Electronic, ionization, rotation, dephasing (air also: composition)
 raman/<id>.json    kind "raman": response (model + parameters), ramanFraction, anisotropicFraction
+gain/<id>.json     kind "gain":  doping, lifetime, zeroLine, thermal, stress, emission, absorption (bands in cm^2)
+crystals/<id>.json kind "crystal": indexX / indexY / indexZ (formula + coefficients), d (pm/V), n2, validity; entry-level displayName, opticalClass, references
+                   (Air, in gases/, also holds the constants of Ciddor's formulas)
 ```
 
 Rules (a test, `CatalogueTests.CatalogueFiles_HaveSourceStatusAndUnitsInTheirKeys`, enforces them):

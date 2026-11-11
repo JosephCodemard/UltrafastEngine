@@ -1,0 +1,71 @@
+{
+  "file": "BBO",
+  "id": "BBO",
+  "kind": "crystal",
+  "listOrder": 1,
+  "aliases": [
+    "b-bab2o4",
+    "bab2o4",
+    "beta-bbo"
+  ],
+  "displayName": "BBO",
+  "opticalClass": "uniaxial",
+  "temperatureDependent": false,
+  "references": "indices: Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018); d22 = 2.2, d31 = 0.04 pm/V (Eckardt et al., IEEE JQE 26, 922 (1990)); n2: DeSalvo et al., IEEE JQE 32, 1324 (1996)",
+  "description": "beta-barium borate, negative uniaxial",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula2",
+      "coefficients": [0, 0.90291, 0.003926, 0.83155, 0.018786, 0.76536, 60.01],
+      "validRangeUm": [0.188, 5.2],
+      "citation": "Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) (refractiveindex.info BaB2O4/Tamosauskas-o)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page BaB2O4_Tamosauskas-o (formula 2, 7 coefficients)"
+    },
+    "indexZ": {
+      "model": "riiFormula2",
+      "coefficients": [0, 1.151075, 0.007142, 0.21803, 0.02259, 0.656, 263],
+      "validRangeUm": [0.188, 5.2],
+      "citation": "Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) (refractiveindex.info BaB2O4/Tamosauskas-e)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page BaB2O4_Tamosauskas-e (formula 2, 7 coefficients)"
+    },
+    "d": {
+      "pointGroup": "3m",
+      "tensor": "3m",
+      "dPmPerV": {
+        "d22": 2.2,
+        "d31": 0.04
+      },
+      "source": "Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "wavelengthM": 1.064e-06
+      }
+    },
+    "n2": {
+      "valueM2PerW": 2.8e-20,
+      "source": "DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.188, 5.2],
+      "source": "Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

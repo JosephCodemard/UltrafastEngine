@@ -4558,6 +4558,8 @@ class Physics(TypedDict, total=False):
     """Highest harmonic the carrier-resolved grid holds Default: 3."""
     absoluteIndex: bool
     """Add air dispersion to air paths quoted relative to air Default: true."""
+    strictMaterials: bool
+    """Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same Default: false."""
     polarization: Literal["jones", "scalar"]
     """Jones (two polarisations) or scalar Default: jones."""
     losses: bool

@@ -27,7 +27,8 @@ In `Compiler.Compile`, in order:
    An override (`MaterialLibrary.Apply`: `n2`, `index`, `raman`, ...) removes the quantity from `Used`.
 3. The compiler, where an element really uses a property (`CompileBulk`: the dispersion, and for a nonlinear element n2, the Raman response, the Kerr anisotropy, the rotational Raman data, the ionisation data), calls
    `ProvenanceLog.UseCatalogue`. That puts the status and source into `provenance.json` and, for a value that is not `verified` (or comes from a user file), once into the run notes and `ProvenanceLog.UnverifiedInputs`.
-4. `RunResult.SummaryJson` writes the list as `unverifiedInputs`.
+4. `RunResult.SummaryJson` writes the list as `unverifiedInputs`. Gain media (`GainMedium.Used`, reported in `GainCompiler`) and crystals (`CrystalModel.Used`, in `CrystalElement.Compile`) follow the same path.
+5. At the end of `Compiler.Compile`, `physics.strictMaterials` (or `ULTRAFAST_STRICT_MATERIALS=1`) turns every non-verified entry of `UnverifiedInputs` into one `ModelException`.
 
 ## Execute: one element
 

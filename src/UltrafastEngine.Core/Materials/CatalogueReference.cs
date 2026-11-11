@@ -75,7 +75,7 @@ namespace UltrafastEngine.Materials
             sb.AppendLine("**" + n + " quantities in " + entries.Count + " entries: " + v + " verified, " + a + " approximate, " + u + " unverified.**");
             sb.AppendLine();
 
-            foreach (var (kind, title) in new[] { ("solid", "Solids and liquids"), ("gas", "Gases"), ("raman", "Raman models") })
+            foreach (var (kind, title) in new[] { ("solid", "Solids and liquids"), ("gas", "Gases"), ("raman", "Raman models"), ("gain", "Gain media"), ("crystal", "chi(2) crystals") })
             {
                 sb.AppendLine("## " + title);
                 sb.AppendLine();

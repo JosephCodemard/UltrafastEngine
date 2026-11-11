@@ -104,6 +104,8 @@ namespace UltrafastEngine.Specs
         public double FieldHarmonic { get; set; } = 3.0;
         /// <summary>Add the dispersion of air for air paths quoted relative to air (Zemax convention).</summary>
         public bool AbsoluteIndex { get; set; } = true;
+        /// <summary>Refuse a run that uses approximate or unverified material-catalogue values (also: ULTRAFAST_STRICT_MATERIALS=1).</summary>
+        public bool StrictMaterials { get; set; }
         /// <summary>"jones" (full 2x2 polarisation) or "scalar" (s/p averaged).</summary>
         public string Polarization { get; set; } = "jones";
         public bool Losses { get; set; } = true;
@@ -129,6 +131,7 @@ namespace UltrafastEngine.Specs
             p.FieldMode = o.GetString("fieldMode", "auto");
             p.FieldHarmonic = o.GetDouble("fieldHarmonic", 3.0);
             p.AbsoluteIndex = o.GetBool("absoluteIndex", true);
+            p.StrictMaterials = o.GetBool("strictMaterials", false);
             p.Polarization = o.GetString("polarization", "jones");
             p.Losses = o.GetBool("losses", true);
             p.Transverse = o.Has("transverse") ? o["transverse"] : null;

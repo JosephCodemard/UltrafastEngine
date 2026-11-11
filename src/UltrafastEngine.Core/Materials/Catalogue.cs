@@ -1,11 +1,11 @@
 // Catalogue.cs -- the material catalogue: every material number of the engine, with its provenance.
 //
-// What it does: loads the catalogue files (JSON with comments) that are embedded in the assembly under Data/materials/{solids,gases,raman}/
+// What it does: loads the catalogue files (JSON with comments) that are embedded in the assembly under Data/materials/{solids,gases,raman,gain,crystals}/
 // and, on top of them, the user's own files (folder $ULTRAFAST_MATERIALS, default ~/.ultrafast/materials; a file replaces the quantities
 // it names, with a notice). MaterialLibrary, GasData and the Raman models read their numbers from here; nothing is hard-coded in C#.
 //
 // Classes:
-//   CatalogueEntry     one material, gas or Raman model: Id, Kind ("solid" | "gas" | "raman"), Aliases, ListOrder, Notes, Quantities.
+//   CatalogueEntry     one material, gas, Raman model, gain medium or chi(2) crystal: Id, Kind ("solid" | "gas" | "raman" | "gain" | "crystal"), Aliases, ListOrder, Notes, Quantities.
 //   CatalogueQuantity  one quantity of an entry ("index", "n2", "rotation", ...): its numbers (Json), Source, Status, uncertainty, Origin.
 //   CatalogueStatus    Verified (the number was read from the source), Approximate (typical / fitted), Unverified (not checked).
 //   Catalogue          static: Find(nameOrAlias), Get, Entries(kind), Notices (user overrides), Problems() (lint), Reload(userFolder) for tests.
@@ -79,6 +79,8 @@ namespace UltrafastEngine.Materials
         public List<string> Aliases { get; } = new List<string>();
         public Dictionary<string, CatalogueQuantity> Quantities { get; } = new Dictionary<string, CatalogueQuantity>(StringComparer.OrdinalIgnoreCase);
         public string File { get; internal set; }
+        /// <summary>The entry's file as parsed: entry-level fields that are not quantities (displayName, opticalClass, references, ...).</summary>
+        public JsonObject Raw { get; internal set; }
 
         public bool Has(string quantity) => Quantities.ContainsKey(quantity);
         public CatalogueQuantity Q(string quantity) =>
@@ -90,7 +92,7 @@ namespace UltrafastEngine.Materials
     public static class Catalogue
     {
         private const string Prefix = "UltrafastEngine.Data.materials.";
-        private static readonly string[] Kinds = { "solid", "gas", "raman" };
+        private static readonly string[] Kinds = { "solid", "gas", "raman", "gain", "crystal" };
 
         private sealed class State
         {
@@ -195,7 +197,8 @@ namespace UltrafastEngine.Materials
             if (kind == null || !Kinds.Contains(kind)) throw new ModelException("catalogue file " + file + ": \"kind\" must be solid, gas or raman.");
             if (existing != null && existing.Kind != kind) throw new ModelException("catalogue file " + file + ": '" + id + "' is a " + existing.Kind + " in the built-in catalogue.");
             var e = existing ?? new CatalogueEntry { Id = id, Kind = kind, File = file };
-            if (existing == null) st.ById[id] = e;
+            if (existing == null) { st.ById[id] = e; e.Raw = o; }
+            else foreach (var kv in o) if (kv.Key != "quantities") e.Raw.Set(kv.Key, kv.Value);
             if (o.Has("listOrder")) e.ListOrder = o.GetInt("listOrder", 1000);
             else if (existing == null) e.ListOrder = 1000;
             if (o.Has("description")) e.Description = o.GetString("description");

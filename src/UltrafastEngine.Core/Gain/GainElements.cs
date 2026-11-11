@@ -658,7 +658,7 @@ namespace UltrafastEngine.Gain
                 s.Medium = GainMedium.FromJson(c.System.Materials.GetObject(mv.AsString()).GetObject("gain"), c.Registry, "materials." + mv.AsString() + ".gain");
             else s.Medium = GainMedium.FromJson(mv, c.Registry, origin + ".medium");
             if (j.Has("temperatureK")) s.Medium.TemperatureK = c.Num(e, "temperatureK", s.Medium.TemperatureK);
-            if (j.Has("dopingDensityM3")) s.Medium.DopingDensityM3 = c.Num(e, "dopingDensityM3", s.Medium.DopingDensityM3);
+            if (j.Has("dopingDensityM3")) { s.Medium.DopingDensityM3 = c.Num(e, "dopingDensityM3", s.Medium.DopingDensityM3); s.Medium.Used.Remove("doping"); }
             s.LengthM = c.Num(e, "lengthM", double.NaN);
             if (!(s.LengthM > 0)) throw new JsonException(origin + ": needs lengthM > 0");
             ce.LengthM = s.LengthM;
@@ -756,6 +756,13 @@ namespace UltrafastEngine.Gain
             }
             c.Provenance.Record("element:" + e.Id, amplifier ? "amplifier" : "gain", ce.Active.Description, ModelSource.SystemData, "system file");
             c.Provenance.Record("element:" + e.Id, "gainMedium", s.Medium.Describe() + (string.IsNullOrEmpty(s.Medium.References) ? "" : " [" + s.Medium.References + "]"), ModelSource.SystemData, "gain-medium library / system file");
+            // the catalogue values the medium really uses: thermal data only with a thermal lens, stress constants only with stress birefringence
+            foreach (var q in s.Medium.Used.Values)
+            {
+                if (q.Name == "thermal" && !(s.ThermalLens && s.Pump.Kind != "none")) continue;
+                if (q.Name == "stress" && !s.Stress) continue;
+                c.Provenance.UseCatalogue("element:" + e.Id, q.Name, q, s.Medium.Name, c.Notes);
+            }
         }
     
         /// <summary>

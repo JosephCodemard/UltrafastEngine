@@ -42,6 +42,75 @@
       "source": "mole fractions of dry air (standard atmosphere)",
       "status": "verified",
       "conditions": {}
+    },
+    "standardAirDispersion": {
+      "k0PerUm2": 238.0185,
+      "k1PerUm2": 5792105,
+      "k2PerUm2": 57.362,
+      "k3PerUm2": 167917,
+      "source": "P. E. Ciddor, Appl. Opt. 35, 1566 (1996), dry-air dispersion: (n-1) 1e8 = k1 / (k0 - s^2) + k3 / (k2 - s^2), s = 1/lambda in 1/um; refractiveindex.info other/air/Ciddor (standard air 15 C, 101.325 kPa, 450 ppm CO2)",
+      "status": "verified",
+      "verification": "the page's coefficients 0.05792105, 238.0185, 0.00167917, 57.362 equal k1 / 1e8, k0, k3 / 1e8, k2; the engine at 15 C, 101325 Pa, dry, 450 ppm equals the page's formula (test CatalogueTests.CiddorAir_AtStandardConditions_EqualsTheDatabaseFormula)",
+      "conditions": {
+        "temperatureK": 288.15,
+        "pressureBar": 1.01325
+      }
+    },
+    "co2Dependence": {
+      "co2SlopeFractionPerPpm": 5.34e-07,
+      "co2ReferencePpm": 450.0,
+      "airMolarMassGPerMol": 28.9635,
+      "airMolarMassSlopeGPerMolPerPpm": 1.2011e-05,
+      "airMolarMassReferencePpm": 400.0,
+      "source": "P. E. Ciddor, Appl. Opt. 35, 1566 (1996) (dispersion changes by 0.534e-6 per ppm of CO2 about 450 ppm; molar mass of dry air 28.9635 + 12.011e-6 (x_CO2 - 400) g/mol); not re-read",
+      "status": "unverified",
+      "uncertainty": "not compared with the paper; the dry-air index at 633 nm is checked against the paper's value in FoundationTests"
+    },
+    "waterVaporDispersion": {
+      "polynomialCoefficients": [295.235, 2.6422, -0.03238, 0.004028],
+      "units": "(n_ws - 1) 1e8 = cf (w0 + w1 s^2 + w2 s^4 + w3 s^6), s in 1/um",
+      "correctionFactor": 1.022,
+      "source": "P. E. Ciddor, Appl. Opt. 35, 1566 (1996) water-vapour dispersion (w0..w3, cf); not re-read",
+      "status": "unverified",
+      "uncertainty": "humid-air results are not compared with the paper"
+    },
+    "thermodynamics": {
+      "gasConstantJPerMolK": 8.31451,
+      "waterMolarMassKgPerMol": 0.018015,
+      "airMolarMassKgPerGPerMolFactor": 0.001,
+      "source": "P. E. Ciddor, Appl. Opt. 35, 1566 (1996) (R = 8.314510 J/(mol K), M_w = 0.018015 kg/mol); not re-read",
+      "status": "unverified",
+      "uncertainty": "constants of the paper; transcription not re-read"
+    },
+    "saturationVapourPressure": {
+      "coefficients": [1.2378847e-05, -0.019121316, 33.93711047, -6343.1645],
+      "units": "p_sv = exp(A T^2 + B T + C + D / T) in Pa, T in K",
+      "source": "CIPM-2007 / Ciddor 1996 saturation vapour pressure of water; transcription not re-read",
+      "status": "unverified",
+      "uncertainty": "not compared with the standard"
+    },
+    "enhancementFactor": {
+      "coefficients": [1.00062, 3.14e-08, 5.6e-07],
+      "units": "f = a + b p + c t^2, p in Pa, t in degC",
+      "source": "enhancement factor of water vapour in air (Ciddor 1996 / CIPM-2007); transcription not re-read",
+      "status": "unverified",
+      "uncertainty": "not compared with the standard"
+    },
+    "compressibility": {
+      "coefficients": [1.58123e-06, -2.9331e-08, 1.1043e-10, 5.707e-06, -2.051e-08, 0.00019898, -2.376e-06, 1.83e-11, -7.65e-09],
+      "units": "a0, a1, a2, b0, b1, c0, c1, d, e of Z(p, T, x_w)",
+      "source": "compressibility factor of moist air (Ciddor 1996 / CIPM-2007); transcription not re-read",
+      "status": "unverified",
+      "uncertainty": "not compared with the standard"
+    },
+    "referenceStates": {
+      "standardAirPressurePa": 101325.0,
+      "standardAirTemperatureK": 288.15,
+      "waterVaporPressurePa": 1333.0,
+      "waterVaporTemperatureK": 293.15,
+      "source": "P. E. Ciddor, Appl. Opt. 35, 1566 (1996) reference states of the density ratios",
+      "status": "approximate",
+      "uncertainty": "definitions; transcription not re-read"
     }
   }
 }

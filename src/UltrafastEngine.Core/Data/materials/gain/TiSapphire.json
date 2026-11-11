@@ -1,0 +1,65 @@
+{
+  "file": "TiSapphire",
+  "id": "Ti:sapphire",
+  "kind": "gain",
+  "listOrder": 2,
+  "aliases": [
+    "tisa",
+    "tisapphire",
+    "ti:sa",
+    "ti:al2o3"
+  ],
+  "description": "Titanium-doped sapphire (four-level)",
+  "notes": "Ti:sapphire is treated as a four-level system (no lasing-band absorption); the residual infrared absorption (figure of merit) is not included -- add it with absorptionProfile or a material attenuation",
+  "quantities": {
+    "doping": {
+      "host": "Sapphire",
+      "dopingDensityM3": 3.3e+25,
+      "source": "doping density of the original code; give your crystal's doping",
+      "status": "approximate",
+      "uncertainty": "user-specific: set dopingDensityM3"
+    },
+    "lifetime": {
+      "lifetimeS": 3.2e-06,
+      "source": "Moulton, JOSA B 3, 125 (1986) (lifetime 3.2 us), as cited by the original code; not re-read",
+      "status": "approximate",
+      "relativeUncertainty": 0.1,
+      "conditions": {}
+    },
+    "thermal": {
+      "thermalConductivityWPerMK": 33,
+      "dnDTPerK": 1.3e-05,
+      "source": "typical values of sapphire (original code)",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "not stated in the original code"
+    },
+    "emission": {
+      "shape": "asymmetricGaussian",
+      "peakWavelengthM": 7.95e-07,
+      "sigmaCm2": 3e-19,
+      "hwhmShortM": 7.5e-08,
+      "hwhmLongM": 1.4e-07,
+      "description": "asymmetric-Gaussian fit, pi polarisation: 3.0e-19 cm^2 at 795 nm, half widths 75 / 140 nm",
+      "source": "after Moulton, JOSA B 3, 125 (1986) (pi-polarised cross sections, lifetime 3.2 us); four-level; approximate analytic fit (~10-20 %) -- override with measured tables",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {}
+    },
+    "absorption": {
+      "shape": "gaussians",
+      "bands": [
+        {
+          "wavelengthM": 4.9e-07,
+          "sigmaCm2": 6.4e-20,
+          "fwhmM": 1.15e-07
+        }
+      ],
+      "description": "Gaussian fit, pi polarisation: 6.4e-20 cm^2 at 490 nm, 115 nm FWHM (~4.4e-20 cm^2 at 532 nm)",
+      "source": "after Moulton, JOSA B 3, 125 (1986) (pi-polarised); approximate analytic fit (~10-20 %) -- override with measured tables",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {}
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "file": "AgGaSe2",
+  "id": "AgGaSe2",
+  "kind": "crystal",
+  "listOrder": 8,
+  "aliases": [],
+  "displayName": "AgGaSe2",
+  "opticalClass": "uniaxial",
+  "temperatureDependent": false,
+  "references": "indices: Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato); d36 = 33 pm/V; n2 approximate",
+  "description": "silver gallium selenide, negative uniaxial (mid-infrared)",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula4",
+      "coefficients": [11.62264, 0.43221, 0, 0.15597, 1, 18868.52, 0, 3953.34, 1],
+      "validRangeUm": [0.81, 18],
+      "citation": "Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) (refractiveindex.info AgGaSe2/Kato-o)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page AgGaSe2_Kato-o (formula 4, 9 coefficients)"
+    },
+    "indexZ": {
+      "model": "riiFormula4",
+      "coefficients": [11.33168, 0.45951, 0, 0.21284, 1, 17816.81, 0, 3828.78, 1],
+      "validRangeUm": [0.81, 18],
+      "citation": "Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) (refractiveindex.info AgGaSe2/Kato-e)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page AgGaSe2_Kato-e (formula 4, 9 coefficients)"
+    },
+    "d": {
+      "pointGroup": "-42m",
+      "tensor": "-42m",
+      "dPmPerV": {
+        "d36": 33
+      },
+      "source": "d36 = 33 pm/V of the original code; no source recorded",
+      "status": "unverified",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "wavelengthM": 1.064e-06
+      }
+    },
+    "n2": {
+      "valueM2PerW": 3.5e-18,
+      "source": "approximate value of the original code (no source recorded)",
+      "status": "unverified",
+      "relativeUncertainty": 1.0,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.81, 18],
+      "source": "Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

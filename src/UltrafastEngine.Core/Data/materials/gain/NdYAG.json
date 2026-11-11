@@ -1,0 +1,73 @@
+{
+  "file": "NdYAG",
+  "id": "Nd:YAG",
+  "kind": "gain",
+  "listOrder": 3,
+  "aliases": [
+    "ndyag"
+  ],
+  "description": "Neodymium-doped YAG (four-level)",
+  "quantities": {
+    "doping": {
+      "host": "YAG",
+      "dopingDensityM3": 1.38e+26,
+      "source": "1 at.% Nd (Koechner), as in the original code",
+      "status": "approximate",
+      "uncertainty": "user-specific: set dopingDensityM3"
+    },
+    "lifetime": {
+      "lifetimeS": 0.00023,
+      "source": "Koechner, Solid-State Laser Engineering (1 at.% Nd, tau = 230 us), as cited by the original code; not re-read",
+      "status": "approximate",
+      "relativeUncertainty": 0.1,
+      "conditions": {}
+    },
+    "thermal": {
+      "thermalConductivityWPerMK": 10.5,
+      "dnDTPerK": 7.8e-06,
+      "source": "typical values of Nd:YAG (original code)",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "not stated in the original code"
+    },
+    "stress": {
+      "thermalExpansionPerK": 7.5e-06,
+      "stressCr": 0.017,
+      "stressCphi": -0.0025,
+      "source": "photo-elastic constants of YAG after Koechner (as for Yb:YAG); not re-read",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "not stated in the original code"
+    },
+    "emission": {
+      "shape": "gaussians",
+      "bands": [
+        {
+          "wavelengthM": 1.0642e-06,
+          "sigmaCm2": 2.8e-19,
+          "fwhmM": 6e-10
+        }
+      ],
+      "description": "Gaussian fit: 2.8e-19 cm^2 at 1064.2 nm, 0.6 nm FWHM",
+      "source": "Koechner, Solid-State Laser Engineering (1 at.% Nd, tau = 230 us); four-level; approximate analytic fit",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {}
+    },
+    "absorption": {
+      "shape": "gaussians",
+      "bands": [
+        {
+          "wavelengthM": 8.085e-07,
+          "sigmaCm2": 7e-20,
+          "fwhmM": 2.5e-09
+        }
+      ],
+      "description": "Gaussian fit: 7e-20 cm^2 at 808.5 nm, 2.5 nm FWHM",
+      "source": "Koechner, Solid-State Laser Engineering; approximate analytic fit",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {}
+    }
+  }
+}

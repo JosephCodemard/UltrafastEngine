@@ -1,0 +1,76 @@
+{
+  "file": "MgOLiNbO3",
+  "id": "MgO:LiNbO3",
+  "kind": "crystal",
+  "listOrder": 6,
+  "aliases": [
+    "mgln",
+    "mgo:ln",
+    "mgo:ppln",
+    "ppmgln",
+    "mgo:cln"
+  ],
+  "displayName": "MgO:LiNbO3 (5 mol%)",
+  "opticalClass": "uniaxial",
+  "temperatureDependent": true,
+  "notes": "MgO:LiNbO3: the o-ray index is that of congruent LiNbO3 (only e-ray data for the doped crystal are built in); type-0 (eee) QPM is unaffected",
+  "references": "e: Gayer et al. (2008) (temperature dependent; the room-temperature coefficients are verified, the temperature coefficient b4 = 1.516e-4 could not be cross-checked -- pyNLO uses 1.526e-5); o: congruent LiNbO3, Zelmon, Small & Jundt, JOSA B 14, 3319 (1997); d33 = 25 pm/V",
+  "description": "5 mol% MgO-doped congruent lithium niobate",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula2",
+      "coefficients": [0, 2.6734, 0.01764, 1.229, 0.05914, 12.614, 474.6],
+      "validRangeUm": [0.4, 5.0],
+      "citation": "Zelmon, Small & Jundt, JOSA B 14, 3319 (1997)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) (refractiveindex.info LiNbO3/Zelmon-o)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page LiNbO3_Zelmon-o (formula 2, 7 coefficients)"
+    },
+    "indexZ": {
+      "model": "jundt",
+      "a": [5.756, 0.0983, 0.202, 189.32, 12.52, 0.0132],
+      "b": [2.86e-06, 4.7e-08, 6.113e-08, 0.0001516],
+      "citation": "Gayer et al., Appl. Phys. B 91, 343 (2008), 5% MgO:CLN e-ray",
+      "validRangeUm": [0.5, 4.0],
+      "source": "Gayer et al., Appl. Phys. B 91, 343 (2008), 5% MgO:CLN e-ray (temperature dependent, T in degC)",
+      "status": "unverified",
+      "uncertainty": "the temperature coefficient b4 = 1.516e-4 could not be cross-checked (pyNLO uses 1.526e-5)",
+      "conditions": {
+        "temperatureK": 297.65
+      }
+    },
+    "d": {
+      "pointGroup": "3m",
+      "tensor": "3m",
+      "dPmPerV": {
+        "d22": 2.1,
+        "d31": 4.4,
+        "d33": 25.0
+      },
+      "source": "d33 = 25 pm/V as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "wavelengthM": 1.064e-06
+      }
+    },
+    "n2": {
+      "valueM2PerW": 9.3e-20,
+      "source": "copy of the congruent LiNbO3 value (DeSalvo et al. 1996); not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.5, 4.0],
+      "source": "Gayer et al., Appl. Phys. B 91, 343 (2008)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

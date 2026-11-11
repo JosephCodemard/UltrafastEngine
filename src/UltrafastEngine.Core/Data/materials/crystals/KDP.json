@@ -1,0 +1,68 @@
+{
+  "file": "KDP",
+  "id": "KDP",
+  "kind": "crystal",
+  "listOrder": 4,
+  "aliases": [
+    "kh2po4"
+  ],
+  "displayName": "KDP",
+  "opticalClass": "uniaxial",
+  "temperatureDependent": false,
+  "references": "indices: Zernike, JOSA 54, 1215 (1964); d36 = 0.39 pm/V (Eckardt et al. 1990); n2: Adair et al. (refractiveindex.info)",
+  "description": "potassium dihydrogen phosphate, negative uniaxial",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula4",
+      "coefficients": [2.259276, 13.00522, 2, 400, 1, 0.01008956, 0, 0.0129426, 1],
+      "validRangeUm": [0.2138, 1.529],
+      "citation": "Zernike, JOSA 54, 1215 (1964)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Zernike, JOSA 54, 1215 (1964) (refractiveindex.info KH2PO4/Zernike-o)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page KH2PO4_Zernike-o (formula 4, 9 coefficients)"
+    },
+    "indexZ": {
+      "model": "riiFormula4",
+      "coefficients": [2.132668, 3.2279924, 2, 400, 1, 0.008637494, 0, 0.012281, 1],
+      "validRangeUm": [0.2138, 1.529],
+      "citation": "Zernike, JOSA 54, 1215 (1964)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Zernike, JOSA 54, 1215 (1964) (refractiveindex.info KH2PO4/Zernike-e)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page KH2PO4_Zernike-e (formula 4, 9 coefficients)"
+    },
+    "d": {
+      "pointGroup": "-42m",
+      "tensor": "-42m",
+      "dPmPerV": {
+        "d36": 0.39
+      },
+      "source": "Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "wavelengthM": 1.064e-06
+      }
+    },
+    "n2": {
+      "valueM2PerW": 2e-20,
+      "source": "Adair et al. (via refractiveindex.info), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.2138, 1.529],
+      "source": "Zernike, JOSA 54, 1215 (1964)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

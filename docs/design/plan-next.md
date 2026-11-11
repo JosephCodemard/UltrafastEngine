@@ -58,21 +58,20 @@ Cousins, IEEE JQE 28, 1992; read the formulas from the sources, do not write the
 pattern; the beam-averaged value must equal today's `stress` result (consistency test). *Spike first (S):* does the spatial path carry a vector field (both polarisations) today? If not, the pattern is applied as a
 Jones map on a scalar pair and the limits are stated. *Not in this package:* 3-D (transverse-resolved) ASE; say so in the docs.
 
-### ~~WP3. Material models and a catalogue (L; priority 3)~~ done (the verification against papers is open)
+### ~~WP3. Material models and a catalogue (L; priority 3)~~ built; the verification against papers is open
 
-*Done 2026-11-11 (session C): see [notes/session-c.md](notes/session-c.md). The catalogue, the loader, run notes, user catalogues, the generated page and the lint are in; 28 of 115 quantities are verified, the rest are listed for the owner's PDFs.*
+*Done 2026-11-11 (session C, two parts): see [notes/session-c.md](notes/session-c.md). The catalogue is built and complete for everything the plan named, plus the gain media, the chi(2) crystals and the Ciddor constants; strict mode is in. 43 of 183 quantities are `verified` (read from the database pages and compared); the rest are listed on the generated page for the owner's PDFs.*
 
 *Goal:* every material parameter lives in **catalogue files with provenance**, none hard-coded in C#.
 
-* **Catalogue.** A `materials/` data folder (one JSON file per material, gas or Raman model) with, per value: the number, its unit in the key name, `source` (paper, page or table), `status`
-  (`verified` | `approximate` | `unverified`), an uncertainty (the literature spread, e.g. a factor 2-3 for CS2 n2) and the temperature / pressure / wavelength it applies to. A schema, a loader that
-  replaces the tables in `MaterialLibrary.cs`, `Gases.cs`, `RamanModels.cs`, and an `ultrafast reference` page **generated** from the catalogue (`reference/materials-catalogue.md`, like `options.md`).
-* **Runs say what they used.** The run notes list every `unverified` / `approximate` value a run touched (and `summary.json` carries it), so a quantitative result is never silently built on one.
-* **Verify the known list** against the original papers (the owner supplies PDFs; licensed PDFs and their figures never enter the repository, only the extracted numbers with citations): CS2 n2 (3.0e-18 m²/W), the
-  90 / 10 electronic-orientational split and the 1.6 / 0.2 ps constants; BaF2 n2 (2.0e-20 m²/W) and σ = -1.2; **rotational Raman dephasing times** (`T2At1Bar` of N2, O2, CO2, H2, air); the **TGG refractive index**
-  (Sellmeier source); other n2 values flagged in `docs/reference/materials.md` and `nonlinear.md`. Re-run `liu-2013`, `shimizu-1967` and `kaur-2024` after the numbers change (HANDOFF).
-* **Tests.** Every built-in material round-trips through the catalogue (the old table and the new files agree to 1e-15 before any value is edited, so the move is a pure refactor); a lint test fails when
-  a catalogue entry has no source or status; user catalogues in `~/.ultrafast/materials` override with a notice.
+* ~~**Catalogue.** A `materials/` data folder ... with, per value: the number, its unit in the key name, `source`, `status`, an uncertainty and the conditions. A schema, a loader ... and a generated page.~~ **Done:** `src/UltrafastEngine.Core/Data/materials/{solids,gases,raman,gain,crystals}`, `Catalogue` / `CatalogueModels` / `CatalogueReference`, `docs/reference/materials-catalogue.md` (`ultrafast reference materials`). *Commented:* embedded in the library (not a loose folder) so the CLI, Python and NativeAOT see the same numbers; the lint is a test, a "schema" in the JSON-Schema sense was not written (the loader and the lint enforce the format).
+* ~~**Runs say what they used.** The run notes list every `unverified` / `approximate` value a run touched (and `summary.json` carries it).~~ **Done:** notes, `summary.json` `unverifiedInputs`, `provenance.json` `catalogueStatus`; values the user overrode or the run did not use are not listed. **Added beyond the plan: strict mode** (`physics.strictMaterials` / `ULTRAFAST_STRICT_MATERIALS=1`).
+* **Verify the known list** against the original papers (the owner supplies PDFs ...):
+  * ~~**the TGG refractive index (Sellmeier source)**~~ **done**: a fit to the Schlarb and Sugg 1994 table (the old fit was up to 0.0106 off).
+  * ~~the Sellmeier sets of the glasses, crystals, gases and the Ciddor dry-air dispersion~~ **done** against the refractiveindex.info pages (43 quantities).
+  * **open (needs the owner's PDFs):** CS2 n2 (3.0e-18 m²/W), the 90 / 10 electronic-orientational split and the 1.6 / 0.2 ps constants; BaF2 n2 (2.0e-20 m²/W) and σ = -1.2; the rotational Raman dephasing times `T2At1Bar` of N2, O2, CO2, H2; the other n2 values. *Searches gave no numbers and the CREOL PDFs found are scans that could not be rendered here; every one is marked `approximate` / `unverified` with its uncertainty.* Then re-run `liu-2013`, `shimizu-1967` and `kaur-2024` (HANDOFF) - not needed so far, no number they use changed.
+  * **decided:** the YVO4 vendor Sellmeier sets stay (owner, 2026-11-11); the 5e-4 / 9e-4 difference from Shi et al. 2001 is recorded in the catalogue.
+* ~~**Tests.** Every built-in material round-trips through the catalogue (1e-15) ... a lint test fails when a catalogue entry has no source or status; user catalogues in `~/.ultrafast/materials` override with a notice.~~ **Done** (`CatalogueSnapshotTests`: 3412 pinned values; `CatalogueTests`: lint, published indices, user catalogue, run notes, strict mode, gain / crystal / Ciddor).
 
 ### ~~WP4. Plasma in envelope mode (M; priority 4)~~ done
 

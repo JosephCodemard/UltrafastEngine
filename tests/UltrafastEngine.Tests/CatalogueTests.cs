@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UltrafastEngine.Materials;
 using UltrafastEngine.Serialization;
+using UltrafastEngine.Models;
 using static UltrafastEngine.Tests.U;
 
 namespace UltrafastEngine.Tests
@@ -17,19 +18,27 @@ namespace UltrafastEngine.Tests
     [TestArea("Material catalogue: values pinned, provenance, user catalogues")]
     public class CatalogueTests
     {
-        private static readonly Regex UnitSuffix = new Regex(@"(S|M|Ev|J|K|Pa|C|M2|M3|M2PerW|PerCm|PerUm2|Um2|Um|A3|Percent|Ppm|PerBar273K|Bar)$");
+        private static readonly Regex UnitSuffix = new Regex(@"(S|M|Ev|J|K|Pa|C|M2|M3|M2PerW|PerCm|PerUm2|Um2|Um|A3|Percent|Ppm|PerBar273K|Bar|Cm2|PerK|WPerMK|PerPpm|JPerMolK|KgPerMol|GPerMol|GPerMolPerPpm|PerGPerMolFactor|PerV)$");
         private static readonly HashSet<string> Dimensionless = new HashSet<string>
         { "a", "b", "c0", "value", "fa", "fb", "fc", "orbitalL", "zEff", "coefficients", "peakIntensities", "relativeUncertainty", "nuclearSpinWeightEven", "nuclearSpinWeightOdd",
-          "anisotropicFraction", "effectiveMassRatio", "borzsonyiCoefficients", "N2", "O2", "Ar" };
+          "anisotropicFraction", "effectiveMassRatio", "borzsonyiCoefficients", "stressCr", "stressCphi", "correctionFactor", "polynomialCoefficients", "a", "b", "N2", "O2", "Ar" };
 
-        private static void Lint(string where, JsonValue v, List<string> bad)
+        private static void Lint(string where, JsonValue v, List<string> bad, bool unitParent = false)
         {
-            if (v.Kind == JsonKind.Object)
+            if (v.Kind == JsonKind.Array)
+            {
+                int i = 0;
+                foreach (var item in v.AsArray()) { if (item.Kind == JsonKind.Object) Lint(where + "[" + i + "]", item, bad); i++; }
+            }
+            else if (v.Kind == JsonKind.Object)
                 foreach (var kv in v.AsObject())
                 {
-                    if ((kv.Value.Kind == JsonKind.Number || kv.Value.Kind == JsonKind.Array) && !Dimensionless.Contains(kv.Key) && !UnitSuffix.IsMatch(kv.Key))
+                    bool numeric = kv.Value.Kind == JsonKind.Number || (kv.Value.Kind == JsonKind.Array && kv.Value.AsArray().Any() && kv.Value.AsArray().All(x => x.Kind == JsonKind.Number));
+                    bool unit = UnitSuffix.IsMatch(kv.Key);
+                    // the children of an object whose own key carries the unit (dPmPerV: {d22: ...}) are exempt
+                    if (numeric && !unitParent && !Dimensionless.Contains(kv.Key) && !unit)
                         bad.Add(where + "." + kv.Key + ": a number needs its unit in the key name (or belongs in the dimensionless list of this test)");
-                    Lint(where + "." + kv.Key, kv.Value, bad);
+                    Lint(where + "." + kv.Key, kv.Value, bad, unit && kv.Value.Kind == JsonKind.Object);
                 }
         }
 
@@ -172,6 +181,113 @@ namespace UltrafastEngine.Tests
             var text = string.Join("\n", res.Notes);
             Assert.True(text.Contains("YVO4.index"), "an unverified vendor index is listed");
             Assert.True(!text.Contains("YVO4.n2"), "n2 is not used in a linear run");
+        }
+
+        // ---------------------------------------------------------------------------------------------- gain media, crystals, Ciddor, strict mode
+
+        private static string Notes(UltrafastEngine.Results.RunResult r) => string.Join("\n", r.Notes) + "\n" + r.SummaryJson().GetArray("unverifiedInputs").ToJson(false);
+
+        [Test(Category = "materials")]
+        public void GainMedium_ListsItsCatalogueValues_AndNotTheOnesTheElementOverrides()
+        {
+            const double lam = 1030e-9;
+            string Run(JsonObject extra)
+            {
+                var el = O("id", "g", "type", "gain", "medium", "Yb:YAG", "lengthM", 0.003, "inversion", O("fraction", 0.25), "spm", false, "modeRadiusM", 1e-3);
+                if (extra != null) foreach (var kv in extra) el.Set(kv.Key, kv.Value);
+                return Notes(Go(Sys(el), Spec(Gauss(lam, 10e-12, 1e-9))));
+            }
+            string t = Run(null);
+            Assert.True(t.Contains("Yb:YAG.emission"), "the emission band is used");
+            Assert.True(t.Contains("Yb:YAG.lifetime"), "the lifetime is used");
+            Assert.True(t.Contains("Yb:YAG.doping"), "the doping density is used");
+            Assert.True(!t.Contains("Yb:YAG.thermal"), "no pump, no thermal lens: the thermal data are not used");
+            string o = Run(O("dopingDensityM3", 1e26));
+            Assert.True(!o.Contains("Yb:YAG.doping"), "an element that gives its own doping does not use the catalogue's");
+            var user = UltrafastEngine.Gain.GainMedium.FromJson(O("base", "Yb:YAG", "lifetimeS", 1e-3), new UltrafastEngine.Models.ModelRegistry(), "test");
+            Assert.True(!user.Used.ContainsKey("lifetime") && user.Used.ContainsKey("emission"), "a medium built from a base keeps the quantities it did not change");
+        }
+
+        [Test(Category = "materials")]
+        public void Crystal_ListsItsUnverifiedValues_AndVerifiedIndicesStayQuiet()
+        {
+            string Run(JsonObject extra)
+            {
+                var el = O("id", "bbo", "type", "crystal", "crystal", "BBO", "lengthM", 1e-3, "interaction", O("process", "shg", "type", "I"),
+                    "overlap", O("model", "planeWave", "radiusM", 100e-6), "chi3", false, "output", "sh");
+                if (extra != null) foreach (var kv in extra) el.Set(kv.Key, kv.Value);
+                return Notes(Go(Sys(el), Spec(Gauss(1030e-9, 3e-12, 1e-9), O("physics", O("selfSteepening", false)))));
+            }
+            string t = Run(null);
+            Assert.True(t.Contains("BBO.d"), "the d tensor of BBO is unverified and used");
+            Assert.True(!t.Contains("BBO.indexX") && !t.Contains("BBO.indexZ"), "the indices are verified against the database pages");
+            Assert.True(!Run(O("deffPmPerV", 2.0)).Contains("BBO.d "), "a given deff replaces the catalogue's tensor");
+            Assert.True(Run(null).Contains("BBO.n2"), "n2 of BBO is listed");
+            Assert.True(Catalogue.Get("LBO", "crystal").Q("indexY").Status == CatalogueStatus.Unverified, "LBO (Kato 1994) has no database page and is not claimed verified");
+        }
+
+        [Test(Category = "materials", Reference = "Ciddor, Appl. Opt. 35, 1566 (1996) as published on refractiveindex.info (other/air/Ciddor: standard air, 15 C, 101.325 kPa, dry, 450 ppm CO2): n - 1 = 0.05792105 / (238.0185 - s^2) + 0.00167917 / (57.362 - s^2)", Tolerance = "1e-12")]
+        public void CiddorAir_AtStandardConditions_EqualsTheDatabaseFormula()
+        {
+            var air = new CiddorAirIndex(15, 101325, 0, 450);
+            foreach (double um in new[] { 0.3, 0.5, 0.6328, 0.8, 1.03, 1.55, 1.69 })
+            {
+                var n = new double[1]; air.Evaluate(new[] { 2 * Math.PI * 2.99792458e8 / (um * 1e-6) }, n);
+                double s2 = 1 / (um * um);
+                Assert.Close(1 + 0.05792105 / (238.0185 - s2) + 0.00167917 / (57.362 - s2), n[0], 1e-12, 0, "n of standard air at " + um + " um");
+            }
+            var q = Catalogue.Get("Air", "gas").Q("standardAirDispersion");
+            Assert.Close(0.05792105, q.Number("k1PerUm2") * 1e-8, 1e-12, 0, "k1 equals the page's first coefficient");
+            Assert.Close(0.00167917, q.Number("k3PerUm2") * 1e-8, 1e-12, 0, "k3 equals the page's third coefficient");
+        }
+
+        private static string StrictRun(string material, JsonObject physics, JsonObject extra = null)
+        {
+            var sys = Sys(O("id", "nl", "type", "bulk", "material", material, "lengthM", 0.01, "beam", O("kind", "constant", "areaM2", 1e-8)));
+            var ex = extra ?? O();
+            var ph = physics ?? O(); ph.Set("strictMaterials", true); ex.Set("physics", ph);
+            return Notes(Go(sys, Spec(Gauss(800e-9, 60e-15, 1e-7), ex)));
+        }
+
+        [Test(Category = "materials")]
+        public void StrictMaterials_RefusesUnverifiedValues_ListsThem_AndAcceptsOverridesAndVerifiedOnes()
+        {
+            string msg = null;
+            try { StrictRun("FusedSilica", O()); } catch (ModelException ex) { msg = ex.Message; }
+            Assert.True(msg != null, "n2 of fused silica is approximate: the strict run is refused");
+            Assert.True(msg.Contains("FusedSilica.n2") && msg.Contains("approximate"), "the message names the value and its status: " + msg);
+            Assert.True(msg.Contains("strictMaterials"), "and says how to switch it off");
+            // overridden / disabled values are not counted: n2 overridden, Raman switched off, ionisation off -> only the verified index is left
+            StrictRun("FusedSilica", O("raman", false), O("overrides", A(O("target", "material:FusedSilica", "property", "n2", "value", 2.2e-20))));
+            // a linear run on a verified index
+            var lin = Sys(O("id", "g", "type", "bulk", "material", "N-BK7", "lengthM", 0.01));
+            Go(lin, Spec(Gauss(800e-9, 60e-15, 1e-7), O("physics", O("nonlinear", false, "strictMaterials", true))));
+            Assert.Throws<UltrafastEngine.Models.ModelException>(() => Go(Sys(O("id", "g", "type", "bulk", "material", "YVO4", "lengthM", 0.01)),
+                Spec(Gauss(800e-9, 60e-15, 1e-7), O("physics", O("nonlinear", false, "strictMaterials", true)))), "the vendor Sellmeier of YVO4 is unverified");
+            // the environment variable does the same without touching the run spec
+            Environment.SetEnvironmentVariable("ULTRAFAST_STRICT_MATERIALS", "1");
+            try
+            {
+                Assert.Throws<UltrafastEngine.Models.ModelException>(() => Go(Sys(O("id", "g", "type", "bulk", "material", "YVO4", "lengthM", 0.01)),
+                    Spec(Gauss(800e-9, 60e-15, 1e-7), O("physics", O("nonlinear", false)))), "ULTRAFAST_STRICT_MATERIALS=1");
+            }
+            finally { Environment.SetEnvironmentVariable("ULTRAFAST_STRICT_MATERIALS", null); }
+        }
+
+        [Test(Category = "materials")]
+        public void StrictMaterials_AcceptsAUserValueMarkedVerified()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "uf-cat-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                File.WriteAllText(Path.Combine(dir, "YVO4.json"), @"{ ""id"": ""YVO4"", ""quantities"": {
+                  ""index"": { ""model"": ""vendorSellmeier"", ""referenceMedium"": ""air"", ""a"": 3.778790, ""numeratorUm2"": 0.070479, ""poleUm2"": 0.045731, ""irTermPerUm2"": 0.009701,
+                              ""source"": ""Shi et al., J. Synthetic Cryst. 30, 85 (2001), 20 C"", ""status"": ""verified"" } } }");
+                Catalogue.Reload(dir);
+                Go(Sys(O("id", "g", "type", "bulk", "material", "YVO4", "lengthM", 0.01)), Spec(Gauss(800e-9, 60e-15, 1e-7), O("physics", O("nonlinear", false, "strictMaterials", true))));
+            }
+            finally { Catalogue.Reload(null); Directory.Delete(dir, true); }
         }
     }
 }

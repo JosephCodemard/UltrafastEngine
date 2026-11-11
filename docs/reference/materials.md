@@ -86,8 +86,23 @@ and a `status` like the built-in ones. A run that uses a replaced value says `us
 
 For a single run, an [override](models.md) in the run spec is simpler: it replaces the value for that run only and removes the notice.
 
-What is *not* in the catalogue (yet): the published formula constants of the air index (Ciddor 1996 is code, not data), the crystal library of the chi(2) elements, and the gain media
-(`Gain/GainMedium.cs`: cross sections, lifetimes, thermal data). They are listed as open in [the session notes](../design/notes/session-c.md).
+**Gain media, chi(2) crystals and the air index are in the catalogue too.** `gain/` holds the built-in gain media (`Yb:YAG`, `Ti:sapphire`, `Nd:YAG`: lifetime, doping density, zero-phonon line, thermal
+and stress constants, emission and absorption bands in cm², each quantity with its source and status); `crystals/` holds the chi(2) crystals (`BBO`, `LBO`, `KTP`, `KDP`, `LiNbO3`, `MgO:LiNbO3`,
+`BiBO`, `AgGaSe2`: the three principal-index formulas, the d tensor in pm/V, n2, the validity range). The constants of Ciddor's air-index formulas (dispersion, CO2 and water-vapour terms, saturation vapour pressure,
+compressibility) are quantities of the `Air` entry. A gain element or crystal element that uses an `approximate` / `unverified` value of its medium reports it like a material does
+(`Yb:YAG.emission`, `BBO.d`); thermal data are reported only with a thermal lens, stress constants only with stress birefringence, and a `deffPmPerV`, `dopingDensityM3` or a user-defined
+band replaces the catalogue's quantity. In the system file these values keep working as before (`"medium": {"base": "Yb:YAG", "lifetimeS": ...}`, `"crystal": {"base": "BBO", ...}`).
+
+### Strict mode
+
+`"physics": {"strictMaterials": true}` in the run spec (or the environment variable `ULTRAFAST_STRICT_MATERIALS=1`, for CI and for results that are going into a paper) makes the compile **fail** when the run uses any
+catalogue value that is not `verified`. The error lists each one (material, quantity, status, source). Ways out: override the value for the run (an [override](models.md) or a property of the
+material), give a verified value in [your own catalogue file](#the-material-catalogue), or switch the mode off. Values that are not used are not counted (n2 and Raman in a linear run, thermal data
+without a thermal lens), and a value from your own file counts as verified only if you marked it `verified`.
+
+```jsonc
+{ "physics": { "strictMaterials": true } }   // run.json: refuse approximate / unverified catalogue values
+```
 
 ## Defining materials
 

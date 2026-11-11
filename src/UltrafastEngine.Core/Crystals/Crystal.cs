@@ -113,6 +113,8 @@ namespace UltrafastEngine.Crystals
         public string References { get; set; }
         public List<string> Notes { get; } = new List<string>();
         public bool TemperatureDependent { get; set; }
+        /// <summary>The catalogue quantities this crystal takes its numbers from ("indexX", "indexZ", "d", "n2", ...); a user override removes the quantity.</summary>
+        public Dictionary<string, CatalogueQuantity> Used { get; } = new Dictionary<string, CatalogueQuantity>(StringComparer.OrdinalIgnoreCase);
 
         public bool IsUniaxial => OpticalClass == "uniaxial";
         /// <summary>Uniaxial: true if ne &lt; no (BBO, KDP, LiNbO3); then o = slow, e = fast.</summary>
@@ -246,123 +248,42 @@ namespace UltrafastEngine.Crystals
     /// <summary>Built-in chi(2) crystals and user-defined ones from JSON.</summary>
     public static class CrystalLibrary
     {
-        public static readonly string[] Names = { "BBO", "LBO", "KTP", "KDP", "LiNbO3", "MgO:LiNbO3", "BiBO", "AgGaSe2" };
+        /// <summary>The built-in crystals, in catalogue order (Data/materials/crystals).</summary>
+        public static string[] Names => Catalogue.Entries("crystal").Select(e => e.Id).ToArray();
 
-        private static IRefractiveIndex F2(string reference, double lo, double hi, params double[] c) => new RiiFormulaIndex(2, c, lo, hi, reference);
-        private static IRefractiveIndex F4(string reference, double lo, double hi, params double[] c) => new RiiFormulaIndex(4, c, lo, hi, reference);
-        private static Dictionary<string, double> Dpm(params (string, double)[] v) => v.ToDictionary(x => x.Item1, x => x.Item2);
+        private static Dictionary<string, double> Dpm(JsonObject o) => o.ToDictionary(kv => kv.Key, kv => kv.Value.AsDouble());
 
+        /// <summary>The index model of an "index*" quantity of a crystal (refractiveindex.info formula 2 or 4, or the temperature-dependent LiNbO3 form).</summary>
+        private static IRefractiveIndex Index(CatalogueQuantity q, double temperatureC)
+        {
+            var vr = q.Array("validRangeUm"); string cite = q.Text("citation");
+            switch (q.Text("model"))
+            {
+                case "riiFormula2": return new RiiFormulaIndex(2, q.Array("coefficients"), vr[0], vr[1], cite);
+                case "riiFormula4": return new RiiFormulaIndex(4, q.Array("coefficients"), vr[0], vr[1], cite);
+                case "jundt": return new LithiumNiobateIndex(q.Array("a"), q.Array("b"), temperatureC, cite);
+                default: throw new ModelException("catalogue " + q.Path + ": unknown crystal index model \"" + q.Text("model") + "\".");
+            }
+        }
+
+        /// <summary>A built-in chi(2) crystal from the catalogue: principal indices, d tensor, n2, validity range, each with its source and status.</summary>
         public static CrystalModel Get(string name, double temperatureC = double.NaN)
         {
             string key = (name ?? "").Trim().ToLowerInvariant().Replace(" ", "");
-            const string tam = "Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018)";
-            const string kato = "Kato & Takaoka, Appl. Opt. 41, 5040 (2002)";
-            const string kato94 = "Kato, IEEE J. Quantum Electron. 30, 2950 (1994)";
-            const string zern = "Zernike, JOSA 54, 1215 (1964)";
-            const string zel = "Zelmon, Small & Jundt, JOSA B 14, 3319 (1997)";
-            const string ume = "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007)";
-            const string katoAgs = "Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato)";
+            var e = Catalogue.Find(key, "crystal") ?? throw new ModelException("unknown crystal \"" + name + "\". Built-in crystals: " + string.Join(", ", Names) + ". Define your own with \"crystal\": {\"class\": \"uniaxial\", \"no\": ..., \"ne\": ..., \"d\": {...}}.");
             double T = double.IsNaN(temperatureC) ? 20 : temperatureC;
-            CrystalModel c;
-            switch (key)
-            {
-                case "bbo": case "b-bab2o4": case "bab2o4": case "beta-bbo":
-                    c = new CrystalModel
-                    {
-                        Name = "BBO", OpticalClass = "uniaxial", PointGroup = "3m",
-                        Nx = F2(tam, 0.188, 5.2, 0, 0.90291, 0.003926, 0.83155, 0.018786, 0.76536, 60.01),
-                        Nz = F2(tam, 0.188, 5.2, 0, 1.151075, 0.007142, 0.21803, 0.02259, 0.656, 263),
-                        D = CrystalModel.Tensor("3m", Dpm(("d22", 2.2), ("d31", 0.04))), N2 = 2.8e-20,
-                        ValidMinUm = 0.188, ValidMaxUm = 5.2,
-                        References = "indices: " + tam + "; d22 = 2.2, d31 = 0.04 pm/V (Eckardt et al., IEEE JQE 26, 922 (1990)); n2: DeSalvo et al., IEEE JQE 32, 1324 (1996)"
-                    };
-                    break;
-                case "lbo": case "lib3o5":
-                    c = new CrystalModel
-                    {
-                        Name = "LBO", OpticalClass = "biaxial", PointGroup = "mm2 (polar axis = Y)",
-                        // Kato (1994): n^2 = A + B/(l^2 - C) - D l^2 (+ E l^4 - F l^6), l in um. Reproduces the handbook
-                        // XY-plane type-I SHG angles (phi = 11.6 deg at 1064 nm, 13.8 deg at 1030 nm, 31.7 deg at 800 nm);
-                        // the Chen/Hanson-Dick fit on refractiveindex.info gives 11.8 / 14.6 / 34.3 deg.
-                        Nx = F4(kato94, 0.19, 2.6, 2.4542, 0.01125, 0, 0.01135, 1, 0, 0, 0, 1, -0.01388, 2),
-                        Ny = F4(kato94, 0.19, 2.6, 2.5390, 0.01277, 0, 0.01189, 1, 0, 0, 0, 1, -0.01849, 2, 4.3025e-5, 4, -2.9131e-5, 6),
-                        Nz = F4(kato94, 0.19, 2.6, 2.5865, 0.01310, 0, 0.01223, 1, 0, 0, 0, 1, -0.01862, 2, 4.5778e-5, 4, -3.2526e-5, 6),
-                        D = CrystalModel.Tensor("mm2:y", Dpm(("d31", -0.67), ("d32", 0.85), ("d33", 0.04))), N2 = 1.9e-20,
-                        ValidMinUm = 0.19, ValidMaxUm = 2.6,
-                        References = "indices: " + kato94 + " (room temperature); d31 = -0.67, d32 = 0.85, d33 = 0.04 pm/V (Dmitriev, Gurzadyan & Nikogosyan, Handbook of Nonlinear Optical Crystals); n2 ~ 1.9e-20 m^2/W (approximate)"
-                    };
-                    c.Notes.Add("LBO indices are room-temperature (no thermal model): non-critical phase matching by temperature is not modelled");
-                    break;
-                case "ktp": case "ktiopo4": case "ppktp":
-                    c = new CrystalModel
-                    {
-                        Name = key == "ppktp" ? "PPKTP" : "KTP", OpticalClass = "biaxial", PointGroup = "mm2",
-                        Nx = F4(kato, 0.43, 3.54, 3.29100, 0.04140, 0, 0.03978, 1, 9.35522, 0, 31.45571, 1),
-                        Ny = F4(kato, 0.43, 3.54, 3.45018, 0.04341, 0, 0.04597, 1, 16.98825, 0, 39.43799, 1),
-                        Nz = F4(kato, 0.43, 3.54, 4.59423, 0.06206, 0, 0.04763, 1, 110.80672, 0, 86.12171, 1),
-                        D = CrystalModel.Tensor("mm2", Dpm(("d31", 1.95), ("d32", 3.9), ("d33", 15.3))), N2 = 2.2e-19,
-                        ValidMinUm = 0.43, ValidMaxUm = 3.54,
-                        References = "indices: " + kato + " (20 C); d31 = 1.95, d32 = 3.9, d33 = 15.3 pm/V at 1064 nm (Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992)); n2: DeSalvo et al. (1996), E||z"
-                    };
-                    break;
-                case "kdp": case "kh2po4":
-                    c = new CrystalModel
-                    {
-                        Name = "KDP", OpticalClass = "uniaxial", PointGroup = "-42m",
-                        Nx = F4(zern, 0.2138, 1.529, 2.259276, 13.00522, 2, 400, 1, 0.01008956, 0, 0.0129426, 1),
-                        Nz = F4(zern, 0.2138, 1.529, 2.132668, 3.2279924, 2, 400, 1, 0.008637494, 0, 0.0122810, 1),
-                        D = CrystalModel.Tensor("-42m", Dpm(("d36", 0.39))), N2 = 2.0e-20,
-                        ValidMinUm = 0.2138, ValidMaxUm = 1.529,
-                        References = "indices: " + zern + "; d36 = 0.39 pm/V (Eckardt et al. 1990); n2: Adair et al. (refractiveindex.info)"
-                    };
-                    break;
-                case "linbo3": case "ln": case "cln": case "ppln":
-                    c = new CrystalModel
-                    {
-                        Name = key == "ppln" ? "PPLN (congruent)" : "LiNbO3 (congruent)", OpticalClass = "uniaxial", PointGroup = "3m", TemperatureDependent = true, TemperatureC = T,
-                        Nx = F2(zel, 0.4, 5.0, 0, 2.6734, 0.01764, 1.2290, 0.05914, 12.614, 474.60),
-                        Nz = new LithiumNiobateIndex(new[] { 5.35583, 0.100473, 0.20692, 100.0, 11.34927, 1.5334e-2 }, new[] { 4.629e-7, 3.862e-8, -0.89e-8, 2.657e-5 }, T, "Jundt, Opt. Lett. 22, 1553 (1997), congruent LiNbO3 e-ray"),
-                        D = CrystalModel.Tensor("3m", Dpm(("d22", 2.1), ("d31", 4.6), ("d33", 25.0))), N2 = 9.3e-20,
-                        ValidMinUm = 0.4, ValidMaxUm = 5.0,
-                        References = "e: Jundt (1997) (temperature dependent); o: " + zel + " (21 C); d33 = 25, d31 = 4.6, d22 = 2.1 pm/V (Shoji et al., JOSA B 14, 2268 (1997)); n2: DeSalvo et al. (1996)"
-                    };
-                    break;
-                case "mgo:linbo3": case "mgln": case "mgo:ln": case "mgo:ppln": case "ppmgln": case "mgo:cln":
-                    c = new CrystalModel
-                    {
-                        Name = "MgO:LiNbO3 (5 mol%)", OpticalClass = "uniaxial", PointGroup = "3m", TemperatureDependent = true, TemperatureC = T,
-                        Nx = F2(zel, 0.4, 5.0, 0, 2.6734, 0.01764, 1.2290, 0.05914, 12.614, 474.60),
-                        Nz = new LithiumNiobateIndex(new[] { 5.756, 0.0983, 0.2020, 189.32, 12.52, 1.32e-2 }, new[] { 2.860e-6, 4.700e-8, 6.113e-8, 1.516e-4 }, T, "Gayer et al., Appl. Phys. B 91, 343 (2008), 5% MgO:CLN e-ray"),
-                        D = CrystalModel.Tensor("3m", Dpm(("d22", 2.1), ("d31", 4.4), ("d33", 25.0))), N2 = 9.3e-20,
-                        ValidMinUm = 0.5, ValidMaxUm = 4.0,
-                        References = "e: Gayer et al. (2008) (temperature dependent; the room-temperature coefficients are verified, the temperature coefficient b4 = 1.516e-4 could not be cross-checked -- pyNLO uses 1.526e-5); o: congruent LiNbO3, " + zel + "; d33 = 25 pm/V"
-                    };
-                    c.Notes.Add("MgO:LiNbO3: the o-ray index is that of congruent LiNbO3 (only e-ray data for the doped crystal are built in); type-0 (eee) QPM is unaffected");
-                    break;
-                case "bibo": case "bib3o6":
-                    c = new CrystalModel
-                    {
-                        Name = "BiBO", OpticalClass = "biaxial", PointGroup = null,
-                        Nx = F4(ume, 0.48, 3.1, 3.07403, 0.03231, 0, 0.03163, 1, 0, 0, 0, 1, -0.013376, 2),
-                        Ny = F4(ume, 0.48, 3.1, 3.16940, 0.03717, 0, 0.03483, 1, 0, 0, 0, 1, -0.01827, 2),
-                        Nz = F4(ume, 0.48, 3.1, 3.6545, 0.05112, 0, 0.03713, 1, 0, 0, 0, 1, -0.02261, 2),
-                        D = null, N2 = 7.65e-20, ValidMinUm = 0.48, ValidMaxUm = 3.1,
-                        References = "indices (n_alpha, n_beta, n_gamma as x, y, z): " + ume + "; n2: Kabacinski et al. (refractiveindex.info); d tensor not built in (monoclinic): give deffPmPerV"
-                    };
-                    break;
-                case "aggase2":
-                    c = new CrystalModel
-                    {
-                        Name = "AgGaSe2", OpticalClass = "uniaxial", PointGroup = "-42m",
-                        Nx = F4(katoAgs, 0.81, 18, 11.62264, 0.43221, 0, 0.15597, 1, 18868.52, 0, 3953.34, 1),
-                        Nz = F4(katoAgs, 0.81, 18, 11.33168, 0.45951, 0, 0.21284, 1, 17816.81, 0, 3828.78, 1),
-                        D = CrystalModel.Tensor("-42m", Dpm(("d36", 33))), N2 = 3.5e-18, ValidMinUm = 0.81, ValidMaxUm = 18,
-                        References = "indices: " + katoAgs + "; d36 = 33 pm/V; n2 approximate"
-                    };
-                    break;
-                default:
-                    throw new ModelException("unknown crystal \"" + name + "\". Built-in crystals: " + string.Join(", ", Names) + ". Define your own with \"crystal\": {\"class\": \"uniaxial\", \"no\": ..., \"ne\": ..., \"d\": {...}}.");
-            }
+            bool tdep = e.Raw.GetBool("temperatureDependent", false);
+            string display = e.Raw.GetObject("aliasDisplayNames")?.GetString(key) ?? e.Raw.GetString("displayName", e.Id);
+            var c = new CrystalModel { Name = display, OpticalClass = e.Raw.GetString("opticalClass"), TemperatureDependent = tdep, References = e.Raw.GetString("references") };
+            if (tdep) c.TemperatureC = T;
+            c.Nx = Index(e.Q("indexX"), T); c.Nz = Index(e.Q("indexZ"), T);
+            if (e.Has("indexY")) c.Ny = Index(e.Q("indexY"), T);
+            var d = e.TryQ("d");
+            if (d != null) { c.PointGroup = d.Text("pointGroup"); c.D = CrystalModel.Tensor(d.Text("tensor"), Dpm(d.Json.GetObject("dPmPerV"))); }
+            c.N2 = e.Q("n2").Number("valueM2PerW");
+            var v = e.Q("validity").Array("validRangeUm"); c.ValidMinUm = v[0]; c.ValidMaxUm = v[1];
+            if (!string.IsNullOrEmpty(e.Notes)) c.Notes.Add(e.Notes);
+            foreach (var q in e.Quantities.Values) c.Used[q.Name] = q;
             if (c.Ny == null) c.Ny = c.Nx;
             if (!c.TemperatureDependent && !double.IsNaN(temperatureC) && Math.Abs(temperatureC - 20) > 5)
                 c.Notes.Add(c.Name + ": the built-in indices are not temperature dependent; temperatureC = " + temperatureC.ToString("G4", CultureInfo.InvariantCulture) + " is ignored");
@@ -381,11 +302,11 @@ namespace UltrafastEngine.Crystals
             if (o.Has("name")) c.Name = o.GetString("name");
             if (o.Has("class")) c.OpticalClass = o.GetString("class").ToLowerInvariant();
             IRefractiveIndex Ix(string key) => reg.Create<IRefractiveIndex>("index", ModelSpec.FromJson(o[key], ModelSource.SystemData, origin + "." + key));
-            if (o.Has("no")) { c.Nx = Ix("no"); c.Ny = c.Nx; }
-            if (o.Has("ne")) c.Nz = Ix("ne");
-            if (o.Has("nx")) c.Nx = Ix("nx");
-            if (o.Has("ny")) c.Ny = Ix("ny");
-            if (o.Has("nz")) c.Nz = Ix("nz");
+            if (o.Has("no")) { c.Nx = Ix("no"); c.Ny = c.Nx; c.Used.Remove("indexX"); c.Used.Remove("indexY"); }
+            if (o.Has("ne")) { c.Nz = Ix("ne"); c.Used.Remove("indexZ"); }
+            if (o.Has("nx")) { c.Nx = Ix("nx"); c.Used.Remove("indexX"); }
+            if (o.Has("ny")) { c.Ny = Ix("ny"); c.Used.Remove("indexY"); }
+            if (o.Has("nz")) { c.Nz = Ix("nz"); c.Used.Remove("indexZ"); }
             if (c.Ny == null) c.Ny = c.Nx;
             if (c.Nx == null || c.Nz == null) throw new ModelException(origin + ": a user crystal needs \"no\" and \"ne\" (uniaxial) or \"nx\", \"ny\", \"nz\" (biaxial) index models.");
             if (o.Has("d"))
@@ -394,10 +315,10 @@ namespace UltrafastEngine.Crystals
                 var map = new Dictionary<string, double>();
                 foreach (var kv in dObj) map[kv.Key.ToLowerInvariant()] = kv.Value.AsDouble();
                 c.PointGroup = o.GetString("pointGroup", "general");
-                c.D = CrystalModel.Tensor(c.PointGroup, map);
+                c.D = CrystalModel.Tensor(c.PointGroup, map); c.Used.Remove("d");
             }
-            if (o.Has("deffPmPerV")) c.DeffOverrideMPerV = o.GetDouble("deffPmPerV", 0) * 1e-12;
-            if (o.Has("n2")) c.N2 = o.GetDouble("n2", 0);
+            if (o.Has("deffPmPerV")) { c.DeffOverrideMPerV = o.GetDouble("deffPmPerV", 0) * 1e-12; c.Used.Remove("d"); }
+            if (o.Has("n2")) { c.N2 = o.GetDouble("n2", 0); c.Used.Remove("n2"); }
             if (o.Has("absorption")) c.Absorption = reg.Create<IAttenuation>("attenuation", ModelSpec.FromJson(o["absorption"], ModelSource.SystemData, origin + ".absorption"));
             if (o.Has("references")) c.References = o.GetString("references");
             return c;

@@ -17,11 +17,14 @@ namespace UltrafastEngine.Materials
     public static class MaterialLibrary
     {
         /// <summary>Names of the built-in materials and gases, in catalogue order (the Raman models are not materials).</summary>
-        public static IReadOnlyList<string> BuiltInNames => Catalogue.Entries().Where(e => e.Kind != "raman").Select(e => e.Id).ToArray();
+        public static IReadOnlyList<string> BuiltInNames => Catalogue.Entries().Where(IsMaterialEntry).Select(e => e.Id).ToArray();
 
-        public static string Canonical(string name) => name == null ? null : Catalogue.Find(name) is CatalogueEntry e && e.Kind != "raman" ? e.Id : name.Trim();
+        /// <summary>Solids, liquids and gases are materials; Raman models, gain media and crystals are other catalogue kinds.</summary>
+        private static bool IsMaterialEntry(CatalogueEntry e) => e.Kind == "solid" || e.Kind == "gas";
 
-        public static bool IsBuiltIn(string name) => name != null && Catalogue.Find(name) is CatalogueEntry e && e.Kind != "raman";
+        public static string Canonical(string name) => name == null ? null : Catalogue.Find(name) is CatalogueEntry e && IsMaterialEntry(e) ? e.Id : name.Trim();
+
+        public static bool IsBuiltIn(string name) => name != null && Catalogue.Find(name) is CatalogueEntry e && IsMaterialEntry(e);
 
         /// <summary>Electronic nonlinear indices of gases at 1 bar, 273 K, ~800 nm (m^2/W); scaled with density. From the catalogue (Data/materials/gases),
         /// where each value carries its source and status.</summary>
@@ -31,7 +34,7 @@ namespace UltrafastEngine.Materials
         public static Material BuiltIn(string name, double gasPressureBar = 1.0, double gasTemperatureK = 293.15)
         {
             var e = Catalogue.Find(name);
-            if (e == null || e.Kind == "raman")
+            if (e == null || !IsMaterialEntry(e))
                 throw new ModelException("Unknown material \"" + name + "\". Built-in materials: " + string.Join(", ", BuiltInNames) + ". Define it in the system file's \"materials\" section (e.g. as an index table), or add a catalogue file (docs/reference/materials-catalogue.md).");
             Material m;
             if (e.Kind == "gas") m = string.Equals(e.Id, "Air", StringComparison.OrdinalIgnoreCase) ? Air(e) : Gas(e.Id, gasPressureBar, gasTemperatureK);

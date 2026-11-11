@@ -575,6 +575,10 @@
           "type": "boolean",
           "description": "Add air dispersion to air paths quoted relative to air Default: true."
         },
+        "strictMaterials": {
+          "type": "boolean",
+          "description": "Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same Default: false."
+        },
         "polarization": {
           "type": "string",
           "enum": ["jones", "scalar"],

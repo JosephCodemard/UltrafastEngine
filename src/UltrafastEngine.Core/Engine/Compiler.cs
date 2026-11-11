@@ -381,12 +381,21 @@ namespace UltrafastEngine.Engine
             foreach (var r in c.Ov.Rules.Where(r => r.Target.StartsWith("material:", StringComparison.OrdinalIgnoreCase)))
                 if (!c.Out.Materials.Keys.Any(k => r.Matches("material", k, null)))
                     c.Out.Warnings.Add("Override " + r.Target + " / " + r.Property + " (" + r.Origin + "): material not used in this system.");
+            // strict materials: a run built on catalogue values that are not verified is refused (physics.strictMaterials or ULTRAFAST_STRICT_MATERIALS=1)
+            if (run.Physics.StrictMaterials || Environment.GetEnvironmentVariable("ULTRAFAST_STRICT_MATERIALS") == "1")
+            {
+                var open = c.Out.Provenance.UnverifiedInputs.Where(u => u.Catalogue.Status != CatalogueStatus.Verified).ToList();
+                if (open.Count > 0)
+                    throw new ModelException("strict materials: the run uses " + open.Count + " catalogue value" + (open.Count == 1 ? "" : "s") + " that " + (open.Count == 1 ? "is" : "are") + " not verified:\n  "
+                        + string.Join("\n  ", open.Select(u => u.Material + "." + u.Property.Replace(" (catalogue)", "") + " [" + u.Catalogue.Path + "] " + u.Catalogue.Status.ToString().ToLowerInvariant() + ": " + u.Catalogue.Source))
+                        + "\nOverride each value (docs/reference/materials.md#the-material-catalogue), put a verified one in your own catalogue file, or switch physics.strictMaterials off.");
+            }
             return c.Out;
         }
 
         private static CompilerServices Services(Ctx c) => new CompilerServices
         {
-            System = c.Sys, Run = c.Run, Registry = c.Reg, Provenance = c.Out.Provenance, Omega0 = c.Omega0, Warnings = c.Out.Warnings,
+            System = c.Sys, Run = c.Run, Registry = c.Reg, Provenance = c.Out.Provenance, Omega0 = c.Omega0, Warnings = c.Out.Warnings, Notes = c.Out.Notes,
             TiltXRad = c.TiltX,
             FedTiltX = (id, port) =>
             {
@@ -1730,6 +1739,7 @@ namespace UltrafastEngine.Engine
         public ProvenanceLog Provenance { get; internal set; }
         public double Omega0 { get; internal set; }
         public List<string> Warnings { get; internal set; }
+        public List<string> Notes { get; internal set; }
         /// <summary>Carrier arriving on an element's input port, from what feeds it (rad/s); NaN if that is not compiled yet.</summary>
         internal Func<string, string, double> FedCarrier;
         /// <summary>Lab tilt (rad, x) arriving on an input port, and on the element's main input.</summary>

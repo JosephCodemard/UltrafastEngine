@@ -20,7 +20,7 @@ elements: `gain` (one pass through a pumped crystal, 1-D or spatial) and `amplif
 | `Ti:sapphire` | 3.2 µs | 3.3e25 m⁻³ | ≈ 795 nm, σe ≈ 3e-19 cm² | four-level, broadband, pumped at 490–532 nm |
 | `Nd:YAG` | 230 µs | 1 at.% | 1064.2 nm, σe ≈ 2.8e-19 cm² | four-level, narrow line, pumped at 808 nm |
 
-The cross sections are smooth fits to the published spectra (references in `provenance.json`), good to roughly
+The numbers of these media (lifetime, doping, bands, thermal and stress constants) are catalogue files (`Data/materials/gain`), each with its source and status (all are `approximate` or `unverified` so far; see [Material catalogue](materials-catalogue.md#gain-media)). A run that uses one says so in its notes and in `summary.json` (`unverifiedInputs`); thermal data are reported only with a thermal lens, stress constants only with `stress`. `physics.strictMaterials` refuses such a run ([strict mode](materials.md#strict-mode)). The cross sections are smooth fits to the published spectra (references in `provenance.json`), good to roughly
 10–20 %; replace them with your own data when it matters. For quasi-three-level media the emission and absorption
 spectra are linked by the **McCumber relation** σe/σa = exp((E_zl − hν)/kT), so each one also has the other's
 reabsorption tail. At room temperature this makes an unpumped Yb:YAG crystal absorb at 1030 nm (see example 15).

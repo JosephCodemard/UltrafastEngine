@@ -13,7 +13,7 @@ How the files work, how to override a value and how runs report the values they 
 
 A run that uses an `approximate` or `unverified` value says so in its notes and lists it under `unverifiedInputs` in `summary.json`.
 
-**115 quantities in 41 entries: 28 verified, 48 approximate, 37 unverified.**
+**183 quantities in 52 entries: 43 verified, 70 approximate, 68 unverified.**
 
 ## Solids and liquids
 
@@ -166,7 +166,7 @@ n2 not set (give one if it matters).
 
 | quantity | values | status | uncertainty | source |
 |---|---|---|---|---|
-| `index` | model = vendorSellmeier; referenceMedium = air; a = 3.77834; numeratorUm2 = 0.069736; poleUm2 = 0.04724; irTermPerUm2 = 0.0108133 (temperatureK 293.15) | unverified | differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-o-20C: A 3.778790, B 0.070479, C 0.045731, D 0.009701 in the same form) by -5.4e-4 at 633 nm, -5.9e-4 at 1064 nm; not changed, owner to choose | common vendor Sellmeier set; the original code did not record the vendor |
+| `index` | model = vendorSellmeier; referenceMedium = air; a = 3.77834; numeratorUm2 = 0.069736; poleUm2 = 0.04724; irTermPerUm2 = 0.0108133 (temperatureK 293.15) | unverified | differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-o-20C: A 3.778790, B 0.070479, C 0.045731, D 0.009701 in the same form) by -5.4e-4 at 633 nm, -5.9e-4 at 1064 nm; decision of the owner (2026-11-11): the vendor set stays | common vendor Sellmeier set; the original code did not record the vendor |
 | `n2` | valueM2PerW = 0 | unverified | 0 means not set, not a measured zero | not set: no value was entered for this material (give one if it matters) |
 
 ### YVO4-e
@@ -177,7 +177,7 @@ n2 not set (give one if it matters).
 
 | quantity | values | status | uncertainty | source |
 |---|---|---|---|---|
-| `index` | model = vendorSellmeier; referenceMedium = air; a = 4.59905; numeratorUm2 = 0.110534; poleUm2 = 0.04813; irTermPerUm2 = 0.0122676 (temperatureK 293.15) | unverified | differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-e-20C: A 4.607200, B 0.108087, C 0.052495, D 0.014305 in the same form) by -9.6e-4 at 633 nm, -9.2e-4 at 1064 nm; the birefringence differs by ~0.16 %; not changed, owner to choose | common vendor Sellmeier set; the original code did not record the vendor |
+| `index` | model = vendorSellmeier; referenceMedium = air; a = 4.59905; numeratorUm2 = 0.110534; poleUm2 = 0.04813; irTermPerUm2 = 0.0122676 (temperatureK 293.15) | unverified | differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-e-20C: A 4.607200, B 0.108087, C 0.052495, D 0.014305 in the same form) by -9.6e-4 at 633 nm, -9.2e-4 at 1064 nm; the birefringence differs by ~0.16 %; decision of the owner (2026-11-11): the vendor set stays | common vendor Sellmeier set; the original code did not record the vendor |
 | `n2` | valueM2PerW = 0 | unverified | 0 means not set, not a measured zero | not set: no value was entered for this material (give one if it matters) |
 
 ### aBBO
@@ -315,6 +315,14 @@ Dry air with 450 ppm CO2. Aliases: `AIR`.
 | `index` | model = ciddor; temperatureC = 20; pressurePa = 101325; relativeHumidityPercent = 0; co2Ppm = 450; borzsonyiCoefficients = [0.0001492644, 1.936E-05, 0.0004180757, 0.007434] (temperatureK 293.15, pressureBar 1.01325) | verified |  | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) (constants in the code); bundled check page other/air/Ciddor |
 | `n2Electronic` | valueM2PerWPerBar273K = 8.5E-24 (wavelengthM 8E-07, pressureBar 1, temperatureK 273) | approximate | about 20 % | electronic (instantaneous) n2 at 1 bar and 273 K near 800 nm; the original code cites the compilation of Lehmeier 1985 / Borzsonyi 2010 / Wahlstrand 2012; values differ by ~20 % between sources; not re-checked; air as a mixture of N2 and O2 |
 | `composition` | fractions = {"N2":0.7808,"O2":0.2095,"Ar":0.0093} | verified |  | mole fractions of dry air (standard atmosphere) |
+| `standardAirDispersion` | k0PerUm2 = 238.0185; k1PerUm2 = 5792105; k2PerUm2 = 57.362; k3PerUm2 = 167917 (temperatureK 288.15, pressureBar 1.01325) | verified |  | P. E. Ciddor, Appl. Opt. 35, 1566 (1996), dry-air dispersion: (n-1) 1e8 = k1 / (k0 - s^2) + k3 / (k2 - s^2), s = 1/lambda in 1/um; refractiveindex.info other/air/Ciddor (standard air 15 C, 101.325 kPa, 450 ppm CO2) Check: the page's coefficients 0.05792105, 238.0185, 0.00167917, 57.362 equal k1 / 1e8, k0, k3 / 1e8, k2; the engine at 15 C, 101325 Pa, dry, 450 ppm equals the page's formula (test CatalogueTests.CiddorAir_AtStandardConditions_EqualsTheDatabaseFormula). |
+| `co2Dependence` | co2SlopeFractionPerPpm = 5.34E-07; co2ReferencePpm = 450; airMolarMassGPerMol = 28.9635; airMolarMassSlopeGPerMolPerPpm = 1.2011E-05; airMolarMassReferencePpm = 400 | unverified | not compared with the paper; the dry-air index at 633 nm is checked against the paper's value in FoundationTests | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) (dispersion changes by 0.534e-6 per ppm of CO2 about 450 ppm; molar mass of dry air 28.9635 + 12.011e-6 (x_CO2 - 400) g/mol); not re-read |
+| `waterVaporDispersion` | polynomialCoefficients = [295.235, 2.6422, -0.03238, 0.004028]; units = (n_ws - 1) 1e8 = cf (w0 + w1 s^2 + w2 s^4 + w3 s^6), s in 1/um; correctionFactor = 1.022 | unverified | humid-air results are not compared with the paper | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) water-vapour dispersion (w0..w3, cf); not re-read |
+| `thermodynamics` | gasConstantJPerMolK = 8.31451; waterMolarMassKgPerMol = 0.018015; airMolarMassKgPerGPerMolFactor = 0.001 | unverified | constants of the paper; transcription not re-read | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) (R = 8.314510 J/(mol K), M_w = 0.018015 kg/mol); not re-read |
+| `saturationVapourPressure` | coefficients = [1.2378847E-05, -0.019121316, 33.93711047, -6343.1645]; units = p_sv = exp(A T^2 + B T + C + D / T) in Pa, T in K | unverified | not compared with the standard | CIPM-2007 / Ciddor 1996 saturation vapour pressure of water; transcription not re-read |
+| `enhancementFactor` | coefficients = [1.00062, 3.14E-08, 5.6E-07]; units = f = a + b p + c t^2, p in Pa, t in degC | unverified | not compared with the standard | enhancement factor of water vapour in air (Ciddor 1996 / CIPM-2007); transcription not re-read |
+| `compressibility` | coefficients = [1.58123E-06, -2.9331E-08, 1.1043E-10, ... (9 values)]; units = a0, a1, a2, b0, b1, c0, c1, d, e of Z(p, T, x_w) | unverified | not compared with the standard | compressibility factor of moist air (Ciddor 1996 / CIPM-2007); transcription not re-read |
+| `referenceStates` | standardAirPressurePa = 101325; standardAirTemperatureK = 288.15; waterVaporPressurePa = 1333; waterVaporTemperatureK = 293.15 | approximate | definitions; transcription not re-read | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) reference states of the density ratios |
 
 ### He
 
@@ -453,6 +461,155 @@ Molecular reorientation of a liquid (CS2 values).
 |---|---|---|---|---|
 | `response` | model = orientational; riseS = 2E-13; decayS = 1.6E-12; anisotropicFraction = 1.5 (host CS2, temperatureK 293.15) | unverified | about 30 % | h(t) = (exp(-t/1.6 ps) - exp(-t/0.2 ps)) / 1.4 ps: typical CS2 values of the original code (decay ~1.6-2 ps is the commonly quoted reorientation time); the rise time and the exact decay are unverified; 1.5 = purely orientational (h_a = -h_b/3) |
 
+## Gain media
+
+### Yb:YAG
+
+Ytterbium-doped YAG (quasi-three-level). Aliases: `ybyag`.
+
+Yb:YAG cross sections are an analytic room-temperature fit; the McCumber relation gives reabsorption at the lasing wavelength (~0.1e-20 cm^2 at 1030 nm). Cryogenic linewidths are not modelled (only the Boltzmann factor follows temperatureK).
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `doping` | host = YAG; dopingDensityM3 = 2.76E+26 | approximate | user-specific: set dopingDensityM3 or dopingAtPercent | doping density of the original code (2 x 1.38e26 m^-3); give your crystal's doping |
+| `lifetime` | lifetimeS = 0.00095 | approximate | about 10 % | Sumida and Fan, OSA TOPS 1995 (upper-state lifetime 0.95 ms), as cited by the original code; not re-read |
+| `zeroLine` | zeroLineWavelengthM = 9.688E-07 | approximate | about 0.1 % | zero-phonon line 968.8 nm of Yb:YAG, as used by the original code for the McCumber relation; not re-read |
+| `thermal` | thermalConductivityWPerMK = 9.5; dnDTPerK = 7.8E-06 | unverified | not stated in the original code | typical values of Yb:YAG (original code); conductivity falls with doping |
+| `stress` | thermalExpansionPerK = 7.5E-06; stressCr = 0.017; stressCphi = -0.0025 | unverified | not stated in the original code | photo-elastic constants of YAG after Koechner, Solid-State Laser Engineering (thermal-effects chapter), as cited by the original code; not re-read |
+| `emission` | shape = gaussians; bands = [{"wavelengthM":1.03E-06,"sigmaCm2":2.1E-20,"fwhmM":8.5E-09}, {"wavelengthM":1.0485E-06,"sigmaCm2":3.2E-21,"fwhmM":1.6E-08}, {"wavelengthM":1.015E-06,"sigmaCm2":3.5E-21,"fwhmM":3E-08}]; description = Gaussian-band fit: 2.1e-20 cm^2 at 1030 nm (8.5 nm FWHM), 1048 nm shoulder, broad base (temperatureK 293.15) | approximate | about 20 % | room-temperature values after Koerner et al., Appl. Phys. B 75, 2002 (cross sections) and Sumida & Fan, OSA TOPS 1995 (lifetime 0.95 ms); lasing-band absorption and pump-band emission from the McCumber relation (zero line 968.8 nm); approximate analytic fit (~10-20 %) -- override with measured tables |
+| `absorption` | shape = gaussians; bands = [{"wavelengthM":9.405E-07,"sigmaCm2":7.7E-21,"fwhmM":1.8E-08}, {"wavelengthM":9.688E-07,"sigmaCm2":8.5E-21,"fwhmM":2.8E-09}, {"wavelengthM":9.15E-07,"sigmaCm2":2.5E-21,"fwhmM":1.5E-08}]; description = Gaussian-band fit: 0.77e-20 cm^2 at 940 nm (18 nm FWHM), 0.85e-20 cm^2 at 969 nm (2.8 nm) (temperatureK 293.15) | approximate | about 20 % | pump-band absorption of Yb:YAG, approximate analytic fit (~10-20 %), after the same references as the emission band -- override with measured tables |
+
+### Ti:sapphire
+
+Titanium-doped sapphire (four-level). Aliases: `tisa`, `tisapphire`, `ti:sa`, `ti:al2o3`.
+
+Ti:sapphire is treated as a four-level system (no lasing-band absorption); the residual infrared absorption (figure of merit) is not included -- add it with absorptionProfile or a material attenuation.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `doping` | host = Sapphire; dopingDensityM3 = 3.3E+25 | approximate | user-specific: set dopingDensityM3 | doping density of the original code; give your crystal's doping |
+| `lifetime` | lifetimeS = 3.2E-06 | approximate | about 10 % | Moulton, JOSA B 3, 125 (1986) (lifetime 3.2 us), as cited by the original code; not re-read |
+| `thermal` | thermalConductivityWPerMK = 33; dnDTPerK = 1.3E-05 | unverified | not stated in the original code | typical values of sapphire (original code) |
+| `emission` | shape = asymmetricGaussian; peakWavelengthM = 7.95E-07; sigmaCm2 = 3E-19; hwhmShortM = 7.5E-08; hwhmLongM = 1.4E-07; description = asymmetric-Gaussian fit, pi polarisation: 3.0e-19 cm^2 at 795 nm, half widths 75 / 140 nm | approximate | about 20 % | after Moulton, JOSA B 3, 125 (1986) (pi-polarised cross sections, lifetime 3.2 us); four-level; approximate analytic fit (~10-20 %) -- override with measured tables |
+| `absorption` | shape = gaussians; bands = [{"wavelengthM":4.9E-07,"sigmaCm2":6.4E-20,"fwhmM":1.15E-07}]; description = Gaussian fit, pi polarisation: 6.4e-20 cm^2 at 490 nm, 115 nm FWHM (~4.4e-20 cm^2 at 532 nm) | approximate | about 20 % | after Moulton, JOSA B 3, 125 (1986) (pi-polarised); approximate analytic fit (~10-20 %) -- override with measured tables |
+
+### Nd:YAG
+
+Neodymium-doped YAG (four-level). Aliases: `ndyag`.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `doping` | host = YAG; dopingDensityM3 = 1.38E+26 | approximate | user-specific: set dopingDensityM3 | 1 at.% Nd (Koechner), as in the original code |
+| `lifetime` | lifetimeS = 0.00023 | approximate | about 10 % | Koechner, Solid-State Laser Engineering (1 at.% Nd, tau = 230 us), as cited by the original code; not re-read |
+| `thermal` | thermalConductivityWPerMK = 10.5; dnDTPerK = 7.8E-06 | unverified | not stated in the original code | typical values of Nd:YAG (original code) |
+| `stress` | thermalExpansionPerK = 7.5E-06; stressCr = 0.017; stressCphi = -0.0025 | unverified | not stated in the original code | photo-elastic constants of YAG after Koechner (as for Yb:YAG); not re-read |
+| `emission` | shape = gaussians; bands = [{"wavelengthM":1.0642E-06,"sigmaCm2":2.8E-19,"fwhmM":6E-10}]; description = Gaussian fit: 2.8e-19 cm^2 at 1064.2 nm, 0.6 nm FWHM | approximate | about 20 % | Koechner, Solid-State Laser Engineering (1 at.% Nd, tau = 230 us); four-level; approximate analytic fit |
+| `absorption` | shape = gaussians; bands = [{"wavelengthM":8.085E-07,"sigmaCm2":7E-20,"fwhmM":2.5E-09}]; description = Gaussian fit: 7e-20 cm^2 at 808.5 nm, 2.5 nm FWHM | approximate | about 20 % | Koechner, Solid-State Laser Engineering; approximate analytic fit |
+
+## chi(2) crystals
+
+### BBO
+
+beta-barium borate, negative uniaxial. Aliases: `b-bab2o4`, `bab2o4`, `beta-bbo`.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula2; coefficients = [0, 0.90291, 0.003926, ... (7 values)]; validRangeUm = [0.188, 5.2]; citation = Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) (temperatureK 293.15) | verified |  | Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) (refractiveindex.info BaB2O4/Tamosauskas-o) Check: agrees with the coefficients of the fetched page BaB2O4_Tamosauskas-o (formula 2, 7 coefficients). |
+| `indexZ` | model = riiFormula2; coefficients = [0, 1.151075, 0.007142, ... (7 values)]; validRangeUm = [0.188, 5.2]; citation = Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) (temperatureK 293.15) | verified |  | Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) (refractiveindex.info BaB2O4/Tamosauskas-e) Check: agrees with the coefficients of the fetched page BaB2O4_Tamosauskas-e (formula 2, 7 coefficients). |
+| `d` | pointGroup = 3m; tensor = 3m; dPmPerV = {"d22":2.2,"d31":0.04} (wavelengthM 1.064E-06) | unverified | about 10 % | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
+| `n2` | valueM2PerW = 2.8E-20 (wavelengthM 8E-07) | unverified | about 30 % | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
+| `validity` | validRangeUm = [0.188, 5.2] | approximate | range of the index data; outside it the formula is extrapolated | Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) |
+
+### LBO
+
+lithium triborate, biaxial; the Kato (1994) set reproduces the handbook XY-plane type-I SHG angles (phi = 11.6 deg at 1064 nm, 13.8 deg at 1030 nm, 31.7 deg at 800 nm), the Chen / Hanson-Dick fit on refractiveindex.info gives 11.8 / 14.6 / 34.3 deg. Aliases: `lib3o5`.
+
+LBO indices are room-temperature (no thermal model): non-critical phase matching by temperature is not modelled.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula4; coefficients = [2.4542, 0.01125, 0, ... (11 values)]; validRangeUm = [0.19, 2.6]; citation = Kato, IEEE J. Quantum Electron. 30, 2950 (1994) (temperatureK 293.15) | unverified | not compared with the database page (none for this form) | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| `indexY` | model = riiFormula4; coefficients = [2.539, 0.01277, 0, ... (15 values)]; validRangeUm = [0.19, 2.6]; citation = Kato, IEEE J. Quantum Electron. 30, 2950 (1994) (temperatureK 293.15) | unverified | not compared with the database page (none for this form) | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| `indexZ` | model = riiFormula4; coefficients = [2.5865, 0.0131, 0, ... (15 values)]; validRangeUm = [0.19, 2.6]; citation = Kato, IEEE J. Quantum Electron. 30, 2950 (1994) (temperatureK 293.15) | unverified | not compared with the database page (none for this form) | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| `d` | pointGroup = mm2 (polar axis = Y); tensor = mm2:y; dPmPerV = {"d31":-0.67,"d32":0.85,"d33":0.04} (wavelengthM 1.064E-06) | unverified | about 10 % | Dmitriev, Gurzadyan & Nikogosyan, Handbook of Nonlinear Optical Crystals, as cited by the original code; not re-read |
+| `n2` | valueM2PerW = 1.9E-20 (wavelengthM 8E-07) | unverified | about 30 % | approximate value of the original code (no source recorded) |
+| `validity` | validRangeUm = [0.19, 2.6] | approximate | range of the index data; outside it the formula is extrapolated | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+
+### KTP
+
+potassium titanyl phosphate, biaxial (the aliases ppktp name the periodically poled form). Aliases: `ktiopo4`, `ppktp`.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula4; coefficients = [3.291, 0.0414, 0, ... (9 values)]; validRangeUm = [0.43, 3.54]; citation = Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (temperatureK 293.15) | verified |  | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (refractiveindex.info KTiOPO4/Kato-alpha) Check: agrees with the coefficients of the fetched page KTiOPO4_Kato-alpha (formula 4, 9 coefficients). |
+| `indexY` | model = riiFormula4; coefficients = [3.45018, 0.04341, 0, ... (9 values)]; validRangeUm = [0.43, 3.54]; citation = Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (temperatureK 293.15) | verified |  | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (refractiveindex.info KTiOPO4/Kato-beta) Check: agrees with the coefficients of the fetched page KTiOPO4_Kato-beta (formula 4, 9 coefficients). |
+| `indexZ` | model = riiFormula4; coefficients = [4.59423, 0.06206, 0, ... (9 values)]; validRangeUm = [0.43, 3.54]; citation = Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (temperatureK 293.15) | verified |  | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (refractiveindex.info KTiOPO4/Kato-gamma) Check: agrees with the coefficients of the fetched page KTiOPO4_Kato-gamma (formula 4, 9 coefficients). |
+| `d` | pointGroup = mm2; tensor = mm2; dPmPerV = {"d31":1.95,"d32":3.9,"d33":15.3} (wavelengthM 1.064E-06) | unverified | about 10 % | Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992), as cited by the original code; not re-read |
+| `n2` | valueM2PerW = 2.2E-19 (wavelengthM 8E-07) | unverified | about 30 % | DeSalvo et al., IEEE JQE 32, 1324 (1996), E\|\|z, as cited by the original code; not re-read |
+| `validity` | validRangeUm = [0.43, 3.54] | approximate | range of the index data; outside it the formula is extrapolated | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) |
+
+### KDP
+
+potassium dihydrogen phosphate, negative uniaxial. Aliases: `kh2po4`.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula4; coefficients = [2.259276, 13.00522, 2, ... (9 values)]; validRangeUm = [0.2138, 1.529]; citation = Zernike, JOSA 54, 1215 (1964) (temperatureK 293.15) | verified |  | Zernike, JOSA 54, 1215 (1964) (refractiveindex.info KH2PO4/Zernike-o) Check: agrees with the coefficients of the fetched page KH2PO4_Zernike-o (formula 4, 9 coefficients). |
+| `indexZ` | model = riiFormula4; coefficients = [2.132668, 3.2279924, 2, ... (9 values)]; validRangeUm = [0.2138, 1.529]; citation = Zernike, JOSA 54, 1215 (1964) (temperatureK 293.15) | verified |  | Zernike, JOSA 54, 1215 (1964) (refractiveindex.info KH2PO4/Zernike-e) Check: agrees with the coefficients of the fetched page KH2PO4_Zernike-e (formula 4, 9 coefficients). |
+| `d` | pointGroup = -42m; tensor = -42m; dPmPerV = {"d36":0.39} (wavelengthM 1.064E-06) | unverified | about 10 % | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
+| `n2` | valueM2PerW = 2E-20 (wavelengthM 8E-07) | unverified | about 30 % | Adair et al. (via refractiveindex.info), as cited by the original code; not re-read |
+| `validity` | validRangeUm = [0.2138, 1.529] | approximate | range of the index data; outside it the formula is extrapolated | Zernike, JOSA 54, 1215 (1964) |
+
+### LiNbO3
+
+congruent lithium niobate, negative uniaxial; the aliases ppln, cln name the poled / congruent forms. Aliases: `ln`, `cln`, `ppln`.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula2; coefficients = [0, 2.6734, 0.01764, ... (7 values)]; validRangeUm = [0.4, 5]; citation = Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) (temperatureK 293.15) | verified |  | Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) (refractiveindex.info LiNbO3/Zelmon-o) Check: agrees with the coefficients of the fetched page LiNbO3_Zelmon-o (formula 2, 7 coefficients). |
+| `indexZ` | model = jundt; a = [5.35583, 0.100473, 0.20692, 100, 11.34927, 0.015334]; b = [4.629E-07, 3.862E-08, -8.9E-09, 2.657E-05]; citation = Jundt, Opt. Lett. 22, 1553 (1997), congruent LiNbO3 e-ray; validRangeUm = [0.4, 5] (temperatureK 297.65) | unverified | not compared with the paper | Jundt, Opt. Lett. 22, 1553 (1997), congruent LiNbO3 e-ray (temperature dependent, T in degC) |
+| `d` | pointGroup = 3m; tensor = 3m; dPmPerV = {"d22":2.1,"d31":4.6,"d33":25} (wavelengthM 1.064E-06) | unverified | about 10 % | Shoji et al., JOSA B 14, 2268 (1997), as cited by the original code; not re-read |
+| `n2` | valueM2PerW = 9.3E-20 (wavelengthM 8E-07) | unverified | about 30 % | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
+| `validity` | validRangeUm = [0.4, 5] | approximate | range of the index data; outside it the formula is extrapolated | Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) |
+
+### MgO:LiNbO3
+
+5 mol% MgO-doped congruent lithium niobate. Aliases: `mgln`, `mgo:ln`, `mgo:ppln`, `ppmgln`, `mgo:cln`.
+
+MgO:LiNbO3: the o-ray index is that of congruent LiNbO3 (only e-ray data for the doped crystal are built in); type-0 (eee) QPM is unaffected.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula2; coefficients = [0, 2.6734, 0.01764, ... (7 values)]; validRangeUm = [0.4, 5]; citation = Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) (temperatureK 293.15) | verified |  | Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) (refractiveindex.info LiNbO3/Zelmon-o) Check: agrees with the coefficients of the fetched page LiNbO3_Zelmon-o (formula 2, 7 coefficients). |
+| `indexZ` | model = jundt; a = [5.756, 0.0983, 0.202, 189.32, 12.52, 0.0132]; b = [2.86E-06, 4.7E-08, 6.113E-08, 0.0001516]; citation = Gayer et al., Appl. Phys. B 91, 343 (2008), 5% MgO:CLN e-ray; validRangeUm = [0.5, 4] (temperatureK 297.65) | unverified | the temperature coefficient b4 = 1.516e-4 could not be cross-checked (pyNLO uses 1.526e-5) | Gayer et al., Appl. Phys. B 91, 343 (2008), 5% MgO:CLN e-ray (temperature dependent, T in degC) |
+| `d` | pointGroup = 3m; tensor = 3m; dPmPerV = {"d22":2.1,"d31":4.4,"d33":25} (wavelengthM 1.064E-06) | unverified | about 10 % | d33 = 25 pm/V as cited by the original code; not re-read |
+| `n2` | valueM2PerW = 9.3E-20 (wavelengthM 8E-07) | unverified | about 30 % | copy of the congruent LiNbO3 value (DeSalvo et al. 1996); not re-read |
+| `validity` | validRangeUm = [0.5, 4] | approximate | range of the index data; outside it the formula is extrapolated | Gayer et al., Appl. Phys. B 91, 343 (2008) |
+
+### BiBO
+
+bismuth triborate, biaxial (monoclinic: no d tensor built in). Aliases: `bib3o6`.
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula4; coefficients = [3.07403, 0.03231, 0, ... (11 values)]; validRangeUm = [0.48, 3.1]; citation = Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (temperatureK 293.15) | verified |  | Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (refractiveindex.info BiB3O6/Umemura-alpha) Check: agrees with the coefficients of the fetched page BiB3O6_Umemura-alpha (formula 4, 11 coefficients). |
+| `indexY` | model = riiFormula4; coefficients = [3.1694, 0.03717, 0, ... (11 values)]; validRangeUm = [0.48, 3.1]; citation = Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (temperatureK 293.15) | verified |  | Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (refractiveindex.info BiB3O6/Umemura-beta) Check: agrees with the coefficients of the fetched page BiB3O6_Umemura-beta (formula 4, 11 coefficients). |
+| `indexZ` | model = riiFormula4; coefficients = [3.6545, 0.05112, 0, ... (11 values)]; validRangeUm = [0.48, 3.1]; citation = Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (temperatureK 293.15) | verified |  | Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (refractiveindex.info BiB3O6/Umemura-gamma) Check: agrees with the coefficients of the fetched page BiB3O6_Umemura-gamma (formula 4, 11 coefficients). |
+| `n2` | valueM2PerW = 7.65E-20 (wavelengthM 8E-07) | unverified | about 30 % | Kabacinski et al. (via refractiveindex.info), as cited by the original code; not re-read |
+| `validity` | validRangeUm = [0.48, 3.1] | approximate | range of the index data; outside it the formula is extrapolated | Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) |
+
+### AgGaSe2
+
+silver gallium selenide, negative uniaxial (mid-infrared).
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `indexX` | model = riiFormula4; coefficients = [11.62264, 0.43221, 0, ... (9 values)]; validRangeUm = [0.81, 18]; citation = Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) (temperatureK 293.15) | verified |  | Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) (refractiveindex.info AgGaSe2/Kato-o) Check: agrees with the coefficients of the fetched page AgGaSe2_Kato-o (formula 4, 9 coefficients). |
+| `indexZ` | model = riiFormula4; coefficients = [11.33168, 0.45951, 0, ... (9 values)]; validRangeUm = [0.81, 18]; citation = Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) (temperatureK 293.15) | verified |  | Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) (refractiveindex.info AgGaSe2/Kato-e) Check: agrees with the coefficients of the fetched page AgGaSe2_Kato-e (formula 4, 9 coefficients). |
+| `d` | pointGroup = -42m; tensor = -42m; dPmPerV = {"d36":33} (wavelengthM 1.064E-06) | unverified | about 10 % | d36 = 33 pm/V of the original code; no source recorded |
+| `n2` | valueM2PerW = 3.5E-18 (wavelengthM 8E-07) | unverified | about 100 % | approximate value of the original code (no source recorded) |
+| `validity` | validRangeUm = [0.81, 18] | approximate | range of the index data; outside it the formula is extrapolated | Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) |
+
 ## Not verified yet
 
 The to-do list for anyone with the papers: every quantity whose status is not `verified`.
@@ -460,17 +617,70 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | entry | quantity | status | what to check |
 |---|---|---|---|
 | Air | `n2Electronic` | approximate | electronic (instantaneous) n2 at 1 bar and 273 K near 800 nm; the original code cites the compilation of Lehmeier 1985 / Borzsonyi 2010 / Wahlstrand 2012; values differ by ~20 % between sources; not re-checked; air as a mixture of N2 and O2 |
+| Air | `co2Dependence` | unverified | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) (dispersion changes by 0.534e-6 per ppm of CO2 about 450 ppm; molar mass of dry air 28.9635 + 12.011e-6 (x_CO2 - 400) g/mol); not re-read |
+| Air | `waterVaporDispersion` | unverified | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) water-vapour dispersion (w0..w3, cf); not re-read |
+| Air | `thermodynamics` | unverified | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) (R = 8.314510 J/(mol K), M_w = 0.018015 kg/mol); not re-read |
+| Air | `saturationVapourPressure` | unverified | CIPM-2007 / Ciddor 1996 saturation vapour pressure of water; transcription not re-read |
+| Air | `enhancementFactor` | unverified | enhancement factor of water vapour in air (Ciddor 1996 / CIPM-2007); transcription not re-read |
+| Air | `compressibility` | unverified | compressibility factor of moist air (Ciddor 1996 / CIPM-2007); transcription not re-read |
+| Air | `referenceStates` | approximate | P. E. Ciddor, Appl. Opt. 35, 1566 (1996) reference states of the density ratios |
+| BBO | `d` | unverified | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
+| BBO | `n2` | unverified | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
+| BBO | `validity` | approximate | Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) |
+| Yb:YAG | `doping` | approximate | doping density of the original code (2 x 1.38e26 m^-3); give your crystal's doping |
+| Yb:YAG | `lifetime` | approximate | Sumida and Fan, OSA TOPS 1995 (upper-state lifetime 0.95 ms), as cited by the original code; not re-read |
+| Yb:YAG | `zeroLine` | approximate | zero-phonon line 968.8 nm of Yb:YAG, as used by the original code for the McCumber relation; not re-read |
+| Yb:YAG | `thermal` | unverified | typical values of Yb:YAG (original code); conductivity falls with doping |
+| Yb:YAG | `stress` | unverified | photo-elastic constants of YAG after Koechner, Solid-State Laser Engineering (thermal-effects chapter), as cited by the original code; not re-read |
+| Yb:YAG | `emission` | approximate | room-temperature values after Koerner et al., Appl. Phys. B 75, 2002 (cross sections) and Sumida & Fan, OSA TOPS 1995 (lifetime 0.95 ms); lasing-band absorption and pump-band emission from the McCumber relation (zero line 968.8 nm); approximate analytic fit (~10-20 %) -- override with measured tables |
+| Yb:YAG | `absorption` | approximate | pump-band absorption of Yb:YAG, approximate analytic fit (~10-20 %), after the same references as the emission band -- override with measured tables |
 | FusedSilica | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | FusedSilica | `ionization` | unverified | typical values for Keldysh / plasma models of fused silica; the original code did not record a source |
+| LBO | `indexX` | unverified | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| LBO | `indexY` | unverified | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| LBO | `indexZ` | unverified | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| LBO | `d` | unverified | Dmitriev, Gurzadyan & Nikogosyan, Handbook of Nonlinear Optical Crystals, as cited by the original code; not re-read |
+| LBO | `n2` | unverified | approximate value of the original code (no source recorded) |
+| LBO | `validity` | approximate | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| Ti:sapphire | `doping` | approximate | doping density of the original code; give your crystal's doping |
+| Ti:sapphire | `lifetime` | approximate | Moulton, JOSA B 3, 125 (1986) (lifetime 3.2 us), as cited by the original code; not re-read |
+| Ti:sapphire | `thermal` | unverified | typical values of sapphire (original code) |
+| Ti:sapphire | `emission` | approximate | after Moulton, JOSA B 3, 125 (1986) (pi-polarised cross sections, lifetime 3.2 us); four-level; approximate analytic fit (~10-20 %) -- override with measured tables |
+| Ti:sapphire | `absorption` | approximate | after Moulton, JOSA B 3, 125 (1986) (pi-polarised); approximate analytic fit (~10-20 %) -- override with measured tables |
+| KTP | `d` | unverified | Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992), as cited by the original code; not re-read |
+| KTP | `n2` | unverified | DeSalvo et al., IEEE JQE 32, 1324 (1996), E\|\|z, as cited by the original code; not re-read |
+| KTP | `validity` | approximate | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) |
 | N-BK7 | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | N-BK7 | `ionization` | unverified | typical values; the original code did not record a source |
+| Nd:YAG | `doping` | approximate | 1 at.% Nd (Koechner), as in the original code |
+| Nd:YAG | `lifetime` | approximate | Koechner, Solid-State Laser Engineering (1 at.% Nd, tau = 230 us), as cited by the original code; not re-read |
+| Nd:YAG | `thermal` | unverified | typical values of Nd:YAG (original code) |
+| Nd:YAG | `stress` | unverified | photo-elastic constants of YAG after Koechner (as for Yb:YAG); not re-read |
+| Nd:YAG | `emission` | approximate | Koechner, Solid-State Laser Engineering (1 at.% Nd, tau = 230 us); four-level; approximate analytic fit |
+| Nd:YAG | `absorption` | approximate | Koechner, Solid-State Laser Engineering; approximate analytic fit |
 | CaF2 | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | CaF2 | `ionization` | unverified | typical values; the original code did not record a source |
+| KDP | `d` | unverified | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
+| KDP | `n2` | unverified | Adair et al. (via refractiveindex.info), as cited by the original code; not re-read |
+| KDP | `validity` | approximate | Zernike, JOSA 54, 1215 (1964) |
+| LiNbO3 | `indexZ` | unverified | Jundt, Opt. Lett. 22, 1553 (1997), congruent LiNbO3 e-ray (temperature dependent, T in degC) |
+| LiNbO3 | `d` | unverified | Shoji et al., JOSA B 14, 2268 (1997), as cited by the original code; not re-read |
+| LiNbO3 | `n2` | unverified | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
+| LiNbO3 | `validity` | approximate | Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) |
 | Sapphire | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | Sapphire | `ionization` | unverified | typical values; the original code did not record a source |
+| MgO:LiNbO3 | `indexZ` | unverified | Gayer et al., Appl. Phys. B 91, 343 (2008), 5% MgO:CLN e-ray (temperature dependent, T in degC) |
+| MgO:LiNbO3 | `d` | unverified | d33 = 25 pm/V as cited by the original code; not re-read |
+| MgO:LiNbO3 | `n2` | unverified | copy of the congruent LiNbO3 value (DeSalvo et al. 1996); not re-read |
+| MgO:LiNbO3 | `validity` | approximate | Gayer et al., Appl. Phys. B 91, 343 (2008) |
 | YAG | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | YAG | `ionization` | unverified | typical values; the original code did not record a source |
+| BiBO | `n2` | unverified | Kabacinski et al. (via refractiveindex.info), as cited by the original code; not re-read |
+| BiBO | `validity` | approximate | Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) |
 | N-SF11 | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
+| AgGaSe2 | `d` | unverified | d36 = 33 pm/V of the original code; no source recorded |
+| AgGaSe2 | `n2` | unverified | approximate value of the original code (no source recorded) |
+| AgGaSe2 | `validity` | approximate | Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) |
 | MgF2 | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | MgF2 | `ionization` | unverified | typical values; the original code did not record a source |
 | He | `n2Electronic` | approximate | electronic (instantaneous) n2 at 1 bar and 273 K near 800 nm; the original code cites the compilation of Lehmeier 1985 / Borzsonyi 2010 / Wahlstrand 2012; values differ by ~20 % between sources; not re-checked |

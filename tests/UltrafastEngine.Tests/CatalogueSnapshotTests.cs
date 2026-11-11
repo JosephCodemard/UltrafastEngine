@@ -84,10 +84,44 @@ namespace UltrafastEngine.Tests
                 for (int i = 0; i < h.Length; i++) d["raman:" + kv.Key + ".h[" + i + "]"] = R(h[i]);
             }
             foreach (var kind in new[] { "silica", "blowWood", "hollenbeck", "linAgrawal", "other" }) d["ramanfraction:" + kind] = R(MaterialLibrary.DefaultRamanFraction(kind));
+            // gain media (cross sections on a wavelength comb, scalars), crystals (principal indices, tensor, scalars), Ciddor air
+            var wl = Enumerate(40, 0.45e-6, 1.12e-6);
+            foreach (var gname in UltrafastEngine.Gain.GainMedium.Names)
+                foreach (var temp in new[] { 293.15, 350.0 })
+                {
+                    var g = UltrafastEngine.Gain.GainMedium.Get(gname, temp); string k = "gain:" + gname + "@" + R(temp);
+                    d[k + ".scalars"] = string.Join(" ", new[] { g.LifetimeS, g.DopingDensityM3, g.ZeroLineM, g.ThermalConductivity, g.DnDT, g.ThermalExpansionPerK, g.StressCr, g.StressCphi, g.TemperatureK }.Select(R));
+                    d[k + ".text"] = g.Name + "|" + g.Host + "|" + g.Notes.Count;
+                    for (int i = 0; i < wl.Length; i++)
+                    {
+                        double w = UltrafastEngine.Gain.GainMedium.Omega(wl[i]);
+                        d[k + ".s[" + i + "]"] = R(g.SigmaE(w)) + " " + R(g.SigmaA(w)) + " " + R(g.SaturationFluence(w));
+                    }
+                }
+            var lam = Enumerate(8, 0.9e-6, 1.5e-6);
+            foreach (var cname in UltrafastEngine.Crystals.CrystalLibrary.Names)
+                foreach (var temp in new[] { 20.0, 80.0 })
+                {
+                    var cx = UltrafastEngine.Crystals.CrystalLibrary.Get(cname, temp); string k = "crystal:" + cname + "@" + R(temp);
+                    d[k + ".text"] = cx.Name + "|" + cx.OpticalClass + "|" + cx.PointGroup + "|" + cx.TemperatureDependent + "|" + cx.Notes.Count;
+                    d[k + ".scalars"] = string.Join(" ", new[] { cx.N2, cx.ValidMinUm, cx.ValidMaxUm, cx.DeffOverrideMPerV, cx.TemperatureC }.Select(R));
+                    if (cx.D != null) for (int a = 0; a < 3; a++) d[k + ".d" + a] = string.Join(" ", Enumerable.Range(0, 6).Select(b => R(cx.D[a, b])));
+                    var om = lam.Select(l => 2 * Math.PI * 2.99792458e8 / l).ToArray();
+                    foreach (var (axis, ix) in new[] { ("x", cx.Nx), ("y", cx.Ny), ("z", cx.Nz) }) { var n = new double[om.Length]; ix.Evaluate(om, n); d[k + ".n" + axis] = string.Join(" ", n.Select(R)); }
+                }
+            foreach (var (tc, p, rh, co2) in new[] { (20.0, 101325.0, 0.0, 450.0), (15.0, 101325.0, 0.5, 400.0), (25.0, 90000.0, 0.4, 450.0) })
+            {
+                var ai = new CiddorAirIndex(tc, p, rh, co2); var n = new double[omega.Length]; ai.Evaluate(omega, n);
+                string k = "ciddor:" + R(tc) + "," + R(p) + "," + R(rh) + "," + R(co2);
+                d[k + ".xw"] = R(ai.WaterVaporMoleFraction);
+                for (int i = 0; i < n.Length; i++) d[k + ".n[" + i + "]"] = R(n[i]);
+            }
             d["const:BaF2N2PerW"] = R(MaterialLibrary.BaF2N2PerW); d["const:BaF2Sigma"] = R(MaterialLibrary.BaF2Sigma);
             d["const:CS2"] = string.Join(" ", new[] { MaterialLibrary.CS2N2TotalPerW, MaterialLibrary.CS2OrientationalFraction, MaterialLibrary.CS2RiseS, MaterialLibrary.CS2DecayS }.Select(R));
             return d;
         }
+
+        private static double[] Enumerate(int n, double lo, double hi) => Enumerable.Range(0, n).Select(i => lo + (hi - lo) * i / (n - 1)).ToArray();
 
         private static IEnumerable<KeyValuePair<string, double>> GasN2Table() => MaterialLibrary.GasN2PerBar.OrderBy(k => k.Key, StringComparer.Ordinal);
 
