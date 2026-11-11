@@ -84,7 +84,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Roadmap](docs/roadmap.md)
 - [For AI agents](docs/agents.md)
 - [Claude Code setup](docs/claude-code.md): CLAUDE.md files, commands, subagents, skills, hooks
-- [Releasing](docs/releasing.md): build.sh / build.bat release packages
+- [Releasing](docs/releasing.md): build.sh / build.bat release packages, release components, `install.py` (selective install / uninstall)
 
 ## Design notes
 - [Development history](docs/design/history.md)
@@ -99,6 +99,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Session C notes](docs/design/notes/session-c.md)
 - [Session D notes](docs/design/notes/session-d.md)
 - [Session E notes](docs/design/notes/session-e.md)
+- [Session F notes](docs/design/notes/session-f.md)
 - [Architecture](docs/architecture/index.md)
 - [Code map](docs/architecture/code-map.md)
 - [Key processes](docs/architecture/processes.md)

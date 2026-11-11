@@ -160,7 +160,7 @@ The full documentation is at **<https://josephcodemard.github.io/UltrafastEngine
 | [Papers](docs/papers/README.md) and [component tests](docs/component-tests.md) | published results reproduced and every component checked, with plots |
 | [Plugins](docs/plugins/index.md) | the fitting, zemax, gpu and hitran plugins, [installing](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
 | [For AI agents](docs/agents.md) | how to drive and extend the engine programmatically ([`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt)); the [Claude Code](docs/claude-code.md) setup |
-| [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages for each platform, with only the plugins you choose |
+| [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages and release assets; `install.py` installs or removes only the components you name |
 
 ## Repository layout
 

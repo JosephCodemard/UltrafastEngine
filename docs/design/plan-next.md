@@ -119,7 +119,9 @@ tolerance, measured first); the old behaviour recovered for a narrow spectrum (1
 | SPGD gain sensitivity (1.5 → 0.64, 3 → 0.95, 5 → 0.80) | the gain is in units of 1 / metric: normalise the metric by its starting value, add a documented default and a gain sweep to the docs; optionally gain sequences (Spall) | a default that reaches ≥ 0.9 across a stated range of metric scales |
 | cw against pulse: 3e-6, not 1e-9 | build the cw line **at the requested carrier**: shift the lattice so a bin sits on it (as pulses have been since 2.2.0, `snapCarrier`); every cw result moves by about 1e-6, so re-baseline the cw reference tests at their stated tolerances and list them in the changelog | cw and pulse patterns agree to 1e-9 in the S2 test; no test tolerance loosened |
 
-### WP8. Release system: the full repository, plus a selective installer and uninstaller (M)
+### ~~WP8. Release system: the full repository, plus a selective installer and uninstaller (M)~~ built; the workflow has not run on GitHub yet
+
+*Done 2026-11-11 (session F): see [notes/session-f.md](notes/session-f.md) and [releasing.md](../releasing.md). Built: components and manifest, `install.py` (release and git sources, install, add, upgrade, uninstall), the packager's `--components`, the ZOS-API gate, `release.yml`, 23 tests. *Commented:* macOS NativeAOT is built on the owner's Mac (no macOS runner); parts of a group (`examples.Branched.pump-probe`) are members of the group archive, not separate assets; `python-native` and `media` are not in `all`. Not run: the workflow itself, the Linux / Windows NativeAOT jobs, the wheel in a fresh venv. No tag created.*
 
 *Decision (owner, 2026-11-10):* a release is the **full repository** (source archive, plus the built per-platform packages as assets), and a **custom installer / uninstaller** lets the user take only
 part of it, e.g. `--include python tests examples.Branched`. *Today* `build.sh` / `build/package.py` build one folder per platform with a maintainer's choice of components
@@ -172,7 +174,7 @@ spline against network) are written directly in the new structure.
 | ~~C~~ | ~~WP3~~ **done 2026-11-11** ([notes/session-c.md](notes/session-c.md)); papers still to read | mostly plumbing and reading papers; owner supplies the PDFs |
 | ~~D~~ | ~~WP2~~ **done 2026-11-11** ([notes/session-d.md](notes/session-d.md)) | spike first, then ASE, then the pattern |
 | ~~E~~ | ~~WP7 (Raman, SLM, tiled array)~~ **done 2026-11-11** ([notes/session-e.md](notes/session-e.md)) | investigations; may run beside B-D |
-| F | WP8 (packager, `install.py`, workflow) | packaging and a workflow; Sonnet-class |
+| ~~F~~ | ~~WP8 (packager, `install.py`, workflow)~~ **done 2026-11-11** ([notes/session-f.md](notes/session-f.md)); the workflow still has to run once on GitHub | packaging and a workflow; Sonnet-class |
 | G-H | WP9 waves 1-4 | one example group per sitting; `example_lint` first |
 
 ## 4. Definition of done for the iteration

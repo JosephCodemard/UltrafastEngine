@@ -74,5 +74,8 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `python/tests/` | the Python package; `test_pynlo*.py` and `test_lightpipes.py` are cross-checks with independent codes, skipped when those are absent |
 | `build/example_check.py` | runs every example and compares the numbers quoted in its README |
 | `build/gallery.py` | writes `docs/gallery.md` from the `hero.png` / `animation.gif` files next to the examples |
+| `install.py` | the selective installer / uninstaller of a release: `fetch_manifest`, `expand` / `resolve` (dotted names, dependencies, platform assets), `install`, `uninstall`, `install_git`; the install record `.ultrafast-install.json` |
+| `build/release_components.py` | the component registry (`definitions`), source file selection from `git ls-files` (`collect`), the reproducible asset writer, manifest build and merge, the ZOS-API gate (`forbidden`, `check_archives`) |
+| `build/package.py` (`--components`) | `build_release` slices what the single-folder `Builder` steps produce into per-component assets; `.github/workflows/release.yml` runs it per OS and merges |
 | `build/examples_cli.py` | the `ultrafast-examples` command (`list`, `copy`, `run`); `build/package.py --examples-wheel` installs it with the examples as package data |
 | `docs/examples/make_all.py`, `_figures.py`, `<Group>/<name>/make_figures.py` | run every example and write its figures (`figures/`, git-ignored) or, for the Computing group, the committed `hero.png` and `animation.gif`; checks the size budget |

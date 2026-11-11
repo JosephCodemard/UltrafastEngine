@@ -100,6 +100,7 @@ nav:
       - "Session C: the material catalogue": design/notes/session-c.md
       - "Session D: ASE over the inversion lifetime, stress-birefringence pattern": design/notes/session-d.md
       - "Session E: the open findings (Raman shift rate, SLM against Fourier, tiled-array reference)": design/notes/session-e.md
+      - "Session F: the release system (components, install.py, workflow)": design/notes/session-f.md
 markdown_extensions:
   - admonition
   - tables
