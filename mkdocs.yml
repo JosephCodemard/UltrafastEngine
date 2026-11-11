@@ -98,6 +98,7 @@ nav:
       - "Session A: ny = 1, speed decisions, cw carrier, SPGD gain": design/notes/session-a.md
       - "Session B: thermal-lens duct, frequency-resolved Drude plasma": design/notes/session-b.md
       - "Session C: the material catalogue": design/notes/session-c.md
+      - "Session D: ASE over the inversion lifetime, stress-birefringence pattern": design/notes/session-d.md
 markdown_extensions:
   - admonition
   - tables

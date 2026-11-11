@@ -97,11 +97,48 @@ off with `"steadyState": false`, or tune it with `{"maxPulses": 400, "tolerance"
 
 ## ASE
 
-`"ase": true` (with `aseSeed`) on a 1-D gain or amplifier element seeds amplified spontaneous emission. In every
-slice, each frequency bin (one temporal mode) receives noise of mean energy ħω·σe(ω)·N2·dz in the signal's
-spatial mode and polarisation. This is spontaneous emission into the mode, which is then amplified like the
-signal. The seeded energy is booked as `ASE (spontaneous emission)` (negative) and reported as
-`aseSeedEnergyJ`. Only the time window is simulated, so the ASE emitted between pulses is not counted.
+Two models, which can be used together.
+
+**Noise in the pulse window** (`"ase": true`, `aseSeed`; 1-D only). In every slice each frequency bin (one temporal mode) receives noise of mean energy
+ħω·σe(ω)·N2·dz in the signal's spatial mode and polarisation, which is then amplified like the signal. The seeded energy is booked as
+`ASE (spontaneous emission)` (negative) and reported as `aseSeedEnergyJ`. Only the time window is simulated.
+
+**ASE over the inversion lifetime** (`"aseModel": true` or an object; gain and amplifier elements). Between pulses (milliseconds) the ASE crosses the crystal in
+picoseconds, so it is solved at frozen N2 and then depletes N2 in the rate equations (`PumpCw`, the decay between pulses, the steady state of the pulse train, a single shot).
+For every transverse cell and every frequency ν of the emission band, the intensity I (W/m²/Hz) of the forward (from z = 0) and backward (from z = L) ASE obeys
+
+`dI/dz = ±γ I + p h ν σe N2 q`, `γ = σe N2 − σa (N_t − N2)`, `q = n² Ω / λ0²`
+
+with p the number of polarisations (default 2) and Ω the solid angle of the rays that matter. The slice step is exact for constant γ. The stimulated photons of each slice
+(output − input − source) are taken from N2, so the photon balance is exact; the spontaneous part is already in the lifetime 1/τ and is not subtracted twice. Keys of `aseModel`:
+
+| key | meaning | default |
+|---|---|---|
+| `solidAngleSr` | effective solid angle inside the medium of the ASE that depletes the inversion | min(π r_pump² / L², escape cone 2π(1 − √(1 − 1/n²))) |
+| `polarizations` | 1 or 2 | 2 |
+| `points` | frequencies over the emission band (where σe > 10⁻³ of its maximum) | 40 |
+| `bandLowerM`, `bandUpperM` | restrict the band | automatic |
+
+What it reports (values of the element; they are *not* in the pulse's energy ledger, which stays closed): `aseForwardPowerW`, `aseBackwardPowerW` (ASE leaving the signal
+mode, one spatial mode of area π w²/2, at the state the next pulse sees), the spectra `aseForwardSpectrumWPerHz`, `aseBackwardSpectrumWPerHz` on `aseWavelengthM`,
+`aseStimulatedPowerW` (the power the ASE takes from the inversion), `aseDepletionFraction` (that over the absorbed pump power), `aseSolidAngleSr`, and, with a repetition rate,
+`asePedestalEnergyJ` and `asePedestalEnergyFraction`: the ASE energy in the signal mode per pulse period relative to the output pulse. That fraction is the strength to
+give a `pulse.pedestal` of kind `ase` in the next stage (`energyFraction`).
+
+Checks (`AseStressTests`): uniform inversion gives n_sp h ν Δν (G − 1) per polarisation at both ends (1e-12; Desurvire, *Erbium-doped fiber amplifiers*, 1994; the factor 2 for both
+polarisations); a non-uniform inversion against a direct RK4 integration (1e-6); the source into 4π equals N2 ⟨hν⟩ / τ_rad by the Füchtbauer-Ladenburg relation (1e-9; fixes the
+etendue factor q); the slice step integrates the homogeneously saturated law ln(G/G0) + (G − 1) P_in/P_sat = 0 (1e-4); in the cw steady state absorbed pump photons = N2 V / τ + stimulated
+ASE photons (0.5 %); no solid angle gives no depletion and more angle gives more.
+
+**Limits (stated, not hidden).**
+* The depletion uses one *effective* solid angle for all rays. Real ASE in a bulk crystal comes from all directions and the exact depletion depends on the geometry: the default is a
+  physical estimate (rays that stay in the pump region over the length L, capped by the escape cone), not a ray trace. Give `solidAngleSr` when the geometry is known. For a fibre use
+  Ω = λ0² / (n² A) (one mode).
+* **Transversely resolved ("3-D") ASE is not in this package.** On a transverse grid (`transverse`) every cell is its own column with its own inversion, so the depletion is local and follows the
+  pump; but the rays do not cross from cell to cell, and there are no reflections at the faces (no parasitic lasing, no transverse ASE in a large-aperture disk). A true 3-D model needs
+  oblique rays through the whole crystal (a Monte Carlo or ray-tiling model, O(cells² × slices)) and a reference for it (see `docs/design/notes/session-d.md`).
+* The signal polarisation is not special: the same ASE depletes the inversion for both polarisations. ASE in the *pulse's* polarisation state is the input of the pedestal.
+* Cost: cells × slices × points exponentials per evaluation, once per pumping step. A 1-D element costs milliseconds; a 64 × 64 cell grid costs seconds.
 
 ## Thermal lens
 
@@ -160,8 +197,17 @@ narrowing, which the tracker does not model); a 0.2 mm beam, which probes the ab
 **Stress birefringence.** `"thermalLens": {"stress": true}` adds the thermal birefringence of a uniformly heated rod of a cubic host (Koechner, *Solid-State Laser Engineering*, ch. 7;
 built in for YAG hosts, `thermalExpansionPerK`, `stressCr`, `stressCphi` on a medium of your own). The radial and tangential polarisations differ by the retardation
 δ = C (r/r₀)², C = n₀³ α C_B P_h / (λ K), C_B = C_r − C_φ. The depolarised fraction is the average of sin²(2φ) sin²(δ/2) over a Gaussian beam of radius w inside the rod. A beam filling the rod gives Koechner's D = (1 − sin C / C) / 4, tending to 1/4; a beam well inside it gives D = x² / (1 + x²) / 4 with x = C w² / (2 r₀²). The gain element rotates
-that fraction of the field between x and y, which keeps the energy (the beam-averaged result, not the four-lobed pattern) and reports `depolarizationFraction`, `stressRetardationRad`, and the two lenses
+that fraction of the field between x and y, which keeps the energy (the beam-averaged result) and reports `depolarizationFraction`, `stressRetardationRad`, and the two lenses
 `stressFocalLengthRadialM`, `stressFocalLengthTangentialM` (dn/dT, stress and end-face bulging). The formula assumes uniform heating over the rod: an end-pumped rod is only roughly described.
+
+*The four-lobed pattern.* On a **cartesian** transverse grid (`ny > 1`) with an x-polarised input the gain element applies, at every point (x, y), the Jones matrix of a
+rod whose eigen-polarisations are the radial and the tangential ones: R(−φ) diag(1, e^{iδ}) R(φ), δ = C min(r, r₀)² / r₀² (the tangential one is delayed for C > 0). An x-polarised beam then leaks
+|E|² sin²(2φ) sin²(δ/2) into y: no light on the axes, four lobes on the diagonals with alternating sign. The profile the beam carries afterwards has its own y shape (`DataY`), so a following
+spatial element propagates the vector field. The matrix is unitary (energy kept to 1e-13) and the beam average equals the lumped fraction `D = (1 − ⟨cos δ⟩)/4` to 1e-6 on the grid (test). The element
+reports `depolarizationFractionPattern` beside `depolarizationFraction`; the pattern sees the beam at the exit of the rod, the lumped value the beam at the middle, so they differ by the change of the
+radius in the thermal lens (D grows as w⁴ for a small beam). Limits: the radial grid (no 2-D map; the lumped rotation is used), a y component at the input (the spatial gain is scalar; a note says so and the lumped
+form is used), and the common part of the radial and tangential lenses (`stressFocalLength*`) is reported but not applied to the field; only the polarisation-dependent phase difference is.
+The pattern is applied once at the exit, after the gain, and ignores the growth of the retardation along z inside the rod.
 
 Checks (`BeamTrackingTests`): a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); the duct matrix is
 cos(gL), sin(gL)/(n₀g), −n₀g sin(gL) (1e-12), with the thin-lens limit and the hyperbolic case; N thin slices converge to the duct as 1/N²;

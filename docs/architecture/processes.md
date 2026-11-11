@@ -41,6 +41,14 @@ In `Compiler.Compile`, in order:
 
 A Sequential system calls this for each element in turn, in the loop in `Executor.Execute`.
 
+## A pumped gain element and its ASE
+
+`GainElement.Execute` / `AmplifierElement.Execute` build a `GainCrystal` (N2 per slice and transverse cell), optionally attach an `AseModel` (`aseModel`), then
+reach the state the pulse sees: `GainRun.Train` iterates the pulse train with the energy model (`FastPass`), each interval through `GainRun.Between` -> `PumpCw` / `Decay`. With an `AseModel`
+every pumping or decay step asks `AseModel.Rates(N2, N_t)`: per cell and frequency, forward and backward intensity through the slices at frozen N2 (exact slice step), the stimulated photons of each slice divided
+by N2 are an extra decay rate of that slice (sub-stepped so the rate stays small within a step). `GainRun.RecordAse` then evaluates `ModeOutput` (the ASE in the signal mode) and the element reports the pedestal
+strength. The pulse itself is amplified by `Pass1D` / `PassSpatial` as before; a stress map (`ApplyStressPattern`) acts on the spatial field after the gain.
+
 ## Execute: a Branched system
 
 `Executor.RunGraph`:

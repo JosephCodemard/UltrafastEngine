@@ -1294,7 +1294,7 @@ Keys of gain and amplifier elements.
 | `beam` | model (beam) |  |  | Signal beam |
 | `modeRadiusM` | number | m |  | Signal 1/e^2 radius (mode area pi w^2 / 2) |
 | `transverse` | object (`transverse`) |  |  | Spatial gain |
-| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens) |
+| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence: a lumped depolarisation, or the four-lobed pattern on a cartesian transverse grid (docs/reference/gain.md#thermal-lens) |
 | `slices` | integer |  | 24 | Slices along z |
 | `segments` | integer |  | auto | Time-ordered saturation groups |
 | `spm` | boolean |  | true | SPM of the host |
@@ -1304,6 +1304,7 @@ Keys of gain and amplifier elements.
 | `dopingProfile` | model (field) |  |  | Position-dependent doping factor |
 | `ase` | boolean |  | false | Seed amplified spontaneous emission (1-D) |
 | `aseSeed` | integer |  |  | ASE random seed |
+| `aseModel` | any |  | false | true / false or {solidAngleSr, polarizations, points, bandLowerM, bandUpperM}: inter-pulse ASE in both directions over the inversion lifetime; it depletes the inversion between pulses and reports the ASE power in the signal mode (docs/reference/gain.md#ase) |
 | `temperatureK` | number | K |  | Crystal temperature |
 | `dopingDensityM3` | number | 1/m^3 |  | Doping density (overrides the medium's) |
 

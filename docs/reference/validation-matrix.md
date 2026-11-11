@@ -2,11 +2,12 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **585 tests** in 61 classes. **370** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **594 tests** in 62 classes. **379** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
 | [AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements](#aodevicetests) | `AoDeviceTests` | 26 | 26 |
+| [Inter-pulse ASE (both directions, spectrally resolved) and the stress-birefringence pattern](#asestresstests) | `AseStressTests` | 9 | 9 |
 | [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 15 | 14 |
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 17 | 16 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
@@ -100,6 +101,22 @@ AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements.
 | `StrokeAndDriveBits_ClipAndQuantiseCommands` | stroke limit and drive resolution: commands clip at +-stroke; a b-bit drive over +-stroke has 2^b - 1 steps | exact (1e-12) |
 | `TiltRamp_OnActuators_MovesTheFocus_ByFocalLengthTimesWavefrontTilt` | influence function: the surface at a neighbouring actuator equals the stated coupling (definition), and a tilt ramp on the actuators gives a wavefront tilt 2 cos(aoi) dh/dx that moves the focus of a lens by f theta (geometric optics) | 2 % of the shift (the lattice sum of the influence functions sets dh/dx, computed from the same functions) |
 | `UnknownElement_NamesTheAoPlugin` | the unknown-element message names the ao plugin for its four types | message text |
+
+## AseStressTests
+
+Inter-pulse ASE (both directions, spectrally resolved) and the stress-birefringence pattern.
+
+| test | reference | tolerance |
+|---|---|---|
+| `AseModel_OnAnAmplifier_ReportsThePedestal_AndTheBudgetCloses` | the element reports the ASE leaving the signal mode and the depletion; the energy budget of the pulse still closes | 1e-6 |
+| `Ase_CwSteadyState_ClosesThePhotonBalance_AndDepletesTheInversion` | photon balance in the cw steady state: net absorbed pump photons = N2 V / tau + stimulated ASE photons | 0.5 % |
+| `Ase_Depletion_VanishesWithTheSolidAngle_AndGrowsWithIt` | limits: no solid angle gives no depletion; the depletion grows with the solid angle | 1e-6 |
+| `Ase_NonUniformInversion_MatchesADirectIntegration_AndForwardDiffersFromBackward` | dI/dz = gamma(z) I + S(z) integrated with a fine RK4 for a linear inversion profile | 1e-6 (the model holds N2 constant in each of 400 slices, the reference is continuous: O(1/nz^2)) |
+| `Ase_SliceStep_IntegratesTheSaturatedAmplifierLaw` | homogeneously saturated amplifier, dP/dz = g0 P / (1 + P / P_sat): ln(G / G0) + (G - 1) P_in / P_sat = 0 (integrated law; Siegman, Lasers, ch. 7; Saleh and Teich, Fundamentals of Photonics, ch. 15) | 1e-4 |
+| `Ase_SpontaneousSource_IntoFourPi_IsTheRadiativeDecay` | Fuchtbauer-Ladenburg: 1 / tau_rad = 8 pi n^2 integral sigma_e(nu) nu^2 / c^2 dnu (Aull and Jenssen, IEEE JQE 18, 925 (1982)); the source into 4 pi, both polarisations, is N2 <h nu> / tau_rad | 1e-9 (quadrature of the same integrals) |
+| `Ase_UniformInversion_IsNspHnuDnuGMinusOne_BothEnds_BothPolarisations` | single-mode ASE per polarisation P = n_sp h nu dnu (G - 1), n_sp = sigma_e N2 / (sigma_e N2 - sigma_a N1) (Desurvire, Erbium-doped fiber amplifiers, 1994; Siegman, Lasers, ch. 6) | 1e-12 (uniform inversion: the slice step is exact) |
+| `StressPattern_BeamAverage_EqualsTheLumpedDepolarisation_AndHasFourLobes` | Koechner, Solid-State Laser Engineering, ch. 7: the beam average of the four-lobed pattern, D = (1 - <cos delta>) / 4, delta = C r^2 / r0^2 | 1e-6 (quadrature on the grid; the Gaussian is well inside the grid) |
+| `StressPattern_InAGainElement_AgreesWithTheLumpedValue_AndTheProfileCarriesY` | the pattern on a cartesian grid carries the same beam-averaged loss as the lumped depolarisation reported by the element | 5 % at the exit radius (the gain is not uniform over the beam) |
 
 ## BeamSourceTests
 

@@ -48,6 +48,7 @@ namespace UltrafastEngine.Gain
         public double SingleShotPumpS = double.NaN; // cw pump time for a single shot (default: to equilibrium)
         public ISpatialField Doping;
         public bool Ase; public int AseSeed = 7;
+        public AseSpec AseModel = new AseSpec();   // inter-pulse ASE depleting the inversion (AseModel.cs)
         public TransverseSpec Transverse;
         public SpatialProperties Properties;
 
@@ -215,6 +216,30 @@ namespace UltrafastEngine.Gain
             r.Values["hostIndex"] = s.Host.IndexAt(omega);
         }
 
+        /// <summary>Inter-pulse ASE in the signal mode at the state the next pulse sees (values; not part of the pulse's energy ledger).</summary>
+        public static void RecordAse(ActiveContext ctx, GainCrystal gc, GainSetup s, double modeArea, double pumpPowerScale)
+        {
+            var m = gc.AseDepletion; if (m == null) return;
+            var r = ctx.Record;
+            var o = m.ModeOutput(gc.N2, gc.Nt, gc.AxisCell, modeArea);
+            r.Values["aseForwardPowerW"] = o.ForwardW; r.Values["aseBackwardPowerW"] = o.BackwardW;
+            r.Values["aseSolidAngleSr"] = m.SolidAngleSr;
+            r.AddArray("aseWavelengthM", o.WavelengthM, "m", "wavelength axis of the ASE spectrum");
+            r.AddArray("aseForwardSpectrumWPerHz", o.ForwardWPerHz, "W/Hz", "forward ASE in the signal mode (both end faces: backward in aseBackwardSpectrumWPerHz), before the pulse");
+            r.AddArray("aseBackwardSpectrumWPerHz", o.BackwardWPerHz, "W/Hz", "backward ASE in the signal mode");
+            m.Rates(gc.N2, gc.Nt);
+            r.Values["aseStimulatedPowerW"] = m.LastStimulatedPowerW;
+            if (pumpPowerScale > 0 && gc.AbsorbedPumpJ.Sum() > 0) r.Values["aseDepletionFraction"] = m.LastStimulatedPowerW / (gc.AbsorbedPumpJ.Sum() * pumpPowerScale);
+            ctx.Record.Notes.Add(string.Format(CultureInfo.InvariantCulture, "inter-pulse ASE ({0} polarisation(s), {1:G3} sr, {2} frequencies): {3:G3} W forward in the signal mode, {4:G3} W taken from the inversion", m.Spec.Polarizations, m.SolidAngleSr, m.Nu.Length, o.ForwardW, m.LastStimulatedPowerW));
+        }
+
+        /// <summary>ASE energy in the signal mode per pulse period relative to the output pulse: the strength of a pedestal of kind "ase".</summary>
+        public static void RecordAsePedestal(ElementRecord r, double outputEnergyJ, double repRateHz)
+        {
+            if (!r.Values.TryGetValue("aseForwardPowerW", out double pw) || !(repRateHz > 0) || !(outputEnergyJ > 0)) return;
+            r.Values["asePedestalEnergyJ"] = pw / repRateHz; r.Values["asePedestalEnergyFraction"] = pw / repRateHz / outputEnergyJ;
+        }
+
         /// <summary>Record diagnostics shared by both elements.</summary>
         public static void RecordBefore(ActiveContext ctx, GainCrystal gc, GainSetup s, PulseField p, double omegaSignal)
         {
@@ -297,23 +322,69 @@ namespace UltrafastEngine.Gain
         /// C_B = C_r - C_phi. An x-polarised beam filling the rod loses to y the fraction D = (1 - sin C / C) / 4, which tends to 1/4;
         /// this moves that fraction of the energy, and reports D and the two thermal lenses f_r, f_phi.
         /// </summary>
-        private void ApplyStress(ActiveContext ctx, Complex[] ax, ref Complex[] ay, double wmode, double w0)
+        /// <summary>The retardation C at the rod edge and the rod radius from the heat load of this run; false (with a warning) when the medium has no stress data.</summary>
+        private bool StressRetardation(ActiveContext ctx, double w0, out double C, out double r0)
+        {
+            var r = ctx.Record; var m = S.Medium; C = 0; r0 = S.RodRadiusM > 0 ? S.RodRadiusM : 3 * S.Pump.RadiusM;
+            if (double.IsNaN(m.StressCr) || double.IsNaN(m.ThermalExpansionPerK)) { ctx.Result.Warnings.Add("Element '" + S.Id + "': no stress coefficients for " + m.Name + " (thermalExpansionPerK, stressCr, stressCphi): thermal birefringence is not applied."); return false; }
+            if (!r.Values.TryGetValue("heatW", out double heat) || !(heat > 0)) return false;
+            double n0 = S.Host.IndexAt(w0), lam = 2 * Math.PI * GainMedium.C / w0, a = m.ThermalExpansionPerK, K = m.ThermalConductivity;
+            C = n0 * n0 * n0 * a * (m.StressCr - m.StressCphi) * heat / (lam * K);
+            return true;
+        }
+
+        /// <summary>
+        /// Thermal stress birefringence of a uniformly heated rod (Koechner, Solid-State Laser Engineering, ch. 7): the retardation
+        /// between radial and tangential polarisation is delta = C (r / r0)^2, C = n0^3 alpha C_B P_h / (lambda K) with
+        /// C_B = C_r - C_phi. An x-polarised beam filling the rod loses to y the fraction D = (1 - sin C / C) / 4, which tends to 1/4.
+        /// Reports D and the two thermal lenses f_r, f_phi; the lumped form (<paramref name="rotate"/>) moves that fraction of the energy
+        /// from x to y; the four-lobed pattern (ApplyStressPattern) has already been applied when it is false.
+        /// </summary>
+        private void ApplyStress(ActiveContext ctx, Complex[] ax, ref Complex[] ay, double wmode, double w0, bool rotate, double patternFraction)
         {
             var r = ctx.Record; var m = S.Medium;
-            if (double.IsNaN(m.StressCr) || double.IsNaN(m.ThermalExpansionPerK)) { ctx.Result.Warnings.Add("Element '" + S.Id + "': no stress coefficients for " + m.Name + " (thermalExpansionPerK, stressCr, stressCphi): thermal birefringence is not applied."); return; }
-            if (!r.Values.TryGetValue("heatW", out double heat) || !(heat > 0)) return;
-            double n0 = S.Host.IndexAt(w0), lam = 2 * Math.PI * GainMedium.C / w0, a = m.ThermalExpansionPerK, K = m.ThermalConductivity;
-            double r0 = S.RodRadiusM > 0 ? S.RodRadiusM : 3 * S.Pump.RadiusM, area = Math.PI * r0 * r0;
-            double C = n0 * n0 * n0 * a * (m.StressCr - m.StressCphi) * heat / (lam * K);
+            if (!StressRetardation(ctx, w0, out double C, out double r0)) return;
+            r.Values.TryGetValue("heatW", out double heat);
+            double n0 = S.Host.IndexAt(w0), a = m.ThermalExpansionPerK, K = m.ThermalConductivity, area = Math.PI * r0 * r0;
             double D = StressDepolarization(C, wmode, r0);
             double F(double cs) => K * area / heat / (0.5 * m.DnDT + a * cs * n0 * n0 * n0 + a * r0 * (n0 - 1) / S.LengthM);
             r.Values["depolarizationFraction"] = D; r.Values["stressRetardationRad"] = C;
             r.Values["stressFocalLengthRadialM"] = F(m.StressCr); r.Values["stressFocalLengthTangentialM"] = F(m.StressCphi);
-            ctx.Note(string.Format(CultureInfo.InvariantCulture, "thermal stress: retardation {0:G4} rad at the rod edge, depolarised fraction {1:P2}, f_r = {2:G4} m, f_phi = {3:G4} m", C, D, F(m.StressCr), F(m.StressCphi)));
+            if (!rotate) r.Values["depolarizationFractionPattern"] = patternFraction;
+            ctx.Note(string.Format(CultureInfo.InvariantCulture, "thermal stress: retardation {0:G4} rad at the rod edge, depolarised fraction {1:P2}{2}, f_r = {3:G4} m, f_phi = {4:G4} m", C, D,
+                rotate ? " (lumped: the beam-averaged value, not the four-lobed pattern)" : string.Format(CultureInfo.InvariantCulture, " (beam average); the four-lobed pattern on the grid depolarises {0:P2}", patternFraction), F(m.StressCr), F(m.StressCphi)));
+            if (!rotate) return;
             // a rotation, so the energy is kept and y input depolarises as x does
             var ny = new Complex[ax.Length]; double tx = Math.Sqrt(1 - D), ty = Math.Sqrt(D);
             for (int i = 0; i < ax.Length; i++) { var x = ax[i]; ny[i] = ay[i] * tx + x * ty; ax[i] = x * tx - ay[i] * ty; }
             ay = ny;
+        }
+
+        /// <summary>
+        /// The four-lobed stress-birefringence pattern: at every transverse point (x, y) the radial and tangential polarisations of a
+        /// uniformly heated rod differ by delta = C min(r, r0)^2 / r0^2 (the tangential one delayed for C &gt; 0). With phi the polar angle the
+        /// Jones matrix is R(-phi) diag(1, e^{i delta}) R(phi): x -> x (cos^2 phi + sin^2 phi e^{i delta}), y = x sin phi cos phi (1 - e^{i delta}),
+        /// so an x-polarised beam leaks |E|^2 sin^2(2 phi) sin^2(delta / 2) into y. Fields in layout [m * n + i]; the map is applied in place to
+        /// ex and ey (y is added to whatever ey holds, through the same matrix). Energy is kept exactly (the matrix is unitary).
+        /// </summary>
+        internal static void ApplyStressPattern(Complex[] ex, Complex[] ey, int n, ITransverseBasis b, double C, double r0)
+        {
+            int M = b.M;
+            for (int m = 0; m < M; m++)
+            {
+                double x = b.X[m], y = b.Y[m], rr = Math.Sqrt(x * x + y * y);
+                double c2 = rr > 0 ? x * x / (rr * rr) : 1, s2 = 1 - c2, sc = rr > 0 ? x * y / (rr * rr) : 0;
+                double u = Math.Min(rr, r0) / r0, delta = C * u * u;
+                var e = Complex.FromPolarCoordinates(1, delta);
+                Complex txx = c2 + s2 * e, txy = sc * (1 - e), tyy = s2 + c2 * e;
+                int o = m * n;
+                for (int i = 0; i < n; i++)
+                {
+                    var a = ex[o + i]; var bb = ey[o + i];
+                    ex[o + i] = txx * a + txy * bb;
+                    ey[o + i] = txy * a + tyy * bb;
+                }
+            }
         }
 
         /// <summary>Depolarised fraction of a Gaussian beam (1/e^2 radius w) in a rod of radius r0 with edge retardation C:
@@ -351,6 +422,7 @@ namespace UltrafastEngine.Gain
             if (S.Ase && basis == null) gc.Ase = new Random(S.AseSeed); else if (S.Ase) notes.Add("ASE is modelled in 1-D only (ignored on the spatial grid)");
             var gd = gc.Prepare(g, S.Host);
             for (int i = 0; i < n; i++) gd.KRel[i] = phHost[i] / Math.Max(1e-30, S.LengthM);
+            if (S.AseModel.Enabled) gc.AseDepletion = new AseModel(gc, S.AseModel, S.Host.IndexAt(w0), w0);
             GainRun.Initialise(gc, S, w0);
             int K = S.Segments > 0 ? S.Segments : GainRun.AutoSegments(p);
             r.Values["segments"] = K;
@@ -396,6 +468,7 @@ namespace UltrafastEngine.Gain
                 notes.Add(rep > 0 ? "steady state disabled: single shot from the unpumped crystal" : "no repetition rate: single shot (" + (S.Pump.Kind == "cw" ? "cw pump to equilibrium" : "pump pulse " + (S.Pump.DelayS * 1e6).ToString("G3", CultureInfo.InvariantCulture) + " us before the seed") + ")");
             }
             GainRun.RecordBefore(ctx, gc, S, p, w0);
+            GainRun.RecordAse(ctx, gc, S, Math.PI * wmode * wmode / 2, powerScale);
             // ------------------------------------------------ thermal lens
             ISpatialField thermal = null; double fth = double.PositiveInfinity;
             if (pumped)
@@ -425,7 +498,7 @@ namespace UltrafastEngine.Gain
             }
             if (!double.IsNaN(S.ThermalFocalLengthM) && S.ThermalLens) fth = S.ThermalFocalLengthM;
             // ------------------------------------------------ amplification
-            Complex[] ax, ay = p.Ay; GainCrystal.PassStats st; TransverseProfile profOut = p.Profile;
+            Complex[] ax, ay = p.Ay; GainCrystal.PassStats st; TransverseProfile profOut = p.Profile; double stressPattern = double.NaN;
             double nonGainLoss = 0;
             if (!spatial)
             {
@@ -451,8 +524,23 @@ namespace UltrafastEngine.Gain
                 double after = Energy(E, basis, g);
                 nonGainLoss = before + st.EnergyGainedJ - after;
                 basis.ToSpace(E, n);
-                ax = TransverseOps.Collapse(E, basis, g.OmegaAbsolute, S.Id, out profOut);
-                if (p.Ay.Any(c => c != Complex.Zero)) notes.Add("spatial gain is scalar (x); the y component passed unchanged");
+                bool yIn = p.Ay.Any(c => c != Complex.Zero);
+                if (S.Stress && basis is CartesianBasis cb && cb.Ny > 1 && !yIn && StressRetardation(ctx, w0, out double Cst, out double r0st))
+                {
+                    // the four-lobed pattern: x field in, x and y out through the per-point Jones map
+                    var Ey = new Complex[E.Length];
+                    ApplyStressPattern(E, Ey, n, basis, Cst, r0st);
+                    double ex2 = 0, ey2 = 0;
+                    for (int qq = 0; qq < E.Length; qq++) { ex2 += E[qq].Real * E[qq].Real + E[qq].Imaginary * E[qq].Imaginary; ey2 += Ey[qq].Real * Ey[qq].Real + Ey[qq].Imaginary * Ey[qq].Imaginary; }
+                    stressPattern = ey2 / Math.Max(1e-300, ex2 + ey2);
+                    (ax, ay) = TransverseOps.CollapseVector(E, Ey, basis, g.OmegaAbsolute, S.Id, out profOut);
+                }
+                else
+                {
+                    ax = TransverseOps.Collapse(E, basis, g.OmegaAbsolute, S.Id, out profOut);
+                    if (yIn) notes.Add("spatial gain is scalar (x); the y component passed unchanged");
+                    if (S.Stress) notes.Add("stress birefringence: the four-lobed pattern needs a cartesian transverse grid (ny > 1) and an x-polarised input; the lumped depolarisation is used");
+                }
                 var flu = TransverseOps.Fluence(E, n, g, basis);
                 r.Values["peakFluenceOutJPerM2"] = flu.Max();
                 r.Representation = basis.Describe() + " x " + n + " samples, " + S.Slices + " slices";
@@ -460,12 +548,13 @@ namespace UltrafastEngine.Gain
             }
             if (r.Representation == null) r.Representation = "1-D (mode area " + (gc.CellArea[0] * 1e6).ToString("G4", CultureInfo.InvariantCulture) + " mm^2), " + S.Slices + " slices, " + K + " time segments";
             r.BIntegralRad = st.BIntegralRad;
-            if (S.Stress) ApplyStress(ctx, ax, ref ay, wmode, w0);
+            if (S.Stress) ApplyStress(ctx, ax, ref ay, wmode, w0, double.IsNaN(stressPattern), stressPattern);
             var q = new PulseField(g, ax, ay, rep > 0 ? rep : p.RepRateHz) { Profile = profOut };
             double e1 = q.TotalEnergyJ();
             GainRun.RecordAfter(ctx, gc, st.EnergyGainedJ);
             r.Values["gain"] = e1 / Math.Max(1e-300, e0);
             if (rep > 0) r.Values["averageOutputPowerW"] = e1 * rep;
+            GainRun.RecordAsePedestal(r, e1, rep);
             ctx.Energy("gain (from inversion)", -st.EnergyGainedJ);
             if (st.AseSeedJ != 0) { ctx.Energy("ASE (spontaneous emission)", -st.AseSeedJ); r.Values["aseSeedEnergyJ"] = st.AseSeedJ; }
             double rest0 = st.AseSeedJ;
@@ -517,6 +606,7 @@ namespace UltrafastEngine.Gain
             Executor.Combine(new LinearTerm[] { bulk }, axis, out var phHost, out _, out _, out _);
             var gc = new GainCrystal(S.Medium, S.LengthM, S.Slices, S.Pump, wmode, null, S.Doping);
             if (S.Ase) gc.Ase = new Random(S.AseSeed);
+            if (S.AseModel.Enabled) gc.AseDepletion = new AseModel(gc, S.AseModel, S.Host.IndexAt(w0), w0);
             var gd = gc.Prepare(g, S.Host);
             for (int i = 0; i < n; i++) gd.KRel[i] = phHost[i] / Math.Max(1e-30, S.LengthM);
             GainRun.Initialise(gc, S, w0);
@@ -544,6 +634,7 @@ namespace UltrafastEngine.Gain
             }
             else if (pumped) powerScale = GainRun.SingleShot(gc, S);
             GainRun.RecordBefore(ctx, gc, S, p, w0);
+            GainRun.RecordAse(ctx, gc, S, area, powerScale);
             if (!double.IsNaN(TrackedLens.ThinM)) { r.Values["trackedThermalLensFocalLengthM"] = TrackedLens.ThinM; r.Values["trackedThermalLensEffectiveFocalLengthM"] = TrackedLens.EffectiveM; }
             if (pumped)
             {
@@ -609,6 +700,7 @@ namespace UltrafastEngine.Gain
             var q = new PulseField(g, ax, ay, rep > 0 ? rep : p.RepRateHz) { Profile = p.Profile };
             double e1 = q.TotalEnergyJ();
             GainRun.RecordAfter(ctx, gc, gained);
+            GainRun.RecordAsePedestal(r, e1, rep);
             r.Values["gain"] = e1 / Math.Max(1e-300, e0);
             if (rep > 0) r.Values["averageOutputPowerW"] = e1 * rep;
             ctx.Energy("gain (from inversion)", -gained);
@@ -708,6 +800,7 @@ namespace UltrafastEngine.Gain
             }
             s.SingleShotPumpS = c.Num(e, "pumpDurationS", double.NaN);
             s.Ase = j.GetBool("ase", false); s.AseSeed = j.GetInt("aseSeed", 7);
+            s.AseModel = AseSpec.FromJson(j["aseModel"]);
             if (j.Has("dopingProfile")) s.Doping = c.Registry.Create<ISpatialField>("field", ModelSpec.FromJson(j["dopingProfile"], ModelSource.SystemData, origin + ".dopingProfile"));
             s.Properties = c.SpatialProperties(e);
             if (!amplifier)

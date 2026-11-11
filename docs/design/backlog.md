@@ -55,7 +55,7 @@ soliton in exponentially dispersion-decreasing fibre, T(z) = T0 e^{-z/L} (Cherni
 signal and pump power (co-pumped initial value, counter-pumped boundary value), g(ω,z) as a z-dependent linear term,
 iterated with the propagated spectrum; reuses `GainCrystal`. Yb:silica cross-sections quoted from Paschotta et al.,
 IEEE JQE 33, 1049 (1997) (read from the paper, not recalled). Tests: closed-form two-level steady state (Saleh et al.,
-IEEE PTL 2, 714 (1990)) to 1e-4; exact photon balance; small-signal limit equals `gainDbPerM`. ASE out of scope.
+IEEE PTL 2, 714 (1990)) to 1e-4; exact photon balance; small-signal limit equals `gainDbPerM`. ASE out of scope here; `Gain/AseModel.cs` (session D) is the shared solver: use a fibre's mode as the bundle (Ω = λ0² / (n² A), p = 2) and its Γ-weighted N2.
 
 ## D. Fitting plugin (all inside `plugins/fitting/src`, no packages: everything hand-written)
 

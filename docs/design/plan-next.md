@@ -46,7 +46,9 @@ multipass and per round trip in regenerative amplifiers (today missing). (c) Rep
 471 µm after the rod, 319 µm after 0.4 m, from the radial model) reproduced by the tracker to a stated tolerance (measure the spread first); a regenerative amplifier with N round trips equals N thin
 duct passes. *Open question:* is end-face bulging worth including (backlog)? Not in this package.
 
-### WP2. Gain modelling: ASE and stress birefringence (L; priority 2)
+### ~~WP2. Gain modelling: ASE and stress birefringence (L; priority 2)~~ done
+
+*Done 2026-11-11 (session D): see [notes/session-d.md](notes/session-d.md). (a) and (c) built; (b) as a polarisation count; two-polarisation *evolution* and 3-D ASE are not (reasons in the notes). Open: the Yb:YAG Füchtbauer-Ladenburg consistency, a ray-based ASE for bulk crystals and disks, parasitic lasing.*
 
 *Today:* ASE is one-dimensional, in the signal polarisation, and covers only the simulated time window; stress birefringence (`thermalLens.stress`) is the beam-averaged depolarised fraction, not the
 four-lobed pattern.
@@ -57,6 +59,8 @@ polarisations** for ASE. (c) **Stress birefringence pattern**: the radial / azim
 Cousins, IEEE JQE 28, 1992; read the formulas from the sources, do not write them from memory) as a map applied through the spatial model, so the depolarisation of a linearly polarised beam is the four-lobed
 pattern; the beam-averaged value must equal today's `stress` result (consistency test). *Spike first (S):* does the spatial path carry a vector field (both polarisations) today? If not, the pattern is applied as a
 Jones map on a scalar pair and the limits are stated. *Not in this package:* 3-D (transverse-resolved) ASE; say so in the docs.
+
+*Done / commented (session D).* **Spike:** the transverse *profile* carries a y shape (`DataY`) and a 2-D cartesian basis exists; only the gain element's own spatial pass was scalar. So no vector gain pass was needed: the stress map acts on (E, E_y) after the gain. **(a)** `aseModel` (`Gain/AseModel.cs`): steady-state forward and backward ASE per transverse cell and frequency, quasi-static in z at frozen N2, depleting N2 in `PumpCw`, `Decay` and the pulse-train steady state; reports the ASE in the signal mode and the pedestal strength. Checked against n_sp h ν Δν (G − 1), RK4, Füchtbauer-Ladenburg, the saturated-amplifier law and the cw photon balance. *Commented:* the plan's check against Saleh et al. (1990) became the integrated homogeneous-saturation law (the same physics, textbook form); the feed into `pulse.pedestal` is a reported number (`asePedestalEnergyFraction`) for the next stage, not an automatic link; the depletion uses one effective solid angle (default from the geometry), not a ray trace; shared with fibre gain (C3) as a class, not yet wired there. **(b)** two polarisations: the source and the depletion count p = 1 or 2; separate evolution of the two polarisations is not needed for an isotropic (cubic) host. **(c)** `thermalLens.stress` on a cartesian grid applies the four-lobed Jones map; the beam average equals the lumped value (1e-6). *Commented:* not on a radial grid, not with a y input, applied once at the exit, the common-mode radial / tangential lenses are reported but not applied. **3-D ASE:** answered in the notes (transverse-resolved inversion: yes; rays crossing cells: a separate ray-based package).
 
 ### ~~WP3. Material models and a catalogue (L; priority 3)~~ built; the verification against papers is open
 
@@ -164,7 +168,7 @@ spline against network) are written directly in the new structure.
 | A | WP0, WP6 (`ny = 1`), WP5 decisions, WP7 (cw carrier; SPGD gain) | one agent, small tasks; `bug-hunter` for `ny = 1` |
 | ~~B~~ | ~~WP1 and WP4~~ **done 2026-11-11** ([notes/session-b.md](notes/session-b.md)) | physics: Opus-class judgement for the ABCD duct and the Drude operator; `physics-reviewer` at the end |
 | ~~C~~ | ~~WP3~~ **done 2026-11-11** ([notes/session-c.md](notes/session-c.md)); papers still to read | mostly plumbing and reading papers; owner supplies the PDFs |
-| D | WP2 | spike first, then ASE, then the pattern |
+| ~~D~~ | ~~WP2~~ **done 2026-11-11** ([notes/session-d.md](notes/session-d.md)) | spike first, then ASE, then the pattern |
 | E | WP7 (Raman, SLM, tiled array) | investigations; may run beside B-D |
 | F | WP8 (packager, `install.py`, workflow) | packaging and a workflow; Sonnet-class |
 | G-H | WP9 waves 1-4 | one example group per sitting; `example_lint` first |
