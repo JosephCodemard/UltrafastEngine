@@ -235,6 +235,39 @@ def test_spgd_phase_locks_an_array():
         assert r.history[-1] > 0.99, seed
 
 
+def _spgd_problems():
+    """(name, metric factory(scale, seed), n, iterations, amplitude): phase locking of 16 and 7 channels (random piston) and a 6-mode Strehl-like peak exp(-2 |x - x*|^2)."""
+    def lock(N, iters):
+        def make(scale, seed):
+            phi = np.random.default_rng(100 + seed).uniform(0, 2 * np.pi, N)
+            return lambda u: scale * abs(np.exp(1j * (phi + u)).sum()) ** 2 / N ** 2
+        return make, N, iters, 0.2
+    xs = np.array([-0.25, 0.2, -0.15, 0.2, -0.1, 0.1])
+    strehl = (lambda scale, seed: (lambda a: scale * np.exp(-2.0 * np.sum((a - xs) ** 2)))), 6, 120, 0.05
+    return {"lock16": lock(16, 300), "lock7": lock(7, 300), "strehl6": strehl}
+
+
+def test_spgd_default_is_scale_free():
+    """The default step is normalised by the metric's own recent range, so J, 1e-3 J and 1e3 J give the same iterates (the classical fixed gain is in units of 1 / metric)."""
+    make, n, iters, amp = _spgd_problems()["lock16"]
+    ref = sensorless.spgd(make(1.0, 0), np.zeros(n), iterations=60, amplitude=amp, seed=1, keep_iterates=True)
+    for scale in (1e-3, 1e3):
+        r = sensorless.spgd(make(scale, 0), np.zeros(n), iterations=60, amplitude=amp, seed=1, keep_iterates=True)
+        assert np.allclose(np.array(r.iterates), np.array(ref.iterates), rtol=1e-9, atol=1e-12), scale
+    # the fixed gain is not: the same gain that locks J = 1 does nothing for 1e-3 J
+    fixed = lambda sc: sensorless.spgd(make(sc, 0), np.zeros(n), iterations=300, gain=10.0, amplitude=amp, seed=1).history[-1] / sc
+    assert fixed(1.0) > 0.99 and fixed(1e-3) < 0.1
+
+
+def test_spgd_default_reaches_0p9_of_the_optimum_at_any_metric_scale():
+    """Default SPGD (step 0.4 amplitude) on phase locking of 16 and 7 channels and a 6-mode Strehl peak, metric scales 1e-3, 1 and 1e3, 10 seeds each: the lowest final
+    value over the optimum is at least 0.9 (measured minimum 0.98; the fixed gains that lock at scale 1 give 0.00 to 0.04 at 1e-3 and 1e3)."""
+    for name, (make, n, iters, amp) in _spgd_problems().items():
+        for scale in (1e-3, 1.0, 1e3):
+            worst = min(sensorless.spgd(make(scale, seed), np.zeros(n), iterations=iters, amplitude=amp, seed=seed).history[-1] / scale for seed in range(10))
+            assert worst > 0.9, (name, scale, worst)
+
+
 def test_modal_search_is_exact_for_a_quadratic_separable_metric_in_one_sweep():
     """Parabola vertex from three points: exact for J = -sum_i a_i (x_i - x_i*)^2 in one sweep (2 N + 1 evaluations)."""
     a = np.array([1.0, 2.0, 0.5, 3.0]); xs = np.array([0.4, -0.7, 0.9, 0.1])

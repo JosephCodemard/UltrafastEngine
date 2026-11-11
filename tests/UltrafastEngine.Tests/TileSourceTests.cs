@@ -71,6 +71,33 @@ namespace UltrafastEngine.Tests
             Assert.Close(1.0 / n + (1 - 1.0 / n) * Math.Exp(-sg * sg), acc / draws, 0.01, 0, "expectation");
         }
 
+        [Test(Reference = "N = 4 coherent beams of equal power recombined at one point: a balanced tree of 50/50 splitters (a Mach-Zehnder of Mach-Zehnders) with piston phase phi_k in each arm returns |sum exp(i phi_k)|^2 / 16 of the input power at its bright port (all arms equal: the whole input), exactly; the tile source gives the same fraction of its in-phase on-axis fluence. A Branched system recombines at a point and so cannot give the array's far field: this is the on-axis value only", Tolerance = "Branched 1e-6 of the formula (the carrier is snapped to the grid), tiles against Branched 1.5 %")]
+        public void FourTiles_OnAxisPistonLoss_EqualsABranchedBalancedTreeRecombinedAtOnePoint()
+        {
+            double c = Numerics.PhysicalConstants.SpeedOfLightMPerS, w0 = 2 * Math.PI * c / Lam;
+            var phi = new[] { 0.0, 0.7, 2.1, -1.3 };
+            JsonObject Bs(string id, JsonValue next) => O("id", id, "type", "beamSplitter", "reflectivity", 0.5, "next", next);
+            JsonObject Arm(string id, double ph, string to) => O("id", id, "type", "gap", "material", "Vacuum", "lengthM", 0.2 + (ph < 0 ? ph + 2 * Math.PI : ph) * c / w0, "next", to);
+            double Run(double[] ph, out double wc)
+            {
+                var sys = Sys(Bs("bs1", O("c", "bsA", "d", "bsB")),
+                              Bs("bsA", O("c", "a0", "d", "a1")), Bs("bsB", O("c", "a2", "d", "a3")),
+                              Arm("a0", ph[0], "bsC:1"), Arm("a1", ph[1], "bsC:2"), Arm("a2", ph[2], "bsD:1"), Arm("a3", ph[3], "bsD:2"),
+                              Bs("bsC", O("c", "virtual", "d", "bsE:1")), Bs("bsD", O("c", "virtual", "d", "bsE:2")), Bs("bsE", O("c", "virtual", "d", "end")));
+                sys.Topology = Systems.SystemGraph.Branched;
+                var r = Go(sys, Spec(O("shape", "cw", "centerWavelengthM", Lam, "powerW", 1.0)));
+                wc = r.Output.Grid.OmegaCenter;
+                return r.Output.TotalEnergyJ() / r.Compiled.Input.TotalEnergyJ();
+            }
+            double inPhase = Run(new double[4], out _);
+            Assert.Close(1.0, inPhase, 1e-6, 0, "equal arms: the whole input at the bright port");
+            double got = Run(phi, out double wcc);
+            double re = phi.Sum(p => Math.Cos((p < 0 ? p + 2 * Math.PI : p) * wcc / w0)), im = phi.Sum(p => Math.Sin((p < 0 ? p + 2 * Math.PI : p) * wcc / w0)), expect = (re * re + im * im) / 16;   // the arm length of a negative phase is wrapped by 2 pi
+            Assert.Close(expect, got, 1e-6, 1e-9, "Branched tree against the formula");
+            double tiles = OnAxis(Far(Tiles(4, "pistonRad", Nums(phi)))) / OnAxis(Far(Tiles(4)));
+            Assert.Close(got, tiles, 0.015, 0, "tile source against the Branched tree");
+        }
+
         [Test(Reference = "delay mismatch of two in-phase Gaussian pulses (intensity FWHM T): the energy on axis is 2E + 2 Int A(t) A(t - tau) dt, so relative to tau = 0 it is (1 + C) / 2 with the field overlap C = exp(-ln2 (tau / T)^2)", Tolerance = "3 %")]
         public void DelayMismatch_CostsTheTemporalOverlap_OfTheTwoPulses()
         {

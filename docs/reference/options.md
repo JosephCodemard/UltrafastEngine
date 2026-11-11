@@ -94,7 +94,7 @@ The time/frequency grid (docs/reference/run-spec.md#grid).
 | `windowS` | number | s | 30 x the transform limit | Time window |
 | `windowPs` | number | ps |  | Time window in ps |
 | `maxN` | integer |  | 4194304 | Largest allowed n |
-| `snapCarrier` | boolean |  | true | Put the carrier on the frequency grid |
+| `snapCarrier` | boolean |  | true | Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written |
 | `spectralMargin` | number |  | auto | Spectral span factor |
 | `minSpanFraction` | number |  | 0.1 | Nonlinear runs: minimum half-span / carrier |
 | `minPointsPerFwhm` | number |  | 12 | Samples across the transform-limited FWHM |

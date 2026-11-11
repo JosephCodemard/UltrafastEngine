@@ -139,7 +139,7 @@ of the aligned value (derivation: the overlap of two Gaussian envelopes shifted 
 | `sensorless` | `spgd`, `hill_climb`, `modal_search`, `transmission_matrix`, `focus_phases` | Vorontsov and Sivokon, JOSA A 15, 2745 (1998); Vellekoop and Mosk, Opt. Lett. 32, 2309 (2007) |
 
 Things measured while writing them (and stated in their tests): quantisation in the GS loop helps at 2 and 3 grey levels but **not** at 4
-or 8 on the test target; SPGD with `gain 20, amplitude 0.2` on 16 channels diverges (gain 10 locks to 1.000 on 10 of 10 seeds);
+or 8 on the test target; SPGD with the classical fixed gain 20 and `amplitude 0.2` on 16 channels diverges (gain 10 locks to 1.000 on 10 of 10 seeds), and a fixed gain that works at metric scale 1 does nothing at 1e-3 or 1e3 (see [SPGD gain](#spgd-gain));
 modal search climbs by one `bias` per sweep until the metric is concave, because a peak-type metric is convex far from the optimum;
 the phase-stepping transmission matrix recovers the phases exactly (mixed second difference: no reference arm, any output however
 dark) but the amplitudes only relative within a row.
@@ -163,10 +163,37 @@ dark) but the amplitudes only relative within a row.
 | one-shot correction, closed loop, modal search (`test_ao_plugin.py`) | twin prediction; `(1 - g)^k` |
 | tiled array N, pistons, delays, SPGD lock (`test_ao_plugin.py`) | `|sum e^{i phi}|^2 / N^2`; Gaussian envelope overlap |
 | Bolduc and double-phase maps through the `slm` element with a varying complex field (`test_ao_plugin.py`) | first order / low-frequency field = Fourier transform of illumination x `A e^{i phi}` (correlation > 0.99; energy against the same ratio of transforms, 3 %); the Bolduc energy is taken relative to an engine blaze of A = 1 because of the open SLM efficiency finding (an 8-pixel blaze keeps 0.85 of the light in the first order) |
+| SPGD default step: scale invariance (1e-9) and at least 0.9 of the optimum at metric scales 1e-3 .. 1e3, engine deformable-mirror focus (`test_ao_algorithms.py`, `test_ao_plugin.py`) | exact invariance; measured worst 0.98, 0.996, 0.994 |
 | tiled-array central and grating lobe fractions, in phase and with checkerboard pistons (`test_ao_plugin.py`) | array factor x Gaussian tile envelope on the engine's grid, 1e-3 (measured 2e-5) |
 | GS monotone, WGS uniformity, Bolduc first order, double phase (`test_ao_algorithms.py`) | Fienup 1982; Di Leonardo 2007; Bolduc 2013 |
 | Shack-Hartmann spot shift `f dW/dx`; modal fit exact; Southwell exact for quadratics and second-order convergent (`test_ao_algorithms.py`) | geometric optics; analytic |
 | transmission matrix and focusing enhancement `(pi/4)(N - 1) + 1` (`test_ao_algorithms.py`) | Vellekoop and Mosk 2007 (3000 outputs, tolerance 0.6 %) |
+
+## SPGD gain
+
+`sensorless.spgd(metric, x0, amplitude=...)` is **scale-free by default**: the update is `x += step (dJ / S) d`, where `d` is the random +-`amplitude` shake of all
+channels, `dJ = J(x + d) - J(x - d)` and `S` the largest `|dJ|` of the last ~33 iterations (`memory=0.97`). A channel therefore never moves by more than
+`step x amplitude` per iteration, the step shrinks by itself as the metric flattens, and multiplying the metric by any positive number gives the same iterates
+(a test checks this to 1e-9). Pass `gain=<number>` for the classical update `x += gain dJ d`, whose gain is in units of 1 / metric: it worked only in one range of
+metric scales and had to be found by trial (for the deformable-mirror example, gain 1.5 reached Strehl 0.64, 3 reached 0.95, 5 reached 0.80).
+
+Measured (10 seeds, worst final value over the optimum; `amplitude` 0.2 rad for locking, 0.05 for the Strehl peak):
+
+| `step` | 16-channel lock | 7-channel lock | 6-mode Strehl peak |
+|---|---|---|---|
+| 0.1 | 0.37 | 0.73 | 0.95 |
+| 0.2 | 0.83 | 1.00 | 1.00 |
+| **0.3** | 0.99 | 0.99 | 1.00 |
+| **0.4 (default)** | 0.98 | 1.00 | 0.99 |
+| **0.6** | 0.97 | 0.99 | 0.99 |
+| **1.0** | 0.94 | 0.96 | 0.97 |
+| 2.0 | 0.70 | 0.85 | 0.88 |
+
+At the default, the worst value is 0.982, 0.996 and 0.994 for metric scales 1e-3, 1 and 1e3 alike. The engine's deformable-mirror bench (six hidden aberration
+modes, camera peak as the only measurement, 80 iterations) reaches at least 0.9 on three seeds. How to choose: `amplitude` about a tenth of the length over which
+the metric changes by a factor of 2 (too large and the metric is not locally linear, too small and noise in a measured metric dominates), `step` between 0.3 and
+1; if the loop oscillates at the end, lower `step`; if the metric is noisy, raise `memory` towards 0.99 so that one lucky difference does not set the scale for long. Gain sequences that fall with the
+iteration number (Spall) are not implemented; the decaying maximum does the same job without a schedule.
 
 ## Limits
 

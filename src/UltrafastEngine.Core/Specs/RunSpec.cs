@@ -21,6 +21,8 @@ namespace UltrafastEngine.Specs
         /// <summary>Put the carrier on an exact multiple of the frequency step (needed by carrier-resolved mode;
         /// shifts the carrier by &lt; half a bin).</summary>
         public bool SnapCarrier { get; set; } = true;
+        /// <summary>snapCarrier was written in the spec. A cw source puts its single line on the requested carrier (no snapping) unless it was.</summary>
+        public bool SnapCarrierGiven { get; set; }
         /// <summary>Spectral span factor applied to the input spectrum (-40 dB width) when sizing the time step.
         /// NaN: 1.3 for linear systems, 3 when any element is nonlinear.</summary>
         public double SpectralMargin { get; set; } = double.NaN;
@@ -61,6 +63,7 @@ namespace UltrafastEngine.Specs
             g.Auto = o.GetBool("auto", true);
             g.MaxN = o.GetInt("maxN", g.MaxN);
             g.SnapCarrier = o.GetBool("snapCarrier", true);
+            g.SnapCarrierGiven = o.Has("snapCarrier");
             g.SpectralMargin = o.GetDouble("spectralMargin", double.NaN);
             g.MinSpanFraction = o.GetDouble("minSpanFraction", 0.1);
             g.MinPointsPerFwhm = o.GetDouble("minPointsPerFwhm", 12);

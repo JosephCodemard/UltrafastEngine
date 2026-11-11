@@ -4226,7 +4226,7 @@ class Grid(TypedDict, total=False):
     maxN: int
     """Largest allowed n Default: 4194304."""
     snapCarrier: bool
-    """Put the carrier on the frequency grid Default: true."""
+    """Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written Default: true."""
     spectralMargin: float
     """Spectral span factor Default: auto."""
     minSpanFraction: float

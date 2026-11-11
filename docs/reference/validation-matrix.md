@@ -2,12 +2,12 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **559 tests** in 59 classes. **355** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **562 tests** in 59 classes. **358** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
 | [AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements](#aodevicetests) | `AoDeviceTests` | 26 | 26 |
-| [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 13 | 12 |
+| [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 15 | 14 |
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 13 | 12 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
 | [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
@@ -61,7 +61,7 @@ Every C# test of the engine: **559 tests** in 59 classes. **355** of them check 
 | [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 6 | 6 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
-| [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 10 | 10 |
+| [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 20 | 3 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
@@ -113,8 +113,10 @@ Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured ne
 | `FileMask_AppliesAmplitudeAndPhase` | T = amplitude^2 for a uniform map; a thin plate's phase scales with frequency | -- |
 | `HermiteGauss_RadiiFollowTheModeOrders_AtTheWaistAndAfterARayleighRange` | Hermite-Gauss modes: second-moment radius w(z) sqrt(2m + 1) (Siegman, Lasers, ch. 16) | -- |
 | `LaguerreGauss_VortexKeepsItsDarkAxis_AndItsRingScalesWithTheBeam` | Laguerre-Gauss modes: second-moment radius w sqrt(2p + \|l\| + 1), helical phase keeps a dark axis, ring at w sqrt(\|l\| / 2) | -- |
+| `MaskFile_OfOneRow_IsConstantAlongY` | a mask file of one row is constant along y: a transmission of 0.5 everywhere passes 0.25 of the energy on a grid with ny = 1 and ny = 4 | 1e-9 |
 | `Mask_WithoutAProfile_WarnsAndPassesThePulse` | -- | -- |
 | `MeasuredNearField_FromAnNpz_PropagatesLikeTheBeamItSampled` | Gaussian beam w(z) from a sampled near field; known background subtracted | -- |
+| `MeasuredScene_OfOneRow_IsConstantAlongY_OnGridsWithAnyNy` | a measured scene of one row (what a '1-D' scene saved at y = (j - ny/2) dx with ny = 1 is: its row is at y = -dx/2) reproduces on a grid with ny = 1, 4 and 128 the same x profile as a full map: radius w of the Gaussian and w sqrt(2) after one Rayleigh length | radius 1 %, w(z_R) 2 % |
 | `SpecialFunctions_MatchTabulatedValues` | Abramowitz & Stegun table 10.11: Ai(0), Ai(1), Ai(-1), Ai(5.5), first zero; H_3, L_2^1 closed forms | 1e-8 |
 | `VortexPlate_ConservesEnergy_AndDarkensTheAxis_AndNeedsACartesianGrid` | Spiral phase plate: a vortex of charge l has zero amplitude on the axis at every z | -- |
 | `ZonePlate_FocusesAtItsFocalLength_AmplitudeAndBinaryPhase` | Fresnel zone plate: amplitude on the axis 2 N_open U0, intensity 4 N_open^2 I0; binary phase plate 16 N_open^2 I0 (Born & Wolf 8.8) | 5 % |
@@ -713,7 +715,7 @@ Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation
 |---|---|---|
 | `BadInput_IsRefusedWithAMessage` | validation: a map of the wrong shape, both phase and path, and a quantisation of one level are refused with a message | exact |
 | `CrosstalkKernel_BlursTheWrittenMap_ByDiscreteConvolution` | cross-talk kernel w applied separably to the written map: a single raised cell of phase 1 with w = [1, 2, 1] / 4 gives 1/4, 1/2, 1/4 (discrete convolution); the Gaussian sigma equals the explicit kernel of its weights | 1e-12 |
-| `CwRun_EqualsThePulse_AtTheCarrier` | a continuous-wave source and a pulse at the carrier see the same (monochromatic) device: the cw focal fluence pattern equals that of a 1 ns pulse | 2e-5 of the peak: a 1 ns pulse has a 0.4 GHz bandwidth, so the optical-path phase differs from the carrier's by ~1e-6 of its value across the band |
+| `CwRun_EqualsThePulse_AtTheCarrier` | a continuous-wave source and a pulse at the carrier see the same (monochromatic) device: the cw focal fluence pattern equals that of a 1 ns pulse | 1e-7 of the peak (measured 1.3e-8): a 1 ns pulse has a 0.4 GHz bandwidth, so the optical-path phase differs from the carrier's by ~1e-6 of its value across the band; the cw line sits on the requested carrier |
 | `EdgeCellsAndGaps_AreAreaAverages` | area average over a grid cell: a cell half on the array and half outside gets (t_cell + t_outside) / 2; gaps transmit gapTransmission, so a fill factor 1/2 with gap amplitude g passes 1/2 + g^2 / 2 of the power when every grid cell lies in a cell or a gap | 1e-12 edge cell, 1e-6 power |
 | `FillFactor_SetsTheTransmission_AndTheReplicaOrders` | comb of active cells (fill 3/4 of a 4-sample pitch, edges on grid-cell edges): transmission 3/4; discrete Fourier series c_0 = 3/4, \|c_1\| = 1/4, so the first replica / zero order = 1/9; replicas at lambda f / pitch | 1e-6 transmission, 1 % order ratio |
 | `FixedPhase_RampDeflectionScalesWithWavelength` | fixedPhase: the written phase does not scale with frequency, so a ramp k0 theta x deflects by theta lambda / lambda0 (diffractive / geometric-phase device) | 1 % |
@@ -721,7 +723,7 @@ Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation
 | `IndexRule_WithConstantDeltaN_IsTheOpdRule` | chromatic index with a constant index modulation dn: phase = phi omega dn / (omega_d dn) = phi omega / omega_d, the opd rule | 1e-12 of the peak |
 | `Maps_InlineFileAndCallback_AreIdentical` | the three ways to give a map (inline array, NPZ file, callback "@name" evaluated at the cell centres) are the same device: identical focal fields | 1e-12 |
 | `OffsetArray_ClipsTheBeam_LikeAnAperture` | arrays outside the device block the light: outsideTransmission = 0 and an array covering half the beam transmits the Gaussian power inside it | 0.5 % |
-| `OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches` | one stored frequency (spectralSamples = 1) sits at the energy centroid of the spectrum (the carrier of a 1 ns Gaussian, within one grid bin); the cw source's single bin is snapped to its grid lattice, 1.2e-6 from the requested carrier (the run notes print it), so the monochromatic focal patterns agree to the pattern change of that offset | stored frequency within 1e-7 of the carrier; pattern 3e-6 of the peak |
+| `OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches` | one stored frequency (spectralSamples = 1) sits at the energy centroid of the spectrum (the carrier of a 1 ns Gaussian, within one grid bin); the cw source puts its single line on the requested carrier (the lattice is shifted; it was snapped, 1.2e-6 away, until 2.2.1), so the two monochromatic focal patterns are the same | stored frequencies within 1e-9 of the carrier; pattern 1e-9 of the peak (measured 1e-16) |
 | `PhaseAtDesign_IsTheOpdRule` | naming (ao-twin-2026-11.md): "phaseAtDesign" is a phase given at the design wavelength and scaled with omega, the opd rule | exact |
 | `PhaseRamp_MovesTheFocus_ByFocalLengthTimesAngle` | a pure phase tilt k theta x moves the focus of a lens by f theta (geometric optics, Goodman, Fourier optics ch. 5) | 1 % |
 | `QuadraticPhase_FocusesLikeAThinLens` | a quadratic phase -k x^2 / (2 f) is a thin lens: a Gaussian waist w at the device focuses at z = f to lambda f / (pi w) (Siegman, Lasers, ch. 17), as the lens element does | 2 % of the analytic radius, 1 % of the lens element's |
@@ -981,6 +983,7 @@ Coherent tile source: N sub-beams with piston, tilt and delay; combined far fiel
 |---|---|---|
 | `BadTileSpec_IsRefused` | validation: per-tile arrays of the wrong length and missing sizes are refused | exact |
 | `DelayMismatch_CostsTheTemporalOverlap_OfTheTwoPulses` | delay mismatch of two in-phase Gaussian pulses (intensity FWHM T): the energy on axis is 2E + 2 Int A(t) A(t - tau) dt, so relative to tau = 0 it is (1 + C) / 2 with the field overlap C = exp(-ln2 (tau / T)^2) | 3 % |
+| `FourTiles_OnAxisPistonLoss_EqualsABranchedBalancedTreeRecombinedAtOnePoint` | N = 4 coherent beams of equal power recombined at one point: a balanced tree of 50/50 splitters (a Mach-Zehnder of Mach-Zehnders) with piston phase phi_k in each arm returns \|sum exp(i phi_k)\|^2 / 16 of the input power at its bright port (all arms equal: the whole input), exactly; the tile source gives the same fraction of its in-phase on-axis fluence. A Branched system recombines at a point and so cannot give the array's far field: this is the on-axis value only | Branched 1e-6 of the formula (the carrier is snapped to the grid), tiles against Branched 1.5 % |
 | `InPhaseTiles_CombinePeakIntensity_ByN` | N equal, in-phase, coherent beams: on-axis far-field peak = N x the peak of one beam carrying all the energy (N^2 for equal power per beam); Goodman ch. 4 (array theorem) | 2 % |
 | `Layouts_HexRingAndExplicit_PlaceTheTiles` | geometry: a hex layout of r rings has 1 + 3 r (r + 1) tiles, each at distance pitch from its nearest neighbour; a ring of n tiles lies on radius R at angles 2 pi i / n; explicit positionsM are used as given | 1e-12 |
 | `PistonErrors_CostTheRealisedCoherenceSum` | piston errors: the on-axis peak of the realised phases is \|sum exp(i phi)\|^2 / N^2 of the in-phase peak (exact for the draw); its expectation is 1/N + (1 - 1/N) exp(-sigma^2) | 1.5 % |

@@ -79,6 +79,8 @@ tolerance, measured first); the old behaviour recovered for a narrow spectrum (1
 
 ### WP5. Leftovers from the spikes (S; priority 5, mostly decisions)
 
+*Done 2026-11-11 (session A): see [notes/session-a.md](notes/session-a.md).*
+
 | item | recommendation |
 |---|---|
 | compile cache | **closed (owner, 2026-11-10).** A 128 x 128 trial costs 10 ms including the compile (spikes S4); revisit only if a loop with a much larger system shows the compile above 30 % of the trial. Write the trigger into `speed.md`. |
@@ -87,12 +89,16 @@ tolerance, measured first); the old behaviour recovered for a narrow spectrum (1
 
 ### WP6. Small fixes found on the way (S each)
 
+*`ny = 1` done 2026-11-11 (session A, [notes/session-a.md](notes/session-a.md)); the cavity figure stays in WP9.*
+
 * **`ny = 1` grids** (HANDOFF / S1): a grid with `ny = 1` did not reproduce a measured input while `ny = 4` works. Not investigated. Reproduce in a minimal test (a `measured` profile through one gap), find the cause
   (the y pitch from `halfWidthYM` and `ny`, or the sampling of the measured profile), then either fix it or make the validator refuse `ny < 2` with a clear message. A bug-hunter task.
 * **Cavity figure.** `Branched/cavity-and-coherence` has no figure (a cw / resonator run has no pulse to draw). Draw the Fox-Li iteration (the mode converging round trip by round trip as an animation and the radius
   against the ABCD eigenmode), and the Gaussian-Schell beam's coherent modes and width against `w(z)`. Done inside WP9.
 
 ### WP7. The open findings (S-M each; investigate, then write the cause in the README)
+
+*Done 2026-11-11 (session A, [notes/session-a.md](notes/session-a.md)): SPGD gain, cw against pulse. Open: Raman shift rate, SLM against Fourier (with the new first-order efficiency finding in [notes/wp0.md](notes/wp0.md)), tiled-array SPGD reference.*
 
 | finding | how to find the cause | done when |
 |---|---|---|

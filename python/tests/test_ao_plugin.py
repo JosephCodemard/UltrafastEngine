@@ -240,6 +240,20 @@ def test_spgd_locks_the_tile_pistons_through_the_engine():
         N = n_saved
 
 
+def test_spgd_default_focuses_the_deformable_mirror_bench_from_the_camera_peak():
+    """SPGD with the default (scale-free) step on the engine's deformable-mirror bench: six hidden aberration modes (waves rms), the camera peak fluence over its reference
+    is the only measurement, amplitude 0.05, 80 iterations (240 engine runs): the Strehl ratio rises from about 0.4 to at least 0.9 on 3 seeds (the fixed gain needed 3 by
+    trial: 1.5 reached 0.64, 5 reached 0.80)."""
+    aberration = {4: -0.25, 5: 0.20, 6: -0.15, 7: 0.20, 8: -0.10, 9: 0.10}
+    modes = sorted(aberration)
+    bench = DmBench(aberration=aberration)
+    ref = bench.reference_peak()
+    metric = lambda a: bench.peak_fluence(bench.zernike_commands(dict(zip(modes, a)))) / ref
+    start = metric(np.zeros(6))
+    finals = [sensorless.spgd(metric, np.zeros(6), iterations=80, amplitude=0.05, seed=s).history[-1] for s in (3, 4, 5)]
+    assert start < 0.5 and min(finals) > 0.9, (start, finals)
+
+
 # ----------------------------------------------------------------------------------------------- closed-loop pulse shaping
 def _peak_power(gdd_aopdf_fs2, chirp_fs2):
     sysd = b.system("s", [b.gap("g", 0.0, medium="Vacuum"), {"id": "chirp", "type": "aopdf", "gddFs2": chirp_fs2}, {"id": "shape", "type": "aopdf", "gddFs2": float(gdd_aopdf_fs2)}])

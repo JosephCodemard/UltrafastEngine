@@ -502,7 +502,7 @@
         },
         "snapCarrier": {
           "type": "boolean",
-          "description": "Put the carrier on the frequency grid Default: true."
+          "description": "Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written Default: true."
         },
         "spectralMargin": {
           "type": "number",

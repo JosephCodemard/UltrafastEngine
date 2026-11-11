@@ -1571,7 +1571,9 @@ namespace UltrafastEngine.Engine
             {
                 // one spectral bin: no pulse to fit, nothing to plan; the window only sets the energy (power x window)
                 double win = double.IsNaN(run.Grid.WindowS) ? Pulses.PulseSpec.CwWindowS : run.Grid.WindowS;
-                c.Out.Grid = GridPlanner.Create(64, win, c.Omega0, true, out double wc);
+                // a single line: the lattice is shifted so that a bin sits on the requested carrier (a pulse is built at the requested carrier as an offset of the snapped
+                // lattice, a single line cannot be); carrier-resolved models need the snapped lattice and are reached with an explicit snapCarrier: true
+                c.Out.Grid = GridPlanner.Create(64, win, c.Omega0, run.Grid.SnapCarrier && run.Grid.SnapCarrierGiven, out double wc);
                 c.Out.Input = ps.Build(c.Out.Grid);
                 c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Cw source: {0:G4} W over a {1:G4} s window, one spectral bin at {2:F4} nm. Fluences are intensity x window.", c.Out.Input.TotalEnergyJ() / win, win, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / wc * 1e9));
                 return;

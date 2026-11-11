@@ -553,7 +553,7 @@ namespace UltrafastEngine.Physics
             Field = FrequencyGrid.Create(env.N * p, env.DTime / p, 0.0);
             CarrierBin = (int)Math.Round(env.OmegaCenter / env.DOmega);
             if (Math.Abs(CarrierBin * env.DOmega - env.OmegaCenter) > 1e-6 * env.DOmega)
-                throw new InvalidOperationException("Carrier-resolved mode needs the carrier on a multiple of the frequency step (grid.snapCarrier = true).");
+                throw new InvalidOperationException("Carrier-resolved mode needs the carrier on a multiple of the frequency step (grid.snapCarrier = true; a cw source needs it written out).");
             int dropped = 0;
             for (int i = 0; i < env.N; i++) if (FieldIndex(i) <= Field.N / 2) dropped++;
             DroppedBins = dropped;

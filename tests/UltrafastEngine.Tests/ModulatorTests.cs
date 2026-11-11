@@ -138,7 +138,7 @@ namespace UltrafastEngine.Tests
             finally { System.IO.File.Delete(file); }
         }
 
-        [Test(Reference = "a continuous-wave source and a pulse at the carrier see the same (monochromatic) device: the cw focal fluence pattern equals that of a 1 ns pulse", Tolerance = "2e-5 of the peak: a 1 ns pulse has a 0.4 GHz bandwidth, so the optical-path phase differs from the carrier's by ~1e-6 of its value across the band")]
+        [Test(Reference = "a continuous-wave source and a pulse at the carrier see the same (monochromatic) device: the cw focal fluence pattern equals that of a 1 ns pulse", Tolerance = "1e-7 of the peak (measured 1.3e-8): a 1 ns pulse has a 0.4 GHz bandwidth, so the optical-path phase differs from the carrier's by ~1e-6 of its value across the band; the cw line sits on the requested carrier")]
         public void CwRun_EqualsThePulse_AtTheCarrier()
         {
             double k = 2 * Math.PI / Lam; var mod = Mod(Map(i => k * 3e-3 * X(i)));
@@ -147,7 +147,7 @@ namespace UltrafastEngine.Tests
             var cw = Go(Sys(Source(0.3e-3), Mod(Map(i => k * 3e-3 * X(i))), Lens(F), Free("z", F)), Spec(O("shape", "cw", "centerWavelengthM", Lam, "powerW", 1.0), O("instruments", A(Bp("z")))));
             var a = Arr(pulse, "fluence_x_j_m2"); var b = Arr(cw, "fluence_x_j_m2");
             double pa = a.Max(), pb = b.Max();
-            for (int i = 0; i < a.Length; i++) Assert.Close(a[i] / pa, b[i] / pb, 0, 2e-5, "pattern");
+            for (int i = 0; i < a.Length; i++) Assert.Close(a[i] / pa, b[i] / pb, 0, 1e-7, "pattern");
         }
 
         [Test(Reference = "the interpolation error of the stored frequencies is 0 for a phase-free device and falls as the number of stored frequencies grows (compare K and 2K); too few frequencies warn", Tolerance = "error ratio 2.5-6 per doubling of K (1/K^2); below the warning level 0.05 at K = 32; warning at K = 3")]
@@ -345,17 +345,18 @@ namespace UltrafastEngine.Tests
             }
         }
 
-        [Test(Reference = "one stored frequency (spectralSamples = 1) sits at the energy centroid of the spectrum (the carrier of a 1 ns Gaussian, within one grid bin); the cw source's single bin is snapped to its grid lattice, 1.2e-6 from the requested carrier (the run notes print it), so the monochromatic focal patterns agree to the pattern change of that offset", Tolerance = "stored frequency within 1e-7 of the carrier; pattern 3e-6 of the peak")]
+        [Test(Reference = "one stored frequency (spectralSamples = 1) sits at the energy centroid of the spectrum (the carrier of a 1 ns Gaussian, within one grid bin); the cw source puts its single line on the requested carrier (the lattice is shifted; it was snapped, 1.2e-6 away, until 2.2.1), so the two monochromatic focal patterns are the same", Tolerance = "stored frequencies within 1e-9 of the carrier; pattern 1e-9 of the peak (measured 1e-16)")]
         public void OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches()
         {
             double k = 2 * Math.PI / Lam;
             JsonObject One(JsonObject el) { el["transverse"].AsObject().Set("spectralSamples", 1); return el; }
             RunResult R(JsonObject pulse) => Go(Sys(One(Source(0.3e-3)), Mod(Map(i => k * 3e-3 * X(i))), Lens(F), One(Free("z", F))), Spec(pulse, O("instruments", A(Bp("z")))));
             var rp = R(Gauss(Lam, 1e-9, 1e-3)); var rc = R(O("shape", "cw", "centerWavelengthM", Lam, "powerW", 1.0));
-            Assert.Close(W(Lam), rp.At["src"].Profile.Omega[0], 1e-7, 0, "the stored frequency of the pulse is its carrier (it was the low edge of the band before 2026-11-10)");
+            Assert.Close(W(Lam), rp.At["src"].Profile.Omega[0], 1e-9, 0, "the stored frequency of the pulse is its carrier (it was the low edge of the band before 2026-11-10)");
             var a = Arr(rp, "fluence_x_j_m2"); var b = Arr(rc, "fluence_x_j_m2");
             double pa = a.Max(), pb = b.Max();
-            for (int i = 0; i < a.Length; i++) Assert.Close(a[i] / pa, b[i] / pb, 0, 3e-6, "pattern");
+            Assert.Close(W(Lam), rc.At["src"].Profile.Omega[0], 1e-9, 0, "the cw line sits on the requested carrier");
+            for (int i = 0; i < a.Length; i++) Assert.Close(a[i] / pa, b[i] / pb, 0, 1e-9, "pattern");
         }
 
         [Test(Reference = "the reported spectralSamplingError (a whole-bin interpolation residual) bounds the true error of the focal fluence map with K stored frequencies, measured against K = 64 (spike S2)", Tolerance = "bound holds at K = 8, 16, 32; the true error falls with K")]

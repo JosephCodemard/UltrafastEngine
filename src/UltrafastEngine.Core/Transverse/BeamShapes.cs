@@ -162,7 +162,7 @@ namespace UltrafastEngine.Transverse
             return true;
         }
 
-        /// <summary>Bilinear sample (linear on a radial map) of a map array at (x, y); 0 outside the map.</summary>
+        /// <summary>Bilinear sample (linear on a radial map) of a map array at (x, y); 0 outside the map. An axis of one sample is constant.</summary>
         public double Sample(double[] d, double x, double y)
         {
             if (d == null) return 0;
@@ -171,7 +171,10 @@ namespace UltrafastEngine.Transverse
                 if (!Locate(R, Math.Sqrt(x * x + y * y), out int i, out double t)) return 0;
                 return d[i] * (1 - t) + d[Math.Min(i + 1, R.Length - 1)] * t;
             }
-            if (!Locate(X, x, out int ix, out double u) || !Locate(Y, y, out int iy, out double v)) return 0;
+            // an axis with one sample carries no variation along it (a map of one row, e.g. the row of a "1-D" scene saved at y = -dx/2, which a grid with ny = 1 never samples
+            // exactly): it is constant along that axis instead of zero everywhere but at its single coordinate
+            int ix = 0, iy = 0; double u = 0, v = 0;
+            if ((X.Length > 1 && !Locate(X, x, out ix, out u)) || (Y.Length > 1 && !Locate(Y, y, out iy, out v))) return 0;
             int ny = Y.Length, ix1 = Math.Min(ix + 1, X.Length - 1), iy1 = Math.Min(iy + 1, ny - 1);
             return d[ix * ny + iy] * (1 - u) * (1 - v) + d[ix1 * ny + iy] * u * (1 - v) + d[ix * ny + iy1] * (1 - u) * v + d[ix1 * ny + iy1] * u * v;
         }

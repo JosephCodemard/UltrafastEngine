@@ -350,6 +350,13 @@ namespace UltrafastEngine.Transverse
             var spectrum = p.SpectralIntensity();
             var bins = TransverseOps.SampleBins(spectrum, spec.SpectralSamples);
             var omegas = bins.Select(b => p.Grid.OmegaAbsolute[b]).ToArray();
+            if (bins.Length == 1)
+            {
+                // one stored frequency: the energy-centroid frequency itself, not the lattice bin next to it (up to half a bin = 4e-7 of the carrier for a 1 ns
+                // pulse away), so that a pulse and a cw line at the same carrier see the same device; kept on the bin when the centroid falls in a hole of the spectrum
+                double s0 = 0, s1 = 0; for (int i = 0; i < spectrum.Length; i++) { s0 += spectrum[i]; s1 += spectrum[i] * p.Grid.OmegaAbsolute[i]; }
+                if (s0 > 0 && spectrum[bins[0]] >= 1e-3 * spectrum.Max() && Math.Abs(s1 / s0 - omegas[0]) <= p.Grid.DOmega) omegas[0] = s1 / s0;
+            }
             double wx = double.NaN, wy = double.NaN, R = double.PositiveInfinity;
             if (beam != null) (wx, wy, R) = TransverseOps.BeamAt(beam, 0);
             string mode = spec.Transport;

@@ -107,7 +107,7 @@ namespace UltrafastEngine.Schema
                 .Int("n", "Number of samples (with auto: a minimum)", "4096")
                 .Num("windowS", "s", "Time window", "30 x the transform limit").Num("windowPs", "ps", "Time window in ps")
                 .Int("maxN", "Largest allowed n", "4194304")
-                .Bool("snapCarrier", "Put the carrier on the frequency grid", "true")
+                .Bool("snapCarrier", "Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written", "true")
                 .Num("spectralMargin", "", "Spectral span factor", "auto")
                 .Num("minSpanFraction", "", "Nonlinear runs: minimum half-span / carrier", "0.1")
                 .Num("minPointsPerFwhm", "", "Samples across the transform-limited FWHM", "12")
