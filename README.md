@@ -1,5 +1,5 @@
 <p align="center">
-<a href="mailto:joseph.codemard@gmail.com"><img alt="Email" src="https://img.shields.io/badge/email-joseph.codemard%40gmail.com-c85a28?logo=gmail&logoColor=white"></a>
+<a href="mailto:jac318@bath.ac.uk"><img alt="Email" src="https://img.shields.io/badge/email-joseph.codemard%40gmail.com-c85a28?logo=gmail&logoColor=white"></a>
 </p>
 
 <p align="center">
