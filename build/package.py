@@ -250,8 +250,12 @@ class Builder:
         """Likewise the hitran plugin (gas lines)."""
         return [] if "hitran" in self.a.plugins else ["-p:UF_WITH_HITRAN=false"]
 
+    def _ao_flag(self):
+        """Likewise the ao plugin (deformable mirror, SLM, spectral shaper, AOPDF)."""
+        return [] if "ao" in self.a.plugins else ["-p:UF_WITH_AO=false"]
+
     def _compiled_in_flags(self):
-        return self._gpu_flag() + self._hitran_flag()
+        return self._gpu_flag() + self._hitran_flag() + self._ao_flag()
 
     def cpp(self, rid, root: Path):
         lib = self.aot(rid)
@@ -291,9 +295,9 @@ class Builder:
                 dst.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(self._hosted_wheel, dst / self._hosted_wheel.name)
         else:
-            left = [p for p in self.a.plugins if p not in ("gpu", "hitran")]
+            left = [p for p in self.a.plugins if p not in ("gpu", "hitran", "ao")]
             if left:
-                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel (gpu and hitran are compiled in); use --python-engine hosted to ship them" % ", ".join(left))
+                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel (gpu, hitran and ao are compiled in); use --python-engine hosted to ship them" % ", ".join(left))
             w = self._wheel("native", rid)
             if w and not Log.dry:
                 dst.mkdir(parents=True, exist_ok=True)

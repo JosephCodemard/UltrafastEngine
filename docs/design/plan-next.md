@@ -27,7 +27,7 @@ because they describe what the others deliver. Every package ends with tests, do
    (`GDD x bandwidth`); it widens the window, or when the window is fixed it **warns** that output will wrap. Test: the Weiner example of `temporal-shaping` runs without setting `grid.windowS`;
    a shaper with a 1 ns programmed GDD on a 10 ps fixed window warns.
 3. The unknown-element message (`Compiler.cs:649`) names the plugin for `deformableMirror`, `slm`, `spectralShaper`, `aopdf` as it already does for the other first-party types.
-4. Mark the open edges of S3 that have no test: grating-derived dispersion of `spectralShaper` against a Littrow reference; end-to-end Bolduc and double phase through an SLM with a varying field; tiled-array
+4. *(Done 2026-11-11: see [notes/wp0.md](notes/wp0.md); Bolduc and double phase through the SLM and the lobe fractions are in `python/tests/test_ao_plugin.py`, the Littrow check in `AoDeviceTests`.)* Mark the open edges of S3 that have no test: grating-derived dispersion of `spectralShaper` against a Littrow reference; end-to-end Bolduc and double phase through an SLM with a varying field; tiled-array
    lobe fractions beyond `0 < f < 1`. Write the tests (S) or state in the docs why not.
 
 ### WP1. Spatial modelling: thermal lenses in beam tracking (M-L; priority 1)

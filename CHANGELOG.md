@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Added**
+- **`UF_WITH_AO`:** the `ao` plugin (`deformableMirror`, `slm`, `spectralShaper`, `aopdf`) is compiled into the NativeAOT library like `gpu` and `hitran`; `build/package.py` passes `UF_WITH_AO=false` when it is not selected.
+- **Grid planner and shapers:** a `spectralShaper` with a stepped or gapped mask gets room for its side pulses (orders 1 to 8 at `2 pi / pixel bandwidth`, weighted by the spot size); an `aopdf` gets room for its delay, replica delay and `|GDD| x bandwidth`. With `grid.auto: false` the planner warns instead. New `CompiledElement.ProgrammedGddS2` and a `programmedGddS2` argument of `GridPlanner.Plan`. The Weiner example no longer needs `grid.windowS`.
+- The unknown-element error names the `ao` plugin for its four element types.
+- Tests for the open edges of the `ao` plugin: the shaper's grating dispersion against the Littrow reference; Bolduc and double-phase hologram maps with a varying complex field through the `slm` element; tiled-array lobe fractions against the array factor.
+
 **Changed**
 - **Python package structure:** `ultrafast.plotting` is a package (`style`, `data`, `time_domain`, `spectral`, `run_figures`, `spatial`, `instrument_panels`, `diagrams`, `zernike`, `animate`); `ultrafast.diagram` moved to `ultrafast.plotting.diagrams` (the old name still imports and warns). New `ultrafast.system`, `components`, `sources`, `instruments`, `algorithms` and `results` group the builders by what they are (CapWords names are aliases of the `build` functions, so typed returns are unchanged). Every 2.2.0 public name still imports (a test checks a committed list).
 - **Examples regrouped** from `docs/examples/NN-name` into `docs/examples/<Group>/<name>` (GettingStarted, LaserSystems, Nonlinear, Diffraction, Wavefronts, Branched, Diagnostics, Components, Computing, DigitalTwin, Interop, AdaptiveOptics); the index keeps the old numbers; `build/example_check.py` accepts a name, a group or an old number.

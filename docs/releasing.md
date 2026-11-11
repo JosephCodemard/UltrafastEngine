@@ -64,8 +64,8 @@ package is still built.
 
 The selected plugins go into `bin/plugins/`, the hosted wheel (`ultrafast/bin/hosted/plugins/`) and
 `csharp/plugins/`. Users add others with `ultrafast plugins install <folder or zip>` (copies into
-`~/.ultrafast/plugins`). The NativeAOT library (C API, native wheel) cannot load plugins at run time; the `gpu`
-plugin is compiled into it when selected (`-p:UF_WITH_GPU=false` otherwise). The GPU back-ends load the vendor
+`~/.ultrafast/plugins`). The NativeAOT library (C API, native wheel) cannot load plugins at run time; the `gpu`,
+`hitran` and `ao` plugins are compiled into it when selected (`-p:UF_WITH_GPU=false`, `UF_WITH_HITRAN=false`, `UF_WITH_AO=false` otherwise; the `twin` plugin is Python plus a CLI command and needs nothing). The GPU back-ends load the vendor
 libraries (CUDA driver, NVRTC, OpenCL) from the target computer at run time; nothing NVIDIA-owned is packaged.
 
 ## The ZOS-API rule

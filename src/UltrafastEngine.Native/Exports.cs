@@ -77,6 +77,9 @@ namespace UltrafastEngine.Native
 #if UF_WITH_HITRAN
             UltrafastEngine.Plugins.Hitran.HitranPlugin.RegisterStatic();
 #endif
+#if UF_WITH_AO
+            UltrafastEngine.Plugins.Ao.AoPlugin.RegisterStatic();
+#endif
         }
     }
 

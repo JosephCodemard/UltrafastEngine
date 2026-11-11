@@ -103,7 +103,7 @@ A Fourier-plane mask of a 4f line. Frequency maps to position `x = D (2 pi c / o
 
 **The programmed delay stays in the transfer function**: a linear phase `tau (omega - omega_0)` moves the pulse by `tau` inside the time
 window; only the carrier phase is taken out of the frame, so the arrival-time bookkeeping is unchanged. A pixelated mask makes side
-pulses at `2 pi / (pixel bandwidth)`: **set `grid.windowS` to cover them**, the grid planner does not know about them (nor about a large programmed GDD, which stretches the pulse: nothing warns when the output wraps round the window). The spectral grid spacing is `2 pi / windowS`: keep at least ~10 samples per pixel, otherwise the sampled mask edges change the harmonics (a window of 8 ps with 1.6 ps side pulses, 5 samples per pixel, gave 2.5 % errors in the side pulses). With gaps (active
+pulses at `2 pi / (pixel bandwidth)`: the grid planner makes room for them (orders 1 to 8, each weighted by the spot-size factor `exp(-2 (pi m w0 / pitch)^2)`; a mask with no steps and no gaps adds none). It also stretches the window for a programmed `aopdf` GDD by `|GDD| x input bandwidth`, and for the `aopdf` delay and replica delay. With `grid.auto: false` and a window that is too small it **warns** that the output will wrap. The planner knows the programmed GDD of an `aopdf` only, not a quadratic phase written into the pixels of a `spectralShaper`: for that, set `grid.windowS`. The spectral grid spacing is `2 pi / windowS`: keep at least ~10 samples per pixel, otherwise the sampled mask edges change the harmonics (a window of 8 ps with 1.6 ps side pulses, 5 samples per pixel, gave 2.5 % errors in the side pulses). With gaps (active
 fraction `f`) the side pulses carry `[sin(pi f)/(pi f)]^2` of the main pulse (Weiner, Rev. Sci. Instrum. 71, 1929 (2000)).
 
 ## aopdf
@@ -155,11 +155,15 @@ dark) but the amplitudes only relative within a row.
 | SLM at other wavelengths (`AoDeviceTests`) | `s(lambda)` from the Cauchy law; the first-order coefficient with phases scaled by `s` |
 | phase target to the nearest level of a tanh curve (`AoDeviceTests`) | identical fields to 1e-12 |
 | 1920 x 1080, 256 levels (`AoDeviceTests`, slow) | S2 scale budget; erf product of the overfilling Gaussian |
+| grid-planner room for shaper side pulses and programmed GDD, warning on a fixed window (`AoDeviceTests.Planner_*`) | Weiner side-pulse delay `2 pi / d_omega`; Gaussian chirp formula; window >= 2 x the stretched pulse |
+| shaper grating dispersion at Littrow (`AoDeviceTests.SpectralShaper_GratingDispersion_*`) | `dx/dlambda = 2 f tan(theta) / lambda` |
 | aopdf delay, efficiency, GDD, window, replica (`AoDeviceTests`) | shift theorem; Diels and Rudolph chirp formula; erf of the cut spectrum |
 | spectral shaper side pulses and delay (`AoDeviceTests`) | Weiner; shift theorem |
 | Strehl, Maréchal; twin vs engine; fit residual vs actuators (`test_ao_plugin.py`) | exact on-axis field `|<a e^{i phi}>|^2`; `exp(-sigma^2)` |
 | one-shot correction, closed loop, modal search (`test_ao_plugin.py`) | twin prediction; `(1 - g)^k` |
 | tiled array N, pistons, delays, SPGD lock (`test_ao_plugin.py`) | `|sum e^{i phi}|^2 / N^2`; Gaussian envelope overlap |
+| Bolduc and double-phase maps through the `slm` element with a varying complex field (`test_ao_plugin.py`) | first order / low-frequency field = Fourier transform of illumination x `A e^{i phi}` (correlation > 0.99; energy against the same ratio of transforms, 3 %); the Bolduc energy is taken relative to an engine blaze of A = 1 because of the open SLM efficiency finding (an 8-pixel blaze keeps 0.85 of the light in the first order) |
+| tiled-array central and grating lobe fractions, in phase and with checkerboard pistons (`test_ao_plugin.py`) | array factor x Gaussian tile envelope on the engine's grid, 1e-3 (measured 2e-5) |
 | GS monotone, WGS uniformity, Bolduc first order, double phase (`test_ao_algorithms.py`) | Fienup 1982; Di Leonardo 2007; Bolduc 2013 |
 | Shack-Hartmann spot shift `f dW/dx`; modal fit exact; Southwell exact for quadratics and second-order convergent (`test_ao_algorithms.py`) | geometric optics; analytic |
 | transmission matrix and focusing enhancement `(pi/4)(N - 1) + 1` (`test_ao_algorithms.py`) | Vellekoop and Mosk 2007 (3000 outputs, tolerance 0.6 %) |

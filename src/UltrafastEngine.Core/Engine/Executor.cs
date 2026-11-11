@@ -513,7 +513,7 @@ namespace UltrafastEngine.Engine
             double window = g.N * g.DTime;
             double fwhmTl = PulseMetrics.Fwhm(g.Time, PulseMetrics.TransformLimitedPower(p));
             var plan = GridPlanner.Plan(p, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window, g.N, run.Grid.MaxN, true, false,
-                double.IsNaN(fwhmTl) ? double.PositiveInfinity : fwhmTl / run.Grid.MinPointsPerFwhm, Compiler.SatelliteRoom(rest, run.Grid.SatelliteLevel));
+                double.IsNaN(fwhmTl) ? double.PositiveInfinity : fwhmTl / run.Grid.MinPointsPerFwhm, Compiler.SatelliteRoom(rest, run.Grid.SatelliteLevel), rest.Sum(x => Math.Abs(x.ProgrammedGddS2)));
             double reqW = Math.Max(plan.RequiredWindowS, 1e-15), reqDt = plan.RequiredDtS;
             int a = (int)Math.Ceiling(Math.Log(reqW / window, 2) - 1e-9);
             int b = (int)Math.Floor(Math.Log(reqDt / g.DTime, 2) + 1e-9);

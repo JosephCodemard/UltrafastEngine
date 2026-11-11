@@ -15,7 +15,7 @@ WINDOW = 4e-12
 
 def go(elements, pulse=None, window=WINDOW):
     pulse = pulse or b.pulse(LAM, TP, energy=1e-6)
-    r = uf.run(b.system("shape", [b.gap("g", 0.0, medium="Vacuum")] + elements), b.run_spec(pulse, grid={"windowS": window}))
+    r = uf.run(b.system("shape", [b.gap("g", 0.0, medium="Vacuum")] + elements), b.run_spec(pulse, grid={"windowS": window} if window else {}))
     return {"t": r["output_time_s"], "p": r["output_power_w"], "lam": r["output_wavelength_m"], "s": r["output_spectrum"], "sum": r.summary["output"]}
 
 
@@ -63,7 +63,7 @@ def run():
     out["flat"] = go([aopdf(gddFs2=6000.0)], window=4e-12)
     pix = 0.5e-3                                                      # 0.5 mm of mask = 0.5 nm of spectrum: 12 pixels across the 150 fs pulse
     out["gaps"] = {"fill": 0.8, **go([SpectralShaper("px", pixels=60, pixel_pitch_m=pix, dispersion_m_per_m=1e6, spot_radius_m=0.25 * pix, fill_factor=0.8, gap_transmission=0.0,
-                                                     center_wavelength_m=LAM)], pulse=b.pulse(LAM, 150e-15, energy=1e-6), window=40e-12)}
+                                                     center_wavelength_m=LAM)], pulse=b.pulse(LAM, 150e-15, energy=1e-6), window=None)}
     out["pix"] = pix
     # gain narrowing: a Gaussian amplitude filter (stands in for the gain), then an amplitude table that undoes it
     wl = np.linspace(700e-9, 900e-9, 201)

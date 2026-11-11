@@ -76,6 +76,10 @@ namespace UltrafastEngine.Engine
         /// level is above grid.satelliteLevel. An element that sets only <see cref="SatelliteDelayS"/> counts as one
         /// satellite of level 1 (always given room).</summary>
         public List<(double DelayS, double Level)> Satellites { get; } = new List<(double, double)>();
+        /// <summary>Magnitude (s^2) of a spectral phase the element programs without declaring a group delay (an AOPDF or pulse shaper
+        /// keeps GroupDelayAt = 0 so the arrival-time bookkeeping is unchanged). The grid planner stretches the pulse by
+        /// GDD x bandwidth for it; contributions of several elements are added (worst case).</summary>
+        public double ProgrammedGddS2 { get; set; }
         /// <summary>Refractive index the beam sees inside the element (for Gaussian beam tracking); NaN = unknown (free space).</summary>
         public double TrackingIndex { get; set; } = double.NaN;
         /// <summary>Thin lenses inside the element for Gaussian beam tracking: position from the entrance (m) and power
@@ -646,7 +650,7 @@ namespace UltrafastEngine.Engine
                     if (Plugins.PluginManager.TryGetElementCompiler(e.Type, out var pc)) { pc(Services(c), e, ce); break; }
                     if (string.Equals(e.Type, "transform", StringComparison.OrdinalIgnoreCase))
                         throw new JsonException("element '" + e.Id + "' is a \"transform\", which needs the fitting plugin (not installed: see `ultrafast plugins list` and docs/plugins/installing.md).");
-                    throw new JsonException("unknown element type \"" + e.Type + "\". Known types: " + string.Join(", ", ElementTypes.Concat(Plugins.PluginManager.ElementTypes)) + ".");
+                    throw new JsonException(UnknownElementMessage(e.Type, e.Id));
             }
             if ((type == "bulk" || type == "crystal" || type == "gain" || type == "amplifier" || type == "lens") && e.Json.Has("ghosts"))
                 AddElementGhosts(c, e, ce, type);
@@ -1463,6 +1467,17 @@ namespace UltrafastEngine.Engine
             return Math.Min(pk, Results.PulseMetrics.TransformLimitedPower(p0).Max() * 1.0001);
         }
 
+        /// <summary>Element types of the first-party ao plugin, named in the unknown-element message when the plugin is missing.</summary>
+        private static readonly string[] AoElementTypes = { "deformableMirror", "slm", "spectralShaper", "aopdf" };
+
+        /// <summary>The error for an element type nobody registered: names the ao plugin for its four types, else lists the known types.</summary>
+        public static string UnknownElementMessage(string type, string id)
+        {
+            if (type != null && AoElementTypes.Contains(type, StringComparer.OrdinalIgnoreCase))
+                return "element '" + id + "' is a \"" + type + "\", which needs the ao plugin (not installed or not compiled into this library: see `ultrafast plugins list` and docs/plugins/installing.md).";
+            return "unknown element type \"" + type + "\". Known types: " + string.Join(", ", ElementTypes.Concat(Plugins.PluginManager.ElementTypes)) + ".";
+        }
+
         /// <summary>Delay room (s) the window needs for the satellites of <paramref name="elements"/>: the largest delay at
         /// which the satellites of all elements together can reach <paramref name="threshold"/> relative intensity.
         /// The satellites of successive elements combine (a ghost of a ghost); satellites that land at the same delay
@@ -1620,7 +1635,8 @@ namespace UltrafastEngine.Engine
                     memoryS = Math.Max(memoryS, GridPlanner.ResponseMemoryS(x.Nonlinear.Medium.Raman));
             if (memoryS > 5 * tl) c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "A delayed response in the system keeps the index changed for {0:G3} s after the pulse: the window is sized to hold it.", memoryS));
             var plan = GridPlanner.Plan(p0, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window0, run.Grid.ExplicitResolution ? run.Grid.N : n0, run.Grid.MaxN, run.Grid.Auto || run.Grid.ExtendForSatellites, run.Grid.ExplicitResolution, Results.PulseMetrics.Fwhm(g0.Time, Results.PulseMetrics.TransformLimitedPower(p0)) / run.Grid.MinPointsPerFwhm,
-                (run.Grid.TailEnabled ? 0.0 : SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes)) + run.Pulse.SatelliteHalfWindowS() + memoryS);
+                (run.Grid.TailEnabled ? 0.0 : SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes)) + run.Pulse.SatelliteHalfWindowS() + memoryS,
+                c.Out.Elements.Where(x => x.Enabled).Sum(x => Math.Abs(x.ProgrammedGddS2)));
             if (run.Grid.TailEnabled) c.Out.Notes.Add("grid.tail: ghosts, echoes and other satellites are carried on the long tail grid; the main window is sized for the pulse only.");
             c.Out.GridPlan = plan;
             c.Out.Notes.AddRange(plan.Notes);

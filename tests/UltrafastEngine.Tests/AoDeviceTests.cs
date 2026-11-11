@@ -311,5 +311,74 @@ namespace UltrafastEngine.Tests
             Assert.Close(tau, mt / m, 0, 2e-15, "delay");
             Assert.Close(1, r0.Output.TotalEnergyJ() / r1.Output.TotalEnergyJ(), 0.01, 0, "lossless apart from the spot blur");
         }
+
+        // ------------------------------------------------------------------------------------------ grid-planner hook for shapers
+        private static RunResult AutoGrid(JsonObject el, double fwhm, JsonObject grid) => Go(Sys(el), Spec(Gauss(800e-9, fwhm, 1e-6), O("grid", grid)));
+
+        [Test(Reference = "Weiner (2000): side pulses of a pixelated mask lie at 2 pi / pixel bandwidth; the planner must hold them without grid.windowS (window >= 2 x 1.25 x T, T = 1.6 ps here)", Tolerance = "window at least 2 x 1.25 x T; no warning; the +T side pulse is in the output")]
+        public void Planner_SpectralShaper_WidensTheWindow_ForItsSidePulses()
+        {
+            double lam = 800e-9, c = 299792458.0, T = 1.6e-12, dw = 2 * Math.PI / T, D = 1e5, f = 0.75;
+            double pitch = D * lam * lam * dw / (2 * Math.PI * c), w0 = pitch / 40;
+            var r = AutoGrid(O("id", "s", "type", "spectralShaper", "pixels", 161, "pixelPitchM", pitch, "dispersionMPerM", D, "spotRadiusM", w0, "fillFactor", f, "gapTransmission", 0.0), 150e-15, O());
+            double window = r.Output.Grid.Time.Length * r.Output.Grid.DTime;
+            Assert.True(window >= 2 * 1.25 * T, "window " + window + " holds the side pulses at +-T");
+            Assert.Equal(0, r.Warnings.Count, "no wrap warning: " + string.Join(" | ", r.Warnings) + " NOTES " + string.Join(" | ", r.Notes.Where(x => x.Contains("ndow") || x.Contains("atellite"))));
+            var t = TimeAxis(r); var p = Power(r); double plus = 0, main = 0;
+            for (int i = 0; i < t.Length; i++) { if (Math.Abs(t[i]) < 0.5e-12) main += p[i]; else if (Math.Abs(t[i] - T) < 0.5e-12) plus += p[i]; }
+            Assert.True(plus / main > 0.05, "the +T side pulse is in the window (ratio " + plus / main + ")");
+        }
+
+        [Test(Reference = "a flat mask makes no side pulses: the planner adds no room (same grid as an aopdf without programmed phase)", Tolerance = "identical grid")]
+        public void Planner_SpectralShaper_FlatMask_AddsNoRoom()
+        {
+            double pitch = 2e-4; int n = 121;
+            var a = AutoGrid(O("id", "s", "type", "spectralShaper", "pixels", n, "pixelPitchM", pitch, "dispersionMPerM", 1e5, "spotRadiusM", pitch / 10), 30e-15, O());
+            var b = AutoGrid(O("id", "s", "type", "aopdf"), 30e-15, O());
+            Assert.Equal(b.Output.Grid.Time.Length, a.Output.Grid.Time.Length, "grid size");
+            Assert.Close(b.Output.Grid.DTime, a.Output.Grid.DTime, 1e-12, 0, "dt");
+        }
+
+        [Test(Reference = "GDD x bandwidth: a transform-limited Gaussian of FWHM tau and GDD phi'' has FWHM tau sqrt(1 + (4 ln2 phi''/tau^2)^2) (Diels and Rudolph, Ultrashort Laser Pulse Phenomena, ch. 1); the auto-sized window must hold it", Tolerance = "window >= 2 x the stretched FWHM, stretched FWHM within 2 % of the formula")]
+        public void Planner_Aopdf_Gdd_WidensTheWindow()
+        {
+            double tau = 30e-15, gdd = 4e4 * 1e-30;
+            double expect = tau * Math.Sqrt(1 + Math.Pow(4 * Math.Log(2) * gdd / (tau * tau), 2));
+            var r = AutoGrid(O("id", "d", "type", "aopdf", "gddFs2", 4e4), tau, O());
+            Assert.True(r.Output.Grid.Time.Length * r.Output.Grid.DTime >= 2 * expect, "window holds the stretched pulse");
+            Assert.Close(expect, PulseMetrics.Fwhm(TimeAxis(r), Power(r)), 0.02, 0, "stretched FWHM");
+        }
+
+        [Test(Reference = "fixed window (grid.auto false): a programmed GDD x bandwidth stretch of about 1 ns on a 10 ps window wraps, so the planner warns", Tolerance = "a warning that says the grid is too small")]
+        public void Planner_Aopdf_FixedWindow_WarnsAboutWrap()
+        {
+            double tau = 30e-15, gddFs2 = 1e-9 / (2 * Math.PI * 0.441 / tau) * 1e30;   // GDD x (0.441 x 2 pi / tau) = 1 ns
+            var r = AutoGrid(O("id", "d", "type", "aopdf", "gddFs2", gddFs2), tau, O("auto", false, "windowS", 10e-12));
+            Assert.True(r.Warnings.Any(w => w.Contains("Grid looks too small")), "wrap warning: " + string.Join(" | ", r.Warnings));
+        }
+
+        [Test(Reference = "Littrow condition (Hecht, Optics): for sin(theta) = m lambda N / 2 a grating in the focal plane of an f lens gives dx/dlambda = 2 f tan(theta) / lambda; the shaper built from the grating data equals the one given that dispersion", Tolerance = "output power identical to 1e-12 of its peak")]
+        public void SpectralShaper_GratingDispersion_MatchesLittrowReference()
+        {
+            double lam = 800e-9, lines = 1200e3, f = 0.25, th = Math.Asin(lam * lines / 2);
+            double D = 2 * f * Math.Tan(th) / lam, pitch = 5e-5; int n = 161;
+            var ph = new JsonArray(); for (int j = 0; j < n; j++) ph.Add(0.7 * Math.Sin(0.3 * j));
+            var a = Temporal(O("id", "s", "type", "spectralShaper", "pixels", n, "pixelPitchM", pitch, "spotRadiusM", pitch / 8, "phaseRad", ph, "phaseWrapRad", 0.0, "gratingLinesPerMm", lines / 1e3, "focalLengthM", f, "incidenceAngleRad", th), 30e-15, 8e-12);
+            var b = Temporal(O("id", "s", "type", "spectralShaper", "pixels", n, "pixelPitchM", pitch, "spotRadiusM", pitch / 8, "phaseRad", ph, "phaseWrapRad", 0.0, "dispersionMPerM", D), 30e-15, 8e-12);
+            var pa = Power(a); var pb = Power(b); double pk = pb.Max(), worst = 0;
+            for (int i = 0; i < pa.Length; i++) worst = Math.Max(worst, Math.Abs(pa[i] - pb[i]) / pk);
+            Assert.Less(worst, 1e-12, "power differs from the Littrow dispersion by " + worst);
+        }
+
+        [Test(Reference = "the unknown-element message names the ao plugin for its four types", Tolerance = "message text")]
+        public void UnknownElement_NamesTheAoPlugin()
+        {
+            foreach (var type in new[] { "deformableMirror", "slm", "spectralShaper", "aopdf" })
+            {
+                string msg = UltrafastEngine.Engine.Compiler.UnknownElementMessage(type, "x");
+                Assert.True(msg.Contains("ao plugin") && msg.Contains(type), type + ": " + msg);
+            }
+            Assert.True(UltrafastEngine.Engine.Compiler.UnknownElementMessage("nosuch", "x").Contains("Known types"), "other types still list the known ones");
+        }
     }
 }

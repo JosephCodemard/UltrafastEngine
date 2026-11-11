@@ -168,6 +168,19 @@ namespace UltrafastEngine.Plugins.Ao
                 SpotRadiusM = w0, DxDLambda = dxdl, CentreLambdaM = lamC, CentreOmega = wC, DispersionMPerRadS = dxdw, OffsetM = s.Num(e, "offsetM", 0), PixelValue = px, Mechanism = "spectral shaper"
             };
             t.Text = string.Format(CultureInfo.InvariantCulture, "spectral shaper {0}: {1} pixels, pixel bandwidth {2:G4} rad/s (replica pulses at {3:G4} s), spot radius {4:G3} m", e.Id, n, t.PixelBandwidthRadS, 2 * Math.PI / t.PixelBandwidthRadS, w0);
+            // planner hook: a pixelated phase / amplitude mask makes replicas at m x 2 pi / pixel bandwidth (Weiner). The spot of 1/e^2
+            // radius w0 blurs the pixel edges and suppresses order m by exp(-(pi m w0 / pitch)^2) in amplitude (the pixel-gap sinc is not
+            // used: an upper bound). A mask without steps or gaps makes none. At most 8 orders.
+            bool flat = px.All(v => (v - px[0]).Magnitude < 1e-12) && (t.FillFactor >= 1 || Math.Abs(t.GapAmplitude - px[0].Magnitude) < 1e-12 && px[0].Phase == 0);   // gaps of a different transmission also make a comb
+            if (!flat)
+            {
+                double rep = 2 * Math.PI / t.PixelBandwidthRadS;
+                for (int m = 1; m <= 8; m++)
+                {
+                    double lv = Math.Exp(-2 * Math.Pow(Math.PI * m * w0 / pitch, 2));
+                    ce.Satellites.Add((m * rep, lv)); ce.SatelliteDelayS = Math.Max(ce.SatelliteDelayS, m * rep);
+                }
+            }
             ce.Post.Add(t);
             ce.Notes.Add(t.Text);
         }
@@ -200,6 +213,10 @@ namespace UltrafastEngine.Plugins.Ao
             }
             t.Text = string.Format(CultureInfo.InvariantCulture, "aopdf {0}: delay {1:G4} s, GDD {2:G4} s^2, TOD {3:G4} s^3, efficiency {4:G3}{5}", e.Id, t.DelayS, t.GddS2, t.TodS3, t.Efficiency,
                 t.WindowS > 0 ? ", acoustic window " + t.WindowS.ToString("G4", CultureInfo.InvariantCulture) + " s" : "");
+            // planner hook: the programmed delay and replica move light in time; the programmed GDD stretches it (GDD x bandwidth, in the planner)
+            double shift = Math.Abs(t.DelayS) + Math.Abs(t.ReplicaAmplitude != 0 ? t.ReplicaDelayS : 0);
+            if (shift > 0) { ce.Satellites.Add((shift, 1.0)); ce.SatelliteDelayS = Math.Max(ce.SatelliteDelayS, shift); }
+            ce.ProgrammedGddS2 = t.GddS2;
             ce.Post.Add(t);
             ce.Notes.Add(t.Text);
         }

@@ -37,7 +37,7 @@ namespace UltrafastEngine.Engine
             return (lo, hi);
         }
 
-        public static GridPlan Plan(PulseField pulse, IReadOnlyList<Func<double, double>> elementGroupDelays, double spectralMargin, double minSpanFraction, double configuredWindowS, int configuredN, int maxN, bool autoSize, bool keepConfiguredDt = true, double maxDtS = double.PositiveInfinity, double satelliteDelayS = 0)
+        public static GridPlan Plan(PulseField pulse, IReadOnlyList<Func<double, double>> elementGroupDelays, double spectralMargin, double minSpanFraction, double configuredWindowS, int configuredN, int maxN, bool autoSize, bool keepConfiguredDt = true, double maxDtS = double.PositiveInfinity, double satelliteDelayS = 0, double programmedGddS2 = 0)
         {
             var g = pulse.Grid;
             var plan = new GridPlan { WindowS = configuredWindowS, N = configuredN };
@@ -71,7 +71,10 @@ namespace UltrafastEngine.Engine
             while (b > 0 && p[b] < 1e-6 * pk) b--;
             double inputExtent = Math.Max(g.DTime, (b - a) * g.DTime);
             // satellite pulses (ghost replicas, pre-pulse partners) must fit too: room on both sides
-            double halfNeeded = Math.Max(Math.Abs(tMin), Math.Abs(tMax)) + 0.5 * inputExtent + Math.Abs(satelliteDelayS);
+            // a programmed spectral phase that carries no declared group delay (shaper, AOPDF) still stretches the pulse by GDD x bandwidth
+            double stretchS = Math.Abs(programmedGddS2) * (wHi - wLo);
+            if (stretchS > 0) plan.Notes.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Programmed GDD ({0:G4} fs^2) over the {1:G4} rad/s input bandwidth stretches the pulse by up to {2:G4} ps.", Math.Abs(programmedGddS2) * 1e30, wHi - wLo, stretchS * 1e12));
+            double halfNeeded = Math.Max(Math.Abs(tMin), Math.Abs(tMax)) + 0.5 * inputExtent + Math.Abs(satelliteDelayS) + 0.5 * stretchS;
             plan.RequiredWindowS = 2.0 * 1.25 * halfNeeded;
 
             double devMax = Math.Max(g.OmegaCenter - wLo, wHi - g.OmegaCenter) * Math.Max(1.0, spectralMargin);
