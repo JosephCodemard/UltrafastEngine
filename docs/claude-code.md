@@ -16,7 +16,7 @@ Then ask in plain words, or use the project commands:
 | command | what it does |
 |---|---|
 | `/test NerTests Measured` | builds the tests and runs the matching ones (empty: all, incl. slow); shows failures only |
-| `/regen` | regenerates the 5 generated files (schemas, options.md, Python types and API docs) after a schema change |
+| `/regen` | regenerates the 6 generated files (schemas, options.md, materials-catalogue.md, Python types and API docs) after a schema change |
 | `/verify` | full check before a commit or release: build, C# (.NET 10 and .NET Framework 4.8), Python with pyNLO, examples in strict mode, docs |
 | `/physics-change <what>` | workflow for a change to the propagation physics: equation and source first, test against an analytic limit, all three propagation models kept consistent, review |
 | `/new-option <key>` | adds an option / element / instrument / model kind end to end |

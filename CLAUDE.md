@@ -41,7 +41,7 @@ after a code change.
 ## Token economy
 
 * **Do not read generated files** -- they are large and derived: `schemas/*.json` (440 kB), `python/src/ultrafast/types.py`
-  (180 kB), `docs/reference/options.md` (95 kB), `docs/reference/python-api.md`, `docs/reference/validation-matrix.md`. Read the source instead
+  (180 kB), `docs/reference/options.md` (95 kB), `docs/reference/materials-catalogue.md`, `docs/reference/python-api.md`, `docs/reference/validation-matrix.md`. Read the source instead
   (`src/UltrafastEngine.Core/Schema/BuiltIn*.cs`, `python/src/ultrafast/build.py`, the test attributes) and regenerate with `/regen`.
   Edits to them are blocked by a hook.
 * Never read `bin/`, `obj/`, `artifacts/`, `dist/`, `site/`, `results*/`, `*.npz`, `CHANGELOG.md` history.

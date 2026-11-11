@@ -16,148 +16,75 @@ namespace UltrafastEngine.Materials
     /// </summary>
     public static class MaterialLibrary
     {
-        private static readonly Dictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "F_SILICA", "FusedSilica" }, { "SILICA", "FusedSilica" }, { "FUSED_SILICA", "FusedSilica" }, { "FS", "FusedSilica" }, { "SIO2", "FusedSilica" }, { "UVFS", "FusedSilica" },
-            { "BK7", "N-BK7" }, { "NBK7", "N-BK7" },
-            { "CAF2", "CaF2" }, { "SAPPHIRE", "Sapphire" }, { "AL2O3", "Sapphire" },
-            { "YAG", "YAG" }, { "SF11", "N-SF11" }, { "NSF11", "N-SF11" }, { "MGF2", "MgF2" },
-            { "QUARTZ", "Quartz" }, { "CRYSTALQUARTZ", "Quartz" }, { "SIO2_CRYSTAL", "Quartz" }, { "QUARTZ-O", "Quartz" }, { "MGF2-O", "MgF2" }, { "SAPPHIRE-O", "Sapphire" },
-            { "CALCITE-O", "Calcite" }, { "CACO3", "Calcite" }, { "YVO4-O", "YVO4" }, { "ABBO", "aBBO" }, { "ALPHA-BBO", "aBBO" }, { "ABBO-O", "aBBO" }, { "A-BBO", "aBBO" },
-            { "CARBONDISULFIDE", "CS2" }, { "CARBON_DISULFIDE", "CS2" }, { "BAF2", "BaF2" },
-            { "AIR", "Air" }, { "VACUUM", "Vacuum" }, { "", "Air" }, { "OXYGEN", "O2" }, { "HYDROGEN", "H2" }, { "CARBONDIOXIDE", "CO2" },
-            { "TA2O5", "Ta2O5" }, { "TIO2", "TiO2" }, { "HFO2", "HfO2" }, { "NB2O5", "Nb2O5" }, { "AL2O3_FILM", "Al2O3_film" }, { "SIO2_FILM", "SiO2_film" },
-            { "HELIUM", "He" }, { "NEON", "Ne" }, { "ARGON", "Ar" }, { "KRYPTON", "Kr" }, { "XENON", "Xe" }, { "NITROGEN", "N2" }
-        };
+        /// <summary>Names of the built-in materials and gases, in catalogue order (the Raman models are not materials).</summary>
+        public static IReadOnlyList<string> BuiltInNames => Catalogue.Entries().Where(e => e.Kind != "raman").Select(e => e.Id).ToArray();
 
-        public static IReadOnlyList<string> BuiltInNames => new[] { "Vacuum", "Air", "FusedSilica", "N-BK7", "CaF2", "Sapphire", "YAG", "N-SF11", "MgF2", "He", "Ne", "Ar", "Kr", "Xe", "N2", "O2", "CO2", "H2",
-            "Quartz", "Quartz-e", "MgF2-e", "Sapphire-e", "Calcite", "Calcite-e", "YVO4", "YVO4-e", "aBBO", "aBBO-e", "TGG", "CS2", "BaF2",
-            "Ta2O5", "TiO2", "HfO2", "Nb2O5", "Al2O3_film", "SiO2_film" };
+        public static string Canonical(string name) => name == null ? null : Catalogue.Find(name) is CatalogueEntry e && e.Kind != "raman" ? e.Id : name.Trim();
 
-        public static string Canonical(string name) => name != null && Aliases.TryGetValue(name.Trim(), out var c) ? c : name?.Trim();
+        public static bool IsBuiltIn(string name) => name != null && Catalogue.Find(name) is CatalogueEntry e && e.Kind != "raman";
 
-        public static bool IsBuiltIn(string name) => BuiltInNames.Contains(Canonical(name), StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>Approximate nonlinear indices of gases at 1 bar, 273 K, ~800 nm (m^2/W); scaled with density.
-        /// Values follow the commonly used compilation (Lehmeier 1985 / Borzsonyi 2010 / Wahlstrand 2012) and
-        /// vary by ~20 % between sources.</summary>
-        public static readonly Dictionary<string, double> GasN2PerBar = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
-        {
-            // electronic (instantaneous) part; molecular gases add their rotational Raman response (GasData, docs/reference/gases.md)
-            { "He", 3.5e-25 }, { "Ne", 7.5e-25 }, { "Ar", 1.0e-23 }, { "Kr", 2.8e-23 }, { "Xe", 8.0e-23 }, { "N2", 8.0e-24 }, { "O2", 1.03e-23 }, { "CO2", 1.4e-23 }, { "H2", 6.9e-24 }, { "Air", 8.5e-24 }
-        };
+        /// <summary>Electronic nonlinear indices of gases at 1 bar, 273 K, ~800 nm (m^2/W); scaled with density. From the catalogue (Data/materials/gases),
+        /// where each value carries its source and status.</summary>
+        public static IReadOnlyDictionary<string, double> GasN2PerBar => GasData.N2PerBar;
 
         /// <summary>A built-in material by name (or alias, e.g. Zemax's "F_SILICA"). Gases at 1 bar / 293 K.</summary>
         public static Material BuiltIn(string name, double gasPressureBar = 1.0, double gasTemperatureK = 293.15)
         {
-            string c = Canonical(name);
-            var air = new CiddorAirIndex();
+            var e = Catalogue.Find(name);
+            if (e == null || e.Kind == "raman")
+                throw new ModelException("Unknown material \"" + name + "\". Built-in materials: " + string.Join(", ", BuiltInNames) + ". Define it in the system file's \"materials\" section (e.g. as an index table), or add a catalogue file (docs/reference/materials-catalogue.md).");
             Material m;
-            switch (c?.ToLowerInvariant())
-            {
-                case "vacuum":
-                    m = new Material { Name = "Vacuum", Index = new ConstantIndex(1.0) };
-                    break;
-                case "air":
-                    m = new Material { Name = "Air", Index = air, IsGas = true, N2 = GasN2PerBar["Air"] * 1.01325 * 273.0 / 293.15, Notes = "Ciddor 1996 at 20 C, 101325 Pa, 0 % RH, 450 ppm CO2; electronic n2 + rotational Raman of N2 and O2",
-                        Rotational = RotationalRamanResponse.For(GasData.AirComposition, 1.01325, 293.15), GasSpecies = "Air", GasPressureBar = 1.01325, GasTemperatureK = 293.15 };
-                    break;
-                case "fusedsilica":
-                    m = Glass("FusedSilica", new SellmeierIndex(new[] { 0.6961663, 0.4079426, 0.8974794 }, new[] { 0.0684043 * 0.0684043, 0.1162414 * 0.1162414, 9.896161 * 9.896161 }, 1.0, "Malitson 1965"),
-                        air, 2.6e-20, 0.18, new AnisotropicSplitResponse(new DampedOscillatorResponse(12.2e-15, 32e-15), 0.25));
-                    break;
-                case "n-bk7":
-                    m = Glass("N-BK7", new SellmeierIndex(new[] { 1.03961212, 0.231792344, 1.01046945 }, new[] { 0.00600069867, 0.0200179144, 103.560653 }, 1.0, "Schott"), air, 3.4e-20, 0.0, null);
-                    break;
-                case "caf2":
-                    m = Glass("CaF2", new SellmeierIndex(new[] { 0.5675888, 0.4710914, 3.8484723 }, new[] { 0.050263605 * 0.050263605, 0.1003909 * 0.1003909, 34.649040 * 34.649040 }, 1.0, "Malitson 1963"), air, 1.9e-20, 0.0, null);
-                    break;
-                case "sapphire":
-                    m = Glass("Sapphire", new SellmeierIndex(new[] { 1.4313493, 0.65054713, 5.3414021 }, new[] { 0.0726631 * 0.0726631, 0.1193242 * 0.1193242, 18.028251 * 18.028251 }, 1.0, "Malitson & Dodge 1972, ordinary"), air, 3.0e-20, 0.0, null);
-                    break;
-                case "yag":
-                    m = Glass("YAG", new SellmeierIndex(new[] { 2.282, 3.27644 }, new[] { 0.01185, 282.734 }, 1.0, "Zelmon 1998"), air, 6.2e-20, 0.0, null);
-                    break;
-                case "n-sf11":
-                    m = Glass("N-SF11", new SellmeierIndex(new[] { 1.73759695, 0.313747346, 1.89878101 }, new[] { 0.013188707, 0.0623068142, 155.23629 }, 1.0, "Schott"), air, 1.0e-19, 0.0, null);
-                    break;
-                case "mgf2":
-                    m = Glass("MgF2", new SellmeierIndex(new[] { 0.48755108, 0.39875031, 2.3120353 }, new[] { 0.04338408 * 0.04338408, 0.09461442 * 0.09461442, 23.793604 * 23.793604 }, 1.0, "Dodge 1984, ordinary"), air, 0.9e-20, 0.0, null);
-                    break;
-                // birefringent crystals (ordinary = the plain name, extraordinary = "-e"); BirefringentMaterials pairs them
-                case "quartz":
-                    m = Glass("Quartz", new SellmeierIndex(new[] { 1.07044083, 1.10202242 }, new[] { 1.00585997e-2, 100.0 }, 1.28604141, "Ghosh 1999, crystalline quartz, ordinary"), air, 3.0e-20, 0.0, null);
-                    break;
-                case "quartz-e":
-                    m = Glass("Quartz-e", new SellmeierIndex(new[] { 1.09509924, 1.15662475 }, new[] { 1.02101864e-2, 100.0 }, 1.28851804, "Ghosh 1999, crystalline quartz, extraordinary"), air, 3.0e-20, 0.0, null);
-                    break;
-                case "mgf2-e":
-                    m = Glass("MgF2-e", new SellmeierIndex(new[] { 0.41344023, 0.50497499, 2.4904862 }, new[] { 0.03684262 * 0.03684262, 0.09076162 * 0.09076162, 23.771995 * 23.771995 }, 1.0, "Dodge 1984, extraordinary"), air, 0.9e-20, 0.0, null);
-                    break;
-                case "sapphire-e":
-                    m = Glass("Sapphire-e", new SellmeierIndex(new[] { 1.5039759, 0.55069141, 6.5927379 }, new[] { 0.0740288 * 0.0740288, 0.1216529 * 0.1216529, 20.072248 * 20.072248 }, 1.0, "Malitson & Dodge 1972, extraordinary"), air, 3.0e-20, 0.0, null);
-                    break;
-                case "calcite":
-                    m = Glass("Calcite", new SellmeierIndex(new[] { 0.96464345, 1.82831454 }, new[] { 1.94325203e-2, 120.0 }, 1.73358749, "Ghosh 1999, ordinary"), air, 0.0, 0.0, null);
-                    m.Notes = "n2 not set (give one if it matters)";
-                    break;
-                case "calcite-e":
-                    m = Glass("Calcite-e", new SellmeierIndex(new[] { 0.82427830, 0.14429128 }, new[] { 1.06689543e-2, 120.0 }, 1.35859695, "Ghosh 1999, extraordinary"), air, 0.0, 0.0, null);
-                    m.Notes = "n2 not set (give one if it matters)";
-                    break;
-                case "yvo4":
-                    m = Glass("YVO4", new SellmeierIrIndex(3.77834 - 0.069736 / 0.04724, new[] { 0.069736 / 0.04724 }, new[] { 0.04724 }, 0.0108133, "YVO4 ordinary (common vendor Sellmeier)"), air, 0.0, 0.0, null);
-                    m.Notes = "n2 not set (give one if it matters)";
-                    break;
-                case "yvo4-e":
-                    m = Glass("YVO4-e", new SellmeierIrIndex(4.59905 - 0.110534 / 0.04813, new[] { 0.110534 / 0.04813 }, new[] { 0.04813 }, 0.0122676, "YVO4 extraordinary (common vendor Sellmeier)"), air, 0.0, 0.0, null);
-                    m.Notes = "n2 not set (give one if it matters)";
-                    break;
-                case "abbo":
-                    m = Glass("aBBO", new SellmeierIrIndex(2.67579 - 0.02099 / 0.00470, new[] { 0.02099 / 0.00470 }, new[] { 0.00470 }, 0.00528, "alpha-BBO ordinary (vendor Sellmeier)"), air, 0.0, 0.0, null);
-                    m.Notes = "n2 not set (give one if it matters)";
-                    break;
-                case "abbo-e":
-                    m = Glass("aBBO-e", new SellmeierIrIndex(2.31197 - 0.01184 / 0.01607, new[] { 0.01184 / 0.01607 }, new[] { 0.01607 }, 0.00400, "alpha-BBO extraordinary (vendor Sellmeier)"), air, 0.0, 0.0, null);
-                    m.Notes = "n2 not set (give one if it matters)";
-                    break;
-                case "tgg":
-                    // two-point single-pole fit (n = 1.954 at 1064 nm, 1.974 at 633 nm): approximate; override for precision work
-                    m = Glass("TGG", new SellmeierIndex(new[] { 2.7769 }, new[] { 0.01656 }, 1.0, "TGG, approximate single-pole fit"), air, 0.0, 0.0, null);
-                    m.Notes = "approximate dispersion (two-point fit); n2 not set (give one: the B-integral of an isolator matters)";
-                    break;
-                case "baf2":
-                    // cubic fluoride (m3m). Index: Li, J. Phys. Chem. Ref. Data 9, 161 (1980), 293 K, 0.15-15 um (refractiveindex.info, CC0).
-                    m = Glass("BaF2", new SellmeierIndex(new[] { 0.81070, 0.19652, 4.52469 }, new[] { 0.10065 * 0.10065, 29.87 * 29.87, 53.82 * 53.82 }, 1.33973, "Li 1980"), air, BaF2N2PerW, 0.0, null);
-                    m.KerrAnisotropy = BaF2Sigma;
-                    m.Notes = "cubic (m3m); n2 = 2.0e-20 m^2/W for light polarised along [100] and anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 = -1.2 are UNVERIFIED literature-typical "
-                        + "values (n2 spread 1.8-2.9e-20; sigma from Minkovski et al., Opt. Lett. 29, 2237 (2004) / Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005), quoted from memory, not retrieved): override n2 / kerrAnisotropy. "
-                        + "Orientation: give kerrCutAxis / kerrAzimuthDeg on the element (default [001] cut, x along [100])";
-                    break;
-                case "cs2":
-                    // liquid carbon disulfide, 20 C. Index: Kedenburg et al. 2012 (refractiveindex.info, CC0), one-pole fit valid 0.5-1.6 um.
-                    // Nonlinearity: electronic (instantaneous, isotropic Maker-Terhune) + orientational (delayed, purely anisotropic).
-                    m = new Material { Name = "CS2", Index = new SellmeierIndex(new[] { 1.50387 }, new[] { 0.03049 }, 1.0, "Kedenburg et al., Opt. Mater. Express 2, 1588 (2012), 20 C"),
-                        N2 = CS2N2TotalPerW, RamanFraction = CS2OrientationalFraction, Raman = new OrientationalResponse(CS2RiseS, CS2DecayS) };
-                    m.Notes = "liquid CS2 at 20 C; index Kedenburg 2012 (fit valid 0.5-1.6 um, extrapolated outside); n2 = 3.0e-18 m^2/W total (ps pulses) of which 10 % electronic "
-                        + "(3e-19, the fs value of Liu 2013 / Ganeev 2004) and 90 % orientational, h(t) = (exp(-t/1.6 ps) - exp(-t/0.2 ps)) / 1.4 ps; the split and the time constants are UNVERIFIED typical values (spread of the literature is a factor 2-3): override n2 / ramanFraction / raman";
-                    break;
-                // thin-film materials (ion-beam-sputtered, approximate Cauchy fits; override for real designs)
-                case "ta2o5": m = Film("Ta2O5", 2.0500, 0.0200, 0.0012); break;
-                case "tio2": m = Film("TiO2", 2.2000, 0.0550, 0.0030); break;
-                case "hfo2": m = Film("HfO2", 1.9500, 0.0160, 0.0); break;
-                case "nb2o5": m = Film("Nb2O5", 2.1800, 0.0400, 0.0); break;
-                case "al2o3_film": m = Film("Al2O3_film", 1.6200, 0.0080, 0.0); break;
-                case "sio2_film": m = Film("SiO2_film", 1.4500, 0.0036, 0.0); break;
-                case "he": case "ne": case "ar": case "kr": case "xe": case "n2": case "o2": case "co2": case "h2":
-                    m = Gas(c, gasPressureBar, gasTemperatureK);
-                    break;
-                default:
-                    throw new ModelException("Unknown material \"" + name + "\". Built-in materials: " + string.Join(", ", BuiltInNames) + ". Define it in the system file's \"materials\" section (e.g. as an index table).");
-            }
+            if (e.Kind == "gas") m = string.Equals(e.Id, "Air", StringComparison.OrdinalIgnoreCase) ? Air(e) : Gas(e.Id, gasPressureBar, gasTemperatureK);
+            else m = Solid(e);
             foreach (var p in new[] { "index", "n2", "raman" })
                 if (!m.Provenance.ContainsKey(p)) m.Provenance[p] = (p == "index" ? m.Index.Description : p == "n2" ? m.N2.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " m^2/W" : (m.Raman?.Description ?? "none"), ModelSource.MaterialDefault, "built-in library");
             return m;
+        }
+
+        /// <summary>A solid or liquid of the catalogue: index (air-referenced where the data are), n2, delayed response, cubic anisotropy.</summary>
+        private static Material Solid(CatalogueEntry e)
+        {
+            var qi = e.Q("index");
+            var rel = CatalogueModels.Index(qi);
+            var m = new Material { Name = e.Id, Notes = e.Notes };
+            if (CatalogueModels.IsAirReferenced(qi)) { m.Index = new AirReferencedIndex(rel, new CiddorAirIndex()); m.IndexReference = "air"; }
+            else m.Index = rel;
+            m.Used["index"] = qi;
+            var n2 = e.Q("n2");
+            m.N2 = n2.Number("valueM2PerW"); m.Used["n2"] = n2;
+            var rq = e.TryQ("raman");
+            if (rq != null)
+            {
+                var re = Catalogue.Get(rq.Text("ref"), "raman");
+                m.Raman = CatalogueModels.Raman(re);
+                var own = e.TryQ("ramanFraction");
+                m.RamanFraction = own != null ? own.Number("value") : CatalogueModels.RamanFractionOf(re);
+                m.Used["raman"] = re.Q("response");
+                var fq = own ?? re.TryQ("ramanFraction");
+                if (fq != null) m.Used["ramanFraction"] = fq;
+            }
+            var ka = e.TryQ("kerrAnisotropy");
+            if (ka != null) { m.KerrAnisotropy = ka.Number("value"); m.Used["kerrAnisotropy"] = ka; }
+            return m;
+        }
+
+        /// <summary>Dry air at 20 C, 101325 Pa (Ciddor 1996): electronic n2 plus the rotational Raman response of its N2 and O2.</summary>
+        private static Material Air(CatalogueEntry e)
+        {
+            var m = new Material { Name = "Air", Index = new CiddorAirIndex(), IsGas = true, N2 = GasN2PerBar["Air"] * 1.01325 * 273.0 / 293.15,
+                Notes = "Ciddor 1996 at 20 C, 101325 Pa, 0 % RH, 450 ppm CO2; electronic n2 + rotational Raman of N2 and O2",
+                Rotational = RotationalRamanResponse.For(GasData.AirComposition, 1.01325, 293.15), GasSpecies = "Air", GasPressureBar = 1.01325, GasTemperatureK = 293.15 };
+            m.Used["index"] = e.Q("index"); m.Used["n2"] = e.Q("n2Electronic");
+            foreach (var (sp, _) in GasData.AirComposition) UseRotation(m, sp);
+            return m;
+        }
+
+        private static void UseRotation(Material m, string species)
+        {
+            var g = GasData.Get(species);
+            if (g == null || !g.Molecular) return;
+            m.Used["rotation:" + species] = g.Entry.Q("rotation");
+            m.Used["dephasing:" + species] = g.Entry.Q("dephasing");
         }
 
         /// <summary>The Raman fraction that belongs to a built-in Raman model kind (NaN: none implied).</summary>
@@ -165,24 +92,22 @@ namespace UltrafastEngine.Materials
         {
             switch ((kind ?? "").ToLowerInvariant())
             {
-                case "silica": case "blowwood": return 0.18;
+                case "silica": case "blowwood": return CatalogueModels.RamanFractionOf(Catalogue.Get("blowWood", "raman"));
                 case "hollenbeck": return HollenbeckCantrellRamanResponse.DefaultFraction;
                 case "linagrawal": return LinAgrawalRamanResponse.DefaultFraction;
                 default: return double.NaN;
             }
         }
 
-        /// <summary>Liquid CS2 nonlinearity (UNVERIFIED typical values, see Material.Notes): total n2 for ps pulses, delayed (orientational) share, rise and decay times.</summary>
-        /// <summary>BaF2 Kerr data (UNVERIFIED typical values, see Material.Notes): n2 along [100] and cubic anisotropy sigma.</summary>
-        public const double BaF2N2PerW = 2.0e-20, BaF2Sigma = -1.2;
+        /// <summary>BaF2 Kerr data (catalogue entry BaF2; UNVERIFIED typical values): n2 along [100] and cubic anisotropy sigma.</summary>
+        public static double BaF2N2PerW => Catalogue.Get("BaF2", "solid").Q("n2").Number("valueM2PerW");
+        public static double BaF2Sigma => Catalogue.Get("BaF2", "solid").Q("kerrAnisotropy").Number("value");
 
-        public const double CS2N2TotalPerW = 3.0e-18, CS2OrientationalFraction = 0.9, CS2RiseS = 0.2e-12, CS2DecayS = 1.6e-12;
-
-        private static Material Glass(string name, IRefractiveIndex relIndex, IRefractiveIndex air, double n2, double fR, IDelayedResponse raman) =>
-            new Material { Name = name, Index = new AirReferencedIndex(relIndex, air), IndexReference = "air", N2 = n2, RamanFraction = fR, Raman = raman };
-
-        private static Material Film(string name, double a, double b, double c) =>
-            new Material { Name = name, Index = new CauchyIndex(new[] { a, b, c }), N2 = 0, Notes = "thin-film Cauchy approximation" };
+        /// <summary>Liquid CS2 nonlinearity (catalogue entry CS2; UNVERIFIED typical values): total n2 for ps pulses, delayed (orientational) share, rise and decay times.</summary>
+        public static double CS2N2TotalPerW => Catalogue.Get("CS2", "solid").Q("n2").Number("valueM2PerW");
+        public static double CS2OrientationalFraction => Catalogue.Get("CS2", "solid").Q("ramanFraction").Number("value");
+        public static double CS2RiseS => Catalogue.Get("orientational", "raman").Q("response").Number("riseS");
+        public static double CS2DecayS => Catalogue.Get("orientational", "raman").Q("response").Number("decayS");
 
         /// <summary>A gas at pressure and temperature: index (Borzsonyi fits, or dispersion formulas for O2, CO2, H2), electronic
         /// n2 scaled with density, and for molecules the rotational Raman response (docs/reference/gases.md).</summary>
@@ -192,7 +117,7 @@ namespace UltrafastEngine.Materials
             string sp = g?.Species ?? species;
             if (string.Equals(sp, "air", StringComparison.OrdinalIgnoreCase))
             {
-                var am = BuiltIn("Air");
+                var am = BuiltIn("Air");   // keeps its catalogue quantities (Used); only the state changes below
                 am.Index = new CiddorAirIndex(temperatureK - 273.15, pressureBar * 1e5, 0, 450);
                 double f = pressureBar / 1.01325 * 293.15 / temperatureK;
                 am.N2 *= f; am.Rotational = RotationalRamanResponse.For(GasData.AirComposition, pressureBar, temperatureK);
@@ -204,12 +129,15 @@ namespace UltrafastEngine.Materials
             else { var gi = new GasIndex(sp, pressureBar, temperatureK); idx = gi; density = gi.DensityFactor; }
             double n2 = GasN2PerBar.TryGetValue(sp, out var v) ? v * density : 0.0;
             var rot = g != null && g.Molecular ? RotationalRamanResponse.For(new[] { (sp, 1.0) }, pressureBar, temperatureK) : null;
-            return new Material
+            var mat = new Material
             {
                 Name = sp + (pressureBar != 1.0 ? "@" + pressureBar.ToString("G4", System.Globalization.CultureInfo.InvariantCulture) + "bar" : ""),
                 Index = idx, IsGas = true, N2 = n2, Rotational = rot, GasSpecies = sp, GasPressureBar = pressureBar, GasTemperatureK = temperatureK,
                 Notes = "electronic n2 scaled with density from " + (GasN2PerBar.TryGetValue(sp, out var b) ? b.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) : "?") + " m^2/W at 1 bar, 273 K" + (rot != null ? "; plus rotational Raman (adiabatic n2 " + rot.AdiabaticN2.ToString("G3", System.Globalization.CultureInfo.InvariantCulture) + " m^2/W)" : "")
             };
+            var ge = Catalogue.Find(sp, "gas");
+            if (ge != null) { mat.Used["index"] = ge.Q("index"); if (ge.Has("n2Electronic")) mat.Used["n2"] = ge.Q("n2Electronic"); UseRotation(mat, sp); }
+            return mat;
         }
 
         /// <summary>
@@ -259,11 +187,13 @@ namespace UltrafastEngine.Materials
                 }
                 m.Index = idx;
                 m.Provenance["index"] = (idx.Description, source, origin);
+                m.Used.Remove("index");
             }
-            if (o.Has("kerrAnisotropy")) { m.KerrAnisotropy = o.GetDouble("kerrAnisotropy", 0); m.Provenance["kerrAnisotropy"] = (m.KerrAnisotropy.ToString("G4", System.Globalization.CultureInfo.InvariantCulture), source, origin); }
-            if (o.Has("n2")) { m.N2 = o.GetDouble("n2", 0); m.Provenance["n2"] = (m.N2.ToString("G4", System.Globalization.CultureInfo.InvariantCulture) + " m^2/W", source, origin); }
+            if (o.Has("kerrAnisotropy")) { m.Used.Remove("kerrAnisotropy"); m.KerrAnisotropy = o.GetDouble("kerrAnisotropy", 0); m.Provenance["kerrAnisotropy"] = (m.KerrAnisotropy.ToString("G4", System.Globalization.CultureInfo.InvariantCulture), source, origin); }
+            if (o.Has("n2")) { m.Used.Remove("n2"); m.N2 = o.GetDouble("n2", 0); m.Provenance["n2"] = (m.N2.ToString("G4", System.Globalization.CultureInfo.InvariantCulture) + " m^2/W", source, origin); }
             if (o.TryGet("rotationalRaman", out var rr) && !rr.IsNull)
             {
+                foreach (var k in m.Used.Keys.Where(k => k.StartsWith("rotation:") || k.StartsWith("dephasing:")).ToList()) m.Used.Remove(k);
                 if (rr.Kind == JsonKind.Bool && !rr.AsBool()) m.Rotational = null;
                 else if (rr.Kind == JsonKind.Object)
                 {
@@ -274,9 +204,10 @@ namespace UltrafastEngine.Materials
                 }
                 m.Provenance["rotationalRaman"] = (m.Rotational?.Description ?? "off", source, origin);
             }
-            if (o.Has("ramanFraction")) m.RamanFraction = o.GetDouble("ramanFraction", 0);
+            if (o.Has("ramanFraction")) { m.RamanFraction = o.GetDouble("ramanFraction", 0); m.Used.Remove("ramanFraction"); }
             if (o.Has("raman"))
             {
+                m.Used.Remove("raman"); if (!o.Has("ramanFraction")) m.Used.Remove("ramanFraction");
                 var rs = ModelSpec.FromJson(o["raman"], source, origin + ".raman");
                 m.Raman = reg.Create<IDelayedResponse>("delayedResponse", rs);
                 if (rs.Json.Has("fR")) m.RamanFraction = rs.Json.GetDouble("fR", m.RamanFraction);

@@ -103,6 +103,10 @@ namespace UltrafastEngine.Models
         public string Origin { get; set; }
         /// <summary>Lower-priority candidates that were shadowed (so a user can see that an override took effect).</summary>
         public List<string> Shadowed { get; } = new List<string>();
+        /// <summary>The catalogue quantity the value comes from (null: not from the material catalogue), with its status and source.</summary>
+        public Materials.CatalogueQuantity Catalogue { get; set; }
+        /// <summary>Name of the material the catalogue value belongs to (set with <see cref="Catalogue"/>).</summary>
+        public string Material { get; set; }
 
         public JsonObject ToJson()
         {
@@ -110,6 +114,7 @@ namespace UltrafastEngine.Models
                 .Set("target", Target).Set("property", Property).Set("value", Value)
                 .Set("source", Source.ToString()).Set("origin", Origin);
             if (Shadowed.Count > 0) o.Set("shadowed", JsonValue.FromArray(Shadowed));
+            if (Catalogue != null) o.Set("catalogueStatus", Catalogue.Status.ToString().ToLowerInvariant()).Set("catalogueSource", Catalogue.Source).Set("catalogueQuantity", Catalogue.Path);
             return o;
         }
     }
@@ -128,6 +133,28 @@ namespace UltrafastEngine.Models
         }
 
         public JsonArray ToJson() => new JsonArray(_entries.Select(e => (JsonValue)e.ToJson()));
+
+        private readonly List<ProvenanceEntry> _catalogueUses = new List<ProvenanceEntry>();
+        private readonly HashSet<string> _catalogueSeen = new HashSet<string>(StringComparer.Ordinal);
+        /// <summary>Catalogue values the run used that are not verified (status approximate or unverified) or come from a user file, once each.</summary>
+        public IReadOnlyList<ProvenanceEntry> UnverifiedInputs => _catalogueUses;
+
+        /// <summary>Record that <paramref name="target"/> uses a catalogue quantity. A value that is not verified, or comes from a user file, is listed once
+        /// in <see cref="UnverifiedInputs"/> and, through <paramref name="notes"/>, in the run notes, so a quantitative result is never silently built on it.</summary>
+        public void UseCatalogue(string target, string property, Materials.CatalogueQuantity q, string materialName, List<string> notes)
+        {
+            var e = Record(target, property + " (catalogue)", q.Path, ModelSource.MaterialDefault, "catalogue " + q.Origin);
+            e.Catalogue = q; e.Material = materialName;
+            if (q.Status == Materials.CatalogueStatus.Verified && !q.IsUser) return;
+            if (!_catalogueSeen.Add(q.Path + "|" + q.Origin)) return;
+            _catalogueUses.Add(e);
+            notes?.Add((q.Status == Materials.CatalogueStatus.Verified ? "user catalogue value used: " : q.Status == Materials.CatalogueStatus.Approximate ? "APPROXIMATE catalogue value used: " : "UNVERIFIED catalogue value used: ")
+                + materialName + "." + property + " [catalogue " + q.Path + "] -- " + q.Citation() + ". Override it (docs/reference/materials.md) or check the source before relying on a quantitative result.");
+        }
+
+        public JsonArray UnverifiedInputsJson() => new JsonArray(_catalogueUses.Select(e => (JsonValue)new JsonObject()
+            .Set("quantity", e.Catalogue.Path).Set("material", e.Material).Set("property", e.Property.Replace(" (catalogue)", "")).Set("target", e.Target).Set("status", e.Catalogue.Status.ToString().ToLowerInvariant()).Set("source", e.Catalogue.Source)
+            .Set("uncertainty", double.IsNaN(e.Catalogue.RelativeUncertainty) ? (JsonValue)e.Catalogue.Uncertainty : e.Catalogue.RelativeUncertainty).Set("origin", e.Catalogue.Origin)));
     }
 
     /// <summary>

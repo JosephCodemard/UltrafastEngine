@@ -1,0 +1,46 @@
+{
+  "id": "CaF2",
+  "kind": "solid",
+  "listOrder": 4,
+  "aliases": [
+    "CAF2"
+  ],
+  "description": "Calcium fluoride",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Malitson 1963",
+      "a": 1.0,
+      "b": [0.5675888, 0.4710914, 3.8484723],
+      "resonanceWavelengthsUm": [0.050263605, 0.1003909, 34.64904],
+      "validRangeUm": [0.23, 9.7],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "I. H. Malitson, Appl. Opt. 2, 1103 (1963) (via refractiveindex.info main/CaF2/Malitson)",
+      "status": "verified",
+      "verification": "agrees with main/CaF2/Malitson.yml to 0.0e+00 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 1.9e-20,
+      "source": "typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "ionization": {
+      "bandGapEv": 10.0,
+      "effectiveMassRatio": 0.5,
+      "neutralDensityM3": 2.4e+28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "typical values; the original code did not record a source",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "typical Keldysh-model inputs; sample-dependent by tens of percent (no source recorded)"
+    }
+  }
+}

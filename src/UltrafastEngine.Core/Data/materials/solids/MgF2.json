@@ -1,0 +1,46 @@
+{
+  "id": "MgF2",
+  "kind": "solid",
+  "listOrder": 8,
+  "aliases": [
+    "MGF2",
+    "MGF2-O"
+  ],
+  "description": "Magnesium fluoride, ordinary ray",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Dodge 1984, ordinary",
+      "a": 1.0,
+      "b": [0.48755108, 0.39875031, 2.3120353],
+      "resonanceWavelengthsUm": [0.04338408, 0.09461442, 23.793604],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "M. J. Dodge, Appl. Opt. 23, 1980 (1984) (via refractiveindex.info main/MgF2/Dodge-o)",
+      "status": "verified",
+      "verification": "agrees with main/MgF2/Dodge-o.yml to 0.0e+00 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 9e-21,
+      "source": "typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "ionization": {
+      "bandGapEv": 10.8,
+      "effectiveMassRatio": 0.5,
+      "neutralDensityM3": 2e+28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "typical values; the original code did not record a source",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "typical Keldysh-model inputs; sample-dependent by tens of percent (no source recorded)"
+    }
+  }
+}

@@ -5,7 +5,7 @@ allowed-tools: Bash, Read, Grep
 Run the complete verification. Delegate the long runs to the `test-runner` subagent so only the results come back.
 
 1. `dotnet build UltrafastEngine.sln -c Release` (0 errors; the only expected warning is the ZOS-API stub warning).
-2. Generated files current: run `/regen` steps and check `git diff --stat` shows no change in the five files.
+2. Generated files current: run `/regen` steps and check `git diff --stat` shows no change in the six generated files.
 3. C# tests: `dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --slow`; on machines with
    Mono also `mono tests/UltrafastEngine.Tests/bin/Release/net48/UltrafastEngine.Tests.exe --slow` (unset ULTRAFAST_STRICT_OPTIONS).
 4. Python: `python3 python/tools/build_engine.py`, then in `python/`:

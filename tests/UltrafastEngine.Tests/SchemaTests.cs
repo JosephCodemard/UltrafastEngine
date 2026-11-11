@@ -97,6 +97,7 @@ namespace UltrafastEngine.Tests
             Assert.Equal(Norm(SchemaGenerator.SystemSchema(Shipped).ToJson(true)), Norm(File.ReadAllText(Path.Combine(root, "schemas", "ufs.schema.json"))), "schemas/ufs.schema.json is current (ultrafast schema system -o schemas/ufs.schema.json)");
             Assert.Equal(Norm(SchemaGenerator.RunSchema(Shipped).ToJson(true)), Norm(File.ReadAllText(Path.Combine(root, "schemas", "run.schema.json"))), "schemas/run.schema.json is current (ultrafast schema run -o schemas/run.schema.json)");
             Assert.Equal(Norm(ReferenceGenerator.Markdown(Shipped)), Norm(File.ReadAllText(Path.Combine(root, "docs", "reference", "options.md"))), "docs/reference/options.md is current (ultrafast reference -o docs/reference/options.md)");
+            Assert.Equal(Norm(UltrafastEngine.Materials.CatalogueReference.Markdown()), Norm(File.ReadAllText(Path.Combine(root, "docs", "reference", "materials-catalogue.md"))), "docs/reference/materials-catalogue.md is current (ultrafast reference materials -o docs/reference/materials-catalogue.md)");
         }
 
         [Test(Category = "schema")]

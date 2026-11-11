@@ -245,16 +245,19 @@ namespace UltrafastEngine.Materials
     /// </summary>
     public sealed class GasIndex : IRefractiveIndex
     {
-        public static readonly Dictionary<string, double[]> Coefficients = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase)
+        /// <summary>The four Borzsonyi coefficients of each gas (n^2 - 1 = f (B1 l^2 / (l^2 - C1) + B2 l^2 / (l^2 - C2)), l in um), from the catalogue.</summary>
+        public static Dictionary<string, double[]> Coefficients => Catalogue.Cached("gasindex.coefficients", () =>
         {
-            { "He", new[] { 4977.77e-8, 28.54e-6, 1856.94e-8, 7.760e-3 } },
-            { "Ne", new[] { 9154.48e-8, 656.97e-6, 4018.63e-8, 5.728e-3 } },
-            { "Ar", new[] { 20332.29e-8, 206.12e-6, 34458.31e-8, 8.066e-3 } },
-            { "Kr", new[] { 26102.88e-8, 2.01e-6, 56946.82e-8, 10.043e-3 } },
-            { "Xe", new[] { 103701.61e-8, 12.75e-3, 31228.61e-8, 0.561e-3 } },
-            { "N2", new[] { 39209.95e-8, 1146.24e-6, 18806.48e-8, 13.476e-3 } },
-            { "Air", new[] { 14926.44e-8, 19.36e-6, 41807.57e-8, 7.434e-3 } },
-        };
+            var d = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in Catalogue.Entries("gas"))
+            {
+                var q = e.TryQ("index");
+                if (q == null) continue;
+                if (q.Text("model") == "borzsonyi") d[e.Id] = q.Array("coefficients");
+                else if (q.Has("borzsonyiCoefficients")) d[e.Id] = q.Array("borzsonyiCoefficients");
+            }
+            return d;
+        });
 
         public string Species { get; }
         public double PressureBar { get; }

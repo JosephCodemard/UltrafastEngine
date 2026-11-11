@@ -31,6 +31,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Engine/Compiler.cs` | `Compiler`, `CompiledRun`, `CompiledElement`, `CompilerServices` | each element to linear terms, a nonlinear segment or an active element. Beam tracking |
 | `Engine/CompilerComponents.cs`, `CompilerFiber.cs`, `CompilerSubstrate.cs` | | plates, polarisers, prisms; fibres; mirror substrates |
 | `Engine/GridPlanner.cs` | `GridPlanner` | the time grid a run needs |
+| `Materials/Catalogue.cs`, `CatalogueModels.cs`, `CatalogueReference.cs` | `Catalogue`, `CatalogueEntry`, `CatalogueQuantity`, `CatalogueStatus` | the material catalogue: loads the embedded files of `Data/materials/` (+ the user's `~/.ultrafast/materials`), builds index / Raman objects from them, writes `docs/reference/materials-catalogue.md`. `MaterialLibrary`, `GasData` and the Raman models read their numbers here |
 | `Optics/BeamTracking.cs` | `BeamState` | Gaussian q, ray matrices and a five-ray bundle through the system; `Duct` / `DuctMatrix` (graded-index duct, the thermal lens of a gain slice), `ThinPowerForEffectiveFocalLength` |
 | `Physics/DispersiveResponses.cs` | `DispersiveTerm`, `DispersiveResponses` | the frequency-resolved part of a time-domain response (the Drude term of `PlasmaResponse`, `IDispersiveResponse`): evaluated at the carrier in time, applied as `i (omega/c) R(omega) FFT[dn A]` by the envelope, carrier-resolved and spatial propagators |
 
@@ -58,7 +59,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Optics/` | `BeamTracking.cs`; `DispersiveSurface.cs` (gratings, prisms); `SurfaceOptics.cs` (lenses, curved mirrors); `MaskElement.cs`; `ModulatorElement.cs` (pixelated phase / amplitude device: cell grid, fill factor, quantisation, cross-talk, chromatic rules `opd` / `fixedPhase` / `index`, `PhaseScale`); `ComponentTerms.cs` (Zernike, figure); `MirrorSubstrate.cs`, `DelayedTerms.cs` |
 | `Crystals/` | χ(2): `CrystalElement`, phase matching |
 | `Gain/`, `Lasers/` | amplifiers; `Oscillator.cs`, `Resonator.cs`, saturable absorbers; `CellMode.cs` (`CellModeSolver.Solve`: Kerr-matched mode of a two-mirror multi-pass cell, command `cellMode`) |
-| `Materials/` | index models, the library, Raman |
+| `Materials/` | index models, the library, Raman; the catalogue (`Catalogue.cs`) with the numbers and their sources (`Data/materials/`) |
 | `Instruments/` | `Instruments.cs` (the registry), `ActiveInstruments.cs` (`beamProfile`, ...), `CameraInstruments.cs`, `Detector.cs`, `Sampling.cs`, `SingleShotCorrelator.cs` (`singleShotCorrelator`, `SingleShotGeometry.Solve`: time-to-space correlator) |
 | `Measured/` | `Measurements.cs`: comparison of instruments with recorded data |
 | `Retrieval/` | FROG, d-scan, Gerchberg-Saxton |

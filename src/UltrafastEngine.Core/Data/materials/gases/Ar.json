@@ -1,0 +1,43 @@
+{
+  "id": "Ar",
+  "kind": "gas",
+  "listOrder": 12,
+  "aliases": [
+    "ARGON"
+  ],
+  "description": "Argon",
+  "quantities": {
+    "index": {
+      "model": "borzsonyi",
+      "coefficients": [0.0002033229, 0.00020612, 0.0003445831, 0.008066],
+      "validRangeUm": [0.4, 1.0],
+      "conditions": {
+        "temperatureK": 273.0,
+        "pressureBar": 1.01325
+      },
+      "source": "A. Borzsonyi, Z. Heiner, M. P. Kalashnikov, A. P. Kovacs, K. Osvay, Appl. Opt. 47, 4856 (2008) (refractiveindex.info main/Ar/Borzsonyi), 273 K and 1 bar",
+      "status": "verified",
+      "verification": "agrees vs refractiveindex.info main/Ar/Borzsonyi: max |dn| = 0.0e+00"
+    },
+    "n2Electronic": {
+      "valueM2PerWPerBar273K": 1e-23,
+      "source": "electronic (instantaneous) n2 at 1 bar and 273 K near 800 nm; the original code cites the compilation of Lehmeier 1985 / Borzsonyi 2010 / Wahlstrand 2012; values differ by ~20 % between sources; not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {
+        "wavelengthM": 8e-07,
+        "pressureBar": 1.0,
+        "temperatureK": 273.0
+      }
+    },
+    "ionization": {
+      "ionizationEv": 15.76,
+      "orbitalL": 1,
+      "zEff": 1.0,
+      "source": "ionisation potential: NIST Atomic Spectra Database (as cited by the original code); orbital l and zEff: standard ADK / PPT choices",
+      "status": "approximate",
+      "conditions": {},
+      "uncertainty": "ionisation potentials are tabulated constants; the effective charge and orbital l are model choices"
+    }
+  }
+}

@@ -68,6 +68,9 @@ namespace UltrafastEngine.Materials
         /// <summary>Photo-ionisation data of a solid (band gap etc.), used by the plasma model; null for gases (taken from GasData).</summary>
         public SolidIonizationData Ionization { get; set; }
         public string Notes { get; set; }
+        /// <summary>Catalogue quantities this material takes its numbers from, by property ("index", "n2", "raman", "ramanFraction", "kerrAnisotropy",
+        /// "rotation:N2", "dephasing:N2", ...). A property the user overrides is removed, so a run reports only the catalogue values it really used.</summary>
+        public Dictionary<string, CatalogueQuantity> Used { get; } = new Dictionary<string, CatalogueQuantity>(StringComparer.OrdinalIgnoreCase);
         /// <summary>Provenance of each property (property name -&gt; description + source).</summary>
         public Dictionary<string, (string Value, ModelSource Source, string Origin)> Provenance { get; } =
             new Dictionary<string, (string, ModelSource, string)>(StringComparer.OrdinalIgnoreCase);
@@ -99,6 +102,7 @@ namespace UltrafastEngine.Materials
                 Rotational = Rotational, GasSpecies = GasSpecies, GasPressureBar = GasPressureBar, GasTemperatureK = GasTemperatureK, Ionization = Ionization
             };
             foreach (var kv in Provenance) copy.Provenance[kv.Key] = kv.Value;
+            foreach (var kv in Used) copy.Used[kv.Key] = kv.Value;
             return copy;
         }
 
@@ -200,18 +204,15 @@ namespace UltrafastEngine.Materials
         public double CollisionTimeS = 1e-15;
         public double RecombinationTimeS = 150e-15;
 
+        /// <summary>The catalogue quantity "ionization" of a solid (null when the material has none).</summary>
+        public static CatalogueQuantity CatalogueQuantityOf(string material) => Catalogue.Find(material, "solid")?.TryQ("ionization");
+
         public static SolidIonizationData For(string material)
         {
-            switch ((MaterialLibrary.Canonical(material) ?? "").ToLowerInvariant())
-            {
-                case "fusedsilica": case "quartz": case "quartz-e": return new SolidIonizationData { BandGapEv = 9.0, EffectiveMass = 0.635, NeutralDensityM3 = 2.1e28, CollisionTimeS = 1e-15, RecombinationTimeS = 150e-15 };
-                case "sapphire": case "sapphire-e": return new SolidIonizationData { BandGapEv = 8.8, EffectiveMass = 0.5, NeutralDensityM3 = 2.3e28, CollisionTimeS = 1e-15, RecombinationTimeS = 150e-15 };
-                case "caf2": return new SolidIonizationData { BandGapEv = 10.0, EffectiveMass = 0.5, NeutralDensityM3 = 2.4e28, CollisionTimeS = 1e-15, RecombinationTimeS = 150e-15 };
-                case "yag": return new SolidIonizationData { BandGapEv = 6.5, EffectiveMass = 0.5, NeutralDensityM3 = 2.0e28, CollisionTimeS = 1e-15, RecombinationTimeS = 150e-15 };
-                case "mgf2": case "mgf2-e": return new SolidIonizationData { BandGapEv = 10.8, EffectiveMass = 0.5, NeutralDensityM3 = 2.0e28, CollisionTimeS = 1e-15, RecombinationTimeS = 150e-15 };
-                case "n-bk7": return new SolidIonizationData { BandGapEv = 4.2, EffectiveMass = 0.5, NeutralDensityM3 = 2.0e28, CollisionTimeS = 1e-15, RecombinationTimeS = 150e-15 };
-                default: return null;
-            }
+            var q = CatalogueQuantityOf(material);
+            if (q == null) return null;
+            return new SolidIonizationData { BandGapEv = q.Number("bandGapEv"), EffectiveMass = q.Number("effectiveMassRatio"), NeutralDensityM3 = q.Number("neutralDensityM3"),
+                CollisionTimeS = q.Number("collisionTimeS"), RecombinationTimeS = q.Number("recombinationTimeS") };
         }
     }
 }

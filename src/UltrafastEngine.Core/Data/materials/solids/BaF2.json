@@ -1,0 +1,44 @@
+{
+  "id": "BaF2",
+  "kind": "solid",
+  "listOrder": 31,
+  "aliases": [
+    "BAF2"
+  ],
+  "description": "Barium fluoride, cubic (m3m)",
+  "notes": "cubic (m3m); give the orientation with kerrCutAxis / kerrAzimuthDeg on the element (default [001] cut, x along [100])",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Li 1980",
+      "a": 1.33973,
+      "b": [0.8107, 0.19652, 4.52469],
+      "resonanceWavelengthsUm": [0.10065, 29.87, 53.82],
+      "validRangeUm": [0.15, 15.0],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "H. H. Li, J. Phys. Chem. Ref. Data 9, 161 (1980), 293 K (refractiveindex.info main/BaF2/Li)",
+      "status": "verified",
+      "verification": "agrees with main/BaF2/Li.yml to 2.2e-16 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 2e-20,
+      "source": "typical literature value for light along [100]; reported values spread 1.8-2.9e-20 m^2/W; quoted from memory in the original code, not re-checked",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 1e-06,
+        "orientation": "[100]"
+      }
+    },
+    "kerrAnisotropy": {
+      "value": -1.2,
+      "source": "sigma = (chi1111 - 3 chi1122) / chi1111; quoted from memory of Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005); not retrieved",
+      "status": "unverified",
+      "uncertainty": "unknown; check the papers",
+      "conditions": {}
+    }
+  }
+}

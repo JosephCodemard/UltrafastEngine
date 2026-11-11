@@ -26,10 +26,16 @@ namespace UltrafastEngine.Materials
             return h;
         }
         public double AnisotropicFraction => (_fb + _fc) / (_fa + _fb + _fc);
-        public const double DefaultFraction = 0.245;
+        /// <summary>f_R of the model (catalogue entry "linAgrawal").</summary>
+        public static double DefaultFraction => CatalogueModels.RamanFractionOf(Catalogue.Get("linAgrawal", "raman"));
         private readonly double _t1, _t2, _tb, _fa, _fb, _fc;
-        public LinAgrawalRamanResponse(double tau1 = 12.2e-15, double tau2 = 32e-15, double taub = 96e-15, double fa = 0.75, double fb = 0.21, double fc = 0.04)
-        { _t1 = tau1; _t2 = tau2; _tb = taub; _fa = fa; _fb = fb; _fc = fc; }
+        /// <summary>Parameters not given (NaN) come from the catalogue entry "linAgrawal" (tau1S, tau2S, taubS, fa, fb, fc).</summary>
+        public LinAgrawalRamanResponse(double tau1 = double.NaN, double tau2 = double.NaN, double taub = double.NaN, double fa = double.NaN, double fb = double.NaN, double fc = double.NaN)
+        {
+            var q = Catalogue.Get("linAgrawal", "raman").Q("response");
+            _t1 = double.IsNaN(tau1) ? q.Number("tau1S") : tau1; _t2 = double.IsNaN(tau2) ? q.Number("tau2S") : tau2; _tb = double.IsNaN(taub) ? q.Number("taubS") : taub;
+            _fa = double.IsNaN(fa) ? q.Number("fa") : fa; _fb = double.IsNaN(fb) ? q.Number("fb") : fb; _fc = double.IsNaN(fc) ? q.Number("fc") : fc;
+        }
         public string Description => string.Format(CultureInfo.InvariantCulture, "Lin-Agrawal silica Raman (damped oscillator {0:G3}/{1:G3} fs + boson peak {2:G3} fs; fa {3}, fb {4}, fc {5})", _t1 * 1e15, _t2 * 1e15, _tb * 1e15, _fa, _fb, _fc);
         public double[] Evaluate(double[] t)
         {
@@ -57,19 +63,25 @@ namespace UltrafastEngine.Materials
     /// </summary>
     public sealed class HollenbeckCantrellRamanResponse : IDelayedResponse
     {
-        public const double DefaultFraction = 0.18;
-        // component positions (cm^-1), peak intensities, Gaussian FWHM (cm^-1), Lorentzian FWHM (cm^-1): Table 1 of the paper
-        private static readonly double[] Pos = { 56.25, 100.00, 231.25, 362.50, 463.00, 497.00, 611.50, 691.67, 793.67, 835.50, 930.00, 1080.00, 1215.00 };
-        private static readonly double[] Amp = { 1.00, 11.40, 36.67, 67.67, 74.00, 4.50, 6.80, 4.60, 4.20, 4.50, 2.70, 3.10, 3.00 };
-        private static readonly double[] Gfw = { 52.10, 110.42, 175.00, 162.50, 135.33, 24.50, 41.50, 155.00, 59.50, 64.30, 150.00, 91.00, 160.00 };
-        private static readonly double[] Lfw = { 17.37, 38.81, 58.33, 54.17, 45.11, 8.17, 13.83, 51.67, 19.83, 21.43, 50.00, 30.33, 53.33 };
-        private static double _norm = double.NaN;
+        /// <summary>f_R of the model (catalogue entry "hollenbeck").</summary>
+        public static double DefaultFraction => CatalogueModels.RamanFractionOf(Catalogue.Get("hollenbeck", "raman"));
+
+        // component positions (cm^-1), peak intensities, Gaussian FWHM (cm^-1), Lorentzian FWHM (cm^-1): Table 1 of the paper, from the
+        // catalogue entry "hollenbeck" (with the unit-integral normalisation, computed once per loaded catalogue)
+        private sealed class Table { public double[] Pos, Amp, Gfw, Lfw; public double Norm = double.NaN; }
+        private static Table T => Catalogue.Cached("hollenbeck.table", () =>
+        {
+            var q = Catalogue.Get("hollenbeck", "raman").Q("response");
+            return new Table { Pos = q.Array("modePositionsPerCm"), Amp = q.Array("peakIntensities"), Gfw = q.Array("gaussianFwhmPerCm"), Lfw = q.Array("lorentzianFwhmPerCm") };
+        });
 
         public string Description => "Hollenbeck-Cantrell silica Raman (13-mode intermediate-broadening model)";
 
-        private static double Raw(double t)
+        private static double Raw(double t) => Raw(T, t);
+        private static double Raw(Table tb, double t)
         {
             if (t < 0) return 0;
+            double[] Pos = tb.Pos, Amp = tb.Amp, Gfw = tb.Gfw, Lfw = tb.Lfw;
             const double cCm = 2.99792458e10; // cm/s
             double s = 0;
             for (int i = 0; i < Pos.Length; i++)
@@ -83,19 +95,21 @@ namespace UltrafastEngine.Materials
 
         private static double Norm()
         {
-            if (!double.IsNaN(_norm)) return _norm;
+            var tb = T;
+            if (!double.IsNaN(tb.Norm)) return tb.Norm;
             // unit integral, evaluated on a fine grid (the response has decayed after ~2 ps)
             const int n = 400000; const double tMax = 4e-12; double dt = tMax / n, s = 0;
-            for (int i = 0; i <= n; i++) s += (i == 0 || i == n ? 0.5 : 1.0) * Raw(i * dt);
-            _norm = 1.0 / (s * dt);
-            return _norm;
+            for (int i = 0; i <= n; i++) s += (i == 0 || i == n ? 0.5 : 1.0) * Raw(tb, i * dt);
+            tb.Norm = 1.0 / (s * dt);
+            return tb.Norm;
         }
 
         public double[] Evaluate(double[] t)
         {
             double k = Norm();
+            var tb = T;
             var h = new double[t.Length];
-            for (int i = 0; i < t.Length; i++) h[i] = k * Raw(t[i]);
+            for (int i = 0; i < t.Length; i++) h[i] = k * Raw(tb, t[i]);
             return h;
         }
     }

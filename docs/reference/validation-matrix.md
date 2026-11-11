@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **571 tests** in 59 classes. **366** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **579 tests** in 61 classes. **368** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -11,6 +11,8 @@ Every C# test of the engine: **571 tests** in 59 classes. **366** of them check 
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 17 | 16 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
 | [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
+| [Material catalogue: values pinned, provenance, user catalogues](#cataloguesnapshottests) | `CatalogueSnapshotTests` | 1 | 1 |
+| [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 7 | 1 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
@@ -188,6 +190,28 @@ Branched systems: ports, graph compiler, interference, loops.
 | `TwoSourcesOnOnePort_AreAnError_NamingThePort` | -- | -- |
 | `UnusedPorts_RaiseAlerts_AndBecomeVirtual_UnlessDeclared` | -- | -- |
 | `Validate_PrintsTheGraph` | -- | -- |
+
+## CatalogueSnapshotTests
+
+Material catalogue: values pinned, provenance, user catalogues.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Catalogue_ReproducesTheValuesPinnedBeforeTheMove` | the values of the catalogue files equal the old C# tables | 1e-15 relative |
+
+## CatalogueTests
+
+Material catalogue: values pinned, provenance, user catalogues.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CatalogueFiles_HaveSourceStatusAndUnitsInTheirKeys` | -- | -- |
+| `EveryBuiltInName_ResolvesToACatalogueEntry_AndBuilds` | -- | -- |
+| `LinearRun_ReportsOnlyTheDispersionItUsed` | -- | -- |
+| `PublishedIndices_AreReproduced` | Malitson, JOSA 55, 1205 (1965): n_d = 1.45846 at 587.56 nm; Schott N-BK7 data sheet: n_d = 1.5168 at 587.56 nm; Dodge 1984 MgF2 n_o = 1.3777 at 589.3 nm | 2e-5 / 1e-4 / 1e-4 |
+| `Run_ListsTheApproximateValuesItUsed_AndNotTheOnesTheUserOverrode` | -- | -- |
+| `UserCatalogue_ReplacesAQuantityWithANotice_AndCanAddAMaterial` | -- | -- |
+| `VerifiedDispersionSets_RecordTheirCheck` | -- | -- |
 
 ## CavityAndCoherenceTests
 

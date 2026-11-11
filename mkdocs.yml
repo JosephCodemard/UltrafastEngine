@@ -39,6 +39,7 @@ nav:
       - Run spec: reference/run-spec.md
       - Models & overrides: reference/models.md
       - Materials: reference/materials.md
+      - Material catalogue (sources, status): reference/materials-catalogue.md
       - Gases (rotational Raman): reference/gases.md
       - Surfaces, losses, polarisation: reference/coatings.md
       - Optical components: reference/components.md
@@ -96,6 +97,7 @@ nav:
       - "WP0 housekeeping (2026-11-11)": design/notes/wp0.md
       - "Session A: ny = 1, speed decisions, cw carrier, SPGD gain": design/notes/session-a.md
       - "Session B: thermal-lens duct, frequency-resolved Drude plasma": design/notes/session-b.md
+      - "Session C: the material catalogue": design/notes/session-c.md
 markdown_extensions:
   - admonition
   - tables

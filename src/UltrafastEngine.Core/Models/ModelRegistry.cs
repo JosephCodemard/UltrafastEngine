@@ -186,18 +186,18 @@ namespace UltrafastEngine.Models
                 if (double.IsNaN(b)) return h;   // linAgrawal without the key keeps its own fa / fb / fc split
                 return b != 0 && h != null ? new AnisotropicSplitResponse(h, b) : h;
             }
-            r.Register<IDelayedResponse>("delayedResponse", "silica", (s, _) => Split(new DampedOscillatorResponse(12.2e-15, 32e-15), s, 0.25));
-            r.Register<IDelayedResponse>("delayedResponse", "blowWood", (s, _) => Split(new DampedOscillatorResponse(12.2e-15, 32e-15), s, 0.25));
+            r.Register<IDelayedResponse>("delayedResponse", "silica", (s, _) => Split(new DampedOscillatorResponse(CatalogueModels.RamanDefaults.BlowWoodTau1S, CatalogueModels.RamanDefaults.BlowWoodTau2S), s, CatalogueModels.RamanDefaults.BlowWoodAnisotropicFraction));
+            r.Register<IDelayedResponse>("delayedResponse", "blowWood", (s, _) => Split(new DampedOscillatorResponse(CatalogueModels.RamanDefaults.BlowWoodTau1S, CatalogueModels.RamanDefaults.BlowWoodTau2S), s, CatalogueModels.RamanDefaults.BlowWoodAnisotropicFraction));
             r.Register<IDelayedResponse>("delayedResponse", "linAgrawal", (s, _) =>
             {
-                var la = new LinAgrawalRamanResponse(s.GetDouble("tau1", 12.2e-15), s.GetDouble("tau2", 32e-15), s.GetDouble("taub", 96e-15), s.GetDouble("fa", 0.75), s.GetDouble("fb", 0.21), s.GetDouble("fc", 0.04));
+                var la = new LinAgrawalRamanResponse(s.GetDouble("tau1", double.NaN), s.GetDouble("tau2", double.NaN), s.GetDouble("taub", double.NaN), s.GetDouble("fa", double.NaN), s.GetDouble("fb", double.NaN), s.GetDouble("fc", double.NaN));   // not given: the catalogue entry linAgrawal
                 // an explicit anisotropicFraction (even 0 = isotropic) replaces the model's own fa / fb / fc split
                 return s.Json.Has("anisotropicFraction") ? (IDelayedResponse)new AnisotropicSplitResponse(la, s.GetDouble("anisotropicFraction", 0.25)) : la;
             });
-            r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => Split(new HollenbeckCantrellRamanResponse(), s, 0.25));
+            r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => Split(new HollenbeckCantrellRamanResponse(), s, CatalogueModels.RamanDefaults.HollenbeckAnisotropicFraction));
             r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => Split(new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")), s, 0));
             r.Register<IDelayedResponse>("delayedResponse", "orientational", (s, _) =>
-                new OrientationalResponse(s.GetDouble("riseS", 0.2e-12), s.GetDouble("decayS", 1.6e-12), s.GetDouble("anisotropicFraction", 1.5)));
+                new OrientationalResponse(s.GetDouble("riseS", CatalogueModels.RamanDefaults.OrientationalRiseS), s.GetDouble("decayS", CatalogueModels.RamanDefaults.OrientationalDecayS), s.GetDouble("anisotropicFraction", CatalogueModels.RamanDefaults.OrientationalAnisotropicFraction)));
             r.Register<IDelayedResponse>("delayedResponse", "expression", (s, _) =>
             {
                 var e = CompiledExpression.Compile(s.Json.GetRequiredString("expr", s.Origin), new[] { "t" }, s.Params());

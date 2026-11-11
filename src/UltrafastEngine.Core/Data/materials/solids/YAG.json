@@ -1,0 +1,43 @@
+{
+  "id": "YAG",
+  "kind": "solid",
+  "listOrder": 6,
+  "aliases": [],
+  "description": "Yttrium aluminium garnet",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Zelmon 1998",
+      "a": 1.0,
+      "b": [2.282, 3.27644],
+      "poleUm2": [0.01185, 282.734],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "D. E. Zelmon, D. L. Small, R. Page, Appl. Opt. 37, 4933 (1998) (via refractiveindex.info main/Y3Al5O12/Zelmon)",
+      "status": "verified",
+      "verification": "agrees with main/Y3Al5O12/Zelmon.yml to 0.0e+00 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 6.2e-20,
+      "source": "typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "ionization": {
+      "bandGapEv": 6.5,
+      "effectiveMassRatio": 0.5,
+      "neutralDensityM3": 2e+28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "typical values; the original code did not record a source",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "typical Keldysh-model inputs; sample-dependent by tens of percent (no source recorded)"
+    }
+  }
+}

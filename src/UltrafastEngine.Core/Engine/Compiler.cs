@@ -921,6 +921,36 @@ namespace UltrafastEngine.Engine
             }
         }
 
+        /// <summary>Lists, in the provenance and the run notes, the catalogue values of the material that a nonlinear element really used
+        /// (a value the run spec or the system file overrides is not listed).</summary>
+        private static void ReportNonlinearCatalogue(Ctx c, SystemElement e, Material m, NonlinearMedium med, bool n2Overridden, bool kerrOverridden, bool ramanOverridden)
+        {
+            var prov = c.Out.Provenance; string target = "element:" + e.Id;
+            void U(string prop, string key) { if (m.Used.TryGetValue(key, out var q)) prov.UseCatalogue(target, prop, q, m.Name, c.Out.Notes); }
+            if (!n2Overridden) U("n2", "n2");
+            if (!kerrOverridden && med.KerrAnisotropy != 0) U("kerrAnisotropy", "kerrAnisotropy");
+            if (!ramanOverridden && med.EffectiveRamanFraction > 0) { U("raman", "raman"); U("ramanFraction", "ramanFraction"); }
+            if (med.Rotational != null && c.Run.Physics.Raman)
+                foreach (var key in m.Used.Keys.Where(k => k.StartsWith("rotation:", StringComparison.Ordinal) || k.StartsWith("dephasing:", StringComparison.Ordinal)).ToList()) U(key.Replace(':', '.'), key);
+        }
+
+        /// <summary>The ionisation data (band gap or ionisation potential, ...) come from the catalogue unless the ionization block gives them itself.</summary>
+        private static void ReportIonizationCatalogue(Ctx c, SystemElement e, Material m, JsonObject spec)
+        {
+            var prov = c.Out.Provenance; string target = "element:" + e.Id;
+            if (m.IsGas)
+            {
+                if (spec != null && spec.Has("ionizationEv")) return;
+                var species = string.Equals(m.GasSpecies, "Air", StringComparison.OrdinalIgnoreCase) ? GasData.AirComposition.Select(x => x.Species) : new[] { m.GasSpecies };
+                foreach (var sp in species) { var q = GasData.Get(sp)?.Entry?.TryQ("ionization"); if (q != null) prov.UseCatalogue(target, "ionization", q, sp, c.Out.Notes); }
+            }
+            else if (m.Ionization == null && !(spec != null && spec.Has("bandGapEv")))
+            {
+                var q = SolidIonizationData.CatalogueQuantityOf(m.Name);
+                if (q != null) prov.UseCatalogue(target, "ionization", q, m.Name, c.Out.Notes);
+            }
+        }
+
         private static LinearTerm MakeLoss(double[] omega, double[] powerT, string mechanism, string description)
         {
             if (powerT.All(v => Math.Abs(v - powerT[0]) < 1e-12)) return new FlatLossTerm(powerT[0], mechanism, description);
@@ -961,6 +991,7 @@ namespace UltrafastEngine.Engine
                 background.Add(t);
                 c.Out.Provenance.Record("element:" + e.Id, "dispersion", "material " + m.Name + " (" + m.Index.Description + "), L = " + ce.LengthM.ToString("G6", CultureInfo.InvariantCulture) + " m",
                     gd != null ? idxSrc : ModelSource.MaterialDefault, gd != null ? "material index overridden -> traced data ignored" : "material");
+                if (m.Used.TryGetValue("index", out var indexQ)) c.Out.Provenance.UseCatalogue("element:" + e.Id, "index", indexQ, m.Name, c.Out.Notes);
             }
             var tr = c.Sys.PerWavelength(e, "transmission");
             if (tr != null) background.Add(MakeLoss(tr.Value.Omega, tr.Value.Values, "absorption", ce.Label + " internal transmission"));
@@ -1035,6 +1066,7 @@ namespace UltrafastEngine.Engine
                 var pr = PlasmaResponse.For(m, c.Omega0, ionV.Kind == JsonKind.Object ? ionV.AsObject() : null, out _);
                 med.ExtraResponses.Add(pr);
                 c.Out.Provenance.Record("element:" + e.Id, "ionization", pr.Description, ionOv?.Source ?? ModelSource.SystemData, ionOv?.Origin ?? (e.Json.Has("ionization") ? "system file" : "run spec physics.ionization"));
+                ReportIonizationCatalogue(c, e, m, ionV.Kind == JsonKind.Object ? ionV.AsObject() : null);
             }
 
             bool wantNl = c.Run.Physics.Nonlinear && Bool(c, e, "nonlinear", !isGap) && med.IsActive && ce.LengthM > 0; // gaps are linear unless asked
@@ -1060,6 +1092,7 @@ namespace UltrafastEngine.Engine
                 ce.Active = sb;
                 c.Out.Provenance.Record("element:" + e.Id, "transverse", tv.Model + (tv.Model == "radial" ? " (" + tv.Points + " points)" : " (" + tv.Nx + " x " + tv.Ny + ")") + ", transport " + tv.Transport, tvOv?.Source ?? ModelSource.SystemData, tvOv?.Origin ?? "system file");
                 if (wantNl && med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
+                if (wantNl) ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
                 return;
             }
             IBeamModel beam = null;
@@ -1097,6 +1130,7 @@ namespace UltrafastEngine.Engine
                 seg.Background.AddRange(background);
                 ce.Nonlinear = seg;
                 if (med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
+                ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
             }
             else ce.Pre.AddRange(background);
         }

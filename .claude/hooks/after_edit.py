@@ -9,7 +9,8 @@ import os
 import sys
 
 RULES = [
-    ("src/UltrafastEngine.Core/Schema/BuiltIn*.cs", "Schema declaration changed: run /regen (5 generated files) before the tests; document the key in docs/reference/."),
+    ("src/UltrafastEngine.Core/Data/materials/*", "Catalogue file changed: run /regen (docs/reference/materials-catalogue.md) and, if a number moved, regenerate the pinned snapshot on purpose (ULTRAFAST_WRITE_SNAPSHOT=1, see CatalogueSnapshotTests)."),
+    ("src/UltrafastEngine.Core/Schema/BuiltIn*.cs", "Schema declaration changed: run /regen (6 generated files) before the tests; document the key in docs/reference/."),
     ("src/UltrafastEngine.Core/Schema/Migrations.cs", "Migration changed: keep the old key working and add a test in SchemaTests."),
     ("src/UltrafastEngine.Core/Physics/*", "Propagation physics changed: run the analytic tests (PropagationTests, NerTests) and, if scalar results may change, the pyNLO cross-checks (/physics-change)."),
     ("src/UltrafastEngine.Core/Transverse/*", "Spatial propagation changed: keep it consistent with Physics/Nonlinear.cs; run SpatialTests and NerTests."),

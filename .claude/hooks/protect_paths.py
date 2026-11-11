@@ -18,6 +18,7 @@ BLOCK = [
     ("schemas/*.schema.json", "Generated file: change src/UltrafastEngine.Core/Schema/BuiltIn*.cs and run /regen."),
     ("docs/reference/options.md", "Generated file: change src/UltrafastEngine.Core/Schema/BuiltIn*.cs and run /regen."),
     ("python/src/ultrafast/types.py", "Generated file: change the schema declarations and run /regen (python3 python/tools/gen_types.py)."),
+    ("docs/reference/materials-catalogue.md", "Generated file: change the catalogue files in src/UltrafastEngine.Core/Data/materials and run /regen."),
     ("docs/reference/python-api.md", "Generated file: change the Python docstrings and run python3 python/tools/gen_api_docs.py."),
     ("docs/reference/validation-matrix.md", "Generated file: change the [Test] / [TestArea] attributes and run /regen."),
     ("*/bin/*", "Build output: change the source instead."),

@@ -1,0 +1,26 @@
+{
+  "id": "Nb2O5",
+  "kind": "solid",
+  "listOrder": 43,
+  "aliases": [
+    "NB2O5"
+  ],
+  "description": "Ion-beam-sputtered thin film (Cauchy fit)",
+  "notes": "thin-film Cauchy approximation",
+  "quantities": {
+    "index": {
+      "model": "cauchy",
+      "coefficients": [2.18, 0.04, 0.0],
+      "source": "generic ion-beam-sputtered Cauchy fit n = A + B / l^2 + C / l^4 (l in um); the original code did not record a source; use your coating vendor's data for real designs",
+      "status": "approximate",
+      "uncertainty": "film indices depend on the process (a few 1e-2)",
+      "conditions": {}
+    },
+    "n2": {
+      "valueM2PerW": 0.0,
+      "source": "not set: no value was entered for thin films (give one if the B-integral of a coating matters)",
+      "status": "unverified",
+      "uncertainty": "0 means not set, not a measured zero"
+    }
+  }
+}

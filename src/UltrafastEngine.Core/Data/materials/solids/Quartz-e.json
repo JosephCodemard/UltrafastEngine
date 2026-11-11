@@ -1,0 +1,43 @@
+{
+  "id": "Quartz-e",
+  "kind": "solid",
+  "listOrder": 21,
+  "aliases": [],
+  "description": "Crystalline quartz, extraordinary ray",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Ghosh 1999, crystalline quartz, extraordinary",
+      "a": 1.28851804,
+      "b": [1.09509924, 1.15662475],
+      "poleUm2": [0.0102101864, 100.0],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "G. Ghosh, Opt. Commun. 163, 95 (1999) (via refractiveindex.info main/SiO2/Ghosh-e)",
+      "status": "verified",
+      "verification": "agrees with main/SiO2/Ghosh-e.yml to 0.0e+00 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 3e-20,
+      "source": "typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "ionization": {
+      "bandGapEv": 9.0,
+      "effectiveMassRatio": 0.635,
+      "neutralDensityM3": 2.1e+28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "copy of the fused-silica values; the original code did not record a source",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "typical Keldysh-model inputs; sample-dependent by tens of percent (no source recorded)"
+    }
+  }
+}

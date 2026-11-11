@@ -9,10 +9,9 @@ using UltrafastEngine.Physics;
 namespace UltrafastEngine.Materials
 {
     /// <summary>
-    /// Data of the built-in gases (docs/reference/gases.md). Values are literature values good to ~10-30 %
-    /// (electronic n2, polarisability anisotropy, dephasing times); every one can be overridden in a material
-    /// definition. References: rotational constants (NIST / Herzberg); anisotropies Bridge &amp; Buckingham, Proc. R. Soc.
-    /// A 295, 334 (1966); electronic n2 Wahlstrand, Cheng &amp; Milchberg, PRA 85, 043820 (2012); ionisation potentials NIST.
+    /// Data of the built-in gases (docs/reference/gases.md), read from the catalogue (Data/materials/gases, one file per gas, with the source and
+    /// status of each number: docs/reference/materials-catalogue.md). Values are literature values good to ~10-30 %
+    /// (electronic n2, polarisability anisotropy, dephasing times); every one can be overridden in a material definition.
     /// </summary>
     public sealed class GasData
     {
@@ -28,21 +27,40 @@ namespace UltrafastEngine.Materials
         public double RotB, RotD, AnisotropyA3, GEven, GOdd, T2At1Bar;
         public bool Molecular => RotB > 0;
 
-        public static readonly Dictionary<string, GasData> Table = new Dictionary<string, GasData>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "He", new GasData { Species = "He", IonizationEv = 24.587, L = 0, N2Electronic = 3.5e-25 } },
-            { "Ne", new GasData { Species = "Ne", IonizationEv = 21.565, L = 1, N2Electronic = 7.5e-25 } },
-            { "Ar", new GasData { Species = "Ar", IonizationEv = 15.760, L = 1, N2Electronic = 1.0e-23 } },
-            { "Kr", new GasData { Species = "Kr", IonizationEv = 13.999, L = 1, N2Electronic = 2.8e-23 } },
-            { "Xe", new GasData { Species = "Xe", IonizationEv = 12.130, L = 1, N2Electronic = 8.0e-23 } },
-            { "N2", new GasData { Species = "N2", IonizationEv = 15.581, L = 0, ZEff = 0.9, N2Electronic = 8.0e-24, RotB = 1.98957, RotD = 5.76e-6, AnisotropyA3 = 0.70, GEven = 6, GOdd = 3, T2At1Bar = 100e-12 } },
-            { "O2", new GasData { Species = "O2", IonizationEv = 12.070, L = 1, ZEff = 0.53, N2Electronic = 1.03e-23, RotB = 1.43768, RotD = 4.85e-6, AnisotropyA3 = 1.14, GEven = 0, GOdd = 1, T2At1Bar = 80e-12 } },
-            { "CO2", new GasData { Species = "CO2", IonizationEv = 13.777, L = 1, ZEff = 1.0, N2Electronic = 1.4e-23, RotB = 0.39021, RotD = 1.33e-7, AnisotropyA3 = 2.10, GEven = 1, GOdd = 0, T2At1Bar = 50e-12 } },
-            { "H2", new GasData { Species = "H2", IonizationEv = 15.426, L = 0, ZEff = 1.0, N2Electronic = 6.9e-24, RotB = 59.322, RotD = 0.0471, AnisotropyA3 = 0.30, GEven = 1, GOdd = 3, T2At1Bar = 300e-12 } },
-        };
+        /// <summary>The catalogue entry of the gas (its quantities carry the source and status of each number).</summary>
+        public CatalogueEntry Entry;
 
-        /// <summary>Mole fractions of dry air used for its nonlinear and ionisation responses.</summary>
-        public static readonly (string Species, double Fraction)[] AirComposition = { ("N2", 0.7808), ("O2", 0.2095), ("Ar", 0.0093) };
+        /// <summary>The gases with ionisation data, from the catalogue (Data/materials/gases). Air is a mixture and is not in the table.</summary>
+        public static Dictionary<string, GasData> Table => Catalogue.Cached("gasdata.table", () =>
+        {
+            var t = new Dictionary<string, GasData>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in Catalogue.Entries("gas"))
+            {
+                var ion = e.TryQ("ionization");
+                if (ion == null) continue;
+                var g = new GasData { Species = e.Id, Entry = e, IonizationEv = ion.Number("ionizationEv"), L = (int)Math.Round(ion.Number("orbitalL")), ZEff = ion.Number("zEff"), N2Electronic = e.Q("n2Electronic").Number("valueM2PerWPerBar273K") };
+                var rot = e.TryQ("rotation");
+                if (rot != null)
+                {
+                    g.RotB = rot.Number("rotationalConstantBPerCm"); g.RotD = rot.Number("centrifugalDistortionDPerCm"); g.AnisotropyA3 = rot.Number("polarizabilityAnisotropyA3");
+                    g.GEven = rot.Number("nuclearSpinWeightEven"); g.GOdd = rot.Number("nuclearSpinWeightOdd");
+                    g.T2At1Bar = e.Q("dephasing").Number("t2At1BarS");
+                }
+                t[e.Id] = g;
+            }
+            return t;
+        });
+
+        /// <summary>Mole fractions of dry air used for its nonlinear and ionisation responses (catalogue entry Air, quantity "composition").</summary>
+        public static (string Species, double Fraction)[] AirComposition => Catalogue.Cached("gasdata.air", () =>
+        {
+            var c = Catalogue.Get("Air", "gas").Q("composition").Json.GetObject("fractions");
+            return c.Select(kv => (kv.Key, kv.Value.AsDouble())).ToArray();
+        });
+
+        /// <summary>Electronic n2 per bar at 273 K of every gas of the catalogue, including Air (m^2/W).</summary>
+        public static Dictionary<string, double> N2PerBar => Catalogue.Cached("gasdata.n2", () =>
+            Catalogue.Entries("gas").Where(e => e.Has("n2Electronic")).ToDictionary(e => e.Id, e => e.Q("n2Electronic").Number("valueM2PerWPerBar273K"), StringComparer.OrdinalIgnoreCase));
 
         public static GasData Get(string species) => species != null && Table.TryGetValue(species, out var g) ? g : null;
     }
@@ -168,12 +186,16 @@ namespace UltrafastEngine.Materials
     /// </summary>
     public sealed class GasFormulaIndex : Models.IRefractiveIndex
     {
-        private static readonly Dictionary<string, (double C0, double[] B, double[] C, double Tref)> Forms = new Dictionary<string, (double, double[], double[], double)>(StringComparer.OrdinalIgnoreCase)
+        private static Dictionary<string, (double C0, double[] B, double[] C, double Tref)> Forms => Catalogue.Cached("gasformula.forms", () =>
         {
-            { "O2", (1.181494e-4, new[] { 9.708931e-3 }, new[] { 75.4 }, 293.15) },
-            { "CO2", (0, new[] { 6.99100e-2, 1.44720e-3, 6.42941e-5, 5.21306e-5, 1.46847e-6 }, new[] { 166.175, 79.609, 56.3064, 46.0196, 0.0584738 }, 273.15) },
-            { "H2", (0, new[] { 0.0148956, 0.0049037 }, new[] { 180.7, 92.0 }, 273.15) },
-        };
+            var d = new Dictionary<string, (double, double[], double[], double)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in Catalogue.Entries("gas"))
+            {
+                var q = e.TryQ("index");
+                if (q != null && q.Text("model") == "dispersionFormula") d[e.Id] = (q.Number("c0"), q.Array("b"), q.Array("cPerUm2"), q.Number("referenceTemperatureK"));
+            }
+            return d;
+        });
         public static bool Knows(string species) => Forms.ContainsKey(species);
         public static IEnumerable<string> Species => Forms.Keys;
 

@@ -1,0 +1,43 @@
+{
+  "id": "Sapphire-e",
+  "kind": "solid",
+  "listOrder": 23,
+  "aliases": [],
+  "description": "Sapphire (Al2O3), extraordinary ray",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Malitson & Dodge 1972, extraordinary",
+      "a": 1.0,
+      "b": [1.5039759, 0.55069141, 6.5927379],
+      "resonanceWavelengthsUm": [0.0740288, 0.1216529, 20.072248],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "I. H. Malitson and M. J. Dodge, J. Opt. Soc. Am. 62, 1405 (1972) (via refractiveindex.info main/Al2O3/Malitson-e)",
+      "status": "verified",
+      "verification": "agrees with main/Al2O3/Malitson-e.yml to 0.0e+00 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 3e-20,
+      "source": "typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "ionization": {
+      "bandGapEv": 8.8,
+      "effectiveMassRatio": 0.5,
+      "neutralDensityM3": 2.3e+28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "copy of the sapphire values; the original code did not record a source",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "typical Keldysh-model inputs; sample-dependent by tens of percent (no source recorded)"
+    }
+  }
+}

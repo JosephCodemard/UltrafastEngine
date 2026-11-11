@@ -1,0 +1,47 @@
+{
+  "id": "N-BK7",
+  "kind": "solid",
+  "listOrder": 3,
+  "aliases": [
+    "BK7",
+    "NBK7"
+  ],
+  "description": "Schott N-BK7 borosilicate crown",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Schott",
+      "a": 1.0,
+      "b": [1.03961212, 0.231792344, 1.01046945],
+      "poleUm2": [0.00600069867, 0.0200179144, 103.560653],
+      "validRangeUm": [0.3, 2.5],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Schott N-BK7 data sheet (as listed on refractiveindex.info glass/schott/N-BK7)",
+      "status": "verified",
+      "verification": "agrees with glass/schott/N-BK7.yml to 0.0e+00 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 3.4e-20,
+      "source": "typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "ionization": {
+      "bandGapEv": 4.2,
+      "effectiveMassRatio": 0.5,
+      "neutralDensityM3": 2e+28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "typical values; the original code did not record a source",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "typical Keldysh-model inputs; sample-dependent by tens of percent (no source recorded)"
+    }
+  }
+}
