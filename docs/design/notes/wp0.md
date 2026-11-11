@@ -54,7 +54,7 @@ Findings while writing them (not fixed here; they belong to WP7):
   8 pixels (n = 64, 40 um pitch, 800 nm, f = 0.2 m, no fill factor, no cross-talk, `dispersion: none`) gives 0.854 of the incident energy in the first order
   in the engine and 1.000 for the Fourier sum of the same sampled field; at 16 pixels per period 0.946 against 0.983. All the missing light is missing from the
   focal grid altogether (the total fluence falls by the same factor), so it is lost to the absorbing boundary or to the sampling, not moved to another order.
-  This is probably the "SLM engine against the Fourier prediction 0.98-0.99" finding of WP7 seen at a larger size. The cause has not been found. The Bolduc test
+  This is probably the "SLM engine against the Fourier prediction 0.98-0.99" finding of WP7 seen at a larger size. **Cause found in session E ([session-e.md](session-e.md)):** the grid has a sample on the axis and an even panel a pixel edge, so each grid cell averaged two pixels (`cos^2(pi/P)` of the light); an offset of half a pixel removes it. The Bolduc test
   therefore takes the first-order energy relative to an engine blaze of `A = 1`, which cancels it and still tests the amplitude encoding; this is stated in the
   test and in `docs/plugins/ao.md`. The correlation checks need no such normalisation.
 * The Bolduc encoding needs a field that changes little over one period: a phase of 4 rad over the beam radius already gave 0.86 correlation for the *ideal*

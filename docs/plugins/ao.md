@@ -75,6 +75,14 @@ wavelength it is scaled by the liquid crystal's dispersion.
 | `crosstalkSigmaCells`, `crosstalkKernel` | pixels | 0 | fringing field |
 | `zeroOrderLeak` | | 0 | amplitude that passes unmodulated |
 
+**Placement on the engine's grid.** The simulation grid has a sample on the axis (`x = (i - nx/2) dx`); an even panel centred on the axis has a pixel *edge* there. With a
+pixel pitch equal to the grid step and `offsetXM = offsetYM = 0`, every grid cell therefore lies half on one pixel and half on the next and takes their average. A blaze of P pixels per
+period then keeps only `cos^2(pi / P)` of its light (0.854 at P = 8, 0.962 at P = 16), and a Fourier prediction of the written phase is off by the same amount. Set `offsetXM = offsetYM =
+-pitchM / 2` to put the pixel centres on the grid points: the same blaze then keeps all its light (1.0000, `test_slm_pixels_on_the_grid_points_...`) and the focal field equals an exact
+angular-spectrum propagation of the sampled field to 1 % (`docs/examples/AdaptiveOptics/slm-beam-shaping`). The engine warns ("averages two device cells") when the pitch equals the grid step
+and the cell edges fall on grid points. With a grid step of half the pitch or less the average over a pixel is the physical pixel structure and no shift is needed. The engine's absorbing edge removes the replica orders
+that a periodic grid would wrap round the window: compare with a periodic reference only inside the window, or switch the absorbing edge off for the comparison.
+
 **Chromatic model.** The 2 pi reset written at the design wavelength `lambda_d` is `2 pi s(lambda)` at `lambda`, with
 `s = lambda_d dn(lambda) / (lambda dn(lambda_d))`. A blazed ramp of period `n` pixels then sends the fraction `sinc^2(1 - s)` into the
 first order (and the rest into the zero and second orders). `dispersion: "none"` gives `s = lambda_d / lambda`. The pixel phases go to
@@ -162,8 +170,10 @@ dark) but the amplitudes only relative within a row.
 | Strehl, Maréchal; twin vs engine; fit residual vs actuators (`test_ao_plugin.py`) | exact on-axis field `|<a e^{i phi}>|^2`; `exp(-sigma^2)` |
 | one-shot correction, closed loop, modal search (`test_ao_plugin.py`) | twin prediction; `(1 - g)^k` |
 | tiled array N, pistons, delays, SPGD lock (`test_ao_plugin.py`) | `|sum e^{i phi}|^2 / N^2`; Gaussian envelope overlap |
-| Bolduc and double-phase maps through the `slm` element with a varying complex field (`test_ao_plugin.py`) | first order / low-frequency field = Fourier transform of illumination x `A e^{i phi}` (correlation > 0.99; energy against the same ratio of transforms, 3 %); the Bolduc energy is taken relative to an engine blaze of A = 1 because of the open SLM efficiency finding (an 8-pixel blaze keeps 0.85 of the light in the first order) |
+| Bolduc and double-phase maps through the `slm` element with a varying complex field (`test_ao_plugin.py`) | first order / low-frequency field = Fourier transform of illumination x `A e^{i phi}` (correlation > 0.99; energy against the same ratio of transforms, 3 %); the Bolduc energy is taken relative to an engine blaze of A = 1 because of the SLM efficiency finding: an 8-pixel blaze on a grid whose cells straddle the pixels keeps 0.85 of the light (explained and fixed by the half-pixel offset, see Placement on the engine's grid; this test keeps the ratio so that it needs no offset) |
 | SPGD default step: scale invariance (1e-9) and at least 0.9 of the optimum at metric scales 1e-3 .. 1e3, engine deformable-mirror focus (`test_ao_algorithms.py`, `test_ao_plugin.py`) | exact invariance; measured worst 0.98, 0.996, 0.994 |
+| SLM pixels on the grid points: a blaze keeps `cos^2(pi/P)` of its light half a pixel off the grid, all of it (1e-6) with the offset; the warning (`test_ao_plugin.py`) | exact sampled-field arithmetic |
+| tiled array: identical tiles reach the axis alike only when the lens is resolved (`test_ao_plugin.py`) | equal tiles, equal axis fluence (1e-3); unequal by 56 when the lens phase exceeds pi per cell |
 | tiled-array central and grating lobe fractions, in phase and with checkerboard pistons (`test_ao_plugin.py`) | array factor x Gaussian tile envelope on the engine's grid, 1e-3 (measured 2e-5) |
 | GS monotone, WGS uniformity, Bolduc first order, double phase (`test_ao_algorithms.py`) | Fienup 1982; Di Leonardo 2007; Bolduc 2013 |
 | Shack-Hartmann spot shift `f dW/dx`; modal fit exact; Southwell exact for quadratics and second-order convergent (`test_ao_algorithms.py`) | geometric optics; analytic |

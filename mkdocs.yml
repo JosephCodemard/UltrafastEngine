@@ -99,6 +99,7 @@ nav:
       - "Session B: thermal-lens duct, frequency-resolved Drude plasma": design/notes/session-b.md
       - "Session C: the material catalogue": design/notes/session-c.md
       - "Session D: ASE over the inversion lifetime, stress-birefringence pattern": design/notes/session-d.md
+      - "Session E: the open findings (Raman shift rate, SLM against Fourier, tiled-array reference)": design/notes/session-e.md
 markdown_extensions:
   - admonition
   - tables

@@ -363,3 +363,59 @@ def test_tiled_array_lobe_fractions_match_the_array_factor_for_in_phase_and_chec
         for key in ("central_lobe_fraction", "grating_lobe_fraction"):
             assert abs(got[key] - want[key]) < 1e-3, (name, key, got[key], want[key])
         assert got["central_lobe_fraction"] + got["grating_lobe_fraction"] <= 1 + 1e-9
+
+
+# ----------------------------------------------------------------------------------------------- SLM pixels on the engine grid (WP7)
+def _blaze_total(period, offset_m, n=64, dx=40e-6, lam=800e-9, f=0.2, w=0.5e-3):
+    """Total focal-plane fluence of an ideal sawtooth of ``period`` pixels, over that of a flat phase map, and the run's warnings."""
+    from ultrafast_ao import Slm
+    lut = devices.slm_lut(256)
+    g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=n * dx / 2, spectral_samples=1, absorbing_boundary=False, initial_profile=ip)
+
+    def run(phase):
+        grey = holography.grey_levels(phase, lut).astype(float)
+        sysd = b.system("h", [b.gap("src", 0.0, medium="Vacuum", transverse=g(b.initial_profile("gaussian", radius_m=w))),
+                              Slm("slm", dx, pixels_x=n, pixels_y=n, grey_level=grey, dispersion="none", offset_x_m=offset_m, offset_y_m=offset_m),
+                              b.lens("lens", f), b.gap("z", f, medium="Vacuum", transverse=g())])
+        d = uf.run(sysd, b.run_spec(b.cw(lam, 1.0), instruments=[b.instrument("beamProfile", at="z", name="cam")]))
+        return float(np.asarray(d.instrument("cam")["fluence_map_j_m2"]).sum()), d.summary.get("warnings", [])
+    blaze = 2 * np.pi * (np.arange(n)[:, None] % period) / period * np.ones((1, n))
+    (e, warn), (e0, _) = run(blaze), run(np.zeros((n, n)))
+    return e / e0, warn
+
+
+@pytest.mark.parametrize("period", [8, 16])
+def test_slm_pixels_on_the_grid_points_keep_all_the_light_of_a_blaze_and_half_a_pixel_off_keeps_cos_squared(period):
+    """The engine grid has a sample on the axis; an even panel has a pixel edge there, so with pitch = grid step every grid cell averages two pixels and a blaze of P pixels
+    per period keeps cos^2(pi / P) of its light (0.854 at 8, 0.962 at 16: the SLM-against-Fourier finding of WP7). Shifted by half a pixel the cell centres sit on the grid
+    points and no light is lost (1e-6); the unaligned case warns."""
+    dx = 40e-6
+    straddled, warn = _blaze_total(period, 0.0)
+    aligned, warn_aligned = _blaze_total(period, -dx / 2)
+    assert straddled == pytest.approx(np.cos(np.pi / period) ** 2, abs=2e-3)
+    assert aligned == pytest.approx(1.0, abs=1e-6)
+    assert any("averages two device cells" in w for w in warn)
+    assert not any("averages two device cells" in w for w in warn_aligned)
+
+
+
+def _tile_axis_fluences(n, f):
+    """On-axis fluence of each of the 7 hex tiles alone (the engine normalises the power, so identical tiles must give identical values), on n cells over +-5 mm, lens f."""
+    out = []
+    for k in range(7):
+        g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=5e-3, spectral_samples=1, absorbing_boundary=True, initial_profile=ip)
+        prof = tiled_array(0.5e-3, layout="hex", rings=1, pitch_m=3e-3, amplitudes=[1.0 if i == k else 0.0 for i in range(7)])
+        sysd = b.system("t", [b.gap("src", 0.0, medium="Vacuum", transverse=g(prof)), b.lens("lens", f), b.gap("z", f, medium="Vacuum", transverse=g())])
+        d = uf.run(sysd, b.run_spec(b.cw(800e-9, 1.0), instruments=[b.instrument("beamProfile", at="z", name="cam")])).instrument("cam")
+        out.append(float(np.asarray(d["fluence_map_j_m2"])[n // 2, n // 2]))
+    return np.array(out)
+
+
+def test_tiled_array_identical_tiles_reach_the_axis_alike_only_when_the_lens_is_resolved():
+    """WP7 (SPGD ended at 1.02 of the in-phase value): the 7 tiles are identical, so their axis fluences must be equal. On 128 cells over 10 mm at f = 0.5 m the lens phase at a
+    tile 3 mm out changes by 3.7 rad per cell (more than pi): the lens is aliased and the axis fluences differ by a factor of 56, so the zero-piston sum is not the maximum. With
+    f = 1 m on 128 cells (1.9 rad per cell) or 256 cells at f = 0.5 m they agree to 1e-3."""
+    assert _tile_axis_fluences(128, 0.5).max() / _tile_axis_fluences(128, 0.5).min() > 10
+    for n, f in ((128, 1.0), (256, 0.5)):
+        v = _tile_axis_fluences(n, f)
+        assert v.max() / v.min() < 1.001, (n, f, v)

@@ -145,12 +145,19 @@ namespace UltrafastEngine.Optics
             return t;
         }
 
+        private static double Frac(double v) => v - Math.Floor(v);
+
         public PulseField Execute(ActiveContext ctx, PulseField p)
         {
             if (p.Profile == null) { ctx.Result.Warnings.Add("Element '" + ctx.Element.Id + "': a modulator acts on a carried transverse profile; there is none here, so it was ignored (give the element before it a \"transverse\" model)."); return p; }
             if (!(p.Profile.Basis is CartesianBasis B)) throw new InvalidOperationException("element '" + ctx.Element.Id + "': a modulator needs a cartesian transverse grid (\"model\": \"cartesian\").");
             double cellW = Math.Min(PitchXM, PitchYM), dxs = Math.Min(B.Dx, B.Ny > 1 ? B.Dy : double.MaxValue);
             if (cellW < 2 * dxs) ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the device cell ({1:G3} m) is under two grid steps ({2:G3} m): the cell structure (replica orders, gaps) is under-resolved; use at least 2 grid cells per device cell, or 4 to show the fill factor.", ctx.Element.Id, cellW, dxs));
+            // device cell edges on the simulation grid points: the grid has a sample at x = 0, the cell centres of an even device are half a pitch from the axis, so with
+            // pitch = grid step every simulation cell averages two device cells (a blaze of period P keeps cos^2(pi / P) of its light); an offset of half a pitch aligns them
+            bool straddleX = Math.Abs(PitchXM / B.Dx - 1) < 1e-3 && Math.Abs(Frac(Nx / 2.0 - OffsetXM / PitchXM) - 0.5) > 0.05 && RotationRad == 0;
+            bool straddleY = B.Ny > 1 && Math.Abs(PitchYM / B.Dy - 1) < 1e-3 && Math.Abs(Frac(Ny / 2.0 - OffsetYM / PitchYM) - 0.5) > 0.05 && RotationRad == 0;
+            if (straddleX || straddleY) ctx.Result.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the device pitch equals the grid step but the device cell edges fall on the grid points, so each simulation cell averages two device cells along {1} (a blazed grating of P cells per period keeps only cos^2(pi/P) of its light). Shift the device by half a pitch (offsetXM / offsetYM = pitch / 2) to put the cell centres on the grid points, or use a grid step of pitch / 2 or less.", ctx.Element.Id, straddleX && straddleY ? "x and y" : straddleX ? "x" : "y"));
             int nf = p.Profile.Omega.Length, cached = -1; Complex[] cur = null;
             // aliasing guard (the interpolation error below cannot see a phase step near a multiple of 2 pi per stored frequency)
             double maxPhase = _phase.Max() - _phase.Min(), dS = 0;      // the phase range: a uniform offset is a piston, not a chromatic structure

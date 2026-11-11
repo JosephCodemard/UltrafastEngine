@@ -20,7 +20,9 @@ or analytic reference in a test; a disagreement is a finding, never tuned away; 
 Order: WP0 first (small, unblocks), then WP1-WP4 (physics, each on its own branch; files overlap little), WP5 and WP6 (investigations, run in parallel with them), WP7 the findings, WP8 and WP9 last,
 because they describe what the others deliver. Every package ends with tests, docs, the changelog and `/verify`.
 
-### WP0. Housekeeping that was promised (S)
+### ~~WP0. Housekeeping that was promised (S)~~ done
+
+*Done 2026-11-11 (session A): see [notes/wp0.md](notes/wp0.md). One caveat: the native-library test of item 1 is skipped unless `ULTRAFAST_NATIVE_LIB` points at a built NativeAOT library, and none was built.*
 
 1. `UF_WITH_AO` in the Native project and `Exports.cs`; the packager's plugin switch; a test that a native-library build lists the four `ao` elements (skipped where NativeAOT is not built).
 2. **Planner hook.** `GridPlanner` reads from the `spectralShaper` and `aopdf` terms the time extent they create: side pulses at `2π / pixel bandwidth` and the stretch from a programmed GDD
@@ -86,9 +88,9 @@ index `n_p(ω) = sqrt(1 - ω_p²/(ω(ω + iν)))` expanded to first order in the
 density from the existing ionisation rate. *Tests:* envelope with the new term against the carrier-resolved model on a 10 fs, 2 µm pulse (the blueshift and the energy loss to ionisation agree to a stated
 tolerance, measured first); the old behaviour recovered for a narrow spectrum (1e-9); energy booked (`plasma`, `ionisation`) closes. Document the new limit (no negative frequencies, already stated).
 
-### WP5. Leftovers from the spikes (S; priority 5, mostly decisions)
+### ~~WP5. Leftovers from the spikes (S; priority 5, mostly decisions)~~ done
 
-*Done 2026-11-11 (session A): see [notes/session-a.md](notes/session-a.md).*
+*Done 2026-11-11 (session A): see [notes/session-a.md](notes/session-a.md). All three rows closed: the two decisions are in `docs/reference/speed.md` with their triggers; the Branched-versus-tiles test is `TileSourceTests.FourTiles_OnAxisPistonLoss_EqualsABranchedBalancedTreeRecombinedAtOnePoint`.*
 
 | item | recommendation |
 |---|---|
@@ -105,9 +107,9 @@ tolerance, measured first); the old behaviour recovered for a narrow spectrum (1
 * **Cavity figure.** `Branched/cavity-and-coherence` has no figure (a cw / resonator run has no pulse to draw). Draw the Fox-Li iteration (the mode converging round trip by round trip as an animation and the radius
   against the ABCD eigenmode), and the Gaussian-Schell beam's coherent modes and width against `w(z)`. Done inside WP9.
 
-### WP7. The open findings (S-M each; investigate, then write the cause in the README)
+### ~~WP7. The open findings (S-M each; investigate, then write the cause in the README)~~ done
 
-*Done 2026-11-11 (session A, [notes/session-a.md](notes/session-a.md)): SPGD gain, cw against pulse. Open: Raman shift rate, SLM against Fourier (with the new first-order efficiency finding in [notes/wp0.md](notes/wp0.md)), tiled-array SPGD reference.*
+*Done 2026-11-11. Session A ([notes/session-a.md](notes/session-a.md)): SPGD gain, cw against pulse. Session E ([notes/session-e.md](notes/session-e.md)): Raman shift rate (Gordon's first-moment approximation, engine within 2 % of the exact-gain rate and 0.3 % of pyNLO), SLM against Fourier (the panel was half a pixel off the grid: a blaze kept `cos^2(pi/P)`; fixed in the example by an offset, new warning), tiled-array reference (under-sampled lens at f = 0.5 m on 128 cells; the lock now runs at f = 1 m). No engine physics changed.*
 
 | finding | how to find the cause | done when |
 |---|---|---|
@@ -169,7 +171,7 @@ spline against network) are written directly in the new structure.
 | ~~B~~ | ~~WP1 and WP4~~ **done 2026-11-11** ([notes/session-b.md](notes/session-b.md)) | physics: Opus-class judgement for the ABCD duct and the Drude operator; `physics-reviewer` at the end |
 | ~~C~~ | ~~WP3~~ **done 2026-11-11** ([notes/session-c.md](notes/session-c.md)); papers still to read | mostly plumbing and reading papers; owner supplies the PDFs |
 | ~~D~~ | ~~WP2~~ **done 2026-11-11** ([notes/session-d.md](notes/session-d.md)) | spike first, then ASE, then the pattern |
-| E | WP7 (Raman, SLM, tiled array) | investigations; may run beside B-D |
+| ~~E~~ | ~~WP7 (Raman, SLM, tiled array)~~ **done 2026-11-11** ([notes/session-e.md](notes/session-e.md)) | investigations; may run beside B-D |
 | F | WP8 (packager, `install.py`, workflow) | packaging and a workflow; Sonnet-class |
 | G-H | WP9 waves 1-4 | one example group per sitting; `example_lint` first |
 

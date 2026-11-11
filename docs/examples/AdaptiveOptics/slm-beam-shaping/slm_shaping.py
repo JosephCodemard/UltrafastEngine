@@ -51,16 +51,17 @@ def spots(n):
 
 
 def illumination(n, dx, w=W):
-    X = (np.arange(n) - (n - 1) / 2) * dx
+    X = (np.arange(n) - n / 2) * dx                                     # the engine's grid points: a sample on the axis, pixel i of the panel on grid point i
     return np.exp(-(X[:, None] ** 2 + X[None, :] ** 2) / w ** 2)
 
 
-def engine_focus(phase, n, dx, lam=LAM, f=None, slm_n=None):
-    """Write ``phase`` to an 8-bit SLM (256 grey levels, linear 0..2 pi) and return the engine's focal-plane fluence map and axes."""
+def engine_focus(phase, n, dx, lam=LAM, f=None, absorbing=True):
+    """Write ``phase`` to an 8-bit SLM (256 grey levels, linear 0..2 pi) and return the engine's focal-plane fluence map and axes. The panel is shifted by half a pixel so that its
+    pixel centres lie on the engine's grid points (the grid has a sample on the axis, an even panel has a pixel edge there; without the shift every grid cell averages two pixels)."""
     f = f or critical_focal_length(n, dx, lam)
-    g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=n * dx / 2, spectral_samples=1, absorbing_boundary=True, initial_profile=ip)
+    g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=n * dx / 2, spectral_samples=1, absorbing_boundary=absorbing, initial_profile=ip)
     sysd = b.system("slm-shaping", [b.gap("src", 0.0, medium="Vacuum", transverse=g(b.initial_profile("gaussian", radius_m=W))),
-                                    Slm("slm", dx, pixels_x=n, pixels_y=n, phase_target_rad=phase, grey_levels=256, dispersion="none"),
+                                    Slm("slm", dx, pixels_x=n, pixels_y=n, phase_target_rad=phase, grey_levels=256, dispersion="none", offset_x_m=-dx / 2, offset_y_m=-dx / 2),
                                     b.lens("lens", f), b.gap("z", f, medium="Vacuum", transverse=g())])
     d = uf.run(sysd, b.run_spec(b.cw(lam, 1.0), instruments=[b.instrument("beamProfile", at="z", name="cam")])).instrument("cam")
     return np.asarray(d["fluence_map_j_m2"]), np.asarray(d["x_m"]), np.asarray(d["y_m"])
@@ -70,13 +71,25 @@ def design(target, iterations=60, seed=1, levels=256):
     return holography.gerchberg_saxton(target, illumination(target.shape[0], DX), iterations, seed=seed, levels=levels)
 
 
-def fourier_prediction(phase, levels=256):
-    """What the written (quantised) phase should give: |FFT|^2 times the pixel-aperture envelope, on the same lattice, orthonormal, fftshifted."""
+def exact_prediction(phase, levels=256, lam=LAM, dx=DX):
+    """What the written (quantised) phase gives: the sampled field (Gaussian x e^{i phase}) times the thin lens, propagated over f with the exact angular spectrum
+    (NumPy, periodic grid, no absorbing edge), on the engine's lattice. Returns the fluence, normalised to unit sum."""
     n = phase.shape[0]
-    q = holography.quantise_phase(phase, levels)
-    X, Y = np.meshgrid(np.arange(n) - n / 2, np.arange(n) - n / 2, indexing="ij")
-    pixel = (np.sinc(X / n) * np.sinc(Y / n)) ** 2                    # the square pixel aperture: |sinc|^2 envelope across the focal window
-    return pixel * np.abs(holography.focal_field(q, illumination(n, DX))) ** 2
+    f = critical_focal_length(n, dx, lam)
+    X = (np.arange(n) - n / 2) * dx
+    XX, YY = np.meshgrid(X, X, indexing="ij")
+    field = illumination(n, dx) * np.exp(1j * holography.quantise_phase(phase, levels)) * np.exp(-1j * np.pi * (XX ** 2 + YY ** 2) / (lam * f))
+    fx = np.fft.fftfreq(n, dx)
+    FX, FY = np.meshgrid(fx, fx, indexing="ij")
+    h = np.exp(2j * np.pi / lam * f * np.sqrt(1 - (lam * FX) ** 2 - (lam * FY) ** 2 + 0j))
+    p = np.abs(np.fft.ifft2(np.fft.fft2(field) * h)) ** 2
+    return p / p.sum()
+
+
+def rel_l2(a, b):
+    """Relative L2 distance of two fluence maps after normalising each to unit sum."""
+    a, b = a / a.sum(), b / b.sum()
+    return float(np.linalg.norm(a - b) / np.linalg.norm(b))
 
 
 def run():
@@ -85,11 +98,10 @@ def run():
     for name, t in targets.items():
         h = design(t)
         F, x, y = engine_focus(h.phase, N, DX)
-        P = fourier_prediction(h.phase)
-        out[name] = {"target": t, "hologram": h, "fluence": F, "x": x, "prediction": P}
+        out[name] = {"target": t, "hologram": h, "fluence": F, "x": x, "open": engine_focus(h.phase, N, DX, absorbing=False)[0], "prediction": exact_prediction(h.phase)}
     wgs = holography.weighted_gs(spots(N), 30, source_amplitude=illumination(N, DX), seed=3)
     F, x, y = engine_focus(wgs.phase, N, DX)
-    out["spots"] = {"target": spots(N), "hologram": wgs, "fluence": F, "x": x, "prediction": fourier_prediction(wgs.phase)}
+    out["spots"] = {"target": spots(N), "hologram": wgs, "fluence": F, "x": x, "open": engine_focus(wgs.phase, N, DX, absorbing=False)[0], "prediction": exact_prediction(wgs.phase)}
     return out
 
 
@@ -103,12 +115,11 @@ def main():
           % (N, N, DX * 1e6, LAM * 1e9, critical_focal_length(N, DX) * 1e3, W * 1e3))
     for name, d in r.items():
         t, F, P, h = d["target"], d["fluence"], d["prediction"], d["hologram"]
-        n = F.shape[0]; X, Y = np.meshgrid(np.arange(n) - n / 2, np.arange(n) - n / 2, indexing="ij"); inner = np.hypot(X, Y) <= n / 2   # light the periodic FFT wraps round is absorbed at the grid edge
-        c = np.corrcoef(F[inner], P[inner])[0, 1]
+        e_open, e_abs = rel_l2(d["open"], P), rel_l2(F, P)
         mono = "" if not h.error else ("  GS error %.3f -> %.3f" % (h.error[0], h.error[-1]))
-        print("%-7s energy on target pixels %.2f (design %.2f), engine against the Fourier prediction (inside the window): correlation %.4f%s"
-              % (name, energy_on_target(F, t), h.efficiency, c, mono))
-        assert c > 0.97, "the engine must reproduce the Fourier transform of the written phase"
+        print("%-7s energy on target pixels %.2f (design %.2f); against the exact propagation of the written phase: open edge %.3f, absorbing edge %.3f%s"
+              % (name, energy_on_target(F, t), h.efficiency, e_open, e_abs, mono))
+        assert e_open < 0.02, "the engine must reproduce the exact angular-spectrum propagation of the written phase"
         assert energy_on_target(F, t) > 0.5 * h.efficiency
     err = r["smiley"]["hologram"].error
     assert all(err[i + 1] <= err[i] * 1.001 for i in range(len(err) - 1) if i > 2), "GS error should not grow (Fienup 1982)"
@@ -137,7 +148,7 @@ def full(iterations=25):
         return panel[np.clip(i, 0, px - 1), np.clip(j, 0, py - 1)]
     g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=n * dx / 2, spectral_samples=1, absorbing_boundary=True, initial_profile=ip)
     sysd = b.system("slm-full", [b.gap("src", 0.0, medium="Vacuum", transverse=g(b.initial_profile("gaussian", radius_m=3.0e-3))),
-                                 Slm("slm", dx, pixels_x=px, pixels_y=py, phase_target_rad="@holo", grey_levels=256, dispersion="none"),
+                                 Slm("slm", dx, pixels_x=px, pixels_y=py, phase_target_rad="@holo", grey_levels=256, dispersion="none", offset_x_m=-dx / 2, offset_y_m=-dx / 2),
                                  b.lens("lens", f), b.gap("z", f, medium="Vacuum", transverse=g())])
     spec = b.run_spec(b.cw(LAM, 1.0), instruments=[b.instrument("beamProfile", at="z", name="cam")])
     t0 = time.time()

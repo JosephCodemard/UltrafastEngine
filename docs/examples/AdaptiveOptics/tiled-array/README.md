@@ -32,7 +32,7 @@ delay mismatch of the 30 fs tiles: axis fluence over the aligned value (engine, 
   rms 25 fs   0.707   0.712
   rms 40 fs   0.481   0.472
   rms 60 fs   0.535   0.532
-SPGD locking of the 7 pistons: axis fluence 0.16 -> 1.02 of the in-phase value in 120 iterations (360 engine runs)
+SPGD locking of the 7 pistons: axis fluence 0.04 -> 1.00 of the in-phase value in 120 iterations (360 engine runs)
 checks passed
 ```
 
@@ -45,9 +45,13 @@ checks passed
   the engine follows the Gaussian-overlap formula `(1/N²) Σ exp(-ln2 (τ_k - τ_l)²/τ_p²)` to 2 %. For the 7 random delays drawn
   at 60 fs rms the value rises again (0.535): it is a sample of seven, not an average. Timing, not just phase, matters for
   few-cycle pulses.
-* SPGD (gain 10, shake 0.2 rad) takes the pinhole signal from 0.16 to the in-phase value in about 60 iterations. The final ratio is
-  slightly above 1 (1.02) on this 128-point grid: the camera pixel on the axis is not exactly the axis maximum; that small excess is
-  not explained further here and is within the example's 0.95 bound.
+* SPGD (gain 10, shake 0.2 rad) takes the pinhole signal from 0.04 to the in-phase value in about 60 iterations. The loop runs on 128 x 128 cells with a lens of
+  f = 1 m. **Finding (the earlier version of this example ended at 1.02 of the in-phase value):** at f = 0.5 m the lens phase of a tile 3 mm off the axis changes by 3.7 rad per cell on
+  128 cells, more than π, so the lens is under-sampled, and the seven identical tiles reach the axis with fluences that differ by a factor of 56 (one tile alone: 1, 1, 0.08, 4.6, 0.08, 1, 1
+  times the central tile's). The zero-piston sum was then not the maximum, and SPGD found a better one. At f = 1 m (1.9 rad per cell) the seven fluences are equal to 1e-3, and so is
+  the case of 256 cells at f = 0.5 m, which the other runs of this example use; the lock then ends at the in-phase value and not above it, and the example asserts both bounds
+  (`test_tiled_array_identical_tiles_reach_the_axis_alike_only_when_the_lens_is_resolved`). A NumPy model of the sampled field does not reproduce the engine's weights in the aliased case, which
+  is why the cause is stated as the under-sampled lens (the symptom, equal tiles reaching the axis unequally, is measured) and not decomposed further.
 
 **Limits.** Tiles are identical Gaussians of one radius: no fibre mode-field profile, no coupling between cores, no per-channel
 dispersion or nonlinearity beyond a delay. The engine normalises the total power.
