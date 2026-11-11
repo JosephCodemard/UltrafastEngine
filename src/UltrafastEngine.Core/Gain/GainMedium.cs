@@ -26,8 +26,10 @@ namespace UltrafastEngine.Gain
         public double TemperatureK { get; set; } = 293.15;
         /// <summary>Zero-phonon line (m) for the McCumber relation; NaN = four-level (no linking).</summary>
         public double ZeroLineM { get; set; } = double.NaN;
-        public double ThermalConductivity { get; set; } = 10;   // W / (m K)
-        public double DnDT { get; set; } = 7.8e-6;              // 1/K
+        public double ThermalConductivity { get; set; } = GenericThermal.Number("thermalConductivityWPerMK");   // W / (m K)
+        public double DnDT { get; set; } = GenericThermal.Number("dnDTPerK");                                   // 1/K
+        /// <summary>The generic thermal data (catalogue entry "defaults:gainMedium") of a user-defined medium that gives none.</summary>
+        public static CatalogueQuantity GenericThermal => Catalogue.Get("defaults:gainMedium", "default").Q("thermal");
         /// <summary>Stress birefringence of a cubic host (Koechner): thermal expansion (1/K) and photo-elastic coefficients C_r, C_phi; NaN = not available.</summary>
         public double ThermalExpansionPerK { get; set; } = double.NaN;
         public double StressCr { get; set; } = double.NaN;
@@ -141,6 +143,7 @@ namespace UltrafastEngine.Gain
             if (v.Kind == JsonKind.String) return Get(v.AsString());
             var o = v.AsObject();
             var g = o.Has("base") ? Get(o.GetString("base")) : new GainMedium { Name = o.GetString("name", "user gain medium"), References = "user definition" };
+            if (!o.Has("base")) g.Used["thermal"] = GenericThermal;   // reported in the run notes unless both values are given below
             if (o.Has("name")) g.Name = o.GetString("name");
             if (o.Has("host")) g.Host = o.GetString("host");
             if (o.Has("lifetimeS")) { g.LifetimeS = o.GetDouble("lifetimeS", g.LifetimeS); g.Used.Remove("lifetime"); }
@@ -148,8 +151,9 @@ namespace UltrafastEngine.Gain
             if (o.Has("dopingAtPercent")) { g.DopingDensityM3 = o.GetDouble("dopingAtPercent", 1) / 100 * o.GetDouble("sitesPerM3", 1.38e28); g.Used.Remove("doping"); }
             if (o.Has("temperatureK")) g.TemperatureK = o.GetDouble("temperatureK", g.TemperatureK);
             if (o.Has("zeroLineWavelengthM")) { g.ZeroLineM = o.GetDouble("zeroLineWavelengthM", double.NaN); g.Used.Remove("zeroLine"); }
-            if (o.Has("thermalConductivity")) { g.ThermalConductivity = o.GetDouble("thermalConductivity", g.ThermalConductivity); g.Used.Remove("thermal"); }
-            if (o.Has("dnDT")) { g.DnDT = o.GetDouble("dnDT", g.DnDT); g.Used.Remove("thermal"); }
+            if (o.Has("thermalConductivity")) g.ThermalConductivity = o.GetDouble("thermalConductivity", g.ThermalConductivity);
+            if (o.Has("dnDT")) g.DnDT = o.GetDouble("dnDT", g.DnDT);
+            if (o.Has("thermalConductivity") && o.Has("dnDT")) g.Used.Remove("thermal");   // a partial override still uses one default
             if (o.Has("thermalExpansionPerK") || o.Has("stressCr") || o.Has("stressCphi")) g.Used.Remove("stress");
             g.ThermalExpansionPerK = o.GetDouble("thermalExpansionPerK", g.ThermalExpansionPerK);
             g.StressCr = o.GetDouble("stressCr", g.StressCr); g.StressCphi = o.GetDouble("stressCphi", g.StressCphi);

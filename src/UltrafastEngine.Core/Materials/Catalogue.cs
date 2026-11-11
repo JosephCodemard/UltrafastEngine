@@ -92,7 +92,7 @@ namespace UltrafastEngine.Materials
     public static class Catalogue
     {
         private const string Prefix = "UltrafastEngine.Data.materials.";
-        private static readonly string[] Kinds = { "solid", "gas", "raman", "gain", "crystal" };
+        private static readonly string[] Kinds = { "solid", "gas", "raman", "gain", "crystal", "default" };
 
         private sealed class State
         {
@@ -194,7 +194,7 @@ namespace UltrafastEngine.Materials
             string id = o.GetString("id") ?? throw new ModelException("catalogue file " + file + ": missing \"id\".");
             st.ById.TryGetValue(id, out var existing);
             string kind = o.GetString("kind") ?? existing?.Kind;
-            if (kind == null || !Kinds.Contains(kind)) throw new ModelException("catalogue file " + file + ": \"kind\" must be solid, gas or raman.");
+            if (kind == null || !Kinds.Contains(kind)) throw new ModelException("catalogue file " + file + ": \"kind\" must be solid, gas, raman, gain, crystal or default.");
             if (existing != null && existing.Kind != kind) throw new ModelException("catalogue file " + file + ": '" + id + "' is a " + existing.Kind + " in the built-in catalogue.");
             var e = existing ?? new CatalogueEntry { Id = id, Kind = kind, File = file };
             if (existing == null) { st.ById[id] = e; e.Raw = o; }

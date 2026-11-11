@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **594 tests** in 62 classes. **379** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **598 tests** in 62 classes. **381** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -13,7 +13,7 @@ Every C# test of the engine: **594 tests** in 62 classes. **379** of them check 
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
 | [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
 | [Material catalogue: values pinned, provenance, user catalogues](#cataloguesnapshottests) | `CatalogueSnapshotTests` | 1 | 1 |
-| [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 13 | 3 |
+| [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 16 | 4 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
@@ -37,7 +37,7 @@ Every C# test of the engine: **594 tests** in 62 classes. **379** of them check 
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms](#instrumentfixestests) | `InstrumentFixesTests` | 5 | 5 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
-| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 10 | 10 |
+| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 11 | 11 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
@@ -230,10 +230,13 @@ Material catalogue: values pinned, provenance, user catalogues.
 | `LinearRun_ReportsOnlyTheDispersionItUsed` | -- | -- |
 | `PublishedIndices_AreReproduced` | Malitson, JOSA 55, 1205 (1965): n_d = 1.45846 at 587.56 nm; Schott N-BK7 data sheet: n_d = 1.5168 at 587.56 nm; Dodge 1984 MgF2 n_o = 1.3777 at 589.3 nm | 2e-5 / 1e-4 / 1e-4 |
 | `Run_ListsTheApproximateValuesItUsed_AndNotTheOnesTheUserOverrode` | -- | -- |
+| `SolidIonization_PartialOverride_NamesWhatTheRunGaveAndWhatCameFromTheCatalogue` | -- | -- |
 | `StrictMaterials_AcceptsAUserValueMarkedVerified` | -- | -- |
+| `StrictMaterials_AllowList_AcceptsNamedValuesOnly` | -- | -- |
 | `StrictMaterials_RefusesUnverifiedValues_ListsThem_AndAcceptsOverridesAndVerifiedOnes` | -- | -- |
 | `Tgg_Dispersion_FollowsTheMeasuredTable` | Schlarb and Sugg, Phys. Status Solidi B 182, K91 (1994): measured n of TGG at 20 C (refractiveindex.info main/Tb3Ga5O12/Schlarb) | 1e-3 |
 | `UserCatalogue_ReplacesAQuantityWithANotice_AndCanAddAMaterial` | -- | -- |
+| `UserGainMedium_ThermalDefaults_AreCatalogueValues_ReportedUnlessBothAreGiven` | design: the generic defaults live in the catalogue with a status, and a run that uses one says so | exact |
 | `VerifiedDispersionSets_RecordTheirCheck` | -- | -- |
 
 ## CavityAndCoherenceTests
@@ -639,6 +642,7 @@ Photo-ionisation and plasma.
 | test | reference | tolerance |
 |---|---|---|
 | `Keldysh_MultiphotonOrderForFusedSilica` | Keldysh: K = ceil(U_g / ħω) | 8 % |
+| `Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime` | Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007), eq. 6 and 15: the avalanche is fed by inverse-bremsstrahlung absorption, which the Drude imaginary part already is | 1e-4 |
 | `Plasma_ElectronDensityBlueshiftAndAbsorption` | ρ = ∫ W dt; Drude blue shift | 3 % |
 | `Plasma_EnvelopeAgreesWithCarrierResolved_ForA10FsMidInfraredPulse` | cross-check: the envelope model against the carrier-resolved field model, same operator | blueshift 2 %, energy 1 %, density 1e-4 |
 | `Plasma_FixedDensity_FollowsTheFrequencyResolvedDrudeIndex_InEnvelopeAndCarrierMode` | Drude response of free electrons: Δn(ω) = -ω_p² / (2 n0 ω (ω + iν)) (Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007)) | 1e-8 (solver tolerance 1e-11), both field models |

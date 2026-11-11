@@ -384,11 +384,13 @@ namespace UltrafastEngine.Engine
             // strict materials: a run built on catalogue values that are not verified is refused (physics.strictMaterials or ULTRAFAST_STRICT_MATERIALS=1)
             if (run.Physics.StrictMaterials || Environment.GetEnvironmentVariable("ULTRAFAST_STRICT_MATERIALS") == "1")
             {
-                var open = c.Out.Provenance.UnverifiedInputs.Where(u => u.Catalogue.Status != CatalogueStatus.Verified).ToList();
+                var allowed = run.Physics.StrictMaterialsAllow;
+                bool Accepted(string path) => allowed.Any(a => path.Equals(a, StringComparison.OrdinalIgnoreCase) || path.StartsWith(a.TrimEnd('.') + ".", StringComparison.OrdinalIgnoreCase));
+                var open = c.Out.Provenance.UnverifiedInputs.Where(u => u.Catalogue.Status != CatalogueStatus.Verified && !Accepted(u.Catalogue.Path)).ToList();
                 if (open.Count > 0)
                     throw new ModelException("strict materials: the run uses " + open.Count + " catalogue value" + (open.Count == 1 ? "" : "s") + " that " + (open.Count == 1 ? "is" : "are") + " not verified:\n  "
                         + string.Join("\n  ", open.Select(u => u.Material + "." + u.Property.Replace(" (catalogue)", "") + " [" + u.Catalogue.Path + "] " + u.Catalogue.Status.ToString().ToLowerInvariant() + ": " + u.Catalogue.Source))
-                        + "\nOverride each value (docs/reference/materials.md#the-material-catalogue), put a verified one in your own catalogue file, or switch physics.strictMaterials off.");
+                        + "\nOverride each value (docs/reference/materials.md#the-material-catalogue), put a verified one in your own catalogue file, , accept one by its path in physics.strictMaterialsAllow, or switch physics.strictMaterials off.");
             }
             return c.Out;
         }
@@ -953,10 +955,18 @@ namespace UltrafastEngine.Engine
                 var species = string.Equals(m.GasSpecies, "Air", StringComparison.OrdinalIgnoreCase) ? GasData.AirComposition.Select(x => x.Species) : new[] { m.GasSpecies };
                 foreach (var sp in species) { var q = GasData.Get(sp)?.Entry?.TryQ("ionization"); if (q != null) prov.UseCatalogue(target, "ionization", q, sp, c.Out.Notes); }
             }
-            else if (m.Ionization == null && !(spec != null && spec.Has("bandGapEv")))
+            else if (m.Ionization == null)
             {
+                // which of the five inputs the run gives itself; the rest come from the catalogue (or, for a material without data, from the generic defaults)
+                var own = new[] { "bandGapEv", "effectiveMass", "neutralDensityM3", "collisionTimeS", "recombinationTimeS" }.Where(k => spec != null && spec.Has(k)).ToList();
                 var q = SolidIonizationData.CatalogueQuantityOf(m.Name);
-                if (q != null) prov.UseCatalogue(target, "ionization", q, m.Name, c.Out.Notes);
+                string what = q != null ? "catalogue" : "generic default";
+                if (q == null) q = SolidIonizationData.DefaultsQuantity;
+                if (own.Count < 5 && (q != SolidIonizationData.DefaultsQuantity || own.Count > 0))
+                {
+                    if (own.Count > 0) c.Out.Notes.Add("ionization of '" + m.Name + "': the run gives " + string.Join(", ", own) + "; the other inputs are the " + what + " values (" + q.Path + ").");
+                    prov.UseCatalogue(target, "ionization", q, m.Name, c.Out.Notes);
+                }
             }
         }
 

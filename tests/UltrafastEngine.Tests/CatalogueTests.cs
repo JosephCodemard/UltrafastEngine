@@ -187,6 +187,49 @@ namespace UltrafastEngine.Tests
 
         private static string Notes(UltrafastEngine.Results.RunResult r) => string.Join("\n", r.Notes) + "\n" + r.SummaryJson().GetArray("unverifiedInputs").ToJson(false);
 
+        [Test(Category = "materials", Reference = "design: the generic defaults live in the catalogue with a status, and a run that uses one says so", Tolerance = "exact")]
+        public void UserGainMedium_ThermalDefaults_AreCatalogueValues_ReportedUnlessBothAreGiven()
+        {
+            var reg = new UltrafastEngine.Models.ModelRegistry();
+            JsonObject Def(params object[] extra)
+            {
+                var o = O("lifetimeS", 1e-3, "dopingDensityM3", 1e26, "emission", O("kind", "gaussians", "bands", A(O("wavelengthM", 1030e-9, "sigmaM2", 2e-24, "fwhmM", 10e-9))));
+                for (int i = 0; i < extra.Length; i += 2) o.Set((string)extra[i], extra[i + 1] is double d ? (JsonValue)d : (JsonValue)(string)extra[i + 1]);
+                return o;
+            }
+            var g = UltrafastEngine.Gain.GainMedium.FromJson(Def(), reg, "test");
+            Assert.Close(10, g.ThermalConductivity, 0, 0, "default conductivity, from the catalogue");
+            Assert.Close(7.8e-6, g.DnDT, 1e-12, 0, "default dn/dT, from the catalogue");
+            Assert.True(g.Used.ContainsKey("thermal") && g.Used["thermal"].Path == "defaults:gainMedium.thermal" && g.Used["thermal"].Status == UltrafastEngine.Materials.CatalogueStatus.Unverified, "the run reports the default as unverified");
+            var one = UltrafastEngine.Gain.GainMedium.FromJson(Def("thermalConductivity", 5.0), reg, "test");
+            Assert.True(one.Used.ContainsKey("thermal"), "one value given: the other is still a default");
+            var both = UltrafastEngine.Gain.GainMedium.FromJson(Def("thermalConductivity", 5.0, "dnDT", 1e-5), reg, "test");
+            Assert.True(!both.Used.ContainsKey("thermal") && both.ThermalConductivity == 5.0 && both.DnDT == 1e-5, "both given: nothing is reported");
+        }
+
+        [Test(Category = "materials")]
+        public void StrictMaterials_AllowList_AcceptsNamedValuesOnly()
+        {
+            string Refusal(string allow)
+            {
+                try { StrictRun("FusedSilica", O("strictMaterialsAllow", A(allow))); return ""; }
+                catch (ModelException ex) { return ex.Message; }
+            }
+            string msg = Refusal("FusedSilica.n2");
+            Assert.True(!msg.Contains("FusedSilica.n2 ") && !msg.Contains("[FusedSilica.n2]"), "the allowed value is no longer listed: " + msg);
+            string all = Refusal("FusedSilica");
+            Assert.True(!all.Contains("[FusedSilica."), "an entry name accepts all its quantities: " + all);
+            Assert.True(Refusal("BaF2").Contains("FusedSilica.n2"), "an unrelated entry accepts nothing here");
+        }
+
+        [Test(Category = "materials")]
+        public void SolidIonization_PartialOverride_NamesWhatTheRunGaveAndWhatCameFromTheCatalogue()
+        {
+            var sys = Sys(O("id", "nl", "type", "bulk", "material", "FusedSilica", "lengthM", 1e-4, "beam", O("kind", "constant", "areaM2", 1e-8), "ionization", O("model", "keldysh", "effectiveMass", 0.5)));
+            var notes = string.Join("\n", Go(sys, Spec(Gauss(800e-9, 30e-15, 2e-9), O())).Notes);
+            Assert.True(notes.Contains("the run gives effectiveMass") && notes.Contains("catalogue values"), "the note names the overridden field: " + notes);
+        }
+
         [Test(Category = "materials")]
         public void GainMedium_ListsItsCatalogueValues_AndNotTheOnesTheElementOverrides()
         {

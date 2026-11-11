@@ -13,7 +13,7 @@ How the files work, how to override a value and how runs report the values they 
 
 A run that uses an `approximate` or `unverified` value says so in its notes and lists it under `unverifiedInputs` in `summary.json`.
 
-**183 quantities in 52 entries: 43 verified, 70 approximate, 68 unverified.**
+**185 quantities in 54 entries: 43 verified, 70 approximate, 70 unverified.**
 
 ## Solids and liquids
 
@@ -610,6 +610,24 @@ silver gallium selenide, negative uniaxial (mid-infrared).
 | `n2` | valueM2PerW = 3.5E-18 (wavelengthM 8E-07) | unverified | about 100 % | approximate value of the original code (no source recorded) |
 | `validity` | validRangeUm = [0.81, 18] | approximate | range of the index data; outside it the formula is extrapolated | Kato & Shirahata, Jpn. J. Appl. Phys. 35, 4645 (1996) (refractiveindex.info: Kato) |
 
+## Generic defaults (used when a run does not give the value)
+
+### defaults:gainMedium
+
+What the engine assumes for a user-defined gain medium that does not state its own thermal data. Used for the thermal lens only..
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `thermal` | thermalConductivityWPerMK = 10; dnDTPerK = 7.8E-06 | unverified | a factor of 2 for other hosts (sapphire 33 W/(m K), glasses ~1 W/(m K); dn/dT changes sign between hosts) | generic YAG-like values chosen in the original code; not tied to a measurement |
+
+### defaults:solidIonization
+
+What the engine assumes for a solid without ionisation data when a run gives only some of the inputs (the band gap is always required)..
+
+| quantity | values | status | uncertainty | source |
+|---|---|---|---|---|
+| `ionization` | effectiveMassRatio = 0.635; neutralDensityM3 = 2.1E+28; collisionTimeS = 1E-15; recombinationTimeS = 1.5E-13 | unverified | sample-dependent by tens of percent, and different for other dielectrics | typical Keldysh / plasma inputs of fused silica, used as the generic dielectric (original code; no source recorded) |
+
 ## Not verified yet
 
 The to-do list for anyone with the papers: every quantity whose status is not `verified`.
@@ -634,6 +652,7 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | Yb:YAG | `stress` | unverified | photo-elastic constants of YAG after Koechner, Solid-State Laser Engineering (thermal-effects chapter), as cited by the original code; not re-read |
 | Yb:YAG | `emission` | approximate | room-temperature values after Koerner et al., Appl. Phys. B 75, 2002 (cross sections) and Sumida & Fan, OSA TOPS 1995 (lifetime 0.95 ms); lasing-band absorption and pump-band emission from the McCumber relation (zero line 968.8 nm); approximate analytic fit (~10-20 %) -- override with measured tables |
 | Yb:YAG | `absorption` | approximate | pump-band absorption of Yb:YAG, approximate analytic fit (~10-20 %), after the same references as the emission band -- override with measured tables |
+| defaults:gainMedium | `thermal` | unverified | generic YAG-like values chosen in the original code; not tied to a measurement |
 | FusedSilica | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | FusedSilica | `ionization` | unverified | typical values for Keldysh / plasma models of fused silica; the original code did not record a source |
 | LBO | `indexX` | unverified | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
@@ -647,6 +666,7 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | Ti:sapphire | `thermal` | unverified | typical values of sapphire (original code) |
 | Ti:sapphire | `emission` | approximate | after Moulton, JOSA B 3, 125 (1986) (pi-polarised cross sections, lifetime 3.2 us); four-level; approximate analytic fit (~10-20 %) -- override with measured tables |
 | Ti:sapphire | `absorption` | approximate | after Moulton, JOSA B 3, 125 (1986) (pi-polarised); approximate analytic fit (~10-20 %) -- override with measured tables |
+| defaults:solidIonization | `ionization` | unverified | typical Keldysh / plasma inputs of fused silica, used as the generic dielectric (original code; no source recorded) |
 | KTP | `d` | unverified | Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992), as cited by the original code; not re-read |
 | KTP | `n2` | unverified | DeSalvo et al., IEEE JQE 32, 1324 (1996), E\|\|z, as cited by the original code; not re-read |
 | KTP | `validity` | approximate | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) |

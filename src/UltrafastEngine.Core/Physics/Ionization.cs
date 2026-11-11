@@ -186,6 +186,7 @@ namespace UltrafastEngine.Physics
             double E = Au.FieldFromIntensity(intensity, N0);
             if (E <= 0) return 0;
             double w = Omega, g = w * Math.Sqrt(Mass * BandGapJ) / (Au.E * E);
+            if (!(g < 1e6)) return 0;   // a field this weak (the far wing of a pulse): G rounds to 1, K(1) is infinite, and the rate is below 1e-100 of any usable one
             double G = g * g / (1 + g * g), X = 1 / (1 + g * g);
             var (kG, eG) = IonizationMath.Elliptic(G);
             var (kX, eX) = IonizationMath.Elliptic(X);
@@ -299,7 +300,9 @@ namespace UltrafastEngine.Physics
                 if (Absorption)
                 {
                     dIm[i] += drude * rho / wt;
-                    if (I > 0) dnIm[i] += (loss + aval * uMean) / I / (2 * k0);
+                    // The avalanche takes its energy from the inverse-bremsstrahlung absorption already booked in the Drude
+                    // imaginary part: aval * uMean / (I 2 k0) = sigma rho / (2 k0) = drude rho / wt. Adding it again would count it twice.
+                    if (I > 0) dnIm[i] += loss / I / (2 * k0);
                 }
                 double drho = gen + aval - (double.IsInfinity(RecombinationTimeS) ? 0 : rho / RecombinationTimeS) - RecombinationBetaM3PerS * rho * rho;
                 rho = Math.Max(0, rho + drho * dt);

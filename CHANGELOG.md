@@ -2,8 +2,19 @@
 
 ## Unreleased
 
+**Fixed (physics)**
+- **Avalanche and inverse bremsstrahlung were counted twice** (solids, where the avalanche is on by default): the avalanche loss `aval U / (2 k0 I)` equals `sigma rho / (2 k0)`, the Drude imaginary part, so the field lost the energy twice. The avalanche now only generates electrons; the field loses the energy once (`Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime`: output energy 5.15e-10 J, was 2.67e-10 J). Results of solid-state plasma runs with the avalanche on change.
+- **Keldysh rate returned NaN in the far wing of a pulse** (field so weak that the Keldysh parameter exceeds 1e6): returns 0.
+- **net48:** `ultrafast reference materials` printed `56.306399999999996` for `56.3064` (.NET Framework's `"R"`), so the committed page differed on Mono; the shortest round-trip form is used on both.
+
+**Added**
+- `physics.strictMaterialsAllow`: catalogue paths (`"CS2.n2"`) or entry names that strict mode accepts although they are not verified.
+- The generic defaults (thermal data of a user-defined gain medium: 10 W/(m K), 7.8e-6 1/K; ionisation inputs of a solid without data) are catalogue entries (`defaults:gainMedium`, `defaults:solidIonization`, status `unverified`); a run that uses one lists it in its notes and `unverifiedInputs`.
+- Partial ionisation overrides: the run notes name the fields the run gave and say the rest come from the catalogue.
+
 **Changed (release polish)**
 - **Component check "plasma blue shift"** (`tests/components/media.py`): the single-carrier Drude formula is compared with `frequencyResolved: false` at 5 %; the default frequency-resolved operator (WP4) is a separate row at 8 %, because the 1/omega dependence across a 30 fs bandwidth lowers the shift by up to 5 % (measured -5.3 % at 1030 nm). This was the one CI failure of the component scripts.
+- **Tests:** the release-install test no longer asserts an executable bit on Windows.
 - **CI:** job timeouts (a hung `apt-get` ran for two hours) and `apt-get` retries.
 - **Docs:** logo-palette theme and the long logo at the top of every page; README picture grid and contact badge; `docs/design/` condensed to `history.md`, `next-steps.md` and `backlog.md` (the branching design, the AO / twin record, the plan and the session notes are removed).
 

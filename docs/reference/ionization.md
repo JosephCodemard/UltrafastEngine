@@ -48,7 +48,10 @@ less than U_p per electron; the two models then differ by up to U_p per electron
 value of ω/c, the plasma term always uses ω/c at each frequency (as its current equation does).
 
 The ionisation loss Im Δn += U W ρ_n / (2 k₀ I) is a loss at the carrier, not a Drude term, and stays local in time. σ = k₀ ω₀ τ_c / (n₀ ρ_c (1 + ω₀² τ_c²)) is the avalanche cross
-section (on by default for solids). Defaults: gases τ_c = 350 fs / p[bar], no recombination; solids τ_c = 1 fs,
+section (on by default for solids). The avalanche takes its energy from the inverse-bremsstrahlung absorption that the Drude imaginary part already books
+(σρ I per volume, the same number), so it adds no second loss to the field; before 2.2.1 it did, and a solid with the avalanche on absorbed too much (`Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime`). With `absorption: false` neither is applied.
+A run that gives only some of the solid inputs (`bandGapEv`, `effectiveMass`, `neutralDensityM3`, `collisionTimeS`, `recombinationTimeS`) gets the rest from the catalogue (or, for a material without ionisation data, from the
+generic dielectric entry `defaults:solidIonization`); the run notes name the fields the run gave and the source of the others. Defaults: gases τ_c = 350 fs / p[bar], no recombination; solids τ_c = 1 fs,
 τ_rec = 150 fs. `electronDensityM3` gives a plasma that is there before the pulse (a prepared plasma or a discharge); it decays with the recombination time.
 Every element reports `peakElectronDensityM3` and `peakIonizationFraction`.
 

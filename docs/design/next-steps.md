@@ -29,14 +29,9 @@ Reference pages stay reference pages. Missing AO / twin examples (component gall
 | **Verify approximate / unverified material values against their papers**, starting with CS2 (n2, 90/10 electronic-orientational split, 1.6 / 0.2 ps constants) and BaF2 (n2, sigma = -1.2); rotational Raman dephasing `T2At1Bar` of N2, O2, CO2, H2; the other n2 values | needs the owner's PDFs; the CREOL scans could not be rendered. Then re-run `liu-2013`, `shimizu-1967`, `kaur-2024` |
 | LBO (Kato 1994) and the Jundt / Gayer LiNbO3 e-ray forms | no database page to compare with; needs the papers |
 | Yb:YAG / Nd:YAG Fuchtbauer-Ladenburg consistency: do the catalogue's cross-section fits integrate to the radiative rate? | a one-hour check; the ASE source term depends on sigma_e through these fits (all `approximate`) |
-| Birth phase of tunnelling electrons: drift-energy loss assumes a uniform birth phase; in carrier-resolved mode with PPT / ADK electrons are born near the crests, so the model books less loss (comparison test uses MPI) | needs a carrier-resolved reference calculation |
-| Possible double count of avalanche loss and inverse-bremsstrahlung (Drude) absorption (pre-existing, unverified, affects solids by default; all new tests run without avalanche) | check against Couairon and Mysyrowicz before trusting solid-state plasma absorption |
+| Birth phase of tunnelling electrons: drift-energy loss assumes a uniform birth phase; in carrier-resolved mode with PPT / ADK electrons are born near the crests, so the model books less loss (comparison test uses MPI) | needs a reference calculation (U_p at birth phase, Corkum 1993) and a change in how the energy is booked; not quick |
 | Ray-based ASE for bulk crystals and disks, parasitic lasing, fibre use (backlog C3 builds on `AseModel`) | separate package |
-| Stress: slice-by-slice retardation, the common-mode radial / tangential lenses on the field, vector gain for a y input | extension of WP2 |
-| Spall gain sequences for SPGD | the running-maximum normalisation does the job; no need shown |
-| Defaults for user-defined gain media (`GainMedium`: 10 W/(m K), dn/dT 7.8e-6 /K) and for solids without ionisation data are still in code | move into the catalogue with a status when the owner supplies values |
-| Strict-materials mode is per run only; an allow-list (`strictMaterials: {"allow": [...]}`) would accept one named approximate value | small addition when wanted |
-| Partial ionisation overrides report the catalogue band gap without naming the overridden fields | cosmetic |
+| Stress: slice-by-slice retardation, the common-mode radial / tangential lenses on the field, vector gain for a y input | needs Koechner's formulas read from the source (not written from memory) and a reference for each; a package of its own |
 | MCP server (T6): `ultrafast twin serve` exits with 2 | design below |
 | GPU parity of the modulator and tile source; `release.yml` has never run on GitHub (Linux / Windows NativeAOT jobs, wheel in a fresh venv; macOS NativeAOT is built on the owner's Mac); its smoke test installs `examples.Branched` but does not run it | needs a GPU / a tag, which only the owner creates |
 | Live-data plugin, ML / PINN plugins, PyPI wheels and a NuGet package (PyPI publishing is forbidden by the owner), OpticStudio User Extension | after the first release |

@@ -117,6 +117,7 @@ Physics switches (docs/reference/run-spec.md#physics).
 | `fieldMode` | `"auto"` \| `"envelope"` \| `"carrier"` |  | auto | Envelope or carrier-resolved (real field) propagation |
 | `fieldHarmonic` | number |  | 3 | Highest harmonic the carrier-resolved grid holds |
 | `absoluteIndex` | boolean |  | true | Add air dispersion to air paths quoted relative to air |
+| `strictMaterialsAllow` | array |  |  | Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. "CS2.n2") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as "CS2" accepts all its quantities |
 | `strictMaterials` | boolean |  | false | Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same |
 | `polarization` | `"jones"` \| `"scalar"` |  | jones | Jones (two polarisations) or scalar |
 | `losses` | boolean |  | true | false removes flat loss terms |

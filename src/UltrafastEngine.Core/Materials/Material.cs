@@ -197,12 +197,22 @@ namespace UltrafastEngine.Materials
     {
         public double BandGapEv;
         /// <summary>Reduced effective mass / electron mass.</summary>
-        public double EffectiveMass = 0.635;
+        public double EffectiveMass;
         /// <summary>Density of valence electrons that can be ionised (1/m^3).</summary>
-        public double NeutralDensityM3 = 2.1e28;
+        public double NeutralDensityM3;
         /// <summary>Electron collision time (s) and recombination / trapping time (s).</summary>
-        public double CollisionTimeS = 1e-15;
-        public double RecombinationTimeS = 150e-15;
+        public double CollisionTimeS;
+        public double RecombinationTimeS;
+
+        /// <summary>The generic dielectric inputs (catalogue entry "defaults:solidIonization"), used where a run gives some but not all of them.</summary>
+        public static CatalogueQuantity DefaultsQuantity => Catalogue.Get("defaults:solidIonization", "default").Q("ionization");
+
+        public SolidIonizationData()
+        {
+            var q = DefaultsQuantity;
+            EffectiveMass = q.Number("effectiveMassRatio"); NeutralDensityM3 = q.Number("neutralDensityM3");
+            CollisionTimeS = q.Number("collisionTimeS"); RecombinationTimeS = q.Number("recombinationTimeS");
+        }
 
         /// <summary>The catalogue quantity "ionization" of a solid (null when the material has none).</summary>
         public static CatalogueQuantity CatalogueQuantityOf(string material) => Catalogue.Find(material, "solid")?.TryQ("ionization");

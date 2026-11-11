@@ -1,0 +1,16 @@
+{
+  "id": "defaults:gainMedium",
+  "kind": "default",
+  "listOrder": 1,
+  "description": "What the engine assumes for a user-defined gain medium that does not state its own thermal data. Used for the thermal lens only.",
+  "quantities": {
+    "thermal": {
+      "thermalConductivityWPerMK": 10,
+      "dnDTPerK": 7.8e-6,
+      "source": "generic YAG-like values chosen in the original code; not tied to a measurement",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "a factor of 2 for other hosts (sapphire 33 W/(m K), glasses ~1 W/(m K); dn/dT changes sign between hosts)"
+    }
+  }
+}

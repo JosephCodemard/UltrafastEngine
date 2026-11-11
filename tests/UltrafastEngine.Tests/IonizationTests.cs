@@ -70,15 +70,27 @@ namespace UltrafastEngine.Tests
             Assert.Greater(SpectralCentroid(r.Output), SpectralCentroid(r.Input), "plasma blue-shifts the pulse");
             Assert.True(rec.LossJ.ContainsKey("absorption") && rec.LossJ["absorption"] > 0, "ionisation takes energy from the pulse");
         }
+        [Test(Reference = "Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007), eq. 6 and 15: the avalanche is fed by inverse-bremsstrahlung absorption, which the Drude imaginary part already is", Tolerance = "1e-4")]
+        public void Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime()
+        {
+            // A weak pulse (about 5e11 W/m2) in a prepared plasma that absorbs 33 % of the amplitude: the avalanche cannot change the density
+            // over the pulse, so the output energy must be the same with it on or off. Counting the energy twice would double the absorption.
+            var off = PreparedPlasma(1e24, 0.01, 10e-15, false, avalanche: false);
+            var on = PreparedPlasma(1e24, 0.01, 10e-15, false, avalanche: true);
+            double eOff = off.Output.TotalEnergyJ(), eOn = on.Output.TotalEnergyJ();
+            Assert.Less(eOff / off.Input.TotalEnergyJ(), 0.9, "the plasma absorbs (the test can tell a double count)");
+            Assert.Close(eOff, eOn, 1e-4, 0, "output energy with and without the avalanche");
+        }
+
         // ----------------------------------------------------------------------------------------------- Drude dispersion
 
         private const double E0 = 1.602176634e-19, Me = 9.1093837015e-31, Eps0 = 8.8541878128e-12, Cc = 2.99792458e8;
 
         /// <summary>A prepared plasma of fixed density in a dispersionless n = 1.45 solid: no ionisation (sigmaK = 0), no Kerr.</summary>
-        private static RunResult PreparedPlasma(double rho, double lenM, double fwhmS, bool carrierResolved, bool freqResolved = true, double tauC = 20e-15, double lam = 800e-9)
+        private static RunResult PreparedPlasma(double rho, double lenM, double fwhmS, bool carrierResolved, bool freqResolved = true, double tauC = 20e-15, double lam = 800e-9, bool avalanche = false)
         {
             var mat = FlatMaterial(0.0, 1.45);
-            var ion = O("model", "mpi", "sigmaK", 0.0, "photons", 6, "bandGapEv", 9.0, "neutralDensityM3", 2e28, "electronDensityM3", rho, "collisionTimeS", tauC, "recombinationTimeS", 1e30, "avalanche", false, "frequencyResolved", freqResolved);
+            var ion = O("model", "mpi", "sigmaK", 0.0, "photons", 6, "bandGapEv", 9.0, "neutralDensityM3", 2e28, "electronDensityM3", rho, "collisionTimeS", tauC, "recombinationTimeS", 1e30, "avalanche", avalanche, "frequencyResolved", freqResolved);
             var sys = Sys(O("id", "cell", "type", "bulk", "material", "m", "lengthM", lenM, "beam", O("kind", "constant", "areaM2", 1e-7), "ionization", ion));
             var o = O("format", "ultrafast-system", "version", 2, "name", "t", "materials", O("m", mat));
             o.Set("elements", sys.ToJson()["elements"]);

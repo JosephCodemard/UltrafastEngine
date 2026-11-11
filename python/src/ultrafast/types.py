@@ -4562,6 +4562,8 @@ class Physics(TypedDict, total=False):
     """Highest harmonic the carrier-resolved grid holds Default: 3."""
     absoluteIndex: bool
     """Add air dispersion to air paths quoted relative to air Default: true."""
+    strictMaterialsAllow: List[Any]
+    """Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. "CS2.n2") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as "CS2" accepts all its quantities"""
     strictMaterials: bool
     """Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same Default: false."""
     polarization: Literal["jones", "scalar"]

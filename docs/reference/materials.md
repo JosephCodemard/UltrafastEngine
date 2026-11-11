@@ -100,9 +100,15 @@ catalogue value that is not `verified`. The error lists each one (material, quan
 material), give a verified value in [your own catalogue file](#the-material-catalogue), or switch the mode off. Values that are not used are not counted (n2 and Raman in a linear run, thermal data
 without a thermal lens), and a value from your own file counts as verified only if you marked it `verified`.
 
+To accept one named value and still refuse the others, list it by its catalogue path (as the error and `unverifiedInputs` print it; an entry name accepts all its quantities):
+
 ```jsonc
 { "physics": { "strictMaterials": true } }   // run.json: refuse approximate / unverified catalogue values
+{ "physics": { "strictMaterials": true, "strictMaterialsAllow": ["FusedSilica.n2", "CS2"] } }   // accept those, refuse the rest
 ```
+
+The generic values used where a run gives none (the thermal data of a user-defined gain medium, the ionisation inputs of a solid without data) are catalogue entries too (`defaults:gainMedium`, `defaults:solidIonization`,
+status `unverified`): a run that uses one lists it like any other value, and strict mode refuses it unless it is overridden or allowed.
 
 ## Defining materials
 

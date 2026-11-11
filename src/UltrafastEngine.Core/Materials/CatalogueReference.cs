@@ -18,7 +18,20 @@ namespace UltrafastEngine.Materials
     {
         private static readonly HashSet<string> Meta = new HashSet<string> { "source", "status", "uncertainty", "relativeUncertainty", "verification", "conditions", "name", "ref" };
 
+#if NET
         private static string Num(double v) => v.ToString("R", CultureInfo.InvariantCulture);
+#else
+        // .NET Framework's "R" can print 17 digits for a value that 15 reproduce (56.306399999999996): use the shortest round-trip, as .NET does.
+        private static string Num(double v)
+        {
+            foreach (var f in new[] { "G15", "G16", "G17" })
+            {
+                var t = v.ToString(f, CultureInfo.InvariantCulture);
+                if (double.Parse(t, CultureInfo.InvariantCulture) == v) return t;
+            }
+            return v.ToString("G17", CultureInfo.InvariantCulture);
+        }
+#endif
 
         private static string Value(JsonValue v)
         {
@@ -75,7 +88,7 @@ namespace UltrafastEngine.Materials
             sb.AppendLine("**" + n + " quantities in " + entries.Count + " entries: " + v + " verified, " + a + " approximate, " + u + " unverified.**");
             sb.AppendLine();
 
-            foreach (var (kind, title) in new[] { ("solid", "Solids and liquids"), ("gas", "Gases"), ("raman", "Raman models"), ("gain", "Gain media"), ("crystal", "chi(2) crystals") })
+            foreach (var (kind, title) in new[] { ("solid", "Solids and liquids"), ("gas", "Gases"), ("raman", "Raman models"), ("gain", "Gain media"), ("crystal", "chi(2) crystals"), ("default", "Generic defaults (used when a run does not give the value)") })
             {
                 sb.AppendLine("## " + title);
                 sb.AppendLine();

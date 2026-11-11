@@ -6,6 +6,7 @@ Everything runs on small synthetic releases in a temporary folder (no network, n
 import importlib.util
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -203,7 +204,8 @@ def test_install_a_selection_then_add_then_uninstall_leaves_nothing(tmp_path):
     assert sorted(rec["components"]) == ["examples.Branched", "examples.shared", "python", "tests"]
     run_install(rel, dest, ["cli"])                                                        # a second --include adds
     assert (dest / "bin" / "ultrafast").read_text() == "exe linux-x64"
-    assert (dest / "bin" / "ultrafast").stat().st_mode & 0o111                             # executable bit survives
+    if os.name != "nt":                                                                     # Windows has no executable bit
+        assert (dest / "bin" / "ultrafast").stat().st_mode & 0o111                         # executable bit survives
     inst.uninstall(dest, ["tests"], use_pip=False, log=lambda *_: None)
     assert not (dest / "tests").exists() and (dest / "bin" / "ultrafast").exists()
     inst.uninstall(dest, None, use_pip=False, log=lambda *_: None)
