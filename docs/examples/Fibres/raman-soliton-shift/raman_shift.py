@@ -21,6 +21,21 @@ def raman_first_moment():
     return FR * np.trapezoid(t * h, t) / norm
 
 
+def exact_rate(t0):
+    """Shift rate of a fixed-width sech soliton with the model's exact Raman response (no first-moment approximation).
+
+    The nonlinear phase is phi_z = gamma V with V = (1 - f_R) P + f_R (h_R * P), so the mean frequency changes by
+    d<Omega>/dz = -gamma f_R (1 / E) integral (h_R * P)(t) P'(t) dt (the instantaneous Kerr part integrates to zero). For a delta-prime response it
+    gives Gordon's -8 T_R |beta2| / (15 T0^4) exactly. Returns rad/s per m (negative: red shift)."""
+    dt = 0.25e-15
+    t = np.arange(-4e-12, 4e-12, dt)
+    ts = np.arange(0, 2e-12, dt)
+    h = (TAU1 ** 2 + TAU2 ** 2) / (TAU1 * TAU2 ** 2) * np.exp(-ts / TAU2) * np.sin(ts / TAU1)
+    p = abs(B2) / (GAMMA * t0 ** 2) / np.cosh(t / t0) ** 2
+    f = np.convolve(p, h * dt)[:len(p)]
+    return -GAMMA * FR * abs(np.trapezoid(f * np.gradient(p, dt), t)) / np.trapezoid(p, t)
+
+
 def centroid_frequency(r):
     w, s = r["output_omega_rad_s"], r["output_spectrum"]
     return float(np.sum(w * s) / np.sum(s))
@@ -48,7 +63,7 @@ def main():
     r = run()
     tr = raman_first_moment()
     print("fundamental solitons N = 1, beta2 = %.0f ps^2/km, gamma = %.1f /(W km), %.0f m of silica fibre, Raman response of the engine (T_R = %.2f fs from the model)" % (B2 * 1e27, GAMMA * 1e3, LENGTH, tr * 1e15))
-    rates = []
+    rates, exacts = [], []
     for t0 in T0S:
         # the rate is measured over the last two thirds of the fibre (the soliton has settled); Gordon's formula gives the constant rate at fixed T0
         d = r[t0]
@@ -56,11 +71,15 @@ def main():
         rate = np.polyfit(d["z"][sel], d["shift"][sel], 1)[0]                   # rad/s per m (negative: red shift)
         gordon = -8 * tr * abs(B2) / (15 * t0 ** 4)
         rates.append(rate)
-        print("T0 = %2.0f fs: shift after %.0f m %.1f THz (%.0f nm), rate %.3f THz/m; Gordon -8 T_R |beta2| / (15 T0^4) = %.3f THz/m (ratio %.2f)"
-              % (t0 * 1e15, LENGTH, d["shift"][-1] / (2 * np.pi) * 1e-12, -d["shift"][-1] / (2 * np.pi) * LAM ** 2 / C * 1e9, rate / (2 * np.pi) * 1e-12, gordon / (2 * np.pi) * 1e-12, rate / gordon))
+        exact = exact_rate(t0)
+        exacts.append(exact)
+        print("T0 = %2.0f fs: shift after %.0f m %.1f THz (%.0f nm), rate %.3f THz/m; Gordon -8 T_R |beta2| / (15 T0^4) = %.3f THz/m (ratio %.2f); exact Raman gain %.3f THz/m (ratio %.3f)"
+              % (t0 * 1e15, LENGTH, d["shift"][-1] / (2 * np.pi) * 1e-12, -d["shift"][-1] / (2 * np.pi) * LAM ** 2 / C * 1e9, rate / (2 * np.pi) * 1e-12, gordon / (2 * np.pi) * 1e-12, rate / gordon,
+                 exact / (2 * np.pi) * 1e-12, rate / exact))
     slope = np.polyfit(np.log(T0S), np.log(-np.array(rates)), 1)[0]
     print("log-log slope of the rate against T0: %.2f (Gordon: -4)" % slope)
     assert abs(slope + 4) < 0.5
+    assert all(abs(rr / ex - 1) < 0.05 for rr, ex in zip(rates, exacts))       # the engine against the exact-gain rate of a fixed-width soliton
     assert all(0.4 < rr / (-8 * tr * abs(B2) / (15 * t ** 4)) < 2.5 for rr, t in zip(rates, T0S))
     print("checks passed")
 

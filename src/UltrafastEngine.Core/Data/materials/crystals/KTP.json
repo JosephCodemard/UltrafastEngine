@@ -1,0 +1,86 @@
+{
+  "file": "KTP",
+  "id": "KTP",
+  "kind": "crystal",
+  "listOrder": 3,
+  "aliases": [
+    "ktiopo4",
+    "ppktp"
+  ],
+  "aliasDisplayNames": {
+    "ppktp": "PPKTP"
+  },
+  "displayName": "KTP",
+  "opticalClass": "biaxial",
+  "temperatureDependent": false,
+  "references": "indices: Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (20 C); d31 = 1.95, d32 = 3.9, d33 = 15.3 pm/V at 1064 nm (Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992)); n2: DeSalvo et al. (1996), E||z",
+  "description": "potassium titanyl phosphate, biaxial (the aliases ppktp name the periodically poled form)",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula4",
+      "coefficients": [3.291, 0.0414, 0, 0.03978, 1, 9.35522, 0, 31.45571, 1],
+      "validRangeUm": [0.43, 3.54],
+      "citation": "Kato & Takaoka, Appl. Opt. 41, 5040 (2002)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (refractiveindex.info KTiOPO4/Kato-alpha)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page KTiOPO4_Kato-alpha (formula 4, 9 coefficients)"
+    },
+    "indexY": {
+      "model": "riiFormula4",
+      "coefficients": [3.45018, 0.04341, 0, 0.04597, 1, 16.98825, 0, 39.43799, 1],
+      "validRangeUm": [0.43, 3.54],
+      "citation": "Kato & Takaoka, Appl. Opt. 41, 5040 (2002)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (refractiveindex.info KTiOPO4/Kato-beta)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page KTiOPO4_Kato-beta (formula 4, 9 coefficients)"
+    },
+    "indexZ": {
+      "model": "riiFormula4",
+      "coefficients": [4.59423, 0.06206, 0, 0.04763, 1, 110.80672, 0, 86.12171, 1],
+      "validRangeUm": [0.43, 3.54],
+      "citation": "Kato & Takaoka, Appl. Opt. 41, 5040 (2002)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Kato & Takaoka, Appl. Opt. 41, 5040 (2002) (refractiveindex.info KTiOPO4/Kato-gamma)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page KTiOPO4_Kato-gamma (formula 4, 9 coefficients)"
+    },
+    "d": {
+      "pointGroup": "mm2",
+      "tensor": "mm2",
+      "dPmPerV": {
+        "d31": 1.95,
+        "d32": 3.9,
+        "d33": 15.3
+      },
+      "source": "Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "wavelengthM": 1.064e-06
+      }
+    },
+    "n2": {
+      "valueM2PerW": 2.2e-19,
+      "source": "DeSalvo et al., IEEE JQE 32, 1324 (1996), E||z, as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.43, 3.54],
+      "source": "Kato & Takaoka, Appl. Opt. 41, 5040 (2002)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

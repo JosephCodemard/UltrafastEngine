@@ -1,0 +1,21 @@
+{
+  "id": "orientational",
+  "kind": "raman",
+  "aliases": [],
+  "description": "Molecular reorientation of a liquid (CS2 values)",
+  "quantities": {
+    "response": {
+      "model": "orientational",
+      "riseS": 2e-13,
+      "decayS": 1.6e-12,
+      "anisotropicFraction": 1.5,
+      "source": "h(t) = (exp(-t/1.6 ps) - exp(-t/0.2 ps)) / 1.4 ps: typical CS2 values of the original code (decay ~1.6-2 ps is the commonly quoted reorientation time); the rise time and the exact decay are unverified; 1.5 = purely orientational (h_a = -h_b/3)",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "host": "CS2",
+        "temperatureK": 293.15
+      }
+    }
+  }
+}

@@ -21,6 +21,8 @@ namespace UltrafastEngine.Specs
         /// <summary>Put the carrier on an exact multiple of the frequency step (needed by carrier-resolved mode;
         /// shifts the carrier by &lt; half a bin).</summary>
         public bool SnapCarrier { get; set; } = true;
+        /// <summary>snapCarrier was written in the spec. A cw source puts its single line on the requested carrier (no snapping) unless it was.</summary>
+        public bool SnapCarrierGiven { get; set; }
         /// <summary>Spectral span factor applied to the input spectrum (-40 dB width) when sizing the time step.
         /// NaN: 1.3 for linear systems, 3 when any element is nonlinear.</summary>
         public double SpectralMargin { get; set; } = double.NaN;
@@ -61,6 +63,7 @@ namespace UltrafastEngine.Specs
             g.Auto = o.GetBool("auto", true);
             g.MaxN = o.GetInt("maxN", g.MaxN);
             g.SnapCarrier = o.GetBool("snapCarrier", true);
+            g.SnapCarrierGiven = o.Has("snapCarrier");
             g.SpectralMargin = o.GetDouble("spectralMargin", double.NaN);
             g.MinSpanFraction = o.GetDouble("minSpanFraction", 0.1);
             g.MinPointsPerFwhm = o.GetDouble("minPointsPerFwhm", 12);
@@ -101,6 +104,10 @@ namespace UltrafastEngine.Specs
         public double FieldHarmonic { get; set; } = 3.0;
         /// <summary>Add the dispersion of air for air paths quoted relative to air (Zemax convention).</summary>
         public bool AbsoluteIndex { get; set; } = true;
+        /// <summary>Refuse a run that uses approximate or unverified material-catalogue values (also: ULTRAFAST_STRICT_MATERIALS=1).</summary>
+        public bool StrictMaterials { get; set; }
+        /// <summary>Catalogue paths (or path prefixes) that strict mode accepts although they are not verified.</summary>
+        public List<string> StrictMaterialsAllow { get; } = new List<string>();
         /// <summary>"jones" (full 2x2 polarisation) or "scalar" (s/p averaged).</summary>
         public string Polarization { get; set; } = "jones";
         public bool Losses { get; set; } = true;
@@ -126,6 +133,8 @@ namespace UltrafastEngine.Specs
             p.FieldMode = o.GetString("fieldMode", "auto");
             p.FieldHarmonic = o.GetDouble("fieldHarmonic", 3.0);
             p.AbsoluteIndex = o.GetBool("absoluteIndex", true);
+            p.StrictMaterials = o.GetBool("strictMaterials", false);
+            var allow = o.GetArray("strictMaterialsAllow"); if (allow != null) foreach (var a in allow) p.StrictMaterialsAllow.Add(a.AsString());
             p.Polarization = o.GetString("polarization", "jones");
             p.Losses = o.GetBool("losses", true);
             p.Transverse = o.Has("transverse") ? o["transverse"] : null;

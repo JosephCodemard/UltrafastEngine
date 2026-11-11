@@ -48,7 +48,7 @@ class AmplifierElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence: a lumped depolarisation, or the four-lobed pattern on a cartesian transverse grid (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int
@@ -67,6 +67,8 @@ class AmplifierElement(TypedDict, total=False):
     """Seed amplified spontaneous emission (1-D) Default: false."""
     aseSeed: int
     """ASE random seed"""
+    aseModel: Any
+    """true / false or {solidAngleSr, polarizations, points, bandLowerM, bandUpperM}: inter-pulse ASE in both directions over the inversion lifetime; it depletes the inversion between pulses and reports the ASE power in the signal mode (docs/reference/gain.md#ase) Default: false."""
     temperatureK: float
     """Crystal temperature [K]"""
     dopingDensityM3: float
@@ -971,7 +973,7 @@ class GainElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence: a lumped depolarisation, or the four-lobed pattern on a cartesian transverse grid (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int
@@ -990,6 +992,8 @@ class GainElement(TypedDict, total=False):
     """Seed amplified spontaneous emission (1-D) Default: false."""
     aseSeed: int
     """ASE random seed"""
+    aseModel: Any
+    """true / false or {solidAngleSr, polarizations, points, bandLowerM, bandUpperM}: inter-pulse ASE in both directions over the inversion lifetime; it depletes the inversion between pulses and reports the ASE power in the signal mode (docs/reference/gain.md#ase) Default: false."""
     temperatureK: float
     """Crystal temperature [K]"""
     dopingDensityM3: float
@@ -4226,7 +4230,7 @@ class Grid(TypedDict, total=False):
     maxN: int
     """Largest allowed n Default: 4194304."""
     snapCarrier: bool
-    """Put the carrier on the frequency grid Default: true."""
+    """Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written Default: true."""
     spectralMargin: float
     """Spectral span factor Default: auto."""
     minSpanFraction: float
@@ -4558,6 +4562,10 @@ class Physics(TypedDict, total=False):
     """Highest harmonic the carrier-resolved grid holds Default: 3."""
     absoluteIndex: bool
     """Add air dispersion to air paths quoted relative to air Default: true."""
+    strictMaterialsAllow: List[Any]
+    """Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. "CS2.n2") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as "CS2" accepts all its quantities"""
+    strictMaterials: bool
+    """Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same Default: false."""
     polarization: Literal["jones", "scalar"]
     """Jones (two polarisations) or scalar Default: jones."""
     losses: bool

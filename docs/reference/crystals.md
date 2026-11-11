@@ -39,6 +39,8 @@ and the idler is ω_p − ω_s, whichever is higher in frequency.
 
 ## Built-in crystals
 
+The indices, d tensors and n2 of the built-in crystals are catalogue files (`Data/materials/crystals`), each quantity with its source and status; see [the material catalogue](materials.md#the-material-catalogue) and the generated list [Material catalogue](materials-catalogue.md#chi2-crystals). The index sets of BBO, KTP, KDP, LiNbO3 (o-ray), BiBO and AgGaSe2 are verified against the refractiveindex.info pages; LBO (Kato 1994), the temperature-dependent LiNbO3 / MgO:LiNbO3 e-ray forms, the d tensors and the n2 values are not. A crystal element that uses an unverified value says so in the run notes.
+
 | name | class / point group | indices | d (pm/V) |
 |---|---|---|---|
 | `BBO` | uniaxial (negative), 3m | Tamosauskas et al. 2018 | d22 = 2.2, d31 = 0.04 |

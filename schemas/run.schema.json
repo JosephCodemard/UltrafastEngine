@@ -502,7 +502,7 @@
         },
         "snapCarrier": {
           "type": "boolean",
-          "description": "Put the carrier on the frequency grid Default: true."
+          "description": "Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written Default: true."
         },
         "spectralMargin": {
           "type": "number",
@@ -574,6 +574,14 @@
         "absoluteIndex": {
           "type": "boolean",
           "description": "Add air dispersion to air paths quoted relative to air Default: true."
+        },
+        "strictMaterialsAllow": {
+          "type": "array",
+          "description": "Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. \"CS2.n2\") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as \"CS2\" accepts all its quantities"
+        },
+        "strictMaterials": {
+          "type": "boolean",
+          "description": "Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same Default: false."
         },
         "polarization": {
           "type": "string",

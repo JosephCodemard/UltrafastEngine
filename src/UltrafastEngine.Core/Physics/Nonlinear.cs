@@ -452,7 +452,7 @@ namespace UltrafastEngine.Physics
                     for (int i = 0; i < n; i++) { dnx[i] += cx[i]; dny[i] += cy[i]; }
                 }
             }
-            double[] uRe = null, uIm = null;
+            double[] uRe = null, uIm = null; List<DispersiveTerm> disp = null;
             if (_m.ExtraResponses.Count > 0)
             {
                 uRe = new double[n]; uIm = new double[n];
@@ -463,13 +463,7 @@ namespace UltrafastEngine.Physics
                     T = _g.Time, TArrival = tArr, TLab = _tLab, Z = z, ElementLength = LengthM, Intensity = it, IntensityX = ix, IntensityY = iy,
                     InstantIntensity = it, Field = null, Omega0 = _g.OmegaCenter, CarrierResolved = false, EffectiveAreaM2 = aeff, ElementId = _id
                 };
-                var re = new double[n]; var im = new double[n];
-                foreach (var resp in _m.ExtraResponses)
-                {
-                    Array.Clear(re, 0, n); Array.Clear(im, 0, n);
-                    resp.Evaluate(ctx, re, im);
-                    for (int i = 0; i < n; i++) { uRe[i] += re[i]; uIm[i] += im[i]; }
-                }
+                disp = DispersiveResponses.Evaluate(ctx, _m.ExtraResponses, uRe, uIm, false);
             }
 
             var nx = new Complex[n];
@@ -495,7 +489,13 @@ namespace UltrafastEngine.Physics
                     if (cubic) AddCubic(ax[i], ay[i], aeff, (1 - fR), ref nx[i], ref ny[i]);
                 }
             }
-            double peak = PeakIndexChange(ax, _scalar ? null : ay, nx, ny, _k0);
+            Complex[] nxP = nx, nyP = ny;
+            if (disp != null)
+            {
+                nxP = (Complex[])nx.Clone(); DispersiveResponses.AddToTime(disp, ax, _k0, nxP);
+                if (!_scalar) { nyP = (Complex[])ny.Clone(); DispersiveResponses.AddToTime(disp, ay, _k0, nyP); }
+            }
+            double peak = PeakIndexChange(ax, _scalar ? null : ay, nxP, nyP, _k0);
 
             var nxF = SpectralTransform.TimeToFreq(nx);
             var nyF = _scalar ? null : SpectralTransform.TimeToFreq(ny);
@@ -507,6 +507,11 @@ namespace UltrafastEngine.Physics
                     nxF[i] *= f;
                     if (nyF != null) nyF[i] *= f;
                 }
+            }
+            if (disp != null)
+            {
+                DispersiveResponses.AddRate(disp, ax, _g.OmegaAbsolute, nxF, 0, 0, double.PositiveInfinity);
+                if (!_scalar) DispersiveResponses.AddRate(disp, ay, _g.OmegaAbsolute, nyF, 0, 0, double.PositiveInfinity);
             }
             Array.Copy(nxF, 0, rate, 0, n);
             if (!_scalar) Array.Copy(nyF, 0, rate, n, n);
@@ -553,7 +558,7 @@ namespace UltrafastEngine.Physics
             Field = FrequencyGrid.Create(env.N * p, env.DTime / p, 0.0);
             CarrierBin = (int)Math.Round(env.OmegaCenter / env.DOmega);
             if (Math.Abs(CarrierBin * env.DOmega - env.OmegaCenter) > 1e-6 * env.DOmega)
-                throw new InvalidOperationException("Carrier-resolved mode needs the carrier on a multiple of the frequency step (grid.snapCarrier = true).");
+                throw new InvalidOperationException("Carrier-resolved mode needs the carrier on a multiple of the frequency step (grid.snapCarrier = true; a cw source needs it written out).");
             int dropped = 0;
             for (int i = 0; i < env.N; i++) if (FieldIndex(i) <= Field.N / 2) dropped++;
             DroppedBins = dropped;
@@ -667,7 +672,7 @@ namespace UltrafastEngine.Physics
                 ienv[i] = (a[i].Real * a[i].Real + a[i].Imaginary * a[i].Imaginary) / (2 * aeff);
                 iinst[i] = e[i] * e[i] / aeff;
             }
-            var dnRe = new double[nf]; var dnIm = new double[nf];
+            var dnRe = new double[nf]; var dnIm = new double[nf]; List<DispersiveTerm> disp = null;
             double fR = _m.EffectiveRamanFraction;
             if (!_m.ReplaceKerr && _m.N2 != 0)
             {
@@ -684,13 +689,7 @@ namespace UltrafastEngine.Physics
                     T = g.Time, TArrival = tArr, TLab = _tLab, Z = z, ElementLength = LengthM, Intensity = ienv, IntensityX = ienv, IntensityY = new double[nf],
                     InstantIntensity = iinst, Field = e, Omega0 = _map.Envelope.OmegaCenter, CarrierResolved = true, EffectiveAreaM2 = aeff, ElementId = _id, N0 = N0
                 };
-                var re = new double[nf]; var im = new double[nf];
-                foreach (var r in _m.ExtraResponses)
-                {
-                    Array.Clear(re, 0, nf); Array.Clear(im, 0, nf);
-                    r.Evaluate(ctx, re, im);
-                    for (int i = 0; i < nf; i++) { dnRe[i] += re[i]; dnIm[i] += im[i]; }
-                }
+                disp = DispersiveResponses.Evaluate(ctx, _m.ExtraResponses, dnRe, dnIm, false);
             }
             double peak = 0;
             var gr = new Complex[nf]; var gi = new Complex[nf];
@@ -703,6 +702,7 @@ namespace UltrafastEngine.Physics
                 double pk = Math.Abs(dnRe[i]);
                 if (pk > peak) peak = pk;
             }
+            if (disp != null) foreach (var t in disp) for (int i = 0; i < nf; i++) { double pk = Math.Abs(t.Re[i]); if (pk > peak) peak = pk; }
             var GR = SpectralTransform.TimeToFreq(gr);
             var GI = anyIm ? SpectralTransform.TimeToFreq(gi) : null;
             double c = PhysicalConstants.SpeedOfLightMPerS, w0 = _map.Envelope.ReportOmega;
@@ -720,6 +720,11 @@ namespace UltrafastEngine.Physics
                 rate[j] = v;
             }
             rate[nf / 2] = Complex.Zero;
+            if (disp != null)
+            {
+                var ec = new Complex[nf]; for (int i = 0; i < nf; i++) ec[i] = e[i];
+                DispersiveResponses.AddRate(disp, ec, g.OmegaAbsolute, rate, 0, nf / 2 + 1, wCut);
+            }
             return peak * w0 / c * 0.75; // cycle-average of (2/3)*2*I -> I : report envelope-equivalent peak
         }
     }

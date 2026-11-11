@@ -107,7 +107,7 @@ namespace UltrafastEngine.Schema
                 .Int("n", "Number of samples (with auto: a minimum)", "4096")
                 .Num("windowS", "s", "Time window", "30 x the transform limit").Num("windowPs", "ps", "Time window in ps")
                 .Int("maxN", "Largest allowed n", "4194304")
-                .Bool("snapCarrier", "Put the carrier on the frequency grid", "true")
+                .Bool("snapCarrier", "Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written", "true")
                 .Num("spectralMargin", "", "Spectral span factor", "auto")
                 .Num("minSpanFraction", "", "Nonlinear runs: minimum half-span / carrier", "0.1")
                 .Num("minPointsPerFwhm", "", "Samples across the transform-limited FWHM", "12")
@@ -122,6 +122,8 @@ namespace UltrafastEngine.Schema
                 .Enum("fieldMode", new[] { "auto", "envelope", "carrier" }, "Envelope or carrier-resolved (real field) propagation", "auto")
                 .Num("fieldHarmonic", "", "Highest harmonic the carrier-resolved grid holds", "3")
                 .Bool("absoluteIndex", "Add air dispersion to air paths quoted relative to air", "true")
+                .P("strictMaterialsAllow", ParamType.Array, "", "Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. \"CS2.n2\") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as \"CS2\" accepts all its quantities")
+                .Bool("strictMaterials", "Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same", "false")
                 .Enum("polarization", new[] { "jones", "scalar" }, "Jones (two polarisations) or scalar", "jones")
                 .Bool("losses", "false removes flat loss terms", "true")
                 .P("beamTracking", ParamType.Any, "", "Gaussian beam (q) tracking: \"auto\" (on with a Gaussian inputBeam), \"on\", \"off\"", "\"auto\"")
@@ -134,7 +136,7 @@ namespace UltrafastEngine.Schema
                 .Num("bandGapEv", "eV", "Band gap (solids)").Num("effectiveMass", "", "Reduced mass / m_e (solids)").Num("neutralDensityM3", "1/m^3", "Density of ionisable atoms / valence electrons")
                 .Num("sigmaK", "(m^2/W)^K/s", "MPI cross section").Int("photons", "MPI order K")
                 .Num("collisionTimeS", "s", "Electron collision time").Num("recombinationTimeS", "s", "Recombination / trapping time").Num("recombinationBetaM3PerS", "m^3/s", "Two-body recombination")
-                .Bool("avalanche", "Avalanche (impact) ionisation", "true for solids").Bool("absorption", "Plasma and ionisation losses", "true").Str("species", "Gas species (when the material does not say)"));
+                .Num("electronDensityM3", "1/m^3", "Free-electron density present before the pulse (a prepared plasma)", "0").Bool("frequencyResolved", "Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only", "true").Bool("avalanche", "Avalanche (impact) ionisation", "true for solids").Bool("absorption", "Plasma and ionisation losses", "true").Str("species", "Gas species (when the material does not say)"));
             add(new ComponentSpec("coherence", "", "A Gaussian-Schell beam as an incoherent sum of Hermite-Gauss modes (docs/reference/transverse.md#partial-coherence).")
                 .Enum("model", new[] { "gaussianSchell" }, "Coherence model", "gaussianSchell")
                 .Num("m2", "", "Beam quality M^2 >= 1", required: true)

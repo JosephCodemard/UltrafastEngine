@@ -82,3 +82,27 @@ def test_dry_run_prints_the_plan(capsys):
     assert pkg.main(["--all", "--plugins", "fitting", "--platform", "host", "--dry-run"]) == 0
     out = capsys.readouterr().out
     assert "dotnet publish" in out and "UltrafastEngine.Cli.csproj" in out
+
+
+def test_ao_plugin_is_compiled_into_the_native_library_only_when_selected():
+    with_ao = pkg.parse(["--cpp", "--plugins", "ao"])
+    without = pkg.parse(["--cpp", "--plugins", "fitting"])
+    B = lambda a: type("B", (), {"a": a})()
+    assert pkg.Builder._ao_flag(B(with_ao)) == []
+    assert pkg.Builder._ao_flag(B(without)) == ["-p:UF_WITH_AO=false"]
+    assert pkg.parse(["--plugins", "slm"]).plugins == ["ao"]
+
+
+def test_native_library_lists_the_four_ao_elements():
+    """Needs a built NativeAOT library: set ULTRAFAST_NATIVE_LIB to libultrafast.so / .dylib / ultrafast.dll (skipped otherwise)."""
+    import ctypes, json, os
+    path = os.environ.get("ULTRAFAST_NATIVE_LIB")
+    if not path or not os.path.exists(path):
+        pytest.skip("no NativeAOT library (set ULTRAFAST_NATIVE_LIB)")
+    lib = ctypes.CDLL(path)
+    out = ctypes.c_char_p()
+    assert lib.uf_capabilities(ctypes.byref(out)) == 0
+    text = out.value.decode()
+    lib.uf_free(out)
+    for name in ("deformableMirror", "slm", "spectralShaper", "aopdf"):
+        assert name in text, name + " is missing from the native library's capabilities"

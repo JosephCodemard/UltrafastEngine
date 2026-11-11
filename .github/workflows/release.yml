@@ -1,0 +1,141 @@
+# Release assets on a version tag (v*): one .tar.gz per component and platform, manifest.json and install.py, attached to a GitHub release.
+# docs/releasing.md. NO TAG IS CREATED BY ANYONE BUT THE OWNER. The workflow can also be started by hand (workflow_dispatch) to build and
+# smoke-test the assets without publishing (the files stay as workflow artifacts).
+#
+# Jobs: `managed` builds everything that is pure .NET or plain files (the CLI for every platform is cross-published here, so macOS needs
+# no macOS runner), `native` builds the NativeAOT components (C API, native wheel) on each OS they must be built on, `publish` merges the
+# manifests, checks that no archive holds a ZOS-API file, installs a selection into a temporary folder, removes it again and uploads.
+# macOS NativeAOT (cpp, python-native for osx-*) is built on the owner's Mac (./build.sh --components cpp python-native ...) and uploaded
+# with `gh release upload`, because the macOS runner is not available to this repository (see ci.yml).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  managed:
+    name: Managed components and source folders
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Build the assets
+        run: >
+          python build/package.py --out dist
+          --components cli python csharp plugins schemas docs examples media tests component-tests papers source
+          --platform win-x64 linux-x64 linux-arm64 osx-arm64 osx-x64
+      - uses: actions/upload-artifact@v7
+        with:
+          name: assets-managed
+          path: dist/release-*/*
+          if-no-files-found: error
+
+  native:
+    name: NativeAOT components on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, rid: linux-x64 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64 }
+          - { os: windows-latest, rid: win-x64 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Build the C API and the native wheel
+        run: python build/package.py --out dist --components cpp python-native --platform ${{ matrix.rid }}
+      - name: Smoke test, C example and ultrafast devices
+        shell: bash
+        run: |
+          set -e
+          mkdir -p smoke && cd smoke
+          python ../install.py --base-url ../dist/release-* --include cpp --dest cpp-install --no-pip
+          cmake -S cpp-install/cpp/example -B build -DULTRAFAST_DIR="$PWD/cpp-install/cpp"
+          cmake --build build --config Release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: assets-native-${{ matrix.rid }}
+          path: dist/release-*/*
+          if-no-files-found: error
+
+  publish:
+    name: Check, smoke-test the installer, publish
+    needs: [managed, native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v8
+        with:
+          path: parts
+      - name: Merge the job outputs into one release folder
+        run: |
+          mkdir -p release
+          # every job wrote manifest.json beside its assets; the assets have unique names, install.py is identical
+          for d in parts/*/; do cp -n "$d"*.tar.gz release/ 2>/dev/null || true; done
+          cp parts/assets-managed/install.py release/install.py
+          python build/release_components.py merge release/manifest.json parts/*/manifest.json
+      - name: No ZOS-API file in any archive or wheel (Ansys property)
+        run: python build/release_components.py check-zosapi release
+      - name: Planted file must be caught (the gate itself is tested)
+        run: python -m pytest -q python/tests/test_release.py -k "zosapi"
+        env: { PYTHONDONTWRITEBYTECODE: "1" }
+      - name: Smoke test, a selection into a temporary folder, then uninstall leaves it empty
+        run: |
+          set -e
+          python release/install.py --base-url release --platform linux-x64 --include cli schemas examples.Branched --dest "$RUNNER_TEMP/uf" --no-pip
+          "$RUNNER_TEMP/uf/bin/ultrafast" --version
+          "$RUNNER_TEMP/uf/bin/ultrafast" devices
+          ULTRAFAST_STRICT_OPTIONS=1 "$RUNNER_TEMP/uf/bin/ultrafast" run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o "$RUNNER_TEMP/r"
+          python release/install.py --uninstall --dest "$RUNNER_TEMP/uf" --no-pip
+          test -z "$(ls -A "$RUNNER_TEMP/uf")"
+      - name: Smoke test, the wheel in a fresh environment lists devices and runs the quickstart
+        run: |
+          set -e
+          python release/install.py --base-url release --platform linux-x64 --include python --dest "$RUNNER_TEMP/py" --no-pip
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --find-links "$RUNNER_TEMP/py/python" "ultrafast-engine[hosted]"
+          "$RUNNER_TEMP/venv/bin/python" -c "import ultrafast; print(ultrafast.version())"
+          "$RUNNER_TEMP/venv/bin/python" -c "import ultrafast; print(ultrafast.devices())"
+          "$RUNNER_TEMP/venv/bin/python" docs/examples/GettingStarted/quickstart/quickstart.py
+      - name: Attach the assets (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            release/*.tar.gz
+            release/manifest.json
+            release/install.py
+          draft: true
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: release-folder
+          path: release/*

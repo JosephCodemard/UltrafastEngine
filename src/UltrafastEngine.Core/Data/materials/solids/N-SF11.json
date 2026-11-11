@@ -1,0 +1,35 @@
+{
+  "id": "N-SF11",
+  "kind": "solid",
+  "listOrder": 7,
+  "aliases": [
+    "SF11",
+    "NSF11"
+  ],
+  "description": "Schott N-SF11 dense flint",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "Schott",
+      "a": 1.0,
+      "b": [1.73759695, 0.313747346, 1.89878101],
+      "poleUm2": [0.013188707, 0.0623068142, 155.23629],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Schott N-SF11 data sheet (as listed on refractiveindex.info glass/schott/N-SF11)",
+      "status": "verified",
+      "verification": "agrees with glass/schott/N-SF11.yml to 0.0e+00 (n, 0.45-1.5 um)"
+    },
+    "n2": {
+      "valueM2PerW": 1e-19,
+      "source": "typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    }
+  }
+}

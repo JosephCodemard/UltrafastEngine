@@ -113,6 +113,8 @@ namespace UltrafastEngine.Gain
         public ISpatialField DopingProfile { get; }
         /// <summary>Non-null: amplified spontaneous emission is seeded (1-D passes): per slice and frequency bin, hbar w sigma_e N2 dz of noise into the signal mode.</summary>
         public Random Ase { get; set; }
+        /// <summary>Non-null: inter-pulse ASE (both directions, quasi-static) depletes N2 in PumpCw, Decay and RelaxTowardsCw (AseModel.cs).</summary>
+        public AseModel AseDepletion { get; set; }
 
         /// <summary>1-D: one cell representing a Gaussian signal mode of 1/e^2 radius <paramref name="modeRadiusM"/>.</summary>
         public GainCrystal(GainMedium m, double lengthM, int nz, PumpSpec pump, double modeRadiusM, ITransverseBasis basis, ISpatialField doping)
@@ -189,12 +191,21 @@ namespace UltrafastEngine.Gain
                             I *= t;
                         }
                 }
-                for (int k = 0; k < N2.Length; k++)
+                // ASE: the extra decay rate at the current N2, in sub-steps small enough that it does not change N2 appreciably within one
+                double[] W = AseDepletion?.Rates(N2, Nt); int sub = 1;
+                if (W != null) sub = (int)Math.Min(40, Math.Max(1, Math.Ceiling(dt * W.Max() / 0.3)));
+                for (int q = 0; q < sub; q++)
                 {
-                    double phi = phiF[k] + phiB[k];
-                    double A = _sap * Nt[k] * phi, B = (_sap + _sep) * phi + 1 / tau;
-                    double ninf = A / B;
-                    N2[k] = ninf + (N2[k] - ninf) * Math.Exp(-B * dt);
+                    if (W != null && q > 0) W = AseDepletion.Rates(N2, Nt);
+                    double h = dt / sub;
+                    for (int k = 0; k < N2.Length; k++)
+                    {
+                        double phi = phiF[k] + phiB[k];
+                        double A = _sap * Nt[k] * phi, B = (_sap + _sep) * phi + 1 / tau + (W != null ? W[k] : 0);
+                        B = Math.Max(B, 1e-3 / tau);
+                        double ninf = A / B;
+                        N2[k] = ninf + (N2[k] - ninf) * Math.Exp(-B * h);
+                    }
                 }
             }
             if (Basis == null && tally)
@@ -245,16 +256,34 @@ namespace UltrafastEngine.Gain
                     if (Pump.Passes == 2)
                         for (int j = Nz - 1; j >= 0; j--) { int k = j * Cells + c; double al = PumpAlpha(k), t = Math.Exp(-al * Dz); phiP[k] += I * (1 - t) / Math.Max(1e-300, al * Dz) / hv; I *= t; }
                 }
+            var wAse = AseDepletion?.Rates(N2, Nt);
             for (int k = 0; k < N2.Length; k++)
             {
                 double num = (_sap * phiP[k] + sigmaA * phiSignal) * Nt[k];
-                double den = (_sap + _sep) * phiP[k] + (sigmaE + sigmaA) * phiSignal + 1 / tau;
+                double den = (_sap + _sep) * phiP[k] + (sigmaE + sigmaA) * phiSignal + 1 / tau + (wAse != null ? wAse[k] : 0);
                 double ss = num / den;
                 N2[k] += a * (ss - N2[k]);
             }
         }
 
-        public void Decay(double t) { if (t <= 0) return; double f = Math.Exp(-t / Medium.LifetimeS); for (int k = 0; k < N2.Length; k++) N2[k] *= f; }
+        public void Decay(double t)
+        {
+            if (t <= 0) return;
+            if (AseDepletion == null) { double f = Math.Exp(-t / Medium.LifetimeS); for (int k = 0; k < N2.Length; k++) N2[k] *= f; return; }
+            // with ASE the decay rate depends on N2 itself: sub-steps of at most a tenth of the lifetime and of 0.3 / W
+            int steps = (int)Math.Min(500, Math.Max(1, Math.Ceiling(10 * t / Medium.LifetimeS))); double h = t / steps;
+            for (int s = 0; s < steps; s++)
+            {
+                var W = AseDepletion.Rates(N2, Nt); double mw = Math.Max(1e-30, W.Max());
+                int sub = (int)Math.Min(40, Math.Max(1, Math.Ceiling(h * mw / 0.3)));
+                for (int q = 0; q < sub; q++)
+                {
+                    if (q > 0) W = AseDepletion.Rates(N2, Nt);
+                    double f = Math.Exp(-h / sub / Medium.LifetimeS);
+                    for (int k = 0; k < N2.Length; k++) N2[k] *= f * Math.Exp(-W[k] * h / sub);
+                }
+            }
+        }
 
         // ------------------------------------------------------------------------------------------ diagnostics
 

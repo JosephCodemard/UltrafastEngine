@@ -7,7 +7,7 @@ How the engine is built, for anyone changing it. [Concepts](../concepts.md) expl
 | [Code map](code-map.md) | the folders, the main files and classes, and what each does |
 | [Key processes](processes.md) | what happens in a run, step by step: compile, the graph, execution, grids, studies |
 
-Why the branched design took its form is in [Design: branched systems](../design/branching.md).
+Why the branched design took its form is in [Design: branched systems](../reference/branches.md).
 
 The layers:
 

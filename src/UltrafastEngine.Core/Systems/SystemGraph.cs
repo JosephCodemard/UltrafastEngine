@@ -14,7 +14,7 @@
 //   static class Ports
 //     string[] Inputs(SystemElement e), Outputs(SystemElement e)         declared in Schema/BuiltIn*.cs (default: in, out)
 //
-// Design: docs/design/branching.md, sections 2 and 3. Reference: docs/reference/branches.md.
+// Reference: docs/reference/branches.md.
 
 using System;
 using System.Collections.Generic;

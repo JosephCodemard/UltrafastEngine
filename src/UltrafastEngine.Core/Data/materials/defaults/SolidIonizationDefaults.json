@@ -1,0 +1,18 @@
+{
+  "id": "defaults:solidIonization",
+  "kind": "default",
+  "listOrder": 2,
+  "description": "What the engine assumes for a solid without ionisation data when a run gives only some of the inputs (the band gap is always required).",
+  "quantities": {
+    "ionization": {
+      "effectiveMassRatio": 0.635,
+      "neutralDensityM3": 2.1e28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "typical Keldysh / plasma inputs of fused silica, used as the generic dielectric (original code; no source recorded)",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "sample-dependent by tens of percent, and different for other dielectrics"
+    }
+  }
+}

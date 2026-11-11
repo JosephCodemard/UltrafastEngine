@@ -61,6 +61,8 @@ namespace UltrafastEngine.Tests
     {
         public static int Main(string[] args)
         {
+            // tests never read the owner's own material catalogue (~/.ultrafast/materials); the catalogue tests point at temporary folders
+            if (Environment.GetEnvironmentVariable("ULTRAFAST_MATERIALS") == null) Environment.SetEnvironmentVariable("ULTRAFAST_MATERIALS", "");
             // the first-party plugins are referenced by this runner: register them in code (as a NativeAOT host would)
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Plugins.Fitting.FittingPlugin());
             UltrafastEngine.Plugins.PluginManager.Register(new UltrafastEngine.Zemax.ZemaxPlugin());

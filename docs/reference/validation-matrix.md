@@ -2,15 +2,18 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **553 tests** in 59 classes. **349** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **598 tests** in 62 classes. **381** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
-| [AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements](#aodevicetests) | `AoDeviceTests` | 20 | 20 |
-| [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 13 | 12 |
-| [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 13 | 12 |
+| [AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements](#aodevicetests) | `AoDeviceTests` | 26 | 26 |
+| [Inter-pulse ASE (both directions, spectrally resolved) and the stress-birefringence pattern](#asestresstests) | `AseStressTests` | 9 | 9 |
+| [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 15 | 14 |
+| [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 17 | 16 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
 | [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
+| [Material catalogue: values pinned, provenance, user catalogues](#cataloguesnapshottests) | `CatalogueSnapshotTests` | 1 | 1 |
+| [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 16 | 4 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
@@ -34,7 +37,7 @@ Every C# test of the engine: **553 tests** in 59 classes. **349** of them check 
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms](#instrumentfixestests) | `InstrumentFixesTests` | 5 | 5 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
-| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 5 | 5 |
+| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 11 | 11 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
@@ -61,7 +64,7 @@ Every C# test of the engine: **553 tests** in 59 classes. **349** of them check 
 | [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 6 | 6 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
-| [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 10 | 10 |
+| [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 20 | 3 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
@@ -80,18 +83,40 @@ AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements.
 | `DriveBits_QuantiseTheCommandsToTwoToTheBMinusOneSteps` | drive resolution: a b-bit drive over +-stroke has 2^b - 1 steps, level k = -stroke + k step with step = 2 stroke / (2^b - 1); a tilt ramp driven with driveBits 3 equals the same ramp rounded by hand to those levels and driven continuously | 1e-12 (focus centroid) |
 | `Erf_MatchesTabulatedValues` | erf by series and continued fraction against tabulated values (Abramowitz and Stegun table 7.1): erf(0.5) = 0.5204998778130465, erf(1) = 0.8427007929497149, erf(2) = 0.9953222650189527, erf(3.5) = 0.9999992569016276 | 1e-12 |
 | `HexLayout_HasSixNeighboursAtOnePitch` | hex layout: odd rows shifted by half a pitch, row spacing pitch sqrt(3)/2, so every interior actuator has six neighbours at one pitch | 1e-12 |
+| `Planner_Aopdf_FixedWindow_WarnsAboutWrap` | fixed window (grid.auto false): a programmed GDD x bandwidth stretch of about 1 ns on a 10 ps window wraps, so the planner warns | a warning that says the grid is too small |
+| `Planner_Aopdf_Gdd_WidensTheWindow` | GDD x bandwidth: a transform-limited Gaussian of FWHM tau and GDD phi'' has FWHM tau sqrt(1 + (4 ln2 phi''/tau^2)^2) (Diels and Rudolph, Ultrashort Laser Pulse Phenomena, ch. 1); the auto-sized window must hold it | window >= 2 x the stretched FWHM, stretched FWHM within 2 % of the formula |
+| `Planner_SpectralShaper_FlatMask_AddsNoRoom` | a flat mask makes no side pulses: the planner adds no room (same grid as an aopdf without programmed phase) | identical grid |
+| `Planner_SpectralShaper_WidensTheWindow_ForItsSidePulses` | Weiner (2000): side pulses of a pixelated mask lie at 2 pi / pixel bandwidth; the planner must hold them without grid.windowS (window >= 2 x 1.25 x T, T = 1.6 ps here) | window at least 2 x 1.25 x T; no warning; the +T side pulse is in the output |
 | `Slm_BinaryPhaseGrating_OrdersSitAtWavelengthTimesFocalLengthOverPeriod` | binary phase grating (4 pixels at phase 0, 4 at pi) through two grey levels: diffraction orders at +-lambda f / (8 pixels) carrying the sampled-staircase Fourier weight, none at the zero order (a pi step has c_0 = 0) | 0.6 % of the order efficiency; zero order below 1e-4 |
 | `Slm_FillFactor_SetsTheTransmission_AndTheReplicaAtWavelengthTimesFocalLengthOverPitch` | pixel replicas: a panel of pixels with fill factor 3/4 (4 grid cells per pixel, edges on cell edges) transmits 3/4 of the amplitude-squared... power 3/4 and has the discrete Fourier series c_0 = 3/4, \|c_1\| = 1/4, so the replica at lambda f / pitch carries 1/9 of the zero order (same geometry as the core modulator comb test) | 1e-6 transmission, 1 % order ratio |
-| `Slm_FullPanel_1920x1080_8Bit_RunsWithinTheScaleBudget` (slow) | S2 scale spike (docs/design/notes/spikes.md): a 1920 x 1080 panel on a 2048 x 1280 grid, one frequency, ran in 1.9 s; here the panel is the slm element written with 8-bit grey levels (a phase-only lens-and-grating pattern from a callback); a Gaussian overfilling the panel passes the Gaussian power on the panel | budget 13 s (the S2 limit; 45 s when the CI variable is set, shared runners took 21-23 s); transmission 1e-3 of the erf product |
+| `Slm_FullPanel_1920x1080_8Bit_RunsWithinTheScaleBudget` (slow) | S2 scale spike (docs/design/history.md): a 1920 x 1080 panel on a 2048 x 1280 grid, one frequency, ran in 1.9 s; here the panel is the slm element written with 8-bit grey levels (a phase-only lens-and-grating pattern from a callback); a Gaussian overfilling the panel passes the Gaussian power on the panel | budget 13 s (the S2 limit; 45 s when the CI variable is set, shared runners took 21-23 s); transmission 1e-3 of the erf product |
 | `Slm_GreyLevelBlaze_FirstOrderEfficiency_FollowsSincOfOneOverN` | N-level blazed grating written with grey levels through the slm element: first-order efficiency of the sampled staircase (4 samples per pixel) and the continuum formula [sin(pi/N) / (pi/N)]^2 (Goodman, Fourier optics, sec. 5.2) | 0.6 % of the efficiency (sampled staircase), 2 % (continuum) |
 | `Slm_NearestLevel_UsesTheCircularDistance_WhenTheCurveExceedsTwoPi` | nearest grey level when the curve spans more than 2 pi (0 .. 2.5 pi in 100 steps): images of the target modulo 2 pi inside the range are all candidates (circular distance) | exact |
 | `Slm_PhaseTarget_IsMappedToTheNearestGreyLevel_OfANonlinearCurve` | phase-target input: the target is wrapped to 2 pi and mapped to the nearest grey level of the (here S-shaped) curve; the result is the same as writing those grey levels directly | 1e-12 (identical fields) |
 | `Slm_WrappedRamp_AtOtherWavelengths_FollowsTheLiquidCrystalDispersion` | liquid-crystal dispersion: the 2 pi reset written at the design wavelength is 2 pi s(lambda) at lambda, s = lambda_d dn(lambda) / (lambda dn(lambda_d)); the first order of the wrapped ramp is the sampled Fourier coefficient with the phases scaled by s | 1.5 % of the efficiency |
+| `SpectralShaper_GratingDispersion_MatchesLittrowReference` | Littrow condition (Hecht, Optics): for sin(theta) = m lambda N / 2 a grating in the focal plane of an f lens gives dx/dlambda = 2 f tan(theta) / lambda; the shaper built from the grating data equals the one given that dispersion | output power identical to 1e-12 of its peak |
 | `SpectralShaper_LinearPixelPhase_DelaysThePulse` | shift theorem on the pixelated mask: pixels carrying the linear phase tau (omega_j - omega0) delay the pulse by tau (the main pulse of a staircase; Weiner) | centroid of the main pulse within 2 fs of tau (the replica comb is outside the window of the centroid) |
 | `SpectralShaper_OffsetMovesTheArray_AwayFromTheSpectrum` | the mask array moves with offsetM: with unit amplitude on every pixel and outsideTransmission 0, an array centred on the spectrum passes all the energy (the pulse is far narrower than the array), the same array shifted by 1.5 array widths passes none | pass 1e-4, blocked 1e-6 |
 | `SpectralShaper_PixelGaps_MakeSidePulses_AtTwoPiOverThePixelBandwidth` | Weiner (Rev. Sci. Instrum. 71, 1929 (2000)): a Fourier-plane mask with pixel gaps (150 fs pulse: its bandwidth is narrow enough for the pixel width in angular frequency to be constant to 0.4 %, the map is exact in wavelength) is a comb in frequency of period d_omega (one pixel); active fraction f gives side pulses at +-2 pi / d_omega with energy [sin(pi f) / (pi f)]^2 of the main pulse; a Gaussian spot of 1/e^2 radius w0 multiplies the first harmonic by exp(-(pi w0 / pitch)^2) | 1 % of the side-pulse energy ratio, 1 fs position |
 | `StrokeAndDriveBits_ClipAndQuantiseCommands` | stroke limit and drive resolution: commands clip at +-stroke; a b-bit drive over +-stroke has 2^b - 1 steps | exact (1e-12) |
 | `TiltRamp_OnActuators_MovesTheFocus_ByFocalLengthTimesWavefrontTilt` | influence function: the surface at a neighbouring actuator equals the stated coupling (definition), and a tilt ramp on the actuators gives a wavefront tilt 2 cos(aoi) dh/dx that moves the focus of a lens by f theta (geometric optics) | 2 % of the shift (the lattice sum of the influence functions sets dh/dx, computed from the same functions) |
+| `UnknownElement_NamesTheAoPlugin` | the unknown-element message names the ao plugin for its four types | message text |
+
+## AseStressTests
+
+Inter-pulse ASE (both directions, spectrally resolved) and the stress-birefringence pattern.
+
+| test | reference | tolerance |
+|---|---|---|
+| `AseModel_OnAnAmplifier_ReportsThePedestal_AndTheBudgetCloses` | the element reports the ASE leaving the signal mode and the depletion; the energy budget of the pulse still closes | 1e-6 |
+| `Ase_CwSteadyState_ClosesThePhotonBalance_AndDepletesTheInversion` | photon balance in the cw steady state: net absorbed pump photons = N2 V / tau + stimulated ASE photons | 0.5 % |
+| `Ase_Depletion_VanishesWithTheSolidAngle_AndGrowsWithIt` | limits: no solid angle gives no depletion; the depletion grows with the solid angle | 1e-6 |
+| `Ase_NonUniformInversion_MatchesADirectIntegration_AndForwardDiffersFromBackward` | dI/dz = gamma(z) I + S(z) integrated with a fine RK4 for a linear inversion profile | 1e-6 (the model holds N2 constant in each of 400 slices, the reference is continuous: O(1/nz^2)) |
+| `Ase_SliceStep_IntegratesTheSaturatedAmplifierLaw` | homogeneously saturated amplifier, dP/dz = g0 P / (1 + P / P_sat): ln(G / G0) + (G - 1) P_in / P_sat = 0 (integrated law; Siegman, Lasers, ch. 7; Saleh and Teich, Fundamentals of Photonics, ch. 15) | 1e-4 |
+| `Ase_SpontaneousSource_IntoFourPi_IsTheRadiativeDecay` | Fuchtbauer-Ladenburg: 1 / tau_rad = 8 pi n^2 integral sigma_e(nu) nu^2 / c^2 dnu (Aull and Jenssen, IEEE JQE 18, 925 (1982)); the source into 4 pi, both polarisations, is N2 <h nu> / tau_rad | 1e-9 (quadrature of the same integrals) |
+| `Ase_UniformInversion_IsNspHnuDnuGMinusOne_BothEnds_BothPolarisations` | single-mode ASE per polarisation P = n_sp h nu dnu (G - 1), n_sp = sigma_e N2 / (sigma_e N2 - sigma_a N1) (Desurvire, Erbium-doped fiber amplifiers, 1994; Siegman, Lasers, ch. 6) | 1e-12 (uniform inversion: the slice step is exact) |
+| `StressPattern_BeamAverage_EqualsTheLumpedDepolarisation_AndHasFourLobes` | Koechner, Solid-State Laser Engineering, ch. 7: the beam average of the four-lobed pattern, D = (1 - <cos delta>) / 4, delta = C r^2 / r0^2 | 1e-6 (quadrature on the grid; the Gaussian is well inside the grid) |
+| `StressPattern_InAGainElement_AgreesWithTheLumpedValue_AndTheProfileCarriesY` | the pattern on a cartesian grid carries the same beam-averaged loss as the lumped depolarisation reported by the element | 5 % at the exit radius (the gain is not uniform over the beam) |
 
 ## BeamSourceTests
 
@@ -107,8 +132,10 @@ Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured ne
 | `FileMask_AppliesAmplitudeAndPhase` | T = amplitude^2 for a uniform map; a thin plate's phase scales with frequency | -- |
 | `HermiteGauss_RadiiFollowTheModeOrders_AtTheWaistAndAfterARayleighRange` | Hermite-Gauss modes: second-moment radius w(z) sqrt(2m + 1) (Siegman, Lasers, ch. 16) | -- |
 | `LaguerreGauss_VortexKeepsItsDarkAxis_AndItsRingScalesWithTheBeam` | Laguerre-Gauss modes: second-moment radius w sqrt(2p + \|l\| + 1), helical phase keeps a dark axis, ring at w sqrt(\|l\| / 2) | -- |
+| `MaskFile_OfOneRow_IsConstantAlongY` | a mask file of one row is constant along y: a transmission of 0.5 everywhere passes 0.25 of the energy on a grid with ny = 1 and ny = 4 | 1e-9 |
 | `Mask_WithoutAProfile_WarnsAndPassesThePulse` | -- | -- |
 | `MeasuredNearField_FromAnNpz_PropagatesLikeTheBeamItSampled` | Gaussian beam w(z) from a sampled near field; known background subtracted | -- |
+| `MeasuredScene_OfOneRow_IsConstantAlongY_OnGridsWithAnyNy` | a measured scene of one row (what a '1-D' scene saved at y = (j - ny/2) dx with ny = 1 is: its row is at y = -dx/2) reproduces on a grid with ny = 1, 4 and 128 the same x profile as a full map: radius w of the Gaussian and w sqrt(2) after one Rayleigh length | radius 1 %, w(z_R) 2 % |
 | `SpecialFunctions_MatchTabulatedValues` | Abramowitz & Stegun table 10.11: Ai(0), Ai(1), Ai(-1), Ai(5.5), first zero; H_3, L_2^1 closed forms | 1e-8 |
 | `VortexPlate_ConservesEnergy_AndDarkensTheAxis_AndNeedsACartesianGrid` | Spiral phase plate: a vortex of charge l has zero amplitude on the axis at every z | -- |
 | `ZonePlate_FocusesAtItsFocalLength_AmplitudeAndBinaryPhase` | Fresnel zone plate: amplitude on the axis 2 N_open U0, intensity 4 N_open^2 I0; binary phase plate 16 N_open^2 I0 (Born & Wolf 8.8) | 5 % |
@@ -120,14 +147,18 @@ Gaussian beam tracking: thermal lenses and spatio-temporal couplings.
 | test | reference | tolerance |
 |---|---|---|
 | `AngularDispersionOnTheProfile_TwoGratingsOnAGrid_GiveTheTrackersChirpAndTreacysGdd` | Treacy GDD and the tracker's spatial chirp, from a field propagated on a grid | 3 % |
+| `Duct_ManyThinSlices_ConvergeToTheDuct_WithSecondOrderError` | slices of a graded-index medium: N thin lenses + gaps converge to the duct as 1/N² | 1e-3 at N = 40, ratio 4 for 2N |
+| `Duct_Matrix_IsTheQuadraticIndexResult_AndTheThinLensLimit` | quadratic-index medium n(r) = n0 (1 - g² r²/2): ABCD cos(gL), sin(gL)/(n0 g) (Saleh & Teich, ch. 1) | 1e-12 |
 | `Grating_AngularDispersionAndPulseFrontTilt_FollowTheGratingEquationAndHebling` | grating equation; Hebling, Opt. Quantum Electron. 28, 1759 (1996) | 0.2 % |
 | `PrismPair_InAir_GivesTheNegativeDispersionOfItsAngularDispersion` | angular-dispersion GDD -k0 L (d theta / d omega)^2; Snell's law at the prism faces | 1 % |
 | `Prism_AngularDispersion_MatchesSnellsLawThroughBothFaces` | Snell's law at both prism faces (finite difference of n(λ)) | 0.5 % |
 | `PulseFrontTilt_FromSpatialChirpAndGdd_MatchesTheGaussianResult` | Akturk et al., Opt. Express 13, 8642 (2005): 2 φ2 E σ² / (w² + 2 E² σ²) | 0.5 % |
+| `Regen_ThermalLens_OnTheTrackedBeam_EqualsTheSamePassesOfAMultipass` | N round trips of a regenerative amplifier = N x passesPerRoundTrip duct passes | 1e-12 |
 | `SpaceTime_OnA1DBeam_ShowsTheTrackedPulseFrontTilt` | cross-model: spaceTime from the tracked beam vs the element's pulse-front tilt | -- |
 | `SpatioTemporalSwitch_TrackReportsWithoutPhase_OffForgetsTheCouplings` | -- | -- |
 | `ThermalLens_MeasuredFocalLength_FocusesTheTrackedBeamLikeAThinLens` | Gaussian-beam thin-lens law (Self, Appl. Opt. 22, 658 (1983)) | 1e-12, 0.2 % |
 | `ThermalLens_SmallBeam_TrackedFocalLengthIsInnocenzis` | Innocenzi et al., Appl. Phys. Lett. 56, 1831 (1990): f = πK w_p² / (P_h dn/dT) | 5 % |
+| `ThermalLens_ThickRod_TrackedBeamIsTheDuctResult` | ABCD matrix of a quadratic-index duct (gL = 0.6): not the thin lens at the centre | 1e-9 |
 | `ThermalLens_TrackedBeam_AgreesWithTheSpatialGainModel` | cross-model: the radial spatial gain model | 7 % (aberrated lens) |
 | `TwoGratings_GiveTreacysGdd_AndTheGratingPairsSpatialChirp` | Treacy grating pair (IEEE JQE 5, 454 (1969)), Kostenbauder ray-pulse matrices | 0.1 %, 0.2 % |
 | `TwoGratings_ReproduceTreacysThirdOrderDispersion` | Treacy, IEEE JQE 5, 454 (1969): TOD of the exact grating-pair phase | 0.5 % |
@@ -176,6 +207,37 @@ Branched systems: ports, graph compiler, interference, loops.
 | `TwoSourcesOnOnePort_AreAnError_NamingThePort` | -- | -- |
 | `UnusedPorts_RaiseAlerts_AndBecomeVirtual_UnlessDeclared` | -- | -- |
 | `Validate_PrintsTheGraph` | -- | -- |
+
+## CatalogueSnapshotTests
+
+Material catalogue: values pinned, provenance, user catalogues.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Catalogue_ReproducesTheValuesPinnedBeforeTheMove` | the values of the catalogue files equal the old C# tables | 1e-15 relative |
+
+## CatalogueTests
+
+Material catalogue: values pinned, provenance, user catalogues.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CatalogueFiles_HaveSourceStatusAndUnitsInTheirKeys` | -- | -- |
+| `CiddorAir_AtStandardConditions_EqualsTheDatabaseFormula` | Ciddor, Appl. Opt. 35, 1566 (1996) as published on refractiveindex.info (other/air/Ciddor: standard air, 15 C, 101.325 kPa, dry, 450 ppm CO2): n - 1 = 0.05792105 / (238.0185 - s^2) + 0.00167917 / (57.362 - s^2) | 1e-12 |
+| `Crystal_ListsItsUnverifiedValues_AndVerifiedIndicesStayQuiet` | -- | -- |
+| `EveryBuiltInName_ResolvesToACatalogueEntry_AndBuilds` | -- | -- |
+| `GainMedium_ListsItsCatalogueValues_AndNotTheOnesTheElementOverrides` | -- | -- |
+| `LinearRun_ReportsOnlyTheDispersionItUsed` | -- | -- |
+| `PublishedIndices_AreReproduced` | Malitson, JOSA 55, 1205 (1965): n_d = 1.45846 at 587.56 nm; Schott N-BK7 data sheet: n_d = 1.5168 at 587.56 nm; Dodge 1984 MgF2 n_o = 1.3777 at 589.3 nm | 2e-5 / 1e-4 / 1e-4 |
+| `Run_ListsTheApproximateValuesItUsed_AndNotTheOnesTheUserOverrode` | -- | -- |
+| `SolidIonization_PartialOverride_NamesWhatTheRunGaveAndWhatCameFromTheCatalogue` | -- | -- |
+| `StrictMaterials_AcceptsAUserValueMarkedVerified` | -- | -- |
+| `StrictMaterials_AllowList_AcceptsNamedValuesOnly` | -- | -- |
+| `StrictMaterials_RefusesUnverifiedValues_ListsThem_AndAcceptsOverridesAndVerifiedOnes` | -- | -- |
+| `Tgg_Dispersion_FollowsTheMeasuredTable` | Schlarb and Sugg, Phys. Status Solidi B 182, K91 (1994): measured n of TGG at 20 C (refractiveindex.info main/Tb3Ga5O12/Schlarb) | 1e-3 |
+| `UserCatalogue_ReplacesAQuantityWithANotice_AndCanAddAMaterial` | -- | -- |
+| `UserGainMedium_ThermalDefaults_AreCatalogueValues_ReportedUnlessBothAreGiven` | design: the generic defaults live in the catalogue with a status, and a run that uses one says so | exact |
+| `VerifiedDispersionSets_RecordTheirCheck` | -- | -- |
 
 ## CavityAndCoherenceTests
 
@@ -580,7 +642,13 @@ Photo-ionisation and plasma.
 | test | reference | tolerance |
 |---|---|---|
 | `Keldysh_MultiphotonOrderForFusedSilica` | Keldysh: K = ceil(U_g / ħω) | 8 % |
+| `Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime` | Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007), eq. 6 and 15: the avalanche is fed by inverse-bremsstrahlung absorption, which the Drude imaginary part already is | 1e-4 |
 | `Plasma_ElectronDensityBlueshiftAndAbsorption` | ρ = ∫ W dt; Drude blue shift | 3 % |
+| `Plasma_EnvelopeAgreesWithCarrierResolved_ForA10FsMidInfraredPulse` | cross-check: the envelope model against the carrier-resolved field model, same operator | blueshift 2 %, energy 1 %, density 1e-4 |
+| `Plasma_FixedDensity_FollowsTheFrequencyResolvedDrudeIndex_InEnvelopeAndCarrierMode` | Drude response of free electrons: Δn(ω) = -ω_p² / (2 n0 ω (ω + iν)) (Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007)) | 1e-8 (solver tolerance 1e-11), both field models |
+| `Plasma_FixedDensity_SpatialModel_AppliesTheSameDrudeFilter` | the same Drude filter in the radial spatial model (a uniform plasma commutes with diffraction): energy transmission | 1e-7 |
+| `Plasma_FrequencyResolved_TakesTheDriftEnergyOfTheElectronsBornInTheField` | drift energy of electrons born at rest in a linearly polarised field: U_p = e² E0² / (4 m ω²) per electron (Corkum, Phys. Rev. Lett. 71, 1994 (1993)) | 2 % |
+| `Plasma_FrequencyResolved_TendsToTheCarrierValue_ForNarrowSpectra` | narrow-band limit: the frequency-resolved operator tends to the carrier value as the bandwidth goes to zero; R(ω0) = 1 | 1e-15; difference halves with the bandwidth |
 | `Ppt_MultiphotonAndTunnelLimits` | PPT rate: multiphoton I^K and tunnelling (ADK) limits | 3 %, 15 % |
 | `SpecialFunctions_DawsonAndElliptic` | tabulated Dawson and elliptic-integral values | 1e-12, 1e-07, 1e-06 |
 | `Uppe_AgreesWithEnvelopeForParaxialBeams_AndPlasmaClampsTheFocus` (slow) | cross-check: the envelope model for paraxial beams | 1e-06, 1 % |
@@ -707,7 +775,7 @@ Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation
 |---|---|---|
 | `BadInput_IsRefusedWithAMessage` | validation: a map of the wrong shape, both phase and path, and a quantisation of one level are refused with a message | exact |
 | `CrosstalkKernel_BlursTheWrittenMap_ByDiscreteConvolution` | cross-talk kernel w applied separably to the written map: a single raised cell of phase 1 with w = [1, 2, 1] / 4 gives 1/4, 1/2, 1/4 (discrete convolution); the Gaussian sigma equals the explicit kernel of its weights | 1e-12 |
-| `CwRun_EqualsThePulse_AtTheCarrier` | a continuous-wave source and a pulse at the carrier see the same (monochromatic) device: the cw focal fluence pattern equals that of a 1 ns pulse | 2e-5 of the peak: a 1 ns pulse has a 0.4 GHz bandwidth, so the optical-path phase differs from the carrier's by ~1e-6 of its value across the band |
+| `CwRun_EqualsThePulse_AtTheCarrier` | a continuous-wave source and a pulse at the carrier see the same (monochromatic) device: the cw focal fluence pattern equals that of a 1 ns pulse | 1e-7 of the peak (measured 1.3e-8): a 1 ns pulse has a 0.4 GHz bandwidth, so the optical-path phase differs from the carrier's by ~1e-6 of its value across the band; the cw line sits on the requested carrier |
 | `EdgeCellsAndGaps_AreAreaAverages` | area average over a grid cell: a cell half on the array and half outside gets (t_cell + t_outside) / 2; gaps transmit gapTransmission, so a fill factor 1/2 with gap amplitude g passes 1/2 + g^2 / 2 of the power when every grid cell lies in a cell or a gap | 1e-12 edge cell, 1e-6 power |
 | `FillFactor_SetsTheTransmission_AndTheReplicaOrders` | comb of active cells (fill 3/4 of a 4-sample pitch, edges on grid-cell edges): transmission 3/4; discrete Fourier series c_0 = 3/4, \|c_1\| = 1/4, so the first replica / zero order = 1/9; replicas at lambda f / pitch | 1e-6 transmission, 1 % order ratio |
 | `FixedPhase_RampDeflectionScalesWithWavelength` | fixedPhase: the written phase does not scale with frequency, so a ramp k0 theta x deflects by theta lambda / lambda0 (diffractive / geometric-phase device) | 1 % |
@@ -715,8 +783,8 @@ Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation
 | `IndexRule_WithConstantDeltaN_IsTheOpdRule` | chromatic index with a constant index modulation dn: phase = phi omega dn / (omega_d dn) = phi omega / omega_d, the opd rule | 1e-12 of the peak |
 | `Maps_InlineFileAndCallback_AreIdentical` | the three ways to give a map (inline array, NPZ file, callback "@name" evaluated at the cell centres) are the same device: identical focal fields | 1e-12 |
 | `OffsetArray_ClipsTheBeam_LikeAnAperture` | arrays outside the device block the light: outsideTransmission = 0 and an array covering half the beam transmits the Gaussian power inside it | 0.5 % |
-| `OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches` | one stored frequency (spectralSamples = 1) sits at the energy centroid of the spectrum (the carrier of a 1 ns Gaussian, within one grid bin); the cw source's single bin is snapped to its grid lattice, 1.2e-6 from the requested carrier (the run notes print it), so the monochromatic focal patterns agree to the pattern change of that offset | stored frequency within 1e-7 of the carrier; pattern 3e-6 of the peak |
-| `PhaseAtDesign_IsTheOpdRule` | naming (plan-ao-digital-twin-2026-11.md): "phaseAtDesign" is a phase given at the design wavelength and scaled with omega, the opd rule | exact |
+| `OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches` | one stored frequency (spectralSamples = 1) sits at the energy centroid of the spectrum (the carrier of a 1 ns Gaussian, within one grid bin); the cw source puts its single line on the requested carrier (the lattice is shifted; it was snapped, 1.2e-6 away, until 2.2.1), so the two monochromatic focal patterns are the same | stored frequencies within 1e-9 of the carrier; pattern 1e-9 of the peak (measured 1e-16) |
+| `PhaseAtDesign_IsTheOpdRule` | naming (history.md): "phaseAtDesign" is a phase given at the design wavelength and scaled with omega, the opd rule | exact |
 | `PhaseRamp_MovesTheFocus_ByFocalLengthTimesAngle` | a pure phase tilt k theta x moves the focus of a lens by f theta (geometric optics, Goodman, Fourier optics ch. 5) | 1 % |
 | `QuadraticPhase_FocusesLikeAThinLens` | a quadratic phase -k x^2 / (2 f) is a thin lens: a Gaussian waist w at the device focuses at z = f to lambda f / (pi w) (Siegman, Lasers, ch. 17), as the lens element does | 2 % of the analytic radius, 1 % of the lens element's |
 | `Quantisation_WrapsTheTopHalfLevel_ToLevelZero` | a quantised continuous phase at a wavelength off the design one: the level just below 2 pi wraps to level 0, not to a full turn (which would differ off-design) | exact |
@@ -935,7 +1003,7 @@ Large spatial runs: frequency streaming, profile retention, cylindrical lens, fu
 | test | reference | tolerance |
 |---|---|---|
 | `CylindricalLens_FocusesOneAxisOnly` | cylindrical lens (focalLengthXM = f, focalLengthYM = 1e30 m): x focuses to lambda f / (pi w), y diffracts freely to w sqrt(1 + (z / z_R)^2) with z_R = pi w^2 / lambda (Siegman, Lasers, ch. 17) | 2 % |
-| `FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget` (slow) | S2 scale spike (docs/design/notes/spikes.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y) | budget 4x the spike time (13 s; 45 s when the CI variable is set); keepProfiles used holds at least one profile less than all; transmission 1e-3 |
+| `FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget` (slow) | S2 scale spike (docs/design/history.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y) | budget 4x the spike time (13 s; 45 s when the CI variable is set); keepProfiles used holds at least one profile less than all; transmission 1e-3 |
 | `KeepProfilesUsed_DropsUnreadProfiles_AndChangesNoResult` | outputs.keepProfiles = "used" drops the profiles no instrument reads; the instruments and the output are unchanged | exact |
 | `OneStoredFrequency_IsTheCentroid_OrTheNearestLitBin` | one stored frequency: the bin nearest the energy centroid; for a two-colour spectrum with no light at the centroid, the nearest bin that carries light (review finding M1) | exact |
 | `PrefixCachedStudy_WithKeepProfilesUsed_EqualsTheUncachedStudy` | a prefix-cached study resumes from the nominal run's pulses, so with keepProfiles "used" the nominal run still keeps every profile: the cached sweep equals the uncached one (review finding H2, 2026-11-10) | 1e-12 |
@@ -975,6 +1043,7 @@ Coherent tile source: N sub-beams with piston, tilt and delay; combined far fiel
 |---|---|---|
 | `BadTileSpec_IsRefused` | validation: per-tile arrays of the wrong length and missing sizes are refused | exact |
 | `DelayMismatch_CostsTheTemporalOverlap_OfTheTwoPulses` | delay mismatch of two in-phase Gaussian pulses (intensity FWHM T): the energy on axis is 2E + 2 Int A(t) A(t - tau) dt, so relative to tau = 0 it is (1 + C) / 2 with the field overlap C = exp(-ln2 (tau / T)^2) | 3 % |
+| `FourTiles_OnAxisPistonLoss_EqualsABranchedBalancedTreeRecombinedAtOnePoint` | N = 4 coherent beams of equal power recombined at one point: a balanced tree of 50/50 splitters (a Mach-Zehnder of Mach-Zehnders) with piston phase phi_k in each arm returns \|sum exp(i phi_k)\|^2 / 16 of the input power at its bright port (all arms equal: the whole input), exactly; the tile source gives the same fraction of its in-phase on-axis fluence. A Branched system recombines at a point and so cannot give the array's far field: this is the on-axis value only | Branched 1e-6 of the formula (the carrier is snapped to the grid), tiles against Branched 1.5 % |
 | `InPhaseTiles_CombinePeakIntensity_ByN` | N equal, in-phase, coherent beams: on-axis far-field peak = N x the peak of one beam carrying all the energy (N^2 for equal power per beam); Goodman ch. 4 (array theorem) | 2 % |
 | `Layouts_HexRingAndExplicit_PlaceTheTiles` | geometry: a hex layout of r rings has 1 + 3 r (r + 1) tiles, each at distance pitch from its nearest neighbour; a ring of n tiles lies on radius R at angles 2 pi i / n; explicit positionsM are used as given | 1e-12 |
 | `PistonErrors_CostTheRealisedCoherenceSum` | piston errors: the on-axis peak of the realised phases is \|sum exp(i phi)\|^2 / N^2 of the in-phase peak (exact for the draw); its expectation is 1/N + (1 - 1/N) exp(-sigma^2) | 1.5 % |

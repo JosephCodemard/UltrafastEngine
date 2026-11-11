@@ -35,7 +35,7 @@ h = np.asarray(lk["result"].history)
 ax[1, 1].plot(np.arange(1, len(h) + 1), h, color=th[0]); ax[1, 1].axhline(1, color="0.6", ls="--", lw=1)
 ax[1, 1].set_xlabel("SPGD iteration"); ax[1, 1].set_ylabel("axis fluence / in phase"); ax[1, 1].set_title("phase locking (3 runs per iteration)")
 n128 = lk["ref"].shape[0]
-mk = lambda u: ex.focus(ex.array(1, piston_rad=(lk["phi0"] + u).tolist()), cw, n=128)
+mk = lambda u: ex.focus(ex.array(1, piston_rad=(lk["phi0"] + u).tolist()), cw, n=128, f=1.0)
 F0, F1 = mk(np.zeros(7))[0], mk(lk["result"].x)[0]
 xs = mk(np.zeros(7))[1]
 V.image(ax[1, 2], V.crop(F0, xs, xs, 1e-3)[0], "random pistons: %.2f" % lk["start"], extent=[-1000, 1000] * 2, vmax=lk["ref"].max(), colorbar=False)

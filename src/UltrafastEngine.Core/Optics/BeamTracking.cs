@@ -154,6 +154,68 @@ namespace UltrafastEngine.Optics
             Ex += lengthM / n * Fx; Ey += lengthM / n * Fy;
         }
 
+        /// <summary>
+        /// Reduced ABCD matrix { A, B, C, D } (row-major, as <see cref="Multiply"/>) of a graded-index duct of physical length
+        /// <paramref name="lengthM"/>, n(r) = n0 (1 - g² r² / 2) with g² = <paramref name="g2PerM2"/> (focusing for g² &gt; 0, defocusing for g² &lt; 0):
+        /// A = D = cos(gL), B = sin(gL) / (n0 g), C = -n0 g sin(gL) (Saleh &amp; Teich, Fundamentals of Photonics, ch. 1, GRIN media; reduced
+        /// slope n θ). For g L → 0 it tends to a gap of reduced length L / n0 followed by a thin lens of power n0 g² L.
+        /// </summary>
+        public static double[] DuctMatrix(double lengthM, double n0, double g2PerM2)
+        {
+            double x = g2PerM2 * lengthM * lengthM;                 // (gL)², signed
+            if (Math.Abs(x) < 1e-8)                                // series: cos = 1 - x/2 + x²/24, sin(gL)/(gL) = 1 - x/6 + x²/120
+            {
+                double sinc = 1 - x / 6 + x * x / 120, cs = 1 - x / 2 + x * x / 24;
+                return new[] { cs, lengthM / n0 * sinc, -n0 * g2PerM2 * lengthM * sinc, cs };
+            }
+            if (x > 0)
+            {
+                double g = Math.Sqrt(g2PerM2), s = Math.Sin(g * lengthM), c = Math.Cos(g * lengthM);
+                return new[] { c, s / (n0 * g), -n0 * g * s, c };
+            }
+            double h = Math.Sqrt(-g2PerM2), sh = Math.Sinh(h * lengthM), ch = Math.Cosh(h * lengthM);
+            return new[] { ch, sh / (n0 * h), n0 * h * sh, ch };
+        }
+
+        /// <summary>
+        /// The thin-lens-equivalent power 1/f_thin = n0 g² L (1/m) of a uniform duct of length <paramref name="lengthM"/> whose effective focal
+        /// length -1/C = 1 / (n0 g sin gL) (focusing; 1 / (n0 h sinh hL) for defocusing, f &lt; 0) equals <paramref name="effectiveFocalLengthM"/>.
+        /// The search is limited to a quarter pitch (gL = π/2, where the matrix element A reaches 0 and a collimated beam comes to a focus inside the medium): a shorter focal length sets <paramref name="capped"/> and gL = π/2 is used (a duct up to gL = 2.03 would still have a monotone growth of n0 g sin gL up to its maximum, but its output is no longer a lens in the usual sense).
+        /// </summary>
+        public static double ThinPowerForEffectiveFocalLength(double lengthM, double n0, double effectiveFocalLengthM, out bool capped)
+        {
+            capped = false;
+            if (double.IsInfinity(effectiveFocalLengthM) || effectiveFocalLengthM == 0 || double.IsNaN(effectiveFocalLengthM)) return 0;
+            double target = 1 / Math.Abs(effectiveFocalLengthM);               // n0 g sin(gL) = (n0 / L) u sin(u), u = gL
+            double sign = effectiveFocalLengthM > 0 ? 1 : -1, lo = 0, hi;
+            Func<double, double> f;
+            if (sign > 0)
+            {
+                f = u => n0 / lengthM * u * Math.Sin(u);
+                hi = Math.PI / 2;
+                if (f(hi) < target) { capped = true; return n0 * hi * hi / lengthM; }
+            }
+            else
+            {
+                f = u => n0 / lengthM * u * Math.Sinh(u);
+                hi = 1; while (f(hi) < target && hi < 700) hi *= 2;
+            }
+            for (int i = 0; i < 200; i++) { double mid = 0.5 * (lo + hi); if (f(mid) < target) lo = mid; else hi = mid; }
+            double u0 = 0.5 * (lo + hi);
+            return sign * n0 * u0 * u0 / lengthM;
+        }
+
+        /// <summary>Propagation through a graded-index duct (a distributed lens such as a thermal lens): see <see cref="DuctMatrix"/>.
+        /// The same duct acts on both axes unless the powers differ (<paramref name="g2xPerM2"/>, <paramref name="g2yPerM2"/>).</summary>
+        public void Duct(double lengthM, double n0, double g2xPerM2, double g2yPerM2)
+        {
+            if (!(n0 > 0)) n0 = 1;
+            EnterMedium(n0, null);
+            var mx = DuctMatrix(lengthM, n0, g2xPerM2); var my = DuctMatrix(lengthM, n0, g2yPerM2);
+            Apply(mx[0], mx[1], mx[2], mx[3], my[0], my[1], my[2], my[3]);
+            MediumIndex = n0; PathM += lengthM;
+        }
+
         /// <summary>Index of the present medium for ray j.</summary>
         private double RayIndex(int j) => _mediumOf != null ? _mediumOf(RayOmega(j)) : MediumIndex;
 

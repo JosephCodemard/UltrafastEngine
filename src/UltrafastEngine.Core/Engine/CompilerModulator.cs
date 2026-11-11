@@ -65,7 +65,7 @@ namespace UltrafastEngine.Engine
             m.OffsetXM = Num(c, e, "offsetXM", 0); m.OffsetYM = Num(c, e, "offsetYM", 0); m.RotationRad = Num(c, e, "rotationRad", 0);
             m.DesignOmega = e.Json.Has("designWavelengthM") ? 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / Num(c, e, "designWavelengthM", 0) : c.Omega0;
             string chrom = Str(c, e, "chromatic", "opd").ToLowerInvariant();
-            if (chrom == "phaseatdesign") chrom = "opd";      // the plan's name (plan-ao-digital-twin-2026-11.md): a phase given at the design wavelength, scaled with omega
+            if (chrom == "phaseatdesign") chrom = "opd";      // the plan's name (history.md): a phase given at the design wavelength, scaled with omega
             if (chrom != "opd" && chrom != "fixedphase" && chrom != "index") throw new JsonException(origin + ": chromatic must be \"opd\" (also \"phaseAtDesign\"), \"fixedPhase\" or \"index\".");
             m.FixedPhase = chrom == "fixedphase";
             if (m.FixedPhase && m.OpdM != null) throw new JsonException(origin + ": an optical path (opdM) is chromatic; use phaseRad with \"fixedPhase\".");

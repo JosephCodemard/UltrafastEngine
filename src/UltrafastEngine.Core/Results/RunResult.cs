@@ -152,6 +152,7 @@ namespace UltrafastEngine.Results
             o.Set("arrays", new JsonArray(Arrays().Select(a => (JsonValue)new JsonObject().Set("name", a.Name).Set("shape", JsonValue.FromArray(a.Shape.Select(x => (double)x))).Set("unit", a.Unit).Set("description", a.Description))));
             o.Set("notes", JsonValue.FromArray(Notes));
             o.Set("warnings", JsonValue.FromArray(Warnings));
+            o.Set("unverifiedInputs", Compiled?.Provenance?.UnverifiedInputsJson() ?? new JsonArray());
             return o;
         }
 

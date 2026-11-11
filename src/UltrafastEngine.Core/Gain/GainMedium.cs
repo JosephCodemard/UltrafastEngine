@@ -26,8 +26,10 @@ namespace UltrafastEngine.Gain
         public double TemperatureK { get; set; } = 293.15;
         /// <summary>Zero-phonon line (m) for the McCumber relation; NaN = four-level (no linking).</summary>
         public double ZeroLineM { get; set; } = double.NaN;
-        public double ThermalConductivity { get; set; } = 10;   // W / (m K)
-        public double DnDT { get; set; } = 7.8e-6;              // 1/K
+        public double ThermalConductivity { get; set; } = GenericThermal.Number("thermalConductivityWPerMK");   // W / (m K)
+        public double DnDT { get; set; } = GenericThermal.Number("dnDTPerK");                                   // 1/K
+        /// <summary>The generic thermal data (catalogue entry "defaults:gainMedium") of a user-defined medium that gives none.</summary>
+        public static CatalogueQuantity GenericThermal => Catalogue.Get("defaults:gainMedium", "default").Q("thermal");
         /// <summary>Stress birefringence of a cubic host (Koechner): thermal expansion (1/K) and photo-elastic coefficients C_r, C_phi; NaN = not available.</summary>
         public double ThermalExpansionPerK { get; set; } = double.NaN;
         public double StressCr { get; set; } = double.NaN;
@@ -81,7 +83,7 @@ namespace UltrafastEngine.Gain
 
         // ------------------------------------------------------------------------------------------ library
 
-        public static readonly string[] Names = { "Yb:YAG", "Ti:sapphire", "Nd:YAG" };
+        public static string[] Names => Catalogue.Entries("gain").Select(e => e.Id).ToArray();
 
         /// <summary>Sum of Gaussian bands in wavelength: (lambda0 m, peak m^2, FWHM m).</summary>
         internal static Func<double, double> Bands(params (double L0, double S, double Fwhm)[] b)
@@ -91,58 +93,42 @@ namespace UltrafastEngine.Gain
         internal static Func<double, double> Asym(double l0, double s, double hwhmShort, double hwhmLong)
             => w => { double l = 2 * Math.PI * C / w, h = l < l0 ? hwhmShort : hwhmLong, u = (l - l0) / h; return s * Math.Exp(-Math.Log(2) * u * u); };
 
+        /// <summary>The catalogue quantities this medium takes its numbers from ("doping", "lifetime", "thermal", "emission", ...); a user override removes the quantity.</summary>
+        public Dictionary<string, CatalogueQuantity> Used { get; } = new Dictionary<string, CatalogueQuantity>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>A built-in gain medium from the catalogue (Data/materials/gain): lifetime, doping, thermal and stress data, cross-section bands, each with its source and status.</summary>
         public static GainMedium Get(string name, double temperatureK = double.NaN)
         {
             string k = (name ?? "").Trim().ToLowerInvariant().Replace(" ", "").Replace("-", "");
-            const double cm2 = 1e-4; // cm^2 -> m^2
-            GainMedium g;
-            switch (k)
+            var e = Catalogue.Find(k, "gain") ?? throw new JsonException("unknown gain medium \"" + name + "\" (built-in: " + string.Join(", ", Names) + "); define your own with an object (docs/reference/gain.md)");
+            var dop = e.Q("doping"); var th = e.Q("thermal"); var em = e.Q("emission"); var ab = e.Q("absorption");
+            var g = new GainMedium
             {
-                case "yb:yag": case "ybyag":
-                    g = new GainMedium
-                    {
-                        Name = "Yb:YAG", Host = "YAG", LifetimeS = 0.95e-3, DopingDensityM3 = 1.38e26 * 2, ZeroLineM = 968.8e-9,
-                        ThermalConductivity = 9.5, DnDT = 7.8e-6, ThermalExpansionPerK = 7.5e-6, StressCr = 0.017, StressCphi = -0.0025,
-                        // emission in the lasing band (room temperature): main line 1030 nm, shoulder ~1048 nm, broad base
-                        EmissionBand = Bands((1030.0e-9, 2.1e-20 * cm2, 8.5e-9), (1048.5e-9, 0.32e-20 * cm2, 16e-9), (1015e-9, 0.35e-20 * cm2, 30e-9)),
-                        // absorption in the pump band: 940 nm (broad) and the 969 nm zero-phonon line
-                        AbsorptionBand = Bands((940.5e-9, 0.77e-20 * cm2, 18e-9), (968.8e-9, 0.85e-20 * cm2, 2.8e-9), (915e-9, 0.25e-20 * cm2, 15e-9)),
-                        EmissionDescription = "Gaussian-band fit: 2.1e-20 cm^2 at 1030 nm (8.5 nm FWHM), 1048 nm shoulder, broad base",
-                        AbsorptionDescription = "Gaussian-band fit: 0.77e-20 cm^2 at 940 nm (18 nm FWHM), 0.85e-20 cm^2 at 969 nm (2.8 nm)",
-                        References = "room-temperature values after Koerner et al., Appl. Phys. B 75, 2002 (cross sections) and Sumida & Fan, OSA TOPS 1995 (lifetime 0.95 ms); lasing-band absorption and pump-band emission from the McCumber relation (zero line 968.8 nm); approximate analytic fit (~10-20 %) -- override with measured tables"
-                    };
-                    g.Notes.Add("Yb:YAG cross sections are an analytic room-temperature fit; the McCumber relation gives reabsorption at the lasing wavelength (~0.1e-20 cm^2 at 1030 nm). Cryogenic linewidths are not modelled (only the Boltzmann factor follows temperatureK)");
-                    break;
-                case "ti:sapphire": case "ti:sa": case "tisa": case "tisapphire": case "ti:al2o3":
-                    g = new GainMedium
-                    {
-                        Name = "Ti:sapphire", Host = "Sapphire", LifetimeS = 3.2e-6, DopingDensityM3 = 3.3e25,
-                        ThermalConductivity = 33, DnDT = 13e-6,
-                        EmissionBand = Asym(795e-9, 3.0e-19 * cm2, 75e-9, 140e-9),
-                        AbsorptionBand = Bands((490e-9, 6.4e-20 * cm2, 115e-9)),
-                        EmissionDescription = "asymmetric-Gaussian fit, pi polarisation: 3.0e-19 cm^2 at 795 nm, half widths 75 / 140 nm",
-                        AbsorptionDescription = "Gaussian fit, pi polarisation: 6.4e-20 cm^2 at 490 nm, 115 nm FWHM (~4.4e-20 cm^2 at 532 nm)",
-                        References = "after Moulton, JOSA B 3, 125 (1986) (pi-polarised cross sections, lifetime 3.2 us); four-level; approximate analytic fit (~10-20 %) -- override with measured tables"
-                    };
-                    g.Notes.Add("Ti:sapphire is treated as a four-level system (no lasing-band absorption); the residual infrared absorption (figure of merit) is not included -- add it with absorptionProfile or a material attenuation");
-                    break;
-                case "nd:yag": case "ndyag":
-                    g = new GainMedium
-                    {
-                        Name = "Nd:YAG", Host = "YAG", LifetimeS = 230e-6, DopingDensityM3 = 1.38e26,
-                        ThermalConductivity = 10.5, DnDT = 7.8e-6, ThermalExpansionPerK = 7.5e-6, StressCr = 0.017, StressCphi = -0.0025,
-                        EmissionBand = Bands((1064.2e-9, 2.8e-19 * cm2, 0.6e-9)),
-                        AbsorptionBand = Bands((808.5e-9, 7.0e-20 * cm2, 2.5e-9)),
-                        EmissionDescription = "Gaussian fit: 2.8e-19 cm^2 at 1064.2 nm, 0.6 nm FWHM",
-                        AbsorptionDescription = "Gaussian fit: 7e-20 cm^2 at 808.5 nm, 2.5 nm FWHM",
-                        References = "Koechner, Solid-State Laser Engineering (1 at.% Nd, tau = 230 us); four-level; approximate analytic fit"
-                    };
-                    break;
-                default:
-                    throw new JsonException("unknown gain medium \"" + name + "\" (built-in: " + string.Join(", ", Names) + "); define your own with an object (docs/reference/gain.md)");
-            }
+                Name = e.Id, Host = dop.Text("host"), LifetimeS = e.Q("lifetime").Number("lifetimeS"), DopingDensityM3 = dop.Number("dopingDensityM3"),
+                ThermalConductivity = th.Number("thermalConductivityWPerMK"), DnDT = th.Number("dnDTPerK"),
+                EmissionBand = Band(em), AbsorptionBand = Band(ab), EmissionDescription = em.Text("description", ""), AbsorptionDescription = ab.Text("description", ""),
+                References = em.Source
+            };
+            foreach (var q in e.Quantities.Values) g.Used[q.Name] = q;
+            var zl = e.TryQ("zeroLine"); if (zl != null) g.ZeroLineM = zl.Number("zeroLineWavelengthM");
+            var st = e.TryQ("stress"); if (st != null) { g.ThermalExpansionPerK = st.Number("thermalExpansionPerK"); g.StressCr = st.Number("stressCr"); g.StressCphi = st.Number("stressCphi"); }
+            if (!string.IsNullOrEmpty(e.Notes)) g.Notes.Add(e.Notes);
             if (!double.IsNaN(temperatureK)) g.TemperatureK = temperatureK;
             return g;
+        }
+
+        /// <summary>A cross-section band set of a catalogue quantity: "gaussians" (bands in wavelength) or "asymmetricGaussian"; cross sections are stored in cm^2.</summary>
+        private static Func<double, double> Band(CatalogueQuantity q)
+        {
+            const double cm2 = 1e-4;   // cm^2 -> m^2
+            switch (q.Text("shape", ""))
+            {
+                case "gaussians":
+                    return Bands(q.Json.GetArray("bands").Select(x => x.AsObject()).Select(x => (x.GetDouble("wavelengthM", 0), x.GetDouble("sigmaCm2", 0) * cm2, x.GetDouble("fwhmM", 1e-9))).ToArray());
+                case "asymmetricGaussian":
+                    return Asym(q.Number("peakWavelengthM"), q.Number("sigmaCm2") * cm2, q.Number("hwhmShortM"), q.Number("hwhmLongM"));
+                default: throw new JsonException("catalogue " + q.Path + ": unknown cross-section shape \"" + q.Text("shape", "") + "\"");
+            }
         }
 
         /// <summary>
@@ -157,20 +143,23 @@ namespace UltrafastEngine.Gain
             if (v.Kind == JsonKind.String) return Get(v.AsString());
             var o = v.AsObject();
             var g = o.Has("base") ? Get(o.GetString("base")) : new GainMedium { Name = o.GetString("name", "user gain medium"), References = "user definition" };
+            if (!o.Has("base")) g.Used["thermal"] = GenericThermal;   // reported in the run notes unless both values are given below
             if (o.Has("name")) g.Name = o.GetString("name");
             if (o.Has("host")) g.Host = o.GetString("host");
-            if (o.Has("lifetimeS")) g.LifetimeS = o.GetDouble("lifetimeS", g.LifetimeS);
-            if (o.Has("dopingDensityM3")) g.DopingDensityM3 = o.GetDouble("dopingDensityM3", g.DopingDensityM3);
-            if (o.Has("dopingAtPercent")) g.DopingDensityM3 = o.GetDouble("dopingAtPercent", 1) / 100 * o.GetDouble("sitesPerM3", 1.38e28);
+            if (o.Has("lifetimeS")) { g.LifetimeS = o.GetDouble("lifetimeS", g.LifetimeS); g.Used.Remove("lifetime"); }
+            if (o.Has("dopingDensityM3")) { g.DopingDensityM3 = o.GetDouble("dopingDensityM3", g.DopingDensityM3); g.Used.Remove("doping"); }
+            if (o.Has("dopingAtPercent")) { g.DopingDensityM3 = o.GetDouble("dopingAtPercent", 1) / 100 * o.GetDouble("sitesPerM3", 1.38e28); g.Used.Remove("doping"); }
             if (o.Has("temperatureK")) g.TemperatureK = o.GetDouble("temperatureK", g.TemperatureK);
-            if (o.Has("zeroLineWavelengthM")) g.ZeroLineM = o.GetDouble("zeroLineWavelengthM", double.NaN);
+            if (o.Has("zeroLineWavelengthM")) { g.ZeroLineM = o.GetDouble("zeroLineWavelengthM", double.NaN); g.Used.Remove("zeroLine"); }
             if (o.Has("thermalConductivity")) g.ThermalConductivity = o.GetDouble("thermalConductivity", g.ThermalConductivity);
             if (o.Has("dnDT")) g.DnDT = o.GetDouble("dnDT", g.DnDT);
+            if (o.Has("thermalConductivity") && o.Has("dnDT")) g.Used.Remove("thermal");   // a partial override still uses one default
+            if (o.Has("thermalExpansionPerK") || o.Has("stressCr") || o.Has("stressCphi")) g.Used.Remove("stress");
             g.ThermalExpansionPerK = o.GetDouble("thermalExpansionPerK", g.ThermalExpansionPerK);
             g.StressCr = o.GetDouble("stressCr", g.StressCr); g.StressCphi = o.GetDouble("stressCphi", g.StressCphi);
             if (o.Has("references")) g.References = o.GetString("references");
-            if (o.Has("emission")) { g.EmissionBand = CrossSection(o["emission"], reg, origin + ".emission", out var d); g.EmissionDescription = d; }
-            if (o.Has("absorption")) { g.AbsorptionBand = CrossSection(o["absorption"], reg, origin + ".absorption", out var d); g.AbsorptionDescription = d; }
+            if (o.Has("emission")) { g.Used.Remove("emission"); g.EmissionBand = CrossSection(o["emission"], reg, origin + ".emission", out var d); g.EmissionDescription = d; }
+            if (o.Has("absorption")) { g.Used.Remove("absorption"); g.AbsorptionBand = CrossSection(o["absorption"], reg, origin + ".absorption", out var d); g.AbsorptionDescription = d; }
             if (!(g.LifetimeS > 0)) throw new JsonException(origin + ": gain medium needs lifetimeS > 0");
             if (!(g.DopingDensityM3 > 0)) throw new JsonException(origin + ": gain medium needs dopingDensityM3 > 0");
             return g;

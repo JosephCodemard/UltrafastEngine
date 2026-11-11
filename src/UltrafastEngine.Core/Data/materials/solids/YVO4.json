@@ -1,0 +1,33 @@
+{
+  "id": "YVO4",
+  "kind": "solid",
+  "listOrder": 26,
+  "aliases": [
+    "YVO4-O"
+  ],
+  "description": "Yttrium orthovanadate, ordinary ray",
+  "notes": "n2 not set (give one if it matters)",
+  "quantities": {
+    "index": {
+      "model": "vendorSellmeier",
+      "referenceMedium": "air",
+      "name": "YVO4 ordinary (common vendor Sellmeier)",
+      "a": 3.77834,
+      "numeratorUm2": 0.069736,
+      "poleUm2": 0.04724,
+      "irTermPerUm2": 0.0108133,
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "common vendor Sellmeier set; the original code did not record the vendor",
+      "status": "unverified",
+      "uncertainty": "differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-o-20C: A 3.778790, B 0.070479, C 0.045731, D 0.009701 in the same form) by -5.4e-4 at 633 nm, -5.9e-4 at 1064 nm; decision of the owner (2026-11-11): the vendor set stays"
+    },
+    "n2": {
+      "valueM2PerW": 0.0,
+      "source": "not set: no value was entered for this material (give one if it matters)",
+      "status": "unverified",
+      "uncertainty": "0 means not set, not a measured zero"
+    }
+  }
+}

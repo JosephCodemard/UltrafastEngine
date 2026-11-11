@@ -20,6 +20,16 @@ In `Compiler.Compile`, in order:
 6. `BuildGridAndPulse`: plan the grid and build the input pulse.
 7. Pick the field mode of each nonlinear segment.
 
+## Material numbers: from a catalogue file to a run note
+
+1. `Catalogue` (static, lazy) loads the embedded `Data/materials/**/*.json`, then the user's files (`$ULTRAFAST_MATERIALS`, default `~/.ultrafast/materials`); a user quantity replaces the built-in one and adds a notice.
+2. `MaterialLibrary.BuiltIn(name)` finds the entry (aliases included) and builds a `Material` from its quantities (`CatalogueModels.Index`, `.Raman`); the quantities it used are kept in `Material.Used`.
+   An override (`MaterialLibrary.Apply`: `n2`, `index`, `raman`, ...) removes the quantity from `Used`.
+3. The compiler, where an element really uses a property (`CompileBulk`: the dispersion, and for a nonlinear element n2, the Raman response, the Kerr anisotropy, the rotational Raman data, the ionisation data), calls
+   `ProvenanceLog.UseCatalogue`. That puts the status and source into `provenance.json` and, for a value that is not `verified` (or comes from a user file), once into the run notes and `ProvenanceLog.UnverifiedInputs`.
+4. `RunResult.SummaryJson` writes the list as `unverifiedInputs`. Gain media (`GainMedium.Used`, reported in `GainCompiler`) and crystals (`CrystalModel.Used`, in `CrystalElement.Compile`) follow the same path.
+5. At the end of `Compiler.Compile`, `physics.strictMaterials` (or `ULTRAFAST_STRICT_MATERIALS=1`) turns every non-verified entry of `UnverifiedInputs` into one `ModelException`.
+
 ## Execute: one element
 
 `Executor.RunElement(state, index, element, pulse, path)`, for a pulse on one path:
@@ -30,6 +40,14 @@ In `Compiler.Compile`, in order:
 4. Add the element's phase and delay to the `PathLedger`; record energies, losses, beam sizes and damage margins in an `ElementRecord`.
 
 A Sequential system calls this for each element in turn, in the loop in `Executor.Execute`.
+
+## A pumped gain element and its ASE
+
+`GainElement.Execute` / `AmplifierElement.Execute` build a `GainCrystal` (N2 per slice and transverse cell), optionally attach an `AseModel` (`aseModel`), then
+reach the state the pulse sees: `GainRun.Train` iterates the pulse train with the energy model (`FastPass`), each interval through `GainRun.Between` -> `PumpCw` / `Decay`. With an `AseModel`
+every pumping or decay step asks `AseModel.Rates(N2, N_t)`: per cell and frequency, forward and backward intensity through the slices at frozen N2 (exact slice step), the stimulated photons of each slice divided
+by N2 are an extra decay rate of that slice (sub-stepped so the rate stays small within a step). `GainRun.RecordAse` then evaluates `ModeOutput` (the ASE in the signal mode) and the element reports the pedestal
+strength. The pulse itself is amplified by `Pass1D` / `PassSpatial` as before; a stress map (`ApplyStressPattern`) acts on the spatial field after the gain.
 
 ## Execute: a Branched system
 

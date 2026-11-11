@@ -583,10 +583,10 @@ def adk_rate(i_wm2, ip_ev, l=1, m=0, z=1):
     return w * 4.134137333518e16
 
 
-def ion_cell(i0, lam, tau, model, p=1.0, L=1e-3, species="Ar", avalanche=False):
+def ion_cell(i0, lam, tau, model, p=1.0, L=1e-3, species="Ar", avalanche=False, freq_resolved=True):
     area = 1e-7
     mat = {"gas": b.gas(species, p, 293.15), "n2": 0.0}
-    el = b.bulk("cell", "m", L, beam=b.constant_beam(area_m2=area), ionization={"model": model, "avalanche": avalanche})
+    el = b.bulk("cell", "m", L, beam=b.constant_beam(area_m2=area), ionization={"model": model, "avalanche": avalanche, "frequencyResolved": freq_resolved})
     r = uf.run(b.system("c", [el], materials={"m": mat}), b.run_spec(b.pulse(lam, tau, energy=i0 * area * tau / GAUSS_P0), physics={"selfSteepening": False}))
     return r, area
 
@@ -631,7 +631,8 @@ def ionisation(fam: Family):
         eng, ana, xs = [], [], []
         for lam, i0 in ((2e-6, 0.5e18), (2e-6, 0.7e18), (1030e-9, 0.9e18)):
             tau = 30e-15
-            r, area = ion_cell(i0, lam, tau, "adk")
+            # the reference formula is the single-carrier Drude phase: compare it with the carrier-frequency mode
+            r, area = ion_cell(i0, lam, tau, "adk", freq_resolved=False)
             P = np.asarray(r["input_power_w"])
             t = np.asarray(r["input_time_s"])
             dt = float(t[1] - t[0])
@@ -645,6 +646,11 @@ def ionisation(fam: Family):
             got = centroid(r["output_omega_rad_s"], r["output_spectrum"]) - centroid(r["input_omega_rad_s"], r["input_spectrum"])
             fam.check(f"plasma blue shift {label_wl(lam)} I={i0 / 1e4:.1e} W/cm²", got, want, rel=0.05, unit="rad/s",
                       formula="Δω = (k0 L / 2ρ_c) ⟨dρ/dt⟩ (Drude, τ_c ω0 >> 1); 5 %; thin enough that the ionisation loss (<1e-4) does not lower the intensity along the cell")
+            # frequency-resolved Drude (default): 1/omega across the bandwidth lowers the shift by a first-order amount in dw/w0
+            rf, _ = ion_cell(i0, lam, tau, "adk")
+            gotf = centroid(rf["output_omega_rad_s"], rf["output_spectrum"]) - centroid(rf["input_omega_rad_s"], rf["input_spectrum"])
+            fam.check(f"plasma blue shift, frequency-resolved Drude, {label_wl(lam)} I={i0 / 1e4:.1e} W/cm²", gotf, want, rel=0.08, unit="rad/s",
+                      formula="same formula, 8 %: the 1/omega dependence of the Drude index across the 30 fs bandwidth lowers the shift by up to 5 % (measured -5.3 % at 1030 nm)")
             eng.append(got)
             ana.append(want)
             xs.append(f"{label_wl(lam)}\n{i0 / 1e4:.1e}")

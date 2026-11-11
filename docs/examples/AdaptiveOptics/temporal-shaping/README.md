@@ -25,7 +25,7 @@ input pulse: 30.0 fs FWHM, 800 nm
 double pulse (aopdf replica, 150 fs): peaks at [-75.0, 75.0] fs, height ratio 1.000
 3-pulse train (shaper, 120 fs): 3 pulses spaced 120 fs
 stretched (GDD 6000 fs^2): FWHM 555 fs (stationary phase: GDD x bandwidth = 554 fs)
-pixel gaps (fill factor 0.8, pixel 500 um): side pulse at 4.27 ps (2 pi / pixel bandwidth = 4.27 ps), energy ratio 0.0159 (formula 0.0159)
+pixel gaps (fill factor 0.8, pixel 500 um): side pulse at 4.28 ps (2 pi / pixel bandwidth = 4.27 ps), energy ratio 0.0159 (formula 0.0159)
 gain narrowing: FWHM 15.0 fs (broad input) -> 39.3 fs (narrowed) -> 29.3 fs (restored by the AOPDF amplitude table)
 closed loop, unknown chirp GDD 900 fs^2 and TOD 4000 fs^3: peak power per sweep (fraction of the transform limit): 0.34 0.41 0.53 0.67 0.85 0.91 0.97 1.00 1.00
   found GDD -900 fs^2, TOD -4018 fs^3
@@ -38,9 +38,9 @@ checks passed
 * **Pulse train**: the shaper's mask is the transfer function `Σ_k exp(iωkτ)/3` (a phase and an amplitude per pixel, 1024
   pixels over 120 nm) and gives three pulses 120 fs apart.
 * **Stretching**: a GDD of 6000 fs² stretches 30 fs to 555 fs, as `GDD x bandwidth` predicts (554 fs).
-* **Pixel gaps**: a mask with fill factor 0.8 and 0.5 nm pixels leaves a side pulse at 4.27 ps = 2π / pixel bandwidth, with the energy
-  ratio `[sin(πf)/(πf)]² exp(-2(π w₀/p)²)` = 0.0159 (Weiner, Rev. Sci. Instrum. 71, 1929 (2000)); measured 0.0159. The run sets
-  `grid.windowS` to 40 ps because the planner does not know about side pulses.
+* **Pixel gaps**: a mask with fill factor 0.8 and 0.5 nm pixels leaves a side pulse at 4.28 ps (one grid step from the exact 4.27 ps) = 2π / pixel bandwidth, with the energy
+  ratio `[sin(πf)/(πf)]² exp(-2(π w₀/p)²)` = 0.0159 (Weiner, Rev. Sci. Instrum. 71, 1929 (2000)); measured 0.0159. The run does not
+  set `grid.windowS`: the grid planner makes room for the side pulses.
 * **Gain narrowing restored**: a Gaussian amplitude filter (a stand-in for gain narrowing, not a gain model) stretches a 15 fs
   pulse to 39 fs; an AOPDF amplitude table that is the inverse of the filter, limited to a factor 4 so that it stays passive,
   brings it back to 29 fs, not 15 fs: the limit on the correction is the dynamic range, not the device.

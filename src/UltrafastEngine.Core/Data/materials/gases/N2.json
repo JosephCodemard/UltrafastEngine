@@ -1,0 +1,66 @@
+{
+  "id": "N2",
+  "kind": "gas",
+  "listOrder": 15,
+  "aliases": [
+    "NITROGEN"
+  ],
+  "description": "Nitrogen",
+  "quantities": {
+    "index": {
+      "model": "borzsonyi",
+      "coefficients": [0.0003920995, 0.00114624, 0.0001880648, 0.013476],
+      "validRangeUm": [0.4, 1.0],
+      "conditions": {
+        "temperatureK": 273.0,
+        "pressureBar": 1.01325
+      },
+      "source": "A. Borzsonyi, Z. Heiner, M. P. Kalashnikov, A. P. Kovacs, K. Osvay, Appl. Opt. 47, 4856 (2008) (refractiveindex.info main/N2/Borzsonyi), 273 K and 1 bar",
+      "status": "verified",
+      "verification": "agrees vs refractiveindex.info main/N2/Borzsonyi: max |dn| = 0.0e+00"
+    },
+    "n2Electronic": {
+      "valueM2PerWPerBar273K": 8e-24,
+      "source": "electronic (instantaneous) n2 at 1 bar and 273 K near 800 nm; the original code cites the compilation of Lehmeier 1985 / Borzsonyi 2010 / Wahlstrand 2012; values differ by ~20 % between sources; not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {
+        "wavelengthM": 8e-07,
+        "pressureBar": 1.0,
+        "temperatureK": 273.0
+      }
+    },
+    "ionization": {
+      "ionizationEv": 15.581,
+      "orbitalL": 0,
+      "zEff": 0.9,
+      "source": "ionisation potential: NIST Atomic Spectra Database (as cited by the original code); orbital l and zEff: standard ADK / PPT choices; the effective charge of the molecule is an empirical choice",
+      "status": "approximate",
+      "conditions": {},
+      "uncertainty": "ionisation potentials are tabulated constants; the effective charge and orbital l are model choices"
+    },
+    "rotation": {
+      "rotationalConstantBPerCm": 1.98957,
+      "centrifugalDistortionDPerCm": 5.76e-06,
+      "polarizabilityAnisotropyA3": 0.7,
+      "nuclearSpinWeightEven": 6,
+      "nuclearSpinWeightOdd": 3,
+      "source": "rotational constants: NIST / Herzberg (as cited by the original code); polarisability anisotropy: Bridge and Buckingham, Proc. R. Soc. A 295, 334 (1966), as cited by the original code; nuclear-spin weights from the molecular symmetry",
+      "status": "approximate",
+      "relativeUncertainty": 0.15,
+      "conditions": {
+        "temperatureK": 293.15
+      }
+    },
+    "dephasing": {
+      "t2At1BarS": 1e-10,
+      "source": "rotational coherence time at 1 bar and 293 K, scaled as 1/p and sqrt(T); typical value, the original code did not record a source; the 2011 fs/ps rotational CARS measurements of self-broadened N2 and O2 (1-20 atm) are the place to check it",
+      "status": "unverified",
+      "relativeUncertainty": 0.5,
+      "conditions": {
+        "pressureBar": 1.0,
+        "temperatureK": 293.15
+      }
+    }
+  }
+}

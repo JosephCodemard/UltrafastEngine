@@ -1,0 +1,76 @@
+{
+  "file": "LiNbO3",
+  "id": "LiNbO3",
+  "kind": "crystal",
+  "listOrder": 5,
+  "aliases": [
+    "ln",
+    "cln",
+    "ppln"
+  ],
+  "aliasDisplayNames": {
+    "ppln": "PPLN (congruent)"
+  },
+  "displayName": "LiNbO3 (congruent)",
+  "opticalClass": "uniaxial",
+  "temperatureDependent": true,
+  "references": "e: Jundt (1997) (temperature dependent); o: Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) (21 C); d33 = 25, d31 = 4.6, d22 = 2.1 pm/V (Shoji et al., JOSA B 14, 2268 (1997)); n2: DeSalvo et al. (1996)",
+  "description": "congruent lithium niobate, negative uniaxial; the aliases ppln, cln name the poled / congruent forms",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula2",
+      "coefficients": [0, 2.6734, 0.01764, 1.229, 0.05914, 12.614, 474.6],
+      "validRangeUm": [0.4, 5.0],
+      "citation": "Zelmon, Small & Jundt, JOSA B 14, 3319 (1997)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) (refractiveindex.info LiNbO3/Zelmon-o)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page LiNbO3_Zelmon-o (formula 2, 7 coefficients)"
+    },
+    "indexZ": {
+      "model": "jundt",
+      "a": [5.35583, 0.100473, 0.20692, 100.0, 11.34927, 0.015334],
+      "b": [4.629e-07, 3.862e-08, -8.9e-09, 2.657e-05],
+      "citation": "Jundt, Opt. Lett. 22, 1553 (1997), congruent LiNbO3 e-ray",
+      "validRangeUm": [0.4, 5.0],
+      "source": "Jundt, Opt. Lett. 22, 1553 (1997), congruent LiNbO3 e-ray (temperature dependent, T in degC)",
+      "status": "unverified",
+      "uncertainty": "not compared with the paper",
+      "conditions": {
+        "temperatureK": 297.65
+      }
+    },
+    "d": {
+      "pointGroup": "3m",
+      "tensor": "3m",
+      "dPmPerV": {
+        "d22": 2.1,
+        "d31": 4.6,
+        "d33": 25.0
+      },
+      "source": "Shoji et al., JOSA B 14, 2268 (1997), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "wavelengthM": 1.064e-06
+      }
+    },
+    "n2": {
+      "valueM2PerW": 9.3e-20,
+      "source": "DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.4, 5.0],
+      "source": "Zelmon, Small & Jundt, JOSA B 14, 3319 (1997)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

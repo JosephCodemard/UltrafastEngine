@@ -10,7 +10,7 @@
 // to the port it is linked to. A loop repeats its stage: packets sent back to an earlier element wait in that element's queue
 // until the next pass, so no edge has to be cut by hand.
 //
-// Design: docs/design/branching.md, sections 5 and 7.
+// Reference: docs/reference/branches.md.
 
 using System;
 using System.Collections.Generic;

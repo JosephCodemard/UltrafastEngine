@@ -1,0 +1,43 @@
+{
+  "id": "Xe",
+  "kind": "gas",
+  "listOrder": 14,
+  "aliases": [
+    "XENON"
+  ],
+  "description": "Xenon",
+  "quantities": {
+    "index": {
+      "model": "borzsonyi",
+      "coefficients": [0.0010370161, 0.01275, 0.0003122861, 0.000561],
+      "validRangeUm": [0.4, 1.0],
+      "conditions": {
+        "temperatureK": 273.0,
+        "pressureBar": 1.01325
+      },
+      "source": "A. Borzsonyi, Z. Heiner, M. P. Kalashnikov, A. P. Kovacs, K. Osvay, Appl. Opt. 47, 4856 (2008) (refractiveindex.info main/Xe/Borzsonyi), 273 K and 1 bar",
+      "status": "verified",
+      "verification": "agrees vs refractiveindex.info main/Xe/Borzsonyi: max |dn| = 0.0e+00 (the page fixes a typo of the paper in Xe: 12.75e-3)"
+    },
+    "n2Electronic": {
+      "valueM2PerWPerBar273K": 8e-23,
+      "source": "electronic (instantaneous) n2 at 1 bar and 273 K near 800 nm; the original code cites the compilation of Lehmeier 1985 / Borzsonyi 2010 / Wahlstrand 2012; values differ by ~20 % between sources; not re-checked",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {
+        "wavelengthM": 8e-07,
+        "pressureBar": 1.0,
+        "temperatureK": 273.0
+      }
+    },
+    "ionization": {
+      "ionizationEv": 12.13,
+      "orbitalL": 1,
+      "zEff": 1.0,
+      "source": "ionisation potential: NIST Atomic Spectra Database (as cited by the original code); orbital l and zEff: standard ADK / PPT choices",
+      "status": "approximate",
+      "conditions": {},
+      "uncertainty": "ionisation potentials are tabulated constants; the effective charge and orbital l are model choices"
+    }
+  }
+}

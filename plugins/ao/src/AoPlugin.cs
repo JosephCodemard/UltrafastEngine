@@ -14,6 +14,12 @@ namespace UltrafastEngine.Plugins.Ao
         public string Version => PluginVersion;
         public string Description => "Parametric deformable mirror, spatial light modulator, spectral shaper and AOPDF elements.";
 
+        /// <summary>Registers the plugin in-process (hosts that cannot load plugin folders, e.g. the NativeAOT library).</summary>
+        public static void RegisterStatic()
+        {
+            try { PluginManager.Register(new AoPlugin(), "built-in"); } catch { }
+        }
+
         public void Register(PluginContext ctx)
         {
             ctx.RegisterElement("deformableMirror", DeformableMirror.Compile, new ComponentSpec("element", "deformableMirror",

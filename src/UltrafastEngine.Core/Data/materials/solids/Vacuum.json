@@ -1,0 +1,20 @@
+{
+  "id": "Vacuum",
+  "kind": "solid",
+  "listOrder": 0,
+  "aliases": [],
+  "description": "Vacuum",
+  "quantities": {
+    "index": {
+      "model": "constant",
+      "value": 1.0,
+      "source": "definition",
+      "status": "verified"
+    },
+    "n2": {
+      "valueM2PerW": 0.0,
+      "source": "definition",
+      "status": "verified"
+    }
+  }
+}

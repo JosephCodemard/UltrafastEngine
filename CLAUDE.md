@@ -41,7 +41,7 @@ after a code change.
 ## Token economy
 
 * **Do not read generated files** -- they are large and derived: `schemas/*.json` (440 kB), `python/src/ultrafast/types.py`
-  (180 kB), `docs/reference/options.md` (95 kB), `docs/reference/python-api.md`, `docs/reference/validation-matrix.md`. Read the source instead
+  (180 kB), `docs/reference/options.md` (95 kB), `docs/reference/materials-catalogue.md`, `docs/reference/python-api.md`, `docs/reference/validation-matrix.md`. Read the source instead
   (`src/UltrafastEngine.Core/Schema/BuiltIn*.cs`, `python/src/ultrafast/build.py`, the test attributes) and regenerate with `/regen`.
   Edits to them are blocked by a hook.
 * Never read `bin/`, `obj/`, `artifacts/`, `dist/`, `site/`, `results*/`, `*.npz`, `CHANGELOG.md` history.
@@ -65,7 +65,7 @@ after a code change.
 | speed: CPU FFT providers, compute back-ends, GPU | `docs/reference/speed.md`, `docs/plugins/gpu.md`; tests `ComputeTests`, `GpuTests` |
 | tests | `tests/UltrafastEngine.Tests/CLAUDE.md` |
 | status / what is verified | `PROJECT_STATUS.md`; history in `CHANGELOG.md` (top section only) |
-| current plan, owner decisions | `docs/design/plan-next.md` (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
+| current plan, owner decisions | `docs/design/next-steps.md` (open items), `docs/design/backlog.md` (parked), `docs/design/history.md` (what was built) (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
 | paper replications | `docs/papers/` (`docs/papers/CLAUDE.md`): published headline results reproduced, plots + commentary |
 | component checks with plots | `tests/components/` (`tests/components/CLAUDE.md`): one script per component family, HTML gallery |
 

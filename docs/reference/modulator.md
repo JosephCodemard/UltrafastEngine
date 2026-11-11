@@ -51,7 +51,7 @@ fringing fields do and why the efficiency of a real SLM falls near the jumps.
 * **An array** in the system file (`"phaseRad": [[...], ...]`; the Python builder converts numpy arrays). Fine for small maps.
 * **A callback** `"phaseRad": "@name"`: `f(x, y, z) → values` evaluated at the cell centres when the run compiles (z = 0, device frame), registered like
   a position-dependent field: `uf.run(system, spec, fields={"name": f})` in Python, `registry.RegisterCallback("name", (FieldCallback)...)` in C#.
-  No file and no JSON, so a 1920 × 1080 map costs one array. A trial of a 128 × 128 loop costs 10 ms with a callback or array against 46 ms with a new file each time ([spikes](../design/notes/spikes.md)).
+  No file and no JSON, so a 1920 × 1080 map costs one array. A trial of a 128 × 128 loop costs 10 ms with a callback or array against 46 ms with a new file each time ([spikes](../design/history.md)).
   **Loops:** every run compiles once and reads the callback then, so a control loop that changes what the callback returns gets the new map at
   each trial (tested: N trials equal N runs from N map files to 1e-12). The C API registers the same callback with `uf_run_set_field_callback`.
 * **A file**: `"file": "map.npz"` with `phase_rad` (or `opd_m`) and `amplitude`.
@@ -78,7 +78,7 @@ pixel-integration effect of the real device. Consequences, measured in the tests
 
 Reference behaviour (tests): a smooth ramp `k θ x` under `opd` deflects every colour by the same angle θ; the same ramp *wrapped* at 2π
 (a blazed grating of period `p`) leaves at `λ/p`, so the first order moves in proportion to λ (measured 760/800/840 nm in the
-[spike](../design/notes/spikes.md), both as a `mask file` and as a thin `bulk` with an index profile); under `fixedPhase` the same ramp
+[spike](../design/history.md), both as a `mask file` and as a thin `bulk` with an index profile); under `fixedPhase` the same ramp
 deflects by `θ λ/λ_design`. Under `index` a wrapped blaze has the depth `2π α` with `α = ω Δn(ω) / (ω_design Δn(ω_design))` at each
 frequency, so its first-order efficiency off the design wavelength follows the staircase of that depth (tested at 1.2 µm, α = 0.833 against
 0.858 for `opd`). Device data (a measured Δn(λ), voltage curves) stays in plugins, which hand the core the map and the Δn table.
@@ -89,7 +89,7 @@ The profile is stored at `transverse.spectralSamples` frequencies and interpolat
 enough samples. The element reports **`spectralSamplingError`** (the largest distance of a stored sample from the line through its
 two neighbours, in units of the field norm; it falls about 1/K² with the number K of samples) and warns above 0.05. It cannot see a phase step near a multiple of 2π per stored frequency, so the element also warns when the phase changes by more than π/2 between stored frequencies. Compare K and 2K
 for the quantity you care about. Measured (30 fs, 800 nm, a smooth random screen, error of the focal-plane map against K = 96): 8 to 16
-samples give 1e-3 or better up to 30 rad of phase, K ≥ 32 for 100 rad ([spikes](../design/notes/spikes.md)).
+samples give 1e-3 or better up to 30 rad of phase, K ≥ 32 for 100 rad ([spikes](../design/history.md)).
 
 **Size and time** (CPU, Apple silicon): a 1920 × 1080 panel with a 30 fs pulse takes 32 s and 3.6 GB at K = 16, 3.3 s and 1.05 GB for one
 frequency (cw). A 4096 × 4096 grid takes 20 s and 3.4 GB for one frequency. For long chains on large grids see

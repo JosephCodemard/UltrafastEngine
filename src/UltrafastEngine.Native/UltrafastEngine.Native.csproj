@@ -47,6 +47,13 @@
   <ItemGroup Condition="'$(UF_WITH_HITRAN)' != 'false'">
     <ProjectReference Include="..\..\plugins\hitran\src\UltrafastEngine.Plugins.Hitran.csproj" />
   </ItemGroup>
+  <!-- The ao plugin (deformable mirror, SLM, spectral shaper, AOPDF) likewise; UF_WITH_AO=false leaves it out. -->
+  <PropertyGroup Condition="'$(UF_WITH_AO)' != 'false'">
+    <DefineConstants>$(DefineConstants);UF_WITH_AO</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(UF_WITH_AO)' != 'false'">
+    <ProjectReference Include="..\..\plugins\ao\src\UltrafastEngine.Plugins.Ao.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="include\ultrafast.h" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

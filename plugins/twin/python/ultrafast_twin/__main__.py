@@ -104,7 +104,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     print(f"  {'PASS' if c['passed'] else 'FAIL'}  {c['id']}: {c['detail']}")
             return 0 if r["passed"] else 1
         elif args.cmd == "serve":
-            print("ultrafast twin serve: the MCP server is not implemented yet (docs/design/notes/s4-twin.md, section 5)", file=sys.stderr)
+            print("ultrafast twin serve: the MCP server is not implemented yet (docs/design/next-steps.md, section 4)", file=sys.stderr)
             return 2
     except (ProjectError, KeyError, ValueError) as e:
         print(f"ultrafast twin: {e}", file=sys.stderr)

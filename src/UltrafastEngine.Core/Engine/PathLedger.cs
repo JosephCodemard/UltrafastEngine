@@ -14,7 +14,7 @@
 //     void Add(DispersionPoint own)                                 add one element's phase and delay
 //
 // The true field is the stored one times exp(i (PhaseRad + (omega - omega0) FrameDelayS)).
-// Design: docs/design/branching.md, section 6.
+// Reference: docs/reference/branches.md.
 
 using UltrafastEngine.Physics;
 

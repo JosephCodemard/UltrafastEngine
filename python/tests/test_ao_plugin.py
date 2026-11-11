@@ -14,7 +14,7 @@ if str(PLUGIN_PY) not in sys.path:
 
 import ultrafast as uf                                    # noqa: E402
 from ultrafast import build as b                          # noqa: E402
-from ultrafast.algorithms import sensorless, zernike      # noqa: E402
+from ultrafast.algorithms import holography, sensorless, zernike      # noqa: E402
 
 from ultrafast_ao import DmBench, devices, tiled_array, combining_metrics  # noqa: E402
 
@@ -240,6 +240,20 @@ def test_spgd_locks_the_tile_pistons_through_the_engine():
         N = n_saved
 
 
+def test_spgd_default_focuses_the_deformable_mirror_bench_from_the_camera_peak():
+    """SPGD with the default (scale-free) step on the engine's deformable-mirror bench: six hidden aberration modes (waves rms), the camera peak fluence over its reference
+    is the only measurement, amplitude 0.05, 80 iterations (240 engine runs): the Strehl ratio rises from about 0.4 to at least 0.9 on 3 seeds (the fixed gain needed 3 by
+    trial: 1.5 reached 0.64, 5 reached 0.80)."""
+    aberration = {4: -0.25, 5: 0.20, 6: -0.15, 7: 0.20, 8: -0.10, 9: 0.10}
+    modes = sorted(aberration)
+    bench = DmBench(aberration=aberration)
+    ref = bench.reference_peak()
+    metric = lambda a: bench.peak_fluence(bench.zernike_commands(dict(zip(modes, a)))) / ref
+    start = metric(np.zeros(6))
+    finals = [sensorless.spgd(metric, np.zeros(6), iterations=80, amplitude=0.05, seed=s).history[-1] for s in (3, 4, 5)]
+    assert start < 0.5 and min(finals) > 0.9, (start, finals)
+
+
 # ----------------------------------------------------------------------------------------------- closed-loop pulse shaping
 def _peak_power(gdd_aopdf_fs2, chirp_fs2):
     sysd = b.system("s", [b.gap("g", 0.0, medium="Vacuum"), {"id": "chirp", "type": "aopdf", "gddFs2": chirp_fs2}, {"id": "shape", "type": "aopdf", "gddFs2": float(gdd_aopdf_fs2)}])
@@ -255,3 +269,153 @@ def test_closed_loop_shaping_finds_the_compensating_gdd_from_the_peak_power():
     metric = lambda g: _peak_power(g[0], chirp)
     r = sensorless.modal_search(metric, np.array([0.0]), bias=300.0, sweeps=6)
     assert abs(r.x[0] + chirp) < 2.0, r.x
+
+
+# ----------------------------------------------------------------------------------------------- hologram encodings through the SLM element
+def _slm_focal_fluence(phase_map, illum_radius, n=64, dx=40e-6, lam=800e-9, f=0.2):
+    """Phase map (rad) -> 256 linear grey levels -> engine SLM element -> lens -> focal plane; returns (fluence map, focal axis, array-plane axis, quantised phase)."""
+    from ultrafast_ao import Slm
+    lut = devices.slm_lut(256)
+    grey = holography.grey_levels(phase_map, lut)
+    g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=n * dx / 2, spectral_samples=1, absorbing_boundary=True, initial_profile=ip)
+    sysd = b.system("h", [b.gap("src", 0.0, medium="Vacuum", transverse=g(b.initial_profile("gaussian", radius_m=illum_radius))),
+                          Slm("slm", dx, pixels_x=n, pixels_y=n, grey_level=grey.astype(float), dispersion="none"), b.lens("lens", f), b.gap("z", f, medium="Vacuum", transverse=g())])
+    d = uf.run(sysd, b.run_spec(b.cw(lam, 1.0), instruments=[b.instrument("beamProfile", at="z", name="cam")])).instrument("cam")
+    X = (np.arange(n) - (n - 1) / 2) * dx
+    return np.asarray(d["fluence_map_j_m2"]), np.asarray(d["x_m"]), X, lut[grey]
+
+
+def _fourier_power(U, X, xf, lam=800e-9, f=0.2, shift_x=0.0):
+    """|sum U(X) exp(-2 pi i xf X / (lam f))|^2 on the focal grid (x = first array axis), the focal coordinate x shifted by ``shift_x``."""
+    Kx = np.exp(-2j * np.pi * np.outer(xf + shift_x, X) / (lam * f))
+    Ky = np.exp(-2j * np.pi * np.outer(xf, X) / (lam * f))
+    return np.abs(Kx @ U @ Ky.T) ** 2
+
+
+def _smooth_complex_target(X, w):
+    """A slowly varying complex field: a ramp in amplitude (0.35 .. 1) and a gentle quadratic + tilt phase (1.5 rad over the beam radius)."""
+    Xa, Ya = np.meshgrid(X, X, indexing="ij")
+    amp = 0.35 + 0.65 * (0.5 + 0.5 * np.tanh(Ya / (0.5 * w)))
+    phi = 1.5 * (Xa ** 2 + Ya ** 2) / w ** 2 + 0.5 * Xa / w
+    return amp * np.exp(1j * phi)
+
+
+def test_bolduc_first_order_through_the_slm_carries_a_varying_complex_field():
+    """Bolduc et al., Opt. Lett. 38, 3546 (2013), end to end: the phase map of a slowly varying A(x, y) e^{i phi(x, y)} (amplitude 0.35 .. 1, 1.5 rad of quadratic phase over the beam radius: the encoding needs the field to change little over one 8-pixel period; with 4 rad the first order of the *ideal* hologram already correlates only 0.86 with the transform of the target), blazed with a period of
+    8 pixels, goes through 256 grey levels, the engine's SLM element, a lens and a gap. In the focal plane the first order, at x = lambda f / (8 pitch) from the axis, is
+    the Fourier transform of illumination x A e^{i phi} (the same numpy sum as the engine's field, evaluated at the shifted coordinate): correlation of the fluence maps in
+    that order, and the first-order energy over that of a unit-amplitude blaze, against the same ratio of the transforms."""
+    n, dx, w, lam, f, L = 64, 40e-6, 0.6e-3, 800e-9, 0.2, 8
+    target = _smooth_complex_target((np.arange(n) - (n - 1) / 2) * dx, w)
+    psi = holography.bolduc_encode(target, period_pixels=L, axis=0)
+    F, xf, X, _ = _slm_focal_fluence(psi, w, n, dx, lam, f)
+    illum = np.exp(-(X[:, None] ** 2 + X[None, :] ** 2) / w ** 2)
+    x1 = lam * f / (L * dx)
+    P = _fourier_power(illum * target, X, xf, lam, f, shift_x=-x1)       # first order: the carrier exp(+2 pi i x / (L dx)) moves the transform by x1
+    XF, YF = np.meshgrid(xf, xf, indexing="ij")
+    win = (np.abs(XF - x1) < 0.25 * x1) & (np.abs(YF) < 0.5 * x1)
+    corr = np.corrcoef(P[win], F[win])[0, 1]
+    assert corr > 0.99, corr
+    # the energy carried by the amplitude: first-order energy over that of an engine run with A = 1 (a plain blaze) against the same ratio of the transforms. The ratio cancels
+    # the engine's own first-order efficiency of a sampled blaze (0.85 at 8 pixels per period against 1.00 for the Fourier sum: the open SLM finding of docs/design/next-steps.md, WP7)
+    ref = _slm_focal_fluence(holography.bolduc_encode(np.ones((n, n)), period_pixels=L, axis=0), w, n, dx, lam, f)[0]
+    order = np.abs(XF - x1) < 0.4 * x1
+    got = F[order].sum() / ref[order].sum()
+    want = _fourier_power(illum * target, X, xf, lam, f, shift_x=-x1)[order].sum() / _fourier_power(illum * np.exp(2j * np.pi * np.arange(n)[:, None] / L), X, xf, lam, f)[order].sum()
+    assert abs(got / want - 1) < 0.03, (got, want)         # measured 1.1 %
+
+
+def test_double_phase_through_the_slm_carries_a_varying_complex_field_at_low_frequency():
+    """Double phase (A e^{i phi} = (e^{i(phi + a)} + e^{i(phi - a)})/2, a = arccos A, on a checkerboard), end to end through the SLM element: the checkerboard's frequency
+    is 1/(2 pitch), a focal distance lambda f / (2 pitch) = 2 mm from the axis, outside the 1.28 mm half width of the focal grid, so the field near the axis is the Fourier
+    transform of illumination x A e^{i phi}: correlation of the fluence maps within 0.8 mm of the axis, and the energy there over the incident energy (a flat-phase run) against the same ratio of the transform of the target."""
+    n, dx, w, lam, f = 64, 40e-6, 0.6e-3, 800e-9, 0.2
+    target = _smooth_complex_target((np.arange(n) - (n - 1) / 2) * dx, w)
+    F, xf, X, _ = _slm_focal_fluence(holography.double_phase_encode(target), w, n, dx, lam, f)
+    illum = np.exp(-(X[:, None] ** 2 + X[None, :] ** 2) / w ** 2)
+    P = _fourier_power(illum * target, X, xf, lam, f)
+    XF, YF = np.meshgrid(xf, xf, indexing="ij")
+    win = np.hypot(XF, YF) < 0.8e-3
+    corr = np.corrcoef(P[win], F[win])[0, 1]
+    assert corr > 0.99, corr
+    F0 = _slm_focal_fluence(np.zeros((n, n)), w, n, dx, lam, f)[0]          # flat phase: the incident energy (the checkerboard light leaves the focal grid)
+    expect = P[win].sum() / _fourier_power(illum, X, xf, lam, f).sum()
+    assert abs(F[win].sum() / F0.sum() / expect - 1) < 0.03, (F[win].sum() / F0.sum(), expect)         # measured 0.5 %; correlation 0.99998
+
+
+# ----------------------------------------------------------------------------------------------- tiled array: lobe fractions
+def test_tiled_array_lobe_fractions_match_the_array_factor_for_in_phase_and_checkerboard_pistons():
+    """combining_metrics' central and grating lobe fractions are numbers, not only inside (0, 1): a 3 x 3 square array of Gaussian tiles (radius w, pitch p) has the far field
+    exp(-(pi w r / (lambda F))^2) x sum_k exp(i phi_k) exp(-2 pi i p_k . r / (lambda F)); the fractions of that analytic fluence on the engine's grid, with the same lobe radii,
+    equal the engine's to 1e-3 (measured 2e-5). In phase, and with pistons pi on the checkerboard (the peak moves to lambda F / (2 p) and the central lobe fraction is measured around it);
+    central + grating <= 1 in both."""
+    p, w = 3e-3, 0.5e-3
+    pos = [((i - 1) * p, (j - 1) * p) for i in range(3) for j in range(3)]
+    par = np.array([(i + j) % 2 for i in range(3) for j in range(3)])
+    for name, piston in (("in phase", np.zeros(9)), ("checkerboard pi", np.pi * par)):
+        prof = tiled_array(w, layout="square", count_x=3, count_y=3, pitch_m=p, piston_rad=piston.tolist())
+        F, x, y = _tile_axis_fluence(prof, b.cw(LAM, 1.0))
+        got = combining_metrics(F, x, y, wavelength_m=LAM, focal_length_m=0.5, pitch_m=p, n_tiles=9)
+        X, Y = np.meshgrid(x, y, indexing="ij")
+        field = sum(np.exp(1j * ph) * np.exp(-2j * np.pi * (px * X + py * Y) / (LAM * 0.5)) for (px, py), ph in zip(pos, piston))
+        ref = np.abs(field) ** 2 * np.exp(-2 * (np.pi * w) ** 2 * (X ** 2 + Y ** 2) / (LAM * 0.5) ** 2)
+        want = combining_metrics(ref, x, y, wavelength_m=LAM, focal_length_m=0.5, pitch_m=p, n_tiles=9)
+        for key in ("central_lobe_fraction", "grating_lobe_fraction"):
+            assert abs(got[key] - want[key]) < 1e-3, (name, key, got[key], want[key])
+        assert got["central_lobe_fraction"] + got["grating_lobe_fraction"] <= 1 + 1e-9
+
+
+# ----------------------------------------------------------------------------------------------- SLM pixels on the engine grid (WP7)
+def _blaze_total(period, offset_m, n=64, dx=40e-6, lam=800e-9, f=0.2, w=0.5e-3):
+    """Total focal-plane fluence of an ideal sawtooth of ``period`` pixels, over that of a flat phase map, and the run's warnings."""
+    from ultrafast_ao import Slm
+    lut = devices.slm_lut(256)
+    g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=n * dx / 2, spectral_samples=1, absorbing_boundary=False, initial_profile=ip)
+
+    def run(phase):
+        grey = holography.grey_levels(phase, lut).astype(float)
+        sysd = b.system("h", [b.gap("src", 0.0, medium="Vacuum", transverse=g(b.initial_profile("gaussian", radius_m=w))),
+                              Slm("slm", dx, pixels_x=n, pixels_y=n, grey_level=grey, dispersion="none", offset_x_m=offset_m, offset_y_m=offset_m),
+                              b.lens("lens", f), b.gap("z", f, medium="Vacuum", transverse=g())])
+        d = uf.run(sysd, b.run_spec(b.cw(lam, 1.0), instruments=[b.instrument("beamProfile", at="z", name="cam")]))
+        return float(np.asarray(d.instrument("cam")["fluence_map_j_m2"]).sum()), d.summary.get("warnings", [])
+    blaze = 2 * np.pi * (np.arange(n)[:, None] % period) / period * np.ones((1, n))
+    (e, warn), (e0, _) = run(blaze), run(np.zeros((n, n)))
+    return e / e0, warn
+
+
+@pytest.mark.parametrize("period", [8, 16])
+def test_slm_pixels_on_the_grid_points_keep_all_the_light_of_a_blaze_and_half_a_pixel_off_keeps_cos_squared(period):
+    """The engine grid has a sample on the axis; an even panel has a pixel edge there, so with pitch = grid step every grid cell averages two pixels and a blaze of P pixels
+    per period keeps cos^2(pi / P) of its light (0.854 at 8, 0.962 at 16: the SLM-against-Fourier finding of WP7). Shifted by half a pixel the cell centres sit on the grid
+    points and no light is lost (1e-6); the unaligned case warns."""
+    dx = 40e-6
+    straddled, warn = _blaze_total(period, 0.0)
+    aligned, warn_aligned = _blaze_total(period, -dx / 2)
+    assert straddled == pytest.approx(np.cos(np.pi / period) ** 2, abs=2e-3)
+    assert aligned == pytest.approx(1.0, abs=1e-6)
+    assert any("averages two device cells" in w for w in warn)
+    assert not any("averages two device cells" in w for w in warn_aligned)
+
+
+
+def _tile_axis_fluences(n, f):
+    """On-axis fluence of each of the 7 hex tiles alone (the engine normalises the power, so identical tiles must give identical values), on n cells over +-5 mm, lens f."""
+    out = []
+    for k in range(7):
+        g = lambda ip=None: b.transverse("cartesian", nx=n, ny=n, half_width_m=5e-3, spectral_samples=1, absorbing_boundary=True, initial_profile=ip)
+        prof = tiled_array(0.5e-3, layout="hex", rings=1, pitch_m=3e-3, amplitudes=[1.0 if i == k else 0.0 for i in range(7)])
+        sysd = b.system("t", [b.gap("src", 0.0, medium="Vacuum", transverse=g(prof)), b.lens("lens", f), b.gap("z", f, medium="Vacuum", transverse=g())])
+        d = uf.run(sysd, b.run_spec(b.cw(800e-9, 1.0), instruments=[b.instrument("beamProfile", at="z", name="cam")])).instrument("cam")
+        out.append(float(np.asarray(d["fluence_map_j_m2"])[n // 2, n // 2]))
+    return np.array(out)
+
+
+def test_tiled_array_identical_tiles_reach_the_axis_alike_only_when_the_lens_is_resolved():
+    """WP7 (SPGD ended at 1.02 of the in-phase value): the 7 tiles are identical, so their axis fluences must be equal. On 128 cells over 10 mm at f = 0.5 m the lens phase at a
+    tile 3 mm out changes by 3.7 rad per cell (more than pi): the lens is aliased and the axis fluences differ by a factor of 56, so the zero-piston sum is not the maximum. With
+    f = 1 m on 128 cells (1.9 rad per cell) or 256 cells at f = 0.5 m they agree to 1e-3."""
+    assert _tile_axis_fluences(128, 0.5).max() / _tile_axis_fluences(128, 0.5).min() > 10
+    for n, f in ((128, 1.0), (256, 0.5)):
+        v = _tile_axis_fluences(n, f)
+        assert v.max() / v.min() < 1.001, (n, f, v)

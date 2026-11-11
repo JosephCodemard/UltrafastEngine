@@ -76,12 +76,20 @@ namespace UltrafastEngine.Engine
         /// level is above grid.satelliteLevel. An element that sets only <see cref="SatelliteDelayS"/> counts as one
         /// satellite of level 1 (always given room).</summary>
         public List<(double DelayS, double Level)> Satellites { get; } = new List<(double, double)>();
+        /// <summary>Magnitude (s^2) of a spectral phase the element programs without declaring a group delay (an AOPDF or pulse shaper
+        /// keeps GroupDelayAt = 0 so the arrival-time bookkeeping is unchanged). The grid planner stretches the pulse by
+        /// GDD x bandwidth for it; contributions of several elements are added (worst case).</summary>
+        public double ProgrammedGddS2 { get; set; }
         /// <summary>Refractive index the beam sees inside the element (for Gaussian beam tracking); NaN = unknown (free space).</summary>
         public double TrackingIndex { get; set; } = double.NaN;
         /// <summary>Thin lenses inside the element for Gaussian beam tracking: position from the entrance (m) and power
         /// 1/f (1/m, vacuum-equivalent, from the optical path difference), e.g. the slices of a thermal lens. The tracker
         /// crosses the element at <see cref="TrackingIndex"/> and applies each lens at its position.</summary>
         public List<(double ZM, double InvFocalM)> TrackLenses { get; set; }
+        /// <summary>Distributed lenses inside the element for Gaussian beam tracking: start from the entrance (m), length (m) and the
+        /// thin-lens-equivalent power 1/f (1/m) of each segment, e.g. the slices of a thermal lens. The tracker crosses each as a
+        /// graded-index duct n(r) = n0 (1 - g² r² / 2) with g² = (1/f) / (n0 L) (<see cref="Optics.BeamState.Duct"/>).</summary>
+        public List<(double ZM, double LengthM, double InvFocalM)> TrackDucts { get; set; }
         /// <summary>Passes through <see cref="TrackLenses"/> (a multipass amplifier) and the free path between them.</summary>
         public int TrackPasses { get; set; } = 1;
         public double TrackPassGapM { get; set; }
@@ -373,12 +381,23 @@ namespace UltrafastEngine.Engine
             foreach (var r in c.Ov.Rules.Where(r => r.Target.StartsWith("material:", StringComparison.OrdinalIgnoreCase)))
                 if (!c.Out.Materials.Keys.Any(k => r.Matches("material", k, null)))
                     c.Out.Warnings.Add("Override " + r.Target + " / " + r.Property + " (" + r.Origin + "): material not used in this system.");
+            // strict materials: a run built on catalogue values that are not verified is refused (physics.strictMaterials or ULTRAFAST_STRICT_MATERIALS=1)
+            if (run.Physics.StrictMaterials || Environment.GetEnvironmentVariable("ULTRAFAST_STRICT_MATERIALS") == "1")
+            {
+                var allowed = run.Physics.StrictMaterialsAllow;
+                bool Accepted(string path) => allowed.Any(a => path.Equals(a, StringComparison.OrdinalIgnoreCase) || path.StartsWith(a.TrimEnd('.') + ".", StringComparison.OrdinalIgnoreCase));
+                var open = c.Out.Provenance.UnverifiedInputs.Where(u => u.Catalogue.Status != CatalogueStatus.Verified && !Accepted(u.Catalogue.Path)).ToList();
+                if (open.Count > 0)
+                    throw new ModelException("strict materials: the run uses " + open.Count + " catalogue value" + (open.Count == 1 ? "" : "s") + " that " + (open.Count == 1 ? "is" : "are") + " not verified:\n  "
+                        + string.Join("\n  ", open.Select(u => u.Material + "." + u.Property.Replace(" (catalogue)", "") + " [" + u.Catalogue.Path + "] " + u.Catalogue.Status.ToString().ToLowerInvariant() + ": " + u.Catalogue.Source))
+                        + "\nOverride each value (docs/reference/materials.md#the-material-catalogue), put a verified one in your own catalogue file, , accept one by its path in physics.strictMaterialsAllow, or switch physics.strictMaterials off.");
+            }
             return c.Out;
         }
 
         private static CompilerServices Services(Ctx c) => new CompilerServices
         {
-            System = c.Sys, Run = c.Run, Registry = c.Reg, Provenance = c.Out.Provenance, Omega0 = c.Omega0, Warnings = c.Out.Warnings,
+            System = c.Sys, Run = c.Run, Registry = c.Reg, Provenance = c.Out.Provenance, Omega0 = c.Omega0, Warnings = c.Out.Warnings, Notes = c.Out.Notes,
             TiltXRad = c.TiltX,
             FedTiltX = (id, port) =>
             {
@@ -646,7 +665,7 @@ namespace UltrafastEngine.Engine
                     if (Plugins.PluginManager.TryGetElementCompiler(e.Type, out var pc)) { pc(Services(c), e, ce); break; }
                     if (string.Equals(e.Type, "transform", StringComparison.OrdinalIgnoreCase))
                         throw new JsonException("element '" + e.Id + "' is a \"transform\", which needs the fitting plugin (not installed: see `ultrafast plugins list` and docs/plugins/installing.md).");
-                    throw new JsonException("unknown element type \"" + e.Type + "\". Known types: " + string.Join(", ", ElementTypes.Concat(Plugins.PluginManager.ElementTypes)) + ".");
+                    throw new JsonException(UnknownElementMessage(e.Type, e.Id));
             }
             if ((type == "bulk" || type == "crystal" || type == "gain" || type == "amplifier" || type == "lens") && e.Json.Has("ghosts"))
                 AddElementGhosts(c, e, ce, type);
@@ -824,6 +843,24 @@ namespace UltrafastEngine.Engine
                     break;
                 }
                 default:
+                    if (ce.TrackDucts != null && ce.LengthM > 0)
+                    {
+                        double n = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0;
+                        for (int pass = 0; pass < ce.TrackPasses; pass++)
+                        {
+                            double z = 0;
+                            foreach (var (z0, len, invF) in ce.TrackDucts.OrderBy(d => d.ZM))
+                            {
+                                double zs = Math.Max(z, Math.Min(ce.LengthM, z0));
+                                t.Propagate(zs - z, n); z = zs;
+                                double l = Math.Max(0, Math.Min(ce.LengthM - z, len));
+                                if (l > 0) { t.Duct(l, n, invF / (n * l), invF / (n * l)); z += l; }
+                            }
+                            t.Propagate(ce.LengthM - z, n);
+                            if (pass < ce.TrackPasses - 1 && ce.TrackPassGapM > 0) t.Propagate(ce.TrackPassGapM, 1.0);
+                        }
+                        break;
+                    }
                     if (ce.TrackLenses != null && ce.LengthM > 0)
                     {
                         double n = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0;
@@ -895,6 +932,44 @@ namespace UltrafastEngine.Engine
             }
         }
 
+        /// <summary>Lists, in the provenance and the run notes, the catalogue values of the material that a nonlinear element really used
+        /// (a value the run spec or the system file overrides is not listed).</summary>
+        private static void ReportNonlinearCatalogue(Ctx c, SystemElement e, Material m, NonlinearMedium med, bool n2Overridden, bool kerrOverridden, bool ramanOverridden)
+        {
+            var prov = c.Out.Provenance; string target = "element:" + e.Id;
+            void U(string prop, string key) { if (m.Used.TryGetValue(key, out var q)) prov.UseCatalogue(target, prop, q, m.Name, c.Out.Notes); }
+            if (!n2Overridden) U("n2", "n2");
+            if (!kerrOverridden && med.KerrAnisotropy != 0) U("kerrAnisotropy", "kerrAnisotropy");
+            if (!ramanOverridden && med.EffectiveRamanFraction > 0) { U("raman", "raman"); U("ramanFraction", "ramanFraction"); }
+            if (med.Rotational != null && c.Run.Physics.Raman)
+                foreach (var key in m.Used.Keys.Where(k => k.StartsWith("rotation:", StringComparison.Ordinal) || k.StartsWith("dephasing:", StringComparison.Ordinal)).ToList()) U(key.Replace(':', '.'), key);
+        }
+
+        /// <summary>The ionisation data (band gap or ionisation potential, ...) come from the catalogue unless the ionization block gives them itself.</summary>
+        private static void ReportIonizationCatalogue(Ctx c, SystemElement e, Material m, JsonObject spec)
+        {
+            var prov = c.Out.Provenance; string target = "element:" + e.Id;
+            if (m.IsGas)
+            {
+                if (spec != null && spec.Has("ionizationEv")) return;
+                var species = string.Equals(m.GasSpecies, "Air", StringComparison.OrdinalIgnoreCase) ? GasData.AirComposition.Select(x => x.Species) : new[] { m.GasSpecies };
+                foreach (var sp in species) { var q = GasData.Get(sp)?.Entry?.TryQ("ionization"); if (q != null) prov.UseCatalogue(target, "ionization", q, sp, c.Out.Notes); }
+            }
+            else if (m.Ionization == null)
+            {
+                // which of the five inputs the run gives itself; the rest come from the catalogue (or, for a material without data, from the generic defaults)
+                var own = new[] { "bandGapEv", "effectiveMass", "neutralDensityM3", "collisionTimeS", "recombinationTimeS" }.Where(k => spec != null && spec.Has(k)).ToList();
+                var q = SolidIonizationData.CatalogueQuantityOf(m.Name);
+                string what = q != null ? "catalogue" : "generic default";
+                if (q == null) q = SolidIonizationData.DefaultsQuantity;
+                if (own.Count < 5 && (q != SolidIonizationData.DefaultsQuantity || own.Count > 0))
+                {
+                    if (own.Count > 0) c.Out.Notes.Add("ionization of '" + m.Name + "': the run gives " + string.Join(", ", own) + "; the other inputs are the " + what + " values (" + q.Path + ").");
+                    prov.UseCatalogue(target, "ionization", q, m.Name, c.Out.Notes);
+                }
+            }
+        }
+
         private static LinearTerm MakeLoss(double[] omega, double[] powerT, string mechanism, string description)
         {
             if (powerT.All(v => Math.Abs(v - powerT[0]) < 1e-12)) return new FlatLossTerm(powerT[0], mechanism, description);
@@ -935,6 +1010,7 @@ namespace UltrafastEngine.Engine
                 background.Add(t);
                 c.Out.Provenance.Record("element:" + e.Id, "dispersion", "material " + m.Name + " (" + m.Index.Description + "), L = " + ce.LengthM.ToString("G6", CultureInfo.InvariantCulture) + " m",
                     gd != null ? idxSrc : ModelSource.MaterialDefault, gd != null ? "material index overridden -> traced data ignored" : "material");
+                if (m.Used.TryGetValue("index", out var indexQ)) c.Out.Provenance.UseCatalogue("element:" + e.Id, "index", indexQ, m.Name, c.Out.Notes);
             }
             var tr = c.Sys.PerWavelength(e, "transmission");
             if (tr != null) background.Add(MakeLoss(tr.Value.Omega, tr.Value.Values, "absorption", ce.Label + " internal transmission"));
@@ -1009,6 +1085,7 @@ namespace UltrafastEngine.Engine
                 var pr = PlasmaResponse.For(m, c.Omega0, ionV.Kind == JsonKind.Object ? ionV.AsObject() : null, out _);
                 med.ExtraResponses.Add(pr);
                 c.Out.Provenance.Record("element:" + e.Id, "ionization", pr.Description, ionOv?.Source ?? ModelSource.SystemData, ionOv?.Origin ?? (e.Json.Has("ionization") ? "system file" : "run spec physics.ionization"));
+                ReportIonizationCatalogue(c, e, m, ionV.Kind == JsonKind.Object ? ionV.AsObject() : null);
             }
 
             bool wantNl = c.Run.Physics.Nonlinear && Bool(c, e, "nonlinear", !isGap) && med.IsActive && ce.LengthM > 0; // gaps are linear unless asked
@@ -1034,6 +1111,7 @@ namespace UltrafastEngine.Engine
                 ce.Active = sb;
                 c.Out.Provenance.Record("element:" + e.Id, "transverse", tv.Model + (tv.Model == "radial" ? " (" + tv.Points + " points)" : " (" + tv.Nx + " x " + tv.Ny + ")") + ", transport " + tv.Transport, tvOv?.Source ?? ModelSource.SystemData, tvOv?.Origin ?? "system file");
                 if (wantNl && med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
+                if (wantNl) ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
                 return;
             }
             IBeamModel beam = null;
@@ -1071,6 +1149,7 @@ namespace UltrafastEngine.Engine
                 seg.Background.AddRange(background);
                 ce.Nonlinear = seg;
                 if (med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
+                ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
             }
             else ce.Pre.AddRange(background);
         }
@@ -1463,6 +1542,17 @@ namespace UltrafastEngine.Engine
             return Math.Min(pk, Results.PulseMetrics.TransformLimitedPower(p0).Max() * 1.0001);
         }
 
+        /// <summary>Element types of the first-party ao plugin, named in the unknown-element message when the plugin is missing.</summary>
+        private static readonly string[] AoElementTypes = { "deformableMirror", "slm", "spectralShaper", "aopdf" };
+
+        /// <summary>The error for an element type nobody registered: names the ao plugin for its four types, else lists the known types.</summary>
+        public static string UnknownElementMessage(string type, string id)
+        {
+            if (type != null && AoElementTypes.Contains(type, StringComparer.OrdinalIgnoreCase))
+                return "element '" + id + "' is a \"" + type + "\", which needs the ao plugin (not installed or not compiled into this library: see `ultrafast plugins list` and docs/plugins/installing.md).";
+            return "unknown element type \"" + type + "\". Known types: " + string.Join(", ", ElementTypes.Concat(Plugins.PluginManager.ElementTypes)) + ".";
+        }
+
         /// <summary>Delay room (s) the window needs for the satellites of <paramref name="elements"/>: the largest delay at
         /// which the satellites of all elements together can reach <paramref name="threshold"/> relative intensity.
         /// The satellites of successive elements combine (a ghost of a ghost); satellites that land at the same delay
@@ -1556,7 +1646,9 @@ namespace UltrafastEngine.Engine
             {
                 // one spectral bin: no pulse to fit, nothing to plan; the window only sets the energy (power x window)
                 double win = double.IsNaN(run.Grid.WindowS) ? Pulses.PulseSpec.CwWindowS : run.Grid.WindowS;
-                c.Out.Grid = GridPlanner.Create(64, win, c.Omega0, true, out double wc);
+                // a single line: the lattice is shifted so that a bin sits on the requested carrier (a pulse is built at the requested carrier as an offset of the snapped
+                // lattice, a single line cannot be); carrier-resolved models need the snapped lattice and are reached with an explicit snapCarrier: true
+                c.Out.Grid = GridPlanner.Create(64, win, c.Omega0, run.Grid.SnapCarrier && run.Grid.SnapCarrierGiven, out double wc);
                 c.Out.Input = ps.Build(c.Out.Grid);
                 c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "Cw source: {0:G4} W over a {1:G4} s window, one spectral bin at {2:F4} nm. Fluences are intensity x window.", c.Out.Input.TotalEnergyJ() / win, win, 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / wc * 1e9));
                 return;
@@ -1620,7 +1712,8 @@ namespace UltrafastEngine.Engine
                     memoryS = Math.Max(memoryS, GridPlanner.ResponseMemoryS(x.Nonlinear.Medium.Raman));
             if (memoryS > 5 * tl) c.Out.Notes.Add(string.Format(CultureInfo.InvariantCulture, "A delayed response in the system keeps the index changed for {0:G3} s after the pulse: the window is sized to hold it.", memoryS));
             var plan = GridPlanner.Plan(p0, tau, margin, anyNl ? run.Grid.MinSpanFraction : 0.0, window0, run.Grid.ExplicitResolution ? run.Grid.N : n0, run.Grid.MaxN, run.Grid.Auto || run.Grid.ExtendForSatellites, run.Grid.ExplicitResolution, Results.PulseMetrics.Fwhm(g0.Time, Results.PulseMetrics.TransformLimitedPower(p0)) / run.Grid.MinPointsPerFwhm,
-                (run.Grid.TailEnabled ? 0.0 : SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes)) + run.Pulse.SatelliteHalfWindowS() + memoryS);
+                (run.Grid.TailEnabled ? 0.0 : SatelliteRoom(c.Out.Elements.Where(x => x.Enabled), run.Grid.SatelliteLevel, c.Out.Notes)) + run.Pulse.SatelliteHalfWindowS() + memoryS,
+                c.Out.Elements.Where(x => x.Enabled).Sum(x => Math.Abs(x.ProgrammedGddS2)));
             if (run.Grid.TailEnabled) c.Out.Notes.Add("grid.tail: ghosts, echoes and other satellites are carried on the long tail grid; the main window is sized for the pulse only.");
             c.Out.GridPlan = plan;
             c.Out.Notes.AddRange(plan.Notes);
@@ -1656,6 +1749,7 @@ namespace UltrafastEngine.Engine
         public ProvenanceLog Provenance { get; internal set; }
         public double Omega0 { get; internal set; }
         public List<string> Warnings { get; internal set; }
+        public List<string> Notes { get; internal set; }
         /// <summary>Carrier arriving on an element's input port, from what feeds it (rad/s); NaN if that is not compiled yet.</summary>
         internal Func<string, string, double> FedCarrier;
         /// <summary>Lab tilt (rad, x) arriving on an input port, and on the element's main input.</summary>

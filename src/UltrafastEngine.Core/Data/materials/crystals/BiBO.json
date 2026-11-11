@@ -1,0 +1,67 @@
+{
+  "file": "BiBO",
+  "id": "BiBO",
+  "kind": "crystal",
+  "listOrder": 7,
+  "aliases": [
+    "bib3o6"
+  ],
+  "displayName": "BiBO",
+  "opticalClass": "biaxial",
+  "temperatureDependent": false,
+  "references": "indices (n_alpha, n_beta, n_gamma as x, y, z): Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007); n2: Kabacinski et al. (refractiveindex.info); d tensor not built in (monoclinic): give deffPmPerV",
+  "description": "bismuth triborate, biaxial (monoclinic: no d tensor built in)",
+  "quantities": {
+    "indexX": {
+      "model": "riiFormula4",
+      "coefficients": [3.07403, 0.03231, 0, 0.03163, 1, 0, 0, 0, 1, -0.013376, 2],
+      "validRangeUm": [0.48, 3.1],
+      "citation": "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (refractiveindex.info BiB3O6/Umemura-alpha)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page BiB3O6_Umemura-alpha (formula 4, 11 coefficients)"
+    },
+    "indexY": {
+      "model": "riiFormula4",
+      "coefficients": [3.1694, 0.03717, 0, 0.03483, 1, 0, 0, 0, 1, -0.01827, 2],
+      "validRangeUm": [0.48, 3.1],
+      "citation": "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (refractiveindex.info BiB3O6/Umemura-beta)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page BiB3O6_Umemura-beta (formula 4, 11 coefficients)"
+    },
+    "indexZ": {
+      "model": "riiFormula4",
+      "coefficients": [3.6545, 0.05112, 0, 0.03713, 1, 0, 0, 0, 1, -0.02261, 2],
+      "validRangeUm": [0.48, 3.1],
+      "citation": "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007)",
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007) (refractiveindex.info BiB3O6/Umemura-gamma)",
+      "status": "verified",
+      "verification": "agrees with the coefficients of the fetched page BiB3O6_Umemura-gamma (formula 4, 11 coefficients)"
+    },
+    "n2": {
+      "valueM2PerW": 7.65e-20,
+      "source": "Kabacinski et al. (via refractiveindex.info), as cited by the original code; not re-read",
+      "status": "unverified",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "wavelengthM": 8e-07
+      }
+    },
+    "validity": {
+      "validRangeUm": [0.48, 3.1],
+      "source": "Umemura, Miyata & Kato, Opt. Mater. 30, 532 (2007)",
+      "status": "approximate",
+      "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    }
+  }
+}

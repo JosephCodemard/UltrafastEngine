@@ -1,0 +1,31 @@
+{
+  "id": "TGG",
+  "kind": "solid",
+  "listOrder": 30,
+  "aliases": [],
+  "description": "Terbium gallium garnet (Faraday rotator)",
+  "notes": "dispersion fitted to the Schlarb & Sugg 1994 table (0.40-1.18 um, approximate); n2 not set (give one: the B-integral of an isolator matters)",
+  "quantities": {
+    "index": {
+      "model": "sellmeier",
+      "referenceMedium": "air",
+      "name": "TGG, single-pole fit to Schlarb & Sugg 1994",
+      "a": 1.24206176,
+      "b": [2.49181577],
+      "poleUm2": [0.01959882],
+      "validRangeUm": [0.40466, 1.17668],
+      "conditions": {
+        "temperatureK": 293.15
+      },
+      "source": "least-squares fit of n^2 = A + B l^2/(l^2 - C) to the nine measured points of U. Schlarb and B. Sugg, Phys. Status Solidi B 182, K91 (1994) (refractiveindex.info main/Tb3Ga5O12/Schlarb, 0.40466-1.17668 um, 20 C): largest deviation 6.6e-4",
+      "status": "approximate",
+      "uncertainty": "fit residual 6.6e-4 inside the measured range; extrapolation outside 0.40-1.18 um is not backed by data. The previous two-point fit (A = 1, B = 2.7769, C = 0.01656) was 0.011 away from the table at 1.08 um."
+    },
+    "n2": {
+      "valueM2PerW": 0.0,
+      "source": "not set: no value was entered for this material (give one if it matters)",
+      "status": "unverified",
+      "uncertainty": "0 means not set, not a measured zero"
+    }
+  }
+}

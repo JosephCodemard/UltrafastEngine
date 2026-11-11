@@ -134,6 +134,50 @@ namespace UltrafastEngine.Tests
             finally { Directory.Delete(dir, true); }
         }
 
+        [Test(Reference = "a measured scene of one row (what a '1-D' scene saved at y = (j - ny/2) dx with ny = 1 is: its row is at y = -dx/2) reproduces on a grid with ny = 1, 4 and 128 the same x profile as a full map: radius w of the Gaussian and w sqrt(2) after one Rayleigh length", Tolerance = "radius 1 %, w(z_R) 2 %")]
+        public void MeasuredScene_OfOneRow_IsConstantAlongY_OnGridsWithAnyNy()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "uf-nearfield-ny-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(dir);
+            try
+            {
+                double w = 0.5e-3, zr = Math.PI * w * w / Lam, dx = 6e-3 / 200; int n = 200;
+                var ax = Enumerable.Range(0, n).Select(i => (i - n / 2) * dx).ToArray();
+                var fl = ax.Select(x => 7 + 100 * Math.Exp(-2 * x * x / (w * w))).ToArray();
+                string f = Path.Combine(dir, "row.npz");
+                NpzWriter.Write(f, new[] { new NdArray("x_m", ax, n), new NdArray("y_m", new[] { -dx / 2 }, 1), new NdArray("fluence", fl, n, 1) });
+                var ini = O("kind", "measured", "file", f, "background", "auto");
+                foreach (int ny in new[] { 1, 4, 128 })
+                {
+                    JsonObject G(bool init) { var g = O("model", "cartesian", "nx", 128, "ny", ny, "halfWidthM", 3e-3, "absorbingBoundary", true, "spectralSamples", 4); if (init) g.Set("initialProfile", ini); return g; }
+                    var r = Go(Sys(Source(G(true)), Free("z", zr, G(false))), Pulse());
+                    Assert.Close(w, Rec(r, "src").BeamRadiusXM, 0.01, 0, "radius of the row, ny = " + ny);
+                    Assert.Close(w * Math.Sqrt(2), Rec(r, "z").BeamRadiusXM, 0.02, 0, "w(z_R), ny = " + ny);
+                }
+            }
+            finally { Directory.Delete(dir, true); }
+        }
+
+        [Test(Reference = "a mask file of one row is constant along y: a transmission of 0.5 everywhere passes 0.25 of the energy on a grid with ny = 1 and ny = 4", Tolerance = "1e-9")]
+        public void MaskFile_OfOneRow_IsConstantAlongY()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "uf-mask-ny-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(dir);
+            try
+            {
+                double dx = 6e-3 / 128; int n = 128;
+                var ax = Enumerable.Range(0, n).Select(i => (i - n / 2) * dx).ToArray();
+                string f = Path.Combine(dir, "mask.npz");
+                NpzWriter.Write(f, new[] { new NdArray("x_m", ax, n), new NdArray("y_m", new[] { -dx / 2 }, 1), new NdArray("amplitude", Enumerable.Repeat(0.5, n).ToArray(), n, 1) });
+                foreach (int ny in new[] { 1, 4 })
+                {
+                    var g = Line(128, 3e-3, O("kind", "gaussian", "radiusM", 0.5e-3)); g.Set("ny", ny);
+                    var gm = Line(128, 3e-3); gm.Set("ny", ny);
+                    var r = Go(Sys(Source(g), O("id", "m", "type", "mask", "kind", "file", "file", f), Free("z", 0.0, gm)), Pulse());
+                    Assert.Close(0.25, Rec(r, "m").Values["transmission"], 1e-9, 0, "energy transmission, ny = " + ny);
+                }
+            }
+            finally { Directory.Delete(dir, true); }
+        }
+
         [Test(Reference = "Fresnel zone plate: amplitude on the axis 2 N_open U0, intensity 4 N_open^2 I0; binary phase plate 16 N_open^2 I0 (Born & Wolf 8.8)", Tolerance = "5 %")]
         public void ZonePlate_FocusesAtItsFocalLength_AmplitudeAndBinaryPhase()
         {

@@ -81,7 +81,7 @@ Docs: docs/index.md   Examples: docs/examples/";
                     case "materials": return MaterialsCommand(args.Skip(1).ToArray());
                     case "reference":
                     {
-                        string md = Schema.ReferenceGenerator.Markdown(), o = Opt(args, "-o");
+                        string md = Positional(args.Skip(1).ToArray()).FirstOrDefault() == "materials" ? Materials.CatalogueReference.Markdown() : Schema.ReferenceGenerator.Markdown(), o = Opt(args, "-o");
                         if (o == null) Console.WriteLine(md); else { File.WriteAllText(o, md); Console.WriteLine("wrote " + o); }
                         return 0;
                     }

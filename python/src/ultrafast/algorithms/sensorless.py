@@ -29,19 +29,38 @@ class OptimiserResult:
     iterates: List[np.ndarray] = field(default_factory=list)
 
 
-def spgd(metric: Callable[[np.ndarray], float], x0: np.ndarray, *, iterations: int = 200, gain: float = 1.0, amplitude: float = 0.1, seed: int = 0,
-         maximise: bool = True, keep_iterates: bool = False) -> OptimiserResult:
-    """x <- x + gain (J(x + d) - J(x - d)) d for a maximised metric J, d_i = +-``amplitude`` (Bernoulli, independent per channel). Two metric evaluations
-    per iteration (plus one to log the history). ``gain`` is in units of 1 / metric: the expected step along the gradient is 2 gain amplitude^2 grad J."""
+#: Default of :func:`spgd`'s normalised step: the largest step of one channel in one iteration, in units of ``amplitude`` (measured plateau 0.3 to 1.0, see docs/plugins/ao.md).
+SPGD_DEFAULT_STEP = 0.4
+
+
+def spgd(metric: Callable[[np.ndarray], float], x0: np.ndarray, *, iterations: int = 200, gain: Optional[float] = None, amplitude: float = 0.1, seed: int = 0,
+         maximise: bool = True, keep_iterates: bool = False, step: float = SPGD_DEFAULT_STEP, memory: float = 0.97) -> OptimiserResult:
+    """Stochastic parallel gradient descent for a maximised metric J: all channels are shaken at once by d_i = +-``amplitude`` (Bernoulli, independent per
+    channel) and the metric difference dJ = J(x + d) - J(x - d) drives the update. Two metric evaluations per iteration (plus one to log the history).
+
+    * ``gain=None`` (default): **scale-free**. x <- x + ``step`` (dJ / S) d with S the largest |dJ| of the last ~1 / (1 - ``memory``) iterations (a decaying
+      maximum), so the step of a channel never exceeds ``step`` x ``amplitude`` and shrinks by itself as the metric flattens. Multiplying the metric by any
+      positive number (or changing its units) gives the same iterates. ``step`` 0.3 to 1.0 reached at least 0.94 of the optimum on every test problem
+      (16- and 7-channel phase locking, a 6-mode Strehl, the engine's deformable-mirror focus); choose ``amplitude`` about a tenth of the length over
+      which the metric changes by a factor 2.
+    * ``gain`` a number: the classical update x <- x + gain dJ d, with ``gain`` in units of 1 / metric (the expected step along the gradient is
+      2 gain amplitude^2 grad J). It works only for one range of metric scales, which you must find by trial (a metric of 1e-3 needs a gain 1e6 times larger).
+    """
     rng = np.random.default_rng(seed)
     x = np.array(x0, float)
     sign = 1.0 if maximise else -1.0
     res = OptimiserResult(x.copy())
+    scale = 0.0
     for _ in range(iterations):
         d = amplitude * rng.choice([-1.0, 1.0], size=x.shape)
         jp, jm = metric(x + d), metric(x - d)
         res.evaluations += 2
-        x = x + sign * gain * (jp - jm) * d
+        dj = jp - jm
+        if gain is None:
+            scale = max(memory * scale, abs(dj))
+            x = x + sign * step * (dj / scale if scale > 0 else 0.0) * d
+        else:
+            x = x + sign * gain * dj * d
         res.history.append(float(metric(x))); res.evaluations += 1
         if keep_iterates:
             res.iterates.append(x.copy())

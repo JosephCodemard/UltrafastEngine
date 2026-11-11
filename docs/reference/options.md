@@ -94,7 +94,7 @@ The time/frequency grid (docs/reference/run-spec.md#grid).
 | `windowS` | number | s | 30 x the transform limit | Time window |
 | `windowPs` | number | ps |  | Time window in ps |
 | `maxN` | integer |  | 4194304 | Largest allowed n |
-| `snapCarrier` | boolean |  | true | Put the carrier on the frequency grid |
+| `snapCarrier` | boolean |  | true | Put the carrier on the frequency grid. A cw source is not snapped (its line sits on centerWavelengthM) unless this is written |
 | `spectralMargin` | number |  | auto | Spectral span factor |
 | `minSpanFraction` | number |  | 0.1 | Nonlinear runs: minimum half-span / carrier |
 | `minPointsPerFwhm` | number |  | 12 | Samples across the transform-limited FWHM |
@@ -117,6 +117,8 @@ Physics switches (docs/reference/run-spec.md#physics).
 | `fieldMode` | `"auto"` \| `"envelope"` \| `"carrier"` |  | auto | Envelope or carrier-resolved (real field) propagation |
 | `fieldHarmonic` | number |  | 3 | Highest harmonic the carrier-resolved grid holds |
 | `absoluteIndex` | boolean |  | true | Add air dispersion to air paths quoted relative to air |
+| `strictMaterialsAllow` | array |  |  | Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. "CS2.n2") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as "CS2" accepts all its quantities |
+| `strictMaterials` | boolean |  | false | Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same |
 | `polarization` | `"jones"` \| `"scalar"` |  | jones | Jones (two polarisations) or scalar |
 | `losses` | boolean |  | true | false removes flat loss terms |
 | `beamTracking` | any |  | "auto" | Gaussian beam (q) tracking: "auto" (on with a Gaussian inputBeam), "on", "off" |
@@ -1293,7 +1295,7 @@ Keys of gain and amplifier elements.
 | `beam` | model (beam) |  |  | Signal beam |
 | `modeRadiusM` | number | m |  | Signal 1/e^2 radius (mode area pi w^2 / 2) |
 | `transverse` | object (`transverse`) |  |  | Spatial gain |
-| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens) |
+| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence: a lumped depolarisation, or the four-lobed pattern on a cartesian transverse grid (docs/reference/gain.md#thermal-lens) |
 | `slices` | integer |  | 24 | Slices along z |
 | `segments` | integer |  | auto | Time-ordered saturation groups |
 | `spm` | boolean |  | true | SPM of the host |
@@ -1303,6 +1305,7 @@ Keys of gain and amplifier elements.
 | `dopingProfile` | model (field) |  |  | Position-dependent doping factor |
 | `ase` | boolean |  | false | Seed amplified spontaneous emission (1-D) |
 | `aseSeed` | integer |  |  | ASE random seed |
+| `aseModel` | any |  | false | true / false or {solidAngleSr, polarizations, points, bandLowerM, bandUpperM}: inter-pulse ASE in both directions over the inversion lifetime; it depletes the inversion between pulses and reports the ASE power in the signal mode (docs/reference/gain.md#ase) |
 | `temperatureK` | number | K |  | Crystal temperature |
 | `dopingDensityM3` | number | 1/m^3 |  | Doping density (overrides the medium's) |
 
@@ -1894,6 +1897,8 @@ Photo-ionisation and plasma (docs/reference/ionization.md).
 | `collisionTimeS` | number | s |  | Electron collision time |
 | `recombinationTimeS` | number | s |  | Recombination / trapping time |
 | `recombinationBetaM3PerS` | number | m^3/s |  | Two-body recombination |
+| `electronDensityM3` | number | 1/m^3 | 0 | Free-electron density present before the pulse (a prepared plasma) |
+| `frequencyResolved` | boolean |  | true | Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only |
 | `avalanche` | boolean |  | true for solids | Avalanche (impact) ionisation |
 | `absorption` | boolean |  | true | Plasma and ionisation losses |
 | `species` | string |  |  | Gas species (when the material does not say) |

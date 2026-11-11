@@ -1,0 +1,32 @@
+{
+  "id": "linAgrawal",
+  "kind": "raman",
+  "aliases": [],
+  "description": "Fused silica with boson peak",
+  "quantities": {
+    "response": {
+      "model": "linAgrawal",
+      "tau1S": 1.22e-14,
+      "tau2S": 3.2e-14,
+      "taubS": 9.6e-14,
+      "fa": 0.75,
+      "fb": 0.21,
+      "fc": 0.04,
+      "source": "Q. Lin and G. P. Agrawal, Opt. Lett. 31, 3086 (2006); pyNLO's 'full' model uses the same numbers",
+      "status": "approximate",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "host": "fused silica"
+      }
+    },
+    "ramanFraction": {
+      "value": 0.245,
+      "source": "Q. Lin and G. P. Agrawal, Opt. Lett. 31, 3086 (2006)",
+      "status": "approximate",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "host": "fused silica"
+      }
+    }
+  }
+}

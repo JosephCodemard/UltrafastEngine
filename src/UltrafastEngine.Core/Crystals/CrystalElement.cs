@@ -753,7 +753,7 @@ namespace UltrafastEngine.Crystals
             el.Output = j.GetString("output", null);
             if (j.Has("record")) el.Record = new HashSet<string>(j["record"].AsStringArray(), StringComparer.OrdinalIgnoreCase);
             el.DeffOverride = j.Has("deffPmPerV") ? c.Num(e, "deffPmPerV", 0) * 1e-12 : double.NaN;
-            if (!double.IsNaN(el.DeffOverride)) crystal.DeffOverrideMPerV = el.DeffOverride;
+            if (!double.IsNaN(el.DeffOverride)) { crystal.DeffOverrideMPerV = el.DeffOverride; crystal.Used.Remove("d"); }
             el.SeedNoise = j.GetBool("seedNoise", false);
             el.SpectralMargin = c.Num(e, "spectralMargin", 2.5);
             if (!(el.SpectralMargin >= 1.2)) throw new JsonException("crystal '" + e.Id + "': spectralMargin must be >= 1.2");
@@ -945,6 +945,7 @@ namespace UltrafastEngine.Crystals
             }
             ce.Active = el;
             c.Provenance.Record("element:" + e.Id, "crystal", crystal.Describe() + "; " + crystal.References, ModelSource.MaterialDefault, "crystal library");
+            foreach (var q in crystal.Used.Values) c.Provenance.UseCatalogue("element:" + e.Id, q.Name, q, crystal.Name, c.Notes);
             c.Provenance.Record("element:" + e.Id, "cut", string.Format(CultureInfo.InvariantCulture, "theta {0:F4} deg, phi {1:F3} deg{2}, roles {3}", el.ThetaRad * 180 / Math.PI, el.PhiRad * 180 / Math.PI,
                 el.NoncollinearRad != 0 ? string.Format(CultureInfo.InvariantCulture, ", non-collinear {0:F3} deg", el.NoncollinearRad * 180 / Math.PI) : "", string.Join("/", el.Roles)),
                 autoCut ? ModelSource.EngineDefault : ModelSource.SystemData, autoCut ? "phase matched at the nominal wavelengths (cut \"auto\")" : "system file");

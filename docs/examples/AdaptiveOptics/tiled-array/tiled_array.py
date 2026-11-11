@@ -54,13 +54,14 @@ def run():
         D = tau[:, None] - tau[None, :]
         rows.append({"rms_fs": rms * 1e15, "engine": v[c, c] / refp[c, c], "formula": float(np.exp(-np.log(2) * D ** 2 / TP ** 2).sum() / 49)})
     out["delay"] = rows
-    # SPGD locking, 128 x 128 cells so that every trial is quick
-    refl, _, _ = focus(array(1), cw, n=128)
+    # SPGD locking, 128 x 128 cells so that every trial is quick. The lens is f = 1 m here: at f = 0.5 m the lens phase at the outer tiles (3.7 rad per cell at 3 mm) is
+    # under-sampled on 128 cells, the outer tiles reach the axis with other amplitudes and phases, and the zero-piston sum is not the maximum (1.015 x it, README)
+    refl, _, _ = focus(array(1), cw, n=128, f=1.0)
     phi0 = np.random.default_rng(3).uniform(0, 2 * np.pi, 7)
     cl = 64
 
     def metric(u):
-        return focus(array(1, piston_rad=(phi0 + u).tolist()), cw, n=128)[0][cl, cl] / refl[cl, cl]
+        return focus(array(1, piston_rad=(phi0 + u).tolist()), cw, n=128, f=1.0)[0][cl, cl] / refl[cl, cl]
     start = metric(np.zeros(7))
     t0 = time.time()
     lock = sensorless.spgd(metric, np.zeros(7), iterations=120, gain=10.0, amplitude=0.2, seed=1, keep_iterates=True)
@@ -85,7 +86,7 @@ def main():
     assert abs(ip["gain"] / 7 - 1) < 0.01 and abs(r["n61"]["gain"] / 61 - 1) < 0.02
     assert abs(ip["piston_ratio"] / ip["piston_theory"] - 1) < 0.01
     assert all(abs(d["engine"] / d["formula"] - 1) < 0.02 for d in r["delay"])
-    assert k["start"] < 0.3 and k["result"].history[-1] > 0.95
+    assert k["start"] < 0.3 and 0.95 < k["result"].history[-1] < 1.005, "the lock must reach the in-phase value and not exceed it (the zero-piston sum is the maximum when the lens is resolved)"
     print("checks passed")
 
 

@@ -40,6 +40,11 @@ import zipfile
 from base64 import urlsafe_b64encode
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import install as _installer            # the selection rules are shared with install.py
+import release_components as rc
+
 REPO = Path(__file__).resolve().parent.parent
 CORE = REPO / "src" / "UltrafastEngine.Core" / "UltrafastEngine.Core.csproj"
 CLI = REPO / "src" / "UltrafastEngine.Cli" / "UltrafastEngine.Cli.csproj"
@@ -250,8 +255,12 @@ class Builder:
         """Likewise the hitran plugin (gas lines)."""
         return [] if "hitran" in self.a.plugins else ["-p:UF_WITH_HITRAN=false"]
 
+    def _ao_flag(self):
+        """Likewise the ao plugin (deformable mirror, SLM, spectral shaper, AOPDF)."""
+        return [] if "ao" in self.a.plugins else ["-p:UF_WITH_AO=false"]
+
     def _compiled_in_flags(self):
-        return self._gpu_flag() + self._hitran_flag()
+        return self._gpu_flag() + self._hitran_flag() + self._ao_flag()
 
     def cpp(self, rid, root: Path):
         lib = self.aot(rid)
@@ -291,9 +300,9 @@ class Builder:
                 dst.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(self._hosted_wheel, dst / self._hosted_wheel.name)
         else:
-            left = [p for p in self.a.plugins if p not in ("gpu", "hitran")]
+            left = [p for p in self.a.plugins if p not in ("gpu", "hitran", "ao")]
             if left:
-                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel (gpu and hitran are compiled in); use --python-engine hosted to ship them" % ", ".join(left))
+                Log.warn("the native (NativeAOT) Python engine cannot load plugins at run time: %s are left out of the wheel (gpu, hitran and ao are compiled in); use --python-engine hosted to ship them" % ", ".join(left))
             w = self._wheel("native", rid)
             if w and not Log.dry:
                 dst.mkdir(parents=True, exist_ok=True)
@@ -672,6 +681,100 @@ copy /y "%ZOS%\ZOS-API\Libraries\ZOSAPI_NetHelper.dll" "%~dp0" >nul && echo Copi
 
 
 # ---------------------------------------------------------------------------------------------------- main
+# ---------------------------------------------------------------------------------------------------- release assets (--components)
+def _slice(root: Path, sub: str, keep=lambda rel: True, strip: str = "") -> list[tuple[str, Path]]:
+    """Files of a built folder as (archive path, file); ``sub`` is the folder inside ``root``, ZOS-API / symbol files never."""
+    base = root / sub
+    out = []
+    if base.exists():
+        for f in sorted(base.rglob("*")):
+            rel = f.relative_to(root).as_posix()
+            if f.is_file() and keep(rel) and not rc.forbidden(rel) and not any(fnmatch.fnmatch(f.name, pat) for pat in NEVER):
+                out.append((rel, f))
+    return out
+
+
+def build_release(a, builder: "Builder") -> Path:
+    """Write ``<out>/release-<version>/``: one ``<component>-<version>[-<platform>].tar.gz`` per selected component, ``manifest.json`` and
+    ``install.py``. Built components come from the same Builder steps as the single-folder packages; source components from ``git ls-files``."""
+    ver = builder.ver
+    defs = rc.definitions(REPO, list(PLUGINS))
+    chosen, _, _, notes = _installer.expand(defs, a.components, a.exclude)
+    for n in notes:
+        Log.warn(n)
+    names = sorted(chosen)
+    out = builder.out / ("release-" + ver)
+    print("release assets: %s" % ", ".join(names))
+    print("platforms (built components): %s" % ", ".join(a.rids))
+    if Log.dry:
+        for n in names:
+            print("  %-28s %s" % (n, "built" if defs[n]["kind"] == "built" else "from git"))
+        return out
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    assets: dict[str, list[dict]] = {}
+    files = rc.tracked_files(REPO)
+
+    def add(name, plat, fl):
+        if not fl:
+            Log.warn("component %s (%s) came out empty: not written" % (name, plat))
+            return
+        info = rc.write_asset(fl, out / rc.asset_name(name, ver, plat))
+        assets.setdefault(name, []).append(dict(platform=plat, **info))
+        print("  %-28s %-12s %9.2f MB" % (name, plat, info["size"] / 1e6))
+
+    for n in names:
+        if defs[n]["kind"] == "source":
+            add(n, "any", rc.collect(REPO, n, defs, files))
+    built = [n for n in names if defs[n]["kind"] == "built"]
+    done_any: set[str] = set()
+    for rid in a.rids:
+        stage = builder.cache / ("stage-" + rid)
+        stage.mkdir(parents=True, exist_ok=True)
+        per_rid = lambda n: defs[n].get("perPlatform") or n not in done_any    # platform-independent ones once
+        if "cli" in built:
+            builder.cli(rid, stage)
+            add("cli", rid, _slice(stage, "bin", lambda r: not r.startswith("bin/plugins/")))
+        for n in [n for n in built if n.startswith("plugins.")]:
+            if per_rid(n):
+                builder.build_plugins()
+                pid = n.split(".", 1)[1]
+                src = REPO / "artifacts" / "plugins" / pid
+                fl = [("bin/plugins/%s/%s" % (pid, f.relative_to(src).as_posix()), f) for f in sorted(src.rglob("*"))
+                      if f.is_file() and not rc.forbidden(f.name) and "tools" not in f.relative_to(src).parts and not f.name.endswith(".pdb")]
+                add(n, "any", fl); done_any.add(n)
+        if "csharp" in built and per_rid("csharp"):
+            builder.csharp(rid, stage)
+            add("csharp", "any", _slice(stage, "csharp")); done_any.add("csharp")
+        if "python" in built and per_rid("python"):
+            a.python_engine = "hosted"
+            builder.python(rid, stage)
+            add("python", "any", _slice(stage, "python", lambda r: r.endswith(".whl"))); done_any.add("python")
+        if "python-native" in built:
+            a.python_engine = "native"
+            nstage = builder.cache / ("stage-native-" + rid)
+            builder.python(rid, nstage)
+            add("python-native", rid, _slice(nstage, "python", lambda r: r.endswith(".whl")))
+        if "cpp" in built:
+            builder.cpp(rid, stage)
+            add("cpp", rid, _slice(stage, "cpp"))
+        if "zemax" in built:
+            builder.zemax(rid, stage)
+            add("zemax", rid, _slice(stage, "zemax"))
+    m = rc.manifest(ver, assets, defs)
+    # only components that were asked for are kept in the manifest (the rest of the registry is not part of this release)
+    keep = set(names) | {c for c in m["components"] if any(c.startswith(x + ".") for x in names)}
+    m["components"] = {c: v for c, v in m["components"].items() if c in keep}
+    (out / "manifest.json").write_text(json.dumps(m, indent=1), encoding="utf-8")
+    shutil.copy2(REPO / "install.py", out / "install.py")
+    bad = rc.check_archives([out])
+    if bad:
+        raise SystemExit("ZOS-API files found in the release (Ansys property, never packaged): " + ", ".join(bad))
+    print("manifest: %s (%d components, ZOS-API check clean)" % (out / "manifest.json", len(m["components"])))
+    return out
+
+
 def parse(argv):
     ap = argparse.ArgumentParser(prog="build", description="Compile and package UltrafastEngine release folders (docs/releasing.md).",
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -682,6 +785,11 @@ def parse(argv):
     ap.add_argument("--csharp", action="store_true", help="UltrafastEngine.Core.dll (net10.0, net48) + plugin assemblies")
     ap.add_argument("--zemax", action="store_true", help="OpticStudio extension (Windows; needs your ZOS-API; on by default with the zemax plugin and --all)")
     ap.add_argument("--all", action="store_true", help="every component")
+    ap.add_argument("--components", nargs="*", default=None, metavar="NAME",
+                    help="release assets: one .tar.gz per component and platform + manifest.json + install.py in <out>/release-<version>/ "
+                         "(names: docs/releasing.md, e.g. cli python plugins examples.Branched media tests; 'all' = all but media). "
+                         "--cli --python --cpp --csharp --zemax --examples --docs add their component names")
+    ap.add_argument("--exclude", nargs="*", default=None, metavar="NAME", help="with --components: names to leave out")
     ap.add_argument("--plugins", nargs="*", default=None, metavar="ID", help="plugins to include: fitting (alias transform), zemax, all, none (default: all)")
     ap.add_argument("--platform", "--platforms", nargs="*", default=None, dest="platforms", metavar="RID", help="target platforms (default: this machine)")
     ap.add_argument("--framework-dependent", action="store_true", help="CLI needs an installed .NET 10 runtime (smaller; default: self-contained)")
@@ -701,9 +809,16 @@ def parse(argv):
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args(argv)
     a.self_contained = not a.framework_dependent
+    a.release_mode = a.components is not None
+    if a.release_mode:      # the old flags are aliases for component names
+        extra = [n for n, on in (("cli", a.cli), ("python", a.python), ("cpp", a.cpp), ("csharp", a.csharp), ("zemax", a.zemax),
+                                 ("examples", a.examples), ("docs", a.docs), ("all", a.all)) if on]
+        a.components = list(a.components) + extra
+        if not a.components:
+            ap.error("--components needs at least one name (see docs/releasing.md)")
     if a.all:
         a.cli = a.python = a.cpp = a.csharp = a.zemax = True
-    if not (a.cli or a.python or a.cpp or a.csharp or a.zemax):
+    if not (a.cli or a.python or a.cpp or a.csharp or a.zemax or a.release_mode):
         a.cli = True
     # plugins
     names = ["all"] if a.plugins is None else (a.plugins or ["none"])
@@ -756,6 +871,16 @@ def main(argv=None):
         print("           C API and native Python only for %s targets (NativeAOT does not cross-compile between OSes)." % host_os())
         return 0
     b = Builder(a)
+    if a.release_mode:
+        try:
+            build_release(a, b)
+        finally:
+            shutil.rmtree(b.cache, ignore_errors=True)
+        if Log.warnings:
+            print("\n%d warning(s):" % len(Log.warnings))
+            for w in Log.warnings:
+                print("  - " + w)
+        return 0
     print("UltrafastEngine %s -> %s" % (b.ver, b.out))
     print("components: %s | plugins: %s | platforms: %s" % (
         ", ".join(k for k in ("cli", "python", "cpp", "csharp", "zemax") if getattr(a, k)), ", ".join(a.plugins) or "none", ", ".join(a.rids)))

@@ -39,6 +39,7 @@ nav:
       - Run spec: reference/run-spec.md
       - Models & overrides: reference/models.md
       - Materials: reference/materials.md
+      - Material catalogue (sources, status): reference/materials-catalogue.md
       - Gases (rotational Raman): reference/gases.md
       - Surfaces, losses, polarisation: reference/coatings.md
       - Optical components: reference/components.md
@@ -88,11 +89,8 @@ nav:
   - Releasing (build.sh): releasing.md
   - Design notes:
       - Development history: design/history.md
-      - Branched systems (design): design/branching.md
-      - "Plan: what is next": design/plan-next.md
-      - "Assessment: adaptive optics and digital twin": design/plan-ao-digital-twin-2026-11.md
-      - "Roadmap: adaptive optics, shaping, digital twin": design/roadmap-ao-twin-2026-11.md
-      - "Plan: November 2026 fixes (done)": design/plan-fixes-2026-11.md
+      - "Next steps": design/next-steps.md
+      - "Backlog (parked design)": design/backlog.md
 markdown_extensions:
   - admonition
   - tables

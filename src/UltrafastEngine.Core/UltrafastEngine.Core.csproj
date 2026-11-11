@@ -16,6 +16,8 @@
   <ItemGroup>
     <!-- bundled refractiveindex.info pages (CC0): resource name = prefix + relative path with '/' -->
     <EmbeddedResource Include="Data\refractiveindex\**\*.yml" LogicalName="UltrafastEngine.Data.refractiveindex.$([System.String]::Copy('%(RecursiveDir)').Replace('\','/'))%(Filename)%(Extension)" />
+    <!-- the material catalogue (one JSON file per material, gas or Raman model, with sources): resource name = prefix + relative path with '/' -->
+    <EmbeddedResource Include="Data\materials\**\*.json" LogicalName="UltrafastEngine.Data.materials.$([System.String]::Copy('%(RecursiveDir)').Replace('\','/'))%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="UltrafastEngine.Tests" />

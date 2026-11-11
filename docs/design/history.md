@@ -114,8 +114,6 @@ Done in this order, each stage building on the one before: review of tests with 
 
 ## Stage 5 -- branched systems  (from 2026-10-30)
 
-Plan: [branching.md](branching.md).
-
 - [x] Ports on all element types, `PathLedger`, `SystemGraph` with verification, Sequential and Branched forms
 - [x] Interference in 1-D, packets, loops, crystal ports, `beamSplitter`, `delay`, virtual inputs
 - [x] An independent physics review of the T1 and T2 work, with its findings fixed
@@ -129,10 +127,26 @@ Every spatial model and the branched interferometers were compared with LightPip
 - [x] Tests: `test_lightpipes.py`, `test_pynlo_branched.py`, `ReviewRegressionTests`
 - [x] Examples 32 to 34 moved to the Python API; 35 to 38 added; tutorial files moved to `docs/tutorials/files/`
 
-## After 2.0 (plugins and breadth)
-- [ ] Live-data plugin (streamed recordings, a digital twin that re-fits as data arrive)
-- [ ] ML / PINN estimator and surrogate plugins
-- [ ] Wheels for Windows/macOS/Linux on PyPI, NuGet package for the core
-- [ ] OpticStudio User Extension (menu-integrated) in addition to the Interactive Extension
+## Stage 7 -- adaptive optics, temporal shaping and the digital twin  (2026-11-09 to 10; five sessions S1-S5, merged to `main`)
 
-Ideas and priorities are tracked in issues; contributions welcome (CONTRIBUTING.md).
+Owner decisions: transverse shaping first, temporal shaping too; "Zernike" means modes; the fibre array is a coherent tiled-aperture array; every device is parametric (no vendor models);
+up to a full 1920 x 1080 SLM; the twin is its own plugin on top of fitting; CI on Linux (x64, arm64) and Windows, macOS by hand; Apache-2.0.
+
+- [x] **S1 foundation:** Python package split by what things are (shims keep every 2.2.0 name), `ultrafast.plotting` with one theme and `animate`, Zernike decomposition, examples regrouped into folders with `make_all.py` / `make_figures.py`, gallery generator
+- [x] **S2 core:** `modulator` element (cells, fill factor, gaps, quantisation, cross-talk, chromatic rules), in-memory maps, `transverse.frequencyBlock`, `outputs.keepProfiles`, coherent tile source, slope maps from `wavefrontSensor`; scale spikes (a 1920 x 1080 panel runs; the memory peak is the .NET GC, 2.7-3.4 GB)
+- [x] **S3 `ao` plugin:** `deformableMirror`, `slm`, `spectralShaper`, `aopdf`; `ultrafast_ao` (DM bench, tiled array, combining metrics); holography, control and sensorless algorithms; a physics review (15 findings, 9 fixed)
+- [x] **S4 fitting and twin:** fitting across conditions (held-out conditions, `dependence` kinds up to network, surfaces), the `twin` plugin (project, validation, planner, what-if, drift tracker, goals, benchmark)
+- [x] **S5 examples and docs:** 7 AdaptiveOptics, 2 DigitalTwin, 3 Fibres examples; twin docs
+
+## Stage 8 -- closing gaps toward the first release  (2026-11-11; sessions A-F on `dev/2026-11`)
+
+- [x] **WP0 (A):** `UF_WITH_AO` in the native library, grid-planner hook for shaper side pulses (widens the window or warns), unknown-element message names `ao`, tests for Littrow dispersion, Bolduc and double phase through an SLM, tiled-array lobe fractions
+- [x] **WP1 (B) thermal lenses in beam tracking:** distributed (quadratic-index) lens in the ABCD tracker, applied per pass in multipass and per round trip in regenerative amplifiers, effective focal length reported
+- [x] **WP4 (B) plasma in envelope mode:** frequency-resolved Drude operator (`ionization.frequencyResolved`, default true), `electronDensityM3` for a prepared plasma; envelope against carrier-resolved within 1.2 % (blue shift) for MPI. The frequency-resolved shift is up to 5 % below the single-carrier formula for a 30 fs pulse at 1030 nm (the component check states both)
+- [x] **WP2 (D) gain:** `aseModel` (steady-state forward / backward ASE per transverse cell and frequency, depletes the inversion between pulses; checked against n_sp h nu dnu (G-1), Frantz-Nodvik, saturated-amplifier law, cw photon balance); four-lobed stress-birefringence Jones map on cartesian grids (beam average equals the lumped value to 1e-6)
+- [x] **WP3 (C) material catalogue:** all material, gas, Raman, gain and chi(2) data in embedded JSON with source, status and uncertainty; runs list every `approximate` / `unverified` value used (`summary.json` `unverifiedInputs`); `physics.strictMaterials`; TGG index refitted to the Schlarb-Sugg table (old fit up to 0.0106 off); 43 of 183 quantities `verified`; the YVO4 vendor sets stay (5e-4 / 9e-4 from Shi et al. 2001, recorded)
+- [x] **WP5 (A) decisions:** no compile cache (a 128 x 128 trial costs 10 ms including compile), no full streaming executor (revisit for 4096 x 4096), tiles checked against a Branched balanced tree in a test; triggers in `docs/reference/speed.md`
+- [x] **WP6/WP7 (A, E) findings:** `ny = 1` grids; cw line built at the requested carrier (cw against pulse agree to 1e-9); SPGD gain normalised by the running maximum (default reaches >= 0.9 over metric scales 1e-3 to 1e3; Spall sequences not built); Raman soliton shift rate explained (Gordon's first-moment approximation; engine within 2 % of the exact-gain rate and 0.3 % of pyNLO); SLM against Fourier explained (panel half a pixel off the grid; new warning); tiled-array reference explained (under-sampled lens, lock now at f = 1 m)
+- [x] **WP8 (F) release system:** components and manifest, `install.py` (release and git sources, install, add, upgrade, uninstall), packager `--components`, ZOS-API gate, `release.yml`, 23 tests (see [releasing](../releasing.md))
+- [x] **Polish:** README picture grid and contact badge, logo palette and banner on every docs page, CI timeouts and apt retries, plasma component check split into carrier and frequency-resolved rows
+- [x] **Follow-up (PR #1):** avalanche / inverse-bremsstrahlung double count fixed; catalogue defaults for user gain media and solids without data; `strictMaterialsAllow`; partial-override notes; Keldysh far-wing NaN. Spall gain sequences judged unnecessary (the running-maximum normalisation covers the range 1e-3 to 1e3)

@@ -1,0 +1,39 @@
+{
+  "id": "blowWood",
+  "kind": "raman",
+  "aliases": [
+    "silica"
+  ],
+  "description": "Fused silica, single damped oscillator",
+  "quantities": {
+    "response": {
+      "model": "dampedOscillator",
+      "tau1S": 1.22e-14,
+      "tau2S": 3.2e-14,
+      "source": "K. J. Blow and D. Wood, IEEE J. Quantum Electron. 25, 2665 (1989); the constants 12.2 fs and 32 fs are the ones in common use for fused silica",
+      "status": "approximate",
+      "relativeUncertainty": 0.1,
+      "conditions": {
+        "host": "fused silica"
+      }
+    },
+    "ramanFraction": {
+      "value": 0.18,
+      "source": "Blow-Wood / Agrawal, Nonlinear Fiber Optics: fR = 0.18 for fused silica; Lin and Agrawal (2006) give 0.245 with the boson peak",
+      "status": "approximate",
+      "relativeUncertainty": 0.2,
+      "conditions": {
+        "host": "fused silica"
+      }
+    },
+    "anisotropicFraction": {
+      "value": 0.25,
+      "source": "anisotropic share of the Raman response (Lin and Agrawal fb + fc = 0.25), from the measured depolarisation of the Raman spectrum",
+      "status": "approximate",
+      "relativeUncertainty": 0.3,
+      "conditions": {
+        "host": "fused silica"
+      }
+    }
+  }
+}

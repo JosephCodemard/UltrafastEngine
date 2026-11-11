@@ -75,6 +75,14 @@ wavelength it is scaled by the liquid crystal's dispersion.
 | `crosstalkSigmaCells`, `crosstalkKernel` | pixels | 0 | fringing field |
 | `zeroOrderLeak` | | 0 | amplitude that passes unmodulated |
 
+**Placement on the engine's grid.** The simulation grid has a sample on the axis (`x = (i - nx/2) dx`); an even panel centred on the axis has a pixel *edge* there. With a
+pixel pitch equal to the grid step and `offsetXM = offsetYM = 0`, every grid cell therefore lies half on one pixel and half on the next and takes their average. A blaze of P pixels per
+period then keeps only `cos^2(pi / P)` of its light (0.854 at P = 8, 0.962 at P = 16), and a Fourier prediction of the written phase is off by the same amount. Set `offsetXM = offsetYM =
+-pitchM / 2` to put the pixel centres on the grid points: the same blaze then keeps all its light (1.0000, `test_slm_pixels_on_the_grid_points_...`) and the focal field equals an exact
+angular-spectrum propagation of the sampled field to 1 % (`docs/examples/AdaptiveOptics/slm-beam-shaping`). The engine warns ("averages two device cells") when the pitch equals the grid step
+and the cell edges fall on grid points. With a grid step of half the pitch or less the average over a pixel is the physical pixel structure and no shift is needed. The engine's absorbing edge removes the replica orders
+that a periodic grid would wrap round the window: compare with a periodic reference only inside the window, or switch the absorbing edge off for the comparison.
+
 **Chromatic model.** The 2 pi reset written at the design wavelength `lambda_d` is `2 pi s(lambda)` at `lambda`, with
 `s = lambda_d dn(lambda) / (lambda dn(lambda_d))`. A blazed ramp of period `n` pixels then sends the fraction `sinc^2(1 - s)` into the
 first order (and the rest into the zero and second orders). `dispersion: "none"` gives `s = lambda_d / lambda`. The pixel phases go to
@@ -103,7 +111,7 @@ A Fourier-plane mask of a 4f line. Frequency maps to position `x = D (2 pi c / o
 
 **The programmed delay stays in the transfer function**: a linear phase `tau (omega - omega_0)` moves the pulse by `tau` inside the time
 window; only the carrier phase is taken out of the frame, so the arrival-time bookkeeping is unchanged. A pixelated mask makes side
-pulses at `2 pi / (pixel bandwidth)`: **set `grid.windowS` to cover them**, the grid planner does not know about them (nor about a large programmed GDD, which stretches the pulse: nothing warns when the output wraps round the window). The spectral grid spacing is `2 pi / windowS`: keep at least ~10 samples per pixel, otherwise the sampled mask edges change the harmonics (a window of 8 ps with 1.6 ps side pulses, 5 samples per pixel, gave 2.5 % errors in the side pulses). With gaps (active
+pulses at `2 pi / (pixel bandwidth)`: the grid planner makes room for them (orders 1 to 8, each weighted by the spot-size factor `exp(-2 (pi m w0 / pitch)^2)`; a mask with no steps and no gaps adds none). It also stretches the window for a programmed `aopdf` GDD by `|GDD| x input bandwidth`, and for the `aopdf` delay and replica delay. With `grid.auto: false` and a window that is too small it **warns** that the output will wrap. The planner knows the programmed GDD of an `aopdf` only, not a quadratic phase written into the pixels of a `spectralShaper`: for that, set `grid.windowS`. The spectral grid spacing is `2 pi / windowS`: keep at least ~10 samples per pixel, otherwise the sampled mask edges change the harmonics (a window of 8 ps with 1.6 ps side pulses, 5 samples per pixel, gave 2.5 % errors in the side pulses). With gaps (active
 fraction `f`) the side pulses carry `[sin(pi f)/(pi f)]^2` of the main pulse (Weiner, Rev. Sci. Instrum. 71, 1929 (2000)).
 
 ## aopdf
@@ -139,7 +147,7 @@ of the aligned value (derivation: the overlap of two Gaussian envelopes shifted 
 | `sensorless` | `spgd`, `hill_climb`, `modal_search`, `transmission_matrix`, `focus_phases` | Vorontsov and Sivokon, JOSA A 15, 2745 (1998); Vellekoop and Mosk, Opt. Lett. 32, 2309 (2007) |
 
 Things measured while writing them (and stated in their tests): quantisation in the GS loop helps at 2 and 3 grey levels but **not** at 4
-or 8 on the test target; SPGD with `gain 20, amplitude 0.2` on 16 channels diverges (gain 10 locks to 1.000 on 10 of 10 seeds);
+or 8 on the test target; SPGD with the classical fixed gain 20 and `amplitude 0.2` on 16 channels diverges (gain 10 locks to 1.000 on 10 of 10 seeds), and a fixed gain that works at metric scale 1 does nothing at 1e-3 or 1e3 (see [SPGD gain](#spgd-gain));
 modal search climbs by one `bias` per sweep until the metric is concave, because a peak-type metric is convex far from the optimum;
 the phase-stepping transmission matrix recovers the phases exactly (mixed second difference: no reference arm, any output however
 dark) but the amplitudes only relative within a row.
@@ -155,14 +163,47 @@ dark) but the amplitudes only relative within a row.
 | SLM at other wavelengths (`AoDeviceTests`) | `s(lambda)` from the Cauchy law; the first-order coefficient with phases scaled by `s` |
 | phase target to the nearest level of a tanh curve (`AoDeviceTests`) | identical fields to 1e-12 |
 | 1920 x 1080, 256 levels (`AoDeviceTests`, slow) | S2 scale budget; erf product of the overfilling Gaussian |
+| grid-planner room for shaper side pulses and programmed GDD, warning on a fixed window (`AoDeviceTests.Planner_*`) | Weiner side-pulse delay `2 pi / d_omega`; Gaussian chirp formula; window >= 2 x the stretched pulse |
+| shaper grating dispersion at Littrow (`AoDeviceTests.SpectralShaper_GratingDispersion_*`) | `dx/dlambda = 2 f tan(theta) / lambda` |
 | aopdf delay, efficiency, GDD, window, replica (`AoDeviceTests`) | shift theorem; Diels and Rudolph chirp formula; erf of the cut spectrum |
 | spectral shaper side pulses and delay (`AoDeviceTests`) | Weiner; shift theorem |
 | Strehl, Maréchal; twin vs engine; fit residual vs actuators (`test_ao_plugin.py`) | exact on-axis field `|<a e^{i phi}>|^2`; `exp(-sigma^2)` |
 | one-shot correction, closed loop, modal search (`test_ao_plugin.py`) | twin prediction; `(1 - g)^k` |
 | tiled array N, pistons, delays, SPGD lock (`test_ao_plugin.py`) | `|sum e^{i phi}|^2 / N^2`; Gaussian envelope overlap |
+| Bolduc and double-phase maps through the `slm` element with a varying complex field (`test_ao_plugin.py`) | first order / low-frequency field = Fourier transform of illumination x `A e^{i phi}` (correlation > 0.99; energy against the same ratio of transforms, 3 %); the Bolduc energy is taken relative to an engine blaze of A = 1 because of the SLM efficiency finding: an 8-pixel blaze on a grid whose cells straddle the pixels keeps 0.85 of the light (explained and fixed by the half-pixel offset, see Placement on the engine's grid; this test keeps the ratio so that it needs no offset) |
+| SPGD default step: scale invariance (1e-9) and at least 0.9 of the optimum at metric scales 1e-3 .. 1e3, engine deformable-mirror focus (`test_ao_algorithms.py`, `test_ao_plugin.py`) | exact invariance; measured worst 0.98, 0.996, 0.994 |
+| SLM pixels on the grid points: a blaze keeps `cos^2(pi/P)` of its light half a pixel off the grid, all of it (1e-6) with the offset; the warning (`test_ao_plugin.py`) | exact sampled-field arithmetic |
+| tiled array: identical tiles reach the axis alike only when the lens is resolved (`test_ao_plugin.py`) | equal tiles, equal axis fluence (1e-3); unequal by 56 when the lens phase exceeds pi per cell |
+| tiled-array central and grating lobe fractions, in phase and with checkerboard pistons (`test_ao_plugin.py`) | array factor x Gaussian tile envelope on the engine's grid, 1e-3 (measured 2e-5) |
 | GS monotone, WGS uniformity, Bolduc first order, double phase (`test_ao_algorithms.py`) | Fienup 1982; Di Leonardo 2007; Bolduc 2013 |
 | Shack-Hartmann spot shift `f dW/dx`; modal fit exact; Southwell exact for quadratics and second-order convergent (`test_ao_algorithms.py`) | geometric optics; analytic |
 | transmission matrix and focusing enhancement `(pi/4)(N - 1) + 1` (`test_ao_algorithms.py`) | Vellekoop and Mosk 2007 (3000 outputs, tolerance 0.6 %) |
+
+## SPGD gain
+
+`sensorless.spgd(metric, x0, amplitude=...)` is **scale-free by default**: the update is `x += step (dJ / S) d`, where `d` is the random +-`amplitude` shake of all
+channels, `dJ = J(x + d) - J(x - d)` and `S` the largest `|dJ|` of the last ~33 iterations (`memory=0.97`). A channel therefore never moves by more than
+`step x amplitude` per iteration, the step shrinks by itself as the metric flattens, and multiplying the metric by any positive number gives the same iterates
+(a test checks this to 1e-9). Pass `gain=<number>` for the classical update `x += gain dJ d`, whose gain is in units of 1 / metric: it worked only in one range of
+metric scales and had to be found by trial (for the deformable-mirror example, gain 1.5 reached Strehl 0.64, 3 reached 0.95, 5 reached 0.80).
+
+Measured (10 seeds, worst final value over the optimum; `amplitude` 0.2 rad for locking, 0.05 for the Strehl peak):
+
+| `step` | 16-channel lock | 7-channel lock | 6-mode Strehl peak |
+|---|---|---|---|
+| 0.1 | 0.37 | 0.73 | 0.95 |
+| 0.2 | 0.83 | 1.00 | 1.00 |
+| **0.3** | 0.99 | 0.99 | 1.00 |
+| **0.4 (default)** | 0.98 | 1.00 | 0.99 |
+| **0.6** | 0.97 | 0.99 | 0.99 |
+| **1.0** | 0.94 | 0.96 | 0.97 |
+| 2.0 | 0.70 | 0.85 | 0.88 |
+
+At the default, the worst value is 0.982, 0.996 and 0.994 for metric scales 1e-3, 1 and 1e3 alike. The engine's deformable-mirror bench (six hidden aberration
+modes, camera peak as the only measurement, 80 iterations) reaches at least 0.9 on three seeds. How to choose: `amplitude` about a tenth of the length over which
+the metric changes by a factor of 2 (too large and the metric is not locally linear, too small and noise in a measured metric dominates), `step` between 0.3 and
+1; if the loop oscillates at the end, lower `step`; if the metric is noisy, raise `memory` towards 0.99 so that one lucky difference does not set the scale for long. Gain sequences that fall with the
+iteration number (Spall) are not implemented; the decaying maximum does the same job without a schedule.
 
 ## Limits
 
