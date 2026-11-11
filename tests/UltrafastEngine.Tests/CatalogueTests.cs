@@ -96,6 +96,21 @@ namespace UltrafastEngine.Tests
             Assert.Close(1.3777, N("MgF2", 0.5893), 1e-4, 0, "MgF2 ordinary at the sodium D line");
         }
 
+        [Test(Category = "materials", Reference = "Schlarb and Sugg, Phys. Status Solidi B 182, K91 (1994): measured n of TGG at 20 C (refractiveindex.info main/Tb3Ga5O12/Schlarb)", Tolerance = "1e-3")]
+        public void Tgg_Dispersion_FollowsTheMeasuredTable()
+        {
+            // the nine measured points (um, n relative to air); the fit's largest deviation is 6.6e-4. The previous two-point fit was 0.0106 away at 1.08 um.
+            double[,] table = { { 0.40466, 2.0178 }, { 0.43583, 2.0057 }, { 0.54607, 1.9765 }, { 0.63300, 1.9656 }, { 1.07981, 1.9434 }, { 1.08445, 1.9432 }, { 1.14091, 1.9420 }, { 1.15228, 1.9421 }, { 1.17668, 1.9415 } };
+            var ix = CatalogueModels.Index(Catalogue.Get("TGG", "solid").Q("index"));
+            for (int i = 0; i < table.GetLength(0); i++)
+            {
+                var n = new double[1];
+                ix.Evaluate(new[] { 2 * Math.PI * 2.99792458e8 / (table[i, 0] * 1e-6) }, n);
+                Assert.Close(table[i, 1], n[0], 1e-3, 0, "TGG at " + table[i, 0] + " um");
+            }
+            Assert.True(Catalogue.Get("TGG", "solid").Q("index").Status == CatalogueStatus.Approximate, "a fit is approximate");
+        }
+
         [Test(Category = "materials")]
         public void UserCatalogue_ReplacesAQuantityWithANotice_AndCanAddAMaterial()
         {

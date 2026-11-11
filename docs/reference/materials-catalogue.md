@@ -13,7 +13,7 @@ How the files work, how to override a value and how runs report the values they 
 
 A run that uses an `approximate` or `unverified` value says so in its notes and lists it under `unverifiedInputs` in `summary.json`.
 
-**115 quantities in 41 entries: 28 verified, 47 approximate, 38 unverified.**
+**115 quantities in 41 entries: 28 verified, 48 approximate, 37 unverified.**
 
 ## Solids and liquids
 
@@ -166,7 +166,7 @@ n2 not set (give one if it matters).
 
 | quantity | values | status | uncertainty | source |
 |---|---|---|---|---|
-| `index` | model = vendorSellmeier; referenceMedium = air; a = 3.77834; numeratorUm2 = 0.069736; poleUm2 = 0.04724; irTermPerUm2 = 0.0108133 (temperatureK 293.15) | unverified | not stated in the original code | common vendor Sellmeier set; the original code did not record the vendor |
+| `index` | model = vendorSellmeier; referenceMedium = air; a = 3.77834; numeratorUm2 = 0.069736; poleUm2 = 0.04724; irTermPerUm2 = 0.0108133 (temperatureK 293.15) | unverified | differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-o-20C: A 3.778790, B 0.070479, C 0.045731, D 0.009701 in the same form) by -5.4e-4 at 633 nm, -5.9e-4 at 1064 nm; not changed, owner to choose | common vendor Sellmeier set; the original code did not record the vendor |
 | `n2` | valueM2PerW = 0 | unverified | 0 means not set, not a measured zero | not set: no value was entered for this material (give one if it matters) |
 
 ### YVO4-e
@@ -177,7 +177,7 @@ n2 not set (give one if it matters).
 
 | quantity | values | status | uncertainty | source |
 |---|---|---|---|---|
-| `index` | model = vendorSellmeier; referenceMedium = air; a = 4.59905; numeratorUm2 = 0.110534; poleUm2 = 0.04813; irTermPerUm2 = 0.0122676 (temperatureK 293.15) | unverified | not stated in the original code | common vendor Sellmeier set; the original code did not record the vendor |
+| `index` | model = vendorSellmeier; referenceMedium = air; a = 4.59905; numeratorUm2 = 0.110534; poleUm2 = 0.04813; irTermPerUm2 = 0.0122676 (temperatureK 293.15) | unverified | differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-e-20C: A 4.607200, B 0.108087, C 0.052495, D 0.014305 in the same form) by -9.6e-4 at 633 nm, -9.2e-4 at 1064 nm; the birefringence differs by ~0.16 %; not changed, owner to choose | common vendor Sellmeier set; the original code did not record the vendor |
 | `n2` | valueM2PerW = 0 | unverified | 0 means not set, not a measured zero | not set: no value was entered for this material (give one if it matters) |
 
 ### aBBO
@@ -210,7 +210,7 @@ dispersion fitted to the Schlarb & Sugg 1994 table (0.40-1.18 um, approximate); 
 
 | quantity | values | status | uncertainty | source |
 |---|---|---|---|---|
-| `index` | model = sellmeier; referenceMedium = air; a = 1; b = [2.7769]; poleUm2 = [0.01656] (temperatureK 293.15) | unverified | not stated in the original code | two-point single-pole fit (n = 1.954 at 1064 nm, 1.974 at 633 nm); the original code did not record where these two indices come from |
+| `index` | model = sellmeier; referenceMedium = air; a = 1.24206176; b = [2.49181577]; poleUm2 = [0.01959882]; validRangeUm = [0.40466, 1.17668] (temperatureK 293.15) | approximate | fit residual 6.6e-4 inside the measured range; extrapolation outside 0.40-1.18 um is not backed by data. The previous two-point fit (A = 1, B = 2.7769, C = 0.01656) was 0.011 away from the table at 1.08 um. | least-squares fit of n^2 = A + B l^2/(l^2 - C) to the nine measured points of U. Schlarb and B. Sugg, Phys. Status Solidi B 182, K91 (1994) (refractiveindex.info main/Tb3Ga5O12/Schlarb, 0.40466-1.17668 um, 20 C): largest deviation 6.6e-4 |
 | `n2` | valueM2PerW = 0 | unverified | 0 means not set, not a measured zero | not set: no value was entered for this material (give one if it matters) |
 
 ### BaF2
@@ -223,7 +223,7 @@ cubic (m3m); give the orientation with kerrCutAxis / kerrAzimuthDeg on the eleme
 |---|---|---|---|---|
 | `index` | model = sellmeier; referenceMedium = air; a = 1.33973; b = [0.8107, 0.19652, 4.52469]; resonanceWavelengthsUm = [0.10065, 29.87, 53.82]; validRangeUm = [0.15, 15] (temperatureK 293.15) | verified |  | H. H. Li, J. Phys. Chem. Ref. Data 9, 161 (1980), 293 K (refractiveindex.info main/BaF2/Li) Check: agrees with main/BaF2/Li.yml to 2.2e-16 (n, 0.45-1.5 um). |
 | `n2` | valueM2PerW = 2E-20 (wavelengthM 1E-06, orientation [100]) | unverified | about 30 % | typical literature value for light along [100]; reported values spread 1.8-2.9e-20 m^2/W; quoted from memory in the original code, not re-checked |
-| `kerrAnisotropy` | value = -1.2 | unverified | unknown; check the papers | sigma = (chi1111 - 3 chi1122) / chi1111; quoted from memory of Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005); not retrieved |
+| `kerrAnisotropy` | value = -1.2 | unverified | unknown; check the papers. The Z-scan anisotropy paper of the Sheik-Bahae / Van Stryland group (CREOL publication 1820; a scanned PDF that could not be read here) gives BaF2 n2 along [100], [010], [110] at 532 and 1064 nm and a parameter u in chi(theta) = chi [1 + 2u (sin^4 theta - sin^2 theta)]; how u relates to sigma is still to be written down | sigma = (chi1111 - 3 chi1122) / chi1111; quoted from memory of Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005); not retrieved |
 
 ### CS2
 
@@ -517,7 +517,7 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | aBBO | `n2` | unverified | not set: no value was entered for this material (give one if it matters) |
 | aBBO-e | `index` | unverified | vendor Sellmeier set; the original code did not record the vendor |
 | aBBO-e | `n2` | unverified | not set: no value was entered for this material (give one if it matters) |
-| TGG | `index` | unverified | two-point single-pole fit (n = 1.954 at 1064 nm, 1.974 at 633 nm); the original code did not record where these two indices come from |
+| TGG | `index` | approximate | least-squares fit of n^2 = A + B l^2/(l^2 - C) to the nine measured points of U. Schlarb and B. Sugg, Phys. Status Solidi B 182, K91 (1994) (refractiveindex.info main/Tb3Ga5O12/Schlarb, 0.40466-1.17668 um, 20 C): largest deviation 6.6e-4 |
 | TGG | `n2` | unverified | not set: no value was entered for this material (give one if it matters) |
 | BaF2 | `n2` | unverified | typical literature value for light along [100]; reported values spread 1.8-2.9e-20 m^2/W; quoted from memory in the original code, not re-checked |
 | BaF2 | `kerrAnisotropy` | unverified | sigma = (chi1111 - 3 chi1122) / chi1111; quoted from memory of Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005); not retrieved |

@@ -37,7 +37,7 @@
       "value": -1.2,
       "source": "sigma = (chi1111 - 3 chi1122) / chi1111; quoted from memory of Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005); not retrieved",
       "status": "unverified",
-      "uncertainty": "unknown; check the papers",
+      "uncertainty": "unknown; check the papers. The Z-scan anisotropy paper of the Sheik-Bahae / Van Stryland group (CREOL publication 1820; a scanned PDF that could not be read here) gives BaF2 n2 along [100], [010], [110] at 532 and 1064 nm and a parameter u in chi(theta) = chi [1 + 2u (sin^4 theta - sin^2 theta)]; how u relates to sigma is still to be written down",
       "conditions": {}
     }
   }

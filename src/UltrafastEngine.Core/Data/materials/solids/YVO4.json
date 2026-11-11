@@ -21,7 +21,7 @@
       },
       "source": "common vendor Sellmeier set; the original code did not record the vendor",
       "status": "unverified",
-      "uncertainty": "not stated in the original code"
+      "uncertainty": "differs from H. S. Shi et al., J. Synthetic Cryst. 30, 85 (2001) at 20 C (refractiveindex.info main/YVO4/Shi-o-20C: A 3.778790, B 0.070479, C 0.045731, D 0.009701 in the same form) by -5.4e-4 at 633 nm, -5.9e-4 at 1064 nm; not changed, owner to choose"
     },
     "n2": {
       "valueM2PerW": 0.0,

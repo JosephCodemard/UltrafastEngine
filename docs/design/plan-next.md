@@ -58,7 +58,9 @@ Cousins, IEEE JQE 28, 1992; read the formulas from the sources, do not write the
 pattern; the beam-averaged value must equal today's `stress` result (consistency test). *Spike first (S):* does the spatial path carry a vector field (both polarisations) today? If not, the pattern is applied as a
 Jones map on a scalar pair and the limits are stated. *Not in this package:* 3-D (transverse-resolved) ASE; say so in the docs.
 
-### WP3. Material models and a catalogue (L; priority 3)
+### ~~WP3. Material models and a catalogue (L; priority 3)~~ done (the verification against papers is open)
+
+*Done 2026-11-11 (session C): see [notes/session-c.md](notes/session-c.md). The catalogue, the loader, run notes, user catalogues, the generated page and the lint are in; 28 of 115 quantities are verified, the rest are listed for the owner's PDFs.*
 
 *Goal:* every material parameter lives in **catalogue files with provenance**, none hard-coded in C#.
 
@@ -162,7 +164,7 @@ spline against network) are written directly in the new structure.
 |---|---|---|
 | A | WP0, WP6 (`ny = 1`), WP5 decisions, WP7 (cw carrier; SPGD gain) | one agent, small tasks; `bug-hunter` for `ny = 1` |
 | ~~B~~ | ~~WP1 and WP4~~ **done 2026-11-11** ([notes/session-b.md](notes/session-b.md)) | physics: Opus-class judgement for the ABCD duct and the Drude operator; `physics-reviewer` at the end |
-| C | WP3 | mostly plumbing and reading papers; owner supplies the PDFs |
+| ~~C~~ | ~~WP3~~ **done 2026-11-11** ([notes/session-c.md](notes/session-c.md)); papers still to read | mostly plumbing and reading papers; owner supplies the PDFs |
 | D | WP2 | spike first, then ASE, then the pattern |
 | E | WP7 (Raman, SLM, tiled array) | investigations; may run beside B-D |
 | F | WP8 (packager, `install.py`, workflow) | packaging and a workflow; Sonnet-class |
