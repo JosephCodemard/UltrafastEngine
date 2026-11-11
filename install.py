@@ -29,6 +29,7 @@ import json
 import os
 import platform as _platform
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -517,7 +518,10 @@ def uninstall_git(dest: Path, chosen: list[str], rec: dict, dry_run: bool, log) 
     if st:
         log("WARNING: the checkout has local changes: left in place (%s)" % dest)
         return
-    shutil.rmtree(dest, ignore_errors=True)
+    def _writable(func, path, _exc):          # Windows: git object files are read-only and rmtree cannot delete them
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    shutil.rmtree(dest, onerror=_writable)
 
 
 # ---------------------------------------------------------------------------------------------------- list
