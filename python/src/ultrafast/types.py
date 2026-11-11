@@ -48,7 +48,7 @@ class AmplifierElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int
@@ -971,7 +971,7 @@ class GainElement(TypedDict, total=False):
     transverse: Union["Transverse", str]
     """Spatial gain"""
     thermalLens: Any
-    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
+    """true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)"""
     slices: int
     """Slices along z Default: 24."""
     segments: int

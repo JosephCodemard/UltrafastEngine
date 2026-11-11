@@ -94,6 +94,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Spike measurements](docs/design/notes/spikes.md)
 - [WP0 housekeeping notes](docs/design/notes/wp0.md)
 - [Session A notes](docs/design/notes/session-a.md)
+- [Session B notes](docs/design/notes/session-b.md)
 - [Architecture](docs/architecture/index.md)
 - [Code map](docs/architecture/code-map.md)
 - [Key processes](docs/architecture/processes.md)

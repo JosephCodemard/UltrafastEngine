@@ -122,21 +122,40 @@ Check: top-hat pump f = 2πKw²/(P_h·dn/dT); Gaussian pump f = πKw²/(P_h·dn/
 
 **On the tracked beam.** Elements after a gain element take its thermal lens through the tracked q parameters. The
 tracking happens when the system is compiled, before the pulse train has run, so the engine evaluates the same heat
-model with the pump alone (cw pumping to equilibrium, or a pulsed pump repeated to steady state at the repetition rate)
-and applies one thin lens per slice. Each slice's lens is the parabola fitted to its Δn(r) **with the beam's intensity as
-weight** (the lens of least rms wavefront error over the beam), using the tracked beam radius at the element (or
-`modeRadiusM` / `beam`). For a beam much smaller than the pump this is the on-axis lens; for a beam that fills the pumped
-region it is weaker, since the Δn of a Gaussian pump flattens off the axis. The element reports `trackedThermalLensFocalLengthM`
-(the sum of the slices) and a note with the on-axis value. If the run's own thermal lens, with the signal extracting energy,
-differs from the pump-alone estimate by more than 5 %, a note says so. A measured value replaces the model:
+model with the pump alone (cw pumping to equilibrium, or a pulsed pump repeated to steady state at the repetition rate).
+The pumped region is a **distributed lens**: each slice of the medium is a graded-index duct, n(r) = n₀ (1 − g² r²/2),
+with the exact reduced ABCD matrix A = D = cos gL, B = sin(gL)/(n₀ g), C = −n₀ g sin gL (g² < 0 gives cosh / sinh for a
+defocusing host), not a thin lens at one end. The power of each slice comes from the parabola fitted to its Δn(r)
+**with the beam's intensity as weight** (the lens of least rms wavefront error over the beam), using the tracked beam radius
+at the element (or `modeRadiusM` / `beam`): g² = (1/f_j)/(n₀ Δz). For a beam much smaller than the pump this is the on-axis
+lens; for a beam that fills the pumped region it is weaker, since the Δn of a Gaussian pump flattens off the axis. The
+change against slices of thin lenses is of order (gL)²: 0.4 % for the 4 mm rod of the examples, and it matters for long
+media (gL = 0.6 changes the beam radius behind a 10 cm rod by 1 %).
+
+The element reports two focal lengths, both with the unit in the key: `trackedThermalLensFocalLengthM`, the
+**thin-lens equivalent** 1/f = n₀ g² L summed over the slices, and `trackedThermalLensEffectiveFocalLengthM`, the
+**effective** focal length −1/C of the whole duct, which is what a measurement from outside the medium gives
+(f_eff = f sin(gL)/(gL) for a uniform duct). A note gives the on-axis value of the pump alone. If the run's own thermal lens,
+with the signal extracting energy, differs from the pump-alone estimate by more than 5 %, a note says so. A measured value
+replaces the model and is the **effective** focal length: the engine finds the uniform duct that has it
+(a focal length shorter than a quarter pitch of the medium can give, gL = π/2, is capped with a note):
 
 ```jsonc
-"thermalLens": { "focalLengthM": 0.45 }                   // one thin lens at the centre: tracking and the 1-D thin lens
+"thermalLens": { "focalLengthM": 0.45 }                   // measured effective focal length: tracking (a uniform duct) and the 1-D thin lens
 "thermalLens": { "rodRadiusM": 2e-3, "track": false }     // model, but leave the tracked beam alone
 ```
 
 In a **multipass amplifier** the tracked beam takes the lens only on request, since the path between passes is otherwise unknown: `"thermalLens": {"track": true, "passGapM": 0.2}`
-applies the lens once per pass with that free path between them. Regenerative amplifiers do not put it on the tracked beam.
+applies the lens once per pass with that free path between them. A **regenerative amplifier** takes it the same way, with an
+integer `roundTrips` (`"auto"` is decided at run time, after the beam is tracked, so it is not tracked and a note says so):
+`roundTrips x passesPerRoundTrip` passes through the duct, `passGapM` between them. The path is open: the cavity's own focusing optics are not part of the tracked beam, so
+for a stable resonator give the gap of the equivalent unfolded path or use the resonator element. Both amplifier kinds
+report the two focal lengths above.
+
+What the Gaussian tracker leaves out is the aberrated part of the lens (the spherical aberration of the non-parabolic heat profile)
+and gain narrowing; both need the radial spatial model (`transverse`), which has the full Δn(r, z). Against it, a 0.5 mm beam in a 60 W rod
+pumped by a 0.6 mm Gaussian: the radius 0.4 m behind the rod differs by 5 % (the lens is aberrated, M² = 1.08), the radius at the exit of the rod by 9 % (gain
+narrowing, which the tracker does not model); a 0.2 mm beam, which probes the aberrated centre of the lens, by 23 %.
 
 **Stress birefringence.** `"thermalLens": {"stress": true}` adds the thermal birefringence of a uniformly heated rod of a cubic host (Koechner, *Solid-State Laser Engineering*, ch. 7;
 built in for YAG hosts, `thermalExpansionPerK`, `stressCr`, `stressCphi` on a medium of your own). The radial and tangential polarisations differ by the retardation
@@ -144,65 +163,9 @@ built in for YAG hosts, `thermalExpansionPerK`, `stressCr`, `stressCphi` on a me
 that fraction of the field between x and y, which keeps the energy (the beam-averaged result, not the four-lobed pattern) and reports `depolarizationFraction`, `stressRetardationRad`, and the two lenses
 `stressFocalLengthRadialM`, `stressFocalLengthTangentialM` (dn/dT, stress and end-face bulging). The formula assumes uniform heating over the rod: an end-pumped rod is only roughly described.
 
-Checks (`BeamTrackingTests`): a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); a
-measured focal length focuses the tracked beam as a thin lens (waist radius 0.2 %); for a 0.5 mm beam in a rod pumped by a 0.6 mm
+Checks (`BeamTrackingTests`): a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); the duct matrix is
+cos(gL), sin(gL)/(n₀g), −n₀g sin(gL) (1e-12), with the thin-lens limit and the hyperbolic case; N thin slices converge to the duct as 1/N²;
+a measured effective focal length focuses the tracked beam like the exact duct (1e-9) and the thin lens at the centre of a 10 cm rod would be 1 % off; a
+measured focal length focuses a thin rod like a thin lens (waist radius 0.2 %); N round trips of a regenerative amplifier equal N x passesPerRoundTrip passes of a multipass amplifier (1e-12); for a 0.5 mm beam in a rod pumped by a 0.6 mm
 Gaussian, the tracked radius 0.4 m behind the rod is within 7 % of the radial spatial model (which also shows M² = 1.08 from the
 lens's aberration, beyond a Gaussian beam parameter).
-
-The element also records the lens as a Gradient-1 GRIN (z-averaged): `thermalGrinNr2PerM2`,
-`thermalDnOnAxis`, `hostIndex`. `UltrafastEngine.Zemax thermal-lens` writes it into OpticStudio
-([Zemax plugin](../plugins/zemax.md)).
-
-**Repetition rate.** An element `repRateHz` overrides the pulse's (a pulse picker in front of the amplifier); the
-output pulse carries the element's rate.
-
-## The amplifier element
-
-```jsonc
-{ "id": "mp", "type": "amplifier", "geometry": "multipass", "passes": 8, "medium": "Yb:YAG", "lengthM": 0.006,
-  "modeRadiusM": 0.45e-3, "pump": { ... },
-  "betweenPasses": { "loss": 0.03, "gddFs2": 0, "todFs3": 0, "materials": [ { "name": "FusedSilica", "lengthM": 0.003 } ] } }
-
-{ "id": "rg", "type": "amplifier", "geometry": "regenerative", "roundTrips": "auto",   // or a number
-  "passesPerRoundTrip": 2, "maxRoundTrips": 300, "medium": "Ti:sapphire", "lengthM": 0.012, "pump": { ... },
-  "cavity": { "lossPerRoundTrip": 0.06, "gddFs2": 0, "materials": [ ... ] } }
-```
-
-Passes alternate direction through the crystal. The materials between passes add their dispersion and SPM (on the
-mode area). With `"roundTrips": "auto"` the pulse is ejected at the energy maximum. The intracavity energy history
-is kept so you can see the build-up. The amplifier is 1-D; use a chain of `gain` elements and `gap`s for a
-spatially resolved multipass.
-
-## Results
-
-Values (`summary.json → elements[i].values`): `smallSignalGain`, `gainPeakWavelengthM`, `storedEnergyJ`
-(above transparency at the carrier), `extractedEnergyJ`, `extractionEfficiency`, `inversionFractionBefore/After`
-(on axis), `saturationFluenceJPerM2`, `absorbedPumpEnergyJ`, `absorbedPumpPowerW`, `heatW`,
-`thermalLensFocalLengthM`, `peakTemperatureRiseK`, `gain`, `averageOutputPowerW`, `segments`, `steadyStatePulses`,
-`converged`, `periodDoubling`, `passes` / `roundTrips`.
-
-Arrays (`result.npz`, `el_<id>_<name>`): `gainSpectrumWavelengthM` + `gainSpectrum`, `zM` + `inversionBefore` /
-`inversionAfter`, `energyVsPulse` (the train), `energyPerPass` / `energyPerRoundTrip`, and for spatial gain
-`cellXM`, `cellYM`, `inversionVsCellBefore/After`. `ultrafast-plot` draws them in `gain.png`.
-
-## Validation
-
-`GainTests` checks:
-
-* Frantz–Nodvik saturated gain, to 3e-4;
-* the small-signal gain specification;
-* the cw rate-equation steady state;
-* top-hat and Gaussian thermal-lens focal lengths;
-* regen small-signal growth (G0²(1 − L))^N;
-* auto ejection at the energy maximum, with the energy budget closing;
-* the red shift of a red-leading chirp (time ordering);
-* the pulse train against the full model;
-* spatial gain with the thermal lens.
-
-## Limitations
-
-* Gain is scalar and polarisation independent; there is no spectral hole burning or excited-state absorption.
-  ASE is 1-D only and in the signal polarisation.
-* The thermal lens is radial (rod geometry) and has no end-face bulging. Stress birefringence (`thermalLens.stress`) is the beam-averaged depolarisation of a uniformly heated rod of a cubic host, not the four-lobed pattern; end-face bulging enters only the two reported `stressFocalLength…M` values.
-* Steady-state spatial trains use the input fluence profile for all pulses (no diffraction in the energy model).
-* Cross sections are approximate (see above).

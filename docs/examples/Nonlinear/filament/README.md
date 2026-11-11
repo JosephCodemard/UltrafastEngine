@@ -16,10 +16,10 @@ ultrafast retrieve pcgpa results/result.npz -o retrieved           # FROG -> pul
 
 What to look at:
 
-* `summary.json → elements[0].values`: `peakElectronDensityM3` (~2·10²² m⁻³) and `peakIonizationFraction` (~10⁻³).
-* The spectrum broadens (B ≈ 7 rad) and its centroid moves to the red (814 nm): the delayed rotational response
+* `summary.json → elements[0].values`: `peakElectronDensityM3` (~1.9·10²² m⁻³) and `peakIonizationFraction` (~7·10⁻⁴).
+* The spectrum broadens (B ≈ 6.6 rad) and its centroid moves to the red (815 nm): the delayed rotational response
   red-shifts the trailing part of the pulse more than the weak plasma blue-shifts the leading part.
-* The FROG and its retrieval: `retrieved/retrieval.json` (G ≈ 4·10⁻⁵, FWHM 47.6 fs vs 48.3 fs simulated);
+* The FROG and its retrieval: `retrieved/retrieval.json` (G ≈ 10⁻⁵, FWHM 50.3 fs vs 51.3 fs simulated);
   `retrieved/retrieved_spectrum.csv` can be the input of another run
   (`"pulse": {"shape": "spectrum", "spectrum": {"csv": "retrieved/retrieved_spectrum.csv"}, "energyJ": 3.7e-4}`).
 
@@ -27,4 +27,4 @@ What to look at:
 modelled. For a real filament give the element `"transverse": {"model": "radial", "points": 128, "radiusM": 1e-3,
 "equation": "uppe"}` (much slower: minutes).
 
-Try: `"rotationalRaman": false` on a custom air material, or `"ionization": false`, and compare the spectra.
+Try: `"rotationalRaman": false` on a custom air material, or `"ionization": false`, and compare the spectra. `"ionization": {"frequencyResolved": false}` applies the Drude index at the carrier only, as versions before this one did: the centroid moves to 813 nm and the energy loss drops from 8.8 % to 7.5 %, because the electrons born in the field also take their drift energy U_p in the frequency-resolved model ([Ionisation](../../../reference/ionization.md#plasma)).

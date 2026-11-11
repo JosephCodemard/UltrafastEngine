@@ -32,6 +32,8 @@ because they describe what the others deliver. Every package ends with tests, do
 
 ### WP1. Spatial modelling: thermal lenses in beam tracking (M-L; priority 1)
 
+*Done 2026-11-11 (session B): see [notes/session-b.md](notes/session-b.md).*
+
 *Today* ([capabilities](../capabilities.md)): the tracked beam is Gaussian; a thermal lens is applied as the **thin parabola** that fits it best over the beam; a multipass amplifier puts it on the tracked
 beam only when given the path between passes; a regenerative amplifier does not; the radial spatial model has the full distributed thermal lens (see `Wavefronts/spatial-gain-thermal-lens`).
 
@@ -71,6 +73,8 @@ Jones map on a scalar pair and the limits are stated. *Not in this package:* 3-D
   a catalogue entry has no source or status; user catalogues in `~/.ultrafast/materials` override with a notice.
 
 ### WP4. Plasma in envelope mode (M; priority 4)
+
+*Done 2026-11-11 (session B): see [notes/session-b.md](notes/session-b.md); open: PPT / ADK against carrier-resolved, avalanche vs inverse-bremsstrahlung double count.*
 
 *Today:* the envelope model evaluates the Drude term at the **carrier frequency**; carrier-resolved mode is exact. *Plan:* apply the plasma's linear response as a spectral operator per step: the Drude
 index `n_p(ω) = sqrt(1 - ω_p²/(ω(ω + iν)))` expanded to first order in the density, frequency-resolved (the 1/ω² dependence across the pulse bandwidth, including the blueshift of the leading and trailing parts), with the

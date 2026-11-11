@@ -93,6 +93,22 @@ namespace UltrafastEngine.Models
         void Evaluate(ResponseContext ctx, double[] dnRe, double[] dnIm);
     }
 
+    /// <summary>
+    /// A time-domain response with a part whose index change has a frequency dependence of its own, such as the free-electron (Drude)
+    /// term Δn(ω) ∝ 1/(ω (ω + iν)). <see cref="EvaluateSplit"/> writes that part, evaluated at <see cref="ResponseContext.Omega0"/>, to
+    /// <c>dispRe</c> / <c>dispIm</c> and the rest to <c>dnRe</c> / <c>dnIm</c>; the propagator multiplies the spectrum of
+    /// (dispRe + i dispIm) A by <see cref="Spectral"/> at every frequency instead of using the carrier value. Responses that do not
+    /// implement it are used as before. User models need not implement it.
+    /// </summary>
+    public interface IDispersiveResponse : ITimeDomainResponse
+    {
+        /// <summary>False switches the dispersive part off: <see cref="ITimeDomainResponse.Evaluate"/> is used (everything at the carrier).</summary>
+        bool FrequencyResolved { get; }
+        void EvaluateSplit(ResponseContext ctx, double[] dnRe, double[] dnIm, double[] dispRe, double[] dispIm);
+        /// <summary>Complex factor that takes the dispersive index change from the reference frequency to <paramref name="omegaAbs"/> (rad/s, &gt; 0): 1 at the reference.</summary>
+        System.Numerics.Complex Spectral(double omegaAbs, double omegaRef);
+    }
+
     /// <summary>A spectral filter: power transmission T(omega) in [0,1] and spectral phase phi(omega) (rad).
     /// Phase may contain a linear part -- the engine removes the carrier group delay and reports it.</summary>
     public interface ISpectralFilter

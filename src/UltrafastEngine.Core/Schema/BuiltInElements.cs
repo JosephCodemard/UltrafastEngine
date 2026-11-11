@@ -303,7 +303,7 @@ namespace UltrafastEngine.Schema
                 .Obj("inversion", "fraction or smallSignalGain (instead of / before a pump)", "inversion")
                 .Model("beam", "beam", "Signal beam").Num("modeRadiusM", "m", "Signal 1/e^2 radius (mode area pi w^2 / 2)")
                 .Obj("transverse", "Spatial gain", "transverse")
-                .P("thermalLens", ParamType.Any, "", "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)")
+                .P("thermalLens", ParamType.Any, "", "true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens)")
                 .Int("slices", "Slices along z", "24").Int("segments", "Time-ordered saturation groups", "auto")
                 .Bool("spm", "SPM of the host", "true").Str("host", "Host material (dispersion, n2)")
                 .Num("repRateHz", "Hz", "Repetition rate (overrides the pulse's)")

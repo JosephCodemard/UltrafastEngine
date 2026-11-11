@@ -95,6 +95,7 @@ nav:
       - "Spike measurements (S2)": design/notes/spikes.md
       - "WP0 housekeeping (2026-11-11)": design/notes/wp0.md
       - "Session A: ny = 1, speed decisions, cw carrier, SPGD gain": design/notes/session-a.md
+      - "Session B: thermal-lens duct, frequency-resolved Drude plasma": design/notes/session-b.md
 markdown_extensions:
   - admonition
   - tables

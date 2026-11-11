@@ -53,7 +53,7 @@ namespace UltrafastEngine.Tests
                             "thermalLens", O("focalLengthM", f)),
                           O("id", "gap", "type", "gap", "lengthM", d - L / 2 / n, "material", "Vacuum"));
             var r = Go(sys, Tracked(w0));
-            Assert.Close(f, Rec(r, "g").Values["trackedThermalLensFocalLengthM"], 1e-12, 0, "the given focal length is used");
+            Assert.Close(f, Rec(r, "g").Values["trackedThermalLensEffectiveFocalLengthM"], 1e-9, 0, "the given focal length is the effective one");
             Assert.Close(w1, Rec(r, "gap").Values["trackedBeamRadiusXM"], 0.002, 0, "waist radius");
             Assert.True(Math.Abs(Rec(r, "gap").Values["trackedCurvatureXM"]) > 100, "flat wavefront at the waist");
         }
@@ -80,6 +80,113 @@ namespace UltrafastEngine.Tests
             double wt = Rec(tracked, "free").Values["trackedBeamRadiusXM"], ws = spatial.Instruments.First(i => i.Name == "bp").Values.GetDouble("radiusXM", double.NaN);
             Assert.Close(ws, wt, 0.07, 0, "beam radius after 0.4 m: tracked vs spatial");
             Assert.Less(wt, 0.5e-3, "the thermal lens converges the beam");
+        }
+
+        // ----------------------------------------------------------------------------- the thermal lens as a graded-index duct
+
+        private static System.Numerics.Complex Abcd(System.Numerics.Complex q, double a, double b, double c, double d) => (a * q + b) / (c * q + d);
+        private static double Radius(System.Numerics.Complex q) => Math.Sqrt(Lam / (Math.PI * (-1 / q).Imaginary));
+
+        [Test(Reference = "quadratic-index medium n(r) = n0 (1 - g² r²/2): ABCD cos(gL), sin(gL)/(n0 g) (Saleh & Teich, ch. 1)", Tolerance = "1e-12")]
+        public void Duct_Matrix_IsTheQuadraticIndexResult_AndTheThinLensLimit()
+        {
+            double n0 = 1.82;
+            foreach (var (L, g) in new[] { (0.1, 3.0), (0.37, 1.1), (0.02, 20.0) })
+            {
+                var m = Optics.BeamState.DuctMatrix(L, n0, g * g);
+                Assert.Close(Math.Cos(g * L), m[0], 1e-12, 1e-14, "A");
+                Assert.Close(Math.Sin(g * L) / (n0 * g), m[1], 1e-12, 1e-14, "B");
+                Assert.Close(-n0 * g * Math.Sin(g * L), m[2], 1e-12, 1e-14, "C");
+                Assert.Close(m[0], m[3], 0, 1e-15, "D = A");
+                Assert.Close(1, m[0] * m[3] - m[1] * m[2], 1e-12, 0, "determinant");
+            }
+            // g² < 0 (negative dn/dT hosts): hyperbolic functions
+            double h = 2.0, Ln = 0.2; var mn = Optics.BeamState.DuctMatrix(Ln, n0, -h * h);
+            Assert.Close(Math.Cosh(h * Ln), mn[0], 1e-12, 0, "cosh"); Assert.Close(Math.Sinh(h * Ln) / (n0 * h), mn[1], 1e-12, 0, "sinh");
+            Assert.Close(n0 * h * Math.Sinh(h * Ln), mn[2], 1e-12, 0, "C (defocusing)");
+            // thin limit gL -> 0: a gap L/n0 and a lens of power 1/f = n0 g² L, to O((gL)²); and continuity across the series switch
+            double L0 = 1e-3, p = 0.7, g2 = p / (n0 * L0);                       // power p, gL = 0.02
+            var t = Optics.BeamState.DuctMatrix(L0, n0, g2);
+            Assert.Close(-p, t[2], 1e-3, 0, "thin-lens power -1/f");
+            Assert.Close(L0 / n0, t[1], 1e-3, 0, "reduced length");
+            foreach (double g2s in new[] { 0.99, 1.01 })                          // (gL)² = 0.99e-8 (series) and 1.01e-8 (closed form): both the exact functions
+            {
+                double Ls = 1e-4, gs = Math.Sqrt(g2s); var ms = Optics.BeamState.DuctMatrix(Ls, n0, g2s);
+                Assert.Close(Math.Cos(gs * Ls), ms[0], 1e-12, 0, "A near the switch"); Assert.Close(Math.Sin(gs * Ls) / (n0 * gs), ms[1], 1e-12, 0, "B near the switch");
+                Assert.Close(-n0 * gs * Math.Sin(gs * Ls), ms[2], 1e-8, 0, "C near the switch");
+            }
+            // an effective focal length (focusing and defocusing) maps to a duct whose -1/C is that focal length
+            foreach (double fe in new[] { 0.15, 2.0, -0.3, -5.0 })
+            {
+                double thin = Optics.BeamState.ThinPowerForEffectiveFocalLength(0.1, n0, fe, out bool capped);
+                var me = Optics.BeamState.DuctMatrix(0.1, n0, thin / (n0 * 0.1));
+                Assert.True(!capped, "not capped"); Assert.Close(fe, -1 / me[2], 1e-9, 0, "effective focal length " + fe);
+            }
+            Optics.BeamState.ThinPowerForEffectiveFocalLength(0.1, n0, 0.01, out bool cap2);
+            Assert.True(cap2, "a focal length shorter than a quarter pitch gives is flagged");
+            var zero = Optics.BeamState.DuctMatrix(0.1, n0, 0);
+            Assert.Close(0.1 / n0, zero[1], 1e-15, 0, "g = 0 is a gap"); Assert.Close(0, zero[2], 0, 1e-15, "no power");
+        }
+
+        [Test(Reference = "slices of a graded-index medium: N thin lenses + gaps converge to the duct as 1/N²", Tolerance = "1e-3 at N = 40, ratio 4 for 2N")]
+        public void Duct_ManyThinSlices_ConvergeToTheDuct_WithSecondOrderError()
+        {
+            double n0 = 1.82, L = 0.1, f = 0.15;                                  // gL = sqrt(L / (n0 f)) = 0.6
+            var q0 = new System.Numerics.Complex(0, Math.PI * Math.Pow(0.5e-3, 2) / Lam);
+            var bd = new Optics.BeamState(q0, q0, Lam); bd.Duct(L, n0, 1 / (n0 * f * L), 1 / (n0 * f * L));
+            double Err(int N)
+            {
+                var b = new Optics.BeamState(q0, q0, Lam);
+                for (int i = 0; i < N; i++) { b.Propagate(L / N / 2, n0); b.Lens(f * N, f * N); b.Propagate(L / N / 2, n0); }
+                return Math.Abs(b.RadiusX / bd.RadiusX - 1);
+            }
+            Assert.Less(Err(40), 1e-3, "40 thin slices");
+            Assert.Close(4, Err(20) / Err(40), 0.05, 0, "error falls as 1/N²");
+            Assert.Close(L, bd.PathM, 1e-15, 0, "path length"); Assert.Close(n0, bd.MediumIndex, 0, 0, "medium index");
+        }
+
+        [Test(Category = "gain", Reference = "ABCD matrix of a quadratic-index duct (gL = 0.6): not the thin lens at the centre", Tolerance = "1e-9")]
+        public void ThermalLens_ThickRod_TrackedBeamIsTheDuctResult()
+        {
+            // A 0.1 m rod, gL = 0.6, on a collimated 0.5 mm beam. A measured focal length is the effective one, -1/C = 1 / (n g sin gL): the tracked q
+            // after the rod and 5 mm of vacuum follows the exact duct matrix, and the thin lens at the centre of the rod would be off by about 1 %.
+            double w0 = 0.5e-3, L = 0.1, gap = 5e-3, gL = 0.6;
+            double n = MaterialLibrary.BuiltIn("YAG").IndexAt(2 * Math.PI * C / Lam);
+            double g = gL / L, f = 1 / (n * g * Math.Sin(gL));
+            var sys = Sys(O("id", "g", "type", "gain", "medium", "Yb:YAG", "lengthM", L, "inversion", O("fraction", 0.0), "spm", false, "thermalLens", O("focalLengthM", f)),
+                          O("id", "gap", "type", "gap", "lengthM", gap, "material", "Vacuum"));
+            var r = Go(sys, Tracked(w0));
+            var q = new System.Numerics.Complex(0, Math.PI * w0 * w0 / Lam);
+            var qd = Abcd(q, Math.Cos(g * L), Math.Sin(g * L) / (n * g), -n * g * Math.Sin(g * L), Math.Cos(g * L)) + gap;
+            Assert.Close(Radius(qd), Rec(r, "gap").Values["trackedBeamRadiusXM"], 1e-9, 0, "radius after the duct");
+            var qt = Abcd(Abcd(Abcd(q, 1, L / 2 / n, 0, 1), 1, 0, -1 / f, 1), 1, L / 2 / n, 0, 1) + gap;
+            Assert.Greater(Math.Abs(Radius(qt) / Radius(qd) - 1), 0.005, "the thin lens at the centre would differ (this test can tell them apart)");
+            var v = Rec(r, "g").Values;
+            Assert.Close(f, v["trackedThermalLensEffectiveFocalLengthM"], 1e-9, 0, "effective focal length -1/C is the given one");
+            Assert.Close(1 / (n * g * g * L), v["trackedThermalLensFocalLengthM"], 1e-9, 0, "thin-lens equivalent 1/(n g² L)");
+        }
+
+        [Test(Category = "gain", Reference = "N round trips of a regenerative amplifier = N x passesPerRoundTrip duct passes", Tolerance = "1e-12")]
+        public void Regen_ThermalLens_OnTheTrackedBeam_EqualsTheSamePassesOfAMultipass()
+        {
+            double w0 = 0.4e-3;
+            JsonObject Amp(string geometry, params object[] extra)
+            {
+                var all = new object[] { "id", "amp", "type", "amplifier", "geometry", geometry, "medium", "Yb:YAG", "lengthM", 0.004, "modeRadiusM", w0, "inversion", O("fraction", 0.1), "spm", false,
+                                         "pump", O("kind", "cw", "powerW", 40, "wavelengthM", 940e-9, "radiusM", 0.45e-3, "passes", 2) };
+                return O(all.Concat(extra).ToArray());
+            }
+            var tl = O("track", true, "passGapM", 0.3, "rodRadiusM", 2e-3);
+            var regen = Go(Sys(Amp("regenerative", "roundTrips", 3, "passesPerRoundTrip", 2, "thermalLens", tl)), Tracked(w0));
+            var multi = Go(Sys(Amp("multipass", "passes", 6, "thermalLens", tl)), Tracked(w0));
+            var rv = Rec(regen, "amp").Values; var mv = Rec(multi, "amp").Values;
+            Assert.Close(mv["trackedBeamRadiusXM"], rv["trackedBeamRadiusXM"], 1e-12, 0, "tracked radius after 6 passes");
+            Assert.Close(mv["trackedThermalLensFocalLengthM"], rv["trackedThermalLensFocalLengthM"], 1e-12, 0, "thin-lens equivalent");
+            Assert.True(rv.ContainsKey("trackedThermalLensEffectiveFocalLengthM"), "effective focal length is reported");
+            var none = Go(Sys(Amp("regenerative", "roundTrips", 3, "passesPerRoundTrip", 2)), Tracked(w0));
+            Assert.Greater(Math.Abs(rv["trackedBeamRadiusXM"] / Rec(none, "amp").Values["trackedBeamRadiusXM"] - 1), 1e-3, "the lens changes the tracked beam");
+            var auto = Go(Sys(Amp("regenerative", "roundTrips", "auto", "thermalLens", tl)), Tracked(w0));
+            Assert.True(Rec(auto, "amp").Notes.Any(x => x.Contains("explicit roundTrips")), "auto round trips: no tracking, with a note");
         }
 
         // ================================================================================= spatio-temporal couplings

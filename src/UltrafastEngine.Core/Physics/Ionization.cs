@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using UltrafastEngine.Materials;
 using UltrafastEngine.Models;
 using UltrafastEngine.Numerics;
@@ -220,7 +221,7 @@ namespace UltrafastEngine.Physics
     /// cross section. Several species (air: N2 and O2) ionise independently. In carrier-resolved mode the quasi-static
     /// (ADK) rate at the instantaneous field is used where the model has one.
     /// </summary>
-    public sealed class PlasmaResponse : ITimeDomainResponse, IReportingResponse
+    public sealed class PlasmaResponse : IDispersiveResponse, IReportingResponse
     {
         public sealed class Channel { public string Name; public IIonizationRate Rate; public double DensityM3; }
         public List<Channel> Channels { get; } = new List<Channel>();
@@ -230,10 +231,15 @@ namespace UltrafastEngine.Physics
         public bool Avalanche { get; set; } = true;
         public bool Absorption { get; set; } = true;
         public double N0 { get; set; } = 1.0;
+        /// <summary>Free-electron density present before the pulse (a prepared plasma, a discharge), 1/m^3.</summary>
+        public double InitialDensityM3 { get; set; }
+        /// <summary>True (default): the Drude index is applied at every frequency of the pulse, Δn(ω) ∝ 1/(ω (ω + iν)) (<see cref="Spectral"/>);
+        /// false: at the carrier frequency only.</summary>
+        public bool FrequencyResolved { get; set; } = true;
         private double _peakRho;
         private readonly object _lock = new object();
 
-        public string Description => "plasma: " + string.Join(", ", Channels.Select(c => c.Name + " " + c.Rate.Description + string.Format(CultureInfo.InvariantCulture, " ({0:G3} /m^3)", c.DensityM3))) +
+        public string Description => "plasma" + (FrequencyResolved ? " (Drude index at every frequency)" : " (Drude index at the carrier)") + (InitialDensityM3 > 0 ? string.Format(CultureInfo.InvariantCulture, ", prepared " + "{0:G3} /m^3", InitialDensityM3) : "") + ": " + string.Join(", ", Channels.Select(c => c.Name + " " + c.Rate.Description + string.Format(CultureInfo.InvariantCulture, " ({0:G3} /m^3)", c.DensityM3))) +
             string.Format(CultureInfo.InvariantCulture, ", tau_c = {0:G3} fs{1}{2}", CollisionTimeS * 1e15, Avalanche ? ", avalanche" : "", double.IsInfinity(RecombinationTimeS) ? "" : ", tau_rec = " + (RecombinationTimeS * 1e15).ToString("G3", CultureInfo.InvariantCulture) + " fs");
         public bool NeedsCarrierResolution => false;
         public double PeakElectronDensityM3 { get { lock (_lock) return _peakRho; } }
@@ -245,7 +251,22 @@ namespace UltrafastEngine.Physics
             if (nt > 0) values["peakIonizationFraction"] = PeakElectronDensityM3 / nt;
         }
 
-        public void Evaluate(ResponseContext ctx, double[] dnRe, double[] dnIm)
+        /// <summary>Everything at the carrier frequency (the Drude term included).</summary>
+        public void Evaluate(ResponseContext ctx, double[] dnRe, double[] dnIm) => Run(ctx, dnRe, dnIm, null, null);
+
+        /// <summary>The Drude term (index change and inverse-bremsstrahlung absorption) goes to the dispersive arrays, the energy taken by
+        /// ionisation and avalanche (a loss at the carrier, not a Drude term) stays in dnIm.</summary>
+        public void EvaluateSplit(ResponseContext ctx, double[] dnRe, double[] dnIm, double[] dispRe, double[] dispIm) => Run(ctx, dnRe, dnIm, dispRe, dispIm);
+
+        /// <summary>R(ω) = ω_ref (ω_ref + iν) / (ω (ω + iν)), ν = 1/τ_c: the Drude index Δn = -ω_p² / (2 n0 ω (ω + iν)) relative to its value at ω_ref (Couairon &amp; Mysyrowicz, Phys. Rep. 441, 47 (2007), eq. 6 and 15).</summary>
+        public Complex Spectral(double omegaAbs, double omegaRef)
+        {
+            if (!(omegaAbs > 0)) return Complex.Zero;
+            double nu = 1 / CollisionTimeS;
+            return omegaRef * new Complex(omegaRef, nu) / (omegaAbs * new Complex(omegaAbs, nu));
+        }
+
+        private void Run(ResponseContext ctx, double[] dnRe, double[] dnIm, double[] dispRe, double[] dispIm)
         {
             int n = ctx.N; double w0 = ctx.Omega0, c = PhysicalConstants.SpeedOfLightMPerS;
             double n0 = double.IsNaN(ctx.N0) ? N0 : ctx.N0;
@@ -255,7 +276,7 @@ namespace UltrafastEngine.Physics
             double sigma = k0 * w0 * CollisionTimeS / (n0 * rhoC * (1 + wt * wt));
             int K = Channels.Count;
             var ionised = new double[K];
-            double rho = 0, dt = n > 1 ? ctx.T[1] - ctx.T[0] : 0, peak = 0;
+            double rho = InitialDensityM3, dt = n > 1 ? ctx.T[1] - ctx.T[0] : 0, peak = rho;
             double uMean = Channels.Count > 0 ? Channels.Average(ch => ch.Rate.EnergyJ) : 1;
             for (int i = 0; i < n; i++)
             {
@@ -273,10 +294,11 @@ namespace UltrafastEngine.Physics
                 }
                 double aval = Avalanche ? sigma * I / uMean * rho : 0;
                 // index change at this instant (the plasma made before)
-                dnRe[i] += -drude * rho;
+                var dRe = dispRe ?? dnRe; var dIm = dispIm ?? dnIm;
+                dRe[i] += -drude * rho;
                 if (Absorption)
                 {
-                    dnIm[i] += drude * rho / wt;
+                    dIm[i] += drude * rho / wt;
                     if (I > 0) dnIm[i] += (loss + aval * uMean) / I / (2 * k0);
                 }
                 double drho = gen + aval - (double.IsInfinity(RecombinationTimeS) ? 0 : rho / RecombinationTimeS) - RecombinationBetaM3PerS * rho * rho;
@@ -293,7 +315,8 @@ namespace UltrafastEngine.Physics
             spec = spec ?? new Serialization.JsonObject();
             string model = spec.GetString("model", m.IsGas ? "ppt" : "keldysh").ToLowerInvariant();
             double n0 = m.IndexAt(omega0);
-            var r = new PlasmaResponse { N0 = n0, Avalanche = spec.GetBool("avalanche", !m.IsGas || spec.Has("collisionTimeS")), Absorption = spec.GetBool("absorption", true) };
+            var r = new PlasmaResponse { N0 = n0, Avalanche = spec.GetBool("avalanche", !m.IsGas || spec.Has("collisionTimeS")), Absorption = spec.GetBool("absorption", true),
+                InitialDensityM3 = spec.GetDouble("electronDensityM3", 0), FrequencyResolved = spec.GetBool("frequencyResolved", true) };
             note = null;
             if (m.IsGas)
             {

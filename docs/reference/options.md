@@ -1293,7 +1293,7 @@ Keys of gain and amplifier elements.
 | `beam` | model (beam) |  |  | Signal beam |
 | `modeRadiusM` | number | m |  | Signal 1/e^2 radius (mode area pi w^2 / 2) |
 | `transverse` | object (`transverse`) |  |  | Spatial gain |
-| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam; passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens) |
+| `thermalLens` | any |  |  | true / false or {rodRadiusM, heatFraction, apply, track, focalLengthM, passGapM, stress}: track (default true; amplifier: only when given) puts the thermal lens on the tracked Gaussian beam as a graded-index duct (a regenerative amplifier also needs an integer roundTrips); passGapM is the free path between amplifier passes; focalLengthM is a measured thermal focal length used instead of the heat model; stress adds thermal birefringence (docs/reference/gain.md#thermal-lens) |
 | `slices` | integer |  | 24 | Slices along z |
 | `segments` | integer |  | auto | Time-ordered saturation groups |
 | `spm` | boolean |  | true | SPM of the host |
@@ -1894,6 +1894,8 @@ Photo-ionisation and plasma (docs/reference/ionization.md).
 | `collisionTimeS` | number | s |  | Electron collision time |
 | `recombinationTimeS` | number | s |  | Recombination / trapping time |
 | `recombinationBetaM3PerS` | number | m^3/s |  | Two-body recombination |
+| `electronDensityM3` | number | 1/m^3 | 0 | Free-electron density present before the pulse (a prepared plasma) |
+| `frequencyResolved` | boolean |  | true | Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only |
 | `avalanche` | boolean |  | true for solids | Avalanche (impact) ionisation |
 | `absorption` | boolean |  | true | Plasma and ionisation losses |
 | `species` | string |  |  | Gas species (when the material does not say) |

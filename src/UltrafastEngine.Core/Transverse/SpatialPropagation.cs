@@ -260,6 +260,7 @@ namespace UltrafastEngine.Transverse
                         for (int i = 0; i < n; i++) { dnX[i] += sc * cx[i]; dnY[i] += sc * cy[i]; dnXY[i] = sc * cxy[i]; }
                     }
                 }
+                List<Physics.DispersiveTerm> disp = null;
                 if (_m.ExtraResponses.Count > 0)
                 {
                     var tl = new double[n]; for (int i = 0; i < n; i++) tl[i] = _g.Time[i] + tArr;
@@ -269,13 +270,9 @@ namespace UltrafastEngine.Transverse
                         InstantIntensity = I, Field = null, Omega0 = _g.OmegaCenter, CarrierResolved = false, EffectiveAreaM2 = _b.Weights[m], ElementId = _id,
                         X = _b.X[m], Y = _b.Y[m], Spatial = true
                     };
-                    var re = new double[n]; var im = new double[n];
-                    foreach (var resp in _m.ExtraResponses)
-                    {
-                        Array.Clear(re, 0, n); Array.Clear(im, 0, n);
-                        lock (resp) resp.Evaluate(ctx, re, im);
-                        for (int i = 0; i < n; i++) { dnX[i] += re[i]; if (Vector) dnY[i] += re[i]; dnI[i] += im[i]; }
-                    }
+                    var ure = new double[n]; var uim = new double[n];
+                    disp = Physics.DispersiveResponses.Evaluate(ctx, _m.ExtraResponses, ure, uim, true);
+                    for (int i = 0; i < n; i++) { dnX[i] += ure[i]; if (Vector) dnY[i] += ure[i]; dnI[i] += uim[i]; }
                 }
                 var nt = new Complex[n]; var nty = Vector ? new Complex[n] : null;
                 double cc = kerr && Vector ? sc * _m.N2 * (1 - fR) / 3.0 : 0;
@@ -294,11 +291,22 @@ namespace UltrafastEngine.Transverse
                         if (ramXY != null) { double d = sc * _m.N2 * fR * ramXY[i]; nt[i] += Complex.ImaginaryOne * _k0 * d * ey[i]; nty[i] += Complex.ImaginaryOne * _k0 * d * e[i]; }
                     }
                 }
-                double pk = Physics.EnvelopeProblem.PeakIndexChange(e, ey, nt, nty, _k0);
+                Complex[] ntP = nt, ntyP = nty;
+                if (disp != null)
+                {
+                    ntP = (Complex[])nt.Clone(); Physics.DispersiveResponses.AddToTime(disp, e, _k0, ntP);
+                    if (Vector) { ntyP = (Complex[])nty.Clone(); Physics.DispersiveResponses.AddToTime(disp, ey, _k0, ntyP); }
+                }
+                double pk = Physics.EnvelopeProblem.PeakIndexChange(e, ey, ntP, ntyP, _k0);
                 var nf = nt; SpectralTransform.TimeToFreqInPlace(nf);
                 Complex[] nfy = null; if (Vector) { nfy = nty; SpectralTransform.TimeToFreqInPlace(nfy); }
                 if (_m.EnableSelfSteepening)
                     for (int i = 0; i < n; i++) { double f = _g.OmegaAbsolute[i] / _g.ReportOmega; nf[i] *= f; if (Vector) nfy[i] *= f; }
+                if (disp != null)
+                {
+                    Physics.DispersiveResponses.AddRate(disp, e, _g.OmegaAbsolute, nf, 0, 0, double.PositiveInfinity);
+                    if (Vector) Physics.DispersiveResponses.AddRate(disp, ey, _g.OmegaAbsolute, nfy, 0, 0, double.PositiveInfinity);
+                }
                 if (_props != null)
                 {
                     for (int i = 0; i < n; i++) nf[i] += StaticRate(ef[i], i, m, dnS, alS);

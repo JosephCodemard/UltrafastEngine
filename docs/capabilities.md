@@ -126,9 +126,10 @@ the same way ([Plugin system](reference/plugins.md)).
 **Physics**
 
 * Beam tracking handles simple astigmatism (principal axes x and y). The tracked beam stays Gaussian: a thermal lens is
-  applied as the parabola that fits it best over the beam (its aberration needs a spatial model), and the dispersion of
-  spatio-temporal couplings is applied to fourth order (GDD, TOD, FOD). A multipass amplifier puts its thermal lens on the
-  tracked beam only when given the path between passes; a regenerative amplifier does not.
+  applied as a graded-index duct per slice, the parabola that fits it best over the beam (its aberration and gain narrowing need a spatial
+  model), and the dispersion of spatio-temporal couplings is applied to fourth order (GDD, TOD, FOD). A multipass amplifier puts its thermal lens on the
+  tracked beam only when given the path between passes; a regenerative amplifier the same way, with an integer `roundTrips` and the free path
+  between passes (the cavity's own optics are not part of the tracked beam).
 * One-dimensional elements do not change the beam shape: self-focusing above the critical power and aberration effects
   need a spatial model (the engine warns). Carried profiles take angular dispersion only with
   `physics.spatioTemporal` = `"profile"`, on cartesian grids.
@@ -140,7 +141,7 @@ the same way ([Plugin system](reference/plugins.md)).
   no hollow-capillary (Marcatili) waveguide model.
 * The carrier-resolved field mode is scalar (one polarisation; a y component is propagated linearly with a warning).
 * ASE in amplifiers is one-dimensional, in the signal polarisation, and covers the simulated time window only.
-* In envelope mode, the Drude plasma term uses the carrier frequency.
+* The Drude plasma index is applied frequency by frequency in all three models (envelope, carrier-resolved, spatial) as the first-order expansion in the density; a density that changes within an optical cycle is resolved in the ionisation rate, not in the Drude response.
 
 **Numerics and models**
 

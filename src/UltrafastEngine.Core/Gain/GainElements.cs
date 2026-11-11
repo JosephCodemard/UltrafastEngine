@@ -39,6 +39,7 @@ namespace UltrafastEngine.Gain
         public double ThermalFocalLengthM = double.NaN;      // measured thermal focal length (replaces the heat model)
         public double TrackedThermalFocalLengthM = double.NaN; // the compile-time lens used by the tracking (for the beam)
         public double TrackedOnAxisFocalLengthM = double.NaN;  // the compile-time on-axis f_th (pump alone), to compare with the run
+        public double TrackedEffectiveFocalLengthM = double.NaN; // -1/C of the tracked duct chain (one pass): the lens as a thick element
         public bool Stress;                        // thermal stress birefringence (cubic hosts)
         public double RepRateHz = double.NaN;
         public bool SteadyState = true;
@@ -418,6 +419,7 @@ namespace UltrafastEngine.Gain
             if (!double.IsNaN(S.TrackedThermalFocalLengthM))
             {
                 r.Values["trackedThermalLensFocalLengthM"] = S.TrackedThermalFocalLengthM;
+                if (!double.IsNaN(S.TrackedEffectiveFocalLengthM)) r.Values["trackedThermalLensEffectiveFocalLengthM"] = S.TrackedEffectiveFocalLengthM;
                 if (!double.IsNaN(S.TrackedOnAxisFocalLengthM) && !double.IsInfinity(fth) && Math.Abs(S.TrackedOnAxisFocalLengthM / fth - 1) > 0.05)
                     notes.Add(string.Format(CultureInfo.InvariantCulture, "beam tracking estimated the thermal lens with the pump alone (on-axis f_th = {0:G4} m); with the pulse train it is f_th = {1:G4} m -- the tracked beam after this element uses the estimate (give thermalLens.focalLengthM to set it)", S.TrackedOnAxisFocalLengthM, fth));
             }
@@ -497,6 +499,8 @@ namespace UltrafastEngine.Gain
         public int RoundTrips;              // 0 = auto
         public int PassesPerRoundTrip = 2, MaxRoundTrips = 300;
         public PassOperation Between = new PassOperation();
+        /// <summary>Thin-lens-equivalent and effective focal length (m) of the thermal lens put on the tracked beam, NaN if none.</summary>
+        public (double ThinM, double EffectiveM) TrackedLens = (double.NaN, double.NaN);
         public string Kind => "amplifier";
         public string Description => (Geometry == "regenerative" ? "regenerative amplifier (" + (RoundTrips > 0 ? RoundTrips + " round trips" : "auto round trips") + ")" : "multipass amplifier (" + Passes + " passes)") + ", " + S.Describe();
         public double OutputOmega0 => double.NaN;
@@ -540,6 +544,7 @@ namespace UltrafastEngine.Gain
             }
             else if (pumped) powerScale = GainRun.SingleShot(gc, S);
             GainRun.RecordBefore(ctx, gc, S, p, w0);
+            if (!double.IsNaN(TrackedLens.ThinM)) { r.Values["trackedThermalLensFocalLengthM"] = TrackedLens.ThinM; r.Values["trackedThermalLensEffectiveFocalLengthM"] = TrackedLens.EffectiveM; }
             if (pumped)
             {
                 double absJ = gc.AbsorbedPumpJ.Sum(); r.Values["absorbedPumpEnergyJ"] = absJ;
@@ -734,14 +739,20 @@ namespace UltrafastEngine.Gain
                 s.Transverse = j.Has("transverse") ? TransverseSpec.FromJson(j["transverse"]) : null;
                 ce.Active = a;
                 var tlo = tlv != null && tlv.Kind == JsonKind.Object ? tlv.AsObject() : null;
-                if (a.Geometry == "multipass" && tlo != null && (tlo.Has("track") || tlo.Has("passGapM")))
+                bool asked = tlo != null && (tlo.Has("track") || tlo.Has("passGapM"));
+                if (a.Geometry == "regenerative" && asked && a.RoundTrips < 1)
+                    ce.Notes.Add("beam tracking: the thermal lens of a regenerative amplifier needs an explicit roundTrips (\"auto\" is decided at run time, after the beam is tracked)");
+                else if (asked)
                 {
-                    // on request: the path between passes is only known if it is given
+                    // on request: the path between passes (and, for a regenerative amplifier, the number of round trips) is only known if it is given
                     ce.TrackingIndex = s.Host.IndexAt(c.Omega0);
                     TrackThermalLens(c, ce, s);
-                    ce.TrackPasses = a.Passes; ce.TrackPassGapM = tlo.GetDouble("passGapM", 0);
+                    ce.TrackPasses = a.Geometry == "multipass" ? a.Passes : a.RoundTrips * a.PassesPerRoundTrip; ce.TrackPassGapM = tlo.GetDouble("passGapM", 0);
+                    if (ce.TrackDucts != null && a.Geometry == "regenerative")
+                        ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "beam tracking: {0} round trips x {1} passes through the thermal lens, {2:G4} m of free path between passes (an open path: the cavity's own focusing optics are not part of the tracked beam)", a.RoundTrips, a.PassesPerRoundTrip, ce.TrackPassGapM));
+                    a.TrackedLens = (s.TrackedThermalFocalLengthM, s.TrackedEffectiveFocalLengthM);
                 }
-                else if (c.Tracked != null && s.ThermalLens && s.Pump.Kind != "none") ce.Notes.Add("beam tracking: the amplifier's thermal lens is not applied to the tracked beam (multipass: give thermalLens.track and passGapM)");
+                else if (c.Tracked != null && s.ThermalLens && s.Pump.Kind != "none") ce.Notes.Add("beam tracking: the amplifier's thermal lens is not applied to the tracked beam (give thermalLens.track and passGapM; a regenerative amplifier also needs an explicit roundTrips)");
             }
             c.Provenance.Record("element:" + e.Id, amplifier ? "amplifier" : "gain", ce.Active.Description, ModelSource.SystemData, "system file");
             c.Provenance.Record("element:" + e.Id, "gainMedium", s.Medium.Describe() + (string.IsNullOrEmpty(s.Medium.References) ? "" : " [" + s.Medium.References + "]"), ModelSource.SystemData, "gain-medium library / system file");
@@ -761,9 +772,14 @@ namespace UltrafastEngine.Gain
             var ci = CultureInfo.InvariantCulture;
             if (!double.IsNaN(s.ThermalFocalLengthM))
             {
-                ce.TrackLenses = new List<(double, double)> { (s.LengthM / 2, 1 / s.ThermalFocalLengthM) };
-                s.TrackedThermalFocalLengthM = s.ThermalFocalLengthM;
-                ce.Notes.Add(string.Format(ci, "beam tracking: thermal lens f_th = {0:G4} m (thermalLens.focalLengthM) at the centre of the medium", s.ThermalFocalLengthM));
+                // a measured focal length is what one sees from outside the medium: the effective focal length -1/C of the whole duct
+                double nT = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0;
+                double thin = Optics.BeamState.ThinPowerForEffectiveFocalLength(s.LengthM, nT, s.ThermalFocalLengthM, out bool capped);
+                ce.TrackDucts = new List<(double, double, double)> { (0, s.LengthM, thin) };
+                s.TrackedThermalFocalLengthM = 1 / thin;
+                s.TrackedEffectiveFocalLengthM = EffectiveFocalLength(ce.TrackDucts, ce.TrackingIndex);
+                ce.Notes.Add(string.Format(ci, "beam tracking: thermal lens with effective focal length {0:G4} m (thermalLens.focalLengthM) spread uniformly over the medium as a graded-index duct; thin-lens equivalent {1:G4} m", s.ThermalFocalLengthM, 1 / thin));
+                if (capped) ce.Notes.Add("beam tracking: the given focal length is shorter than a quarter pitch of the medium can give (the beam would come to a focus inside it); the strongest duct with a monotone matrix is used");
                 return;
             }
             if (s.Pump.Kind == "none") return;
@@ -785,9 +801,24 @@ namespace UltrafastEngine.Gain
             var tl = gc.ThermalLens(scale, GainRun.HeatFraction(s, c.Omega0), s.RodRadiusM > 0 ? s.RodRadiusM : 3 * s.Pump.RadiusM, inv, wmode);
             double sum = inv.Sum();
             if (double.IsInfinity(tl.FocalLengthM) || sum == 0) return;
-            ce.TrackLenses = Enumerable.Range(0, gc.Nz).Select(j => ((j + 0.5) * gc.Dz, inv[j])).ToList();
+            ce.TrackDucts = Enumerable.Range(0, gc.Nz).Select(j => (j * gc.Dz, gc.Dz, inv[j])).ToList();
             s.TrackedThermalFocalLengthM = 1 / sum; s.TrackedOnAxisFocalLengthM = tl.FocalLengthM;
-            ce.Notes.Add(string.Format(ci, "beam tracking: thermal lens f = {0:G4} m for the {1:G4} mm beam (on-axis f_th = {2:G4} m; {3:G4} W of heat, pump alone), applied as {4} thin lenses through the medium", 1 / sum, wmode * 1e3, tl.FocalLengthM, tl.HeatW, gc.Nz));
+            s.TrackedEffectiveFocalLengthM = EffectiveFocalLength(ce.TrackDucts, ce.TrackingIndex);
+            ce.Notes.Add(string.Format(ci, "beam tracking: thermal lens f = {0:G4} m (thin-lens equivalent; effective {5:G4} m) for the {1:G4} mm beam (on-axis f_th = {2:G4} m; {3:G4} W of heat, pump alone), applied as {4} graded-index ducts through the medium", 1 / sum, wmode * 1e3, tl.FocalLengthM, tl.HeatW, gc.Nz, s.TrackedEffectiveFocalLengthM));
+        }
+
+        /// <summary>Effective focal length -1/C of the chain of ducts (one pass, reduced ABCD, output into vacuum).</summary>
+        internal static double EffectiveFocalLength(List<(double ZM, double LengthM, double InvFocalM)> ducts, double n)
+        {
+            if (!(n > 0)) n = 1;
+            var m = new[] { 1.0, 0, 0, 1 }; double z = 0;
+            foreach (var (z0, len, invF) in ducts.OrderBy(d => d.ZM))
+            {
+                if (z0 > z) m = Optics.BeamState.Multiply(new[] { 1.0, (z0 - z) / n, 0, 1 }, m);
+                m = Optics.BeamState.Multiply(Optics.BeamState.DuctMatrix(len, n, invF / (n * len)), m);
+                z = z0 + len;
+            }
+            return m[2] != 0 ? -1 / m[2] : double.PositiveInfinity;
         }
     }
 }

@@ -2,13 +2,13 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **562 tests** in 59 classes. **358** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **19** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **571 tests** in 59 classes. **366** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
 | [AO plugin: deformable mirror, SLM, spectral shaper and AOPDF elements](#aodevicetests) | `AoDeviceTests` | 26 | 26 |
 | [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 15 | 14 |
-| [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 13 | 12 |
+| [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 17 | 16 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
 | [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
@@ -34,7 +34,7 @@ Every C# test of the engine: **562 tests** in 59 classes. **358** of them check 
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms](#instrumentfixestests) | `InstrumentFixesTests` | 5 | 5 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
-| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 5 | 5 |
+| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 10 | 10 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
@@ -128,14 +128,18 @@ Gaussian beam tracking: thermal lenses and spatio-temporal couplings.
 | test | reference | tolerance |
 |---|---|---|
 | `AngularDispersionOnTheProfile_TwoGratingsOnAGrid_GiveTheTrackersChirpAndTreacysGdd` | Treacy GDD and the tracker's spatial chirp, from a field propagated on a grid | 3 % |
+| `Duct_ManyThinSlices_ConvergeToTheDuct_WithSecondOrderError` | slices of a graded-index medium: N thin lenses + gaps converge to the duct as 1/N² | 1e-3 at N = 40, ratio 4 for 2N |
+| `Duct_Matrix_IsTheQuadraticIndexResult_AndTheThinLensLimit` | quadratic-index medium n(r) = n0 (1 - g² r²/2): ABCD cos(gL), sin(gL)/(n0 g) (Saleh & Teich, ch. 1) | 1e-12 |
 | `Grating_AngularDispersionAndPulseFrontTilt_FollowTheGratingEquationAndHebling` | grating equation; Hebling, Opt. Quantum Electron. 28, 1759 (1996) | 0.2 % |
 | `PrismPair_InAir_GivesTheNegativeDispersionOfItsAngularDispersion` | angular-dispersion GDD -k0 L (d theta / d omega)^2; Snell's law at the prism faces | 1 % |
 | `Prism_AngularDispersion_MatchesSnellsLawThroughBothFaces` | Snell's law at both prism faces (finite difference of n(λ)) | 0.5 % |
 | `PulseFrontTilt_FromSpatialChirpAndGdd_MatchesTheGaussianResult` | Akturk et al., Opt. Express 13, 8642 (2005): 2 φ2 E σ² / (w² + 2 E² σ²) | 0.5 % |
+| `Regen_ThermalLens_OnTheTrackedBeam_EqualsTheSamePassesOfAMultipass` | N round trips of a regenerative amplifier = N x passesPerRoundTrip duct passes | 1e-12 |
 | `SpaceTime_OnA1DBeam_ShowsTheTrackedPulseFrontTilt` | cross-model: spaceTime from the tracked beam vs the element's pulse-front tilt | -- |
 | `SpatioTemporalSwitch_TrackReportsWithoutPhase_OffForgetsTheCouplings` | -- | -- |
 | `ThermalLens_MeasuredFocalLength_FocusesTheTrackedBeamLikeAThinLens` | Gaussian-beam thin-lens law (Self, Appl. Opt. 22, 658 (1983)) | 1e-12, 0.2 % |
 | `ThermalLens_SmallBeam_TrackedFocalLengthIsInnocenzis` | Innocenzi et al., Appl. Phys. Lett. 56, 1831 (1990): f = πK w_p² / (P_h dn/dT) | 5 % |
+| `ThermalLens_ThickRod_TrackedBeamIsTheDuctResult` | ABCD matrix of a quadratic-index duct (gL = 0.6): not the thin lens at the centre | 1e-9 |
 | `ThermalLens_TrackedBeam_AgreesWithTheSpatialGainModel` | cross-model: the radial spatial gain model | 7 % (aberrated lens) |
 | `TwoGratings_GiveTreacysGdd_AndTheGratingPairsSpatialChirp` | Treacy grating pair (IEEE JQE 5, 454 (1969)), Kostenbauder ray-pulse matrices | 0.1 %, 0.2 % |
 | `TwoGratings_ReproduceTreacysThirdOrderDispersion` | Treacy, IEEE JQE 5, 454 (1969): TOD of the exact grating-pair phase | 0.5 % |
@@ -589,6 +593,11 @@ Photo-ionisation and plasma.
 |---|---|---|
 | `Keldysh_MultiphotonOrderForFusedSilica` | Keldysh: K = ceil(U_g / ħω) | 8 % |
 | `Plasma_ElectronDensityBlueshiftAndAbsorption` | ρ = ∫ W dt; Drude blue shift | 3 % |
+| `Plasma_EnvelopeAgreesWithCarrierResolved_ForA10FsMidInfraredPulse` | cross-check: the envelope model against the carrier-resolved field model, same operator | blueshift 2 %, energy 1 %, density 1e-4 |
+| `Plasma_FixedDensity_FollowsTheFrequencyResolvedDrudeIndex_InEnvelopeAndCarrierMode` | Drude response of free electrons: Δn(ω) = -ω_p² / (2 n0 ω (ω + iν)) (Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007)) | 1e-8 (solver tolerance 1e-11), both field models |
+| `Plasma_FixedDensity_SpatialModel_AppliesTheSameDrudeFilter` | the same Drude filter in the radial spatial model (a uniform plasma commutes with diffraction): energy transmission | 1e-7 |
+| `Plasma_FrequencyResolved_TakesTheDriftEnergyOfTheElectronsBornInTheField` | drift energy of electrons born at rest in a linearly polarised field: U_p = e² E0² / (4 m ω²) per electron (Corkum, Phys. Rev. Lett. 71, 1994 (1993)) | 2 % |
+| `Plasma_FrequencyResolved_TendsToTheCarrierValue_ForNarrowSpectra` | narrow-band limit: the frequency-resolved operator tends to the carrier value as the bandwidth goes to zero; R(ω0) = 1 | 1e-15; difference halves with the bandwidth |
 | `Ppt_MultiphotonAndTunnelLimits` | PPT rate: multiphoton I^K and tunnelling (ADK) limits | 3 %, 15 % |
 | `SpecialFunctions_DawsonAndElliptic` | tabulated Dawson and elliptic-integral values | 1e-12, 1e-07, 1e-06 |
 | `Uppe_AgreesWithEnvelopeForParaxialBeams_AndPlasmaClampsTheFocus` (slow) | cross-check: the envelope model for paraxial beams | 1e-06, 1 % |

@@ -134,7 +134,7 @@ namespace UltrafastEngine.Schema
                 .Num("bandGapEv", "eV", "Band gap (solids)").Num("effectiveMass", "", "Reduced mass / m_e (solids)").Num("neutralDensityM3", "1/m^3", "Density of ionisable atoms / valence electrons")
                 .Num("sigmaK", "(m^2/W)^K/s", "MPI cross section").Int("photons", "MPI order K")
                 .Num("collisionTimeS", "s", "Electron collision time").Num("recombinationTimeS", "s", "Recombination / trapping time").Num("recombinationBetaM3PerS", "m^3/s", "Two-body recombination")
-                .Bool("avalanche", "Avalanche (impact) ionisation", "true for solids").Bool("absorption", "Plasma and ionisation losses", "true").Str("species", "Gas species (when the material does not say)"));
+                .Num("electronDensityM3", "1/m^3", "Free-electron density present before the pulse (a prepared plasma)", "0").Bool("frequencyResolved", "Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only", "true").Bool("avalanche", "Avalanche (impact) ionisation", "true for solids").Bool("absorption", "Plasma and ionisation losses", "true").Str("species", "Gas species (when the material does not say)"));
             add(new ComponentSpec("coherence", "", "A Gaussian-Schell beam as an incoherent sum of Hermite-Gauss modes (docs/reference/transverse.md#partial-coherence).")
                 .Enum("model", new[] { "gaussianSchell" }, "Coherence model", "gaussianSchell")
                 .Num("m2", "", "Beam quality M^2 >= 1", required: true)

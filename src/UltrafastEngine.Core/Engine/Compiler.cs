@@ -86,6 +86,10 @@ namespace UltrafastEngine.Engine
         /// 1/f (1/m, vacuum-equivalent, from the optical path difference), e.g. the slices of a thermal lens. The tracker
         /// crosses the element at <see cref="TrackingIndex"/> and applies each lens at its position.</summary>
         public List<(double ZM, double InvFocalM)> TrackLenses { get; set; }
+        /// <summary>Distributed lenses inside the element for Gaussian beam tracking: start from the entrance (m), length (m) and the
+        /// thin-lens-equivalent power 1/f (1/m) of each segment, e.g. the slices of a thermal lens. The tracker crosses each as a
+        /// graded-index duct n(r) = n0 (1 - g² r² / 2) with g² = (1/f) / (n0 L) (<see cref="Optics.BeamState.Duct"/>).</summary>
+        public List<(double ZM, double LengthM, double InvFocalM)> TrackDucts { get; set; }
         /// <summary>Passes through <see cref="TrackLenses"/> (a multipass amplifier) and the free path between them.</summary>
         public int TrackPasses { get; set; } = 1;
         public double TrackPassGapM { get; set; }
@@ -828,6 +832,24 @@ namespace UltrafastEngine.Engine
                     break;
                 }
                 default:
+                    if (ce.TrackDucts != null && ce.LengthM > 0)
+                    {
+                        double n = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0;
+                        for (int pass = 0; pass < ce.TrackPasses; pass++)
+                        {
+                            double z = 0;
+                            foreach (var (z0, len, invF) in ce.TrackDucts.OrderBy(d => d.ZM))
+                            {
+                                double zs = Math.Max(z, Math.Min(ce.LengthM, z0));
+                                t.Propagate(zs - z, n); z = zs;
+                                double l = Math.Max(0, Math.Min(ce.LengthM - z, len));
+                                if (l > 0) { t.Duct(l, n, invF / (n * l), invF / (n * l)); z += l; }
+                            }
+                            t.Propagate(ce.LengthM - z, n);
+                            if (pass < ce.TrackPasses - 1 && ce.TrackPassGapM > 0) t.Propagate(ce.TrackPassGapM, 1.0);
+                        }
+                        break;
+                    }
                     if (ce.TrackLenses != null && ce.LengthM > 0)
                     {
                         double n = ce.TrackingIndex > 0 ? ce.TrackingIndex : 1.0;
