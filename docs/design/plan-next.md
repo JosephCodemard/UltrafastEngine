@@ -30,7 +30,7 @@ because they describe what the others deliver. Every package ends with tests, do
 4. *(Done 2026-11-11: see [notes/wp0.md](notes/wp0.md); Bolduc and double phase through the SLM and the lobe fractions are in `python/tests/test_ao_plugin.py`, the Littrow check in `AoDeviceTests`.)* Mark the open edges of S3 that have no test: grating-derived dispersion of `spectralShaper` against a Littrow reference; end-to-end Bolduc and double phase through an SLM with a varying field; tiled-array
    lobe fractions beyond `0 < f < 1`. Write the tests (S) or state in the docs why not.
 
-### WP1. Spatial modelling: thermal lenses in beam tracking (M-L; priority 1)
+### ~~WP1. Spatial modelling: thermal lenses in beam tracking (M-L; priority 1)~~ done
 
 *Done 2026-11-11 (session B): see [notes/session-b.md](notes/session-b.md).*
 
@@ -72,7 +72,7 @@ Jones map on a scalar pair and the limits are stated. *Not in this package:* 3-D
 * **Tests.** Every built-in material round-trips through the catalogue (the old table and the new files agree to 1e-15 before any value is edited, so the move is a pure refactor); a lint test fails when
   a catalogue entry has no source or status; user catalogues in `~/.ultrafast/materials` override with a notice.
 
-### WP4. Plasma in envelope mode (M; priority 4)
+### ~~WP4. Plasma in envelope mode (M; priority 4)~~ done
 
 *Done 2026-11-11 (session B): see [notes/session-b.md](notes/session-b.md); open: PPT / ADK against carrier-resolved, avalanche vs inverse-bremsstrahlung double count.*
 
@@ -161,7 +161,7 @@ spline against network) are written directly in the new structure.
 | session | packages | executor / notes |
 |---|---|---|
 | A | WP0, WP6 (`ny = 1`), WP5 decisions, WP7 (cw carrier; SPGD gain) | one agent, small tasks; `bug-hunter` for `ny = 1` |
-| B | WP1 and WP4 | physics: Opus-class judgement for the ABCD duct and the Drude operator; `physics-reviewer` at the end |
+| ~~B~~ | ~~WP1 and WP4~~ **done 2026-11-11** ([notes/session-b.md](notes/session-b.md)) | physics: Opus-class judgement for the ABCD duct and the Drude operator; `physics-reviewer` at the end |
 | C | WP3 | mostly plumbing and reading papers; owner supplies the PDFs |
 | D | WP2 | spike first, then ASE, then the pattern |
 | E | WP7 (Raman, SLM, tiled array) | investigations; may run beside B-D |
