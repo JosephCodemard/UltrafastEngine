@@ -22,6 +22,7 @@ jobs:
   managed:
     name: Managed components and source folders
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -44,6 +45,7 @@ jobs:
   native:
     name: NativeAOT components on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -79,6 +81,7 @@ jobs:
     name: Check, smoke-test the installer, publish
     needs: [managed, native]
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     permissions:
       contents: write
     steps:

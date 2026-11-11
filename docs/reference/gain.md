@@ -136,7 +136,7 @@ ASE photons (0.5 %); no solid angle gives no depletion and more angle gives more
   Ω = λ0² / (n² A) (one mode).
 * **Transversely resolved ("3-D") ASE is not in this package.** On a transverse grid (`transverse`) every cell is its own column with its own inversion, so the depletion is local and follows the
   pump; but the rays do not cross from cell to cell, and there are no reflections at the faces (no parasitic lasing, no transverse ASE in a large-aperture disk). A true 3-D model needs
-  oblique rays through the whole crystal (a Monte Carlo or ray-tiling model, O(cells² × slices)) and a reference for it (see `docs/design/notes/session-d.md`).
+  oblique rays through the whole crystal (a Monte Carlo or ray-tiling model, O(cells² × slices)) and a reference for it (see `docs/design/next-steps.md`).
 * The signal polarisation is not special: the same ASE depletes the inversion for both polarisations. ASE in the *pulse's* polarisation state is the input of the pedestal.
 * Cost: cells × slices × points exponentials per evaluation, once per pumping step. A 1-D element costs milliseconds; a 64 × 64 cell grid costs seconds.
 

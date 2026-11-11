@@ -121,7 +121,7 @@ namespace UltrafastEngine.Tests
         /// 21-23 s for the same runs, so it gets 45 s. The budget is a regression guard against an order-of-magnitude slowdown, not a benchmark.</summary>
         public static double ScaleBudgetS() => Environment.GetEnvironmentVariable("CI") != null ? 45.0 : 13.0;
 
-        [Test(Slow = true, Reference = "S2 scale spike (docs/design/notes/spikes.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y)", Tolerance = "budget 4x the spike time (13 s; 45 s when the CI variable is set); keepProfiles used holds at least one profile less than all; transmission 1e-3")]
+        [Test(Slow = true, Reference = "S2 scale spike (docs/design/history.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y)", Tolerance = "budget 4x the spike time (13 s; 45 s when the CI variable is set); keepProfiles used holds at least one profile less than all; transmission 1e-3")]
         public void FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget()
         {
             int nx = 1920, ny = 1080; double pitch = 8e-6, dx = pitch, w = 6e-3;    // the grid (2048 x 1280 cells of 8 um, one per device cell, aligned) is larger than the panel (15.4 x 8.6 mm)

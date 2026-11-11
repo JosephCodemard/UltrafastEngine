@@ -1,4 +1,8 @@
 <p align="center">
+<a href="mailto:joseph.codemard@gmail.com"><img alt="Email" src="https://img.shields.io/badge/email-joseph.codemard%40gmail.com-c85a28?logo=gmail&logoColor=white"></a>
+</p>
+
+<p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo/ultrafast-logo-large-dark.svg">
   <img alt="UltrafastEngine" src="assets/logo/ultrafast-logo-large.svg" height="110">
@@ -17,9 +21,9 @@
 <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-green">
 </p>
 <p align="center">
-<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-544%20passing-brightgreen">
-<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-216%20passing-brightgreen">
-<img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1688%2F1691-brightgreen">
+<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-585%20passing-brightgreen">
+<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-249%20passing-brightgreen">
+<img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1691%2F1694-brightgreen">
 <img alt="Paper replications" src="https://img.shields.io/badge/papers%20replicated-12-blueviolet">
 </p>
 <p align="center">
@@ -40,11 +44,17 @@ It is built for people who design and operate table-top and open-air laser syste
 or changing a beamline, what the pulse will look like at the end, and why a measurement differs from the design. The
 focus is free-space optics, with single-mode fibres and gas cells where a system needs them.
 
+<table width="100%">
+<tr><td align="center"><a href="docs/examples/LaserSystems/yb-laser-system/"><img src="docs/examples/LaserSystems/yb-laser-system/hero.png" alt="A complete Yb laser system"></a><br><sub>A complete Yb laser system</sub></td><td align="center"><a href="docs/examples/Nonlinear/filament/"><img src="docs/examples/Nonlinear/filament/hero.png" alt="Filament in air"></a><br><sub>Filament in air</sub></td><td align="center"><a href="docs/examples/LaserSystems/noncollinear-opa/"><img src="docs/examples/LaserSystems/noncollinear-opa/hero.png" alt="Non-collinear OPA"></a><br><sub>Non-collinear OPA</sub></td></tr>
+<tr><td align="center"><a href="docs/examples/LaserSystems/four-grating-compressor/"><img src="docs/examples/LaserSystems/four-grating-compressor/hero.png" alt="Four-grating compressor"></a><br><sub>Four-grating compressor</sub></td><td align="center"><a href="docs/examples/Nonlinear/carrier-resolved/"><img src="docs/examples/Nonlinear/carrier-resolved/hero.png" alt="Carrier-resolved propagation"></a><br><sub>Carrier-resolved propagation</sub></td><td align="center"><a href="docs/examples/AdaptiveOptics/tiled-array/"><img src="docs/examples/AdaptiveOptics/tiled-array/hero.png" alt="Tiled-aperture combining"></a><br><sub>Tiled-aperture combining</sub></td></tr>
+<tr><td align="center"><a href="docs/examples/AdaptiveOptics/scatterer-focusing/"><img src="docs/examples/AdaptiveOptics/scatterer-focusing/hero.png" alt="Focusing through a scatterer"></a><br><sub>Focusing through a scatterer</sub></td><td align="center"><a href="docs/examples/DigitalTwin/build-the-twin/"><img src="docs/examples/DigitalTwin/build-the-twin/hero.png" alt="A digital twin"></a><br><sub>A digital twin</sub></td><td align="center"><a href="docs/examples/Diffraction/tilt-fringes/"><img src="docs/examples/Diffraction/tilt-fringes/hero.png" alt="Fringes from a tilted mirror"></a><br><sub>Fringes from a tilted mirror</sub></td></tr>
+</table>
+
 **Why use it**
 
 * **One model from design to measurement.** The same system file gives the pulse, the loss budget and the traces your
   diagnostics would record. A fitting plugin compares them with your data and finds the cause of the difference.
-* **Validated, not just plausible.** Every component is run alone against its analytic answer (1691 checks), the
+* **Validated, not just plausible.** Every component is run alone against its analytic answer (1694 checks), the
   suite pins the physics to published formulas and to an independent code ([pyNLO](https://github.com/pyNLO/PyNLO)),
   and twelve published experiments are replicated, with an honest account of what agrees and what does not.
 * **Runs anywhere, no dependencies.** A C# core (.NET 10 and .NET Framework 4.8 for OpticStudio) with no NuGet

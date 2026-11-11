@@ -22,6 +22,7 @@ jobs:
   build:
     name: Build the site (strict)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -43,6 +44,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     permissions:
       pages: write
       id-token: write

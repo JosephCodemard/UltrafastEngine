@@ -209,7 +209,7 @@ Two settings keep long chains on large grids (a full 1920 × 1080 SLM panel, man
   `used` (one profile is 268 MB), bit-identical instruments.
 
 Peak memory *during* a run is set by the .NET garbage collector, which returns large freed arrays late: on the 1920 × 1080 × 16 case of the
-[spikes](../design/notes/spikes.md) the process peak stayed at 2.7-3.4 GB whatever the block size, so `frequencyBlock` lowers the live set
+[spikes](../design/history.md) the process peak stayed at 2.7-3.4 GB whatever the block size, so `frequencyBlock` lowers the live set
 but not the reported peak. A 1920 × 1080 single-frequency panel on a 2048 × 1280 grid (modulator, 0.2 m gap, beam profile) takes 1.9 s
 and holds 260 MB after the run with `keepProfiles: "used"`, 491 MB with `all` (slow test `FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget`).
 

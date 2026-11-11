@@ -65,7 +65,7 @@ after a code change.
 | speed: CPU FFT providers, compute back-ends, GPU | `docs/reference/speed.md`, `docs/plugins/gpu.md`; tests `ComputeTests`, `GpuTests` |
 | tests | `tests/UltrafastEngine.Tests/CLAUDE.md` |
 | status / what is verified | `PROJECT_STATUS.md`; history in `CHANGELOG.md` (top section only) |
-| current plan, owner decisions | `docs/design/plan-next.md` (next iteration), `docs/design/backlog.md` (parked), `docs/design/ao-twin-2026-11.md` (last iteration) (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
+| current plan, owner decisions | `docs/design/next-steps.md` (open items), `docs/design/backlog.md` (parked), `docs/design/history.md` (what was built) (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
 | paper replications | `docs/papers/` (`docs/papers/CLAUDE.md`): published headline results reproduced, plots + commentary |
 | component checks with plots | `tests/components/` (`tests/components/CLAUDE.md`): one script per component family, HTML gallery |
 

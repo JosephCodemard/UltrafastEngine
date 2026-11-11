@@ -1,10 +1,10 @@
 # Backlog: design that is parked for after the first release
 
 This page was the plan for the work after 2.2.0 (written 2026-11-08). The adaptive-optics and digital-twin work from it is done
-([ao-twin-2026-11.md](ao-twin-2026-11.md)); the plan for the next iteration is [plan-next.md](plan-next.md). What stays here is design that is **not scheduled**:
+([history](history.md)); the plan for the next iteration is [next-steps.md](next-steps.md). What stays here is design that is **not scheduled**:
 engineering (GPU coverage, FP32, speed), multimode and tapered fibres, fitting extensions, the crystal- and coating-design plugins, papers still to replicate,
 and the repetition / Pockels-cell sketch. Sizes are focused agent-days (S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here. Owner decisions 1-11 below
-still hold unless plan-next.md says otherwise.
+still hold unless next-steps.md says otherwise.
 
 ## Decisions (owner)
 

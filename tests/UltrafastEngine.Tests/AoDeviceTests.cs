@@ -185,7 +185,7 @@ namespace UltrafastEngine.Tests
             for (int i = 0; i < fa.Length; i++) Assert.Close(fb[i], fa[i], 1e-12, 1e-30, "fluence " + i);
         }
 
-        [Test(Slow = true, Reference = "S2 scale spike (docs/design/notes/spikes.md): a 1920 x 1080 panel on a 2048 x 1280 grid, one frequency, ran in 1.9 s; here the panel is the slm element written with 8-bit grey levels (a phase-only lens-and-grating pattern from a callback); a Gaussian overfilling the panel passes the Gaussian power on the panel", Tolerance = "budget 13 s (the S2 limit; 45 s when the CI variable is set, shared runners took 21-23 s); transmission 1e-3 of the erf product")]
+        [Test(Slow = true, Reference = "S2 scale spike (docs/design/history.md): a 1920 x 1080 panel on a 2048 x 1280 grid, one frequency, ran in 1.9 s; here the panel is the slm element written with 8-bit grey levels (a phase-only lens-and-grating pattern from a callback); a Gaussian overfilling the panel passes the Gaussian power on the panel", Tolerance = "budget 13 s (the S2 limit; 45 s when the CI variable is set, shared runners took 21-23 s); transmission 1e-3 of the erf product")]
         public void Slm_FullPanel_1920x1080_8Bit_RunsWithinTheScaleBudget()
         {
             int nx = 1920, ny = 1080; double pitch = 8e-6, w = 6e-3;

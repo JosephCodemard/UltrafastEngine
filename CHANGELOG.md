@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+**Changed (release polish)**
+- **Component check "plasma blue shift"** (`tests/components/media.py`): the single-carrier Drude formula is compared with `frequencyResolved: false` at 5 %; the default frequency-resolved operator (WP4) is a separate row at 8 %, because the 1/omega dependence across a 30 fs bandwidth lowers the shift by up to 5 % (measured -5.3 % at 1030 nm). This was the one CI failure of the component scripts.
+- **CI:** job timeouts (a hung `apt-get` ran for two hours) and `apt-get` retries.
+- **Docs:** logo-palette theme and the long logo at the top of every page; README picture grid and contact badge; `docs/design/` condensed to `history.md`, `next-steps.md` and `backlog.md` (the branching design, the AO / twin record, the plan and the session notes are removed).
+
 **Added (session F, WP8: release system)**
 - **Release assets by component:** `build/package.py --components NAME...` (the old `--cli --python --cpp --csharp --zemax --examples --docs` are aliases) writes `dist/release-<version>/`: one reproducible `.tar.gz` per component and platform, `manifest.json` (size, SHA-256, platform, dependencies for each asset) and `install.py`. Components: `cli`, `python`, `python-native`, `cpp`, `csharp`, `zemax`, `plugins.<id>`, `schemas`, `docs`, `examples.<Group>` + `examples.shared`, `media` (not in `all`), `tests`, `component-tests`, `papers`, `source`. Source components are built from `git ls-files` (`build/release_components.py`).
 - **`install.py`** (standard library only; in the repository and attached to each release): `--list`, `--include` / `--exclude` (dotted names, down to `examples.<Group>.<name>`; dependencies come along), `--version`, `--platform`, `--dest`, `--dry-run`, `--uninstall`, `--source git` (partial clone with a cone-mode sparse checkout). Hash-checked before anything is written; the install record `.ultrafast-install.json` makes uninstall remove exactly the files it wrote (a changed file is left with a warning); a second `--include` adds, a newer `--version` upgrades; wheels go in with `pip --find-links`, never from PyPI.

@@ -89,18 +89,8 @@ nav:
   - Releasing (build.sh): releasing.md
   - Design notes:
       - Development history: design/history.md
-      - Branched systems (design): design/branching.md
-      - "Plan: next iteration": design/plan-next.md
+      - "Next steps": design/next-steps.md
       - "Backlog (parked design)": design/backlog.md
-      - "Record: adaptive optics and digital twin": design/ao-twin-2026-11.md
-      - "Spike measurements (S2)": design/notes/spikes.md
-      - "WP0 housekeeping (2026-11-11)": design/notes/wp0.md
-      - "Session A: ny = 1, speed decisions, cw carrier, SPGD gain": design/notes/session-a.md
-      - "Session B: thermal-lens duct, frequency-resolved Drude plasma": design/notes/session-b.md
-      - "Session C: the material catalogue": design/notes/session-c.md
-      - "Session D: ASE over the inversion lifetime, stress-birefringence pattern": design/notes/session-d.md
-      - "Session E: the open findings (Raman shift rate, SLM against Fourier, tiled-array reference)": design/notes/session-e.md
-      - "Session F: the release system (components, install.py, workflow)": design/notes/session-f.md
 markdown_extensions:
   - admonition
   - tables

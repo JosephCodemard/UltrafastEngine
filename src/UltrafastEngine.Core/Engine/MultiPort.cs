@@ -17,7 +17,7 @@
 // An element runs once per packet per input port. That is exact for a linear element, by superposition: interference
 // appears when the packets on one output merge. Merging puts them in a common frame, from their ledgers, and takes the
 // overlap of their modes: tracked Gaussians analytically, carried profiles by adding the fields point by point.
-// Design: docs/design/branching.md, sections 5 and 6.
+// Reference: docs/reference/branches.md.
 
 using System;
 using System.Collections.Generic;

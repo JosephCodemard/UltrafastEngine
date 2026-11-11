@@ -109,7 +109,7 @@ the CLI for win-x64, linux-x64, linux-arm64, osx-arm64 and osx-x64; job `native`
 job `publish` merges the manifests, runs the ZOS-API gate, installs a selection into a temporary folder (`cli`, `schemas`, `examples.Branched`), runs the CLI and an example
 in strict mode, uninstalls and checks the folder is empty, installs the wheel in a fresh virtual environment (`ultrafast.devices()`, the quickstart), and attaches the assets
 to a **draft** release. The NativeAOT components for macOS are built on the owner's Mac and added with `gh release upload`. **A tag is created only when the owner asks.**
-The workflow has not run on GitHub yet. Rehearsed by hand on macOS: the asset build, the manifest merge, the ZOS-API gate, and the installer install / run / uninstall steps. Not run: the Windows and Linux NativeAOT builds, the CMake example, the wheel in a fresh environment, the upload (see [session-f](design/notes/session-f.md)).
+The workflow has not run on GitHub yet. Rehearsed by hand on macOS: the asset build, the manifest merge, the ZOS-API gate, and the installer install / run / uninstall steps. Not run: the Windows and Linux NativeAOT builds, the CMake example, the wheel in a fresh environment, the upload (see [session-f](design/history.md)).
 
 ## Single-folder packages (`--cli --python ...`)
 

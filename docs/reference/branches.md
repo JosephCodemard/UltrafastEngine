@@ -1,6 +1,6 @@
 # Branched systems
 
-A system is `Sequential` (the default: a list, each element continuing into the next) or `Branched` (each element states where its light goes). Both compile to the same graph and run through the same element code. Design: [Branched systems](../design/branching.md).
+A system is `Sequential` (the default: a list, each element continuing into the next) or `Branched` (each element states where its light goes). Both compile to the same graph and run through the same element code. Design: [Branched systems](../reference/branches.md).
 
 ## Writing one
 

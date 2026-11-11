@@ -21,13 +21,14 @@ jobs:
   build-and-test:
     name: Build (net10.0, net48) and C# tests
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - name: Install Mono (net48 reference assemblies and runtime)
-        run: sudo apt-get update && sudo apt-get install -y mono-complete
+        run: sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y mono-complete
       - name: Build everything
         run: dotnet build UltrafastEngine.sln -c Release
       - name: C# tests, .NET 10, including slow
@@ -38,6 +39,7 @@ jobs:
   tests-macos-windows:
     name: C# and Python tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -66,6 +68,7 @@ jobs:
   compile-platforms:
     name: Compile CLI for ${{ matrix.rid }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -81,6 +84,7 @@ jobs:
   python:
     name: Python tests (hosted engine, pyNLO)
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -102,6 +106,7 @@ jobs:
   components:
     name: Component test scripts (numbers only)
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -125,6 +130,7 @@ jobs:
   papers:
     name: Paper replications (fast tier)
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -151,6 +157,7 @@ jobs:
   docs-and-examples:
     name: Docs and example check
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6

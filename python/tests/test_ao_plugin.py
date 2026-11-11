@@ -317,7 +317,7 @@ def test_bolduc_first_order_through_the_slm_carries_a_varying_complex_field():
     corr = np.corrcoef(P[win], F[win])[0, 1]
     assert corr > 0.99, corr
     # the energy carried by the amplitude: first-order energy over that of an engine run with A = 1 (a plain blaze) against the same ratio of the transforms. The ratio cancels
-    # the engine's own first-order efficiency of a sampled blaze (0.85 at 8 pixels per period against 1.00 for the Fourier sum: the open SLM finding of docs/design/plan-next.md, WP7)
+    # the engine's own first-order efficiency of a sampled blaze (0.85 at 8 pixels per period against 1.00 for the Fourier sum: the open SLM finding of docs/design/next-steps.md, WP7)
     ref = _slm_focal_fluence(holography.bolduc_encode(np.ones((n, n)), period_pixels=L, axis=0), w, n, dx, lam, f)[0]
     order = np.abs(XF - x1) < 0.4 * x1
     got = F[order].sum() / ref[order].sum()

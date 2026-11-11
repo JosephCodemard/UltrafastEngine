@@ -119,4 +119,4 @@ Two speed-ups were considered and not built (owner decision, 2026-11-10). Each h
 * **A cache for the compiled system.** In a loop of many trials (sensorless optimisation, a fit) a trial on a 128 x 128 grid costs 10 ms *including* the compile, so a cache would save very little. **Revisit if** a loop over a much larger system shows the compile taking more than 30 % of the time of a trial.
 * **A fully streaming executor** (never holding all transverse frequency slices in memory). The peak memory of a large pulse run is set by the .NET garbage collector, not by the propagator: 2.7 to 3.4 GB at 1920 x 1080 with 16 stored frequencies, whatever the block size. **Revisit if** a 4096 x 4096 pulse run is needed, and measure it first: only the 1920 x 1080 case has been measured. A cw run at 4096 x 4096 needs 3.4 GB and 20 s today.
 
-Both are recorded with their numbers in [the S2 spikes](../design/notes/spikes.md).
+Both are recorded with their numbers in [the S2 spikes](../design/history.md).
