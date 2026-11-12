@@ -7,7 +7,7 @@ copying or deleting a folder.
 
 ## The first-party plugins (fitting, zemax, gpu, hitran)
 
-**If you built the engine from source, they are already installed.** Every build of the CLI, the test runner and
+**If you built the engine from source, they are already installed** (all of them, or the ones you named: `./setup.sh --cli --python --plugins fitting hitran`, see [Install and build](../install.md#plugins); `./setup.sh --plugin-only gpu` rebuilds one). Every build of the CLI, the test runner and
 the Python package builds the plugins and copies their folders next to the engine:
 
 | you use | plugins are in |

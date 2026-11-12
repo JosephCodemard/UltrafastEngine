@@ -6,6 +6,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 
 ## Guides
 - [Home](docs/index.md)
+- [Install and build](docs/install.md): which command for which goal (release install, source build, Python, C API, plugins), AI-agent steps
 - [Getting started](docs/getting-started.md)
 - [Capabilities and limitations: supported elements, what is modelled, what is not](docs/capabilities.md)
 
@@ -44,6 +45,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Fibres & waveguides](docs/reference/fibers.md)
 - [Active elements & aux beams](docs/reference/active-elements.md)
 - [Crystals (χ(2))](docs/reference/crystals.md)
+- [Pulse calculator (time-bandwidth product)](docs/reference/pulse-calculator.md)
 - [Gain media & amplifiers](docs/reference/gain.md)
 - [Oscillators & saturable absorbers](docs/reference/oscillators.md)
 - [Branched systems: splitters, interferometers, loops](docs/reference/branches.md)

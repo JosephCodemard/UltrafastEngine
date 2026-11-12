@@ -3,6 +3,11 @@
 Open items after the November 2026 iteration (what was built: [history](history.md)). Longer-term design that is not scheduled: [backlog](backlog.md).
 Rules of `CLAUDE.md` apply: a physics change needs a published or analytic reference in a test; a disagreement is a finding; tags and releases only when the owner asks.
 
+## 0. Install and release (done in the install overhaul; open parts)
+
+- Done: `docs/install.md`, `build/setup.py`, `install.py --preset`. Open: run `release.yml` once on GitHub (needs a tag, the owner's call) and check the "download `install.py` then `--preset full`" path against a real release; decide on a PyPI upload (forbidden until the owner says so; the wheel and its extras are ready); `pip install "ultrafast[plugins]"` extras only make sense once the wheel carries the plugin folders.
+- Pulse calculator ideas not done: other TBP shapes (Lorentzian, asymmetric exponential), a GDD sign from a phase measurement, a `tbp` instrument in `run.json`.
+
 ## 1. WP9: documentation overhaul (large; in waves)
 
 Every example README and landing page follows one structure instead of "the story":

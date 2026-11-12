@@ -43,7 +43,7 @@ polarimeter, camera, each with its own resolution and detector.
 
 | I want to... | Read |
 |---|---|
-| install and build | [Getting started](getting-started.md) |
+| install and build | [Install and build](install.md), then [Getting started](getting-started.md) |
 | learn step by step | [Tutorials](tutorials/index.md) |
 | see what is modelled and what is not | [Capabilities and limitations](capabilities.md) |
 | understand the model and conventions | [Concepts](concepts.md), [Model levels](model-levels.md) |
@@ -51,6 +51,7 @@ polarimeter, camera, each with its own resolution and detector.
 | change physics without code | [Models and overrides](reference/models.md) |
 | fibres and supercontinuum | [Fibres](reference/fibers.md) |
 | frequency conversion, OPA / OPCPA | [Crystals](reference/crystals.md) |
+| time-bandwidth product, transform limit | [Pulse calculator](reference/pulse-calculator.md) |
 | amplifiers and lasers | [Gain media](reference/gain.md), [Oscillators](reference/oscillators.md) |
 | diffraction, self-focusing, filaments | [Spatial models](reference/transverse.md), [Ionisation](reference/ionization.md) |
 | splitters, interferometers, loops | [Branched systems](reference/branches.md) |

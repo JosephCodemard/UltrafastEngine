@@ -26,7 +26,7 @@ _HERE = Path(__file__).resolve().parent
 # C entry point -> C# method in UltrafastEngine.Native.Exports (hosted back-end)
 EXPORTS: Dict[str, str] = {
     "uf_version": "Version", "uf_last_error": "LastError", "uf_free": "Free", "uf_release": "Release",
-    "uf_capabilities": "Capabilities", "uf_crystal_phase_match": "CrystalPhaseMatch", "uf_command": "Command",
+    "uf_capabilities": "Capabilities", "uf_crystal_phase_match": "CrystalPhaseMatch", "uf_pulse_calc": "PulseCalc", "uf_command": "Command",
     "uf_devices_json": "DevicesJson", "uf_set_default_backend": "SetDefaultBackend",
     "uf_system_load_file": "SystemLoadFile", "uf_system_load_json": "SystemLoadJson",
     "uf_system_to_json": "SystemToJson", "uf_system_validate": "SystemValidate",
@@ -95,6 +95,7 @@ SIGNATURES = {
     "uf_devices_json": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_set_default_backend": (ctypes.c_int, [ctypes.c_char_p]),
     "uf_crystal_phase_match": (ctypes.c_int, [ctypes.c_char_p, vpp]),
+    "uf_pulse_calc": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_load_file": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_load_json": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_to_json": (ctypes.c_int, [vp, vpp]),
@@ -117,6 +118,11 @@ SIGNATURES = {
     "uf_result_array_copy": (ctypes.c_int, [vp, ctypes.c_char_p, c_double_p, ctypes.c_int64]),
     "uf_result_write": (ctypes.c_int, [vp, ctypes.c_char_p]),
 }
+
+
+# Functions added after the first release. An older engine library may lack them: the library still loads, and calling one
+# raises an error that says how to update (Library.fn). Every other function is required.
+OPTIONAL = {"uf_pulse_calc"}
 
 
 def _native_name() -> str:
@@ -150,7 +156,12 @@ class Library:
         if self.mode == "native":
             self._cdll = ctypes.CDLL(str(path))
             for name, (res, args) in SIGNATURES.items():
-                f = getattr(self._cdll, name)
+                try:
+                    f = getattr(self._cdll, name)
+                except AttributeError:
+                    if name in OPTIONAL:
+                        continue
+                    raise
                 f.restype, f.argtypes = res, args
                 self._fns[name] = f
         else:
@@ -175,6 +186,8 @@ class Library:
             p = ffi.new("void**")
             # delegate type (void*)-1 == UNMANAGEDCALLERSONLY_METHOD
             rc = load(asm, type_name, hostfxr.encode(method), ffi.cast("void*", -1), ffi.NULL, p)
+            if rc != 0 and name in OPTIONAL:
+                continue
             if rc != 0:
                 raise OSError("could not bind %s (hostfxr error 0x%08x)" % (name, rc & 0xFFFFFFFF))
             res, args = SIGNATURES[name]
@@ -182,7 +195,12 @@ class Library:
             self._fns[name] = proto(int(ffi.cast("uintptr_t", p[0])))
 
     def fn(self, name: str) -> Callable:
-        return self._fns[name]
+        try:
+            return self._fns[name]
+        except KeyError:
+            raise RuntimeError("%s is not in the engine library %s, which is older than this Python package. Rebuild it "
+                               "(python build/setup.py --python --clean-native) or delete python/src/ultrafast/bin/native "
+                               "if a hosted build is newer; ULTRAFAST_LIBRARY selects a library." % (name, self.path)) from None
 
 
 _lib: Optional[Library] = None

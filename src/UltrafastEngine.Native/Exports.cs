@@ -220,6 +220,19 @@ namespace UltrafastEngine.Native
             catch (Exception ex) { return Fail(ex); }
         }
 
+        [UnmanagedCallersOnly(EntryPoint = "uf_pulse_calc", CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static int PulseCalc(byte* request, byte** json)
+        {
+            try
+            {
+                if (json == null) throw new ArgumentException("result_json_out is null");
+                var req = JsonValue.Parse(Str(request) ?? throw new ArgumentException("request_json is null")).AsObject();
+                *json = OutStr(Pulses.PulseCalculator.Solve(req).ToJson(true));
+                return Ok();
+            }
+            catch (Exception ex) { return Fail(ex); }
+        }
+
         // ------------------------------------------------------------------ systems
         [UnmanagedCallersOnly(EntryPoint = "uf_system_load_file", CallConvs = new[] { typeof(CallConvCdecl) })]
         public static int SystemLoadFile(byte* path, IntPtr* outH)

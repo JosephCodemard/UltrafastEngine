@@ -93,3 +93,11 @@ def test_backward_recovers_the_input():
     assert bw.instrument("inp")["fwhmS"] == pytest.approx(60e-15, rel=0.03)
     rp = fx.reconstructed_pulse(bw)
     assert rp["shape"] == "spectrum" and rp["energyJ"] == pytest.approx(1e-6, rel=0.01)
+
+
+def test_same_as_is_a_second_pass_through_the_same_transform():
+    t = fx.transform("pass1", [fx.energy(transmission=0.5)])
+    sys2 = b.system("cell", [t, b.same_as("pass2", "pass1")])
+    assert sys2["elements"][1] == {"id": "pass2", "sameAs": "pass1"}
+    r = uf.run(sys2, b.run_spec(_pulse(1e-6)))
+    assert r.summary["output"]["energyJ"] == pytest.approx(0.25e-6, rel=1e-6)

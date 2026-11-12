@@ -32,6 +32,7 @@ then a repository build. `uf._native.library().mode` says which back-end is in u
 | `uf.run(system, spec, callbacks={name: fn}, elements={name: fn})` | one call; with `"fit"` in the spec it runs the calibration and returns the best run (`result.summary["fit"]`, [Fitting plugin](../plugins/fitting.md#calibration-fit)) |
 | `uf.crystal.phase_match(crystal, process, type=None, fundamental=, pump=, signal=, idler=, noncollinear=, qpm=, length=, temperature_c=, ...)` | phase-matching calculator ([Crystals](crystals.md#phase-matching-calculator)) |
 | `uf.crystal.crystals()` | built-in crystal names |
+| `uf.calc.tbp(shape)`, `uf.calc.limit(shape, duration= / bandwidth_hz= / bandwidth_m=, center=)`, `uf.calc.analyze(duration=, bandwidth_hz= / bandwidth_m=, center=)`, `uf.calc.measure(time_s, intensity, spectrum, wavelength_m=)` | pulse calculator: time-bandwidth product, transform limit, stretch factor, GDD ([Pulse calculator](pulse-calculator.md)) |
 | `b.system(name, elements)` | a list (or `b.Sequential([...])`) runs in order; `b.Branched([...])` says where each element's light goes ([Branched systems](branches.md)) |
 | `b.link(element, next, inputs=, loop=)` | an element of a Branched system: `next` is `"bs:1"`, `{"id": "bs", "port": 1}`, `"end"`, `"virtual"`, or a dict of those by output port |
 | `b.virtual_input(pulse=, delay_s=, phase_rad=, coherent_with=)`, `b.loop(kind, max_round_trips=, tolerance=)` | a beam on an input port with no beamline; the settings of a loop |

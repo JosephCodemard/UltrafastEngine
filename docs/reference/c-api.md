@@ -36,7 +36,7 @@ uf_release(res); uf_release(run); uf_release(sys);
 
 | group | functions |
 |---|---|
-| library | `uf_version()`, `uf_last_error()`, `uf_free(p)`, `uf_release(h)`, `uf_capabilities(&json)`, `uf_command(request, &json)`, `uf_devices_json(options, &json)`, `uf_set_default_backend(name)`, `uf_crystal_phase_match(request, &json)` |
+| library | `uf_version()`, `uf_last_error()`, `uf_free(p)`, `uf_release(h)`, `uf_capabilities(&json)`, `uf_command(request, &json)`, `uf_devices_json(options, &json)`, `uf_set_default_backend(name)`, `uf_crystal_phase_match(request, &json)`, `uf_pulse_calc(request, &json)` |
 | system | `uf_system_load_file(path, &sys)`, `uf_system_load_json(json, &sys)`, `uf_system_to_json(sys, &json)`, `uf_system_validate(sys, &report)` |
 | run | `uf_run_create(sys, json, &run)`, `uf_run_create_file(sys, path, &run)`, the `uf_run_set_*_callback` functions below, `uf_run_execute(run, &res)` |
 | result | `uf_result_summary_json(res, &json)`, `uf_result_provenance_json(res, &json)`, `uf_result_array_names(res, &json)`, `uf_result_array_info(res, name, &ndim, shape4, &length)`, `uf_result_array_copy(res, name, dest, capacity)`, `uf_result_write(res, directory)` |
@@ -70,7 +70,7 @@ The header names these types `uf_time_response_fn`, `uf_index_fn`, `uf_filter_fn
 `ax_re`, `ax_im`, `ay_re`, `ay_im`, `arrival`, `element_id`, `params_json`.
 
 The phase-matching calculator is a plain function: `uf_crystal_phase_match(const char* request_json, char** result_json)`
-(free the result with `uf_free`); request and result as in [Crystals](crystals.md#phase-matching-calculator).
+(free the result with `uf_free`); request and result as in [Crystals](crystals.md#phase-matching-calculator). `uf_pulse_calc(request_json, &result_json)` is the same for the [pulse calculator](pulse-calculator.md) (`op`: `shapes`, `limit`, `analyze`, `measure`).
 
 Studies, retrieval and the material library go through one JSON entry point,
 `uf_command(const char* request_json, char** result_json)` (free the result with `uf_free`; relative paths are

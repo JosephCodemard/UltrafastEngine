@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `algorithms`, `benchmark`, `build`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -149,6 +149,10 @@ The elements of a branched system: each states where its light goes, with :func:
 ### `link(element: Mapping[str, Any], next: Any = None, inputs: Optional[Mapping[str, Any]] = None, loop: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]`
 
 An element of a :class:`Branched` system, with where its light goes. ``next`` is ``"bs:1"``, ``{"id": "bs", "port": 1}``, ``"end"``, ``"virtual"``, or a dict of those by output port. ``inputs`` holds virtual beams by input port (:func:`virtual_input`); ``loop`` is :func:`loop` on the element where light enters a loop.
+
+### `same_as(id: str, source: str, *, label: Optional[str] = None, enabled: Optional[bool] = None, aoi_deg: Optional[float] = None, aoi_rad: Optional[float] = None, tilt_x_rad: Optional[float] = None, next: Any = None, inputs: Optional[Mapping[str, Any]] = None, loop: Optional[Mapping[str, Any]] = None, side: Optional[int] = None) -> Dict[str, Any]`
+
+An element that is the same physical object as ``source`` (an element id): the same type and numbers, e.g. a transform used on every pass of a multipass cell. The fit parameters of ``source`` move all its copies. The copy gets its own pulse and beam, and its own record and loss booking. It may set only ``label``, ``enabled``, the geometry that changes from pass to pass (``aoi_deg`` / ``aoi_rad``, ``tilt_x_rad``, ``side``: the side of a beam splitter that is met) and the wiring of a Branched system (``next``, ``inputs``, ``loop``).
 
 ### `virtual_input(pulse: Optional[Mapping[str, Any]] = None, delay_s: Optional[float] = None, phase_rad: Optional[float] = None, coherent_with: Optional[str] = None, **extra) -> Dict[str, Any]`
 

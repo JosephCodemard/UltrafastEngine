@@ -14,6 +14,7 @@ CLI (`ultrafast`), a C API, a Python package (`ultrafast`) and plugins (fitting,
 ```bash
 dotnet build UltrafastEngine.sln -c Release
 dotnet run --project tests/UltrafastEngine.Tests -f net10.0 -c Release            # C# tests (-- --slow: all; -- Name: filter)
+./setup.sh --cli --python --venv .venv --check   # first-time source build (docs/install.md; --plugins chooses plugins)
 python3 python/tools/build_engine.py && python3 -m pytest python/tests             # Python
 python3 -m mkdocs build --strict                                                   # docs
 ./build.sh --help                                                                  # release packages (docs/releasing.md)

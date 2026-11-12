@@ -46,6 +46,66 @@ namespace UltrafastEngine.Tests
             return d / m;
         }
 
+        // ------------------------------------------------------------------ identical elements (sameAs)
+
+        private static JsonObject Same(string id, string source, params object[] kv) { var o = O("id", id, "sameAs", source); foreach (var k in O(kv)) o.Set(k.Key, k.Value); return o; }
+
+        [Test(Category = "transform", Reference = "GDD adds: two passes through GDD g = one element of 2 g")]
+        public void SameAs_TwoPassesOfATransform_AddTheirDispersion()
+        {
+            var pulse = Gauss(Lam, 100e-15, 1e-6);
+            var a = Go(Sys(Tr("pass1", O("kind", "spectralPhase", "gddFs2", 3000.0)), Same("pass2", "pass1")), SpecGrid(pulse));
+            var b = Go(Sys(O("id", "d", "type", "dispersion", "gddFs2", 6000.0)), SpecGrid(pulse));
+            Assert.Less(MaxRelDiff(a.Output.Ax, b.Output.Ax), 1e-6, "same field as one element of twice the GDD");
+            Assert.Equal("transform", a.Records[1].Type, "the copy has the source's type");
+        }
+
+        [Test(Category = "transform")]
+        public void SameAs_EachPassSeesItsOwnPulse_AndBooksItsOwnLoss()
+        {
+            var pulse = Gauss(Lam, 100e-15, 1e-6);
+            var r = Go(Sys(Tr("pass1", O("kind", "energy", "transmission", 0.5)), Same("pass2", "pass1")), SpecGrid(pulse));
+            Assert.Close(0.25e-6, r.Output.TotalEnergyJ(), 1e-9, 0, "0.5 twice");
+            Assert.Close(0.5e-6, r.Records[0].EnergyInJ - r.Records[0].EnergyOutJ, 1e-6, 0, "pass 1 loss");
+            Assert.Close(0.25e-6, r.Records[1].EnergyInJ - r.Records[1].EnergyOutJ, 1e-6, 0, "pass 2 loses half of what is left");
+        }
+
+        [Test(Category = "transform")]
+        public void SameAs_CopyMayBeDisabled_AndChainsResolve()
+        {
+            var pulse = Gauss(Lam, 100e-15, 1e-6);
+            var r = Go(Sys(Tr("p1", O("kind", "energy", "transmission", 0.5)), Same("p2", "p1"), Same("p3", "p2", "enabled", false)), SpecGrid(pulse));
+            Assert.Close(0.25e-6, r.Output.TotalEnergyJ(), 1e-9, 0, "the third pass is switched off, the second copies the first");
+            var s = Sys(Same("p3", "p2"), Same("p2", "p1"), Tr("p1", O("kind", "energy", "transmission", 0.5)));
+            Assert.Equal("transform", s.Elements[0].Type, "a copy may come before its source in the file");
+        }
+
+        [Test(Category = "transform")]
+        public void SameAs_RejectsUnknownSource_Cycle_AndSharedKeys()
+        {
+            var t = Tr("t", O("kind", "energy", "transmission", 0.5));
+            Assert.Throws<JsonException>(() => Sys(t, Same("c", "nope")), "unknown source");
+            Assert.Throws<JsonException>(() => Sys(Same("a", "b"), Same("b", "a")), "cycle");
+            Assert.Throws<JsonException>(() => Sys(Same("a", "a")), "itself");
+            Assert.Throws<JsonException>(() => Sys(t, Same("c", "t", "operators", new JsonArray())), "a shared key cannot be set on a copy");
+        }
+
+        [Test(Category = "transform")]
+        public void SameAs_FollowsTheSourceWhenAFitChangesIt_AndSavesCompact()
+        {
+            var sj = O("format", "ultrafast-system", "version", 1, "name", "test");
+            sj.Set("elements", A(Tr("pass1", O("kind", "spectralPhase", "gddFs2", FitV(100, -5000, 5000))), Same("pass2", "pass1"), Same("pass3", "pass1")));
+            var (ps, _) = FitCollector.Collect(sj);
+            Assert.Equal(1, ps.Count, "only the source carries the fit parameter");
+            FitValues.Set(sj, new JsonObject(), ps[0].Path, 2500.0);
+            var s = SystemDescription.FromJson(sj);
+            foreach (var id in new[] { "pass2", "pass3" })
+                Assert.Close(2500.0, FitValues.Num(s.Find(id).Json.GetArray("operators")[0].AsObject(), "gddFs2", double.NaN), 0, 0, id + " follows the source");
+            var saved = s.ToJson().GetArray("elements")[1].AsObject();
+            Assert.Equal("pass1", saved.GetString("sameAs"), "saved as a copy");
+            Assert.True(!saved.Has("operators"), "saved without the shared body");
+        }
+
         // ------------------------------------------------------------------ transform element
 
         [Test(Category = "transform")]

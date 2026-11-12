@@ -1,5 +1,8 @@
 # Getting started
 
+First decide how to get the engine: [Install and build](install.md) has one table for a release install, a source build, the
+Python package, the C API and individual plugins. This page describes the repository and the Visual Studio route.
+
 ## Repository layout
 
 ```
@@ -74,9 +77,8 @@ your `PATH` as `ultrafast`.
 ## Python
 
 ```bash
-pip install -e "python[hosted,plot,test]"
-python python/tools/build_engine.py            # hosted build (needs the .NET 10 SDK; uses clr_loader at run time)
-python python/tools/build_engine.py --aot      # or: NativeAOT library, no .NET needed at run time
+./setup.sh --python --venv .venv --dev --check   # builds the engine, pip installs the package (editable) and tests it
+python build/setup.py --python --python-engine native   # or: NativeAOT library, no .NET needed at run time
 python -m pytest python/tests
 python docs/examples/GettingStarted/quickstart/quickstart.py
 ```

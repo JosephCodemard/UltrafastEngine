@@ -15,7 +15,8 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 
 | file | main classes | what it does |
 |---|---|---|
-| `Systems/SystemDescription.cs` | `SystemDescription`, `SystemElement` | a `.ufs` file in memory; each element stays JSON |
+| `Systems/SystemDescription.cs` | `SystemDescription`, `SystemElement` | a `.ufs` file in memory; each element stays JSON (`sameAs` copies are expanded; `SystemElement.SameAsSpec` keeps the written form for saving) |
+| `Systems/SameAsResolver.cs` | `SameAsResolver` | expands `"sameAs"` copies into full element bodies when a system is read; `InstanceKeys` are the keys a copy may set |
 | `Systems/SystemGraph.cs` | `SystemGraph`, `GraphEdge`, `GraphLoop`, `GraphStage`, `Ports` | the connected form of a system: order, loops, virtual ports, verification. Knows no physics |
 | `Specs/` | `RunSpec` | a `run.json` in memory |
 | `Pulses/` | `PulseSpec`, `PulseField`, `FrequencyGrid`, `GridResampler` | input pulses; a field on a grid; moving between grids |
@@ -58,6 +59,8 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Transverse/` | `SpatialPropagation.cs` (the spatial nonlinear solver; `ExecuteLinear` streams the stored frequencies in blocks, `transverse.frequencyBlock`); `TransverseBasis.cs` (`RadialBasis`, `CartesianBasis`); `TransverseProfile.cs` (`TransverseProfile`, `TransverseOps`: expand, collapse, regrid, `Curvature`, `BeamQuality`); `BeamShapes.cs` (initial profiles) |
 | `Optics/` | `BeamTracking.cs`; `DispersiveSurface.cs` (gratings, prisms); `SurfaceOptics.cs` (lenses, curved mirrors); `MaskElement.cs`; `ModulatorElement.cs` (pixelated phase / amplitude device: cell grid, fill factor, quantisation, cross-talk, chromatic rules `opd` / `fixedPhase` / `index`, `PhaseScale`); `ComponentTerms.cs` (Zernike, figure); `MirrorSubstrate.cs`, `DelayedTerms.cs` |
 | `Crystals/` | χ(2): `CrystalElement`, phase matching |
+| `Pulses/PulseCalculator.cs` | `PulseCalculator.Solve` (ops `shapes`, `limit`, `analyze`, `measure`), `TbpOf`: time-bandwidth product, transform limit, stretch factor, Gaussian GDD; CLI `ultrafast pulse`, C API `uf_pulse_calc`, Python `ultrafast.calc` |
+| `build/setup.py`, `python/tools/build_engine.py`, `install.py` | source builds with plugin choice (CLI, Python hosted / native, C API; `resolve_plugins` follows `plugin.json` `requires`); release install with `PRESETS` |
 | `Gain/`, `Lasers/` | amplifiers; `AseModel.cs` (`AseSpec`, `AseModel`: inter-pulse ASE, both directions, per transverse cell and frequency, at frozen N2; `Rates` feeds `GainCrystal.PumpCw` / `Decay`, `ModeOutput` gives the ASE in the signal mode); `GainElements.ApplyStressPattern` (the four-lobed Jones map); `Oscillator.cs`, `Resonator.cs`, saturable absorbers; `CellMode.cs` (`CellModeSolver.Solve`: Kerr-matched mode of a two-mirror multi-pass cell, command `cellMode`) |
 | `Materials/` | index models, the library, Raman; the catalogue (`Catalogue.cs`) with the numbers and their sources (`Data/materials/`) |
 | `Instruments/` | `Instruments.cs` (the registry), `ActiveInstruments.cs` (`beamProfile`, ...), `CameraInstruments.cs`, `Detector.cs`, `Sampling.cs`, `SingleShotCorrelator.cs` (`singleShotCorrelator`, `SingleShotGeometry.Solve`: time-to-space correlator) |

@@ -929,6 +929,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -1150,6 +1154,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -1387,6 +1395,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -1531,10 +1543,6 @@
           "type": "string",
           "description": "Port that continues in a Sequential system (c, d; also transmitted, reflected) Default: c."
         },
-        "sameAs": {
-          "type": "string",
-          "description": "Take the settings of this splitter: the same plate, passed a second time"
-        },
         "side": {
           "type": "integer",
           "description": "Side the light meets: 2 reverses the sign of r (Michelson return) Default: 1."
@@ -1545,6 +1553,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -1860,6 +1872,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -2067,6 +2083,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -2816,6 +2836,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -3009,6 +3033,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -3251,6 +3279,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -3419,6 +3451,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -3578,6 +3614,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -3822,6 +3862,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -4111,6 +4155,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -4605,6 +4653,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -4798,6 +4850,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -5098,6 +5154,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -5412,6 +5472,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -5968,6 +6032,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -6142,6 +6210,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -6601,6 +6673,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -6788,6 +6864,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -6955,6 +7035,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -7152,6 +7236,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -7611,6 +7699,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -7887,6 +7979,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -8306,6 +8402,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -8556,6 +8656,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -8975,6 +9079,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -9135,6 +9243,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -9283,10 +9395,6 @@
           "type": "string",
           "description": "Port that continues in a Sequential system (c, d) Default: c."
         },
-        "sameAs": {
-          "type": "string",
-          "description": "Take the settings of this splitter"
-        },
         "side": {
           "type": "integer",
           "description": "2 reverses the sign of r Default: 1."
@@ -9297,6 +9405,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -9474,6 +9586,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -9617,6 +9733,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -9783,6 +9903,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -9934,6 +10058,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -10167,6 +10295,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -10437,6 +10569,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -10650,6 +10786,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -11041,6 +11181,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -11907,6 +12051,10 @@
         "type": {
           "type": "string"
         },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
+        },
         "label": {
           "type": "string",
           "description": "Display name"
@@ -12079,6 +12227,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -12285,6 +12437,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",
@@ -12516,6 +12672,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "sameAs": {
+          "type": "string",
+          "description": "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"
         },
         "label": {
           "type": "string",

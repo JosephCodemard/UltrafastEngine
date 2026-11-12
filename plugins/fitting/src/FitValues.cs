@@ -60,6 +60,9 @@ namespace UltrafastEngine.Plugins.Fitting
                 string id = p.Substring(8, sl - 8); rest = p.Substring(sl + 1);
                 root = (sys.GetArray("elements") ?? new JsonArray()).Select(e => e.AsObject()).FirstOrDefault(e => string.Equals(e.GetString("id"), id, StringComparison.OrdinalIgnoreCase))
                        ?? throw new JsonException("path " + path + ": no element '" + id + "'");
+                var first = rest.Split('/')[0];
+                if (root.AsObject().Has("sameAs") && !UltrafastEngine.Systems.SameAsResolver.InstanceKeys.Contains(first))
+                    throw new JsonException("path " + path + ": '" + id + "' is a copy of '" + root.AsObject().GetString("sameAs") + "' (sameAs); fit the source element, the copy follows it");
             }
             else if (p.StartsWith("instrument:", StringComparison.OrdinalIgnoreCase))
             {

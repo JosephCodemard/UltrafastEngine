@@ -2,12 +2,26 @@
 
 ## Unreleased
 
+**Added (install and build)**
+- **`docs/install.md`**: one page with a "what do you want?" table (release install, source build, Python, C API, individual plugins), the hosted-versus-native Python engine, troubleshooting and a box of steps for AI agents. The README quick start, `getting-started.md`, `python/README.md` (its link to a missing `docs/python.md` is fixed), `releasing.md` and `llms.txt` point to it.
+- **`build/setup.py`** (`./setup.sh`, `setup.bat`): source builds for this machine. `--cli`, `--python` (+ `--venv`, `--python-engine hosted|native`), `--cpp`, `--plugins A B` (only those and what their `plugin.json` requires), `--plugin-only A` (rebuild one plugin and refresh it in existing builds), `--check` (smoke test), `--doctor`, `--dry-run`, `--clean-native` (removes a stale NativeAOT library that shadows the hosted Python engine; never done unasked). `python/tools/build_engine.py` gains `--plugins` and `--framework` and is now importable; its output is unchanged without them.
+- **`install.py --preset`** (`cli`, `cli-plugins`, `python`, `python-native`, `cpp`, `full`) as shorthand for `--include`, and a "Next:" summary after an install.
+- Python tests `test_setup_and_calc.py` (plugin resolution, `setup.py --dry-run`, presets).
+
+**Fixed (install)**
+- **An engine library older than the Python package no longer breaks every call.** The loader bound all exports at load time, so a NativeAOT library built before `uf_pulse_calc` existed failed with `dlsym ... symbol not found` on the first engine call (`uf.version()`, `uf.run`), whatever the script did. Exports added since the first release are now optional (`_native.OPTIONAL`); calling a missing one raises an error that says to rebuild. Test `test_missing_optional_export_gives_a_clear_error_not_a_load_failure`.
+- **`setup.py --check` tested the wrong engine:** it set `ULTRAFAST_LIBRARY` to the new hosted build, which hid a stale `bin/native` library that `import ultrafast` loads first. It now tests what a plain import loads, and `setup.py --python` exits with an error (not a warning) when a stale library shadows the build; `--clean-native` removes it.
+
+**Added (pulse calculator)**
+- **`ultrafast pulse shapes|limit|analyze|measure`**, `uf_pulse_calc` (C API) and `ultrafast.calc` (Python): time-bandwidth product of Gaussian (0.4413), sech² (0.3148) and rectangular (0.8859) pulses, transform-limited duration or bandwidth (Hz or m with a centre wavelength), the product, ratio to the limit and stretch factor of a pulse from its widths or from measured arrays (FWHM and rms products), and the GDD magnitude of a chirped Gaussian. Docs: `reference/pulse-calculator.md`. Tests: `PulseCalculatorTests` (5), `test_setup_and_calc.py`.
+
 **Fixed (physics)**
 - **Avalanche and inverse bremsstrahlung were counted twice** (solids, where the avalanche is on by default): the avalanche loss `aval U / (2 k0 I)` equals `sigma rho / (2 k0)`, the Drude imaginary part, so the field lost the energy twice. The avalanche now only generates electrons; the field loses the energy once (`Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime`: output energy 5.15e-10 J, was 2.67e-10 J). Results of solid-state plasma runs with the avalanche on change.
 - **Keldysh rate returned NaN in the far wing of a pulse** (field so weak that the Keldysh parameter exceeds 1e6): returns 0.
 - **net48:** `ultrafast reference materials` printed `56.306399999999996` for `56.3064` (.NET Framework's `"R"`), so the committed page differed on Mono; the shortest round-trip form is used on both.
 
 **Added**
+- **`sameAs` on every element** (identical elements): `{"id": "pass2", "sameAs": "pass1"}` is the same physical object as `pass1` (same type and numbers, so a fit of a transform moves all its passes), but compiles on its own with its own pulse, beam, record and loss booking. A copy may set only `label`, `enabled`, wiring and per-pass geometry (`aoiDeg`, `aoiRad`, `tiltXRad`, `side`, `output`). Replaces the beam-splitter-only `sameAs`; existing files keep working. Python `same_as`. A fit path into a copy is refused. Docs: `reference/system-file.md#identical-elements`.
 - `physics.strictMaterialsAllow`: catalogue paths (`"CS2.n2"`) or entry names that strict mode accepts although they are not verified.
 - The generic defaults (thermal data of a user-defined gain medium: 10 W/(m K), 7.8e-6 1/K; ionisation inputs of a solid without data) are catalogue entries (`defaults:gainMedium`, `defaults:solidIonization`, status `unverified`); a run that uses one lists it in its notes and `unverifiedInputs`.
 - Partial ionisation overrides: the run notes name the fields the run gave and say the rest come from the catalogue.

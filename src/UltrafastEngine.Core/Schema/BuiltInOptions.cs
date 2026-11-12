@@ -242,7 +242,8 @@ namespace UltrafastEngine.Schema
 
             // parameter groups shared by many components
             add(new ComponentSpec("group", "elementCommon", "Keys every element accepts.")
-                .Str("id", "Unique id", required: true).Str("type", "Element type", required: true)
+                .Str("id", "Unique id", required: true).Str("type", "Element type (omit with sameAs)", required: true)
+                .Str("sameAs", "Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)")
                 .Str("label", "Display name").Bool("enabled", "false skips the element", "true")
                 .Free("next", ParamType.Any, "Branched systems: where the light goes. A target (\"bs:1\", {\"id\": \"bs\", \"port\": 1}, \"end\", \"virtual\"), or an object of targets by output port (docs/reference/branches.md)")
                 .Free("inputs", ParamType.Any, "Virtual input beams by input port: the keys of an aux beam, with phaseRad and coherentWith, or {\"virtual\": true} for an input left empty on purpose (docs/reference/branches.md)")

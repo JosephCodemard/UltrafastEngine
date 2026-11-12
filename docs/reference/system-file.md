@@ -47,6 +47,34 @@ with constant GDD and losses hold their end values (the results report the spect
 | `surfaces` | `[first, last]` source surfaces (OpticStudio rows), informational |
 | `enabled` | `false` skips the element |
 | `lengthM` | geometric length (reported; required for bulk) |
+| `sameAs` | id of another element this one is a copy of ([identical elements](#identical-elements)) |
+
+### Identical elements
+
+A component that the light meets more than once (the passes of a multipass cell, a mirror hit twice) is one physical object, so
+it has one set of numbers. Write the first pass in full and the others as copies:
+
+```jsonc
+{ "id": "optic",  "type": "transform", "operators": [ { "kind": "wavefront", "zernike": { "4": 0.08 } } ] },
+// ... other elements ...
+{ "id": "optic2", "sameAs": "optic" },
+{ "id": "optic3", "sameAs": "optic", "label": "pass 3" }
+```
+
+* A copy has the **same type and the same physical numbers** as its source: operators, coatings, figure, damage, material. When the
+  source changes (a fit writes new numbers, a study varies one, you edit the file), every copy changes with it.
+* A copy is **otherwise an ordinary element**. It compiles on its own, receives its own pulse, spectrum, energy and beam (so the
+  light on pass 5 differs from pass 1), and has its own record, probes and loss booking. Nothing is shared at run time: a gain
+  medium's inversion or a device's drive is per instance.
+* A copy may set only what belongs to one instance: `label`, `enabled`, the wiring of a [Branched](branches.md) system (`next`,
+  `inputs`, `loop`, `output`, `surfaces`) and the geometry that may differ from pass to pass (`aoiDeg`, `aoiRad`, `tiltXRad`,
+  `side`). Any other key is an error, so "identical" stays true. `type` may be repeated if it is the source's.
+* A copy may point at another copy; the source may come later in the file. A cycle is an error.
+* Overrides, probes and fit paths address an element by its id. They do **not** follow `sameAs`: to change the shared numbers
+  address the source (a fit path into a copy is refused).
+* A saved system keeps the copies as written.
+
+Python: `same_as("optic2", "optic")` (`ultrafast.build` / `ultrafast.system`). Fitting: [transforms on several passes](../plugins/fitting.md#the-same-transform-on-several-passes).
 
 ## Element types
 

@@ -18,6 +18,10 @@ namespace UltrafastEngine.Systems
         public JsonObject Json { get; set; }
         /// <summary>Source surfaces (e.g. Zemax LDE rows) this element was built from, if any.</summary>
         public int[] Surfaces { get; set; }
+        /// <summary>Id of the element this one is a copy of ("sameAs"), else null. <see cref="Json"/> holds the expanded body.</summary>
+        public string SameAs { get; set; }
+        /// <summary>The element as written ({"id", "sameAs", instance keys}), kept so a saved file stays compact.</summary>
+        public JsonObject SameAsSpec { get; set; }
 
         public string Display => string.IsNullOrEmpty(Label) || Label == Id ? Id : Id + " (" + Label + ")";
     }
@@ -101,11 +105,15 @@ namespace UltrafastEngine.Systems
                 s.WavelengthsM = sampling.GetDoubleArray("wavelengthsM") ?? sampling.GetDoubleArray("wavelengthsNm")?.Select(x => x * 1e-9).ToArray();
             var els = o.GetArray("elements") ?? throw new JsonException("System file has no \"elements\" array.");
             int k = 0;
+            var bodies = SameAsResolver.Resolve(els);
             foreach (var ev in els)
             {
-                var eo = ev.AsObject();
+                var written = ev.AsObject();
+                var eo = bodies[k];
                 var e = new SystemElement
                 {
+                    SameAs = written.GetString("sameAs"),
+                    SameAsSpec = written.Has("sameAs") ? written : null,
                     Type = eo.GetRequiredString("type", "elements[" + k + "]"),
                     Id = eo.GetString("id") ?? ("e" + k),
                     Label = eo.GetString("label"),
@@ -137,6 +145,7 @@ namespace UltrafastEngine.Systems
             var arr = new JsonArray();
             foreach (var e in Elements)
             {
+                if (e.SameAsSpec != null) { arr.Add(e.SameAsSpec); continue; }
                 e.Json.Set("id", e.Id);
                 e.Json.Set("type", e.Type);
                 if (e.Label != null) e.Json.Set("label", e.Label);

@@ -43,7 +43,7 @@ def michelson(l_a, l_b):
         b.link(b.beam_splitter("bs"), {"c": "A", "d": "B"}),
         b.link(b.delay("A", length_m=l_a), "back:1"),
         b.link(b.delay("B", length_m=l_b), "back:2"),
-        b.link(b.beam_splitter("back", 0.5, sameAs="bs", side=2), {"c": "virtual", "d": "end"}),
+        b.link(b.same_as("back", "bs", side=2), {"c": "virtual", "d": "end"}),
     ]))
 
 
