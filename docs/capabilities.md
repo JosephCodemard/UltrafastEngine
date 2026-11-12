@@ -40,6 +40,7 @@ in the [option reference](reference/options.md#elements). Aliases in brackets.
 | `ndFilter` | absorptive or reflective neutral-density filter, substrate, ghosts | [Components](reference/components.md#ndfilter) |
 | `waveplate`, `polarizer`, `rotator`, `thinFilmPolarizer` (`tfp`), `faradayRotator` (`faraday`) | Jones-calculus polarisation optics, multi-order and zero-order waveplates, thin-film polarisers, non-reciprocal rotation | [Components](reference/components.md#waveplates), [Surfaces and polarisation](reference/coatings.md) |
 | `beamSplitter`, `polarizingSplitter`, `dichroic`, `leakMirror`, `delay` | splitting, recombination and delay in a Branched system | [Branched systems](reference/branches.md) |
+| calculators | phase matching (`ultrafast crystal`), time-bandwidth product / transform limit / chirp (`ultrafast pulse`, `ultrafast.calc`) | [Crystals](reference/crystals.md), [Pulse calculator](reference/pulse-calculator.md) |
 | `crystal` | χ(2): SHG, SFG, DFG, OPA / OPCPA, collinear and non-collinear, birefringent and quasi-phase matching, χ(3) in the crystal | [Crystals](reference/crystals.md) |
 | `fiber` (`fibre`, `waveguide`) | single-mode fibre: Taylor betas or a dispersion curve, γ, loss, gain, Raman, noise, soliton and dispersive-wave diagnostics | [Fibres](reference/fibers.md) |
 | `gain`, `amplifier` | pumped gain media (rate equations, spectral saturation, thermal lens, optional stress birefringence, ASE); multipass and regenerative amplifiers | [Gain media](reference/gain.md) |

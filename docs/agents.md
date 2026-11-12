@@ -104,6 +104,6 @@ Two plugins, driven from Python (load them with `uf.plugins.load_python_plugins(
   `ultrafast reference -o docs/reference/options.md`, `python python/tools/gen_types.py` and
   `python python/tools/gen_api_docs.py`. Tests fail if any of these is stale.
 * Tests: `dotnet run --project tests/UltrafastEngine.Tests -f net10.0 -c Release` (`-- --slow` for all, `-- Name`
-  to filter); Python: `python python/tools/build_engine.py && pytest python/tests`. See [Testing](testing.md).
+  to filter); Python: `python python/tools/build_engine.py && pytest python/tests`. First-time setup and which build to pick: [Install and build](install.md) (the "For AI agents" box). See [Testing](testing.md).
 * Extension points (index models, responses, elements, instruments, retrievals, compute back-ends, FFT providers)
   and plugins: [Extending](reference/extending.md), [Plugins](reference/plugins.md).

@@ -3,17 +3,18 @@
 What is verified, where, and what is not checked yet. Capabilities and limits: [docs/capabilities.md](docs/capabilities.md).
 What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
-## Verified (latest full run, macOS arm64, .NET 10, Python 3.12, 2026-11-10)
+## Verified (latest full run, macOS arm64, .NET 10, Python 3.12, 2026-11-12)
 
 | check | result |
 |---|---|
 | `dotnet build UltrafastEngine.sln -c Release` (net10.0 and net48) | 0 errors; the only warning is the expected missing ZOS-API (the Zemax binding then builds against stubs) |
-| C# tests, `--slow` | **594 pass, 0 fail, 9 skipped** (8 `GpuTests` without a GPU device; the opt-in HAPI test) |
-| Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **252 pass, 2 skipped** (one needs `ULTRAFAST_NATIVE_LIB`; run 2026-11-11 with `ULTRAFAST_LIBRARY` set to the hosted engine, otherwise a stale `bin/native` shadows it and the plugin tests fail; includes the 23 release tests) |
+| C# tests, `--slow` | **599 pass, 0 fail, 9 skipped** (8 `GpuTests` without a GPU device; the opt-in HAPI test) |
+| Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **260 pass, 2 skipped** (one needs `ULTRAFAST_NATIVE_LIB`; run 2026-11-11 with `ULTRAFAST_LIBRARY` set to the hosted engine, otherwise a stale `bin/native` shadows it and the plugin tests fail; includes the 23 release tests and 8 for `setup.py`, `install.py --preset` and the pulse calculator) |
 | Component tests (`tests/components/run_all.py`: 10 families covering linear optics, splitters, polarisation, crystals, nonlinear media, spatial components, instruments) | **1691 / 1694 checks** pass against analytic answers; **3 are marked KNOWN** (a 1.5-cycle pulse broadened to zero frequency at 2 µm / 10 fs, reported by a warning), 0 fail |
 | Paper replications (`build/paper_check.py`) | 12 folders, 0 hard failures (fast tier); each README ends with *How well the science matched*; the soft checks mark what does not reproduce ([index](docs/papers/README.md)) |
 | Examples and tutorials (`build/example_check.py`, strict options) | 0 problems (60 example folders in 13 groups, 35 with a committed hero figure; the new AdaptiveOptics, DigitalTwin and Fibres examples checked on the last run); the C++ example and the OpticStudio export (`Interop/`) are manual |
 | `mkdocs build --strict` | 0 warnings |
+| Source-build front door (`build/setup.py`) | CLI with a plugin subset, Python into a fresh venv with `--check`, 2026-11-12 (macOS arm64). **Not run:** `--cpp` / `--python-engine native` (NativeAOT), Windows `setup.bat`, Linux; `release.yml` has never run on GitHub |
 | Generated files (schemas, options.md, Python types, python-api.md, validation matrix) | current (checked by tests) |
 
 ## Continuous integration (GitHub Actions)

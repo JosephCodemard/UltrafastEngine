@@ -2,6 +2,7 @@
 """Selective installer / uninstaller for UltrafastEngine releases (standard library only).
 
     python install.py --list                                          # components, sizes, what is installed
+    python install.py --preset cli                                    # a ready-made selection: cli, cli-plugins, python, python-native, cpp, full
     python install.py --include python tests examples.Branched        # download and install only these
     python install.py --include cli plugins.fitting --dest ~/uf       # CLI and one plugin
     python install.py --include examples.Branched.pump-probe          # one example (shared helpers come with it)
@@ -40,6 +41,17 @@ from pathlib import Path, PurePosixPath
 RECORD = ".ultrafast-install.json"
 REPOSITORY = "https://github.com/JosephCodemard/UltrafastEngine"
 ZOSAPI_SUFFIXES = (".dll", ".xml", ".pdb")
+
+
+# Ready-made selections for --preset (names of components, see --list). A preset is only shorthand for --include.
+PRESETS = {
+    "cli": ["cli"],                                     # the `ultrafast` program, no plugins
+    "cli-plugins": ["cli", "plugins"],                  # the program and every plugin built for this platform
+    "python": ["python"],                               # the Python package (hosted engine: needs the .NET 10 runtime)
+    "python-native": ["python-native"],                 # the Python package with the NativeAOT engine (no .NET needed; no plugin folders)
+    "cpp": ["cpp"],                                     # the C API: header, native library, CMake example
+    "full": ["cli", "plugins", "python", "schemas", "docs", "examples"],
+}
 
 
 class InstallError(Exception):
@@ -541,11 +553,28 @@ def list_components(manifest: dict, dest: Path, platform: str, out=print) -> Non
         out("%-30s %-11s %9s  %-9s %s" % (n, plat, size, inst, extra))
 
 
+def next_steps(dest: Path, include: list[str]) -> None:
+    """Print what to type next for the components that were installed."""
+    names = set(include or [])
+    want = lambda *k: any(n == x or n.startswith(x + ".") for n in names for x in k) or "all" in names  # noqa: E731
+    print("\nInstalled into %s. Next:" % dest)
+    if want("cli"):
+        exe = "ultrafast.exe" if os.name == "nt" else "ultrafast"
+        print("  CLI     : %s version     (the program is in %s; add that folder to PATH)" % (exe, dest / "bin"))
+    if want("python", "python-native"):
+        print("  Python  : python -c \"import ultrafast; print(ultrafast.__version__)\"   (installed by pip into %s)" % sys.executable)
+    if want("examples"):
+        print("  Example : docs/examples/GettingStarted in %s" % dest)
+    print("  Change  : python install.py --list   |   add parts with another --include   |   remove with --uninstall")
+
+
 # ---------------------------------------------------------------------------------------------------- command line
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="install.py", description="Install or remove parts of an UltrafastEngine release (docs/releasing.md).",
                                  formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__.split("\n\n")[0])
     ap.add_argument("--include", nargs="*", default=None, metavar="NAME", help="components: python tests examples.Branched ... 'all' = everything built for this platform except media")
+    ap.add_argument("--preset", nargs="*", default=None, metavar="NAME",
+                    help="ready-made selections added to --include: " + "; ".join("%s = %s" % (k, " ".join(v)) for k, v in PRESETS.items()))
     ap.add_argument("--exclude", nargs="*", default=None, metavar="NAME", help="components to leave out")
     ap.add_argument("--list", action="store_true", help="show the components, their sizes and what is installed")
     ap.add_argument("--uninstall", action="store_true", help="remove the --include components (all when none are given)")
@@ -561,6 +590,10 @@ def main(argv=None) -> int:
     ap.add_argument("--force", action="store_true", help="overwrite / remove files even if they were changed or not installed by this tool")
     ap.add_argument("--dry-run", action="store_true", help="show what would happen")
     a = ap.parse_args(argv)
+    for pr in a.preset or []:
+        if pr not in PRESETS:
+            ap.error("unknown preset '%s' (known: %s)" % (pr, ", ".join(PRESETS)))
+        a.include = list(a.include or []) + [n for n in PRESETS[pr] if n not in (a.include or [])]
     dest = Path(a.dest or "UltrafastEngine").expanduser().resolve()
     plat = detect_platform() if a.platform == "auto" else a.platform
     try:
@@ -573,11 +606,13 @@ def main(argv=None) -> int:
             list_components(manifest, dest, plat)
             return 0
         if not a.include:
-            raise InstallError("say what to install: --include NAME ... (see --list; 'all' for everything)")
+            raise InstallError("say what to install: --preset %s, or --include NAME ... (see --list; 'all' for everything)" % "|".join(PRESETS))
         if a.source == "git":
             install_git(manifest["components"], a.include, a.exclude, dest, manifest["version"], a.repository, a.dry_run)
         else:
             install(base, a.include, a.exclude, dest, plat, a.force, a.dry_run, not a.no_pip, a.python, manifest=manifest)
+            if not a.dry_run:
+                next_steps(dest, a.include)
     except InstallError as e:
         print("error: %s" % e, file=sys.stderr)
         return 2

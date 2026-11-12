@@ -18,6 +18,7 @@ from .core import (ElementContext, Result, ResponseContext, Run, System, Ultrafa
                    retrieve, retrieve_multi, run, set_default_backend, study, version)
 from . import build
 from . import crystal
+from . import calc
 from . import cells
 from . import laser
 from . import plugins
@@ -28,7 +29,7 @@ from . import algorithms, components, instruments, results, sources, system
 
 __version__ = "2.2.0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
-           "command", "study", "coherence", "retrieve", "retrieve_multi", "devices", "benchmark", "set_default_backend", "build", "crystal", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load",
+           "command", "study", "coherence", "retrieve", "retrieve_multi", "devices", "benchmark", "set_default_backend", "build", "crystal", "calc", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load",
            "algorithms", "components", "instruments", "results", "sources", "system"]
 
 

@@ -1,5 +1,8 @@
 # Releasing: compiled packages, release assets and the installer
 
+Building for **this** machine from source is a different job: see [Install and build](install.md) (`setup.sh`). This page is for
+maintainers who package releases for other computers, and for `install.py`.
+
 `build.sh` (macOS / Linux) and `build.bat` (Windows) compile UltrafastEngine and lay out release folders you can
 copy to another computer: the programs and libraries you choose, the plugins you choose, no source code. Both call
 `build/package.py`.
@@ -59,6 +62,7 @@ python install.py --list                                                  # comp
 python install.py --include python tests examples.Branched --dest ~/uf    # only these (and what they need)
 python install.py --include examples.Branched.pump-probe --dest ~/uf      # adds to the same folder
 python install.py --include all --exclude media --version 2.2.0
+python install.py --preset cli-plugins                                    # ready-made selections: cli, cli-plugins, python, python-native, cpp, full
 python install.py --include docs examples.Fibres --source git             # source folders by git partial clone (see below)
 python install.py --uninstall --include tests --dest ~/uf                 # remove part ...
 python install.py --uninstall --dest ~/uf                                 # ... or all

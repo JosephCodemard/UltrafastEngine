@@ -26,7 +26,7 @@ _HERE = Path(__file__).resolve().parent
 # C entry point -> C# method in UltrafastEngine.Native.Exports (hosted back-end)
 EXPORTS: Dict[str, str] = {
     "uf_version": "Version", "uf_last_error": "LastError", "uf_free": "Free", "uf_release": "Release",
-    "uf_capabilities": "Capabilities", "uf_crystal_phase_match": "CrystalPhaseMatch", "uf_command": "Command",
+    "uf_capabilities": "Capabilities", "uf_crystal_phase_match": "CrystalPhaseMatch", "uf_pulse_calc": "PulseCalc", "uf_command": "Command",
     "uf_devices_json": "DevicesJson", "uf_set_default_backend": "SetDefaultBackend",
     "uf_system_load_file": "SystemLoadFile", "uf_system_load_json": "SystemLoadJson",
     "uf_system_to_json": "SystemToJson", "uf_system_validate": "SystemValidate",
@@ -95,6 +95,7 @@ SIGNATURES = {
     "uf_devices_json": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_set_default_backend": (ctypes.c_int, [ctypes.c_char_p]),
     "uf_crystal_phase_match": (ctypes.c_int, [ctypes.c_char_p, vpp]),
+    "uf_pulse_calc": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_load_file": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_load_json": (ctypes.c_int, [ctypes.c_char_p, vpp]),
     "uf_system_to_json": (ctypes.c_int, [vp, vpp]),

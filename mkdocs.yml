@@ -15,6 +15,7 @@ extra_css:
   - css/brand.css                  # logo palette for the sidebar and links
 nav:
   - Home: index.md
+  - Install and build: install.md
   - Getting started: getting-started.md
   - Capabilities & limitations: capabilities.md
   - Tutorials:
@@ -49,6 +50,7 @@ nav:
       - Ionisation & plasma: reference/ionization.md
       - Active elements & aux beams: reference/active-elements.md
       - Crystals (χ(2)): reference/crystals.md
+      - Pulse calculator (TBP): reference/pulse-calculator.md
       - Gain media & amplifiers: reference/gain.md
       - Oscillators & saturable absorbers: reference/oscillators.md
       - Branched systems: reference/branches.md

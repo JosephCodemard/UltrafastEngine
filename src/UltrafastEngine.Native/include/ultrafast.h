@@ -125,6 +125,8 @@ UF_API int         UF_CALL uf_devices_json(const char* options_json, char** json
 UF_API int         UF_CALL uf_set_default_backend(const char* name);
 /* phase-matching calculator (docs/reference/crystals.md): JSON request in, JSON result out */
 UF_API int         UF_CALL uf_crystal_phase_match(const char* request_json, char** result_json_out);
+/* pulse calculator: time-bandwidth product, transform limit, chirp (docs/reference/pulse-calculator.md) */
+UF_API int         UF_CALL uf_pulse_calc(const char* request_json, char** result_json_out);
 
 /* ---------------------------------------------------------------- systems */
 UF_API int UF_CALL uf_system_load_file(const char* path, uf_system** out);

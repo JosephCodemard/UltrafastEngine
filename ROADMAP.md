@@ -49,7 +49,8 @@ Priorities, most useful first.
    - [ ] Backward propagation through saturated gain and frequency conversion beyond linearisation
 6. **Distribution and speed**
    - [ ] Release workflow: a version tag builds the packages per platform, runs smoke tests and attaches them (and the Python wheels) to a GitHub release; the ZOS-API assemblies are never packaged
-   - [ ] Plugins as Python extras: `pip install "ultrafast[hitran,cuda,fitting]"`
+   - [x] One install story: `docs/install.md`, `build/setup.py` (source builds with plugin choice), `install.py --preset` (releases)
+   - [ ] Plugins as Python extras: `pip install "ultrafast[hitran,cuda,fitting]"`. The wheel and its extras are ready; **uploading to PyPI is not done and needs the owner's decision**
    - [ ] GPU coverage: rotational Raman of gases, user responses as device kernels, χ(2), carrier-resolved propagation
    - [ ] Mixed-precision (FP32) mode for the CUDA and OpenCL back-ends after a study of which steps tolerate it; Metal only if that study is favourable (Apple GPUs have no FP64)
    - [ ] Speed: profile the hot paths (Hankel, Cartesian FFTs, instruments) and keep them allocation-free

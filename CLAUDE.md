@@ -27,7 +27,8 @@ dotnet build UltrafastEngine.sln -c Release                                  # e
 dotnet build tests/UltrafastEngine.Tests -c Release -f net10.0               # just the tests + what they need
 dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll NerTests Measured   # filter: substring of Class.Method
 dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --slow              # all tests incl. slow (~5 min)
-python3 python/tools/build_engine.py        # after ANY C# or plugin-Python change, before Python tests
+python3 python/tools/build_engine.py        # after ANY C# or plugin-Python change, before Python tests (--plugins fitting: only those)
+./setup.sh --cli --python --venv .venv --check   # first-time source build for a user (build/setup.py --help; docs/install.md)
 cd python && PYNLO_SRC=$PWD/third_party/pynlo/src ULTRAFAST_SLOW=1 python3 -m pytest -q tests   # (get pyNLO: python3 tools/get_pynlo.py)
 python3 -m mkdocs build --strict            # docs: 0 warnings required
 ./build.sh --help                           # release packages (docs/releasing.md)
@@ -54,6 +55,7 @@ after a code change.
 
 | task | start at |
 |---|---|
+| install / build for a user, which plugins | `docs/install.md`; `build/setup.py` (source), `install.py` (release), `build/package.py` (maintainer release) |
 | how the engine works | `docs/concepts.md` (units, sign conventions, compile → execute, grids) |
 | physics equations, solvers, NER | `docs/reference/nonlinear.md`; skill `engine-physics` |
 | an option / element / instrument | `Schema/BuiltIn*.cs` (declaration) → `Engine/Compiler*.cs` (compile) → `Physics/` or `Instruments/` |

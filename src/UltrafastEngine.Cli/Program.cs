@@ -27,6 +27,7 @@ namespace UltrafastEngine.Cli
         List the elements and what the engine will do with each (terms, nonlinear segments, provenance).
   ultrafast info
         Built-in model kinds, materials, crystals, element types and instruments (JSON).
+  ultrafast pulse shapes|limit|analyze|measure   time-bandwidth product, transform limit, chirp (docs/reference/pulse-calculator.md)
   ultrafast crystal <name> --process shg|sfg|opa|dfg [--type I|II|0] [--fundamental <m>] [--pump <m>] [--signal <m>]
                     [--idler <m>] [--a <m> --b <m>] [--plane XY|XZ|YZ] [--theta <deg>] [--phi <deg>] [--nc <deg>|magic]
                     [--qpm] [--period <m>] [--length <m>] [--temperature <C>] [--pump-intensity <W/m^2>] [--json]
@@ -70,6 +71,7 @@ Docs: docs/index.md   Examples: docs/examples/";
                     case "describe": return Describe(args.Skip(1).ToArray());
                     case "info": Console.WriteLine(Info().ToJson(true)); return 0;
                     case "crystal": return CrystalCommand(args.Skip(1).ToArray());
+                    case "pulse": return PulseCommand(args.Skip(1).ToArray());
                     case "template": File.WriteAllText(args.Length > 1 ? args[1] : "run.json", Template); Console.WriteLine("wrote " + (args.Length > 1 ? args[1] : "run.json")); return 0;
                     case "--version": case "version": Console.WriteLine(EngineInfo.Version); return 0;
                     case "plugins": return PluginsCommand(args.Skip(1).ToArray());
@@ -398,6 +400,33 @@ Docs: docs/index.md   Examples: docs/examples/";
                 .Set("materials", JsonValue.FromArray(MaterialLibrary.BuiltInNames))
                 .Set("instruments", JsonValue.FromArray(InstrumentFactory.Known))
                 .Set("crystals", JsonValue.FromArray(Crystals.CrystalLibrary.Names));
+        }
+
+        private static int PulseCommand(string[] a)
+        {
+            const string use = "usage: ultrafast pulse shapes | limit --shape gaussian|sech2|rectangular (--duration <s> | --bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>)\n" +
+                               "       ultrafast pulse analyze --duration <s> (--bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>) [--shape gaussian] [--json]\n" +
+                               "       ultrafast pulse measure --request <file.json> [--json]   (arrays timeS, intensity, wavelengthM|frequencyHz, spectrum)";
+            var ci = CultureInfo.InvariantCulture;
+            string reqFile = Opt(a, "--request");
+            JsonObject req;
+            if (reqFile != null) req = JsonValue.ParseFile(reqFile).AsObject();
+            else
+            {
+                if (a.Length == 0 || a[0].StartsWith("--")) { Console.Error.WriteLine(use); return 1; }
+                req = new JsonObject().Set("op", a[0]);
+                var shape = Opt(a, "--shape"); if (shape != null) req.Set("shape", shape);
+                void Num(string opt, string key) { var v = Opt(a, opt); if (v != null) req.Set(key, double.Parse(v, ci)); }
+                Num("--duration", "durationFwhmS"); Num("--bandwidth-hz", "bandwidthFwhmHz"); Num("--bandwidth-m", "bandwidthFwhmM"); Num("--center", "centerWavelengthM");
+            }
+            var res = Pulses.PulseCalculator.Solve(req);
+            if (a.Contains("--json") || res.Has("shapes")) { Console.WriteLine(res.ToJson(true)); return 0; }
+            string F(string k, string unit, double scale, string fmt = "G5") => res.Has(k) ? string.Format(ci, "  {0,-28} {1} {2}", k, (res.GetDouble(k, 0) * scale).ToString(fmt, ci), unit) : null;
+            foreach (var line in new[] { F("durationFwhmS", "fs", 1e15), F("bandwidthFwhmHz", "THz", 1e-12), F("bandwidthFwhmM", "nm", 1e9), F("centerWavelengthM", "nm", 1e9), F("timeBandwidthProduct", "", 1),
+                                         F("transformLimitProduct", "", 1), F("ratioToLimit", "", 1), F("transformLimitedDurationS", "fs", 1e15), F("stretchFactor", "", 1), F("gddMagnitudeFs2", "fs^2", 1), F("timeBandwidthProductRms", "(rms limit 1/4pi = 0.0796)", 1) })
+                if (line != null) Console.WriteLine(line);
+            if (res.Has("note")) Console.WriteLine("  " + res.GetString("note"));
+            return 0;
         }
 
         private static int CrystalCommand(string[] a)

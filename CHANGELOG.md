@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+**Added (install and build)**
+- **`docs/install.md`**: one page with a "what do you want?" table (release install, source build, Python, C API, individual plugins), the hosted-versus-native Python engine, troubleshooting and a box of steps for AI agents. The README quick start, `getting-started.md`, `python/README.md` (its link to a missing `docs/python.md` is fixed), `releasing.md` and `llms.txt` point to it.
+- **`build/setup.py`** (`./setup.sh`, `setup.bat`): source builds for this machine. `--cli`, `--python` (+ `--venv`, `--python-engine hosted|native`), `--cpp`, `--plugins A B` (only those and what their `plugin.json` requires), `--plugin-only A` (rebuild one plugin and refresh it in existing builds), `--check` (smoke test), `--doctor`, `--dry-run`, `--clean-native` (removes a stale NativeAOT library that shadows the hosted Python engine; never done unasked). `python/tools/build_engine.py` gains `--plugins` and `--framework` and is now importable; its output is unchanged without them.
+- **`install.py --preset`** (`cli`, `cli-plugins`, `python`, `python-native`, `cpp`, `full`) as shorthand for `--include`, and a "Next:" summary after an install.
+- Python tests `test_setup_and_calc.py` (plugin resolution, `setup.py --dry-run`, presets).
+
+**Added (pulse calculator)**
+- **`ultrafast pulse shapes|limit|analyze|measure`**, `uf_pulse_calc` (C API) and `ultrafast.calc` (Python): time-bandwidth product of Gaussian (0.4413), sech² (0.3148) and rectangular (0.8859) pulses, transform-limited duration or bandwidth (Hz or m with a centre wavelength), the product, ratio to the limit and stretch factor of a pulse from its widths or from measured arrays (FWHM and rms products), and the GDD magnitude of a chirped Gaussian. Docs: `reference/pulse-calculator.md`. Tests: `PulseCalculatorTests` (5), `test_setup_and_calc.py`.
+
 **Fixed (physics)**
 - **Avalanche and inverse bremsstrahlung were counted twice** (solids, where the avalanche is on by default): the avalanche loss `aval U / (2 k0 I)` equals `sigma rho / (2 k0)`, the Drude imaginary part, so the field lost the energy twice. The avalanche now only generates electrons; the field loses the energy once (`Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime`: output energy 5.15e-10 J, was 2.67e-10 J). Results of solid-state plasma runs with the avalanche on change.
 - **Keldysh rate returned NaN in the far wing of a pulse** (field so weak that the Keldysh parameter exceeds 1e6): returns 0.

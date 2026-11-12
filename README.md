@@ -66,9 +66,12 @@ focus is free-space optics, with single-mode fibres and gas cells where a system
 
 ```bash
 git clone https://github.com/JosephCodemard/UltrafastEngine.git && cd UltrafastEngine
-dotnet build UltrafastEngine.sln -c Release
-dotnet run --project src/UltrafastEngine.Cli -c Release -- run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o results
+./setup.sh --cli --python --venv .venv --check      # Windows: setup.bat. Needs the .NET 10 SDK and Python 3.10+
+artifacts/cli/*/ultrafast run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o results
 ```
+
+No compiler? `python install.py --preset full` installs a release instead. Which command for which goal (CLI only, Python only,
+some plugins, C API): [Install and build](docs/install.md).
 
 ```python
 import ultrafast as uf
@@ -162,7 +165,8 @@ The full documentation is at **<https://josephcodemard.github.io/UltrafastEngine
 
 | | |
 |---|---|
-| [Getting started](docs/getting-started.md) | build on Windows, macOS (including Apple silicon) and Linux; Python setup |
+| [Install and build](docs/install.md) | one table: release install, build from source, Python, C API, individual plugins |
+| [Getting started](docs/getting-started.md) | repository layout, Visual Studio, first run |
 | [Tutorials](docs/tutorials/index.md) | first run, diagnostics, a CPA chain, measured data, contrast, diffraction |
 | [Examples](docs/examples/README.md) | 43 worked systems, from an SPM plate to a supercontinuum, regenerative amplifier, OPCPA, interferometers and instruments built from elements |
 | [Reference](docs/reference/system-file.md) | system file, run spec, every element and instrument, models, results |
