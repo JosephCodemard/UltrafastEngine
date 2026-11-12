@@ -41,13 +41,13 @@ def link(element: Mapping[str, Any], next: Any = None, inputs: Optional[Mapping[
 
 def same_as(id: str, source: str, *, label: Optional[str] = None, enabled: Optional[bool] = None, aoi_deg: Optional[float] = None,
             aoi_rad: Optional[float] = None, tilt_x_rad: Optional[float] = None, next: Any = None, inputs: Optional[Mapping[str, Any]] = None,
-            loop: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+            loop: Optional[Mapping[str, Any]] = None, side: Optional[int] = None) -> Dict[str, Any]:
     """An element that is the same physical object as ``source`` (an element id): the same type and numbers, e.g. a transform used
     on every pass of a multipass cell. The fit parameters of ``source`` move all its copies. The copy gets its own pulse and beam,
     and its own record and loss booking. It may set only ``label``, ``enabled``, the geometry that changes from pass to pass
-    (``aoi_deg`` / ``aoi_rad``, ``tilt_x_rad``) and the wiring of a Branched system (``next``, ``inputs``, ``loop``)."""
+    (``aoi_deg`` / ``aoi_rad``, ``tilt_x_rad``, ``side``: the side of a beam splitter that is met) and the wiring of a Branched system (``next``, ``inputs``, ``loop``)."""
     return _clean({"id": id, "sameAs": source, "label": label, "enabled": enabled, "aoiDeg": aoi_deg, "aoiRad": aoi_rad,
-                   "tiltXRad": tilt_x_rad, "next": next, "inputs": inputs, "loop": loop})
+                   "tiltXRad": tilt_x_rad, "side": side, "next": next, "inputs": inputs, "loop": loop})
 
 
 def virtual_input(pulse: Optional[Mapping[str, Any]] = None, delay_s: Optional[float] = None, phase_rad: Optional[float] = None,
