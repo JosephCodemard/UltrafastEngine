@@ -83,7 +83,8 @@ def build_python(a, ids):
             if not DRY:
                 f.unlink()
     elif stale:
-        STALE.extend(stale)
+        if not DRY:
+            STALE.extend(stale)
         print("ERROR: python/src/ultrafast/bin/native holds an older NativeAOT library. `import ultrafast` loads it BEFORE the hosted\n"
               "       engine just built, so Python would run the OLD engine. Rerun with --clean-native to delete it (it is a build output),\n"
               "       or set ULTRAFAST_LIBRARY=%s" % (be.PKG / "bin" / "hosted" / "UltrafastEngine.Native.dll"), file=sys.stderr)
@@ -179,6 +180,7 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true", help="print the commands only")
     a = ap.parse_args(argv)
     DRY = a.dry_run
+    STALE.clear()
     if a.doctor:
         doctor(); return 0
     if not DRY:
