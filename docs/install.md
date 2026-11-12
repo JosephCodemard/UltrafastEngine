@@ -139,7 +139,7 @@ More: [Testing](testing.md), [Releasing](releasing.md), `CONTRIBUTING.md`.
 |---|---|
 | `.NET 10 SDK is required` | install it from dotnet.microsoft.com; `global.json` pins 10.0.x |
 | `import ultrafast` fails to find a library | no engine is built: `./setup.sh --python`; or set `ULTRAFAST_LIBRARY` |
-| Python runs an old engine or lacks a new function | stale `python/src/ultrafast/bin/native`: `--clean-native` |
+| Python runs an old engine (`uf.version()` is not the repository version), or a function is missing, or `dlsym ... symbol not found` | a stale NativeAOT library `python/src/ultrafast/bin/native` is loaded before your new build: `./setup.sh --python --clean-native` |
 | `uf.plugins.installed()` lists plugins you did not build | the checkout's `artifacts/plugins` is scanned; delete the folders you do not want |
 | net48 build errors on macOS / Linux | install Mono, or skip net48 (the default for `setup.py`) |
 | NativeAOT publish fails | install a C toolchain (Xcode command line tools, `build-essential`, MSVC) |

@@ -8,6 +8,10 @@
 - **`install.py --preset`** (`cli`, `cli-plugins`, `python`, `python-native`, `cpp`, `full`) as shorthand for `--include`, and a "Next:" summary after an install.
 - Python tests `test_setup_and_calc.py` (plugin resolution, `setup.py --dry-run`, presets).
 
+**Fixed (install)**
+- **An engine library older than the Python package no longer breaks every call.** The loader bound all exports at load time, so a NativeAOT library built before `uf_pulse_calc` existed failed with `dlsym ... symbol not found` on the first engine call (`uf.version()`, `uf.run`), whatever the script did. Exports added since the first release are now optional (`_native.OPTIONAL`); calling a missing one raises an error that says to rebuild. Test `test_missing_optional_export_gives_a_clear_error_not_a_load_failure`.
+- **`setup.py --check` tested the wrong engine:** it set `ULTRAFAST_LIBRARY` to the new hosted build, which hid a stale `bin/native` library that `import ultrafast` loads first. It now tests what a plain import loads, and `setup.py --python` exits with an error (not a warning) when a stale library shadows the build; `--clean-native` removes it.
+
 **Added (pulse calculator)**
 - **`ultrafast pulse shapes|limit|analyze|measure`**, `uf_pulse_calc` (C API) and `ultrafast.calc` (Python): time-bandwidth product of Gaussian (0.4413), sech² (0.3148) and rectangular (0.8859) pulses, transform-limited duration or bandwidth (Hz or m with a centre wavelength), the product, ratio to the limit and stretch factor of a pulse from its widths or from measured arrays (FWHM and rms products), and the GDD magnitude of a chirped Gaussian. Docs: `reference/pulse-calculator.md`. Tests: `PulseCalculatorTests` (5), `test_setup_and_calc.py`.
 

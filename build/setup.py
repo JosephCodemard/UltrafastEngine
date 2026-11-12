@@ -34,6 +34,7 @@ import build_engine as be  # noqa: E402  (python/tools/build_engine.py: plugin d
 CLI_PROJECT = REPO / "src" / "UltrafastEngine.Cli" / "UltrafastEngine.Cli.csproj"
 EXE = "ultrafast.exe" if os.name == "nt" else "ultrafast"
 DRY = False
+STALE: list = []      # older NativeAOT libraries that would shadow a hosted Python build
 
 
 def run(cmd, **kw):
@@ -82,9 +83,10 @@ def build_python(a, ids):
             if not DRY:
                 f.unlink()
     elif stale:
-        print("WARNING: python/src/ultrafast/bin/native holds an older NativeAOT library. `import ultrafast` loads it BEFORE the hosted\n"
-              "         engine just built (so you get the old engine and its plugins). Rerun with --clean-native to delete it, or set\n"
-              "         ULTRAFAST_LIBRARY=%s" % (be.PKG / "bin" / "hosted" / "UltrafastEngine.Native.dll"), file=sys.stderr)
+        STALE.extend(stale)
+        print("ERROR: python/src/ultrafast/bin/native holds an older NativeAOT library. `import ultrafast` loads it BEFORE the hosted\n"
+              "       engine just built, so Python would run the OLD engine. Rerun with --clean-native to delete it (it is a build output),\n"
+              "       or set ULTRAFAST_LIBRARY=%s" % (be.PKG / "bin" / "hosted" / "UltrafastEngine.Native.dll"), file=sys.stderr)
     py = Path(sys.executable)
     if a.venv:
         vdir = Path(a.venv).resolve()
@@ -127,12 +129,12 @@ def check(a, py):
         print("CLI :", "ok" if r.returncode == 0 else "FAILED", (r.stdout.split() or [""])[0:1] and "plugins: " + ", ".join(l.split()[0] for l in r.stdout.splitlines() if l and not l.startswith(" ")))
         ok &= r.returncode == 0
     if a.python:
-        env = dict(os.environ)
-        if a.python_engine == "hosted":                  # test the engine just built, whatever else is lying around
-            env["ULTRAFAST_LIBRARY"] = str(be.PKG / "bin" / "hosted" / "UltrafastEngine.Native.dll")
-        code = "import ultrafast as uf; print(uf.__version__ if hasattr(uf,'__version__') else '', [p.id for p in uf.plugins.installed()])"
+        # no ULTRAFAST_LIBRARY here: test what `import ultrafast` really loads, so a stale library that shadows the build is caught
+        env = {k: v for k, v in os.environ.items() if k != "ULTRAFAST_LIBRARY"}
+        code = ("import ultrafast as uf, ultrafast._native as n; lib = n.library(); uf.calc.tbp('sech2'); "
+                "print(lib.mode, lib.path, [p.id for p in uf.plugins.installed()])")
         r = subprocess.run([str(py), "-c", code], capture_output=True, text=True, env=env)
-        print("Python:", "ok " + r.stdout.strip() if r.returncode == 0 else "FAILED\n" + r.stderr[-600:])
+        print("Python:", "ok " + r.stdout.strip() if r.returncode == 0 else "FAILED\n" + r.stderr[-600:] + ("\n  -> an older library shadows the build: rerun with --clean-native" if STALE else ""))
         ok &= r.returncode == 0
     return ok
 
@@ -195,6 +197,9 @@ def main(argv=None):
     if a.cpp:
         build_cpp(a, ids)
     if a.check and not DRY and not check(a, py):
+        return 1
+    if STALE:
+        print("\nThe build finished, but Python will not use it until the older NativeAOT library is removed: rerun with --clean-native.", file=sys.stderr)
         return 1
     print("\nDone. Next: %s" % ("ultrafast run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o results   (CLI: %s)" % (cli_dir(a) / EXE) if a.cli else "python docs/examples/GettingStarted/quickstart/quickstart.py"))
     return 0

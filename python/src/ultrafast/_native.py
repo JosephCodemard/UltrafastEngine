@@ -120,6 +120,11 @@ SIGNATURES = {
 }
 
 
+# Functions added after the first release. An older engine library may lack them: the library still loads, and calling one
+# raises an error that says how to update (Library.fn). Every other function is required.
+OPTIONAL = {"uf_pulse_calc"}
+
+
 def _native_name() -> str:
     if sys.platform.startswith("win"):
         return "ultrafast.dll"
@@ -151,7 +156,12 @@ class Library:
         if self.mode == "native":
             self._cdll = ctypes.CDLL(str(path))
             for name, (res, args) in SIGNATURES.items():
-                f = getattr(self._cdll, name)
+                try:
+                    f = getattr(self._cdll, name)
+                except AttributeError:
+                    if name in OPTIONAL:
+                        continue
+                    raise
                 f.restype, f.argtypes = res, args
                 self._fns[name] = f
         else:
@@ -176,6 +186,8 @@ class Library:
             p = ffi.new("void**")
             # delegate type (void*)-1 == UNMANAGEDCALLERSONLY_METHOD
             rc = load(asm, type_name, hostfxr.encode(method), ffi.cast("void*", -1), ffi.NULL, p)
+            if rc != 0 and name in OPTIONAL:
+                continue
             if rc != 0:
                 raise OSError("could not bind %s (hostfxr error 0x%08x)" % (name, rc & 0xFFFFFFFF))
             res, args = SIGNATURES[name]
@@ -183,7 +195,12 @@ class Library:
             self._fns[name] = proto(int(ffi.cast("uintptr_t", p[0])))
 
     def fn(self, name: str) -> Callable:
-        return self._fns[name]
+        try:
+            return self._fns[name]
+        except KeyError:
+            raise RuntimeError("%s is not in the engine library %s, which is older than this Python package. Rebuild it "
+                               "(python build/setup.py --python --clean-native) or delete python/src/ultrafast/bin/native "
+                               "if a hosted build is newer; ULTRAFAST_LIBRARY selects a library." % (name, self.path)) from None
 
 
 _lib: Optional[Library] = None

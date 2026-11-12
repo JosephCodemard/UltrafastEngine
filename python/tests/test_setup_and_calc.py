@@ -77,3 +77,13 @@ def test_calc_analyze_and_limit_round_trip():
     lim = uf.calc.limit("gaussian", duration=100e-15, center=800e-9)
     r = uf.calc.analyze(duration=100e-15, bandwidth_m=lim["bandwidthFwhmM"], center=800e-9)
     assert r["ratioToLimit"] == pytest.approx(1.0, abs=1e-9) and r["gddMagnitudeFs2"] == pytest.approx(0.0, abs=1e-6)
+
+
+# ---- an engine library older than the package must still load
+def test_missing_optional_export_gives_a_clear_error_not_a_load_failure():
+    from ultrafast import _native as n
+    assert "uf_pulse_calc" in n.OPTIONAL and set(n.OPTIONAL) <= set(n.SIGNATURES)
+    lib = n.Library.__new__(n.Library)               # a library without the optional function
+    lib.path, lib._fns = Path("old/libultrafast.dylib"), {}
+    with pytest.raises(RuntimeError, match="older than this Python package"):
+        lib.fn("uf_pulse_calc")
