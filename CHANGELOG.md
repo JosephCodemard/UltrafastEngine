@@ -8,6 +8,7 @@
 - **net48:** `ultrafast reference materials` printed `56.306399999999996` for `56.3064` (.NET Framework's `"R"`), so the committed page differed on Mono; the shortest round-trip form is used on both.
 
 **Added**
+- **`sameAs` on every element** (identical elements): `{"id": "pass2", "sameAs": "pass1"}` is the same physical object as `pass1` (same type and numbers, so a fit of a transform moves all its passes), but compiles on its own with its own pulse, beam, record and loss booking. A copy may set only `label`, `enabled`, wiring and per-pass geometry (`aoiDeg`, `aoiRad`, `tiltXRad`, `side`, `output`). Replaces the beam-splitter-only `sameAs`; existing files keep working. Python `same_as`. A fit path into a copy is refused. Docs: `reference/system-file.md#identical-elements`.
 - `physics.strictMaterialsAllow`: catalogue paths (`"CS2.n2"`) or entry names that strict mode accepts although they are not verified.
 - The generic defaults (thermal data of a user-defined gain medium: 10 W/(m K), 7.8e-6 1/K; ionisation inputs of a solid without data) are catalogue entries (`defaults:gainMedium`, `defaults:solidIonization`, status `unverified`); a run that uses one lists it in its notes and `unverifiedInputs`.
 - Partial ionisation overrides: the run notes name the fields the run gave and say the rest come from the catalogue.

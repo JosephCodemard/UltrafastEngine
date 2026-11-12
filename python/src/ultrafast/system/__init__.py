@@ -8,10 +8,10 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Union
 
-from ..build import Branched, Sequential, link, loop, system, virtual_input
+from ..build import Branched, Sequential, link, loop, same_as, system, virtual_input
 from ..core import System
 
-__all__ = ["Sequential", "Branched", "link", "loop", "virtual_input", "system", "System", "load", "save"]
+__all__ = ["Sequential", "Branched", "link", "same_as", "loop", "virtual_input", "system", "System", "load", "save"]
 
 
 def load(source: Any) -> System:

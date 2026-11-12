@@ -190,11 +190,11 @@ namespace UltrafastEngine.Schema
                 .Include("elementCommon").Ports(new[] { "a", "b" }, new[] { "c", "d" })
                 .Num("reflectivity", "", "Power reflectivity R", "0.5")
                 .Str("output", "Port that continues in a Sequential system (c, d; also transmitted, reflected)", "c")
-                .Str("sameAs", "Take the settings of this splitter: the same plate, passed a second time").Int("side", "Side the light meets: 2 reverses the sign of r (Michelson return)", "1"));
+                .Int("side", "Side the light meets: 2 reverses the sign of r (Michelson return)", "1"));
             add(new ComponentSpec("element", "polarizingSplitter", "A polarising splitter: p (x) mostly transmitted, s (y) mostly reflected.").DocAt("reference/branches.md#beam-splitters")
                 .Include("elementCommon").Ports(new[] { "a", "b" }, new[] { "c", "d" })
                 .Num("transmissionP", "", "Power transmission of x", "1").Num("reflectivityS", "", "Power reflectivity of y", "1")
-                .Str("output", "Port that continues in a Sequential system (c, d)", "c").Str("sameAs", "Take the settings of this splitter").Int("side", "2 reverses the sign of r", "1"));
+                .Str("output", "Port that continues in a Sequential system (c, d)", "c").Int("side", "2 reverses the sign of r", "1"));
             add(new ComponentSpec("element", "leakMirror", "A mirror that leaks: reflected light continues, the leak is a port.").DocAt("reference/branches.md#beam-splitters")
                 .Include("elementCommon").Ports(new[] { "in", "back" }, new[] { "out", "leak" })
                 .Num("transmission", "", "Power transmission", "0.01")

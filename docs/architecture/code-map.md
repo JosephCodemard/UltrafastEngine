@@ -15,7 +15,8 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 
 | file | main classes | what it does |
 |---|---|---|
-| `Systems/SystemDescription.cs` | `SystemDescription`, `SystemElement` | a `.ufs` file in memory; each element stays JSON |
+| `Systems/SystemDescription.cs` | `SystemDescription`, `SystemElement` | a `.ufs` file in memory; each element stays JSON (`sameAs` copies are expanded; `SystemElement.SameAsSpec` keeps the written form for saving) |
+| `Systems/SameAsResolver.cs` | `SameAsResolver` | expands `"sameAs"` copies into full element bodies when a system is read; `InstanceKeys` are the keys a copy may set |
 | `Systems/SystemGraph.cs` | `SystemGraph`, `GraphEdge`, `GraphLoop`, `GraphStage`, `Ports` | the connected form of a system: order, loops, virtual ports, verification. Knows no physics |
 | `Specs/` | `RunSpec` | a `run.json` in memory |
 | `Pulses/` | `PulseSpec`, `PulseField`, `FrequencyGrid`, `GridResampler` | input pulses; a field on a grid; moving between grids |

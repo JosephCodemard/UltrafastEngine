@@ -73,6 +73,21 @@ The operators are applied in order. Put the element where the change happens: af
 dispersion, after the amplifier for gain narrowing, at the end for an etalon in front of the diagnostics. Several
 transform elements in one system are fine; each one's numbers are fitted together.
 
+### The same transform on several passes
+
+A transform describes a physical object (a mirror's figure error, a window's damage, a filter). When the light meets that object
+several times, for example the passes of a multipass cell that is built element by element, write the transform once and add
+the later passes as copies:
+
+```jsonc
+{ "id": "mirror", "type": "transform", "operators": [ { "kind": "wavefront", "zernike": { "4": { "value": 0.05, "fit": true } } } ] },
+{ "id": "mirror2", "sameAs": "mirror" }
+```
+
+The fit parameters exist once, on `mirror`; `mirror2` always has the fitted values. What differs from pass to pass is not part of
+the transform: each copy receives its own pulse, spectrum, energy and beam, and has its own record and loss booking. Backward
+propagation undoes each copy on its own pass. Details: [identical elements](../reference/system-file.md#identical-elements).
+
 ### Operators
 
 | kind | what it is | parameters (all may be [fit objects](#marking-parameters-for-fitting)) |

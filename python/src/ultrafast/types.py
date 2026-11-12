@@ -73,6 +73,8 @@ class AmplifierElement(TypedDict, total=False):
     """Crystal temperature [K]"""
     dopingDensityM3: float
     """Doping density (overrides the medium's) [1/m^3]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -132,6 +134,8 @@ class AopdfElement(TypedDict, total=False):
     """Spurious replica split off the main pulse: H x (1 + a exp(i omega tau)) / sqrt(1 + a^2) Default: 0."""
     replicaDelayS: float
     """Delay of the spurious replica [s] Default: 0."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -189,6 +193,8 @@ class ApertureElement(TypedDict, total=False):
     """Beam decentre in x [m]"""
     decenterYM: float
     """Beam decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -228,10 +234,10 @@ class BeamSplitterElement(TypedDict, total=False):
     """Power reflectivity R Default: 0.5."""
     output: str
     """Port that continues in a Sequential system (c, d; also transmitted, reflected) Default: c."""
-    sameAs: str
-    """Take the settings of this splitter: the same plate, passed a second time"""
     side: int
     """Side the light meets: 2 reverses the sign of r (Michelson return) Default: 1."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -311,6 +317,8 @@ class BulkElement(TypedDict, total=False):
     """Photo-ionisation and plasma: true or an ionization object Default: physics.ionization."""
     transverse: Union["Transverse", str]
     """Spatial model"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -378,6 +386,8 @@ class ChirpedMirrorElement(TypedDict, total=False):
     """Bounces come in complementary pairs (ripples cancel per pair) Default: false."""
     referenceWavelengthM: float
     """Expansion wavelength [m] Default: the carrier."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -455,6 +465,8 @@ class CrystalElement(TypedDict, total=False):
     """Angle of the crystal's slow axis in the lab x-y plane [deg]"""
     transverse: Union["Transverse", str]
     """Spatial model"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -496,6 +508,8 @@ class CustomElement(TypedDict, total=False):
     """Filter model (alternative key) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     mechanism: str
     """Name of the loss in the budget Default: filter."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -565,6 +579,8 @@ class DeformableMirrorElement(TypedDict, total=False):
     """Surface cells per actuator pitch along x and y Default: 4."""
     designWavelengthM: float
     """Wavelength at which the optical path becomes a phase [m] Default: the carrier."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -612,6 +628,8 @@ class DelayElement(TypedDict, total=False):
     """Offset of the beam from the axis [m] Default: 0."""
     offsetYM: float
     """Offset in y [m] Default: 0."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -655,6 +673,8 @@ class DichroicElement(TypedDict, total=False):
     """Reflect wavelengths above the edge (else below) Default: true."""
     output: str
     """Port that continues in a Sequential system (c, d) Default: c."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -720,6 +740,8 @@ class DispersionElement(TypedDict, total=False):
     """Length of air whose data are relative to air (absolute-index correction) [m]"""
     lengthM: float
     """Geometric length (informational) [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -801,6 +823,8 @@ class FaradayRotatorElement(TypedDict, total=False):
     """Photo-ionisation and plasma: true or an ionization object Default: physics.ionization."""
     transverse: Union["Transverse", str]
     """Spatial model"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -880,6 +904,8 @@ class FiberElement(TypedDict, total=False):
     """true switches off the built-in Kerr/Raman Default: false."""
     ionization: Any
     """Photo-ionisation (hollow-core gas fibres): true or an ionization object Default: false."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -921,6 +947,8 @@ class FilterElement(TypedDict, total=False):
     """Filter model (alternative key) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     mechanism: str
     """Name of the loss in the budget Default: filter."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -998,6 +1026,8 @@ class GainElement(TypedDict, total=False):
     """Crystal temperature [K]"""
     dopingDensityM3: float
     """Doping density (overrides the medium's) [1/m^3]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1077,6 +1107,8 @@ class GapElement(TypedDict, total=False):
     """Photo-ionisation and plasma: true or an ionization object Default: physics.ionization."""
     transverse: Union["Transverse", str]
     """Spatial model"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1180,6 +1212,8 @@ class GratingElement(TypedDict, total=False):
     """Beam decentre in x [m]"""
     decenterYM: float
     """Beam decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1231,6 +1265,8 @@ class GratingPairElement(TypedDict, total=False):
     """Passes through the pair Default: 2."""
     efficiency: float
     """Efficiency per diffraction Default: 1."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1334,6 +1370,8 @@ class InterfaceElement(TypedDict, total=False):
     """Beam decentre in x [m]"""
     decenterYM: float
     """Beam decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1381,6 +1419,8 @@ class LeakMirrorElement(TypedDict, total=False):
     """GDD of the leak (substrate) [fs^2] Default: 0."""
     output: str
     """Port that continues in a Sequential system (out, leak) Default: out."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1430,6 +1470,8 @@ class LensElement(TypedDict, total=False):
     """Focal length in y [m]"""
     aberration: Union["Aberration", str]
     """Wavefront error"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1491,6 +1533,8 @@ class MaskElement(TypedDict, total=False):
     """Decentre in x [m]"""
     decenterYM: float
     """Decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1594,6 +1638,8 @@ class MirrorElement(TypedDict, total=False):
     """Beam decentre in x [m]"""
     decenterYM: float
     """Beam decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1677,6 +1723,8 @@ class ModulatorElement(TypedDict, total=False):
     """Phase levels over phaseWrapRad (2 pi if that is 0); 0 = continuous Default: 0."""
     phaseWrapRad: float
     """Wrap the commanded phase to [0, phaseWrapRad); 0 = no wrapping [rad] Default: 0."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1776,6 +1824,8 @@ class NdFilterElement(TypedDict, total=False):
     """Beam decentre in x [m]"""
     decenterYM: float
     """Beam decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1861,6 +1911,8 @@ class OscillatorElement(TypedDict, total=False):
     """cavity: crystal passes per round trip Default: 2."""
     snapshots: int
     """Evolution snapshots kept"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -1960,6 +2012,8 @@ class PlateElement(TypedDict, total=False):
     """Beam decentre in x [m]"""
     decenterYM: float
     """Beam decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2003,6 +2057,8 @@ class PolarizerElement(TypedDict, total=False):
     """Extinction ratio Default: 1e5."""
     transmission: float
     """Transmission along the axis Default: 1."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2044,10 +2100,10 @@ class PolarizingSplitterElement(TypedDict, total=False):
     """Power reflectivity of y Default: 1."""
     output: str
     """Port that continues in a Sequential system (c, d) Default: c."""
-    sameAs: str
-    """Take the settings of this splitter"""
     side: int
     """2 reverses the sign of r Default: 1."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2099,6 +2155,8 @@ class PrismElement(TypedDict, total=False):
     """Alias of planeOfIncidenceDeg."""
     fresnel: bool
     """Fresnel losses of the two faces Default: true."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2134,6 +2192,8 @@ class ProbeElement(TypedDict, total=False):
     id: str
     """Unique id"""
     type: str
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2177,6 +2237,8 @@ class ResonatorElement(TypedDict, total=False):
     """Grid of the Fox-Li iteration (given to nested gaps and bulks without one)"""
     roundTrips: Any
     """{max (400), tolerance (1e-6)}"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2216,6 +2278,8 @@ class RotatorElement(TypedDict, total=False):
     """Rotation angle [deg] Default: 0."""
     angleRad: float
     """Rotation angle [rad]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2277,6 +2341,8 @@ class SaturableAbsorberElement(TypedDict, total=False):
     """Spot area [m^2]"""
     beam: Union[float, str, Dict[str, Any], List[Any]]
     """Beam on the absorber A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, sampled)."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2360,6 +2426,8 @@ class SlmElement(TypedDict, total=False):
     """Explicit cross-talk kernel (odd length, non-negative)"""
     zeroOrderLeak: float
     """Amplitude fraction that passes unmodulated Default: 0."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2431,6 +2499,8 @@ class SpectralShaperElement(TypedDict, total=False):
     """Wrap the phase to [0, phaseWrapRad); 0 = no wrapping [rad] Default: 2 pi."""
     greyLevels: int
     """Phase levels over 2 pi; 0 = continuous Default: 0."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2538,6 +2608,8 @@ class ThinFilmPolarizerElement(TypedDict, total=False):
     """Beam decentre in x [m]"""
     decenterYM: float
     """Beam decentre in y [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2577,6 +2649,8 @@ class TransformElement(TypedDict, total=False):
     """The operators, applied in order"""
     regularization: float
     """Backward propagation: relative Tikhonov level for inverting this element Default: the run's backward.regularization."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2618,6 +2692,8 @@ class UserElement(TypedDict, total=False):
     """Any JSON passed to the function"""
     lengthM: float
     """Length (informational) [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2675,6 +2751,8 @@ class WavefrontElement(TypedDict, total=False):
     """Focal length in y [m]"""
     beamRadiusM: float
     """Beam radius for the 1-D Strehl estimate [m]"""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool
@@ -2734,6 +2812,8 @@ class WaveplateElement(TypedDict, total=False):
     """Order m: retardance = m + retardanceWaves (single, when no thickness) Default: 0."""
     plateThicknessM: float
     """Thickness of the thicker plate (compound) [m] Default: 1e-3."""
+    sameAs: str
+    """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
     """Display name"""
     enabled: bool

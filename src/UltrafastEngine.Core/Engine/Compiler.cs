@@ -153,13 +153,7 @@ namespace UltrafastEngine.Engine
         /// <summary>The splitter family: one element with the coefficients and port names of each type.</summary>
         private static void CompileSplitter(Ctx c, SystemElement e, CompiledElement ce, string type)
         {
-            var src = e;
-            string same = e.Json.GetString("sameAs");
-            if (same != null)
-            {
-                src = c.Sys.Find(same) ?? throw new JsonException("sameAs names '" + same + "', which is not an element id");
-                if (!string.Equals(src.Type, e.Type, StringComparison.OrdinalIgnoreCase)) throw new JsonException("sameAs needs an element of the same type");
-            }
+            var src = e;   // a "sameAs" copy was expanded from its source when the file was read (SameAsResolver)
             double Key(string name, double def) => Num(c, src, name, def);
             Func<double, (double Rx, double Ry)> reflect;
             Func<double, double, double> phaseR = null, phaseT = null;   // (omega, reference omega): GDD about the beam's own carrier

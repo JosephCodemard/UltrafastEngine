@@ -222,7 +222,6 @@ Also accepts: `elementCommon` (see *Common key groups*).
 |---|---|---|---|---|
 | `reflectivity` | number |  | 0.5 | Power reflectivity R |
 | `output` | string |  | c | Port that continues in a Sequential system (c, d; also transmitted, reflected) |
-| `sameAs` | string |  |  | Take the settings of this splitter: the same plate, passed a second time |
 | `side` | integer |  | 1 | Side the light meets: 2 reverses the sign of r (Michelson return) |
 
 ### `bulk` (also `medium`)
@@ -771,7 +770,6 @@ Also accepts: `elementCommon` (see *Common key groups*).
 | `transmissionP` | number |  | 1 | Power transmission of x |
 | `reflectivityS` | number |  | 1 | Power reflectivity of y |
 | `output` | string |  | c | Port that continues in a Sequential system (c, d) |
-| `sameAs` | string |  |  | Take the settings of this splitter |
 | `side` | integer |  | 1 | 2 reverses the sign of r |
 
 ### `prism`
@@ -1269,7 +1267,8 @@ Keys every element accepts.
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `id` | string |  |  | Unique id **Required.** |
-| `type` | string |  |  | Element type **Required.** |
+| `type` | string |  |  | Element type (omit with sameAs) **Required.** |
+| `sameAs` | string |  |  | Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements) |
 | `label` | string |  |  | Display name |
 | `enabled` | boolean |  | true | false skips the element |
 | `next` | any |  |  | Branched systems: where the light goes. A target ("bs:1", {"id": "bs", "port": 1}, "end", "virtual"), or an object of targets by output port (docs/reference/branches.md) |

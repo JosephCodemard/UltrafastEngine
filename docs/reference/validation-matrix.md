@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **598 tests** in 62 classes. **381** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **603 tests** in 62 classes. **382** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -65,7 +65,7 @@ Every C# test of the engine: **598 tests** in 62 classes. **381** of them check 
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
 | [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
-| [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 20 | 3 |
+| [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
 
@@ -1069,6 +1069,11 @@ Fitting plugin: transforms, backward propagation, fits.
 | `Fit_Prior_ConstrainsAnUnmeasuredParameter_AndShowsInTheInfluenceMap` | -- | -- |
 | `Fit_SmoothSplinePhase_FromAFrog` | -- | -- |
 | `Fit_TransformFlags_RecoverAFilterFromASpectrum` | -- | -- |
+| `SameAs_CopyMayBeDisabled_AndChainsResolve` | -- | -- |
+| `SameAs_EachPassSeesItsOwnPulse_AndBooksItsOwnLoss` | -- | -- |
+| `SameAs_FollowsTheSourceWhenAFitChangesIt_AndSavesCompact` | -- | -- |
+| `SameAs_RejectsUnknownSource_Cycle_AndSharedKeys` | -- | -- |
+| `SameAs_TwoPassesOfATransform_AddTheirDispersion` | GDD adds: two passes through GDD g = one element of 2 g | -- |
 | `Transform_EveryOperator_InvertsToTheInput` | -- | -- |
 | `Transform_GaussianFilter_AndEnergy_GoToTheLossBudget` | -- | -- |
 | `Transform_JonesRotation_TurnsXIntoY` | -- | -- |

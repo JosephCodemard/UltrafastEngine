@@ -84,7 +84,7 @@ An input port with no beamline can hold a beam, in Sequential and Branched syste
 | `leakMirror` | `transmission`, or `wavelengthsM` with `transmissionSpectrum`; `gddFs2` of the reflection, `leakGddFs2` of the leak |
 | `dichroic` | `edgeWavelengthM`, `edgeWidthM` (10-90 %), `reflectLong` |
 
-**Michelson and Sagnac interferometers** pass one plate twice. Write the return as a second element, `{"type": "beamSplitter", "sameAs": "bs", "side": 2}`: `sameAs` takes the first's settings, and `side: 2` reverses the sign of r, because the light meets the other face. With equal arms all the light then goes back towards the source.
+**Michelson and Sagnac interferometers** pass one plate twice. Write the return as a second element, `{"type": "beamSplitter", "sameAs": "bs", "side": 2}`: `sameAs` takes the first's settings (it works for every element: [identical elements](system-file.md#identical-elements)), and `side: 2` reverses the sign of r, because the light meets the other face. With equal arms all the light then goes back towards the source.
 
 ## Delays
 
