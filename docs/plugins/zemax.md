@@ -1,5 +1,12 @@
 # Zemax plugin: the OpticStudio binding
 
+!!! warning "Status: experimental, not verified against OpticStudio"
+    This plugin comes from the time when the engine was an OpticStudio tool. It has had little attention since, and **it has never been run against a
+    real OpticStudio since the engine's rewrite**: what is tested is the cross-platform part (sampler, system builder, record / replay) against a
+    *fake* OpticStudio that returns made-up data. The ZOS-API calls in `ZosOpticStudio.cs` are written from the API documentation and are untested.
+    Treat every exported number as unchecked until you have compared it with OpticStudio itself (the checklist for the first run is `plugins/zemax/HARDWARE-CHECKLIST.md` in the repository).
+    Nothing else in the engine needs it; it is not part of the Python wheel or of the `all` extra.
+
 !!! note "Plugin"
     The Zemax integration is the **zemax plugin** (`plugins/zemax`): the sampler, system builder, fake OpticStudio
     and record/replay (cross-platform, `UltrafastEngine.Zemax.Sampling`), the CLI commands `zemax-build`,

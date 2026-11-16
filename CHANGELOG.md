@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+**Added (WP-E, small items)**
+- Python: `result.unverified_inputs` (typed `UnverifiedInput` entries) and `result.ase_pedestal(element, duration_s)` (the `pulse.pedestal` component that carries one stage's inter-pulse ASE into the next). Tests `test_result_accessors.py`.
+- A lens or curved mirror whose phase changes by more than π between neighbouring grid points at the beam edge now warns that it is under-sampled (this would have caught the tiled-array case). Test `LensSamplingTests`.
+- Gain catalogue check (Fuchtbauer-Ladenburg): the Yb:YAG emission fit reproduces the catalogue lifetime to 6.7 %; the Nd:YAG fit is a single 1064 nm line that carries about 8 % of 1/τ, now said in its catalogue notes. Tests `GainCatalogueConsistencyTests`.
+- The SPGD examples (`sensorless-correction`, `tiled-array`) use the default scale-free step instead of a tuned `gain=`.
+
+**Changed (Zemax)**
+- The zemax plugin is documented as **experimental and unverified against OpticStudio**; it is removed from the README / getting-started / capabilities narrative and kept on its plugin page, with `plugins/zemax/HARDWARE-CHECKLIST.md` for the first run on a machine with OpticStudio. An unreadable or unknown OpticStudio lens unit is now an error instead of silently assuming millimetres.
+
 **Added (install and build)**
 - **`docs/install.md`**: one page with a "what do you want?" table (release install, source build, Python, C API, individual plugins), the hosted-versus-native Python engine, troubleshooting and a box of steps for AI agents. The README quick start, `getting-started.md`, `python/README.md` (its link to a missing `docs/python.md` is fixed), `releasing.md` and `llms.txt` point to it.
 - **`build/setup.py`** (`./setup.sh`, `setup.bat`): source builds for this machine. `--cli`, `--python` (+ `--venv`, `--python-engine hosted|native`), `--cpp`, `--plugins A B` (only those and what their `plugin.json` requires), `--plugin-only A` (rebuild one plugin and refresh it in existing builds), `--check` (smoke test), `--doctor`, `--dry-run`, `--clean-native` (removes a stale NativeAOT library that shadows the hosted Python engine; never done unasked). `python/tools/build_engine.py` gains `--plugins` and `--framework` and is now importable; its output is unchanged without them.

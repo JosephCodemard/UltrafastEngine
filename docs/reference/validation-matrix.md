@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **608 tests** in 63 classes. **386** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **611 tests** in 65 classes. **389** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -28,6 +28,7 @@ Every C# test of the engine: **608 tests** in 63 classes. **386** of them check 
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
 | [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
 | [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
+| [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 8 | 5 |
@@ -39,6 +40,7 @@ Every C# test of the engine: **608 tests** in 63 classes. **386** of them check 
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
 | [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 11 | 11 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
+| [Lens sampling warning](#lenssamplingtests) | `LensSamplingTests` | 1 | 1 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
 | [Materials and crystals: d_eff of explicit cuts, delayed-response split, CS2, cubic chi(3)](#materialscrystalstests) | `MaterialsCrystalsTests` | 14 | 14 |
@@ -501,6 +503,15 @@ FROG geometries: PG, SD, XFROG, kind inference.
 | `Xfrog_PcgpaAndEpie_RecoverAChirpedPulse_WithTheSign` | known chirped pulse, known reference | 3 % duration, 6 % GDD, sign exact |
 | `Xfrog_TraceCentroid_TiltsWithTheChirpRate_AtTheSumFrequency` | first moment of a Gaussian product: slope b T^2 / (T^2 + T_R^2) | 2 % |
 
+## GainCatalogueConsistencyTests
+
+Gain catalogue consistency (Fuchtbauer-Ladenburg).
+
+| test | reference | tolerance |
+|---|---|---|
+| `NdYag_SingleLineFit_DoesNotExceedTheTotalDecayRate` | a single emission line cannot radiate faster than the whole upper level: 1 / tau_line <= 1 / tau | bound |
+| `YbYag_EmissionFit_ReproducesTheCatalogueLifetime` | Fuchtbauer-Ladenburg: 1 / tau_rad = 8 pi n^2 integral sigma_e(nu) nu^2 / c^2 dnu (Aull and Jenssen, IEEE JQE 18, 925 (1982)); catalogue lifetime 0.95 ms (+-10 %) | 15 % (10 % lifetime uncertainty + the fit's own) |
+
 ## GainTests
 
 Gain media, pumping, thermal lens and position-dependent properties.
@@ -672,6 +683,14 @@ Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved �
 | `Haus_SolitonModeLocking_ObeysTheAreaTheorem` | soliton area theorem (Haus master equation) | 1e-12, 10 % |
 | `Sesam_SlowAbsorber_SaturatesAsTheEnergyIntegral` | slow absorber: q0 (1 − e^−S) / S | 1e-09, 2 % |
 | `ThermalLens_ExportsAsGradient1` | GRIN thin lens n_r2 = −1 / (2 f L) | 1e-09 |
+
+## LensSamplingTests
+
+Lens sampling warning.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Lens_WithAPhaseStepAbovePiAtTheBeamEdge_WarnsAndAGentleOneDoesNot` | Nyquist: the lens phase k r dr / f per cell at the beam edge (1.5 w) must stay below pi | exact threshold |
 
 ## LinearComponentTests
 

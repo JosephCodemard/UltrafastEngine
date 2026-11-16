@@ -33,7 +33,7 @@ Reference pages stay reference pages. Missing AO / twin examples (component gall
 |---|---|
 | **Verify approximate / unverified material values against their papers**, starting with CS2 (n2, 90/10 electronic-orientational split, 1.6 / 0.2 ps constants) and BaF2 (n2, sigma = -1.2); rotational Raman dephasing `T2At1Bar` of N2, O2, CO2, H2; the other n2 values | needs the owner's PDFs; the CREOL scans could not be rendered. Then re-run `liu-2013`, `shimizu-1967`, `kaur-2024` |
 | LBO (Kato 1994) and the Jundt / Gayer LiNbO3 e-ray forms | no database page to compare with; needs the papers |
-| Yb:YAG / Nd:YAG Fuchtbauer-Ladenburg consistency: do the catalogue's cross-section fits integrate to the radiative rate? | a one-hour check; the ASE source term depends on sigma_e through these fits (all `approximate`) |
+| Nd:YAG emission: the catalogue has one line (1064.2 nm); its Fuchtbauer-Ladenburg rate is about 8 % of 1 / tau, so the other lines and branches are missing (Yb:YAG agrees with its lifetime within 7 %) | needs the Nd:YAG Stark-level spectrum (Koechner or a published emission spectrum) |
 | Birth phase of tunnelling electrons: drift-energy loss assumes a uniform birth phase; in carrier-resolved mode with PPT / ADK electrons are born near the crests, so the model books less loss (comparison test uses MPI) | needs a reference calculation (U_p at birth phase, Corkum 1993) and a change in how the energy is booked; not quick |
 | Ray-based ASE for bulk crystals and disks, parasitic lasing, fibre use (backlog C3 builds on `AseModel`) | separate package |
 | Stress: slice-by-slice retardation, the common-mode radial / tangential lenses on the field, vector gain for a y input | needs Koechner's formulas read from the source (not written from memory) and a reference for each; a package of its own |
@@ -43,9 +43,7 @@ Reference pages stay reference pages. Missing AO / twin examples (component gall
 
 ## 3. Small items that are ready to do
 
-* `asePedestalEnergyFraction` is reported but not fed into the next stage's `pulse.pedestal`.
-* A lens under-sampling warning (phase step per cell above pi at the beam edge) would have caught the tiled-array case.
-* Python has no typed accessor for `unverifiedInputs`.
+* (Done in WP-E: `result.ase_pedestal()`, the lens under-sampling warning, `result.unverified_inputs`.)
 * The examples still pass `gain=` to SPGD explicitly; they could use the new default.
 
 ## 4. MCP server: the agreed design (not built)

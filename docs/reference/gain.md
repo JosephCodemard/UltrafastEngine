@@ -123,7 +123,7 @@ What it reports (values of the element; they are *not* in the pulse's energy led
 mode, one spatial mode of area π w²/2, at the state the next pulse sees), the spectra `aseForwardSpectrumWPerHz`, `aseBackwardSpectrumWPerHz` on `aseWavelengthM`,
 `aseStimulatedPowerW` (the power the ASE takes from the inversion), `aseDepletionFraction` (that over the absorbed pump power), `aseSolidAngleSr`, and, with a repetition rate,
 `asePedestalEnergyJ` and `asePedestalEnergyFraction`: the ASE energy in the signal mode per pulse period relative to the output pulse. That fraction is the strength to
-give a `pulse.pedestal` of kind `ase` in the next stage (`energyFraction`).
+give a `pulse.pedestal` of kind `ase` in the next stage (`energyFraction`). In Python, `result.ase_pedestal("amp", duration_s=1/rep_rate)` returns that component (`{"kind": "ase", "energyFraction": f, "durationS": ...}`) ready for the next run's `pulse.pedestal`; it raises `KeyError` if no element reports one. Inside one run the ASE is not carried on: the next stage is a separate run.
 
 Checks (`AseStressTests`): uniform inversion gives n_sp h ν Δν (G − 1) per polarisation at both ends (1e-12; Desurvire, *Erbium-doped fiber amplifiers*, 1994; the factor 2 for both
 polarisations); a non-uniform inversion against a direct RK4 integration (1e-6); the source into 4π equals N2 ⟨hν⟩ / τ_rad by the Füchtbauer-Ladenburg relation (1e-9; fixes the

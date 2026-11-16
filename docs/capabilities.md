@@ -8,7 +8,7 @@ listed with its unit and default in the [option reference](reference/options.md)
 UltrafastEngine is built for **table-top, open-air ultrafast optics**: a pulse that travels through mirrors, gratings,
 prisms, lenses, plates, crystals, gain media, gas-filled paths and optical instruments on an optical table, with some
 support for single-mode fibre. It is not a general waveguide, multimode-fibre or laser-cavity design tool, and it does
-not trace rays (geometry comes from element parameters or from a ray trace exported by the zemax plugin).
+not trace rays (geometry comes from element parameters or from ray-traced data you supply, e.g. a group delay table).
 
 The pulse is a field resolved in time and frequency (both polarisations). The beam enters in one of three ways: through
 its size (an effective area that follows a beam model or the tracked Gaussian beam), as a carried transverse profile on a
@@ -91,8 +91,8 @@ Capabilities that depend on outside software or are not needed by everyone are p
   Levenberg–Marquardt, CMA-ES or MCMC (or your own estimator), priors, instrument-response parameters, three result
   layers (simulated, inferred, believed), an influence map and provenance; a fitted system file for new inputs; and
   backward propagation of a measured field to the input.
-* **zemax** — exports a sequential OpticStudio system (group delay along the real ray, angles of incidence, coatings,
-  beam sizes) to a system file. Runs on Windows with OpticStudio.
+* **zemax** (experimental) — exports a sequential OpticStudio system to a system file. Not tested against a real OpticStudio;
+  see [Zemax plugin](plugins/zemax.md) for its status.
 * **gpu** — CUDA and OpenCL compute back-ends for 1-D and spatial envelope propagation (double precision), and native CPU
   FFTs (Apple Accelerate, FFTW) ([GPU](plugins/gpu.md)).
 * **hitran** — gas absorption and dispersion from HITRAN line lists (Voigt lines, TIPS partition sums) in air gaps and
@@ -114,8 +114,7 @@ the same way ([Plugin system](reference/plugins.md)).
 
 **Optical layout**
 
-* No ray tracing. Geometry enters through ray-traced data exported from OpticStudio (zemax plugin) or through the
-  element parameters; prism pairs and Martinez stretchers need traced group delay.
+* No ray tracing. Geometry enters through element parameters or through ray-traced data you supply (traced group delay, angles); prism pairs and Martinez stretchers need traced group delay.
 * [Branched systems](reference/branches.md): mode overlap of meeting beams assumes simple Gaussian beams at one plane and
   ignores M²; a linked crystal port takes the strongest packet only; merged carried profiles share one transverse shape
   per stored frequency; a graph loop has one direction (a linear cavity is written as separate forward and return
@@ -169,5 +168,4 @@ the same way ([Plugin system](reference/plugins.md)).
 * GPU back-ends (`gpu` plugin: CUDA, OpenCL) run 1-D envelope and spatial envelope propagation; user responses,
   rotational Raman, position-dependent properties, carrier-resolved fields, χ(2), amplifiers and ionisation run on the CPU. Apple GPUs
   are not used (no double precision); macOS uses the Accelerate FFT on the CPU ([GPU](plugins/gpu.md)).
-* The zemax plugin compiles against the OpticStudio API, but its operand conventions should be checked against a
-  running OpticStudio before quantitative use ([Zemax plugin](plugins/zemax.md#known-assumptions-to-confirm-on-your-installation)).
+* The zemax plugin has never been run against a real OpticStudio ([status](plugins/zemax.md)).

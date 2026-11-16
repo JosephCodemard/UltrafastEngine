@@ -64,7 +64,7 @@ def run():
         return focus(array(1, piston_rad=(phi0 + u).tolist()), cw, n=128, f=1.0)[0][cl, cl] / refl[cl, cl]
     start = metric(np.zeros(7))
     t0 = time.time()
-    lock = sensorless.spgd(metric, np.zeros(7), iterations=120, gain=10.0, amplitude=0.2, seed=1, keep_iterates=True)
+    lock = sensorless.spgd(metric, np.zeros(7), iterations=120, amplitude=0.2, seed=1, keep_iterates=True)
     out["lock"] = {"start": start, "result": lock, "phi0": phi0, "seconds": time.time() - t0, "ref": refl}
     return out
 

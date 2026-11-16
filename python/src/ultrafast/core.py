@@ -5,7 +5,7 @@ import ctypes
 import json
 import os
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import numpy as np
 
@@ -445,6 +445,18 @@ class Run(_Handle):
         return Result(h)
 
 
+class UnverifiedInput(TypedDict):
+    """One approximate or unverified catalogue value a run used (summary.json ``unverifiedInputs``)."""
+    quantity: str         # catalogue path, e.g. "CS2.n2" (what ``strictMaterialsAllow`` accepts)
+    material: str
+    property: str
+    target: str           # where it was used, e.g. "element:cell"
+    status: str           # "approximate" or "unverified"
+    source: str
+    uncertainty: Union[float, str]   # relative (a number) or a description
+    origin: str
+
+
 class Result(_Handle):
     """Everything a run produced. ``result.summary`` (dict), ``result['output_power_w']`` (NumPy),
     ``result.arrays`` (lazy mapping), ``result.write(directory)``."""
@@ -497,6 +509,26 @@ class Result(_Handle):
     def elements(self):
         """Per-element table as a list of dicts (also in summary['elements'])."""
         return self.summary["elements"]
+
+    @property
+    def unverified_inputs(self) -> List[UnverifiedInput]:
+        """Approximate or unverified catalogue values this run used (empty when every input is verified). Check it before
+        quoting a number; ``physics.strictMaterials`` turns the same list into an error."""
+        return list(self.summary.get("unverifiedInputs", []))
+
+    def ase_pedestal(self, element: Optional[str] = None, duration_s: Optional[float] = None) -> Dict[str, Any]:
+        """The ``pulse.pedestal`` component that carries the inter-pulse ASE of a gain / amplifier element (run with ``aseModel``)
+        into the next stage: ``{"kind": "ase", "energyFraction": f}`` with f = ASE energy per pulse period / output pulse energy.
+        ``element``: the element id (default: the last element that reports an ASE pedestal). ``duration_s``: the length the ASE is
+        spread over in the next stage (default of the engine: 10 ns; the pulse period is the physical choice).
+        Raises ``KeyError`` if no element reports one."""
+        found = [e for e in self.elements() if "asePedestalEnergyFraction" in e.get("values", {}) and (element is None or e["id"] == element)]
+        if not found:
+            raise KeyError("no element%s reports asePedestalEnergyFraction (give the gain element an aseModel)" % (" '" + element + "'" if element else ""))
+        comp: Dict[str, Any] = {"kind": "ase", "energyFraction": found[-1]["values"]["asePedestalEnergyFraction"]}
+        if duration_s is not None:
+            comp["durationS"] = duration_s
+        return comp
 
     def instrument(self, name: str) -> dict:
         for i in self.summary["instruments"]:

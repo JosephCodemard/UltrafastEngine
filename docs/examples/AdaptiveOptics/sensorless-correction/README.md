@@ -28,15 +28,15 @@ python make_figures.py          # optional: hero.png, animation.gif (about 20 s)
 hidden aberration {4: -0.25, 5: 0.2, 6: -0.15, 7: 0.2, 8: -0.1, 9: 0.1} waves rms; the camera peak fluence is the only measurement
 Strehl ratio before: 0.39
 modal Strehl 0.94 after 36 engine runs; coefficient error rms 0.011 waves (truth [0.25, -0.2, 0.15, -0.2, 0.1, -0.1])
-spgd  Strehl 0.95 after 240 engine runs; coefficient error rms 0.004 waves (truth [0.25, -0.2, 0.15, -0.2, 0.1, -0.1])
+spgd  Strehl 0.95 after 240 engine runs; coefficient error rms 0.006 waves (truth [0.25, -0.2, 0.15, -0.2, 0.1, -0.1])
 checks passed
 ```
 
 **What it shows.** Modal search needs 36 runs and finds the coefficients to 0.011 waves rms: a peak-type metric is nearly
 quadratic and separable in the modes close to the optimum, which is exactly what it assumes. SPGD needs 240 runs for the same
 strehl because it learns the gradient from noisy, random pairs; its advantage is that it scales to hundreds of actuators, where a
-mode-by-mode search does not. The SPGD settings (gain 3, shake amplitude 0.05 waves) are tuned for this example: with gain 5 it
-reaches 0.80 and with gain 1.5 only 0.64 in the same 80 iterations.
+mode-by-mode search does not. SPGD uses the default scale-free step (no gain to tune; shake amplitude 0.05 waves). A fixed `gain=` has to be tuned: gain 3 works
+here, gain 5 reaches 0.80 and gain 1.5 only 0.64 in 80 iterations.
 
 **Limits.** The metric is noiseless here (a camera adds noise and drift, which favours SPGD's averaging). Six modes are searched;
 the mirror itself, with 100 actuators, could do more.

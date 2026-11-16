@@ -10,8 +10,6 @@ way laboratory instruments would: spectrometer, autocorrelator, FROG, d-scan, ph
 polarimeter, camera, each with its own resolution and detector.
 
 ```
- OpticStudio ──(zemax plugin)──┐
-                               v
  hand-written / Python ──> system file (.ufs) ──┐
                            run spec (.json)  ───┴──> UltrafastEngine.Core ──> results: summary.json, result.npz, CSV,
                                                      (C#, no dependencies)      instruments, loss budget, provenance
@@ -61,7 +59,6 @@ polarimeter, camera, each with its own resolution and detector.
 | install or check plugins | [Installing plugins](plugins/installing.md) |
 | scan, optimise, retrieve a pulse | [Studies](reference/studies.md), [Pulse retrieval](reference/retrieval.md) |
 | plug in my own function or element | [Extending](reference/extending.md), [Python](reference/python.md), [C API](reference/c-api.md) |
-| export from OpticStudio | [Zemax plugin](plugins/zemax.md) |
 | check the validation | [Testing and validation](testing.md), [paper replications](papers/README.md) |
 | see what is planned | [Roadmap](roadmap.md) |
 | drive it from an AI agent | [For AI agents](agents.md) |

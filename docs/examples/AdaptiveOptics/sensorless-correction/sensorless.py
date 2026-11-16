@@ -35,7 +35,7 @@ def run(spgd_iterations=80):
     out["modal"] = {"result": modal, "runs": counter["runs"], "seconds": time.time() - t0}
     counter["runs"] = 0
     t0 = time.time()
-    sp = sensorless.spgd(metric, a0, iterations=spgd_iterations, gain=3.0, amplitude=0.05, seed=3, keep_iterates=True)
+    sp = sensorless.spgd(metric, a0, iterations=spgd_iterations, amplitude=0.05, seed=3, keep_iterates=True)
     out["spgd"] = {"result": sp, "runs": counter["runs"], "seconds": time.time() - t0}
     out["metric"] = metric
     return out

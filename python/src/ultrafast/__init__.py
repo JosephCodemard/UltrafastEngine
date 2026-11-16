@@ -14,7 +14,7 @@ Quick start::
 Docs: docs/reference/python.md. The engine itself is the C# UltrafastEngine.Core, reached through its C API
 (``include/ultrafast.h``) -- see :mod:`ultrafast._native` for how the library is found.
 """
-from .core import (ElementContext, Result, ResponseContext, Run, System, UltrafastError, benchmark, capabilities, coherence, command, devices,
+from .core import (ElementContext, Result, ResponseContext, Run, System, UltrafastError, UnverifiedInput, benchmark, capabilities, coherence, command, devices,
                    retrieve, retrieve_multi, run, set_default_backend, study, version)
 from . import build
 from . import crystal
@@ -28,7 +28,7 @@ from . import types
 from . import algorithms, components, instruments, results, sources, system
 
 __version__ = "2.2.0"
-__all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "run", "version", "capabilities",
+__all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "UnverifiedInput", "run", "version", "capabilities",
            "command", "study", "coherence", "retrieve", "retrieve_multi", "devices", "benchmark", "set_default_backend", "build", "crystal", "calc", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load",
            "algorithms", "components", "instruments", "results", "sources", "system"]
 
