@@ -1035,6 +1035,14 @@ namespace UltrafastEngine.Engine
                     kar?.Source ?? (e.Json.Has("kerrAnisotropy") ? ModelSource.SystemData : ModelSource.MaterialDefault), kar?.Origin ?? (e.Json.Has("kerrAnisotropy") ? "element " + e.Id : "material " + m.Name));
             }
             var rr = Find(c, e, "raman");
+            // the element's own "raman" model (an object or a catalogue / kind name) is read like an override; a run override wins
+            if (rr == null && e.Json.TryGet("raman", out var ownRaman) && (ownRaman.Kind == JsonKind.Object || ownRaman.Kind == JsonKind.String) && !string.Equals(ownRaman.Kind == JsonKind.String ? ownRaman.AsString() : "", "none", StringComparison.OrdinalIgnoreCase))
+            {
+                var ownSpec = ownRaman.Kind == JsonKind.String
+                    ? new ModelSpec(ownRaman.AsString(), new JsonObject().Set("kind", ownRaman.AsString()), ModelSource.SystemData, "element " + e.Id + ".raman")
+                    : ModelSpec.FromJson(ownRaman, ModelSource.SystemData, "element " + e.Id + ".raman");
+                rr = new OverrideRule { Target = "element:" + e.Id, Property = "raman", Model = ownSpec, RawValue = ownRaman, Source = ModelSource.SystemData, Origin = "element " + e.Id };
+            }
             if (rr != null && rr.RawValue.Kind == JsonKind.Bool && !rr.RawValue.AsBool()) med.Rotational = null;
             if (e.Json.TryGet("raman", out var rawRaman) && rawRaman.Kind == JsonKind.Bool && !rawRaman.AsBool()) med.Rotational = null;
             if (rr != null)
@@ -1043,6 +1051,7 @@ namespace UltrafastEngine.Engine
                 med.RamanFraction = rr.Model.Json.GetDouble("fR", !double.IsNaN(MaterialLibrary.DefaultRamanFraction(rr.Model.Kind)) ? MaterialLibrary.DefaultRamanFraction(rr.Model.Kind) : med.RamanFraction);
                 if (med.Raman == null) med.RamanFraction = 0;
             }
+            if (e.Json.Has("fR") && med.Raman != null) med.RamanFraction = e.Json.GetDouble("fR", med.RamanFraction);   // the element's own Raman fraction
             var ssr = Find(c, e, "selfSteepening");
             if (ssr != null) med.EnableSelfSteepening = ssr.RawValue.AsBool();
             else if (e.Json.Has("selfSteepening")) med.EnableSelfSteepening = e.Json.GetBool("selfSteepening", med.EnableSelfSteepening);   // the element's own switch (fibres pass theirs on)
