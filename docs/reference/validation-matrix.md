@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **636 tests** in 69 classes. **402** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **23** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **638 tests** in 69 classes. **402** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **24** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -16,7 +16,7 @@ Every C# test of the engine: **636 tests** in 69 classes. **402** of them check 
 | [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 16 | 4 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
-| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
+| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 15 | 7 |
 | [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 21 | 15 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
 | [Core sweep: element keys that override the material's must be read from the element itself](#coresweeptests) | `CoreSweepTests` | 5 | 5 |
@@ -33,7 +33,7 @@ Every C# test of the engine: **636 tests** in 69 classes. **402** of them check 
 | [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
-| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 12 | 8 |
+| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 13 | 9 |
 | [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
@@ -292,6 +292,7 @@ Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells).
 | `Opa_SmallSignalGain_MatchesCoshSquared_AndConservesPhotons` | OPA cosh² small-signal gain; Manley-Rowe | 0.1 % |
 | `PhaseMatchCalculator_ReproducesLiteratureAngles` | SNLO: BBO type-I SHG 29.2° (800 nm), 23.4° (1030 nm) | 1 %, 5 %, 10 % |
 | `Qpm_AveragedAndDomainResolvedModelsAgree` | -- | -- |
+| `Qpm_DomainResolved_FixedSteps_WarnThatTheyIgnoreTheWalls` | -- | -- |
 | `Shg_AngleDetuning_FollowsSincSquared` | sinc²(Δk L / 2) phase-mismatch law | 1 % |
 | `Shg_PlaneWave_MatchesArmstrongTanhSquared` | Armstrong et al., Phys. Rev. 127, 1918 (1962): tanh² SHG | 1e-09, 0.02 % |
 | `Shg_RadialModelAgreesWithGaussianOverlapAtLowConversion` | Gaussian-mode overlap of low-conversion SHG | 1 % |
@@ -580,6 +581,7 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 | test | reference | tolerance |
 |---|---|---|
 | `CallbackResponses_StayOnTheCpu_WithTheReason` | -- | -- |
+| `Chi2CoupledWaves_ShgQpmAndOpa_MatchTheCpu` | cross-check: the CPU solver (Crystals.Chi2Problem.Nonlinear, Steppers.AdaptiveErk43Ip with domain walls) | 1e-09 |
 | `ConcurrentRuns_ShareTheDevice_AndMatchTheCpu` | -- | -- |
 | `DevicesCommand_ListsTheCpuAndTheDevice_AndTheSelfTestPasses` | -- | -- |
 | `Envelope_ScalarAndVector_MatchTheCpu_AdaptiveAndFixed` | cross-check: the CPU solver | 1e-09 |

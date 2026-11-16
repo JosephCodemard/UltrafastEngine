@@ -383,6 +383,52 @@ KERNEL void uf_peak(G const double* P, G const double* D, int n, G double* part,
     if (LID == 0) part[ko + GRP] = sm[0];
 }
 
+/* ---------------------------------------------------------------- chi(2) coupled waves (Crystals.Chi2Problem, 1-D) */
+
+/* T: the K fields in time (field j at j n). Three-wave: dA1 = i w1 g0 A3 A2* e-, dA2 = i w2 g0 A3 A1* e-, dA3 = i w3 g0 A1 A2 e+;
+   degenerate SHG (shg = 1, K = 2): dAF = i wF g0 AH AF* e-, dAH = i wF g0 AF^2 e+; e+ = (epx, epy), e- its conjugate.
+   chi(3) (n2 != 0): dA_a += i (w_a / c) dn_a A_a, dn_a = n2 sum_b xf[a K + b] |A_b|^2 / xa[a K + b]; per-group max of
+   (w_a / c) dn_a -> part[po + g]. */
+KERNEL void uf_chi2(G const cplx* T, int n, int K, int shg, double g0, double epx, double epy, double w0, double w1, double w2,
+                    double n2, double k0a, double k0b, double k0c, G const double* xf, G const double* xa, G cplx* R, G double* part, int po)
+{
+    LOC double sm[256];
+    double pm = 0.0;
+    cplx ep = C2(epx, epy), em = C2(epx, -epy);
+    for (int i = GID; i < n; i += GSZ) {
+        cplx t0 = T[i], t1 = T[n + i], t2 = K > 2 ? T[2 * n + i] : C2(0.0, 0.0);
+        cplx r0, r1, r2 = C2(0.0, 0.0);
+        if (shg) {
+            cplx c = C2(0.0, w0 * g0);
+            r0 = cmul(cmul(cmul(c, t1), cconj(t0)), em);
+            r1 = cmul(cmul(cmul(c, t0), t0), ep);
+        } else {
+            r0 = cmul(cmul(cmul(C2(0.0, w0 * g0), t2), cconj(t1)), em);
+            r1 = cmul(cmul(cmul(C2(0.0, w1 * g0), t2), cconj(t0)), em);
+            r2 = cmul(cmul(cmul(C2(0.0, w2 * g0), t0), t1), ep);
+        }
+        if (n2 != 0.0) {
+            double p0 = cabs2(t0), p1 = cabs2(t1), p2 = cabs2(t2);
+            for (int a = 0; a < K; a++) {
+                double dn = xf[a * K] * (p0 / xa[a * K]) + xf[a * K + 1] * (p1 / xa[a * K + 1]);
+                if (K > 2) dn += xf[a * K + 2] * (p2 / xa[a * K + 2]);
+                dn *= n2;
+                double ka = a == 0 ? k0a : (a == 1 ? k0b : k0c);
+                cplx ta = a == 0 ? t0 : (a == 1 ? t1 : t2);
+                cplx add = cmul(C2(0.0, ka * dn), ta);
+                if (a == 0) r0 = cadd(r0, add); else if (a == 1) r1 = cadd(r1, add); else r2 = cadd(r2, add);
+                pm = fmax(pm, ka * dn);
+            }
+        }
+        R[i] = r0; R[n + i] = r1;
+        if (K > 2) R[2 * n + i] = r2;
+    }
+    sm[LID] = pm;
+    SYNC();
+    for (int s = LSZ / 2; s > 0; s >>= 1) { if (LID < s) sm[LID] = fmax(sm[LID], sm[LID + s]); SYNC(); }
+    if (LID == 0) part[po + GRP] = sm[0];
+}
+
 /* ---------------------------------------------------------------- spatial (SpatialEnvelopeProblem) */
 /* layout: component c, transverse point m, sample i at c * block + m * n + i (block = M n) */
 

@@ -825,6 +825,9 @@ namespace UltrafastEngine.Physics
 
     public static class Steppers
     {
+        /// <summary>Note of a fixed-step run over a rate with breakpoints (QPM domain walls): the steps do not land on them.</summary>
+        public const string FixedStepsIgnoreBreakpoints = "fixed steps do not land on the breakpoints of this element (QPM domain walls): steps that straddle a wall integrate a discontinuous rate (a 1 mm PPLN SHG crystal at 0.5 domain per step is 1 % off in energy); use the adaptive stepper";
+
         private static double StaticLimit(IPropagationProblem p, StepperSettings st)
             => p is IStaticRate s && s.StaticPhaseRate > 0 ? 0.2 / s.StaticPhaseRate : double.PositiveInfinity;   // linear terms: RK4 is accurate to ~1e-5 at 0.2 rad per step
 
@@ -894,6 +897,7 @@ namespace UltrafastEngine.Physics
             var k = new Complex[n];
             int every = Math.Max(1, steps / 200);
             stats.Method = "rk4ip (fixed)";
+            if (p is IBreakpoints bpf && bpf.NextBreakpoint(0) < p.LengthM) stats.Notes.Add(FixedStepsIgnoreBreakpoints);
             for (int s = 0; s < steps; s++)
             {
                 double z = s * h;

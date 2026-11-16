@@ -58,7 +58,8 @@ CPU (`cuda: small problem (4096 samples < gpuMinPoints 8192); ran on the CPU`).
 | rotational (orientational) Raman of molecular gases (N2, O2, CO2, air, mixtures; `n2Scale`), 1-D and spatial: the causal response is a zero-padded linear convolution, done with the same kernel spectrum as the CPU | yes |
 | `timeResponse` models `expression`, `twoPhotonAbsorption` and `kerr` (any number, summed in order; every variable, including the running fluence `F`), 1-D and spatial: each element's responses are translated to C and compiled into a kernel of their own the first time they are seen (NVRTC or the OpenCL compiler), then cached per device | yes |
 | `timeResponse` callbacks (user code), frequency-resolved responses (the Drude term of `ionization`), position-dependent properties | CPU |
-| carrier-resolved field propagation, χ(2) crystals, amplifiers, ionisation | CPU |
+| χ(2) crystals in the 1-D coupled-wave model: SHG, SFG / DFG / OPA (three waves), χ(3) SPM / XPM, self-steepening, averaged or domain-resolved QPM (the stepper lands on every domain wall, as on the CPU), crossing beams | yes |
+| spatial (radial / cartesian) χ(2) crystals, carrier-resolved field propagation, amplifiers, ionisation | CPU |
 
 The built-in GPU FFT needs power-of-two lengths (the grid planner always picks them); with cuFFT any even length
 works for the time axis. Cartesian transverse grids must be powers of two on the device.

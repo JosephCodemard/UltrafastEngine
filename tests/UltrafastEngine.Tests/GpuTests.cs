@@ -194,6 +194,50 @@ namespace UltrafastEngine.Tests
             }
         }
 
+        [Test(Category = "gpu", Reference = "cross-check: the CPU solver (Crystals.Chi2Problem.Nonlinear, Steppers.AdaptiveErk43Ip with domain walls)", Tolerance = "1e-09")]
+        public void Chi2CoupledWaves_ShgQpmAndOpa_MatchTheCpu()
+        {
+            // backlog B3 kernel 4: chi(2) crystals used to run on the CPU only
+            var devices = AllDevices();
+            JsonObject Ppln() => O("id", "x", "type", "crystal", "crystal", "MgO:LiNbO3", "lengthM", 1e-3, "temperatureC", 24.5,
+                "interaction", O("process", "shg", "qpm", O("model", "domains")), "beam", O("kind", "gaussian", "w0M", 50e-6), "chi3", false, "output", "sh");
+            JsonObject Gp(double lam, double fwhm, double e) => O("shape", "gaussian", "centerWavelengthM", lam, "durationFwhmS", fwhm, "energyJ", e);
+            // Domain-resolved QPM: the adaptive stepper lands on every wall, and whether a step reaches a wall or leaves a sliver
+            // before it depends on the last bits of the step size; at the default tolerance (1e-6) two CPU runs whose tolerances differ
+            // by 1e-7 relative already differ by 3e-5 in the field. So the walls are checked with fixed steps (identical step
+            // sequence) and with the adaptive stepper at tolerance 1e-10 (identical step sequence in practice; measured 1e-13).
+            var cases = new (string name, JsonObject el, JsonObject pulse, JsonObject stepper)[]
+            {
+                ("BBO type-I SHG, chi(3), adaptive", O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", 1e-3, "interaction", O("process", "shg", "type", "I"),
+                    "beam", O("kind", "gaussian", "w0M", 100e-6), "output", "sh"), Gp(1030e-9, 200e-15, 20e-6), O("method", "adaptive")),
+                ("BBO type-I SHG, chi(3), rk4ip", O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", 1e-3, "interaction", O("process", "shg", "type", "I"),
+                    "beam", O("kind", "gaussian", "w0M", 100e-6), "output", "sh"), Gp(1030e-9, 200e-15, 20e-6), O("method", "rk4ip")),
+                ("PPLN SHG, resolved domains, fixed steps", Ppln(), Gp(1550e-9, 1e-12, 50e-9), O("method", "rk4ip")),
+                ("PPLN SHG, resolved domains (walls), adaptive 1e-10", Ppln(), Gp(1550e-9, 1e-12, 50e-9), O("method", "adaptive", "tolerance", 1e-10)),
+                ("BBO type-I OPA (three waves), chi(3)", O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", 2e-3, "interaction", O("process", "opa", "type", "I"),
+                    "beam", O("kind", "gaussian", "w0M", 150e-6), "aux", A(O("role", "pump", "pulse", Gp(515e-9, 300e-15, 20e-6), "beam", O("kind", "gaussian", "radiusM", 150e-6), "delayS", 0.0)),
+                    "output", "signal"), Gp(800e-9, 300e-15, 1e-9), O("method", "adaptive")),
+            };
+            foreach (var (name, el, pulse, stepper) in cases)
+            {
+                RunResult R(JsonObject compute) => Simulation.Run(Systems.SystemDescription.FromJson(O("format", "ultrafast-system", "version", 2, "name", "chi2", "elements", A(el))),
+                    Specs.RunSpec.FromJson(O("format", "ultrafast-run", "version", 2, "pulse", pulse, "stepper", stepper, "compute", compute)));
+                var c = R(O("backend", "cpu"));
+                double gain = c.Output.TotalEnergyJ() / c.Input.TotalEnergyJ();
+                Assert.True(c.Records[0].Values.ContainsKey("conversionEfficiency") ? c.Records[0].Values["conversionEfficiency"] > 1e-4 : gain > 2, name + ": real chi(2) interaction");
+                foreach (var b in devices)
+                {
+                    var d = R(On(b));
+                    string label = b.Name + " " + name;
+                    Assert.True(OnDevice(d), label + " ran on the device: " + Notes(d));
+                    Console.WriteLine("    " + label + ": rel. field error " + Diff(d, c).ToString("E2") + ", energy out / in " + gain.ToString("G4"));
+                    Assert.Less(Diff(d, c), 1e-9, label + ": output field");
+                    Assert.Close(c.Output.TotalEnergyJ(), d.Output.TotalEnergyJ(), 1e-9, 0, label + ": energy");
+                    Assert.Equal(c.Records[0].Steps.Accepted, d.Records[0].Steps.Accepted, label + ": same steps");
+                }
+            }
+        }
+
         [Test(Category = "gpu")]
         public void CallbackResponses_StayOnTheCpu_WithTheReason()
         {

@@ -58,6 +58,8 @@ namespace UltrafastEngine.Plugins.Gpu
         /// <summary>rate = N(state) at z; k0 x peak index change when <paramref name="wantPeak"/> (else NaN).</summary>
         protected abstract double Nonlinear(GpuBuffer state, double z, GpuBuffer rate, bool wantPeak);
         protected virtual double AreaAt(double z) => 1.0;
+        /// <summary>The first breakpoint strictly after z (QPM domain walls; <see cref="IBreakpoints"/>), or +infinity.</summary>
+        protected virtual double NextBreakpoint(double z) => double.PositiveInfinity;
 
         private void Exp(double h, GpuBuffer dst) => S.Launch("uf_exp", GLen, L, h, dst, Len);
         private void Mul(GpuBuffer a, GpuBuffer b, GpuBuffer dst) => S.Launch("uf_mul", GLen, a, b, dst, Len);
@@ -105,7 +107,12 @@ namespace UltrafastEngine.Plugins.Gpu
                 h = Math.Min(h, st.MaxStepM);
                 h = AreaLimitedStep(z, h, st.MaxAreaChangePerStep);
                 h = Math.Max(h, Math.Min(st.MinStepM, Lm - z));
-                double zEnd = z + h;
+                bool onWall = false;
+                {   // as Steppers.AdaptiveErk43Ip: land on every breakpoint
+                    double zb = NextBreakpoint(z + 1e-12 * Lm);
+                    if (zb < z + h * (1 + 1e-12)) { h = zb - z; onWall = true; }
+                }
+                double zEnd = onWall ? z + h * (1 - 1e-9) : z + h;   // end-of-step stages on this side of a wall
                 Exp(0.5 * h, half);
                 Mul(half, a, aI);
                 Mul(half, kN, k1);
@@ -129,6 +136,7 @@ namespace UltrafastEngine.Plugins.Gpu
                     stats.MinStepM = Math.Min(stats.MinStepM, h); stats.MaxStepM = Math.Max(stats.MaxStepM, h);
                     z += h; pk = pk5;
                     { var t = a; a = a4; a4 = t; t = kN; kN = k5; k5 = t; }
+                    if (onWall && z < Lm * (1 - 1e-12)) pk = Nonlinear(a, z + 1e-9 * h, kN, true);   // the other side of the wall
                     if (forced && err > st.Tolerance && !stats.Notes.Contains("tolerance not met at minimum step")) stats.Notes.Add("tolerance not met at minimum step");
                     if (progress != null && (z / Lm - lastReport >= 0.005 || z >= Lm * (1 - 1e-12))) { lastReport = z / Lm; progress(Math.Min(1.0, z / Lm)); }
                 }
@@ -164,6 +172,7 @@ namespace UltrafastEngine.Plugins.Gpu
             Exp(0.5 * h, half);
             int every = Math.Max(1, steps / 200);
             stats.Method = "rk4ip (fixed)";
+            if (NextBreakpoint(0) < LengthM) stats.Notes.Add(Steppers.FixedStepsIgnoreBreakpoints);
             for (int s = 0; s < steps; s++)
             {
                 double z = s * h;

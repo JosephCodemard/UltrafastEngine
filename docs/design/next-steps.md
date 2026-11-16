@@ -44,6 +44,13 @@ Reference pages stay reference pages. Missing AO / twin example still open: comp
 ## 3. Small items that are ready to do
 
 * (Done in WP-E: `result.ase_pedestal()`, the lens under-sampling warning, `result.unverified_inputs`.)
+* **Domain-resolved QPM accuracy at the default tolerance (found in WP-C(B), CPU and GPU alike).** A 1 mm PPLN SHG crystal (1550 nm, 1 ps, 50 nJ,
+  `qpm.model: domains`): the output field at the default stepper tolerance (1e-6) differs by 7e-4 from the run at 1e-9, and two runs whose
+  tolerances differ by 1e-7 relative differ by 3e-5. Cause: the adaptive stepper lands on each wall, and whether a step reaches the wall or leaves a
+  sliver step (down to 1e-8 m) before it depends on the last bits of the step size. Candidate fix: stretch a step onto a wall that lies within a
+  fraction (say 10 %) of the step, so no sliver is left; it changes CPU numbers, so it needs the `/physics-change` checklist and the PPLN
+  references (`Chi2Tests.Qpm_*`) re-checked. Until then use `tolerance` 1e-9 or the averaged QPM model for quantitative domain-resolved work.
+  Fixed steps (`rk4ip`) do not land on walls at all; they now warn (about 1 % in energy at half a domain per step).
 * **Unit-in-the-key audit (D3).** Keys with a unit but no unit in the name; a rename needs a migration, so none was renamed: `betas` (s^k/m; `betasPsKm` exists), `n2` (m^2/W, kept: the name is the physics symbol), `dnDT` (1/K), `fieldT` (T), `tau1`, `tau2`, `taub` (s: `tau1S` ...), and the instrument axis keys `from`, `to`, `step`, `resolution`, `values` (SI of the axis, unit depends on the instrument). Dimensionless keys without a suffix are fine (`fR`, `m2`, `reflectivity`, ...). Decide the new names and add migrations in one pass.
 
 ## 4. MCP server: the agreed design (not built)

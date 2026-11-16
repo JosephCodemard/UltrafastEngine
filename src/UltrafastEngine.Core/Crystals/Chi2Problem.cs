@@ -10,6 +10,19 @@ using UltrafastEngine.Transverse;
 
 namespace UltrafastEngine.Crystals
 {
+    /// <summary>What a device back-end needs to evaluate a 1-D <see cref="Chi2Problem"/> (arrays in the engine's centred order;
+    /// field j of the state at j N). XpmFactor / XpmArea are K x K row-major; Steepening holds 1 + Omega_offset / Omega_center per field.</summary>
+    public sealed class Chi2DeviceSpec
+    {
+        public int N, K;
+        public bool Shg;
+        public double[] Omega0, XpmFactor, XpmArea, Steepening;
+        public double N2, LengthM;
+        public Complex[] LinearRate;
+        public Func<double, (double G0, Complex EPlus)> CouplingAt;
+        public Func<double, double> NextBreakpoint;
+    }
+
     /// <summary>One field of a coupled-wave problem: its carrier, grid, polarisation role and z-wavevector.</summary>
     public sealed class Chi2Field
     {
@@ -137,6 +150,33 @@ namespace UltrafastEngine.Crystals
 
         public double AreaAt(double z) => 1.0;
 
+        /// <summary>The coupling at z: g0 = gamma sign(d) O crossing(z) and e^{+i phi}, phi = dk0 z - Phi_QPM(z) (shared by the CPU and a device back-end).</summary>
+        public (double G0, Complex EPlus) CouplingAt(double z)
+        {
+            double phi = _dk0 * z - (_qpmPhase?.Invoke(z) ?? 0);
+            double sgn = _domainSign?.Invoke(z) ?? 1.0;
+            return (_gamma * sgn * _overlap * (Crossing?.Invoke(z) ?? 1.0), Complex.FromPolarCoordinates(1, phi));
+        }
+
+        /// <summary>Why <see cref="DeviceSpec"/> is null (null when it is not).</summary>
+        public string DeviceUnsupportedReason => _b != null ? "a spatial chi(2) model (" + _b.Kind + ")" : (_K != 2 && _K != 3 ? "an unusual field count" : null);
+
+        /// <summary>What a device back-end needs to evaluate this problem itself (1-D coupled waves); null for spatial models.</summary>
+        public Chi2DeviceSpec DeviceSpec()
+        {
+            if (DeviceUnsupportedReason != null) return null;
+            var steep = _steep ? new double[_K * _n] : null;
+            if (steep != null)
+                for (int j = 0; j < _K; j++) { var g = _f[j].Grid; for (int i = 0; i < _n; i++) steep[j * _n + i] = 1.0 + g.OmegaOffset[i] / g.OmegaCenter; }
+            var xf = new double[_K * _K]; var xa = new double[_K * _K];
+            for (int a = 0; a < _K; a++) for (int b = 0; b < _K; b++) { xf[a * _K + b] = _xpmFactor[a, b]; xa[a * _K + b] = _xpmArea[a, b]; }
+            return new Chi2DeviceSpec
+            {
+                N = _n, K = _K, Shg = _shg, Omega0 = _f.Select(f => f.Omega0).ToArray(), N2 = _n2, XpmFactor = xf, XpmArea = xa, Steepening = steep,
+                LinearRate = LinearRate, LengthM = LengthM, CouplingAt = CouplingAt, NextBreakpoint = NextBreakpoint
+            };
+        }
+
         public double Nonlinear(Complex[] state, double z, Complex[] rate)
         {
             int n = _n, M = _M, K = _K, blk = M * n;
@@ -147,10 +187,8 @@ namespace UltrafastEngine.Crystals
                 Array.Copy(state, j * blk, data[j], 0, blk);
                 _b?.ToSpace(data[j], n);
             }
-            double phi = _dk0 * z - (_qpmPhase?.Invoke(z) ?? 0);
-            double sgn = _domainSign?.Invoke(z) ?? 1.0;
-            var ePlus = Complex.FromPolarCoordinates(1, phi); var eMinus = Complex.Conjugate(ePlus);
-            double g0 = _gamma * sgn * _overlap * (Crossing?.Invoke(z) ?? 1.0);
+            var (g0, ePlus) = CouplingAt(z);
+            var eMinus = Complex.Conjugate(ePlus);
             double peak = 0; object lk = new object();
             Parallel.For(0, M, () => 0.0, (m, st, localPeak) =>
             {

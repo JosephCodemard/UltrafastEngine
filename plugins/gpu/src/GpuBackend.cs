@@ -133,6 +133,16 @@ namespace UltrafastEngine.Plugins.Gpu
                 if (info.MemoryBytes > 0 && SpatialStepper.MemoryNeeded(spec) > 0.8 * info.MemoryBytes) return "not enough device memory";
                 return null;
             }
+            if (p is Crystals.Chi2Problem cp)
+            {
+                var spec = cp.DeviceSpec();
+                if (spec == null) return "the crystal uses " + cp.DeviceUnsupportedReason;
+                if (!vendorFft && !GpuFft.BuiltInSupports(spec.N)) return "grid size " + spec.N + " is not a power of two (built-in GPU FFT)";
+                int pts = spec.N * spec.K;
+                if (pts < MinPoints(false)) return "small problem (" + pts + " samples < gpuMinPoints " + MinPoints(false) + ")";
+                if (info.MemoryBytes > 0 && Chi2Stepper.MemoryNeeded(spec) > 0.8 * info.MemoryBytes) return "not enough device memory";
+                return null;
+            }
             return "this kind of element (" + p.GetType().Name + ") runs on the CPU";
         }
 
@@ -179,6 +189,8 @@ namespace UltrafastEngine.Plugins.Gpu
                 stats.Notes.Add("device: " + Name + " #" + dev + " " + ctx.Info.Name + (ctx.VendorFftName != null ? " (" + ctx.VendorFftName + ")" : " (built-in FFT)"));
                 if (p is EnvelopeProblem ep)
                     using (var stp = new EnvelopeStepper(s, ep.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
+                if (p is Crystals.Chi2Problem cp)
+                    using (var stp = new Chi2Stepper(s, cp.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
                 var sp = (SpatialEnvelopeProblem)p;
                 using (var stp = new SpatialStepper(s, sp.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
             }

@@ -144,6 +144,19 @@ namespace UltrafastEngine.Tests
         // ------------------------------------------------------------------------------------------ QPM
 
         [Test(Category = "physics")]
+        public void Qpm_DomainResolved_FixedSteps_WarnThatTheyIgnoreTheWalls()
+        {
+            // found in WP-C(B): fixed RK4IP steps straddle QPM domain walls (a discontinuous rate); at half a domain per step a
+            // 1 mm PPLN SHG crystal is about 1 % off in energy against the adaptive stepper, which lands on every wall
+            var sys = Sys(O("id", "ppln", "type", "crystal", "crystal", "MgO:LiNbO3", "lengthM", 1e-3, "temperatureC", 24.5,
+                "interaction", O("process", "shg", "qpm", O("model", "domains")), "overlap", PlaneWave(50e-6), "chi3", false, "output", "sh"));
+            var fixedRun = Go(sys, Spec(Gauss(1550e-9, 1e-12, 50e-9), O("physics", O("selfSteepening", false), "stepper", O("method", "rk4ip"))));
+            Assert.True(fixedRun.Records[0].Steps.Notes.Contains(Physics.Steppers.FixedStepsIgnoreBreakpoints), "fixed steps warn: " + string.Join(" | ", fixedRun.Records[0].Steps.Notes));
+            var adaptive = Go(sys, NoSteep(Gauss(1550e-9, 1e-12, 50e-9)));
+            Assert.False(adaptive.Records[0].Steps.Notes.Contains(Physics.Steppers.FixedStepsIgnoreBreakpoints), "the adaptive stepper lands on the walls: no warning");
+        }
+
+        [Test(Category = "physics")]
         public void Qpm_AveragedAndDomainResolvedModelsAgree()
         {
             double Eta(string model)
