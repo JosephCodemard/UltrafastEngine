@@ -1,6 +1,6 @@
 # WP-E: leftovers and Zemax consolidation
 
-**Status (2026-11-16): the "light core" is done (E1 small items, E2 Zemax).** Not done: the component gallery, the spline-against-network twin example, `UF_WITH_AO` in the native library (a later session). `ase_pedestal()` is a Python helper (the next stage is a separate run; nothing is carried inside one run). Nd:YAG's Fuchtbauer-Ladenburg check found a single-line fit (8 % of 1/τ), recorded in its catalogue notes. The ZOS-API audit was a read-through without ZOS-API documentation access, so it produced `TODO(zemax-hw)` markers and one certain fix (lens units), not verified conventions.
+**Status (2026-11-16): done.** E1 small items, E2 Zemax, and the tail: the AO component gallery (`AdaptiveOptics/component-gallery`) and the model-comparison twin example (`DigitalTwin/dependence-models`; the plugin has no spline *dependence*, so the comparison is proportional / polynomial / Chebyshev / network). `UF_WITH_AO` in the native library was already done (history, Stage 7; the spec was stale). Still open from the AO plan, not in this WP: an end-to-end complex-field shaping example with a phase-only SLM. `ase_pedestal()` is a Python helper (the next stage is a separate run; nothing is carried inside one run). Nd:YAG's Fuchtbauer-Ladenburg check found a single-line fit (8 % of 1/τ), recorded in its catalogue notes. The ZOS-API audit was a read-through without ZOS-API documentation access, so it produced `TODO(zemax-hw)` markers and one certain fix (lens units), not verified conventions.
 
 Session 2.
 

@@ -23,7 +23,7 @@ Rules of `CLAUDE.md` apply (tests and docs with every change, physics against a 
 | WP | status (2026-11-16) |
 |---|---|
 | D | D1, D2 done; D3 sweep open |
-| E | light core done; gallery, twin example and `UF_WITH_AO` open |
+| E | done (incl. AO component gallery and the dependence-models twin example); complex-field SLM shaping example not in scope |
 | C(A), C(B), B, A, F | not started |
 
 ## Order (one session each)

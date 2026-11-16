@@ -166,6 +166,12 @@ A deformable mirror removes the hot spots of an aberrated 2 GW beam and cuts the
 
 ![An aberrated high-power beam: what a deformable mirror does for the nonlinear phase: figure](examples/AdaptiveOptics/aberrated-high-power/hero.png)
 
+### [The ao elements side by side](examples/AdaptiveOptics/component-gallery/README.md)
+
+Each element of the `ao` plugin does one simple thing here, and the result is compared with the number a textbook gives.
+
+![The ao elements side by side: figure](examples/AdaptiveOptics/component-gallery/hero.png)
+
 ### [Deformable-mirror correction of an aberrated focus](examples/AdaptiveOptics/dm-correction/README.md)
 
 A 10 x 10 deformable mirror, calibrated and run in a closed loop, restores the focus of a beam with defocus, astigmatism and coma (Strehl 0.32 to 0.89).
@@ -223,6 +229,12 @@ A digital twin fitted to spectra at five pulse energies recovers the hidden filt
 ![Build a digital twin: fit across conditions, predict, validate: figure](examples/DigitalTwin/build-the-twin/hero.png)
 
 ![Build a digital twin: fit across conditions, predict, validate: animation](examples/DigitalTwin/build-the-twin/animation.gif)
+
+### [Which model of an unknown law should a twin use?](examples/DigitalTwin/dependence-models/README.md)
+
+A twin that learns how a lab changes with pulse energy needs a model of that law.
+
+![Which model of an unknown law should a twin use?: figure](examples/DigitalTwin/dependence-models/hero.png)
 
 ### [Explore the twin without beam time](examples/DigitalTwin/explore-the-twin/README.md)
 

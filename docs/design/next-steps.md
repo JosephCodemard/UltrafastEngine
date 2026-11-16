@@ -23,7 +23,7 @@ Mechanics: `docs/examples/_template.md`; `build/example_lint.py` (required secti
 `example_check.py`; a one-file `example.json` per example (title, group, question, references, figures) feeding the gallery and group indexes.
 Waves: (1) the 12 examples written in S5; (2) `Wavefronts`, `LaserSystems` (several results per chain: wavefront, contrast, FROG trace, beam maps), `Nonlinear`; (3) `Diffraction`, `Branched`
 (with the cavity figure), `Diagnostics`, `Components`, `GettingStarted`, `DigitalTwin/transforms`; (4) landing pages (`docs/index`, `examples/README`, `concepts`), the plugin pages' "what is checked" sections.
-Reference pages stay reference pages. Missing AO / twin examples (component gallery, complex-field shaping, spline against network) are written directly in the new structure.
+Reference pages stay reference pages. Missing AO / twin example still open: complex-field shaping with a phase-only SLM (double-phase / Bolduc encoding; the algorithms exist, the end-to-end SLM path is untested). The component gallery and the model comparison for the twin are done (WP-E); both are written in the new structure.
 
 **Cavity figure** (part of WP9): `Branched/cavity-and-coherence` has no figure. Draw the Fox-Li iteration (mode converging round trip by round trip, radius against the ABCD eigenmode) and the Gaussian-Schell coherent modes and width against `w(z)`.
 

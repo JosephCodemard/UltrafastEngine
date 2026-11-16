@@ -144,3 +144,26 @@ def test_a_goal_file_checks_the_twin(linear, tmp_path):
     bad = {"format": "ultrafast-twin-goals", "checks": [{"id": "centre", "type": "parameter", "name": "filter.centerNm", "value": 1030.0, "relTol": 0.0001}]}
     p.write_text(json.dumps(bad))
     assert not goals.check(twin, goals.load_goals(p))["passed"]
+
+
+def test_prediction_survives_a_scalar_the_run_could_not_measure(linear, monkeypatch):
+    """A width that cannot be measured is ``null`` in summary.json (a badly fitted twin produces such spectra). The prediction leaves that scalar out instead of
+    raising ``TypeError`` (found by examples/DigitalTwin/dependence-models)."""
+    _, twin = linear
+    real = twin.simulate
+
+    class Res:
+        def __init__(self, r):
+            self._r = r
+            self.summary = json.loads(json.dumps(r.summary))
+            self.summary["output"]["spectralFwhmM"] = None
+
+        def __getattr__(self, k):
+            return getattr(self._r, k)
+
+        def __getitem__(self, k):
+            return self._r[k]
+
+    monkeypatch.setattr(twin, "simulate", lambda *a, **k: Res(real(*a, **k)))
+    p = twin.predict(variables={"energyJ": 1.0e-6}, set={"pulse/energyJ": 1.0e-6}, n_samples=3)
+    assert "spectralFwhmM" not in p["scalars"] and "energyJ" in p["scalars"]

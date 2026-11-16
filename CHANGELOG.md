@@ -15,6 +15,13 @@
 - Gain catalogue check (Fuchtbauer-Ladenburg): the Yb:YAG emission fit reproduces the catalogue lifetime to 6.7 %; the Nd:YAG fit is a single 1064 nm line that carries about 8 % of 1/τ, now said in its catalogue notes. Tests `GainCatalogueConsistencyTests`.
 - The SPGD examples (`sensorless-correction`, `tiled-array`) use the default scale-free step instead of a tuned `gain=`.
 
+**Added (examples)**
+- `AdaptiveOptics/component-gallery`: the four `ao` elements against analytic answers (blazed-grating spot, two-pulse shaper, AOPDF chirp; the deformable-mirror sensor reading is 8 % below 2 × poke, cause not traced).
+- `DigitalTwin/dependence-models`: which model of a saturating energy law a twin should use (proportional, quadratic, Chebyshev, network) judged on held-out energies.
+
+**Fixed**
+- The twin plugin crashed when predicting from a fit whose reported scalar (e.g. the spectral width) is `null` in `summary.json`; such scalars are now left out (found by the dependence-models example).
+
 **Changed (Zemax)**
 - The zemax plugin is documented as **experimental and unverified against OpticStudio**; it is removed from the README / getting-started / capabilities narrative and kept on its plugin page, with `plugins/zemax/HARDWARE-CHECKLIST.md` for the first run on a machine with OpticStudio. An unreadable or unknown OpticStudio lens unit is now an error instead of silently assuming millimetres.
 

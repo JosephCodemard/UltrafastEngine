@@ -107,6 +107,7 @@ Fitting a simulated line to measurements and trusting it: transforms, calibratio
 |---|---|---|---|---|
 | [transforms](DigitalTwin/transforms/README.md) | 26 | CLI | fitting plugin: a `transform` (residual dispersion, gain narrowing, post-pulse, ASE pedestal) fitted to a spectrum, d-scan, cross-correlator and power meter; the fitted line on a new seed; backward propagation of the measured output to the seed | `ultrafast run line.ufs run-fit.json -o results-fit` |
 | [build-the-twin](DigitalTwin/build-the-twin/README.md) | - | Python | five energies, one set of shared parameters, held-out predictions with credible bands, a validation report that catches a failing twin | `python build_twin.py` |
+| [dependence-models](DigitalTwin/dependence-models/README.md) | - | Python | which model of an unknown energy law predicts held-out energies: proportional, polynomial, Chebyshev, constrained network, each judged by the validation report | `python compare.py` |
 | [explore-the-twin](DigitalTwin/explore-the-twin/README.md) | - | Python | what-if with bands, the most informative next measurement, drift tracking (ensemble Kalman filter) | `python explore.py` |
 
 ## AdaptiveOptics
@@ -118,6 +119,7 @@ Deformable mirror, SLM, tiled apertures, temporal shaping (the `ao` plugin). See
 | [dm-correction](AdaptiveOptics/dm-correction/README.md) | - | Python | calibrate, correct and close the loop on a Zernike aberration; Zernike plots | `python dm_correction.py` |
 | [sensorless-correction](AdaptiveOptics/sensorless-correction/README.md) | - | Python | modal search and SPGD from the focal peak alone | `python sensorless.py` |
 | [aberrated-high-power](AdaptiveOptics/aberrated-high-power/README.md) | - | Python | a DM removes hot spots and nonlinear phase of a 2 GW beam in a Kerr plate | `python high_power.py` |
+| [component-gallery](AdaptiveOptics/component-gallery/README.md) | - | Python | the four `ao` elements side by side, each against an analytic answer | `python ao_components.py` |
 | [slm-beam-shaping](AdaptiveOptics/slm-beam-shaping/README.md) | - | Python | Gerchberg-Saxton holograms with 8-bit grey levels; full 1920 x 1080 panel | `python slm_shaping.py` |
 | [tiled-array](AdaptiveOptics/tiled-array/README.md) | - | Python | coherent combining of 7 and 61 beams; piston, delay, SPGD locking | `python tiled_array.py` |
 | [temporal-shaping](AdaptiveOptics/temporal-shaping/README.md) | - | Python | spectral shaper and AOPDF: pulses on demand, side pulses, closed-loop chirp search | `python temporal_shaping.py` |

@@ -145,11 +145,11 @@ class Twin:
             x, y, my, ms = self._spectrum(res, data is not None)
             xs.append(x); ys.append(y); measured_y, sig = (my, ms) if my is not None else (measured_y, sig)
             out = res.summary.get("output", {})
-            scal.append({k: float(out[k]) for k in ("energyJ", "fwhmS", "peakPowerW", "spectralFwhmM") if k in out})
+            scal.append({k: float(out[k]) for k in ("energyJ", "fwhmS", "peakPowerW", "spectralFwhmM") if out.get(k) is not None})   # a width that cannot be measured is null in summary.json
         Y = np.array(ys)
         result = {"name": name, "variables": variables or {}, "x": xs[0], "y": Y[0], "y_sigma": Y.std(axis=0, ddof=1) if len(Y) > 1 else np.zeros_like(Y[0]),
                   "scalars": {k: (float(np.mean([s[k] for s in scal])), float(np.std([s[k] for s in scal], ddof=1)) if len(scal) > 1 else 0.0)
-                              for k in scal[0]}, "n_samples": len(draws), "_draws": Y, "_scal": scal}
+                              for k in scal[0] if all(k in s for s in scal)}, "n_samples": len(draws), "_draws": Y, "_scal": scal}
         if measured_y is not None:
             noise = np.asarray(sig, dtype=float) if sig is not None else np.full_like(measured_y, self.project.sigma)
             z = np.abs(measured_y - Y[0]) / np.sqrt(result["y_sigma"] ** 2 + noise ** 2)

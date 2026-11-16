@@ -5,7 +5,7 @@ predict*. The `twin` plugin is the project layer on top of the [fitting plugin](
 validation against held-out conditions with credible bands, a planner for the next measurement, a what-if explorer and drift tracking.
 It is Python (`ultrafast_twin`, NumPy only) plus one command, `ultrafast twin`.
 
-Examples: [build-the-twin](../examples/DigitalTwin/build-the-twin/README.md) and [explore-the-twin](../examples/DigitalTwin/explore-the-twin/README.md).
+Examples: [build-the-twin](../examples/DigitalTwin/build-the-twin/README.md), [dependence-models](../examples/DigitalTwin/dependence-models/README.md) and [explore-the-twin](../examples/DigitalTwin/explore-the-twin/README.md).
 
 ## Project layout
 
