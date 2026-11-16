@@ -140,8 +140,8 @@ namespace UltrafastEngine.Transverse
             {
                 if (!Active) return "linear element";
                 if (_props != null) return "position-dependent properties";
-                if (_m.Rotational != null) return "rotational Raman";
-                if (_m.ExtraResponses.Count > 0) return "user responses";
+                if (_m.Rotational != null && RotationalKernel() == null) return "rotational Raman of a response without a padded kernel";
+                if (_m.ExtraResponses.Count > 0 && Physics.DeviceResponses.Build(_m.ExtraResponses, out var why) == null) return why;
                 if (!(_b is RadialBasis) && !(_b is CartesianBasis)) return "transverse basis " + _b.Kind;
                 if (_g.N % 2 != 0) return "odd grid size";
                 return null;
@@ -151,6 +151,8 @@ namespace UltrafastEngine.Transverse
         /// <summary>What a device back-end needs to evaluate this problem itself (Kerr, Raman, self-steepening, vector
         /// coupling, UPPE factor; radial or cartesian basis); null when the element uses a feature only the CPU path
         /// implements (<see cref="DeviceUnsupportedReason"/>).</summary>
+        private Complex[] RotationalKernel() => (_m.Rotational as Physics.IPaddedKernelResponse)?.PaddedKernelSpectrum(_g.N, _g.DTime);
+
         public SpatialDeviceSpec DeviceSpec()
         {
             if (DeviceUnsupportedReason != null) return null;
@@ -159,6 +161,10 @@ namespace UltrafastEngine.Transverse
             var spec = new SpatialDeviceSpec
             {
                 N = _g.N, M = _b.M, Vector = Vector, K0 = _k0, N2 = kerr ? _m.N2 : 0, RamanFraction = fR,
+                RotationalKernelFreq = _m.Rotational != null ? RotationalKernel() : null,
+                Responses = _m.ExtraResponses.Count > 0 ? Physics.DeviceResponses.Build(_m.ExtraResponses, out _) : null,
+                Time = _g.Time, TArrivalAtStart = _tArrival0, ElementCarrierGroupDelay = _tauElement, ResponseOmega0 = _g.OmegaCenter,
+                PointX = _b.X, PointY = _b.Y, PointWeights = _b.Weights,
                 RamanKernelFreq = kerr && fR > 0 ? _ramanKernelFreq : null, RamanAnisoFreq = kerr && fR > 0 && Vector ? _ramanAnisoFreq : null,
                 SelfSteepening = _m.EnableSelfSteepening, OmegaOffset = _g.OmegaOffsetFromReport(), OmegaCenter = _g.ReportOmega, DTime = _g.DTime,
                 LinearRate = LinearRate, LengthM = LengthM, Uppe = _uppe
@@ -346,6 +352,13 @@ namespace UltrafastEngine.Transverse
         public bool Vector, Cartesian, SelfSteepening;
         public double K0, N2, RamanFraction, OmegaCenter, DTime, LengthM;
         public Complex[] RamanKernelFreq, RamanAnisoFreq, LinearRate;
+        /// <summary>Gas rotational Raman: padded kernel spectrum (<see cref="Physics.IPaddedKernelResponse"/>), or null.</summary>
+        public Complex[] RotationalKernelFreq;
+        /// <summary>Extra time-domain responses as C source (see <see cref="Physics.EnvelopeDeviceSpec.Responses"/>; here per transverse
+        /// point: x, y = PointX, PointY, Aeff = PointWeights, intensities |E|^2), or null.</summary>
+        public Physics.DeviceResponseCode Responses;
+        public double[] Time, PointX, PointY, PointWeights;
+        public double TArrivalAtStart, ElementCarrierGroupDelay, ResponseOmega0;
         public double[] OmegaOffset, Uppe, Matrix, Scale;
     }
 

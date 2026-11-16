@@ -194,14 +194,18 @@ namespace UltrafastEngine.Plugins.Gpu
 
     /// <summary>
     /// The 1-D envelope problem (<see cref="EnvelopeProblem"/>: scalar or vector Kerr, scalar or vector Raman,
-    /// self-steepening) on a device; the nonlinear operator mirrors EnvelopeProblem.NonlinearFast.
+    /// gas rotational (orientational) Raman, extra time-domain responses compiled to a kernel, self-steepening) on a device; the nonlinear operator mirrors EnvelopeProblem.NonlinearFast.
     /// </summary>
     public sealed class EnvelopeStepper : DeviceStepper
     {
         private readonly EnvelopeDeviceSpec _p;
         private readonly int _n, _comp, _nsig, _raman, _gN;
-        private readonly GpuFft _fftState, _fftRaman;
-        private readonly GpuBuffer _T, _C, _K, _Kb, _F, _P, _D;
+        private readonly GpuFft _fftState, _fftRaman, _fftRot;
+        private readonly GpuBuffer _T, _C, _K, _Kb, _F, _P, _D, _Q, _Kr;
+        private readonly int _rot, _m, _nrot;
+        private readonly string _user;              // kernel of the extra time-domain responses, or null
+        private readonly GpuBuffer _U, _tn, _Fl;
+        private readonly double _dtResp, _lambda0;
         private readonly double _cc0;
 
         public EnvelopeStepper(GpuStream s, EnvelopeDeviceSpec p, bool allowVendorFft = true)
@@ -229,7 +233,25 @@ namespace UltrafastEngine.Plugins.Gpu
                 for (int i = 0; i < _n; i++) f[i] = 1.0 + om[i] / p.OmegaCenter;
                 _F = Buf(_n * 8L); S.Write(_F, f);
             }
+            if (p.RotationalKernelFreq != null)
+            {
+                _rot = p.Scalar ? 1 : 2; _nrot = p.Scalar ? 1 : 3; _m = p.RotationalKernelFreq.Length;
+                _fftRot = new GpuFft(s, _m, _nrot, allowVendorFft);
+                _Q = Buf((long)_nrot * _m * 16L);
+                _Kr = Buf(_m * 16L); S.Write(_Kr, p.RotationalKernelFreq);   // already in the transform's own (natural) order
+            }
+            else { _Q = _C; _m = 1; }
             _P = Buf(_n * 8L); _D = Buf(_n * 8L);
+            if (p.Responses != null)
+            {
+                _user = UserResponseKernel.Prepare(s, p.Responses);
+                _U = Buf(_n * 16L);
+                _tn = Buf(_n * 8L); S.Write(_tn, Natural(p.Time));
+                _Fl = p.Responses.UsesFluence ? Buf(_n * 8L) : _P;
+                _dtResp = p.Time.Length > 1 ? p.Time[1] - p.Time[0] : 0;   // as ResponseContext: T[1] - T[0]
+                _lambda0 = 2 * Math.PI * UltrafastEngine.Numerics.PhysicalConstants.SpeedOfLightMPerS / p.ResponseOmega0;
+            }
+            else _U = _C;
             _gN = C.Groups(_n);
             _cc0 = p.N2 * (1 - p.RamanFraction) / 3.0;
         }
@@ -239,7 +261,9 @@ namespace UltrafastEngine.Plugins.Gpu
         {
             long len = (long)p.N * (p.Scalar ? 1 : 2);
             long nsig = p.RamanAnisoFreq != null && !p.Scalar ? 5 : 1;
-            return 16L * (len * 15 + nsig * p.N * 2 + 2 * p.N) + 8L * 3 * p.N;
+            long rot = p.RotationalKernelFreq == null ? 0 : (long)p.RotationalKernelFreq.Length * ((p.Scalar ? 1 : 3) + 1);
+            long user = p.Responses == null ? 0 : 2L * p.N;
+            return 16L * (len * 15 + nsig * p.N * 2 + 2 * p.N + rot) + 8L * 3 * p.N + 8L * user + (user > 0 ? 16L * p.N : 0);
         }
 
         protected override double AreaAt(double z) => _p.AreaAt(z);
@@ -257,8 +281,26 @@ namespace UltrafastEngine.Plugins.Gpu
                 S.Launch("uf_env_raman_mul", C.Groups((long)_n * _nsig), _C, _K, _Kb, _n, _nsig);
                 _fftRaman.Transform(_C, -1, true);
             }
+            if (_rot > 0)
+            {
+                // IAnisotropicResponse.Convolve: zero-padded linear convolution in centred time
+                S.Launch("uf_rot_in", C.Groups(_m), _T, _n, 1, _n, _p.Scalar ? 1 : 0, invA, _m, _Q);
+                _fftRot.Transform(_Q, -1, false);
+                S.Launch("uf_rot_mul", C.Groups((long)_m * _nrot), _Q, _Kr, _m, _nrot);
+                _fftRot.Transform(_Q, +1, true);
+            }
+            if (_user != null)
+            {
+                // extra time-domain responses: U = dn_re + i dn_im per sample (EnvelopeProblem.Nonlinear, ResponseContext)
+                int sc = _p.Scalar ? 1 : 0;
+                bool useF = _p.Responses.UsesFluence;
+                if (useF) S.Launch("uf_fluence", 1, _T, _n, 1, _n, sc, aeff, _dtResp, _Fl);
+                double tArr = _p.TArrivalAtStart + _p.ElementCarrierGroupDelay * (z / _p.LengthM);
+                S.Launch(_user, _gN, _T, _n, 1, _n, sc, aeff, _tn, tArr, z, _p.LengthM, _p.ResponseOmega0, _lambda0, aeff,
+                    _P, _P, _P, 0, 0.0, _Fl, useF ? 1 : 0, _U);
+            }
             S.Launch("uf_env_kerr", _gN, _T, _C, _n, _p.Scalar ? 1 : 0, _raman, invA, _p.K0, _p.N2, _p.RamanFraction, _p.DTime,
-                _cc0 / aeff, rate, _P, _D, Part, po);
+                _cc0 / aeff, rate, _P, _D, Part, po, _Q, _rot, _m, _U, _user != null ? 1 : 0);
             if (wantPeak) S.Launch("uf_peak", _gN, _P, _D, _n, Part, po, _gN, po + _gN);
             _fftState.Transform(rate, +1, false);
             if (_F != null) S.Launch("uf_scale_real", GLen, rate, _F, _n, Len);
@@ -271,7 +313,7 @@ namespace UltrafastEngine.Plugins.Gpu
 
         public override void Dispose()
         {
-            _fftState?.Dispose(); _fftRaman?.Dispose();
+            _fftState?.Dispose(); _fftRaman?.Dispose(); _fftRot?.Dispose();
             base.Dispose();
         }
     }

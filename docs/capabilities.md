@@ -165,7 +165,7 @@ the same way ([Plugin system](reference/plugins.md)).
 **Software**
 
 * The Python package and the NativeAOT C library are built from source (no PyPI wheels or NuGet package yet).
-* GPU back-ends (`gpu` plugin: CUDA, OpenCL) run 1-D envelope and spatial envelope propagation; user responses,
-  rotational Raman, position-dependent properties, carrier-resolved fields, χ(2), amplifiers and ionisation run on the CPU. Apple GPUs
+* GPU back-ends (`gpu` plugin: CUDA, OpenCL) run 1-D envelope and spatial envelope propagation (with the rotational Raman
+  of gases and `expression` / two-photon / extra-Kerr time responses); response callbacks, position-dependent properties, carrier-resolved fields, χ(2), amplifiers and ionisation run on the CPU. Apple GPUs
   are not used (no double precision); macOS uses the Accelerate FFT on the CPU ([GPU](plugins/gpu.md)).
 * The zemax plugin has never been run against a real OpticStudio ([status](plugins/zemax.md)).

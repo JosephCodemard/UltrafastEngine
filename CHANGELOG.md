@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+**Added (WP-C(B): GPU coverage, verified on an RTX 3060 Ti with CUDA and OpenCL)**
+- **Gas rotational Raman on the GPU** (backlog B3, kernel 1): molecular gases (air, N2, O2, CO2 and mixtures, with `n2Scale`) no longer keep 1-D and spatial elements on the CPU, so the air gaps of a multipass cell run on the device. The causal orientational response is the CPU's zero-padded linear convolution, evaluated with the same kernel spectrum (`IPaddedKernelResponse`). Parity with the CPU 1e-14 (1-D) and 1e-16 (spatial). Tests `GpuTests.GasRotationalRaman_*`; the GPU parity tests now run on every back-end found (CUDA and OpenCL), not only the first.
+- **Time-response expressions compiled to GPU kernels** (kernel 3): `timeResponse` `expression` (every function and variable, including the running fluence `F`), `twoPhotonAbsorption` and `kerr` no longer keep an element on the CPU (1-D and spatial). The expression tree is written as C (`CompiledExpression.ToC`, `Physics/DeviceResponses.cs`) and compiled per element on first use. Callbacks and the frequency-resolved Drude term stay on the CPU, with the reason in the element's notes. Parity 2e-14 (1-D), 8e-16 (spatial). Test `GpuTests.ExpressionResponses_CompiledToKernels_MatchTheCpu`.
+- **Modulator and tile source on the GPU, checked** (kernel 2): the tiles + modulator parity test now runs on CUDA and OpenCL and adds a realistic panel (fill factor, gaps, cross-talk, 8-level quantisation, zero-order leak, rotation, vector pulse, Raman); both agree with the CPU to 2e-16. No code change was needed: the modulator is a host-side active element and the plate after it runs on the device.
+
+**Fixed (tests)**
+- The GPU parity tests counted a run as "on the device" when the device had failed and the run had fallen back to the CPU (the note `device: ...` is written before the failure). They now fail on a fallback; this caught a malformed kernel for two-photon absorption during development.
+
 **Added (WP-C(A): speed on the Mac)**
 - **`fidelity`** run key (`full` | `standard` | `quick`, CLI `--fidelity`): named bundles of switches that fill only keys the run spec leaves unset; `summary.json` has a `fidelityReport` and quick runs warn when the dropped physics may matter (B, self-steepening, Raman, critical power, polarisation). Reference: `docs/reference/fidelity.md`. Tests: `FidelityTests`.
 - **Studies:** the frozen grid now serves every point (grid union over the range ends), instruments are skipped when no output reads one, and `"cache": "folder"` stores every point under a hash of its inputs (resume and reuse). 5.7 times faster than a loop on the multipass cell (`speed.md`). Tests: `StudyCacheTests`.

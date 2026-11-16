@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **631 tests** in 69 classes. **401** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **636 tests** in 69 classes. **402** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **23** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -28,12 +28,12 @@ Every C# test of the engine: **631 tests** in 69 classes. **401** of them check 
 | [Fidelity switch](#fidelitytests) | `FidelityTests` | 6 | 0 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
-| [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
+| [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 10 | 7 |
 | [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
 | [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
-| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 8 | 5 |
+| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 12 | 8 |
 | [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
@@ -512,6 +512,7 @@ Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, 
 |---|---|---|
 | `DispersionMath_RecoversPolynomialPhase` | known polynomial phase | 1e-09, 1e-06, 0.01 % |
 | `Expression_PrecedenceFunctionsAndErrors` | -- | -- |
+| `Expression_ToC_WritesExactDoubleLiteralsAndRefusesNonFiniteConstants` | exact: C literals round-trip with G17; the CPU evaluation order is kept | -- |
 | `Fft_RoundTripParsevalAndSignConvention` | Parseval's theorem | 1e-12, 0.1 % |
 | `Fresnel_EnergyConservationNormalIncidenceAndBrewster` | Fresnel equations: R + T = 1, Brewster angle | 1e-12 |
 | `GratingPair_GroupDelayMatchesTreacy` | Treacy, IEEE JQE 5, 454 (1969) | 0.01 % |
@@ -578,10 +579,14 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 
 | test | reference | tolerance |
 |---|---|---|
+| `CallbackResponses_StayOnTheCpu_WithTheReason` | -- | -- |
 | `ConcurrentRuns_ShareTheDevice_AndMatchTheCpu` | -- | -- |
 | `DevicesCommand_ListsTheCpuAndTheDevice_AndTheSelfTestPasses` | -- | -- |
 | `Envelope_ScalarAndVector_MatchTheCpu_AdaptiveAndFixed` | cross-check: the CPU solver | 1e-09 |
+| `ExpressionResponses_CompiledToKernels_MatchTheCpu` | cross-check: the CPU solver (CompiledExpression.Evaluate, ExpressionTimeResponse, TwoPhotonAbsorptionResponse, ExtraKerrResponse) | 1e-09 |
 | `Fft_BuiltInAndVendor_MatchTheManagedFft` | cross-check: the managed CPU FFT | -- |
+| `GasRotationalRaman_ScalarAndVector_MatchTheCpu` | cross-check: the CPU solver (RotationalRamanResponse.Convolve, EnvelopeProblem.Nonlinear) | 1e-09 |
+| `GasRotationalRaman_Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver (SpatialEnvelopeProblem.Nonlinear with the orientational response) | 1e-09 |
 | `SmallOrUnsupportedProblems_StayOnTheCpu_WithANote` | -- | -- |
 | `Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver | 1e-09 |
 | `Spatial_UppeCoupling_MatchesTheCpu` | cross-check: the CPU solver | -- |

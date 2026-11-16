@@ -17,7 +17,7 @@ namespace UltrafastEngine.Physics
     /// <code>{"kind":"expression", "expr":"n2x*I + dn0*sin(2*pi*t_lab/T)", "exprIm":"0",
     ///  "params":{"n2x":1e-20,"dn0":1e-5,"T":2.7e-15}, "carrierResolved": true}</code>
     /// </summary>
-    public sealed class ExpressionTimeResponse : ITimeDomainResponse
+    public sealed class ExpressionTimeResponse : ITimeDomainResponse, IDeviceTimeResponse
     {
         public static readonly string[] Vars = { "t", "t_lab", "t_arrival", "z", "L", "I", "Ix", "Iy", "I_inst", "E", "omega0", "lambda0", "Aeff", "x", "y", "r", "theta", "spatial", "F" };
         private readonly CompiledExpression _re, _im;
@@ -31,6 +31,12 @@ namespace UltrafastEngine.Physics
             if (!string.IsNullOrEmpty(im)) _im = CompiledExpression.Compile(im, Vars, p);
             NeedsCarrierResolution = s.Json.GetBool("carrierResolved", false);
         }
+        public bool TryDeviceCode(Func<string, string> variable, ISet<string> used, out string re, out string im)
+        {
+            re = _re.ToC(variable, used); im = _im?.ToC(variable, used);
+            return re != null && (_im == null || im != null);
+        }
+
         public string Description => "expression dn = \"" + _re.Text + "\"" + (_im != null ? " + i(\"" + _im.Text + "\")" : "") + (NeedsCarrierResolution ? " [carrier-resolved]" : "");
 
         /// <summary>Running fluence F(t) = integral of I dt' up to t (J/m^2): for slow, accumulating responses.</summary>
@@ -72,11 +78,20 @@ namespace UltrafastEngine.Physics
     }
 
     /// <summary>Two-photon absorption, dI/dz = -beta I^2 (beta in m/W): Delta n_im = beta I c / (2 omega0).</summary>
-    public sealed class TwoPhotonAbsorptionResponse : ITimeDomainResponse
+    public sealed class TwoPhotonAbsorptionResponse : ITimeDomainResponse, IDeviceTimeResponse
     {
         public double Beta { get; }
         public TwoPhotonAbsorptionResponse(double beta) { Beta = beta; }
         public bool NeedsCarrierResolution => false;
+        public bool TryDeviceCode(Func<string, string> variable, ISet<string> used, out string re, out string im)
+        {
+            used.Add("omega0"); used.Add("I");
+            re = null; im = null;
+            string b = CompiledExpression.CLiteral(Beta), c = CompiledExpression.CLiteral(PhysicalConstants.SpeedOfLightMPerS);
+            if (b == null) return false;
+            im = "(((" + b + " * " + c + ") / (2.0 * " + variable("omega0") + ")) * " + variable("I") + ")";
+            return true;
+        }
         public string Description => "two-photon absorption beta = " + Beta.ToString("G4", System.Globalization.CultureInfo.InvariantCulture) + " m/W";
         public void Evaluate(ResponseContext c, double[] dnRe, double[] dnIm)
         {
@@ -111,11 +126,18 @@ namespace UltrafastEngine.Physics
     }
 
     /// <summary>An additional instantaneous Kerr term n2 I (e.g. a second species, or a quick n2 tweak).</summary>
-    public sealed class ExtraKerrResponse : ITimeDomainResponse
+    public sealed class ExtraKerrResponse : ITimeDomainResponse, IDeviceTimeResponse
     {
         public double N2 { get; }
         public ExtraKerrResponse(double n2) { N2 = n2; }
         public bool NeedsCarrierResolution => false;
+        public bool TryDeviceCode(Func<string, string> variable, ISet<string> used, out string re, out string im)
+        {
+            used.Add("I"); im = null;
+            var n = CompiledExpression.CLiteral(N2);
+            re = n == null ? null : "(" + n + " * " + variable("I") + ")";
+            return re != null;
+        }
         public string Description => "additional Kerr n2 = " + N2.ToString("G4", System.Globalization.CultureInfo.InvariantCulture) + " m^2/W";
         public void Evaluate(ResponseContext c, double[] dnRe, double[] dnIm) { for (int i = 0; i < c.N; i++) dnRe[i] = N2 * c.Intensity[i]; }
     }

@@ -114,7 +114,7 @@ namespace UltrafastEngine.Plugins.Gpu
             if (p is EnvelopeProblem ep)
             {
                 var spec = ep.DeviceSpec();
-                if (spec == null) return "the element uses a response only the CPU implements (user responses or rotational Raman)";
+                if (spec == null) return "the element uses " + (ep.DeviceUnsupportedReason ?? "a feature only the CPU implements");
                 if (spec.N % 2 != 0) return "odd grid size";
                 if (!vendorFft && !GpuFft.BuiltInSupports(spec.N)) return "grid size " + spec.N + " is not a power of two (built-in GPU FFT)";
                 int pts = spec.N * (spec.Scalar ? 1 : 2);

@@ -57,7 +57,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 
 | folder | what it holds |
 |---|---|
-| `Physics/` | `LinearTerms.cs` (`LinearTerm`, `PhaseTerm`, `GroupDelayTerm`, `JonesTerm`, `DispersionPoint`); `Nonlinear.cs` (`EnvelopeProblem`, `FieldProblem`, steppers); `DispersiveResponses.cs`; `Ionization.cs` (rates, `PlasmaResponse` with its Drude operator) |
+| `Physics/` | `LinearTerms.cs` (`LinearTerm`, `PhaseTerm`, `GroupDelayTerm`, `JonesTerm`, `DispersionPoint`); `Nonlinear.cs` (`EnvelopeProblem`, `FieldProblem`, steppers); `DispersiveResponses.cs`; `DeviceResponses.cs` (time-domain responses as C source for the gpu plugin: `IDeviceTimeResponse`, `DeviceResponses.Build`); `Ionization.cs` (rates, `PlasmaResponse` with its Drude operator) |
 | `Transverse/` | `SpatialPropagation.cs` (the spatial nonlinear solver; `ExecuteLinear` streams the stored frequencies in blocks, `transverse.frequencyBlock`); `TransverseBasis.cs` (`RadialBasis`, `CartesianBasis`); `TransverseProfile.cs` (`TransverseProfile`, `TransverseOps`: expand, collapse, regrid, `Curvature`, `BeamQuality`); `BeamShapes.cs` (initial profiles) |
 | `Optics/` | `BeamTracking.cs`; `DispersiveSurface.cs` (gratings, prisms); `SurfaceOptics.cs` (lenses, curved mirrors); `MaskElement.cs`; `ModulatorElement.cs` (pixelated phase / amplitude device: cell grid, fill factor, quantisation, cross-talk, chromatic rules `opd` / `fixedPhase` / `index`, `PhaseScale`); `ComponentTerms.cs` (Zernike, figure); `MirrorSubstrate.cs`, `DelayedTerms.cs` |
 | `Crystals/` | χ(2): `CrystalElement`, phase matching |

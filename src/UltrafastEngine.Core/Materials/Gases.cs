@@ -76,7 +76,7 @@ namespace UltrafastEngine.Materials
     /// the adiabatic orientational n2 (for an isolated molecule 3/4 of the thermal-equilibrium value, approached at room
     /// temperature: ∫χ → 1 / (15 kT)). Mixtures add their kernels.
     /// </summary>
-    public sealed class RotationalRamanResponse : IAnisotropicResponse
+    public sealed class RotationalRamanResponse : IAnisotropicResponse, Physics.IPaddedKernelResponse
     {
         private const double Hbar = 1.054571817e-34, Kb = 1.380649e-23, Eps0 = 8.8541878128e-12, Hc = 6.62607015e-34 * 2.99792458e10; // J cm
         private readonly List<(double Omega, double Weight, double Gamma)> _lines = new List<(double, double, double)>();  // R(t) = sum W sin(w t) exp(-g t)
@@ -150,10 +150,10 @@ namespace UltrafastEngine.Materials
             return s;
         }
 
-        public double[] Convolve(double[] x, double dt)
+        /// <summary>The padded kernel spectrum used by <see cref="Convolve"/> for n samples of step dt (shared, cached; do not modify).</summary>
+        public Complex[] PaddedKernelSpectrum(int n, double dt)
         {
-            int n = x.Length, m = 1; while (m < 2 * n) m <<= 1;
-            Complex[] K;
+            int m = Physics.AnisotropicKernels.PaddedLength(n);
             lock (_lock)
             {
                 if (_cacheK == null || _cacheN != n || _cacheDt != dt)
@@ -165,8 +165,15 @@ namespace UltrafastEngine.Materials
                     ComplexFft.TransformInPlace(k, -1, false);
                     _cacheK = k; _cacheN = n; _cacheDt = dt;
                 }
-                K = _cacheK;
+                return _cacheK;
             }
+        }
+
+        public double[] Convolve(double[] x, double dt)
+        {
+            int n = x.Length;
+            Complex[] K = PaddedKernelSpectrum(n, dt);
+            int m = K.Length;
             var a = new Complex[m];
             for (int i = 0; i < n; i++) a[i] = x[i];
             ComplexFft.TransformInPlace(a, -1, false);

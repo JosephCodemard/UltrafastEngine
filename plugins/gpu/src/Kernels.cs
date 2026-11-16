@@ -9,7 +9,12 @@ namespace UltrafastEngine.Plugins.Gpu
     /// </summary>
     public static class Kernels
     {
-        public const string Source = @"
+        /// <summary>The whole kernel source (header + body), compiled once per device context.</summary>
+        public const string Source = Header + Body;
+
+        /// <summary>Macros and complex helpers shared by every program (the built-in kernels and the per-problem kernels
+        /// generated for user responses, <see cref="UserResponseKernel"/>).</summary>
+        public const string Header = @"
 #ifdef UF_OPENCL
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #define KERNEL __kernel
@@ -50,6 +55,10 @@ DEVFN cplx csc(cplx a, double s) { return C2(a.x * s, a.y * s); }
 DEVFN cplx cconj(cplx a) { return C2(a.x, -a.y); }
 DEVFN cplx cimul(cplx a, double s) { return C2(-a.y * s, a.x * s); }   /* i s a */
 DEVFN double cabs2(cplx a) { return a.x * a.x + a.y * a.y; }
+";
+
+        /// <summary>The built-in kernels.</summary>
+        public const string Body = @"
 
 /* ---------------------------------------------------------------- element-wise */
 
@@ -217,14 +226,92 @@ KERNEL void uf_env_raman_mul(G cplx* C, G const cplx* K, G const cplx* Kb, int n
     }
 }
 
+/* Running fluence of the total intensity per row (the response variable F, ExpressionTimeResponse.Fluence):
+   F(c) = sum_{k=1..c} (I(k) + I(k-1)) dt / 2 over the CENTRED time order; I = (|Ax|^2 + |Ay|^2) / A (1-D: A = Aeff;
+   spatial: 1). Stored at the natural index of sample c. One work group per row: each item sums a contiguous chunk, item 0
+   turns the chunk sums into offsets, then each item writes its chunk. */
+KERNEL void uf_fluence(G const cplx* T, int n, int M, int block, int scalar, double A, double dt, G double* F)
+{
+    LOC double sm[256];
+    int h = n >> 1;
+    int chunk = (n + LSZ - 1) / LSZ;
+    for (int r = GRP; r < M; r += NGRP) {
+        int c0 = LID * chunk, c1 = c0 + chunk; if (c1 > n) c1 = n;
+        double s = 0.0, prev = 0.0;
+        for (int c = c0; c < c1; c++) {
+            int d = c + h; if (d >= n) d -= n;
+            double I = (cabs2(T[r * n + d]) + (scalar ? 0.0 : cabs2(T[block + r * n + d]))) / A;
+            if (c > 0) {
+                if (c == c0) { int e = c - 1 + h; if (e >= n) e -= n; prev = (cabs2(T[r * n + e]) + (scalar ? 0.0 : cabs2(T[block + r * n + e]))) / A; }
+                s += 0.5 * (I + prev) * dt;
+            }
+            prev = I;
+        }
+        sm[LID] = s;
+        SYNC();
+        if (LID == 0) { double acc = 0.0; for (int k = 0; k < LSZ; k++) { double v = sm[k]; sm[k] = acc; acc += v; } }
+        SYNC();
+        double acc = sm[LID];
+        for (int c = c0; c < c1; c++) {
+            int d = c + h; if (d >= n) d -= n;
+            double I = (cabs2(T[r * n + d]) + (scalar ? 0.0 : cabs2(T[block + r * n + d]))) / A;
+            if (c > 0) {
+                if (c == c0) { int e = c - 1 + h; if (e >= n) e -= n; prev = (cabs2(T[r * n + e]) + (scalar ? 0.0 : cabs2(T[block + r * n + e]))) / A; }
+                acc += 0.5 * (I + prev) * dt;
+            }
+            prev = I;
+            F[r * n + d] = acc;
+        }
+        SYNC();
+    }
+}
+
+/* Orientational (gas rotational Raman) inputs, IAnisotropicResponse.Convolve: a zero-padded linear convolution in the
+   engine's CENTRED time order, so centred sample c reads the natural sample (c + n/2) mod n. Rows r < M of n samples
+   (row r of component y at block + r n; 1-D: M = 1, block = n). Padded signals of length m, signal s of row r at
+   (s M + r) m: scalar Q0 = Ix; vector Q0 = 3/2 Ix - 1/2 I, Q1 = 3/2 Iy - 1/2 I, Q2 = 3/2 Re(Ax Ay*) (all x invA,
+   1 / Aeff in 1-D); zero for c >= n. */
+KERNEL void uf_rot_in(G const cplx* T, int n, int M, int block, int scalar, double invA, int m, G cplx* Q)
+{
+    int h = n >> 1, total = M * m;
+    for (int g = GID; g < total; g += GSZ) {
+        int r = g / m, c = g - r * m;
+        if (c >= n) {
+            Q[g] = C2(0.0, 0.0);
+            if (!scalar) { Q[total + g] = C2(0.0, 0.0); Q[2 * total + g] = C2(0.0, 0.0); }
+            continue;
+        }
+        int d = c + h; if (d >= n) d -= n;
+        cplx ax = T[r * n + d];
+        double ix = cabs2(ax) * invA;
+        if (scalar) { Q[g] = C2(ix, 0.0); continue; }
+        cplx ay = T[block + r * n + d];
+        double iy = cabs2(ay) * invA, it = ix + iy;
+        Q[g] = C2(1.5 * ix - 0.5 * it, 0.0);
+        Q[total + g] = C2(1.5 * iy - 0.5 * it, 0.0);
+        Q[2 * total + g] = C2(1.5 * (ax.x * ay.x + ax.y * ay.y) * invA, 0.0);
+    }
+}
+
+/* every one of the nsig padded spectra (length m) times the kernel spectrum K */
+KERNEL void uf_rot_mul(G cplx* Q, G const cplx* K, int m, int nsig)
+{
+    int total = m * nsig;
+    for (int g = GID; g < total; g += GSZ) Q[g] = cmul(Q[g], K[g % m]);
+}
+
 /* Kerr + Raman rate in time (EnvelopeProblem.NonlinearFast): R = N(A) (x at 0, y at n); P = |Ax|^2 + |Ay|^2,
    D = |Im(Ax* Nx + Ay* Ny)| / (k0 P) for the B-integral; per-group max of P -> part[po + g].
-   raman: 0 none, 1 scalar (C0), 2 vector (C0..C4); C already convolved (multiply by dt). */
+   raman: 0 none, 1 scalar (C0), 2 vector (C0..C4); C already convolved (multiply by dt).
+   rot: 0 none, 1 scalar, 2 vector -- the orientational index changes (EnvelopeProblem.Nonlinear), Q already convolved
+   (centred order, padded length m): dnx += Q0, dny += Q1, coupling dnxy = Q2. */
 KERNEL void uf_env_kerr(G const cplx* T, G const cplx* C, int n, int scalar, int raman, double invA, double k0, double n2,
-                        double fR, double dt, double cc, G cplx* R, G double* P, G double* D, G double* part, int po)
+                        double fR, double dt, double cc, G cplx* R, G double* P, G double* D, G double* part, int po,
+                        G const cplx* Q, int rot, int m, G const cplx* U, int user)
 {
     LOC double sm[256];
     double pm = 0.0;
+    int h = n >> 1;
     for (int i = GID; i < n; i += GSZ) {
         cplx ax = T[i];
         cplx ay = scalar ? C2(0.0, 0.0) : T[n + i];
@@ -239,13 +326,26 @@ KERNEL void uf_env_kerr(G const cplx* T, G const cplx* C, int n, int scalar, int
         }
         double dnx = n2 * ((1.0 - fR) * (ix + 2.0 / 3.0 * iy) + rx);
         double dny = n2 * ((1.0 - fR) * (iy + 2.0 / 3.0 * ix) + ry);
-        cplx nx = cimul(ax, k0 * dnx);
+        double qxy = 0.0;
+        if (rot != 0) {
+            int c = i + h; if (c >= n) c -= n;
+            dnx += Q[c].x;
+            if (rot == 2) { dny += Q[m + c].x; qxy = Q[2 * m + c].x; }
+        }
+        /* extra time-domain responses (user expressions, ...): complex dn = U, the same for x and y */
+        double ui = 0.0;
+        if (user) { cplx u = U[i]; dnx += u.x; dny += u.x; ui = u.y; }
+        cplx nx = user ? cmul(C2(-k0 * ui, k0 * dnx), ax) : cimul(ax, k0 * dnx);
         cplx ny = C2(0.0, 0.0);
         if (!scalar) {
-            ny = cimul(ay, k0 * dny);
+            ny = user ? cmul(C2(-k0 * ui, k0 * dny), ay) : cimul(ay, k0 * dny);
             if (cc != 0.0) {
                 nx = cadd(nx, cimul(cmul(cmul(ay, ay), cconj(ax)), k0 * cc));
                 ny = cadd(ny, cimul(cmul(cmul(ax, ax), cconj(ay)), k0 * cc));
+            }
+            if (rot == 2) {
+                nx = cadd(nx, cimul(ay, k0 * qxy));
+                ny = cadd(ny, cimul(ax, k0 * qxy));
             }
             if (raman == 2) {
                 double d = n2 * fR * rxy;
@@ -333,10 +433,13 @@ KERNEL void uf_sp_raman_mul(G cplx* C, G const cplx* K, G const cplx* Kb, int n,
 }
 
 /* Kerr + Raman rate per (point, time) as SpatialEnvelopeProblem.Nonlinear (no position-dependent properties):
-   R = N(E); P = |Ex|^2 + |Ey|^2, D = |Im(Ex* Nx + Ey* Ny)| / (k0 P) */
+   R = N(E); P = |Ex|^2 + |Ey|^2, D = |Im(Ex* Nx + Ey* Ny)| / (k0 P).
+   rot: 0 none, 1 scalar, 2 vector orientational index changes from Q (uf_rot_in layout, already convolved; rows of n). */
 KERNEL void uf_sp_kerr(G const cplx* T, G const cplx* C, int block, int vector, int raman, double k0, double n2, double fR, double dt,
-                       double cc, G cplx* R, G double* P, G double* D)
+                       double cc, G cplx* R, G double* P, G double* D, G const cplx* Q, int rot, int m, int n, int M,
+                       G const cplx* U, int user)
 {
+    int h = n >> 1;
     for (int i = GID; i < block; i += GSZ) {
         cplx ax = T[i];
         cplx ay = vector ? T[block + i] : C2(0.0, 0.0);
@@ -350,14 +453,27 @@ KERNEL void uf_sp_kerr(G const cplx* T, G const cplx* C, int block, int vector, 
             rxy = C[4 * block + i].x * dt;
         }
         double dnx = n2 * ((1.0 - fR) * (ix + (vector ? 2.0 / 3.0 * iy : 0.0)) + rx);
-        cplx nx = cimul(ax, k0 * dnx);
+        double dny = vector ? n2 * ((1.0 - fR) * (iy + 2.0 / 3.0 * ix) + ry) : 0.0;
+        double qxy = 0.0;
+        if (rot != 0) {
+            int r = i / n, t = i - r * n, c = t + h; if (c >= n) c -= n;
+            int q = r * m + c, total = M * m;
+            dnx += Q[q].x;
+            if (rot == 2) { dny += Q[total + q].x; qxy = Q[2 * total + q].x; }
+        }
+        double ui = 0.0;
+        if (user) { cplx u = U[i]; dnx += u.x; dny += u.x; ui = u.y; }
+        cplx nx = user ? cmul(C2(-k0 * ui, k0 * dnx), ax) : cimul(ax, k0 * dnx);
         cplx ny = C2(0.0, 0.0);
         if (vector) {
-            double dny = n2 * ((1.0 - fR) * (iy + 2.0 / 3.0 * ix) + ry);
-            ny = cimul(ay, k0 * dny);
+            ny = user ? cmul(C2(-k0 * ui, k0 * dny), ay) : cimul(ay, k0 * dny);
             if (cc != 0.0) {
                 nx = cadd(nx, cimul(cmul(cmul(ay, ay), cconj(ax)), k0 * cc));
                 ny = cadd(ny, cimul(cmul(cmul(ax, ax), cconj(ay)), k0 * cc));
+            }
+            if (rot == 2) {
+                nx = cadd(nx, cimul(ay, k0 * qxy));
+                ny = cadd(ny, cimul(ax, k0 * qxy));
             }
             if (raman == 2) {
                 double d = n2 * fR * rxy;

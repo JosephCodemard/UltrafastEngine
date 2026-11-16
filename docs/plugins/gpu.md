@@ -55,7 +55,9 @@ CPU (`cuda: small problem (4096 samples < gpuMinPoints 8192); ran on the CPU`).
 |---|---|
 | bulk, fibre, gap with 1-D envelope propagation: Kerr (scalar or vector, with the coherent coupling), Raman (scalar, or vector with the anisotropic part), self-steepening, z-dependent beam area | yes |
 | spatial (radial Hankel or cartesian) envelope propagation with the same physics, envelope or UPPE coupling, vector fields | yes |
-| user time responses (`timeResponse` models, callbacks), rotational Raman of gases, position-dependent properties | CPU |
+| rotational (orientational) Raman of molecular gases (N2, O2, CO2, air, mixtures; `n2Scale`), 1-D and spatial: the causal response is a zero-padded linear convolution, done with the same kernel spectrum as the CPU | yes |
+| `timeResponse` models `expression`, `twoPhotonAbsorption` and `kerr` (any number, summed in order; every variable, including the running fluence `F`), 1-D and spatial: each element's responses are translated to C and compiled into a kernel of their own the first time they are seen (NVRTC or the OpenCL compiler), then cached per device | yes |
+| `timeResponse` callbacks (user code), frequency-resolved responses (the Drude term of `ionization`), position-dependent properties | CPU |
 | carrier-resolved field propagation, χ(2) crystals, amplifiers, ionisation | CPU |
 
 The built-in GPU FFT needs power-of-two lengths (the grid planner always picks them); with cuFFT any even length
@@ -66,6 +68,11 @@ works for the time axis. Cartesian transverse grids must be powers of two on the
 launches of a few µs each. An explicit `"cuda"` / `"opencl"` uses the device for every supported element unless
 `gpuMinPoints` is set. `"auto"` never picks an OpenCL device that is a CPU (PoCL, Intel's CPU runtime) unless
 `ULTRAFAST_OPENCL_ALLOW_CPU=1`. What speed-up to expect: [Speed](../reference/speed.md#what-gains-from-a-gpu).
+
+An expression is compiled with its parameters written in as constants, so a study that changes an expression parameter
+compiles one kernel per value; a study over anything else reuses the kernel. The device evaluates the same arithmetic as
+the CPU; its `sin`, `exp`, `pow`, ... may differ from .NET's in the last bit, and `min` / `max` / `clamp` ignore a NaN
+argument instead of returning NaN.
 
 ## Setting up
 

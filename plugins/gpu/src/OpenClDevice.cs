@@ -128,26 +128,46 @@ namespace UltrafastEngine.Plugins.Gpu
             props[0] = (IntPtr)0x1084; props[1] = dev.Platform; props[2] = IntPtr.Zero;   // CL_CONTEXT_PLATFORM
             Ctx = api.CreateContext(props, 1, &d, IntPtr.Zero, IntPtr.Zero, &err);
             OpenClApi.Check(err, "clCreateContext");
-            var src = Encoding.ASCII.GetBytes(Kernels.Source);
-            fixed (byte* s = src)
-            {
-                byte* sp = s; nuint len = (nuint)src.Length;
-                Program = api.CreateProgramWithSource(Ctx, 1, &sp, &len, &err);
-                OpenClApi.Check(err, "clCreateProgramWithSource");
-            }
-            var opts = Encoding.ASCII.GetBytes("-D UF_OPENCL=1\0");
-            int berr;
-            fixed (byte* o = opts) berr = api.BuildProgram(Program, 1, &d, o, IntPtr.Zero, IntPtr.Zero);
-            if (berr != 0)
-            {
-                var log = new byte[65536]; nuint ret = 0;
-                fixed (byte* l = log) api.GetProgramBuildInfo(Program, d, OpenClApi.PROGRAM_BUILD_LOG, (nuint)log.Length, l, &ret);
-                throw new GpuException("OpenCL kernel build failed on " + Info.Name + " (error " + berr + "):\n" + Encoding.ASCII.GetString(log, 0, (int)Math.Max(0, (long)ret - 1)), berr);
-            }
+            Program = Build(Kernels.Source);
             ulong maxWg = api.DeviceSize(d, OpenClApi.DEVICE_MAX_WORK_GROUP_SIZE);
             int gs = 256; while (gs > 1 && (ulong)gs > maxWg) gs >>= 1;
             GroupSize = gs;
             MaxGroups = Math.Max(16, Math.Min(4096, 8 * Math.Max(1, Info.ComputeUnits) * (dev.IsCpu ? 1 : 16)));
+        }
+
+        private readonly Dictionary<string, IntPtr> _extra = new Dictionary<string, IntPtr>();
+
+        /// <summary>The program that defines kernel <paramref name="name"/>.</summary>
+        internal IntPtr ProgramOf(string name) { lock (_extra) return _extra.TryGetValue(name, out var p) ? p : Program; }
+
+        protected override void BuildProgram(string kernelName, string source)
+        {
+            var p = Build(source);
+            lock (_extra) _extra[kernelName] = p;
+        }
+
+        private IntPtr Build(string source)
+        {
+            int err;
+            IntPtr d = Device, prog;
+            var src = Encoding.ASCII.GetBytes(source);
+            fixed (byte* s = src)
+            {
+                byte* sp = s; nuint len = (nuint)src.Length;
+                prog = Api.CreateProgramWithSource(Ctx, 1, &sp, &len, &err);
+                OpenClApi.Check(err, "clCreateProgramWithSource");
+            }
+            var opts = Encoding.ASCII.GetBytes("-D UF_OPENCL=1\0");
+            int berr;
+            fixed (byte* o = opts) berr = Api.BuildProgram(prog, 1, &d, o, IntPtr.Zero, IntPtr.Zero);
+            if (berr != 0)
+            {
+                var log = new byte[65536]; nuint ret = 0;
+                fixed (byte* l = log) Api.GetProgramBuildInfo(prog, d, OpenClApi.PROGRAM_BUILD_LOG, (nuint)log.Length, l, &ret);
+                Api.ReleaseProgram(prog);
+                throw new GpuException("OpenCL kernel build failed on " + Info.Name + " (error " + berr + "):\n" + Encoding.ASCII.GetString(log, 0, (int)Math.Max(0, (long)ret - 1)), berr);
+            }
+            return prog;
         }
 
         public override GpuBuffer Alloc(long bytes)
@@ -162,6 +182,7 @@ namespace UltrafastEngine.Plugins.Gpu
 
         public override void Dispose()
         {
+            lock (_extra) { foreach (var p in _extra.Values) Api.ReleaseProgram(p); _extra.Clear(); }
             if (Program != IntPtr.Zero) Api.ReleaseProgram(Program);
             if (Ctx != IntPtr.Zero) Api.ReleaseContext(Ctx);
         }
@@ -193,7 +214,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 if (_kernels.TryGetValue(name, out var k)) return k;
                 var b = Encoding.ASCII.GetBytes(name + "\0");
                 int err;
-                fixed (byte* p = b) k = _c.Api.CreateKernel(_c.Program, p, &err);
+                fixed (byte* p = b) k = _c.Api.CreateKernel(_c.ProgramOf(name), p, &err);
                 OpenClApi.Check(err, "clCreateKernel " + name);
                 _kernels[name] = k;
                 return k;

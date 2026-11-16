@@ -50,14 +50,43 @@ namespace UltrafastEngine.Physics
         double AdiabaticN2 { get; }
     }
 
+    /// <summary>
+    /// An <see cref="IAnisotropicResponse"/> whose <see cref="IAnisotropicResponse.Convolve"/> is the zero-padded linear
+    /// convolution y[i] = Re IFFT_m(K · FFT_m(x))[i] (x padded with zeros to m = <see cref="AnisotropicKernels.PaddedLength"/>(n),
+    /// forward transform with exponent sign -1 and no normalisation, inverse with +1 and 1/m, x and y in the engine's
+    /// centred time order). A device back-end (GPU) evaluates it with the kernel spectrum K itself.
+    /// </summary>
+    public interface IPaddedKernelResponse
+    {
+        /// <summary>The kernel spectrum K (length m) for n samples of step dt. Shared: callers must not modify it.</summary>
+        Complex[] PaddedKernelSpectrum(int n, double dt);
+    }
+
+    /// <summary>Helpers for <see cref="IPaddedKernelResponse"/>.</summary>
+    public static class AnisotropicKernels
+    {
+        /// <summary>The padded transform length of an n-sample linear convolution: the smallest power of two at least 2n.</summary>
+        public static int PaddedLength(int n) { int m = 1; while (m < 2 * n) m <<= 1; return m; }
+    }
+
     /// <summary>An <see cref="IAnisotropicResponse"/> multiplied by a constant (the element's <c>n2Scale</c>): the convolution and the adiabatic n2 scale together.</summary>
-    public sealed class ScaledAnisotropicResponse : IAnisotropicResponse
+    public sealed class ScaledAnisotropicResponse : IAnisotropicResponse, IPaddedKernelResponse
     {
         private readonly IAnisotropicResponse _inner; private readonly double _scale;
         public ScaledAnisotropicResponse(IAnisotropicResponse inner, double scale) { _inner = inner; _scale = scale; }
         public string Description => _inner.Description + string.Format(System.Globalization.CultureInfo.InvariantCulture, " x {0:G5}", _scale);
         public double[] Convolve(double[] x, double dt) { var y = _inner.Convolve(x, dt); for (int i = 0; i < y.Length; i++) y[i] *= _scale; return y; }
         public double AdiabaticN2 => _scale * _inner.AdiabaticN2;
+        /// <summary>The inner kernel times the scale (null when the inner response has no padded kernel).</summary>
+        public Complex[] PaddedKernelSpectrum(int n, double dt)
+        {
+            if (!(_inner is IPaddedKernelResponse p)) return null;
+            var k = p.PaddedKernelSpectrum(n, dt);
+            if (k == null) return null;
+            var r = new Complex[k.Length];
+            for (int i = 0; i < k.Length; i++) r[i] = k[i] * _scale;
+            return r;
+        }
     }
 
     /// <summary>
@@ -281,14 +310,37 @@ namespace UltrafastEngine.Physics
         /// <summary>Process-wide switch for the in-place fast path (tests compare it with the general path).</summary>
         public static bool UseFastPath = true;
 
+        /// <summary>Why <see cref="DeviceSpec"/> returns null (null when it does not).</summary>
+        public string DeviceUnsupportedReason
+        {
+            get
+            {
+                if (_m.HasCubicAnisotropy) return "cubic Kerr anisotropy";
+                if (_m.Rotational != null && (_m.Rotational as IPaddedKernelResponse)?.PaddedKernelSpectrum(_g.N, _g.DTime) == null) return "a rotational response without a padded kernel";
+                if (_m.ExtraResponses.Count != 0 && DeviceResponses.Build(_m.ExtraResponses, out var why) == null) return why;
+                return null;
+            }
+        }
+
         /// <summary>The data a device back-end (GPU) needs to evaluate this problem's nonlinear operator itself; null when
-        /// the problem uses features only the CPU path implements (user responses, rotational Raman).</summary>
+        /// the problem uses features only the CPU path implements (<see cref="DeviceUnsupportedReason"/>: callbacks, frequency-resolved
+        /// responses, cubic Kerr anisotropy, a rotational response without a padded kernel).</summary>
         public EnvelopeDeviceSpec DeviceSpec()
         {
-            if (_m.Rotational != null || _m.ExtraResponses.Count != 0 || _m.HasCubicAnisotropy) return null;
+            if (_m.HasCubicAnisotropy) return null;
+            Complex[] rot = null;
+            if (_m.Rotational != null)
+            {
+                rot = (_m.Rotational as IPaddedKernelResponse)?.PaddedKernelSpectrum(_g.N, _g.DTime);
+                if (rot == null) return null;
+            }
+            DeviceResponseCode user = null;
+            if (_m.ExtraResponses.Count != 0) { user = DeviceResponses.Build(_m.ExtraResponses, out _); if (user == null) return null; }
             bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
             return new EnvelopeDeviceSpec
             {
+                RotationalKernelFreq = rot,
+                Responses = user, Time = _g.Time, TArrivalAtStart = _tArrival0, ElementCarrierGroupDelay = _tauElement, ResponseOmega0 = _g.OmegaCenter,
                 N = _g.N, Scalar = _scalar, K0 = _k0, N2 = kerr ? _m.N2 : 0, RamanFraction = kerr ? _m.EffectiveRamanFraction : 0,
                 RamanKernelFreq = kerr && _m.EffectiveRamanFraction > 0 ? _ramanKernelFreq : null,
                 RamanAnisoFreq = kerr && _m.EffectiveRamanFraction > 0 && !_scalar ? _ramanAnisoFreq : null,
@@ -539,6 +591,15 @@ namespace UltrafastEngine.Physics
         public double K0, N2, RamanFraction, OmegaCenter, DTime, LengthM;
         public bool SelfSteepening;
         public Complex[] RamanKernelFreq, RamanAnisoFreq, LinearRate;
+        /// <summary>Orientational (gas rotational Raman) response: the padded kernel spectrum of
+        /// <see cref="IPaddedKernelResponse"/> (length <see cref="AnisotropicKernels.PaddedLength"/>(N)), or null.</summary>
+        public Complex[] RotationalKernelFreq;
+        /// <summary>Extra time-domain responses (user expressions, two-photon absorption, extra Kerr) as C source, or null. The
+        /// response variables: t = <see cref="Time"/> (centred order), t_lab = t + t_arrival with t_arrival = TArrivalAtStart +
+        /// ElementCarrierGroupDelay z / L, omega0 = <see cref="ResponseOmega0"/>, intensities |A|^2 / Aeff.</summary>
+        public DeviceResponseCode Responses;
+        public double[] Time;
+        public double TArrivalAtStart, ElementCarrierGroupDelay, ResponseOmega0;
         public double[] OmegaOffset;
         public Func<double, double> AreaAt;
     }

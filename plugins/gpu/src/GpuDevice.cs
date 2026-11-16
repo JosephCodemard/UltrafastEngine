@@ -53,6 +53,23 @@ namespace UltrafastEngine.Plugins.Gpu
 
         /// <summary>Groups for a grid-stride launch over <paramref name="items"/> items.</summary>
         public int Groups(long items) => (int)Math.Max(1, Math.Min(MaxGroups, (items + GroupSize - 1) / GroupSize));
+
+        private readonly HashSet<string> _programs = new HashSet<string>();
+
+        /// <summary>Compile an extra program (<see cref="Kernels.Header"/> + <paramref name="body"/>) that defines the kernel
+        /// <paramref name="kernelName"/>, once per context; afterwards <see cref="GpuStream.Launch"/> finds it by name.</summary>
+        public void EnsureProgram(string kernelName, string body)
+        {
+            lock (_programs)
+            {
+                if (_programs.Contains(kernelName)) return;
+                BuildProgram(kernelName, Kernels.Header + body);
+                _programs.Add(kernelName);
+            }
+        }
+
+        /// <summary>Compile <paramref name="source"/> and register <paramref name="kernelName"/> (throws <see cref="GpuException"/> with the log).</summary>
+        protected abstract void BuildProgram(string kernelName, string source);
     }
 
     /// <summary>An in-order queue of device work (an OpenCL command queue or a CUDA stream). Not thread-safe: one per

@@ -36,7 +36,8 @@ Every physical ingredient is a **model** created from a small JSON spec. The sam
 Constants: `pi`, `e`, `c`, `eps0`, `mu0`, `h`, `hbar`, `kB`, `qe`, plus anything in `"params": {...}`.
 Functions: `sin cos tan asin acos atan atan2 sinh cosh tanh sech exp log log10 sqrt abs sign floor ceil round
 step pow hypot min max if clamp gauss`; operators `+ - * / ^ ** < <= > >= == != && || !`. Expressions are
-compiled once and evaluated over whole arrays (one call per solver stage), so they are fast.
+compiled once and evaluated over whole arrays (one call per solver stage), so they are fast. With a GPU back-end a
+`timeResponse` expression is also translated into a device kernel, so the element stays on the GPU ([GPU](../plugins/gpu.md#what-runs-on-the-device)).
 
 ## The time-domain response n(t, I)
 

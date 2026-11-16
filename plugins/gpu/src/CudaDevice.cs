@@ -211,6 +211,8 @@ namespace UltrafastEngine.Plugins.Gpu
         internal readonly IntPtr Ctx, Module;
         internal readonly int Dev;
         private readonly Dictionary<string, IntPtr> _functions = new Dictionary<string, IntPtr>();
+        private readonly Dictionary<string, IntPtr> _extraModules = new Dictionary<string, IntPtr>();
+        private readonly int _cc;
         [ThreadStatic] private static IntPtr _current;
 
         public CudaContext(CudaApi api, int ordinal, ComputeDeviceInfo info)
@@ -219,7 +221,16 @@ namespace UltrafastEngine.Plugins.Gpu
             int dev; api.Check(api.DeviceGet(&dev, ordinal), "cuDeviceGet"); Dev = dev;
             IntPtr ctx; api.Check(api.PrimaryCtxRetain(&ctx, dev), "cuDevicePrimaryCtxRetain"); Ctx = ctx;
             MakeCurrent();
-            var ptx = Compile(api, api.Attribute(dev, CudaApi.ATTR_CC_MAJOR) * 10 + api.Attribute(dev, CudaApi.ATTR_CC_MINOR));
+            _cc = api.Attribute(dev, CudaApi.ATTR_CC_MAJOR) * 10 + api.Attribute(dev, CudaApi.ATTR_CC_MINOR);
+            Module = Load(api, Compile(api, _cc, Kernels.Source, "ultrafast_kernels.cu"));
+            GroupSize = 256;
+            MaxGroups = Math.Max(64, 32 * Math.Max(1, info.ComputeUnits));
+            if (api.CufftPlan1d != null) VendorFftName = "cuFFT";
+            if (api.CublasDgemm != null) VendorBlasName = "cuBLAS";
+        }
+
+        private static IntPtr Load(CudaApi api, byte[] ptx)
+        {
             IntPtr mod;
             fixed (byte* p = ptx)
             {
@@ -227,19 +238,22 @@ namespace UltrafastEngine.Plugins.Gpu
                 if (e == 222) throw new GpuException("the NVIDIA driver is older than NVRTC (CUDA_ERROR_UNSUPPORTED_PTX_VERSION): update the driver, or point ULTRAFAST_CUDA_LIB_DIR at an older toolkit", e);
                 api.Check(e, "cuModuleLoadData");
             }
-            Module = mod;
-            GroupSize = 256;
-            MaxGroups = Math.Max(64, 32 * Math.Max(1, info.ComputeUnits));
-            if (api.CufftPlan1d != null) VendorFftName = "cuFFT";
-            if (api.CublasDgemm != null) VendorBlasName = "cuBLAS";
+            return mod;
+        }
+
+        protected override void BuildProgram(string kernelName, string source)
+        {
+            MakeCurrent();
+            var mod = Load(Api, Compile(Api, _cc, source, kernelName + ".cu"));
+            lock (_functions) _extraModules[kernelName] = mod;
         }
 
         /// <summary>PTX for compute capability <paramref name="cc"/> (falls back to older virtual architectures when
         /// NVRTC does not know the device's).</summary>
-        private static byte[] Compile(CudaApi api, int cc)
+        private static byte[] Compile(CudaApi api, int cc, string source, string fileName)
         {
-            var src = Encoding.ASCII.GetBytes(Kernels.Source + "\0");
-            var name = Encoding.ASCII.GetBytes("ultrafast_kernels.cu\0");
+            var src = Encoding.ASCII.GetBytes(source + "\0");
+            var name = Encoding.ASCII.GetBytes(fileName + "\0");
             string lastLog = "";
             var archs = new List<int> { cc };
             foreach (var a in new[] { 90, 89, 86, 80, 75, 70, 61, 60, 52 }) if (a < cc && !archs.Contains(a)) archs.Add(a);
@@ -287,7 +301,8 @@ namespace UltrafastEngine.Plugins.Gpu
             {
                 if (_functions.TryGetValue(name, out var f)) return f;
                 var b = Encoding.ASCII.GetBytes(name + "\0");
-                fixed (byte* p = b) Api.Check(Api.ModuleGetFunction(&f, Module, p), "cuModuleGetFunction " + name);
+                var mod = _extraModules.TryGetValue(name, out var m) ? m : Module;
+                fixed (byte* p = b) Api.Check(Api.ModuleGetFunction(&f, mod, p), "cuModuleGetFunction " + name);
                 _functions[name] = f;
                 return f;
             }
