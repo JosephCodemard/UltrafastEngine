@@ -281,8 +281,22 @@ namespace UltrafastEngine.Engine
                     double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / grid.OmegaCenter, n0 = seg.Material.IndexAt(grid.OmegaCenter);
                     double pcr = PhysicalConstants.CriticalPowerFactor * lam * lam / (8 * Math.PI * n0 * seg.Medium.N2);
                     rec.CriticalPowerRatio = PulseMetrics.TemporalPower(pulse).Max() / pcr;
-                    if (rec.CriticalPowerRatio > 0.3 && !res.Warnings.Any(w => w.Contains("critical power")))
+                    if (rec.CriticalPowerRatio > 0.3 && seg.KerrLens == null && !res.Warnings.Any(w => w.Contains("critical power")))
                         res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));
+                }
+                double lensPowerBefore = 0;
+                if (seg.KerrLens != null && seg.Beam is GaussianBeam gb0)
+                {
+                    // self-focusing of the 1-D beam: thin Kerr lenses of the power at the entry (Physics/KerrLens.cs)
+                    var pw = PulseMetrics.TemporalPower(pulse);
+                    lensPowerBefore = KerrLens.EffectivePowerW(pw, seg.KerrLens);
+                    var lensed = KerrLens.Integrate(gb0, seg.Medium.N2, seg.Material.IndexAt(grid.OmegaCenter), lensPowerBefore, seg.LengthM, KerrLens.LensFactor(seg.KerrLensModel), out double collapseAt);
+                    rec.Values["kerrLensPowerW"] = lensPowerBefore;
+                    rec.Values["kerrLensExitRadiusXM"] = lensed.RadiusX(seg.LengthM); rec.Values["kerrLensExitRadiusYM"] = lensed.RadiusY(seg.LengthM);
+                    rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "kerrLens ({0}, {1}): P = {2:G4} W; beam radius {3:G4} -> {4:G4} um (x) at the exit; the beam leaving the element is not carried to later elements", seg.KerrLens, seg.KerrLensModel, lensPowerBefore, seg.Beam.RadiusX(seg.LengthM) * 1e6, lensed.RadiusX(seg.LengthM) * 1e6));
+                    if (!double.IsNaN(collapseAt))
+                        res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the Kerr lens collapses the beam at z = {1:G4} m (P above the critical power of the model); the 1-D result after that point is not meaningful -- use \"transverse\" on this element.", el.Id, collapseAt));
+                    seg = seg.WithBeam(lensed);
                 }
                 var stats = new StepStatistics();
                 double deadFraction = 0;
@@ -291,6 +305,12 @@ namespace UltrafastEngine.Engine
                 pulse = seg.CarrierResolved
                     ? PropagateField(cr, pulse, seg, arrival, tauEl, el.Id, stats, rec, prog)
                     : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog, out deadFraction);
+                if (lensPowerBefore > 0)
+                {
+                    double pAfter = KerrLens.EffectivePowerW(PulseMetrics.TemporalPower(pulse), seg.KerrLens);
+                    if (Math.Abs(pAfter / lensPowerBefore - 1) > 0.2)
+                        res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the {1} power changed from {2:G3} to {3:G3} W inside the element, but the Kerr lens used the entry power; split the element in shorter parts for an accurate lens.", el.Id, seg.KerrLens == "peak" ? "peak" : "pulse-weighted", lensPowerBefore, pAfter));
+                }
                 foreach (var b in seg.Background) { var d = Reported(b, grid); own += d; rec.Terms.Add(b.Description); }
                 tail?.PropagateTail(seg.Background, (m, dE) => AddLoss(rec, m, dE));
                 if (tail != null && cr.Run.Grid.TailCrossPhase && !seg.CarrierResolved && !seg.Medium.ReplaceKerr && seg.Medium.N2 > 0 && ReferenceEquals(pulseBefore.Grid, pulse.Grid))

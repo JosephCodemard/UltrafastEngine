@@ -23,10 +23,20 @@ namespace UltrafastEngine.Engine
         public Material Material { get; set; }
         public List<LinearTerm> Background { get; } = new List<LinearTerm>();
         public bool CarrierResolved { get; set; }
+        /// <summary>Kerr lens of the 1-D beam: null (off), "peak" or "pulseWeighted" (<see cref="KerrLens"/>); <see cref="KerrLensModel"/> is "secondMoment" or "paraxial".</summary>
+        public string KerrLens { get; set; }
+        public string KerrLensModel { get; set; } = "secondMoment";
+        /// <summary>The same segment with another beam (the executor replaces the beam by the self-focused one).</summary>
+        public NonlinearSegment WithBeam(IBeamModel beam)
+        {
+            var s = new NonlinearSegment { Medium = Medium, Beam = beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved, KerrLens = KerrLens, KerrLensModel = KerrLensModel };
+            s.Background.AddRange(Background);
+            return s;
+        }
         /// <summary>The same segment with another background (the executor takes narrow lines out of the solver).</summary>
         public NonlinearSegment WithBackground(IEnumerable<LinearTerm> background)
         {
-            var s = new NonlinearSegment { Medium = Medium, Beam = Beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved };
+            var s = new NonlinearSegment { Medium = Medium, Beam = Beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved, KerrLens = KerrLens, KerrLensModel = KerrLensModel };
             s.Background.AddRange(background);
             return s;
         }
@@ -1022,8 +1032,10 @@ namespace UltrafastEngine.Engine
                 c.Out.Provenance.Record("element:" + e.Id, "rotationalRaman", m.Rotational.Description + string.Format(CultureInfo.InvariantCulture, "; adiabatic n2 {0:G3} m^2/W", m.Rotational.AdiabaticN2), ModelSource.MaterialDefault, "material " + m.Name);
             }
             var n2r = Find(c, e, "n2");
+            bool n2InElement = n2r == null && e.Json.Has("n2");   // the element's own n2 (documented: overrides the material's)
             if (n2r != null) med.N2 = n2r.RawValue.AsDouble();
-            c.Out.Provenance.Record("element:" + e.Id, "n2", med.N2.ToString("G4", CultureInfo.InvariantCulture) + " m^2/W", n2r?.Source ?? (m.Provenance.TryGetValue("n2", out var np) ? np.Source : ModelSource.MaterialDefault), n2r?.Origin ?? "material " + m.Name);
+            else if (n2InElement) med.N2 = e.Json.GetDouble("n2", med.N2);
+            c.Out.Provenance.Record("element:" + e.Id, "n2", med.N2.ToString("G4", CultureInfo.InvariantCulture) + " m^2/W", n2r?.Source ?? (n2InElement ? ModelSource.SystemData : (m.Provenance.TryGetValue("n2", out var np) ? np.Source : ModelSource.MaterialDefault)), n2r?.Origin ?? (n2InElement ? "element " + e.Id : "material " + m.Name));
             // cubic anisotropy of the electronic Kerr response: element > override > material; orientation from the element
             var kar = Find(c, e, "kerrAnisotropy");
             med.KerrAnisotropy = kar != null ? kar.RawValue.AsDouble() : e.Json.Has("kerrAnisotropy") ? e.Json.GetDouble("kerrAnisotropy", 0) : m.KerrAnisotropy;
@@ -1105,7 +1117,7 @@ namespace UltrafastEngine.Engine
                 ce.Active = sb;
                 c.Out.Provenance.Record("element:" + e.Id, "transverse", tv.Model + (tv.Model == "radial" ? " (" + tv.Points + " points)" : " (" + tv.Nx + " x " + tv.Ny + ")") + ", transport " + tv.Transport, tvOv?.Source ?? ModelSource.SystemData, tvOv?.Origin ?? "system file");
                 if (wantNl && med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
-                if (wantNl) ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
+                if (wantNl) ReportNonlinearCatalogue(c, e, m, med, n2r != null || n2InElement, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
                 return;
             }
             IBeamModel beam = null;
@@ -1140,10 +1152,20 @@ namespace UltrafastEngine.Engine
             if (wantNl)
             {
                 var seg = new NonlinearSegment { Medium = med, Beam = beam, LengthM = ce.LengthM, Material = m };
+                string lensMode = Str(c, e, "kerrLens", "off");
+                if (lensMode != "off")
+                {
+                    if (lensMode != "peak" && lensMode != "pulseWeighted") throw new ModelException("element '" + e.Id + "': kerrLens must be \"off\", \"peak\" or \"pulseWeighted\" (got \"" + lensMode + "\")");
+                    string lensModel = Str(c, e, "kerrLensModel", "secondMoment");
+                    if (lensModel != "secondMoment" && lensModel != "paraxial") throw new ModelException("element '" + e.Id + "': kerrLensModel must be \"secondMoment\" or \"paraxial\" (got \"" + lensModel + "\")");
+                    if (!(beam is GaussianBeam)) c.Out.Warnings.Add("Element '" + e.Id + "': kerrLens needs a gaussian beam model (or the tracked beam); it is ignored for " + (beam?.Description ?? "no beam") + ".");
+                    else if (med.ReplaceKerr || med.N2 <= 0) ce.Notes.Add("kerrLens: no Kerr index in this element, nothing to focus");
+                    else { seg.KerrLens = lensMode; seg.KerrLensModel = lensModel; }
+                }
                 seg.Background.AddRange(background);
                 ce.Nonlinear = seg;
                 if (med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
-                ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
+                ReportNonlinearCatalogue(c, e, m, med, n2r != null || n2InElement, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
             }
             else ce.Pre.AddRange(background);
         }
@@ -1229,8 +1251,11 @@ namespace UltrafastEngine.Engine
             if (props.N2Scale != null && wantNl && L > 0)
             {
                 double sc = 0; for (int k = 0; k < nz; k++) sc += Avg(props.N2Scale, L * (k + 0.5) / nz, 2) / nz;
-                med.N2 *= sc;
-                ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "n2Scale {0} (intensity^2-weighted): n2 x {1:G5}", how, sc));
+                med.N2 *= sc;   // Kerr, the delayed (Raman) fraction of n2 and the cubic anisotropy are all fractions of n2
+                bool scalesRot = med.Rotational != null;
+                if (scalesRot) med.Rotational = new ScaledAnisotropicResponse(med.Rotational, sc);
+                ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "n2Scale {0} (intensity^2-weighted): every third-order response x {1:G5} (Kerr, Raman{2}{3})", how, sc,
+                    scalesRot ? ", rotational Raman" : "", med.ExtraResponses.Count > 0 ? "; user-defined responses are not scaled" : ""));
             }
             if (props.IndexChange != null)
                 ce.Notes.Add("indexProfile has no effect in a 1-D element (a uniform index change is only a phase); add \"transverse\": {\"model\": \"radial\"} (or cartesian) to see lensing / guiding");

@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **608 tests** in 63 classes. **386** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **615 tests** in 64 classes. **393** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -29,7 +29,7 @@ Every C# test of the engine: **608 tests** in 63 classes. **386** of them check 
 | [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
 | [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
-| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 5 |
+| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 8 | 5 |
 | [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
@@ -38,6 +38,7 @@ Every C# test of the engine: **608 tests** in 63 classes. **386** of them check 
 | [Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms](#instrumentfixestests) | `InstrumentFixesTests` | 5 | 5 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
 | [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 11 | 11 |
+| [Kerr lens of the 1-D beam](#kerrlenstests) | `KerrLensTests` | 6 | 6 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
@@ -525,6 +526,7 @@ Gases: rotational Raman, indices, the refractiveindex.info database.
 | test | reference | tolerance |
 |---|---|---|
 | `Gases_IndicesOfNewSpecies` | published refractivities of the gases | 1e-09, 2 % |
+| `N2Scale_In1D_ScalesTheRotationalRamanToo` | linearity of every chi(3) response in n2Scale (the scale multiplies the third-order susceptibility) | 1e-6 |
 | `RefractiveIndexInfo_AsAMaterialInARun` | -- | -- |
 | `RefractiveIndexInfo_FormulasAndTablesMatchTheLibrary` | refractiveindex.info formulas and tables | 1e-12, 1e-09, 2 % |
 | `RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory` | isolated-molecule alignment, high-T limit: n2 = N Δα² / (4 c ε0² 15 kT) | 3 % |
@@ -653,6 +655,19 @@ Photo-ionisation and plasma.
 | `Ppt_MultiphotonAndTunnelLimits` | PPT rate: multiphoton I^K and tunnelling (ADK) limits | 3 %, 15 % |
 | `SpecialFunctions_DawsonAndElliptic` | tabulated Dawson and elliptic-integral values | 1e-12, 1e-07, 1e-06 |
 | `Uppe_AgreesWithEnvelopeForParaxialBeams_AndPlasmaClampsTheFocus` (slow) | cross-check: the envelope model for paraxial beams | 1e-06, 1 % |
+
+## KerrLensTests
+
+Kerr lens of the 1-D beam.
+
+| test | reference | tolerance |
+|---|---|---|
+| `ElementN2_OverridesTheMaterial` | B = k0 n2 I L is linear in n2; the element key n2 overrides the material's (docs/reference/system-file.md) | 1e-3 (the pulse reshapes slightly at B = 0.1) |
+| `Integrate_RoundBeamAtItsWaist_FollowsTheExactSolution` | Ermakov equation w'' = w0^4 (1 - P/P_c) / (zR^2 w^3): w^2 = w0^2 [1 + (1 - P/P_c)(z/zR)^2] | 1e-6 (RK4) |
+| `KerrLens_AtLowPower_ChangesNothing` | P -> 0: the lens vanishes | 1e-5 |
+| `KerrLens_InAnElement_ReproducesTheExactBeamAndRaisesTheB` | Ermakov solution with the pulse's own peak power | 0.1 % |
+| `ModelCriticalPower_IsWithinSixPercentOfMarburger` | Marburger, Prog. Quantum Electron. 4, 35 (1975): P_cr = 3.77 lambda^2 / (8 pi n0 n2) | 1 % (the ratio 4/3.77 of the second-moment model) |
+| `PulseWeightedPower_IsBelowThePeakAndEqualsItForAFlatPulse` | weighted power sum(P^2)/sum(P) <= peak power | exact |
 
 ## LaserTests
 

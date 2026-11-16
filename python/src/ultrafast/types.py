@@ -94,7 +94,7 @@ class AmplifierElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -155,7 +155,7 @@ class AopdfElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -214,7 +214,7 @@ class ApertureElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -257,7 +257,7 @@ class BeamSplitterElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -303,6 +303,10 @@ class BulkElement(TypedDict, total=False):
     """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
     kerrAzimuthDeg: float
     """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
+    kerrLens: Literal["off", "peak", "pulseWeighted"]
+    """Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power Default: off."""
+    kerrLensModel: Literal["secondMoment", "paraxial"]
+    """Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) Default: secondMoment."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -338,7 +342,7 @@ class BulkElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -407,7 +411,7 @@ class ChirpedMirrorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -486,7 +490,7 @@ class CrystalElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -529,7 +533,7 @@ class CustomElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -600,7 +604,7 @@ class DeformableMirrorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -649,7 +653,7 @@ class DelayElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -694,7 +698,7 @@ class DichroicElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -761,7 +765,7 @@ class DispersionElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -809,6 +813,10 @@ class FaradayRotatorElement(TypedDict, total=False):
     """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
     kerrAzimuthDeg: float
     """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
+    kerrLens: Literal["off", "peak", "pulseWeighted"]
+    """Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power Default: off."""
+    kerrLensModel: Literal["secondMoment", "paraxial"]
+    """Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) Default: secondMoment."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -844,7 +852,7 @@ class FaradayRotatorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -925,7 +933,7 @@ class FiberElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -968,7 +976,7 @@ class FilterElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1047,7 +1055,7 @@ class GainElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1093,6 +1101,10 @@ class GapElement(TypedDict, total=False):
     """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
     kerrAzimuthDeg: float
     """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
+    kerrLens: Literal["off", "peak", "pulseWeighted"]
+    """Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power Default: off."""
+    kerrLensModel: Literal["secondMoment", "paraxial"]
+    """Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) Default: secondMoment."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -1128,7 +1140,7 @@ class GapElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1233,7 +1245,7 @@ class GratingElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1286,7 +1298,7 @@ class GratingPairElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1391,7 +1403,7 @@ class InterfaceElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1438,7 +1450,7 @@ class LeakMirrorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1491,7 +1503,7 @@ class LensElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1554,7 +1566,7 @@ class MaskElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1659,7 +1671,7 @@ class MirrorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1744,7 +1756,7 @@ class ModulatorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1800,6 +1812,10 @@ class NdFilterElement(TypedDict, total=False):
     """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
     kerrAzimuthDeg: float
     """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
+    kerrLens: Literal["off", "peak", "pulseWeighted"]
+    """Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power Default: off."""
+    kerrLensModel: Literal["secondMoment", "paraxial"]
+    """Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) Default: secondMoment."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -1845,7 +1861,7 @@ class NdFilterElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1932,7 +1948,7 @@ class OscillatorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -1988,6 +2004,10 @@ class PlateElement(TypedDict, total=False):
     """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
     kerrAzimuthDeg: float
     """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
+    kerrLens: Literal["off", "peak", "pulseWeighted"]
+    """Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power Default: off."""
+    kerrLensModel: Literal["secondMoment", "paraxial"]
+    """Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) Default: secondMoment."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -2033,7 +2053,7 @@ class PlateElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2078,7 +2098,7 @@ class PolarizerElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2123,7 +2143,7 @@ class PolarizingSplitterElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2176,7 +2196,7 @@ class PrismElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2213,7 +2233,7 @@ class ProbeElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2258,7 +2278,7 @@ class ResonatorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2299,7 +2319,7 @@ class RotatorElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2362,7 +2382,7 @@ class SaturableAbsorberElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2447,7 +2467,7 @@ class SlmElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2520,7 +2540,7 @@ class SpectralShaperElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2584,6 +2604,10 @@ class ThinFilmPolarizerElement(TypedDict, total=False):
     """Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) Default: [0, 0, 1]."""
     kerrAzimuthDeg: float
     """Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction [deg] Default: 0."""
+    kerrLens: Literal["off", "peak", "pulseWeighted"]
+    """Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power Default: off."""
+    kerrLensModel: Literal["secondMoment", "paraxial"]
+    """Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) Default: secondMoment."""
     timeResponse: Union[float, str, Dict[str, Any], List[Any]]
     """An extra time-domain response n(t, I) A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, chi2, expression, kerr, twoPhotonAbsorption)."""
     replaceKerr: bool
@@ -2629,7 +2653,7 @@ class ThinFilmPolarizerElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2670,7 +2694,7 @@ class TransformElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2713,7 +2737,7 @@ class UserElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     comment: Any
     """Free text."""
     description: Any
@@ -2772,7 +2796,7 @@ class WavefrontElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any
@@ -2833,7 +2857,7 @@ class WaveplateElement(TypedDict, total=False):
     absorptionProfile: Union[float, str, Dict[str, Any], List[Any]]
     """Position-dependent absorption alpha(x, y, z) [1/m] A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     n2Scale: Union[float, str, Dict[str, Any], List[Any]]
-    """Position-dependent factor on n2 A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
+    """Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled A model: a number, a name / "@callback" / expression string, or an object with "kind" (callback, constant, expression, gaussian, superGaussian, table)."""
     params: Any
     """Free parameters (expressions, user elements)"""
     comment: Any

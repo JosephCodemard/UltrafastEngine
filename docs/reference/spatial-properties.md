@@ -8,7 +8,7 @@ this gives n(t, r, θ, z, I).
 |---|---|---|
 | `indexProfile` | Δn(x, y, z), added to the material index | i(ω/c)Δn·E per frequency (lensing, guiding, steering) |
 | `absorptionProfile` | α(x, y, z) in 1/m (intensity) | −α/2·E |
-| `n2Scale` | factor on n2 | scales the Kerr term point by point |
+| `n2Scale` | factor on the third-order response | scales Kerr, delayed Raman, the cubic anisotropy (XPW) and the rotational Raman of gases point by point; user-defined `responses` are not scaled |
 
 ```jsonc
 { "id": "rod", "type": "bulk", "material": "FusedSilica", "lengthM": 0.005,
@@ -38,7 +38,7 @@ profile focuses, a soft absorber apodises, and a Δn(x) gradient steers the beam
 has no transverse structure:
 
 * absorption is averaged over the Gaussian beam model (intensity-weighted) and applied as a flat loss;
-* `n2Scale` is averaged with intensity² weighting;
+* `n2Scale` is averaged with intensity² weighting and then scales n2 and the rotational Raman response alike (before 1.0 only n2 was scaled, so air kept its full orientational response);
 * `indexProfile` has no effect (a note says so).
 
 Absorption shows up in the energy budget as `absorption`. The terms also limit the step size (≈ 0.2 rad of

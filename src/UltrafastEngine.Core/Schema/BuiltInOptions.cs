@@ -252,7 +252,7 @@ namespace UltrafastEngine.Schema
                 .Arr("wavelengthsM", "m", "Wavelengths of this element's per-wavelength arrays (default: the file's sampling)")
                 .Model("indexProfile", "field", "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md)")
                 .Model("absorptionProfile", "field", "Position-dependent absorption alpha(x, y, z) [1/m]")
-                .Model("n2Scale", "field", "Position-dependent factor on n2")
+                .Model("n2Scale", "field", "Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled")
                 .Free("params", ParamType.Any, "Free parameters (expressions, user elements)"));
             add(new ComponentSpec("group", "beamSize", "Beam size at a surface.")
                 .Arr("beamRadiusM", "m", "1/e^2 beam radius (per wavelength)").Arr("beamRadiusXM", "m", "Beam radius in x").Arr("beamRadiusYM", "m", "Beam radius in y")
@@ -264,6 +264,8 @@ namespace UltrafastEngine.Schema
                 .Num("kerrAnisotropy", "", "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100]", "the material's (BaF2 -1.2, others 0)")
                 .Arr("kerrCutAxis", "", "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...)", "[0, 0, 1]")
                 .Num("kerrAzimuthDeg", "deg", "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction", "0")
+                .Enum("kerrLens", new[] { "off", "peak", "pulseWeighted" }, "Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): \"peak\" uses the peak power at the entry, \"pulseWeighted\" sum(P^2)/sum(P); a 1-D approximation, use \"transverse\" when P approaches the critical power", "off")
+                .Enum("kerrLensModel", new[] { "secondMoment", "paraxial" }, "Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4)", "secondMoment")
                 .Model("timeResponse", "timeResponse", "An extra time-domain response n(t, I)")
                 .Bool("replaceKerr", "true switches off the built-in Kerr/Raman (use with your own timeResponse)", "false")
                 .P("raman", ParamType.Any, "", "false, or a delayed-response model")

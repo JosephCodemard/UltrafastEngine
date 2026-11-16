@@ -1278,7 +1278,7 @@ Keys every element accepts.
 | `wavelengthsM` | number or array | m |  | Wavelengths of this element's per-wavelength arrays (default: the file's sampling) |
 | `indexProfile` | model (field) |  |  | Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) |
 | `absorptionProfile` | model (field) |  |  | Position-dependent absorption alpha(x, y, z) [1/m] |
-| `n2Scale` | model (field) |  |  | Position-dependent factor on n2 |
+| `n2Scale` | model (field) |  |  | Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled |
 | `params` | any |  |  | Free parameters (expressions, user elements) |
 
 ### `gainCommon`
@@ -1320,6 +1320,8 @@ Keys of elements that propagate nonlinearly in a material.
 | `kerrAnisotropy` | number |  | the material's (BaF2 -1.2, others 0) | Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] |
 | `kerrCutAxis` | number or array |  | [0, 0, 1] | Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) |
 | `kerrAzimuthDeg` | number | deg | 0 | Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction |
+| `kerrLens` | `"off"` \| `"peak"` \| `"pulseWeighted"` |  | off | Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power |
+| `kerrLensModel` | `"secondMoment"` \| `"paraxial"` |  | secondMoment | Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) |
 | `timeResponse` | model (timeResponse) |  |  | An extra time-domain response n(t, I) |
 | `replaceKerr` | boolean |  | false | true switches off the built-in Kerr/Raman (use with your own timeResponse) |
 | `raman` | any |  |  | false, or a delayed-response model |

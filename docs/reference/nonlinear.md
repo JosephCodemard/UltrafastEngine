@@ -102,6 +102,26 @@ in vacuum, n0 the linear index at the carrier). Other sources quote 3.72 for the
 Opt. Lett. 25, 335 (2000)); the two differ by 1.3 %. The engine uses 3.77 everywhere, so the ratio is comparable between
 elements and with the textbook value. A ratio above 0.3 raises a warning.
 
+### Kerr lens in a 1-D element
+
+A 1-D element has one beam that is a fixed function of z, so it does not feel the Kerr index of the pulse. With `"kerrLens": "peak"` (or
+`"pulseWeighted"`) on a bulk element with a `gaussian` (or tracked) beam, the executor builds the beam from the pulse instead: every step is a thin Kerr lens
+of the power at the element's entry (`CellModeSolver.KerrLensPowerPerM`) and the second-moment radius of each axis follows
+
+w'' = Λ² / w³ − K w, K = c n2 I0 / (n w²), I0 = 2P / (π wx wy), Λ = M² λ / (π n)
+
+(c = 1 for `kerrLensModel: "secondMoment"`, the default; c = 4 for `"paraxial"`, the on-axis curvature, which overestimates the lens). For a round beam at its waist
+this has the exact solution w² = w0² [1 + (1 − P/P_c)(z/z_R)²] with the model's self-trapping power P_c = λ² / (2π c n n2); for c = 1 that is 1.06 × Marburger's P_cr.
+The intensity seen by the nonlinear step, the B-integral and the reported peak intensity use the lensed beam. Reported per element: `kerrLensPowerW`, `kerrLensExitRadiusXM`, `kerrLensExitRadiusYM`.
+
+* `peak` uses the peak power; `pulseWeighted` uses Σ P² / Σ P (the lens of each time slice is proportional to its power, and the slice carries energy proportional to it; peak / √2 for a Gaussian pulse). Neither is exact: a real pulse focuses slice by slice, which only the `transverse` model resolves. `peak` is the upper bound.
+* The lens uses the power at the element's entry. If the power changes by more than 20 % inside the element (dispersion, absorption), the run warns: split the element.
+* Above P_c the model collapses; the run warns with the collapse distance and holds the radius at 1e-3 of its entry value. Use `transverse` there.
+* The beam leaving the element is **not** carried to later elements (their beams are the compile-time tracked ones). For a multipass cell use `cellMode`, which self-consistently includes the same thin lens.
+* Off by default; with `off` every result is unchanged. The `n2` is the element's total (Kerr + delayed fraction at its adiabatic value): for pulses shorter than a delayed response the lens is somewhat weaker.
+
+Tests: `KerrLensTests` (exact solution of the model for c = 1 and 4 at P/P_c = 0, 0.5, 1, 2, collapse distance zR / √(P/P_c − 1), the Marburger ratio 4 / 3.77, the engine's exit radius against the same solution, vanishing at low power).
+
 ## Carrier-resolved field model
 
 When a time response declares `carrierResolved: true` (or `physics.fieldMode: "carrier"`), the element is

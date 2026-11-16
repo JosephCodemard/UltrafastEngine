@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+**Fixed (physics)**
+- **`n2Scale` in a 1-D element now scales every third-order response**, not only the Kerr n2: the rotational Raman of gases (air, N2, ...) is multiplied by the same factor, as the spatial model already did. Before, `n2Scale: 0.5` on an air gap left the orientational response at full strength. Test `GasTests.N2Scale_In1D_ScalesTheRotationalRamanToo`.
+- **The element's own `n2` key was ignored** (only run-spec overrides were read, so `"n2": 3e-20` on a bulk element silently kept the material's value). Found while writing the Kerr-lens tests. Test `KerrLensTests.ElementN2_OverridesTheMaterial`.
+
+**Added (physics)**
+- **`kerrLens` / `kerrLensModel`** on bulk elements: self-focusing of the 1-D Gaussian beam by the pulse's own Kerr lens (peak or pulse-weighted power, thin slices, second-moment radius), off by default. Exact reference: w² = w0²[1 + (1 − P/P_c)(z/zR)²]. See `docs/reference/nonlinear.md#kerr-lens-in-a-1-d-element`. The beam leaving the element is not carried on; use `cellMode` or `transverse` for that.
+
 **Added (install and build)**
 - **`docs/install.md`**: one page with a "what do you want?" table (release install, source build, Python, C API, individual plugins), the hosted-versus-native Python engine, troubleshooting and a box of steps for AI agents. The README quick start, `getting-started.md`, `python/README.md` (its link to a missing `docs/python.md` is fixed), `releasing.md` and `llms.txt` point to it.
 - **`build/setup.py`** (`./setup.sh`, `setup.bat`): source builds for this machine. `--cli`, `--python` (+ `--venv`, `--python-engine hosted|native`), `--cpp`, `--plugins A B` (only those and what their `plugin.json` requires), `--plugin-only A` (rebuild one plugin and refresh it in existing builds), `--check` (smoke test), `--doctor`, `--dry-run`, `--clean-native` (removes a stale NativeAOT library that shadows the hosted Python engine; never done unasked). `python/tools/build_engine.py` gains `--plugins` and `--framework` and is now importable; its output is unchanged without them.

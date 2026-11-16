@@ -75,6 +75,29 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.25, circ.Records[0].BIntegralRad / lin.Records[0].BIntegralRad, 0.03, 0, "circular / linear orientational Kerr");
         }
 
+        [Test(Reference = "linearity of every chi(3) response in n2Scale (the scale multiplies the third-order susceptibility)", Tolerance = "1e-6")]
+        public void N2Scale_In1D_ScalesTheRotationalRamanToo()
+        {
+            // bug (D1): the 1-D path scaled only the Kerr n2, so air / N2 kept its full rotational Raman
+            double B(JsonObject gas, double scale)
+            {
+                var o = O("format", "ultrafast-system", "version", 2, "name", "g", "materials", O("gas", gas));
+                o.Set("elements", A(O("id", "cell", "type", "bulk", "material", "gas", "lengthM", 1.0, "beam", O("kind", "constant", "areaM2", 2e-8), "n2Scale", scale)));
+                var run = O("format", "ultrafast-run", "version", 2, "physics", O("selfSteepening", false));
+                run.Set("pulse", O("shape", "gaussian", "centerWavelengthM", Lam, "durationFwhmS", 5e-12, "energyJ", 1.5e-3));
+                return Simulation.Run(SystemDescription.FromJson(o), Specs.RunSpec.FromJson(run)).Records[0].BIntegralRad;
+            }
+            var pureRot = O("gas", O("species", "N2", "pressureBar", 1.0), "n2", 0.0);   // orientational response only
+            var full = O("gas", O("species", "N2", "pressureBar", 1.0));               // electronic Kerr + orientational
+            foreach (var (name, gas) in new[] { ("orientational only", pureRot), ("Kerr + orientational", full) })
+            {
+                double b1 = B(gas, 1.0), b05 = B(gas, 0.5), b0 = B(gas, 0.0);
+                Assert.Greater(b1, 1e-4, name + ": reference B (b1=" + b1 + ", b05=" + b05 + ")");
+                Assert.Close(0.5 * b1, b05, 1e-6, 0, name + ": n2Scale 0.5 halves B");
+                Assert.Less(b0, 1e-9 * b1, name + ": n2Scale 0 removes every third-order term");
+            }
+        }
+
         [Test(Reference = "published refractivities of the gases", Tolerance = "1e-09, 2 %")]
         public void Gases_IndicesOfNewSpecies()
         {

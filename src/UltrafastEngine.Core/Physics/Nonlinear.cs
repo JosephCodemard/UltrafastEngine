@@ -50,6 +50,16 @@ namespace UltrafastEngine.Physics
         double AdiabaticN2 { get; }
     }
 
+    /// <summary>An <see cref="IAnisotropicResponse"/> multiplied by a constant (the element's <c>n2Scale</c>): the convolution and the adiabatic n2 scale together.</summary>
+    public sealed class ScaledAnisotropicResponse : IAnisotropicResponse
+    {
+        private readonly IAnisotropicResponse _inner; private readonly double _scale;
+        public ScaledAnisotropicResponse(IAnisotropicResponse inner, double scale) { _inner = inner; _scale = scale; }
+        public string Description => _inner.Description + string.Format(System.Globalization.CultureInfo.InvariantCulture, " x {0:G5}", _scale);
+        public double[] Convolve(double[] x, double dt) { var y = _inner.Convolve(x, dt); for (int i = 0; i < y.Length; i++) y[i] *= _scale; return y; }
+        public double AdiabaticN2 => _scale * _inner.AdiabaticN2;
+    }
+
     /// <summary>
     /// What a stepper integrates: dA/dz = L(omega) A + N(A, z), with L diagonal in frequency (the
     /// frame-referenced linear operator of the element per unit length) and N the nonlinear operator.
