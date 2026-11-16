@@ -93,6 +93,14 @@ nav:
       - Development history: design/history.md
       - "Next steps": design/next-steps.md
       - "Backlog (parked design)": design/backlog.md
+      - "Release plan 1.0.0": design/release-plan.md
+      - "WP-D core fixes": design/wp-d-core-fixes.md
+      - "WP-E leftovers and Zemax": design/wp-e-leftovers-zemax.md
+      - "WP-C(A) speed on the Mac": design/wp-ca-speed-mac.md
+      - "WP-C(B) GPU on Windows": design/wp-cb-gpu-windows.md
+      - "WP-B documentation": design/wp-b-docs.md
+      - "WP-A agents and MCP": design/wp-a-agents-mcp.md
+      - "WP-F release pipeline": design/wp-f-release.md
 markdown_extensions:
   - admonition
   - tables
