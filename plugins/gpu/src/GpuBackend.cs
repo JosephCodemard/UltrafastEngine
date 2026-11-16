@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using UltrafastEngine.Numerics;
@@ -15,7 +16,7 @@ namespace UltrafastEngine.Plugins.Gpu
     /// (kernels compiled on first use), one stream per (device, thread) so concurrent runs overlap, the decision which
     /// problems go to the device, and a fall-back to the CPU with a note if the device fails.
     /// </summary>
-    public abstract class GpuBackend : IDeviceBackend
+    public abstract class GpuBackend : IEnsembleBackend
     {
         public abstract string Name { get; }
         public abstract int Priority { get; }
@@ -175,6 +176,90 @@ namespace UltrafastEngine.Plugins.Gpu
         public int RunningOn(int dev) => Gate(dev).Busy;
 
         public Complex[] Propagate(IPropagationProblem p, Complex[] a0, StepperSettings st, StepStatistics stats, Action<double> progress)
+        {
+            // a study batch on a device: wait for the other points and run them as one ensemble (Numerics/Ensemble.cs)
+            var gate = EnsembleGate.Current;
+            if (gate != null)
+            {
+                var key = EnsembleKey(p, st);
+                if (key != null) return gate.Submit(new EnsembleJob { Problem = p, Initial = a0, Settings = st, Stats = stats, Progress = progress, Key = key }, this);
+            }
+            return PropagateOne(p, a0, st, stats, progress);
+        }
+
+        /// <summary>Default largest ensemble (members per launch); the study key "ensemble" sets it (EnsembleGate.MaxMembers).</summary>
+        public const int DefaultEnsembleMax = 256;
+
+        public string EnsembleKey(IPropagationProblem p, StepperSettings st)
+        {
+            if (!(p is EnvelopeProblem ep) || WhyNot(p) != null) return null;
+            if (string.Equals(st.Method, "rk4ip", StringComparison.OrdinalIgnoreCase) || string.Equals(st.Method, "fixed", StringComparison.OrdinalIgnoreCase)) return null;
+            var s = ep.DeviceSpec();
+            if (s == null || s.Responses != null) return null;
+            bool raman = s.RamanKernelFreq != null && s.RamanFraction > 0 && s.N2 != 0;
+            var inv = CultureInfo.InvariantCulture;
+            return string.Join("|", Name, SelectDevice(IsAuto).ToString(inv), s.N.ToString(inv), s.Scalar ? "s" : "v", raman ? "R" + Hash(s.RamanKernelFreq) + Hash(s.RamanAnisoFreq) : "-",
+                s.RotationalKernelFreq != null ? "Q" + Hash(s.RotationalKernelFreq) : "-", s.SelfSteepening ? "S" + Hash(s.OmegaOffset) + s.OmegaCenter.ToString("R", inv) : "-",
+                s.DTime.ToString("R", inv), st.Tolerance.ToString("R", inv), st.MaxNonlinearPhasePerStepRad.ToString("R", inv), st.MaxStepM.ToString("R", inv),
+                st.MinStepM.ToString("R", inv), st.MaxSteps.ToString(inv), st.MaxAreaChangePerStep.ToString("R", inv));
+        }
+
+        private static string Hash(Complex[] a) { if (a == null) return "0"; ulong h = 14695981039346656037UL; foreach (var c in a) { h = (h ^ (ulong)BitConverter.DoubleToInt64Bits(c.Real)) * 1099511628211UL; h = (h ^ (ulong)BitConverter.DoubleToInt64Bits(c.Imaginary)) * 1099511628211UL; } return h.ToString("x16"); }
+        private static string Hash(double[] a) { if (a == null) return "0"; ulong h = 14695981039346656037UL; foreach (var c in a) h = (h ^ (ulong)BitConverter.DoubleToInt64Bits(c)) * 1099511628211UL; return h.ToString("x16"); }
+
+        public void PropagateEnsemble(IList<EnsembleJob> jobs)
+        {
+            int max = EnsembleGate.Current?.MaxMembers > 0 ? EnsembleGate.Current.MaxMembers : DefaultEnsembleMax;
+            if (max < 1) max = 1;
+            for (int start = 0; start < jobs.Count; start += max)
+            {
+                var part = new List<EnsembleJob>();
+                for (int i = start; i < Math.Min(jobs.Count, start + max); i++) part.Add(jobs[i]);
+                RunEnsemble(part);
+            }
+        }
+
+        private void RunEnsemble(List<EnsembleJob> jobs)
+        {
+            void Alone(EnsembleJob j, string note) { if (note != null) j.Stats.Notes.Add(note); j.Result = PropagateOne(j.Problem, j.Initial, j.Settings, j.Stats, j.Progress); }
+            if (jobs.Count == 1) { Alone(jobs[0], null); return; }
+            int dev = SelectDevice(IsAuto);
+            var specs = jobs.Select(j => ((EnvelopeProblem)j.Problem).DeviceSpec()).ToList();
+            var info = _devices[dev];
+            if (info.MemoryBytes > 0 && EnsembleStepper.MemoryNeeded(specs[0], jobs.Count) > 0.8 * info.MemoryBytes && jobs.Count > 1)
+            {   // split in halves until it fits
+                int h = jobs.Count / 2;
+                RunEnsemble(jobs.GetRange(0, h)); RunEnsemble(jobs.GetRange(h, jobs.Count - h));
+                return;
+            }
+            int slots = ComputeBackends.Settings.DeviceSlots > 0 ? ComputeBackends.Settings.DeviceSlots : DefaultDeviceSlots;
+            var gate = Gate(dev);
+            gate.Enter(slots, true);
+            try
+            {
+                var ctx = Context(dev);
+                var s = StreamFor(ctx);
+                string note = "device: " + Name + " #" + dev + " " + ctx.Info.Name + (ctx.VendorFftName != null ? " (" + ctx.VendorFftName + ")" : " (built-in FFT)") + "; ensemble of " + jobs.Count + " study points in one launch";
+                foreach (var j in jobs) j.Stats.Notes.Add(note);
+                using (var stp = new EnsembleStepper(s, specs))
+                {
+                    var outs = stp.Propagate(jobs.Select(j => j.Initial).ToList(), jobs.Select(j => j.Settings).ToList(), jobs.Select(j => j.Stats).ToList());
+                    for (int i = 0; i < jobs.Count; i++) { jobs[i].Result = outs[i]; jobs[i].Progress?.Invoke(1.0); }
+                }
+            }
+            catch (GpuException ex)
+            {
+                foreach (var j in jobs)
+                {
+                    j.Stats.Notes.Add(Name + " ensemble failed (" + ex.Message.Split('\n')[0] + "); ran on the CPU");
+                    j.Stats.Accepted = 0; j.Stats.Rejected = 0; j.Stats.BIntegralRad = 0; j.Stats.MinStepM = double.PositiveInfinity; j.Stats.MaxStepM = 0;
+                    j.Result = Steppers.PropagateCpu(j.Problem, j.Initial, j.Settings, j.Stats, j.Progress);
+                }
+            }
+            finally { gate.Exit(); }
+        }
+
+        private Complex[] PropagateOne(IPropagationProblem p, Complex[] a0, StepperSettings st, StepStatistics stats, Action<double> progress)
         {
             var why = WhyNot(p);
             if (why != null) { stats.Notes.Add(Name + ": " + why + "; ran on the CPU"); return Steppers.PropagateCpu(p, a0, st, stats, progress); }

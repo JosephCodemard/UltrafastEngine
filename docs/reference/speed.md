@@ -101,7 +101,7 @@ Accelerate instead.
 ## Studies
 
 Parameter studies freeze the grid, cache the unchanged prefix of the system and run points in parallel batches:
-[Parameter studies](studies.md). With a GPU back-end, set `"parallel"` to 2-4 so the device always has work queued.
+[Parameter studies](studies.md). With a GPU back-end the points of a batch run as one device ensemble ([below](#device-ensembles-for-studies)); `"parallel"` then only matters for elements that cannot join it.
 
 ## Parameter studies against a loop
 
@@ -117,10 +117,26 @@ points as independent `Simulation.Run` calls; "study" is `Studies.Run` (frozen g
 The gain grows with the cost of the elements before the changed one and of the instruments. When a single run takes 3 ms, nothing is gained
 by any machinery: the 200 runs already finish in less than a second. A separate *linear fast path* (one transfer function, no integration)
 and an *ensemble dimension on the CPU* were therefore **not built**: a linear element already costs one FFT pair, and
-the CPU has no launch latency to hide. **Revisit** the ensemble layout for the GPU (WP-C(B)), where 200 points in one launch is the good case.
+the CPU has no launch latency to hide. On the GPU the ensemble was built (WP-C(B)): [Device ensembles for studies](#device-ensembles-for-studies).
 
 Allocation: the 200-point study allocates 0.8 GB (the loop 2.2 GB); a single 1-D run on 4096 points allocates 11 MB, a radial spatial run 1 GB
 (`spatial-kerr`). Pooling the spatial buffers is the remaining CPU item; it is not needed for any measured case to be slow.
+
+## Device ensembles for studies
+
+With a GPU back-end the points of a study batch run as one ensemble ([Parameter studies](studies.md)): every 1-D element of every point is
+integrated in the same kernel launches (each point with its own steps), so the launch latency is paid once per step for all points instead of
+once per point. RTX 3060 Ti (FP64 at 1/64 of FP32), .NET 10, 20-core CPU, 200-point scan of a Kerr + Raman plate (the self-test problem), whole
+study wall time (compile, nominal run, all points):
+
+| case | CPU, `parallel` 4 | CPU, `parallel` 20 | GPU, a stream per point (`ensemble: 0`, `parallel` 4) | GPU ensemble, CUDA / OpenCL |
+|---|---|---|---|---|
+| scalar, N = 4096 | 4.4 s | 1.7 s | 13.4 s | 2.2 s / 1.9 s |
+| vector, N = 4096 | 5.9 s | 2.4 s | 8.0 s | 2.3 s / 2.5 s |
+| scalar, N = 16384 | 18.1 s | 11.3 s | 13.8 s | 7.2 s / 9.2 s |
+
+The ensemble is 3.5 to 6 times faster than separate streams. On this consumer card it matches a fully loaded 20-core CPU at N = 4096 and is 1.6
+times faster at N = 16384; a card with full-rate FP64 (A100, H100) should gain much more, but that was not measured.
 
 ## FP32 study (mixed precision)
 

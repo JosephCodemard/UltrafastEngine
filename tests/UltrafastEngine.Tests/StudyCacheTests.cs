@@ -63,5 +63,63 @@ namespace UltrafastEngine.Tests
             }
             finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
         }
+    
+        /// <summary>A fake ensemble back-end: records the batch sizes and returns each job's initial field times its index.</summary>
+        private sealed class FakeEnsemble : Numerics.IEnsembleBackend
+        {
+            public readonly System.Collections.Concurrent.ConcurrentBag<int> Sizes = new System.Collections.Concurrent.ConcurrentBag<int>();
+            public string Name => "fake"; public string Description => "fake"; public int Priority => 0;
+            public System.Collections.Generic.IReadOnlyList<Numerics.ComputeDeviceInfo> Devices => new Numerics.ComputeDeviceInfo[0];
+            public string Unavailable => null;
+            public JsonObject SelfTest(int device, bool benchmark) => new JsonObject();
+            public string WhyNot(Physics.IPropagationProblem p) => null;
+            public bool Supports(Physics.IPropagationProblem p) => true;
+            public System.Numerics.Complex[] Propagate(Physics.IPropagationProblem p, System.Numerics.Complex[] a0, Physics.StepperSettings st, Physics.StepStatistics stats, Action<double> progress) => a0;
+            public string EnsembleKey(Physics.IPropagationProblem p, Physics.StepperSettings st) => "k";
+            public void PropagateEnsemble(System.Collections.Generic.IList<Numerics.EnsembleJob> jobs)
+            {
+                Sizes.Add(jobs.Count);
+                foreach (var j in jobs) j.Result = new[] { j.Initial[0] * 2 };
+            }
+        }
+
+        [Test(Category = "studies")]
+        public void EnsembleGate_BatchesWaitingThreads_AndNeverWaitsForFinishedOnes()
+        {
+            // the gate behind device ensembles (Numerics/Ensemble.cs): 8 threads with 0..4 jobs each and random delays; every job
+            // must come back, no thread may wait for one that has finished, and jobs that arrive together share a batch
+            var fake = new FakeEnsemble();
+            var gate = new Numerics.EnsembleGate();
+            var results = new System.Collections.Concurrent.ConcurrentDictionary<int, double>();
+            var threads = new System.Threading.Thread[8];
+            for (int t = 0; t < threads.Length; t++) gate.Enter();
+            for (int t = 0; t < threads.Length; t++)
+            {
+                int tt = t;
+                threads[t] = new System.Threading.Thread(() =>
+                {
+                    var rnd = new Random(tt);
+                    try
+                    {
+                        for (int k = 0; k < tt % 5; k++)
+                        {
+                            System.Threading.Thread.Sleep(rnd.Next(0, 20));
+                            int id = tt * 10 + k;
+                            var r = gate.Submit(new Numerics.EnsembleJob { Initial = new System.Numerics.Complex[] { id } }, fake);
+                            results[id] = r[0].Real;
+                        }
+                    }
+                    finally { gate.Leave(); }
+                });
+                threads[t].Start();
+            }
+            foreach (var th in threads) Assert.True(th.Join(20000), "no deadlock");
+            int expected = Enumerable.Range(0, 8).Sum(t => t % 5);
+            Assert.Equal(expected, results.Count, "every job came back");
+            foreach (var kv in results) Assert.Close(2.0 * kv.Key, kv.Value, 0, 0, "result of job " + kv.Key);
+            Assert.Equal(expected, fake.Sizes.Sum(), "members counted once");
+            Assert.Equal(expected, gate.Members, "gate counters");
+            Assert.True(gate.Largest > 1, "simultaneous jobs shared a batch (largest " + gate.Largest + ")");
+        }
     }
 }

@@ -429,6 +429,148 @@ KERNEL void uf_chi2(G const cplx* T, int n, int K, int shg, double g0, double ep
     if (LID == 0) part[po + GRP] = sm[0];
 }
 
+/* ---------------------------------------------------------------- ensembles of 1-D envelope problems (EnsembleStepper) */
+/* B members, component-major: component c, member b, sample i at (c B + b) n + i, so member b = (g / n) mod B. Per-member values
+   come from prm: h at prm[b]; the factor f multiplies it (0.5 for half steps). */
+
+KERNEL void uf_ens_exp(G const cplx* L, G const double* prm, double f, G cplx* dst, int len, int n, int B)
+{
+    for (int i = GID; i < len; i += GSZ) {
+        double h = f * prm[(i / n) % B];
+        double re = L[i].x * h, im = L[i].y * h;
+        double m = re < -700.0 ? 0.0 : exp(re);
+        dst[i] = C2(m * cos(im), m * sin(im));
+    }
+}
+
+KERNEL void uf_ens_axpy(G const cplx* y, G const double* prm, double f, G const cplx* x, G cplx* dst, int len, int n, int B)
+{
+    for (int i = GID; i < len; i += GSZ) { double s = f * prm[(i / n) % B]; dst[i] = C2(y[i].x + s * x[i].x, y[i].y + s * x[i].y); }
+}
+
+KERNEL void uf_ens_axpy_mul(G const cplx* e, G const cplx* y, G const double* prm, G const cplx* x, G cplx* dst, int len, int n, int B)
+{
+    for (int i = GID; i < len; i += GSZ) { double s = prm[(i / n) % B]; dst[i] = cmul(e[i], C2(y[i].x + s * x[i].x, y[i].y + s * x[i].y)); }
+}
+
+KERNEL void uf_ens_rk_beta(G const cplx* hf, G const cplx* aI, G const cplx* k1, G const cplx* k2, G const cplx* k3, G const double* prm,
+                           G cplx* beta, int len, int n, int B)
+{
+    for (int i = GID; i < len; i += GSZ) {
+        double c = prm[(i / n) % B] / 6.0;
+        cplx s = C2(aI[i].x + c * (k1[i].x + 2.0 * k2[i].x + 2.0 * k3[i].x), aI[i].y + c * (k1[i].y + 2.0 * k2[i].y + 2.0 * k3[i].y));
+        beta[i] = cmul(hf[i], s);
+    }
+}
+
+KERNEL void uf_ens_rk_final(G const cplx* beta, G const cplx* k4, G const double* prm, G cplx* a, int len, int n, int B)
+{
+    for (int i = GID; i < len; i += GSZ) { double c = prm[(i / n) % B] / 6.0; a[i] = C2(beta[i].x + c * k4[i].x, beta[i].y + c * k4[i].y); }
+}
+
+/* per member b (one group at a time): sum |a4 - a3|^2 -> out[o + b], |a4|^2 -> out[o + B + b] over its comp rows */
+KERNEL void uf_ens_rk_err(G const cplx* beta, G const cplx* a4, G const cplx* k4, G const cplx* k5, G const double* prm,
+                          int n, int B, int comp, G double* out, int o)
+{
+    LOC double sa[256];
+    LOC double sb[256];
+    for (int b = GRP; b < B; b += NGRP) {
+        double na = 0.0, nb = 0.0, c = prm[b] / 30.0;
+        for (int cc = 0; cc < comp; cc++)
+            for (int i = LID; i < n; i += LSZ) {
+                int g = (cc * B + b) * n + i;
+                double dx = a4[g].x - (beta[g].x + c * (2.0 * k4[g].x + 3.0 * k5[g].x));
+                double dy = a4[g].y - (beta[g].y + c * (2.0 * k4[g].y + 3.0 * k5[g].y));
+                na += dx * dx + dy * dy;
+                nb += cabs2(a4[g]);
+            }
+        sa[LID] = na; sb[LID] = nb;
+        SYNC();
+        for (int s = LSZ / 2; s > 0; s >>= 1) { if (LID < s) { sa[LID] += sa[LID + s]; sb[LID] += sb[LID + s]; } SYNC(); }
+        if (LID == 0) { out[o + b] = sa[0]; out[o + B + b] = sb[0]; }
+        SYNC();
+    }
+}
+
+/* accepted members (mask prm[mo + b] != 0): a = a4, kN = k5 */
+KERNEL void uf_ens_select(G cplx* a, G const cplx* a4, G cplx* kN, G const cplx* k5, G const double* prm, int mo, int len, int n, int B)
+{
+    for (int i = GID; i < len; i += GSZ) if (prm[mo + (i / n) % B] != 0.0) { a[i] = a4[i]; kN[i] = k5[i]; }
+}
+
+/* Kerr + Raman + orientational rate of every member (as uf_env_kerr); intensities times the member's 1 / Aeff = prm[ia + b],
+   coherent coupling cc = prm[ic + b]; per-member constants k0, n2, fR at mc[b], mc[B + b], mc[2 B + b]. C (Raman, from
+   uf_sp_raman_in: |A|^2 not divided by Aeff) and Q (orientational, uf_rot_in with invA 1) are scaled by 1 / Aeff here. */
+KERNEL void uf_ens_kerr(G const cplx* T, G const cplx* C, G const cplx* Q, int n, int B, int scalar, int raman, int rot, int m,
+                        G const double* prm, int ia, int ic, G const double* mc, double dt, G cplx* R, G double* P, G double* D)
+{
+    int block = B * n, h = n >> 1;
+    for (int g = GID; g < block; g += GSZ) {
+        int b = g / n, i = g - b * n;
+        double invA = prm[ia + b], k0 = mc[b], n2 = mc[B + b], fR = mc[2 * B + b], cc = prm[ic + b];
+        cplx ax = T[g];
+        cplx ay = scalar ? C2(0.0, 0.0) : T[block + g];
+        double ix = cabs2(ax) * invA, iy = cabs2(ay) * invA;
+        double rx = 0.0, ry = 0.0, rxy = 0.0;
+        if (raman == 1) { rx = fR * (C[g].x * invA) * dt; ry = rx; }
+        else if (raman == 2) {
+            double iso = (C[g].x - C[block + g].x) * invA * dt;
+            rx = fR * (iso + C[2 * block + g].x * invA * dt);
+            ry = fR * (iso + C[3 * block + g].x * invA * dt);
+            rxy = C[4 * block + g].x * invA * dt;
+        }
+        double dnx = n2 * ((1.0 - fR) * (ix + 2.0 / 3.0 * iy) + rx);
+        double dny = n2 * ((1.0 - fR) * (iy + 2.0 / 3.0 * ix) + ry);
+        double qxy = 0.0;
+        if (rot != 0) {
+            int c = i + h; if (c >= n) c -= n;
+            int q = b * m + c, total = B * m;
+            dnx += Q[q].x * invA;
+            if (rot == 2) { dny += Q[total + q].x * invA; qxy = Q[2 * total + q].x * invA; }
+        }
+        cplx nx = cimul(ax, k0 * dnx);
+        cplx ny = C2(0.0, 0.0);
+        if (!scalar) {
+            ny = cimul(ay, k0 * dny);
+            if (cc != 0.0) {
+                nx = cadd(nx, cimul(cmul(cmul(ay, ay), cconj(ax)), k0 * cc));
+                ny = cadd(ny, cimul(cmul(cmul(ax, ax), cconj(ay)), k0 * cc));
+            }
+            if (rot == 2) { nx = cadd(nx, cimul(ay, k0 * qxy)); ny = cadd(ny, cimul(ax, k0 * qxy)); }
+            if (raman == 2) { double d = n2 * fR * rxy; nx = cadd(nx, cimul(ay, k0 * d)); ny = cadd(ny, cimul(ax, k0 * d)); }
+            R[block + g] = ny;
+        }
+        R[g] = nx;
+        double p = cabs2(ax) + cabs2(ay);
+        cplx s = cmul(cconj(ax), nx);
+        if (!scalar) s = cadd(s, cmul(cconj(ay), ny));
+        P[g] = p;
+        D[g] = p > 0.0 ? fabs(s.y / (k0 * p)) : 0.0;
+    }
+}
+
+/* per member: k0 x max of D over samples with P >= 1e-6 max P (PeakIndexChange) -> out[o + b] */
+KERNEL void uf_ens_peak(G const double* P, G const double* D, int n, int B, G const double* mc, G double* out, int o)
+{
+    LOC double sm[256];
+    for (int b = GRP; b < B; b += NGRP) {
+        double pm = 0.0;
+        for (int i = LID; i < n; i += LSZ) pm = fmax(pm, P[b * n + i]);
+        sm[LID] = pm;
+        SYNC();
+        for (int s = LSZ / 2; s > 0; s >>= 1) { if (LID < s) sm[LID] = fmax(sm[LID], sm[LID + s]); SYNC(); }
+        double pmax = sm[0];
+        SYNC();
+        double best = 0.0, thr = 1e-6 * pmax;
+        if (pmax > 0.0) for (int i = LID; i < n; i += LSZ) if (P[b * n + i] >= thr) best = fmax(best, D[b * n + i]);
+        sm[LID] = best;
+        SYNC();
+        for (int s = LSZ / 2; s > 0; s >>= 1) { if (LID < s) sm[LID] = fmax(sm[LID], sm[LID + s]); SYNC(); }
+        if (LID == 0) out[o + b] = mc[b] * sm[0];
+        SYNC();
+    }
+}
+
 /* ---------------------------------------------------------------- spatial (SpatialEnvelopeProblem) */
 /* layout: component c, transverse point m, sample i at c * block + m * n + i (block = M n) */
 

@@ -70,6 +70,9 @@ launches of a few µs each. An explicit `"cuda"` / `"opencl"` uses the device fo
 `gpuMinPoints` is set. `"auto"` never picks an OpenCL device that is a CPU (PoCL, Intel's CPU runtime) unless
 `ULTRAFAST_OPENCL_ALLOW_CPU=1`. What speed-up to expect: [Speed](../reference/speed.md#what-gains-from-a-gpu).
 
+Parameter studies run their points as one device ensemble (all points' 1-D elements in the same launches; study key `ensemble`):
+[Parameter studies](../reference/studies.md), measured gains in [Speed](../reference/speed.md#device-ensembles-for-studies).
+
 An expression is compiled with its parameters written in as constants, so a study that changes an expression parameter
 compiles one kernel per value; a study over anything else reuses the kernel. The device evaluates the same arithmetic as
 the CPU; its `sin`, `exp`, `pow`, ... may differ from .NET's in the last bit, and `min` / `max` / `clamp` ignore a NaN

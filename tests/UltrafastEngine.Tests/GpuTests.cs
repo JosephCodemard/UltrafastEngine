@@ -238,6 +238,58 @@ namespace UltrafastEngine.Tests
             }
         }
 
+        [Test(Category = "gpu", Reference = "cross-check: the same study on the CPU (each point integrated alone)", Tolerance = "1e-09")]
+        public void StudyPoints_AsOneDeviceEnsemble_MatchTheCpuStudy()
+        {
+            // WP-C(B): the points of a study batch run as one ensemble (Numerics/Ensemble.cs, EnsembleStepper.cs); every member keeps
+            // its own adaptive steps, so each point must equal the CPU study's point to rounding
+            var outputs = new JsonArray(new JsonValue[] { "pulse:end/peakPowerW", "pulse:end/fwhmS", "record:plate/BIntegralRad" });
+            var plate = StudySpec(O("mode", "scan", "sampling", "grid", "parallel", 4, "outputs", outputs, "parameters",
+                A(O("path", "element:plate/lengthM", "min", 3e-3, "max", 6e-3, "points", 4), O("path", "pulse/energyJ", "min", 1e-6, "max", 3e-6, "points", 4))));
+            var gasOut = new JsonArray(new JsonValue[] { "pulse:end/peakPowerW", "pulse:end/fwhmS", "record:cell/BIntegralRad" });
+            var gas = StudySpec(O("mode", "scan", "sampling", "grid", "parallel", 4, "outputs", gasOut, "parameters", A(O("path", "element:cell/lengthM", "min", 0.5, "max", 1.0, "points", 6))));
+            foreach (var b in AllDevices())
+            {
+                // vector Kerr + Raman + steepening (the self-test plate), 16 points
+                var (sys, cpuRun) = GpuSelfTest.Problem("vector", 2048, 0, O("backend", "cpu"));
+                var (_, devRun) = GpuSelfTest.Problem("vector", 2048, 0, On(b));
+                Compare(b.Name + " plate", Engine.Studies.Run(sys, cpuRun, plate), Engine.Studies.Run(sys, devRun, plate), 16);
+                // a gas cell with rotational Raman (scalar), 6 points
+                var gsys = Systems.SystemDescription.FromJson(O("format", "ultrafast-system", "version", 2, "name", "gas", "materials", O("g", O("gas", O("species", "N2", "pressureBar", 1.0))),
+                    "elements", A(O("id", "cell", "type", "bulk", "material", "g", "lengthM", 1.0, "beam", O("kind", "constant", "areaM2", 2e-8)))));
+                Specs.RunSpec G(JsonObject compute) => Specs.RunSpec.FromJson(O("format", "ultrafast-run", "version", 2, "pulse", O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 150e-15, "energyJ", 60e-6),
+                    "grid", O("auto", false, "n", 2048, "windowS", 10e-12), "compute", compute));
+                Compare(b.Name + " N2 cell", Engine.Studies.Run(gsys, G(O("backend", "cpu")), gas), Engine.Studies.Run(gsys, G(On(b)), gas), 6);
+            }
+            // "ensemble": 0 switches it off (points then run on their own streams)
+            var b0 = AllDevices()[0];
+            var (s0, r0) = GpuSelfTest.Problem("vector", 2048, 0, On(b0));
+            var off = O("mode", "scan", "sampling", "grid", "parallel", 2, "ensemble", 0, "outputs", outputs, "parameters", A(O("path", "element:plate/lengthM", "min", 3e-3, "max", 6e-3, "points", 3)));
+            Assert.False(Engine.Studies.Run(s0, r0, StudySpec(off)).Notes.Any(n => n.StartsWith("device ensembles")), "ensemble 0: no ensemble");
+
+            void Compare(string label, Engine.StudyResult cpu, Engine.StudyResult dev, int points)
+            {
+                Assert.Equal(points, dev.Evaluations, label + ": points");
+                var note = dev.Notes.FirstOrDefault(n => n.StartsWith("device ensembles")) ?? "";
+                Console.WriteLine("    " + label + ": " + note);
+                Assert.True(note.Contains("largest " + points + " points"), label + ": all points in one launch: " + string.Join(" | ", dev.Notes));
+                double worst = 0;
+                for (int i = 0; i < points; i++)
+                {
+                    Assert.True(dev.Errors[i] == null, label + ": point " + i + " failed: " + dev.Errors[i]);
+                    for (int k = 0; k < cpu.Outputs[i].Length; k++)
+                    {
+                        double c = cpu.Outputs[i][k], d = dev.Outputs[i][k];
+                        worst = Math.Max(worst, Math.Abs(d - c) / Math.Abs(c));
+                        Assert.Close(c, d, 1e-9, 0, label + ": point " + i + " output " + cpu.OutputNames[k]);
+                    }
+                }
+                Console.WriteLine("    " + label + ": worst relative difference " + worst.ToString("E2"));
+            }
+        }
+
+        private static Engine.StudySpec StudySpec(JsonObject o) => Engine.StudySpec.FromJson(o);
+
         [Test(Category = "gpu")]
         public void CallbackResponses_StayOnTheCpu_WithTheReason()
         {

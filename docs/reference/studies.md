@@ -68,6 +68,12 @@ middle) for the reference run and local sensitivities.
 * **Prefix caching** (`prefixCache`, default true): when every varied parameter acts on elements after some index,
   each point restarts there from the nominal run's pulse instead of recomputing the elements before.
 * `parallel` runs points at the same time (each run also uses multiple cores for its FFTs).
+* **Device ensembles** (`"ensemble"`, default on with a GPU back-end): when the run's `compute.backend` is `cuda`, `opencl` or `auto` with a
+  device, the points of a batch run together, and their 1-D envelope elements are integrated as one ensemble, up to `ensemble` points (default
+  64) per set of kernel launches. Each point keeps its own adaptive steps, so the results equal a point-by-point run to rounding (checked to
+  1e-15). `"ensemble": 0` (or `false`) switches it off; a number sets the largest ensemble. Elements that cannot join (spatial, χ(2),
+  user-response kernels, fixed steps, a different grid or Raman kernel) run alone; the study notes say how many propagations ran in how many
+  launches. Measured gains: [Speed](speed.md#device-ensembles-for-studies).
 * **The frozen grid serves every point.** Before the study the planner runs (compile only) for the two ends of each parameter range
   and for all minima / all maxima together; the frozen grid takes the longest window at the finest sample spacing among them
   (rounded up to a power of two), and a note says when that is larger than the nominal plan. A point is therefore never computed on a grid

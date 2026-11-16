@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **638 tests** in 69 classes. **402** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **24** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **640 tests** in 69 classes. **402** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **25** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -33,7 +33,7 @@ Every C# test of the engine: **638 tests** in 69 classes. **402** of them check 
 | [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
-| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 13 | 9 |
+| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 14 | 10 |
 | [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
@@ -70,7 +70,7 @@ Every C# test of the engine: **638 tests** in 69 classes. **402** of them check 
 | [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 6 | 6 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
-| [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 2 | 0 |
+| [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 3 | 0 |
 | [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
@@ -592,6 +592,7 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 | `SmallOrUnsupportedProblems_StayOnTheCpu_WithANote` | -- | -- |
 | `Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver | 1e-09 |
 | `Spatial_UppeCoupling_MatchesTheCpu` | cross-check: the CPU solver | -- |
+| `StudyPoints_AsOneDeviceEnsemble_MatchTheCpuStudy` | cross-check: the same study on the CPU (each point integrated alone) | 1e-09 |
 | `TilesAndModulator_IntoANonlinearPlate_MatchTheCpu` | cross-check (C6 of the S2 roadmap): the S2 primitives -- a coherent tile source and a modulator -- feeding a nonlinear spatial plate give the CPU result on the device | 1e-9 relative |
 
 ## GridSolverTests
@@ -1123,6 +1124,7 @@ Study grid union and point cache.
 
 | test | reference | tolerance |
 |---|---|---|
+| `EnsembleGate_BatchesWaitingThreads_AndNeverWaitsForFinishedOnes` | -- | -- |
 | `Study_FrozenGridServesTheWholeRange` | -- | -- |
 | `Study_PointCacheResumesAndInvalidates` | -- | -- |
 
