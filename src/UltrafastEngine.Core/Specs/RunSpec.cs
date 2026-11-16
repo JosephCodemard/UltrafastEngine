@@ -182,6 +182,8 @@ namespace UltrafastEngine.Specs
         public GridSpec Grid { get; set; } = new GridSpec();
         public PhysicsOptions Physics { get; set; } = new PhysicsOptions();
         public StepperSettings Stepper { get; set; } = new StepperSettings();
+        /// <summary>The fidelity level (run key "fidelity") and the switches it changed (docs/reference/fidelity.md).</summary>
+        public FidelityPlan Fidelity { get; set; } = new FidelityPlan();
         /// <summary>"all" (default), "end", or a list of element ids whose full spectra/profiles are stored.</summary>
         public string ProbeMode { get; set; } = "all";
         public HashSet<string> ProbeIds { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -267,6 +269,7 @@ namespace UltrafastEngine.Specs
             r.Detectors = o.GetObject("detectors") ?? new JsonObject();
             r.Overrides.AddRange(OverrideSet.Parse(o.GetArray("overrides"), ModelSource.RunOverride, "run spec"));
             r.MigrationNotes.AddRange(migrationNotes);
+            Specs.Fidelity.Apply(r, o);
             return r;
         }
 

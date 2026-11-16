@@ -950,6 +950,19 @@ namespace UltrafastEngine.Engine
         }
 
         /// <summary>The ionisation data (band gap or ionisation potential, ...) come from the catalogue unless the ionization block gives them itself.</summary>
+        /// <summary>Fidelity quick: the spatial models can be replaced by the 1-D model only when every spatial element has a beam to take over
+        /// (an element without one gets its transverse profile from the element before it).</summary>
+        private static bool CanCollapseTransverse(Ctx c)
+        {
+            if (c.Track != null || c.Run.InputBeam != null || c.Sys.InputBeam != null) return true;
+            foreach (var el in c.Sys.Elements)
+            {
+                bool spatial = el.Json.Has("transverse") ? Transverse.TransverseSpec.FromJson(el.Json["transverse"]).IsSpatial : c.Run.Physics.Transverse != null && Transverse.TransverseSpec.FromJson(c.Run.Physics.Transverse).IsSpatial;
+                if (spatial && !el.Json.Has("beam") && Find(c, el, "beam") == null) return false;
+            }
+            return true;
+        }
+
         private static void ReportIonizationCatalogue(Ctx c, SystemElement e, Material m, JsonObject spec)
         {
             var prov = c.Out.Provenance; string target = "element:" + e.Id;
@@ -1108,6 +1121,13 @@ namespace UltrafastEngine.Engine
             // transverse (spatial) model: element > override > run default (physics.transverse)
             var tvOv = Find(c, e, "transverse");
             var tv = Transverse.TransverseSpec.FromJson(tvOv != null ? tvOv.RawValue : e.Json.Has("transverse") ? e.Json["transverse"] : c.Run.Physics.Transverse);
+            // fidelity quick: the 1-D beam model replaces the spatial model where the element has a beam to take over
+            if (tv.IsSpatial && c.Run.Fidelity.CollapseTransverse && !c.Run.Raw.Has("coherence") && CanCollapseTransverse(c))
+            {
+                c.Out.Notes.Add("element " + e.Id + ": fidelity quick uses the 1-D beam model instead of the " + tv.Model + " transverse model (self-focusing, diffraction and wavefront structure are not modelled)");
+                tv = Transverse.TransverseSpec.FromJson(null);
+                lock (c.Run.Fidelity.CollapsedElements) c.Run.Fidelity.CollapsedElements.Add(e.Id);
+            }
             if (tv.IsSpatial && wantNl && med.HasCubicAnisotropy)
                 throw new ModelException("element '" + e.Id + "': the cubic Kerr anisotropy (kerrAnisotropy " + med.KerrAnisotropy.ToString("G4", CultureInfo.InvariantCulture) + ") is implemented for the 1-D envelope model only; use no \"transverse\" model or set kerrAnisotropy 0");
             if (tv.IsSpatial)

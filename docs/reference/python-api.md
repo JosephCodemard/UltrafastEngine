@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `UnverifiedInput`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `Scan`, `System`, `UltrafastError`, `UnverifiedInput`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `scan`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -62,6 +62,22 @@ Process-wide defaults: the back-end of runs whose spec has no ``compute.backend`
 ### `study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = (), outputs: Sequence[str] = (), mode: str = 'scan', output: Optional[PathLike] = None, **options) -> dict`
 
 Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid | random | lhs | sobol, ``samples``), "optimize" (``objective={"output": ..., "goal": "min" | "max" | "target", "target": ...}``) or "sensitivity" (``sensitivity={"method": "local" | "sobol"}``) or "coherence" (``coherence={"trials": 10, "at": "end"}``: repeated runs with independent quantum noise, result in ``analysis["coherence"]``). Parameters are ``{"path": "element:ID/key", "min", "max"}``; outputs are names like ``"pulse:end/fwhmS"``, ``"record:plate/BIntegralRad"``, ``"instrument:ac/fwhmS"``. Returns the study result (rows, analysis); ``output`` also writes study.json / study.csv.
+
+### class `Scan`
+
+A parameter scan on a grid of axes (made by :func:`scan`). Nothing is computed until a result is read (``scan["pulse:end/fwhmS"]``, ``.compute()``, ``.rows``): the arrays are *lazy*. ``scan[output]`` is a numpy array with one dimension per axis, in the order the axes were given; ``scan.axes`` holds the axis values; failed points are NaN and listed in ``scan.errors``.
+
+* `__init__(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], options: Mapping[str, Any])`
+* `shape() -> Tuple[int, ...]`
+* `compute() -> 'Scan'` -- Run the study now (done once; later reads reuse it).
+* `result() -> dict` -- The raw study result (``rows``, ``notes``, ``elapsedS``).
+* `rows() -> List[dict]`
+* `notes() -> List[str]`
+* `errors() -> List[dict]`
+
+### `scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], fidelity: Optional[str] = None, cache: Optional[PathLike] = None, parallel: int = 1, **options) -> Scan`
+
+Lazy grid scan over named axes (docs/reference/studies.md). ``axes`` maps a study path (``"element:plate/lengthM"``, ``"pulse/chirp/gddFs2"``, ...) to its values; every combination is run. ``outputs`` are study output names (``"pulse:end/fwhmS"``). Returns a :class:`Scan`; reading ``scan["pulse:end/fwhmS"]`` runs it and gives an array with one dimension per axis.
 
 ### `coherence(system: Any, run_spec: Any, trials: int = 10, at: str = 'end', parallel: int = 4, seed: int = 1, output: Optional[PathLike] = None) -> dict`
 

@@ -60,6 +60,7 @@ namespace UltrafastEngine.Schema
                 .Obj("pulse", "The input pulse", "pulse", required: true)
                 .Obj("grid", "Time/frequency grid", "grid")
                 .Obj("physics", "Physics switches", "physics")
+                .Enum("fidelity", new[] { "full", "standard", "quick" }, "Cost / accuracy level (docs/reference/fidelity.md): a named bundle of switches that are not written in the run spec itself; every switch you write stays as you wrote it. summary.json lists what changed (fidelityReport) and warns when a quick result is unreliable", "full")
                 .Obj("stepper", "Nonlinear solver settings", "stepper")
                 .P("probes", ParamType.Any, "", "Snapshots of the pulse: \"all\", \"end\" or a list of element ids", "\"end\"")
                 .ListOf("instruments", "instrument", "Instruments")

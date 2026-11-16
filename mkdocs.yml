@@ -61,6 +61,7 @@ nav:
       - Measured data: reference/measured-data.md
       - Pulse retrieval: reference/retrieval.md
       - Parameter studies: reference/studies.md
+      - Fidelity (quick / standard / full): reference/fidelity.md
       - Speed & compute back-ends: reference/speed.md
       - Results: reference/results.md
       - Option reference (generated): reference/options.md

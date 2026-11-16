@@ -42,6 +42,7 @@ A run: the pulse, the instruments and numerical settings. More: [run-spec.md](ru
 | `pulse` | object (`pulse`) |  |  | The input pulse **Required.** |
 | `grid` | object (`grid`) |  |  | Time/frequency grid |
 | `physics` | object (`physics`) |  |  | Physics switches |
+| `fidelity` | `"full"` \| `"standard"` \| `"quick"` |  | full | Cost / accuracy level (docs/reference/fidelity.md): a named bundle of switches that are not written in the run spec itself; every switch you write stays as you wrote it. summary.json lists what changed (fidelityReport) and warns when a quick result is unreliable |
 | `stepper` | object (`stepper`) |  |  | Nonlinear solver settings |
 | `probes` | any |  | "end" | Snapshots of the pulse: "all", "end" or a list of element ids |
 | `instruments` | array of `instrument` |  |  | Instruments |

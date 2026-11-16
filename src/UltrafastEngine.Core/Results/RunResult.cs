@@ -43,6 +43,8 @@ namespace UltrafastEngine.Results
         public Dictionary<string, object> Extensions { get; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         public List<string> Notes { get; } = new List<string>();
         public List<string> Warnings { get; } = new List<string>();
+        /// <summary>Set when the run was below full fidelity: level, switches changed, indicators (summary.json "fidelityReport").</summary>
+        public JsonObject FidelityReport { get; set; }
         public double ElapsedS { get; set; }
         public double FinalArrivalS { get; set; }
         public DispersionPoint FinalSystem { get; set; }
@@ -152,6 +154,7 @@ namespace UltrafastEngine.Results
             o.Set("arrays", new JsonArray(Arrays().Select(a => (JsonValue)new JsonObject().Set("name", a.Name).Set("shape", JsonValue.FromArray(a.Shape.Select(x => (double)x))).Set("unit", a.Unit).Set("description", a.Description))));
             o.Set("notes", JsonValue.FromArray(Notes));
             o.Set("warnings", JsonValue.FromArray(Warnings));
+            if (FidelityReport != null) o.Set("fidelityReport", FidelityReport);
             o.Set("unverifiedInputs", Compiled?.Provenance?.UnverifiedInputsJson() ?? new JsonArray());
             return o;
         }

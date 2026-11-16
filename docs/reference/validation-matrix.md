@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **623 tests** in 67 classes. **401** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **631 tests** in 69 classes. **401** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -25,6 +25,7 @@ Every C# test of the engine: **623 tests** in 67 classes. **401** of them check 
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
 | [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 9 | 9 |
+| [Fidelity switch](#fidelitytests) | `FidelityTests` | 6 | 0 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
 | [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
@@ -69,6 +70,7 @@ Every C# test of the engine: **623 tests** in 67 classes. **401** of them check 
 | [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 6 | 6 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
+| [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 2 | 0 |
 | [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
@@ -453,6 +455,19 @@ Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence.
 | `RamanModels_NormalisedAndHollenbeckPeaksAt13THz` | Hollenbeck & Cantrell, JOSA B 19, 2886 (2002): gain peak 13.2 THz | 1 %, 3 % |
 | `SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon` | Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain) | 2 % |
 | `TaperedGamma_BIntegralFollowsTheIntegral` | B = ∫ γ(z) P dz | 1 % |
+
+## FidelityTests
+
+Fidelity switch.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Fidelity_FullIsTheDefaultAndChangesNothing` | -- | -- |
+| `Fidelity_QuickFillsOnlyUnsetSwitchesAndReportsThem` | -- | -- |
+| `Fidelity_QuickReplacesASpatialModelByTheBeamModel` | -- | -- |
+| `Fidelity_QuickSkipsFrogUnlessKept` | -- | -- |
+| `Fidelity_QuickStaysCloseToFullAtLowB` | -- | -- |
+| `Fidelity_QuickWarnsWhenTheDroppedPhysicsMatters` | -- | -- |
 
 ## FieldToolsTests
 
@@ -1094,6 +1109,15 @@ FFTs, SIMD kernels and studies.
 | `Sobol_SequenceIsStratified` | -- | -- |
 | `Study_OptimizeAndSensitivities` | -- | -- |
 | `Study_ScanWithPrefixCacheMatchesFullRuns` | B = γ P L | 1e-09, 1 % |
+
+## StudyCacheTests
+
+Study grid union and point cache.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Study_FrozenGridServesTheWholeRange` | -- | -- |
+| `Study_PointCacheResumesAndInvalidates` | -- | -- |
 
 ## TileSourceTests
 

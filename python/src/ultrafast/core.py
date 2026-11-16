@@ -143,6 +143,85 @@ def study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = 
     return command(req)
 
 
+class Scan:
+    """A parameter scan on a grid of axes (made by :func:`scan`). Nothing is computed until a result is read (``scan["pulse:end/fwhmS"]``,
+    ``.compute()``, ``.rows``): the arrays are *lazy*. ``scan[output]`` is a numpy array with one dimension per axis, in the order the axes
+    were given; ``scan.axes`` holds the axis values; failed points are NaN and listed in ``scan.errors``."""
+
+    def __init__(self, system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], options: Mapping[str, Any]):
+        self.axes: Dict[str, np.ndarray] = {k: np.asarray(v, dtype=float) for k, v in axes.items()}
+        self.outputs = list(outputs)
+        self._args = (system, run_spec, options)
+        self._result: Optional[dict] = None
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return tuple(len(a) for a in self.axes.values())
+
+    def compute(self) -> "Scan":
+        """Run the study now (done once; later reads reuse it)."""
+        if self._result is None:
+            system, run_spec, options = self._args
+            params = [{"path": k, "values": [float(x) for x in v]} for k, v in self.axes.items()]
+            self._result = study(system, run_spec, params, self.outputs, mode="scan", sampling="grid", **options)
+        return self
+
+    @property
+    def result(self) -> dict:
+        """The raw study result (``rows``, ``notes``, ``elapsedS``)."""
+        return self.compute()._result  # type: ignore[return-value]
+
+    @property
+    def rows(self) -> List[dict]:
+        return self.result["rows"]
+
+    @property
+    def notes(self) -> List[str]:
+        return self.result["notes"]
+
+    @property
+    def errors(self) -> List[dict]:
+        return [r for r in self.rows if "error" in r]
+
+    def __getitem__(self, output: str) -> np.ndarray:
+        if output not in self.outputs:
+            raise KeyError(f"{output!r} is not an output of this scan (outputs: {self.outputs})")
+        out = np.full(self.shape, np.nan)
+        index = [{float(x): i for i, x in enumerate(a)} for a in self.axes.values()]
+        for row in self.rows:
+            pos = tuple(index[k][float(row[name])] for k, name in enumerate(self.axes))
+            v = row.get(output)
+            out[pos] = np.nan if v is None else v
+        return out
+
+    def __repr__(self) -> str:
+        state = "computed" if self._result is not None else "not computed yet"
+        return f"<Scan {'x'.join(str(n) for n in self.shape)} points, outputs {self.outputs}, {state}>"
+
+
+def scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], fidelity: Optional[str] = None,
+         cache: Optional[PathLike] = None, parallel: int = 1, **options: Any) -> Scan:
+    """Lazy grid scan over named axes (docs/reference/studies.md). ``axes`` maps a study path (``"element:plate/lengthM"``,
+    ``"pulse/chirp/gddFs2"``, ...) to its values; every combination is run. ``outputs`` are study output names
+    (``"pulse:end/fwhmS"``). Returns a :class:`Scan`; reading ``scan["pulse:end/fwhmS"]`` runs it and gives an array with one
+    dimension per axis.
+
+    ``fidelity`` ("quick" | "standard" | "full", docs/reference/fidelity.md; needs ``run_spec`` as a dict) sets the run's fidelity;
+    the recommended workflow is to scan in "quick", then re-run the best points in "full". ``cache`` is a folder: each point is stored
+    there under a hash of its inputs, so a repeated or interrupted scan computes only the missing points. The grid is frozen once for
+    all points (the union of what the range ends need) and every point after the first changed element restarts from the cached
+    nominal run, so a scan is much cheaper than a Python loop of :func:`run` calls."""
+    if fidelity is not None:
+        if not isinstance(run_spec, Mapping):
+            raise ValueError("scan(fidelity=...) needs run_spec as a dict; put \"fidelity\" in the run file otherwise")
+        run_spec = {**run_spec, "fidelity": fidelity}
+    opts = dict(options)
+    opts["parallel"] = parallel
+    if cache is not None:
+        opts["cache"] = os.path.abspath(os.fspath(cache))
+    return Scan(system, run_spec, axes, outputs, opts)
+
+
 def coherence(system: Any, run_spec: Any, trials: int = 10, at: str = "end", parallel: int = 4, seed: int = 1,
               output: Optional[PathLike] = None) -> dict:
     """First-order spectral coherence |g12(lambda)| over ``trials`` runs with independent one-photon-per-mode noise

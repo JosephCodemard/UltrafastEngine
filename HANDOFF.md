@@ -1,4 +1,30 @@
-# Handoff: state on 2026-11-16 (road to 1.0.0)
+# Handoff: state on 2026-11-16, end of the WP-C(A) session (road to 1.0.0)
+
+**Read this block first; the text below it is the handoff of the session before (WP-D / WP-E), kept for context.**
+
+## This session: WP-C(A) (speed on the Mac), done
+
+Branch `dev/2026-11`, pushed to GitHub (no tag, no release). Verified: C# 622 pass / 0 fail / 9 skipped (GPU and HAPI gates), Python 266 pass / 2 skipped, 39 example specs in strict mode, `mkdocs build --strict` 0 warnings. net48 was only build-checked (no Mono).
+
+Built (owner approved the conservative fidelity bundles):
+* **`fidelity`** run key (`full` / `standard` / `quick`, CLI `--fidelity`): `Specs/Fidelity.cs`, applied in `RunSpec.FromJson`, unset keys only; `fidelityReport` in `summary.json`; unreliability warnings. Page `docs/reference/fidelity.md` with the measured table. Tests `FidelityTests`.
+* **Studies:** grid union over the range ends, instruments skipped when no output reads one, point cache (`"cache": folder`), Python `uf.scan` (lazy, shaped). Tests `StudyCacheTests`, `test_scan_is_lazy_...`. Study is 5.7x faster than a loop on the multipass cell.
+* **FP32 study:** `cpu-fp32` back-end (`Numerics/Fp32Emulation.cs`); operator in single precision is good to 1e-9 (energy, spectrum) but fills the contrast floor below about -85 dB, so mixed precision must be refused above about 70 dB of dynamic range. Single-precision FFTs, soliton and SHG cases are not covered.
+* `tools/bench` (developer benchmark, not in the solution), `tools/bench/golden-osx-arm64.txt` (outputs of the five baseline cases before any change), `docs/design/gpu-windows-checklist.md`.
+
+Measured and **deliberately not built** (reasons and revisit conditions in `docs/reference/speed.md`): linear fast path, CPU ensemble batching, pooled buffers / SIMD Hankel. No measured case is slow (runs take 20 ms to 0.5 s), so they would add risk for no gain. Reopen if a large spatial scan is slow.
+
+## Next: WP-C(B) on the Windows + NVIDIA machine (needs the owner)
+
+Follow `docs/design/gpu-windows-checklist.md`: run the four commands and paste the output back; then write the kernels in the order of the checklist (gas rotational Raman first), each with a CPU-parity test at 1e-9 for CUDA and OpenCL, then batched study points as an ensemble in one launch, then mixed precision (only after parity; see the FP32 finding). Not done: PoCL on the Mac (`brew install pocl` changes the owner's system; unverified on arm64).
+
+Then, as before: WP-B (honest docs, version 1.0.0), WP-A (agents / MCP), WP-F (wheels, TestPyPI, the real upload only on the owner's explicit go-ahead). WP-A must expose `fidelity` in `run` / `scan` and teach the "explore in quick, confirm in full" workflow.
+
+Small open items from this session: `docs/reference/python-api.md` is generated; the study keys (`cache`, `freezeGrid`, ...) are not in the option registry, so they have no schema entry (docs only); `uf.scan(fidelity=...)` needs the run spec as a dict.
+
+---
+
+# Earlier handoff of 2026-11-16 (WP-D / WP-E)
 
 Written at the end of the session that planned the first public release and did work packages D and E. Read it with
 [docs/design/release-plan.md](docs/design/release-plan.md) (decisions, order, one spec per work package), [PROJECT_STATUS.md](PROJECT_STATUS.md) (what is verified) and

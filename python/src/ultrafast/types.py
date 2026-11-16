@@ -5030,6 +5030,7 @@ RunSpec = TypedDict('RunSpec', {
     'pulse': Union["Pulse", str],  # The input pulse
     'grid': Union["Grid", str],  # Time/frequency grid
     'physics': Union["Physics", str],  # Physics switches
+    'fidelity': Literal["full", "standard", "quick"],  # Cost / accuracy level (docs/reference/fidelity.md): a named bundle of switches that are not written 
     'stepper': Union["Stepper", str],  # Nonlinear solver settings
     'probes': Any,  # Snapshots of the pulse: "all", "end" or a list of element ids Default: "end".
     'instruments': List["Instrument"],  # Instruments: what you measure, and where (docs/reference/instruments.md).

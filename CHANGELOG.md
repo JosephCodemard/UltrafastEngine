@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+**Added (WP-C(A): speed on the Mac)**
+- **`fidelity`** run key (`full` | `standard` | `quick`, CLI `--fidelity`): named bundles of switches that fill only keys the run spec leaves unset; `summary.json` has a `fidelityReport` and quick runs warn when the dropped physics may matter (B, self-steepening, Raman, critical power, polarisation). Reference: `docs/reference/fidelity.md`. Tests: `FidelityTests`.
+- **Studies:** the frozen grid now serves every point (grid union over the range ends), instruments are skipped when no output reads one, and `"cache": "folder"` stores every point under a hash of its inputs (resume and reuse). 5.7 times faster than a loop on the multipass cell (`speed.md`). Tests: `StudyCacheTests`.
+- Python **`uf.scan`**: lazy, shaped arrays over named axes, with `fidelity` and `cache`.
+- `cpu-fp32` back-end (study only) and the FP32 study: the operator in single precision is good to 1e-9 in energy and spectrum but fills the contrast floor below about -85 dB.
+- `tools/bench` (developer benchmark, not packaged); `docs/design/gpu-windows-checklist.md`.
+
 **Fixed (physics)**
 - **`n2Scale` in a 1-D element now scales every third-order response**, not only the Kerr n2: the rotational Raman of gases (air, N2, ...) is multiplied by the same factor, as the spatial model already did. Before, `n2Scale: 0.5` on an air gap left the orientational response at full strength. Test `GasTests.N2Scale_In1D_ScalesTheRotationalRamanToo`.
 - **The element's own `n2` key was ignored** (only run-spec overrides were read, so `"n2": 3e-20` on a bulk element silently kept the material's value). Found while writing the Kerr-lens tests. Test `KerrLensTests.ElementN2_OverridesTheMaterial`.

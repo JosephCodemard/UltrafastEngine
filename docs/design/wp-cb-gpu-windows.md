@@ -1,5 +1,7 @@
 # WP-C(B): GPU coverage and the Windows / NVIDIA check
 
+**Status (2026-11-16): not started** (needs the Windows session). `gpu-windows-checklist.md` is written; PoCL was not installed (changes the owner's system).
+
 Session 4. Code is written on the Mac and verified on the owner's Windows + NVIDIA machine (a 3060 Ti runs FP64 at about 1/64 rate: only CUDA **parity** matters there; speed-ups need an A100-class card or an accepted CPU baseline).
 
 ## Kernels (backlog B3), in order

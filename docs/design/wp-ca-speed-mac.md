@@ -1,5 +1,7 @@
 # WP-C(A): speed on the Mac, parameter studies, fidelity switch
 
+**Status (2026-11-16): done on the Mac.** Built: `tools/bench` (baseline table in `reference/speed.md`), grid union of the frozen grid, instruments skipped when no output reads one, point cache with resume (`cache`), `uf.scan`, the fidelity switch (conservative bundles, owner-approved), the `cpu-fp32` emulation back-end and the FP32 study. Measured and **not built**: linear fast path, CPU ensemble batching, pooled buffers / Hankel SIMD (no measured case is slow; see `speed.md`). Open: FP32 FFTs, soliton and SHG cases (GPU session).
+
 Session 3. Apple GPUs have no FP64 and the engine is FP64, so on this machine "speed" means a better CPU path, much better parameter studies, and cheaper physics when the user asks for it.
 
 ## C1. Baseline and CPU path

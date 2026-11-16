@@ -59,6 +59,8 @@ namespace UltrafastEngine.Engine
         public int Seed = 1;
         public int Parallel = 1;
         public bool FreezeGrid = true, PrefixCache = true;
+        /// <summary>Folder of the point cache ("cache": a path): each evaluated point is stored under a hash of the compiled inputs (system, run, frozen grid, values, outputs, engine version), so a repeated or interrupted study only computes the missing points. Null: no cache.</summary>
+        public string CacheDir;
         public List<StudyParameter> Parameters = new List<StudyParameter>();
         public List<string> Outputs = new List<string>();
         /// <summary>Whole arrays to keep per point, as "instrument/array": written to study.npz (one row per point).</summary>
@@ -78,6 +80,7 @@ namespace UltrafastEngine.Engine
                 Sampling = o.GetString("sampling", "grid").ToLowerInvariant(),
                 Samples = o.GetInt("samples", 64), Seed = o.GetInt("seed", 1), Parallel = Math.Max(1, o.GetInt("parallel", 1)),
                 FreezeGrid = o.GetBool("freezeGrid", true), PrefixCache = o.GetBool("prefixCache", true),
+                CacheDir = o.GetString("cache", null),
             };
             if (s.Mode == "coherence")
             {
@@ -182,6 +185,13 @@ namespace UltrafastEngine.Engine
             res.OutputNames.AddRange(spec.Outputs);
             var sysJson = (JsonObject)JsonValue.Parse(system.ToJson().ToJson(false));
             var runJson = (JsonObject)JsonValue.Parse(run.Raw.ToJson(false));
+            // instruments cost time at every point: keep them only when an output reads one
+            var instArr = runJson.GetArray("instruments");
+            if (instArr != null && instArr.Count > 0 && spec.ArrayOutputs.Count == 0 && !spec.Outputs.Any(o => o.StartsWith("instrument:", StringComparison.OrdinalIgnoreCase)) && !runJson.Has("fit"))
+            {
+                runJson.Set("instruments", new JsonArray());
+                res.Notes.Add("instruments of the run spec skipped (" + instArr.Count + "): no output of this study reads one");
+            }
             // nominal run (and the frozen grid)
             var nomVals = spec.Parameters.Select(p => p.NominalValue).ToArray();
             var (s0, r0) = Build(sysJson, runJson, spec.Parameters, nomVals, system.BaseDirectory, run.BaseDirectory);
@@ -193,7 +203,9 @@ namespace UltrafastEngine.Engine
             {
                 var g = nominal.Output.Grid;
                 var gridObj = runJson.GetObject("grid") ?? new JsonObject();
-                gridObj.Set("auto", false).Set("n", nominal.Compiled.Grid.N).Set("windowS", nominal.Compiled.Grid.N * nominal.Compiled.Grid.DTime);
+                int gridN = nominal.Compiled.Grid.N; double gridW = nominal.Compiled.Grid.N * nominal.Compiled.Grid.DTime, gridDt = nominal.Compiled.Grid.DTime;
+                GridUnion(sysJson, runJson, spec, system, run, registry, ref gridN, ref gridW, ref gridDt, res.Notes);
+                gridObj.Set("auto", false).Set("n", gridN).Set("windowS", gridW);
                 runJson.Set("grid", gridObj);
                 (s0, r0) = Build(sysJson, runJson, spec.Parameters, nomVals, system.BaseDirectory, run.BaseDirectory);
                 if (spec.PrefixCache && r0.Outputs != null) r0.Outputs.KeepProfiles = "all";
@@ -212,9 +224,17 @@ namespace UltrafastEngine.Engine
             if (first > 0) res.Notes.Add("prefix cache: every point restarts at element #" + first + " (" + system.Elements[first].Id + ")");
             int done = 0, total = 0;
             var lockObj = new object();
+            int cached = 0;
             (double[] Out, string Err) Eval(double[] values)
             {
                 cancel.ThrowIfCancellationRequested();
+                string cacheFile = spec.CacheDir != null && spec.ArrayOutputs.Count == 0 ? PointCacheFile(spec, sysJson, runJson, values) : null;
+                if (cacheFile != null && TryReadPoint(cacheFile, spec.Outputs.Count, out var hit))
+                {
+                    Interlocked.Increment(ref cached);
+                    lock (lockObj) progress?.Invoke(++done, total);
+                    return (hit, null);
+                }
                 var (s, r) = Build(sysJson, runJson, spec.Parameters, values, system.BaseDirectory, run.BaseDirectory);
                 RunResult rr;
                 string err = null;
@@ -237,6 +257,7 @@ namespace UltrafastEngine.Engine
                     if (spec.ArrayOutputs.Count > 0) kept[values] = spec.ArrayOutputs.Select(a => ExtractArray(rr, a)).ToArray();
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException)) { err = ex.Message; outv = spec.Outputs.Select(_ => double.NaN).ToArray(); }
+                if (cacheFile != null && err == null) WritePoint(cacheFile, outv);
                 lock (lockObj) progress?.Invoke(++done, total);
                 return (outv, err);
             }
@@ -292,9 +313,86 @@ namespace UltrafastEngine.Engine
                     break;
                 default: throw new JsonException("study mode must be scan, optimize or sensitivity");
             }
+            if (spec.CacheDir != null) res.Notes.Add("point cache " + spec.CacheDir + ": " + cached + " of " + res.Evaluations + " points read from it");
             if (cache != null) res.Notes.Add("node cache: " + cache.Hits + " element runs reused from the nominal run");
             res.ElapsedS = sw.Elapsed.TotalSeconds;
             return res;
+        }
+
+        // ------------------------------------------------------------------------------------------ grid union and point cache
+
+        /// <summary>
+        /// The frozen grid must serve every point, not only the nominal one: the grid planner is run (compile only) for the ends of each
+        /// parameter's range, and the frozen grid takes the longest window at the finest sample spacing (rounded up to a power of two).
+        /// </summary>
+        private static void GridUnion(JsonObject sysJson, JsonObject runJson, StudySpec spec, SystemDescription system, RunSpec run, ModelRegistry registry, ref int n, ref double window, ref double dt, List<string> notes)
+        {
+            int d = spec.Parameters.Count; if (d == 0) return;
+            var pts = new List<double[]>();
+            var lo = spec.Parameters.Select(p => p.FromUnit(0)).ToArray(); var hi = spec.Parameters.Select(p => p.FromUnit(1)).ToArray();
+            var nom = spec.Parameters.Select(p => p.NominalValue).ToArray();
+            pts.Add(lo); pts.Add(hi);
+            for (int k = 0; k < d; k++) { var a = (double[])nom.Clone(); a[k] = lo[k]; pts.Add(a); var b = (double[])nom.Clone(); b[k] = hi[k]; pts.Add(b); }
+            double wMax = window, dtMin = dt; int changed = 0;
+            foreach (var v in pts)
+            {
+                try
+                {
+                    var (s, r) = Build(sysJson, runJson, spec.Parameters, v, system.BaseDirectory, run.BaseDirectory);
+                    var c = Compiler.Compile(s, r, registry);
+                    double w = c.Grid.N * c.Grid.DTime;
+                    if (w > wMax * (1 + 1e-9) || c.Grid.DTime < dtMin * (1 - 1e-9)) changed++;
+                    wMax = Math.Max(wMax, w); dtMin = Math.Min(dtMin, c.Grid.DTime);
+                }
+                catch (Exception ex) when (!(ex is OperationCanceledException)) { notes.Add("grid union: a parameter extreme did not compile (" + ex.Message + "); its points report the error"); }
+            }
+            if (changed == 0) return;
+            int nn = 1; while (nn * dtMin < wMax) nn <<= 1;
+            n = Math.Max(n, nn); window = n * dtMin; dt = dtMin;
+            notes.Add(string.Format(CultureInfo.InvariantCulture, "grid union: {0} of {1} range-end points need a larger window or finer sampling than the nominal point; the frozen grid is N = {2}, window {3:G4} ps, dt {4:G4} fs", changed, pts.Count, n, window * 1e12, dt * 1e15));
+        }
+
+        private static string PointCacheFile(StudySpec spec, JsonObject sysJson, JsonObject runJson, double[] values)
+        {
+            var sb = new StringBuilder();
+            sb.Append(EngineInfo.Version).Append('\n').Append(sysJson.ToJson(false)).Append('\n').Append(runJson.ToJson(false)).Append('\n');
+            foreach (var p in spec.Parameters) sb.Append(p.Path).Append(';');
+            foreach (var o in spec.Outputs) sb.Append('|').Append(o);
+            foreach (var v in values) sb.Append('#').Append(BitConverter.DoubleToInt64Bits(v).ToString("x"));
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                var h = sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+                return Path.Combine(spec.CacheDir, string.Concat(h.Take(16).Select(b => b.ToString("x2"))) + ".pt");
+            }
+        }
+
+        private static bool TryReadPoint(string file, int count, out double[] outs)
+        {
+            outs = null;
+            try
+            {
+                if (!File.Exists(file)) return false;
+                var bytes = File.ReadAllBytes(file);
+                if (bytes.Length != 8 * count) return false;
+                outs = new double[count];
+                for (int i = 0; i < count; i++) outs[i] = BitConverter.ToDouble(bytes, 8 * i);
+                return true;
+            }
+            catch (IOException) { return false; }
+        }
+
+        private static void WritePoint(string file, double[] outs)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(file));
+                var bytes = new byte[8 * outs.Length];
+                for (int i = 0; i < outs.Length; i++) Array.Copy(BitConverter.GetBytes(outs[i]), 0, bytes, 8 * i, 8);
+                string tmp = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                File.WriteAllBytes(tmp, bytes);
+                if (File.Exists(file)) File.Delete(tmp); else File.Move(tmp, file);
+            }
+            catch (IOException) { /* the cache is an optimisation: a failed write is not an error */ }
         }
 
         // ------------------------------------------------------------------------------------------ building points

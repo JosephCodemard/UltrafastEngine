@@ -181,6 +181,7 @@ namespace UltrafastEngine.Engine
             if (!branched) { res.FinalArrivalS = path.ArrivalS; res.FinalSystem = path.System; }
 
             if (measure) MeasureInstruments(cr, res, cancel);
+            Specs.Fidelity.Assess(res);
             res.ElapsedS = sw.Elapsed.TotalSeconds;
             return res;
         }

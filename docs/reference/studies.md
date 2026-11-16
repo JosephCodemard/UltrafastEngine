@@ -68,6 +68,20 @@ middle) for the reference run and local sensitivities.
 * **Prefix caching** (`prefixCache`, default true): when every varied parameter acts on elements after some index,
   each point restarts there from the nominal run's pulse instead of recomputing the elements before.
 * `parallel` runs points at the same time (each run also uses multiple cores for its FFTs).
+* **The frozen grid serves every point.** Before the study the planner runs (compile only) for the two ends of each parameter range
+  and for all minima / all maxima together; the frozen grid takes the longest window at the finest sample spacing among them
+  (rounded up to a power of two), and a note says when that is larger than the nominal plan. A point is therefore never computed on a grid
+  too short or too coarse for it just because the nominal point was fine.
+* **Instruments are skipped** when no output (`instrument:...`, `arrayOutputs`) reads one: a scan of the pulse width does not run the FROG
+  at every point. The note says how many were skipped.
+* **Point cache and resume** (`"cache": "folder"`): every finished point is stored under a hash of the system, the run (with its frozen
+  grid), the parameter values, the output list and the engine version. Run the same study again, or after an interruption, and only the
+  missing points are computed (a note counts the points read from the cache). Any change of the system or run gives new keys, so a stale value
+  is never read. Not used with `arrayOutputs`.
+* **Linear scans** (compressor length, GDD, angle) are already cheap: a linear element is one transfer-function product, so a separate
+  "linear fast path" was measured and not built (see [Speed](speed.md#parameter-studies-against-a-loop)).
+* **Fidelity:** a study uses the run spec's [`fidelity`](fidelity.md); scan in `quick`, confirm the best points in `full`.
+* Python: [`uf.scan`](python.md#scans) gives a lazy, shaped array per output.
 
 Tests: `SpeedStudyTests` (B ∝ L in a scan with and without the cache; optimisation of a target B; elasticities of
 B to L and n2 equal 1; Sobol indices of an influential and a non-influential parameter; stratification of the

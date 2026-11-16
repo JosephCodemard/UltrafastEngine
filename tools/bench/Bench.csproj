@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Developer-only benchmark, not part of UltrafastEngine.sln and never packaged: dotnet run -c Release (project tools/bench), case names as arguments. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>UltrafastEngine.Bench</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UltrafastEngine.Core\UltrafastEngine.Core.csproj" />
+  </ItemGroup>
+</Project>

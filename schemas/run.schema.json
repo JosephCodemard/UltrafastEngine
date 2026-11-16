@@ -53,6 +53,11 @@
       ],
       "description": "Physics switches"
     },
+    "fidelity": {
+      "type": "string",
+      "enum": ["full", "standard", "quick"],
+      "description": "Cost / accuracy level (docs/reference/fidelity.md): a named bundle of switches that are not written in the run spec itself; every switch you write stays as you wrote it. summary.json lists what changed (fidelityReport) and warns when a quick result is unreliable Default: full."
+    },
     "stepper": {
       "anyOf": [
         {

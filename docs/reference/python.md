@@ -172,6 +172,23 @@ res.elements()[0]["values"]["conversionEfficiency"]
 Examples: `docs/examples/GettingStarted/quickstart/quickstart.py`, `docs/examples/GettingStarted/custom-index-python`, `docs/examples/Nonlinear/mpc-argon/make_mpc.py`,
 `docs/examples/GettingStarted/user-element/dazzler.py`, `docs/examples/Nonlinear/ppln-dfg/compare_pynlo.py`.
 
+## Scans
+
+`uf.scan(system, run_spec, axes, outputs, fidelity=None, cache=None, parallel=1)` runs every combination of the axis values as one
+[study](studies.md) (frozen grid, prefix cache, no unused instruments) and gives **lazy, shaped arrays**: nothing runs until you read one.
+
+```python
+sc = uf.scan(system, spec,
+             {"element:plate/lengthM": [2e-3, 4e-3, 8e-3], "pulse/peakPowerW": [1e6, 2e6]},
+             ["pulse:end/fwhmS", "record:plate/BIntegralRad"],
+             fidelity="quick", cache="scan-cache")
+sc["record:plate/BIntegralRad"]        # runs the scan; numpy array of shape (3, 2), axes in the order given
+sc.axes, sc.errors, sc.notes           # axis values, failed points (NaN in the arrays), study notes
+```
+
+Explore with `fidelity="quick"` and re-run the best points with `"full"` ([Fidelity](fidelity.md)). `cache` is a folder: a repeated or interrupted
+scan computes only the missing points. For optimisation and sensitivities use `uf.study` (`mode="optimize"`, `"sensitivity"`).
+
 ## Performance notes
 
 Callbacks are called once per solver stage with whole arrays: keep them vectorised (NumPy), avoid Python loops

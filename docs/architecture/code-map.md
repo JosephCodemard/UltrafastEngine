@@ -47,7 +47,9 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Engine/Active.cs` | `IActiveElement`, `ActiveContext` | the interface of elements that do more than linear terms and a nonlinear segment |
 | `Engine/AuxBeams.cs` | `AuxBeamSpec`, `VirtualInput` | beams on ports with no beamline |
 | `Engine/TailLedger.cs` | `TailLedger` | delayed light outside the main window |
-| `Engine/Studies.cs` | | scans and optimisation, with the prefix cache |
+| `Engine/Studies.cs` | `Studies`, `StudySpec` | scans and optimisation: frozen grid (union over the range ends), prefix cache, point cache (`cache`), instruments skipped when unused |
+| `Specs/Fidelity.cs` | `FidelityPlan`, `Fidelity` | the run-level `fidelity` bundles (applied in `RunSpec.FromJson`) and the unreliability warnings after a run |
+| `Numerics/Fp32Emulation.cs` | `Fp32EmulatedBackend` | `cpu-fp32`: nonlinear operator in single precision, for the FP32 study |
 | `Engine/PartialCoherence.cs` | `PartialCoherence` | a run over coherent modes |
 | `Results/` | `RunResult`, `PulseMetrics` | `summary.json`, `result.npz` |
 

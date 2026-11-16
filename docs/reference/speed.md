@@ -103,11 +103,49 @@ Accelerate instead.
 Parameter studies freeze the grid, cache the unchanged prefix of the system and run points in parallel batches:
 [Parameter studies](studies.md). With a GPU back-end, set `"parallel"` to 2-4 so the device always has work queued.
 
+## Parameter studies against a loop
+
+`tools/bench` (`dotnet run -c Release --project tools/bench -- scan-mpc loop-mpc`), Apple M-series, .NET 10, Accelerate FFT. "Loop" is the same
+points as independent `Simulation.Run` calls; "study" is `Studies.Run` (frozen grid, instruments skipped when unused, prefix cache).
+
+| case | points | loop | study | gain |
+|---|---|---|---|---|
+| `mpc-argon`, length of the last gap | 20 | 6.5 s | 1.1 s | x5.7 (outputs equal to 1e-11 relative) |
+| `spm-plate`, plate length | 200 | 0.78 s | 0.44 s | x1.8 |
+| `spm-plate`, input GDD (acts on the pulse: no prefix) | 200 | 0.8 to 1.1 s | 0.7 s | x1.2 to 1.5 |
+
+The gain grows with the cost of the elements before the changed one and of the instruments. When a single run takes 3 ms, nothing is gained
+by any machinery: the 200 runs already finish in less than a second. A separate *linear fast path* (one transfer function, no integration)
+and an *ensemble dimension on the CPU* were therefore **not built**: a linear element already costs one FFT pair, and
+the CPU has no launch latency to hide. **Revisit** the ensemble layout for the GPU (WP-C(B)), where 200 points in one launch is the good case.
+
+Allocation: the 200-point study allocates 0.8 GB (the loop 2.2 GB); a single 1-D run on 4096 points allocates 11 MB, a radial spatial run 1 GB
+(`spatial-kerr`). Pooling the spatial buffers is the remaining CPU item; it is not needed for any measured case to be slow.
+
+## FP32 study (mixed precision)
+
+The `cpu-fp32` back-end (study only: `"compute": {"backend": "cpu-fp32"}`) rounds the input and the result of every nonlinear-operator
+evaluation, and the linear rate, to single precision; FFTs and the stepper arithmetic stay double, so it is a *lower bound* of the error of
+a real single-precision kernel. Acceptance: energy 1e-6, spectrum L1 1e-4, contrast floor unchanged.
+
+| case | energy | spectrum L1 | max abs(dI) / peak | floor (10th percentile of I / peak) |
+|---|---|---|---|---|
+| `spm-plate` | 3e-10 | 7e-10 | 3e-9 | 7e-33 |
+| `mpc-argon` | 6e-10 | 1e-9 | 1e-8 | 7e-10 |
+| `spatial-kerr` | 1e-10 | 4e-10 | 2e-9 | 4e-17 |
+
+Result: the operator in FP32 meets energy and spectrum criteria by three to four orders of magnitude. The **floor criterion fails** wherever the
+intensity floor is below about 1e-8 of the peak (the SPM plate and spatial cases): the rounding noise (about -85 dB) fills it. So mixed
+precision (consumer GPUs) is acceptable for energy, spectrum and pulse shape, and must be **refused when a contrast or pedestal instrument asks
+for more than about 70 dB of dynamic range**. Not yet checked: single-precision FFTs (the accumulated error over thousands of steps is expected
+to be about 1e-6 to 1e-5), the soliton and SHG cases; both need the GPU session ([GPU checklist](../design/gpu-windows-checklist.md)).
+
 ## Practical advice
 
 * Let the grid planner size the grid; a 4096-point 1-D run with a few nonlinear elements takes milliseconds to a
   second. Spatial models multiply the cost by the number of transverse points (radial 64-160, cartesian 64² ... 256²).
-* For many runs (scans, fits) prefer studies over a Python loop: they reuse the grid and the prefix.
+* For many runs (scans, fits) prefer studies over a Python loop: they reuse the grid and the prefix, skip instruments no output reads, and
+  can store points in a cache folder. To explore cheaply, add [`"fidelity": "quick"`](fidelity.md) and confirm the best points in full.
 * `"stepper": {"tolerance": 1e-5}` is usually enough; the default 1e-6 is conservative.
 * Install FFTW on Windows and Linux (on macOS Accelerate is already there): it is the cheapest speed-up.
 * `"compute": {"backend": "auto"}` is safe to leave on: without a GPU, or for small elements, it runs on the CPU.

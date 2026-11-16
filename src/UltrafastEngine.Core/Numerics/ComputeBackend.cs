@@ -101,7 +101,7 @@ namespace UltrafastEngine.Numerics
     public static class ComputeBackends
     {
         private static readonly object Lock = new object();
-        private static readonly Dictionary<string, IComputeBackend> All = new Dictionary<string, IComputeBackend>(StringComparer.OrdinalIgnoreCase) { { "cpu", new CpuBackend() }, { "auto", new AutoBackend() } };
+        private static readonly Dictionary<string, IComputeBackend> All = new Dictionary<string, IComputeBackend>(StringComparer.OrdinalIgnoreCase) { { "cpu", new CpuBackend() }, { "cpu-fp32", new Fp32EmulatedBackend() }, { "auto", new AutoBackend() } };
         [ThreadStatic] private static IComputeBackend _current;
         [ThreadStatic] private static ComputeSettings _settings;
 
