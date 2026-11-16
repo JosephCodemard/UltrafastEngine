@@ -47,6 +47,7 @@ Reference pages stay reference pages. Missing AO / twin examples (component gall
 * A lens under-sampling warning (phase step per cell above pi at the beam edge) would have caught the tiled-array case.
 * Python has no typed accessor for `unverifiedInputs`.
 * The examples still pass `gain=` to SPGD explicitly; they could use the new default.
+* **Unit-in-the-key audit (D3).** Keys with a unit but no unit in the name; a rename needs a migration, so none was renamed: `betas` (s^k/m; `betasPsKm` exists), `n2` (m^2/W, kept: the name is the physics symbol), `dnDT` (1/K), `fieldT` (T), `tau1`, `tau2`, `taub` (s: `tau1S` ...), and the instrument axis keys `from`, `to`, `step`, `resolution`, `values` (SI of the axis, unit depends on the instrument). Dimensionless keys without a suffix are fine (`fR`, `m2`, `reflectivity`, ...). Decide the new names and add migrations in one pass.
 
 ## 4. MCP server: the agreed design (not built)
 
