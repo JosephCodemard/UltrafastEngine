@@ -666,6 +666,8 @@ namespace UltrafastEngine.Crystals
             var final = GridResampler.Resample(outP, downstream, out double lostOut);
             if (lostOut > 1e-4) notes.Add(string.Format(CultureInfo.InvariantCulture, "{0:P3} of the output field's energy fell outside the downstream grid", lostOut));
             final.Profile = outP.Profile;
+            // the energy the resampling dropped (outside the downstream window) is booked, so that the budget closes element by element
+            ctx.Energy("grid boundary", eOut - final.TotalEnergyJ());
             return final;
         }
 

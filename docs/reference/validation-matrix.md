@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **608 tests** in 63 classes. **386** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **613 tests** in 64 classes. **391** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -19,6 +19,7 @@ Every C# test of the engine: **608 tests** in 63 classes. **386** of them check 
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
 | [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 21 | 15 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
+| [Core sweep: element keys that override the material's must be read from the element itself](#coresweeptests) | `CoreSweepTests` | 5 | 5 |
 | [Crystal chains and phase-matching limits: SHG to THG, length against bandwidth](#crystalchaintests) | `CrystalChainTests` | 16 | 16 |
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
@@ -330,6 +331,18 @@ CPU FFTs and compute back-ends.
 | `EnvelopeFastPath_GivesTheGeneralPathResult_ScalarAndVectorWithRaman` | -- | -- |
 | `FftProviders_ManagedAlwaysWorks_NativeOnesPassTheSelfCheckOrSayWhy` | -- | -- |
 | `Stockham_MatchesRadix2AndTheDft_ForEveryPowerOfTwo` | direct DFT | -- |
+
+## CoreSweepTests
+
+Core sweep: element keys that override the material's must be read from the element itself.
+
+| test | reference | tolerance |
+|---|---|---|
+| `BulkElement_FRKeyOnTheElement_EqualsRamanFractionOnTheMaterial` | identity: the element's fR equals the material's ramanFraction | 1e-12 |
+| `BulkElement_RamanKindNameOnTheElement_EqualsTheMaterial` | identity: an element raman kind name equals the material's | 1e-12 |
+| `BulkElement_RamanModelAndFractionOnTheElement_EqualThoseOnTheMaterial` | identity: a key on the element gives the same run as the same key on the material | 1e-12 |
+| `Crystal_LossBudget_ClosesPerElement_AfterTheOutputIsResampled` | energy conservation: input - output = sum of the booked losses, exactly, for a crystal whose output is resampled onto the downstream grid | 1e-9 of the input |
+| `ThinFilmPolarizer_BandPosition_IsADeclaredKey` | consistency: every key the compiler reads for a thin-film polariser is declared (strict mode would reject it) | exact |
 
 ## CrystalChainTests
 

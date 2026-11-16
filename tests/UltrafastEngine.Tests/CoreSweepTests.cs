@@ -57,5 +57,26 @@ namespace UltrafastEngine.Tests
             var onMaterial = FlatMaterial(3e-20); onMaterial.Set("raman", O("kind", "silica"));
             Assert.Less(Diff(Plate(onMaterial, null), Plate(FlatMaterial(3e-20), O("raman", "silica"))), 1e-12, "raman: \"silica\"");
         }
+
+        [Test(Category = "schema", Reference = "consistency: every key the compiler reads for a thin-film polariser is declared (strict mode would reject it)", Tolerance = "exact")]
+        public void ThinFilmPolarizer_BandPosition_IsADeclaredKey()
+        {
+            var sys = Sys(O("id", "tfp", "type", "thinFilmPolarizer", "model", "stack", "bandPosition", 0.3));
+            var w = UltrafastEngine.Schema.Validator.CheckSystem(sys);
+            Assert.True(!System.Linq.Enumerable.Any(w, x => x.Contains("bandPosition")), string.Join("; ", w));
+        }
+
+        [Test(Category = "physics", Reference = "energy conservation: input - output = sum of the booked losses, exactly, for a crystal whose output is resampled onto the downstream grid", Tolerance = "1e-9 of the input")]
+        public void Crystal_LossBudget_ClosesPerElement_AfterTheOutputIsResampled()
+        {
+            var sys = Sys(O("id", "bbo", "type", "crystal", "crystal", "BBO", "lengthM", 1e-3, "interaction", O("process", "shg", "type", "I"),
+                "overlap", O("model", "planeWave", "radiusM", 100e-6), "chi3", false, "output", "sh"), O("id", "gap", "type", "gap", "lengthM", 1e-3));
+            var r = Go(sys, Spec(Gauss(1030e-9, 100e-15, 1e-6), O("physics", O("selfSteepening", false))));
+            foreach (var rec in r.Records)
+            {
+                double booked = 0; foreach (var kv in rec.LossJ) booked += kv.Value;
+                Assert.Close(0, (rec.EnergyInJ - rec.EnergyOutJ - booked) / rec.EnergyInJ, 0, 1e-9, "element " + rec.Id);
+            }
+        }
     }
 }
