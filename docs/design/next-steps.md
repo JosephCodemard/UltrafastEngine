@@ -44,6 +44,7 @@ Reference pages stay reference pages. Missing AO / twin example still open: comp
 ## 3. Small items that are ready to do
 
 * (Done in WP-E: `result.ase_pedestal()`, the lens under-sampling warning, `result.unverified_inputs`.)
+* **Unit-in-the-key audit (D3).** Keys with a unit but no unit in the name; a rename needs a migration, so none was renamed: `betas` (s^k/m; `betasPsKm` exists), `n2` (m^2/W, kept: the name is the physics symbol), `dnDT` (1/K), `fieldT` (T), `tau1`, `tau2`, `taub` (s: `tau1S` ...), and the instrument axis keys `from`, `to`, `step`, `resolution`, `values` (SI of the axis, unit depends on the instrument). Dimensionless keys without a suffix are fine (`fR`, `m2`, `reflectivity`, ...). Decide the new names and add migrations in one pass.
 
 ## 4. MCP server: the agreed design (not built)
 

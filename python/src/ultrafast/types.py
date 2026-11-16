@@ -2578,6 +2578,8 @@ class ThinFilmPolarizerElement(TypedDict, total=False):
     """Stack design wavelength [m] Default: the carrier."""
     pairs: int
     """HL pairs Default: 12."""
+    bandPosition: float
+    """stack: where the operating wavelength lies between the p band edge (0) and the s band edge (1) of the quarter-wave stack Default: 0.5."""
     high: str
     """High-index film Default: HfO2."""
     low: str

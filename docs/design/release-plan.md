@@ -22,7 +22,7 @@ Rules of `CLAUDE.md` apply (tests and docs with every change, physics against a 
 
 | WP | status (2026-11-16) |
 |---|---|
-| D | D1, D2 done; D3 sweep open |
+| D | done (D1, D2, D3) |
 | E | done (incl. AO component gallery and the dependence-models twin example); complex-field SLM shaping example not in scope |
 | C(A), C(B), B, A, F | not started |
 

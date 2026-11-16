@@ -218,7 +218,7 @@ namespace UltrafastEngine.Schema
                 .Num("axisDeg", "deg", "Transmission (p) axis from x", "0").Num("axisRad", "rad", "Transmission axis")
                 .Str("substrate", "Substrate", "FusedSilica").Num("thicknessM", "m", "Substrate thickness", "3e-3").Str("medium", "Surrounding medium", "Air")
                 .Num("designWavelengthM", "m", "Stack design wavelength", "the carrier").Int("pairs", "HL pairs", "12")
-                .Str("high", "High-index film", "HfO2").Str("low", "Low-index film", "SiO2_film").Model("coatingBack", "coating", "Back-surface coating")
+                .Num("bandPosition", "", "stack: where the operating wavelength lies between the p band edge (0) and the s band edge (1) of the quarter-wave stack", "0.5").Str("high", "High-index film", "HfO2").Str("low", "Low-index film", "SiO2_film").Model("coatingBack", "coating", "Back-surface coating")
                 .Num("transmissionP", "", "ideal: Tp", "0.98").Num("transmissionS", "", "ideal: Ts", "1e-3").Num("reflectanceS", "", "ideal: Rs", "0.998").Num("reflectanceP", "", "ideal: Rp", "1 - Tp"));
             add(new ComponentSpec("element", "faradayRotator", "Faraday rotator: non-reciprocal rotation with Verdet dispersion, optional crystal (dispersion, B-integral).").Alias("faraday")
                 .DocAt("reference/components.md#faraday-rotators").Include("nonlinearMedium")

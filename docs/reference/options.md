@@ -897,6 +897,7 @@ Also accepts: `nonlinearMedium`, `beamSize` (see *Common key groups*).
 | `medium` | string |  | Air | Surrounding medium |
 | `designWavelengthM` | number | m | the carrier | Stack design wavelength |
 | `pairs` | integer |  | 12 | HL pairs |
+| `bandPosition` | number |  | 0.5 | stack: where the operating wavelength lies between the p band edge (0) and the s band edge (1) of the quarter-wave stack |
 | `high` | string |  | HfO2 | High-index film |
 | `low` | string |  | SiO2_film | Low-index film |
 | `coatingBack` | model (coating) |  |  | Back-surface coating |

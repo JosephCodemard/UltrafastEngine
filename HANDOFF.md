@@ -1,4 +1,48 @@
-# Handoff: the November 2026 consolidation (released as 2.2.0)
+# Handoff: state on 2026-11-16 (road to 1.0.0)
+
+Written at the end of the session that planned the first public release and did work packages D and E. Read it with
+[docs/design/release-plan.md](docs/design/release-plan.md) (decisions, order, one spec per work package), [PROJECT_STATUS.md](PROJECT_STATUS.md) (what is verified) and
+[docs/design/history.md](docs/design/history.md) (Stage 9 is this session). The older handoff of 2026-11-08 is kept below as history; its "released as 2.2.0, nothing pushed" is out of date.
+
+## Where the code is
+
+Branch `dev/2026-11` (local; **not pushed, no tag, no release**). The first public version is **1.0.0** (the internal 2.x numbering is retired; WP-B changes the version strings).
+The PyPI upload (with `twine`) is approved in principle by the owner but needs their explicit go-ahead at the time, and the PyPI name has not been checked ([WP-F](docs/design/wp-f-release.md)).
+
+## Done this session
+
+* **Plan:** `docs/design/release-plan.md` and specs `wp-a` ... `wp-f` (agents / MCP, docs, speed on the Mac, GPU on Windows, release pipeline), including the **fidelity switch** (quick / standard / full) and the honest-docs plan.
+* **WP-D (core fixes):** `n2Scale` in 1-D now scales every third-order response (rotational Raman too); the element's own `n2` key was ignored (fixed); opt-in **Kerr lens** of the 1-D beam (`kerrLens`, tested against the exact Ermakov solution).
+  The D3 sweep found and fixed: an element's own `raman` / `fR` were read only through overrides; the undeclared key `thinFilmPolarizer.bandPosition`; crystal elements lost ~1e-6 of the energy at the grid resampling without booking it (now `grid boundary`).
+  It found no other schema-vs-compiler gaps (about 60 keys that look unread are read by plugins or helpers), no example warnings that were not documented limits, and a list of keys with a unit but no unit in the name (filed in `next-steps.md` §3: nothing renamed).
+* **WP-E (leftovers and Zemax):** Python `result.unverified_inputs` and `result.ase_pedestal()`; lens under-sampling warning; Fuchtbauer-Ladenburg check (Yb:YAG consistent to 6.7 %, Nd:YAG is one line carrying ~8 % of 1/τ, noted in the catalogue); SPGD examples on the default step;
+  the Zemax plugin documented as **experimental, never run against OpticStudio** (status box, `plugins/zemax/HARDWARE-CHECKLIST.md`, `TODO(zemax-hw)` markers, wrong lens units now an error); new examples `AdaptiveOptics/component-gallery` and `DigitalTwin/dependence-models`; a twin crash on `null` scalars fixed.
+* `CLAUDE.md` ground rule on PyPI updated (upload only on the owner's explicit go-ahead). `UF_WITH_AO` was already done earlier; the WP-E spec was stale.
+
+## Verified
+
+See the commit messages of the merges on `dev/2026-11` and `PROJECT_STATUS.md` for the counts of the last full run. **Never run:** net48 under Mono (Mono is not installed on the owner's Mac), GPU parity (no double-precision device here), the NativeAOT-library Python test.
+
+## Open, in the owner's order (each a new session)
+
+1. **WP-C(A):** speed on the Mac, parameter studies (frozen grid, cached prefix, linear fast path, batched points, `uf.scan`), the fidelity switch, the FP32 study. Needs the owner to review the fidelity bundles before they are built. [spec](docs/design/wp-ca-speed-mac.md)
+2. **WP-C(B):** GPU kernels (rotational Raman first) and the Windows / NVIDIA checklist; needs the owner's Windows run. [spec](docs/design/wp-cb-gpu-windows.md)
+3. **WP-B:** honest docs (roadmap in three blocks, capabilities, status, changelog folded into 1.0.0, version strings), and fold the old text below into `history.md`. [spec](docs/design/wp-b-docs.md)
+4. **WP-A:** agents pack, `ultrafast mcp`, evals. [spec](docs/design/wp-a-agents-mcp.md)
+5. **WP-F:** wheels, `release.yml` first run, TestPyPI, the real upload. [spec](docs/design/wp-f-release.md)
+
+Smaller open items: an end-to-end complex-field SLM shaping example; the deformable-mirror wavefront-sensor reading is 8 % below 2 × poke in `component-gallery` (cause not traced); the Nd:YAG emission needs its other Stark lines; WP9 (all example READMEs in the new structure) is deferred past 1.0.
+
+## Things to know when you continue
+
+* The same bug pattern turned up three times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`; `selfSteepening` earlier). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
+* Work in a separate worktree when a long verification run is going in the main tree; a subagent started inside a worktree session cannot run commands in the main checkout (and vice versa).
+* The sandbox denies the `.venv` interpreter path for subagents; the plain `python3` works for the Python suite (needs pyNLO via `PYNLO_SRC`).
+* `docs/design/` documents the plan; the progress of each work package is its status line at the top of its spec.
+
+---
+
+# Earlier handoff (2026-11-08, kept for reference): the November 2026 consolidation
 
 Written 2026-11-08 at the end of a long session. It says what was done, what was fixed, what is still open and what to
 do next. Read it together with [PROJECT_STATUS.md](PROJECT_STATUS.md) (what is verified),
