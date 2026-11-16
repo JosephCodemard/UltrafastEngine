@@ -150,3 +150,24 @@ up to a full 1920 x 1080 SLM; the twin is its own plugin on top of fitting; CI o
 - [x] **WP8 (F) release system:** components and manifest, `install.py` (release and git sources, install, add, upgrade, uninstall), packager `--components`, ZOS-API gate, `release.yml`, 23 tests (see [releasing](../releasing.md))
 - [x] **Polish:** README picture grid and contact badge, logo palette and banner on every docs page, CI timeouts and apt retries, plasma component check split into carrier and frequency-resolved rows
 - [x] **Follow-up (PR #1):** avalanche / inverse-bremsstrahlung double count fixed; catalogue defaults for user gain media and solids without data; `strictMaterialsAllow`; partial-override notes; Keldysh far-wing NaN. Spall gain sequences judged unnecessary (the running-maximum normalisation covers the range 1e-3 to 1e3)
+
+## Stage 9 -- the road to 1.0.0: core fixes and leftovers  (2026-11-16; sessions WP-D and WP-E on `dev/2026-11`)
+
+The plan for the first public release is [release-plan.md](release-plan.md) (owner decisions, order of the work packages, one spec each).
+
+**WP-D (core fixes).**
+* `n2Scale` in a 1-D element scaled only the Kerr n2; the rotational Raman of gases (air gaps of a multipass cell) kept its full strength, while the spatial model already scaled it.
+  Now every third-order response of the element is scaled (Kerr, delayed Raman, XPW, rotational Raman); user `responses` are not, and the element note says so.
+* Found while testing: the element's own `n2` key was ignored (only run-spec overrides were read). Fixed, with a regression test.
+* **Kerr lens in the 1-D beam model** (`kerrLens: off | peak | pulseWeighted`, `kerrLensModel`): the Gaussian beam of a bulk element self-focuses with thin Kerr lenses of the pulse's power
+  (second-moment radius, Ermakov equation). Reference: the exact solution w² = w0²[1 + (1 − P/P_c)(z/zR)²]; the model's P_c is 1.06 × Marburger's. Limits: one power per element (entry), the
+  beam leaving the element is not carried on, off by default. Tests: `KerrLensTests`, `GasTests.N2Scale_In1D_ScalesTheRotationalRamanToo`.
+* The D3 sweep (other problems, small improvements) is **not done yet** (see [wp-d-core-fixes.md](wp-d-core-fixes.md)).
+
+**WP-E (leftovers and Zemax).**
+* Python: `result.unverified_inputs` (typed) and `result.ase_pedestal()` (one stage's inter-pulse ASE as the next stage's `pulse.pedestal`).
+* A lens or curved mirror whose phase changes by more than π per grid cell at the beam edge warns that it is under-sampled.
+* Fuchtbauer-Ladenburg check of the gain catalogue: Yb:YAG's emission fit reproduces its lifetime to 6.7 %; Nd:YAG's is one 1064 nm line that carries about 8 % of 1/τ (documented in the catalogue notes; the missing lines need the Stark-level spectrum).
+* The SPGD examples use the default scale-free step. Not done from the spec's heavier tail: the component gallery, the spline-against-network twin example and `UF_WITH_AO` in the native library.
+* **Zemax** is documented as experimental and never verified against OpticStudio: out of the core narrative, one status box on its plugin page, `plugins/zemax/HARDWARE-CHECKLIST.md` for the first run, `TODO(zemax-hw)` markers on the unverified ZOS-API assumptions, and an unreadable lens unit is now an error instead of a silent default to millimetres.
+* State after both: C# 609 pass / 0 fail / 9 skipped; Python 264 pass / 2 skipped; strict examples 0 problems; `mkdocs --strict` clean. net48 under Mono was not run (Mono is not installed on the owner's Mac).

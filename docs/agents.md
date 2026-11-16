@@ -97,7 +97,7 @@ Two plugins, driven from Python (load them with `uf.plugins.load_python_plugins(
 ## Changing the code
 
 * Layout: `src/UltrafastEngine.Core` (engine), `src/UltrafastEngine.Cli`, `src/UltrafastEngine.Native` (C API),
-  `python/src/ultrafast`, `plugins/` (fitting, zemax, gpu, hitran), `tests/UltrafastEngine.Tests` (custom runner, no NuGet).
+  `python/src/ultrafast`, `plugins/` (fitting, gpu, hitran, ao, twin; zemax is experimental), `tests/UltrafastEngine.Tests` (custom runner, no NuGet).
 * Zero NuGet dependencies; the core must build for `net10.0` and `net48` (no newer APIs without `#if NET`).
 * Every element/option lives in `src/UltrafastEngine.Core/Schema/BuiltIn*.cs`; after changing one, regenerate
   `ultrafast schema system -o schemas/ufs.schema.json`, `ultrafast schema run -o schemas/run.schema.json`,

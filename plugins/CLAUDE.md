@@ -10,7 +10,7 @@ engine. Guide: `docs/reference/plugins.md`; extension points in `src/UltrafastEn
   `result.Comparisons`. Fit residual vectors must keep their length between evaluations (points outside an
   instrument's range carry residual 0; count points with `Comparison.Points`).
   Python module `fitting/python/ultrafast_fitting` (`fx.measured` / `fx.comparisons` are aliases of the core).
-* **zemax** (`zemax/src`): `UltrafastEngine.Zemax.Sampling` (any OS: sampler, system builder, fake OpticStudio,
+* **zemax** (`zemax/src`; **experimental, never run against a real OpticStudio since the rewrite**: `zemax/HARDWARE-CHECKLIST.md`, `TODO(zemax-hw)` markers): `UltrafastEngine.Zemax.Sampling` (any OS: sampler, system builder, fake OpticStudio,
   record/replay -- this is the plugin) and `UltrafastEngine.Zemax` (Windows net48 x64 OpticStudio extension; builds
   against stubs when no ZOS-API is found). **Never touch, copy or package `ZOSAPI*.dll`** (Ansys property; `lib/` is
   git-ignored and edit-protected).

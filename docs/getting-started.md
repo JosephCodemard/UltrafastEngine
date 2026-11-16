@@ -11,7 +11,7 @@ src/UltrafastEngine.Core             the physics engine (net10.0 + net48, no dep
 src/UltrafastEngine.Native           C API exports (+ include/ultrafast.h); NativeAOT -> ultrafast.dll/.so/.dylib
 src/UltrafastEngine.Cli              `ultrafast` command line (Windows/macOS/Linux)
 plugins/fitting                      fitting plugin: transforms, calibration fits, backward propagation (C# + Python module)
-plugins/zemax                        zemax plugin: OpticStudio sampling (any OS), the OpticStudio program (Windows), ZOS-API stubs
+plugins/zemax                        experimental OpticStudio plugin (see plugins/zemax.md; not needed for anything else)
 plugins/gpu                          gpu plugin: CUDA and OpenCL compute back-ends
 plugins/hitran                       hitran plugin: gas absorption and dispersion lines (C# + Python downloader)
 schemas/                             JSON Schemas of system files and run specs (editor completion)
@@ -31,8 +31,6 @@ docs/assets/                         synthetic measurements with an answer key
   current LTS release (supported to Nov 2028); .NET 8 support ends in Nov 2026, so it is not targeted.
 * Windows: **Visual Studio 2026** (the version that supports .NET 10) with the **.NET desktop development** workload (and **Desktop development with
   C++** for the NativeAOT library and the C++ example).
-* The Zemax binding additionally needs **.NET Framework 4.8** (in Windows) and **OpticStudio Professional or
-  Premium** (ZOS-API licence).
 * Python 3.10+ with NumPy for the Python package; `clr_loader` for the hosted (development) mode.
 
 No NuGet packages are needed for building and testing; `nuget.config` lists only nuget.org, which is used
@@ -49,11 +47,7 @@ command line (`dotnet build UltrafastEngine.sln`), which works with any editor. 
 2. Set **UltrafastEngine.Tests** as start-up project and run (Ctrl+F5): all tests should pass.
 3. Set **UltrafastEngine.Cli** as start-up project; in *Debug properties* use the arguments
    `run ..\..\docs\examples\GettingStarted\spm-plate\plate.ufs ..\..\docs\examples\GettingStarted\spm-plate\run.json -o results`.
-4. **Zemax binding**: the project compiles against the ZOS-API assemblies of your OpticStudio installation
-   (`ZOSAPI.dll`, `ZOSAPI_Interfaces.dll`, `ZOSAPI_NetHelper.dll`, Ansys property and never part of this repository),
-   by default in `C:\Program Files\Ansys Zemax OpticStudio 2025 R1`; set the MSBuild property `ZosApiDir` for another location. Without ZOS-API it builds against stubs (with a
-   warning) so the rest of the solution still builds. See [Zemax plugin](plugins/zemax.md).
-5. **Native library** (C/C++/Python without .NET):
+4. **Native library** (C/C++/Python without .NET):
    `dotnet publish src\UltrafastEngine.Native -c Release -r win-x64 -o artifacts\native\win-x64`.
 
 ## macOS / Linux
@@ -62,12 +56,12 @@ Works on Intel and Apple-silicon Macs and on x64 / ARM64 Linux: the core is mana
 SSE2 on x64 and NEON on ARM64.
 
 ```bash
-dotnet build UltrafastEngine.sln                      # everything (the Zemax binding against stubs)
+dotnet build UltrafastEngine.sln                      # everything (the experimental zemax plugin builds against stubs, with one warning)
 dotnet run --project tests/UltrafastEngine.Tests -f net10.0
 dotnet run --project src/UltrafastEngine.Cli -- run docs/examples/GettingStarted/spm-plate/plate.ufs docs/examples/GettingStarted/spm-plate/run.json -o results
 ```
 
-The .NET Framework 4.8 targets (Core, tests, Zemax binding) build on macOS/Linux when Mono is installed
+The .NET Framework 4.8 targets (Core, tests, plugins) build on macOS/Linux when Mono is installed
 (its reference assemblies are used automatically); the net48 test runner then runs with `mono`. They are not
 needed for normal work on a Mac.
 

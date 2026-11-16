@@ -18,6 +18,14 @@ Rules of `CLAUDE.md` apply (tests and docs with every change, physics against a 
 | 9 | Zemax is a plugin, not the product: remove it from the core docs and state its status honestly ([WP-E](wp-e-leftovers-zemax.md)). |
 | 10 | A **fidelity switch** (cheap modes that turn off expensive physics) is added; the MCP server and agent skills must know it ([WP-C(A)](wp-ca-speed-mac.md), [WP-A](wp-a-agents-mcp.md)). |
 
+## Status
+
+| WP | status (2026-11-16) |
+|---|---|
+| D | D1, D2 done; D3 sweep open |
+| E | light core done; gallery, twin example and `UF_WITH_AO` open |
+| C(A), C(B), B, A, F | not started |
+
 ## Order (one session each)
 
 | order | WP | spec | needs the owner |

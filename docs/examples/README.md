@@ -135,11 +135,11 @@ Single-mode fibres: solitons, Raman, self-phase modulation. See [Fibres](Fibres/
 
 ## Interop
 
-OpticStudio (Zemax) export and the C API from C++.
+The C API from C++, and the experimental OpticStudio (Zemax) export.
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [zemax-workflow](Interop/zemax-workflow/README.md) | 07 | CLI | OpticStudio export -> system file -> run; try it with the fake MPC | `ultrafast zemax-demo mpc export.json` |
+| [zemax-workflow](Interop/zemax-workflow/README.md) | 07 | CLI | experimental: OpticStudio export -> system file -> run; try it with the fake MPC (no OpticStudio) | `ultrafast zemax-demo mpc export.json` |
 | [cpp](Interop/cpp/README.md) | - | C++ | the C API from C++: run a system with callbacks, list compute devices (CMake / Visual Studio) | see README |
 
 ## Figures

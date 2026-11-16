@@ -1,5 +1,7 @@
 # WP-E: leftovers and Zemax consolidation
 
+**Status (2026-11-16): the "light core" is done (E1 small items, E2 Zemax).** Not done: the component gallery, the spline-against-network twin example, `UF_WITH_AO` in the native library (a later session). `ase_pedestal()` is a Python helper (the next stage is a separate run; nothing is carried inside one run). Nd:YAG's Fuchtbauer-Ladenburg check found a single-line fit (8 % of 1/τ), recorded in its catalogue notes. The ZOS-API audit was a read-through without ZOS-API documentation access, so it produced `TODO(zemax-hw)` markers and one certain fix (lens units), not verified conventions.
+
 Session 2.
 
 ## E1. Small items (from `next-steps.md` §3 and §2)

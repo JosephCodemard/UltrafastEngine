@@ -1,11 +1,11 @@
 # Next steps
 
-Open items after the November 2026 iteration (what was built: [history](history.md)). Longer-term design that is not scheduled: [backlog](backlog.md).
+Open items after the November 2026 iteration (what was built: [history](history.md)). Longer-term design that is not scheduled: [backlog](backlog.md). **The plan to the first public release (1.0.0), with one spec per work package, is [release-plan.md](release-plan.md); WP-D and WP-E are done except the items listed in their status lines.**
 Rules of `CLAUDE.md` apply: a physics change needs a published or analytic reference in a test; a disagreement is a finding; tags and releases only when the owner asks.
 
 ## 0. Install and release (done in the install overhaul; open parts)
 
-- Done: `docs/install.md`, `build/setup.py`, `install.py --preset`. Open: run `release.yml` once on GitHub (needs a tag, the owner's call) and check the "download `install.py` then `--preset full`" path against a real release; decide on a PyPI upload (forbidden until the owner says so; the wheel and its extras are ready); `pip install "ultrafast[plugins]"` extras only make sense once the wheel carries the plugin folders.
+- Done: `docs/install.md`, `build/setup.py`, `install.py --preset`. Open: run `release.yml` once on GitHub (needs a tag, the owner's call) and check the "download `install.py` then `--preset full`" path against a real release; PyPI: the owner decided to publish 1.0.0 with `twine` (release-plan.md, WP-F); nothing is uploaded without the owner's explicit go-ahead; `pip install "ultrafast[plugins]"` extras only make sense once the wheel carries the plugin folders.
 - Pulse calculator ideas not done: other TBP shapes (Lorentzian, asymmetric exponential), a GDD sign from a phase measurement, a `tbp` instrument in `run.json`.
 
 ## 1. WP9: documentation overhaul (large; in waves)
@@ -33,20 +33,17 @@ Reference pages stay reference pages. Missing AO / twin examples (component gall
 |---|---|
 | **Verify approximate / unverified material values against their papers**, starting with CS2 (n2, 90/10 electronic-orientational split, 1.6 / 0.2 ps constants) and BaF2 (n2, sigma = -1.2); rotational Raman dephasing `T2At1Bar` of N2, O2, CO2, H2; the other n2 values | needs the owner's PDFs; the CREOL scans could not be rendered. Then re-run `liu-2013`, `shimizu-1967`, `kaur-2024` |
 | LBO (Kato 1994) and the Jundt / Gayer LiNbO3 e-ray forms | no database page to compare with; needs the papers |
-| Yb:YAG / Nd:YAG Fuchtbauer-Ladenburg consistency: do the catalogue's cross-section fits integrate to the radiative rate? | a one-hour check; the ASE source term depends on sigma_e through these fits (all `approximate`) |
+| Nd:YAG emission: the catalogue has one line (1064.2 nm); its Fuchtbauer-Ladenburg rate is about 8 % of 1 / tau, so the other lines and branches are missing (Yb:YAG agrees with its lifetime within 7 %) | needs the Nd:YAG Stark-level spectrum (Koechner or a published emission spectrum) |
 | Birth phase of tunnelling electrons: drift-energy loss assumes a uniform birth phase; in carrier-resolved mode with PPT / ADK electrons are born near the crests, so the model books less loss (comparison test uses MPI) | needs a reference calculation (U_p at birth phase, Corkum 1993) and a change in how the energy is booked; not quick |
 | Ray-based ASE for bulk crystals and disks, parasitic lasing, fibre use (backlog C3 builds on `AseModel`) | separate package |
 | Stress: slice-by-slice retardation, the common-mode radial / tangential lenses on the field, vector gain for a y input | needs Koechner's formulas read from the source (not written from memory) and a reference for each; a package of its own |
-| MCP server (T6): `ultrafast twin serve` exits with 2 | design below |
+| MCP server (T6): `ultrafast twin serve` exits with 2 | design below; WP-A of the 1.0.0 plan |
 | GPU parity of the modulator and tile source; `release.yml` has never run on GitHub (Linux / Windows NativeAOT jobs, wheel in a fresh venv; macOS NativeAOT is built on the owner's Mac); its smoke test installs `examples.Branched` but does not run it | needs a GPU / a tag, which only the owner creates |
-| Live-data plugin, ML / PINN plugins, PyPI wheels and a NuGet package (PyPI publishing is forbidden by the owner), OpticStudio User Extension | after the first release |
+| Live-data plugin, ML / PINN plugins, a NuGet package (PyPI wheels are WP-F of the 1.0.0 plan), OpticStudio User Extension | after the first release |
 
 ## 3. Small items that are ready to do
 
-* `asePedestalEnergyFraction` is reported but not fed into the next stage's `pulse.pedestal`.
-* A lens under-sampling warning (phase step per cell above pi at the beam edge) would have caught the tiled-array case.
-* Python has no typed accessor for `unverifiedInputs`.
-* The examples still pass `gain=` to SPGD explicitly; they could use the new default.
+* (Done in WP-E: `result.ase_pedestal()`, the lens under-sampling warning, `result.unverified_inputs`.)
 
 ## 4. MCP server: the agreed design (not built)
 

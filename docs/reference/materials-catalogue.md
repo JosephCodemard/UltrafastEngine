@@ -497,6 +497,8 @@ Ti:sapphire is treated as a four-level system (no lasing-band absorption); the r
 
 Neodymium-doped YAG (four-level). Aliases: `ndyag`.
 
+The emission fit is one line (1064.2 nm, 0.6 nm). Its Fuchtbauer-Ladenburg integral is about 8 % of 1 / tau (the other Stark lines and the other 4F3/2 branches are missing), so the spontaneous-emission power (ASE source term) in the other lines and in 4I9/2 / 4I13/2 is not modelled; the 1064 nm line itself is as reliable as the quoted cross section.
+
 | quantity | values | status | uncertainty | source |
 |---|---|---|---|---|
 | `doping` | host = YAG; dopingDensityM3 = 1.38E+26 | approximate | user-specific: set dopingDensityM3 | 1 at.% Nd (Koechner), as in the original code |

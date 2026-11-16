@@ -148,10 +148,8 @@ size along z, a position-dependent index, or a whole element, all as NumPy funct
 
 ## 4. Where to go from here
 
-* `docs/examples/` has 24 worked systems (README there): multipass cells, OPCPA, mid-IR DFG, oscillators, spatial gain,
-  Zemax workflows.
+* `docs/examples/` has 24 worked systems (README there): multipass cells, OPCPA, mid-IR DFG, oscillators, spatial gain.
 * [Model levels](../model-levels.md) explains which physics each element includes and when to switch on more:
   spatial models, carrier-resolved fields, Raman.
-* Systems designed in OpticStudio can be exported directly ([Zemax plugin](../plugins/zemax.md)).
 
 Next: [Tutorial 4 -- Your own measured data](04-measured-data.md).

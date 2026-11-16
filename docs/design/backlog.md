@@ -3,7 +3,7 @@
 This page was the plan for the work after 2.2.0 (written 2026-11-08). The adaptive-optics and digital-twin work from it is done
 ([history](history.md)); the plan for the next iteration is [next-steps.md](next-steps.md). What stays here is design that is **not scheduled**:
 engineering (GPU coverage, FP32, speed), multimode and tapered fibres, fitting extensions, the crystal- and coating-design plugins, papers still to replicate,
-and the repetition / Pockels-cell sketch. Sizes are focused agent-days (S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here. Owner decisions 1-11 below
+and the repetition / Pockels-cell sketch. Sizes are focused agent-days (S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here (it is an experimental plugin, see [WP-E](wp-e-leftovers-zemax.md)). Owner decisions 1-11 below
 still hold unless next-steps.md says otherwise.
 
 ## Decisions (owner)
@@ -11,7 +11,7 @@ still hold unless next-steps.md says otherwise.
 | # | decision |
 |---|---|
 | 1 | Push to GitHub: yes. PoCL is added to CI so `GpuTests` run there (not done yet). |
-| 2 | No PyPI publishing. The release workflow builds packages and wheels and attaches them to a GitHub release on a version tag. |
+| 2 | ~~No PyPI publishing.~~ **Superseded 2026-11-16:** the first public release (1.0.0) is uploaded to PyPI with `twine`, only on the owner's explicit go-ahead ([release-plan.md](release-plan.md), WP-F). The release workflow still builds packages and wheels and attaches them to a GitHub release on a version tag. |
 | 3 | **Plugins as pip extras**: `pip install "ultrafast[hitran,cuda,fitting]"`, `[opencl]`, `[coatingdesign]`, `[crystaldesign]`, `[all]`. The default Python engine is the NativeAOT library, which can only use plugins compiled into it, so: the native library in the `ultrafast` wheel is built with every non-Zemax plugin compiled in (off until used); each extra installs that plugin's Python module (`ultrafast-hitran`, `ultrafast-fitting`, ...) and its third-party dependencies (`[cuda]`: NVIDIA's NVRTC / cuFFT wheels, not on macOS); the hosted engine loads the plugin assemblies shipped in the same extra wheels. Without PyPI, extras resolve only with `pip install "ultrafast[hitran]" --find-links <release assets or dist/>`. Zemax is never an extra. |
 | 4 | (delegated) **FP32 study first; then mixed precision in the existing CUDA / OpenCL back-ends; Metal only if the study shows FP32 is enough for the steps that matter.** Reason: Apple GPUs have no FP64, so Metal is worthless unless FP32 works, and the study is cheap and runs on this Mac. |
 | 5 | (open-air focus) Fibre work is reshaped. **In**: frequency-dependent effective area (also needed by hollow capillaries); a **hollow-capillary (Marcatili) gas waveguide** model, the fibre most relevant to open-air post-compression; **rate-equation gain with ASE as a shared gain model**, used by the bulk `gain` / `amplifier` elements as well as fibres, because the ASE pedestal is a contrast question for CPA chains; multimode tier T0 (GRIN example). **Small**: tapers (C2). **Out for now**: GMMNLSE (T1) and a mode solver (T2). |

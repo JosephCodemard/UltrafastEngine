@@ -45,7 +45,7 @@ checks passed
   the engine follows the Gaussian-overlap formula `(1/N²) Σ exp(-ln2 (τ_k - τ_l)²/τ_p²)` to 2 %. For the 7 random delays drawn
   at 60 fs rms the value rises again (0.535): it is a sample of seven, not an average. Timing, not just phase, matters for
   few-cycle pulses.
-* SPGD (gain 10, shake 0.2 rad) takes the pinhole signal from 0.04 to the in-phase value in about 60 iterations. The loop runs on 128 x 128 cells with a lens of
+* SPGD (default scale-free step, shake 0.2 rad) takes the pinhole signal from 0.04 to the in-phase value in about 60 iterations. The loop runs on 128 x 128 cells with a lens of
   f = 1 m. **Finding (the earlier version of this example ended at 1.02 of the in-phase value):** at f = 0.5 m the lens phase of a tile 3 mm off the axis changes by 3.7 rad per cell on
   128 cells, more than π, so the lens is under-sampled, and the seven identical tiles reach the axis with fluences that differ by a factor of 56 (one tile alone: 1, 1, 0.08, 4.6, 0.08, 1, 1
   times the central tile's). The zero-piston sum was then not the maximum, and SPGD found a better one. At f = 1 m (1.9 rad per cell) the seven fluences are equal to 1e-3, and so is

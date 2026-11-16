@@ -140,7 +140,7 @@ At angle of incidence θ a spherical mirror has the tangential focal length f_t 
 incidence) and the sagittal one f_s = R / (2 cos θ). `planeOfIncidenceDeg` is the angle of the s direction from x
 (90°, the default, folds in the x-z plane, so x is tangential). The astigmatism acts on the tracked beam and on a
 carried transverse profile. A radial grid cannot hold astigmatism: it gets the mean power, with a note (use a
-cartesian model). A `lens` can be astigmatic too (`focalLengthXM`, `focalLengthYM`).
+cartesian model). A `lens` can be astigmatic too (`focalLengthXM`, `focalLengthYM`). A lens or curved mirror whose phase k r² / 2f changes by more than π between neighbouring grid points at the beam edge (1.5 second-moment radii) is under-sampled: the field after it is aliased, and the run warns (more points, a smaller extent or a longer focal length fix it).
 
 ## Aberrations
 

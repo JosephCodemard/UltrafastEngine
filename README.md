@@ -149,9 +149,9 @@ The badges above are updated when the counts change (see [PROJECT_STATUS.md](PRO
   time-domain responses — each can be given as data, an expression or a function (C#, Python, C), per material,
   per element or globally, without editing the system file. A provenance report records where every value came from.
 * **Plugins.** Element types, instruments, models, run modes, estimators, retrieval algorithms, compute back-ends and
-  CLI commands can be added as plugins that the engine discovers at start-up. Four live in `plugins/`: **fitting**
-  (transforms, fitting, backward propagation), **zemax** (export a sequential OpticStudio system to a system file),
-  **gpu** (CUDA and OpenCL back-ends) and **hitran** (gas lines in air). See [Plugins](docs/plugins/index.md).
+  CLI commands can be added as plugins that the engine discovers at start-up. Several live in `plugins/`: **fitting**
+  (transforms, fitting, backward propagation), **gpu** (CUDA and OpenCL back-ends), **hitran** (gas lines in air),
+  **ao** and **twin**; an experimental **zemax** plugin (untested against OpticStudio) is listed on the plugin page. See [Plugins](docs/plugins/index.md).
 * **Schemas everywhere.** Every option is declared once with its type, unit and default. From that declaration come
   the JSON Schemas (editor completion for `.ufs` and run specs), unknown-key warnings with suggestions, the
   [option reference](docs/reference/options.md), and Python TypedDicts for autocompletion and type checking.
@@ -172,7 +172,7 @@ The full documentation is at **<https://josephcodemard.github.io/UltrafastEngine
 | [Reference](docs/reference/system-file.md) | system file, run spec, every element and instrument, models, results |
 | [Capabilities and limitations](docs/capabilities.md) | what is modelled, how it is validated, and what is not |
 | [Papers](docs/papers/README.md) and [component tests](docs/component-tests.md) | published results reproduced and every component checked, with plots |
-| [Plugins](docs/plugins/index.md) | the fitting, zemax, gpu and hitran plugins, [installing](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
+| [Plugins](docs/plugins/index.md) | the fitting, gpu, hitran, ao and twin plugins (and the experimental zemax plugin), [installing](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
 | [For AI agents](docs/agents.md) | how to drive and extend the engine programmatically ([`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt)); the [Claude Code](docs/claude-code.md) setup |
 | [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages and release assets; `install.py` installs or removes only the components you name |
 
@@ -183,7 +183,7 @@ src/UltrafastEngine.Core     the engine (C#, net10.0 + net48, no NuGet dependenc
 src/UltrafastEngine.Cli      the `ultrafast` command
 src/UltrafastEngine.Native   C API (include/ultrafast.h)
 python/                      the `ultrafast` Python package
-plugins/                     fitting, zemax, gpu, hitran
+plugins/                     fitting, gpu, hitran, ao, twin, zemax (experimental)
 schemas/                     JSON Schemas of system files and run specs
 docs/                        documentation, tutorials, examples, paper replications (docs/papers)
 tests/                       C# test suite (no external framework) and tests/components (analytic checks with plots)

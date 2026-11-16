@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
+Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `UnverifiedInput`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -111,6 +111,11 @@ A system + a run spec (+ callbacks). Call :meth:`execute` to propagate.
 * `element(name: str, fn: Callable[['ElementContext'], Any]) -> 'Run'` -- Register a user element under ``name``; use it as ``{"type": "user", "callback": "@name", "params": {...}}``. ``fn(ctx)`` returns ``(ax, ay)``, ``ax``, or None (see :class:`ElementContext`).
 * `execute(progress: Optional[Callable[[str, int, int, float], Optional[bool]]] = None) -> 'Result'` -- Propagate. ``progress(element_id, index, count, fraction)`` may return True to cancel.
 
+### class `UnverifiedInput(TypedDict)`
+
+One approximate or unverified catalogue value a run used (summary.json ``unverifiedInputs``).
+
+
 ### class `Result(_Handle)`
 
 Everything a run produced. ``result.summary`` (dict), ``result['output_power_w']`` (NumPy), ``result.arrays`` (lazy mapping), ``result.write(directory)``.
@@ -121,6 +126,8 @@ Everything a run produced. ``result.summary`` (dict), ``result['output_power_w']
 * `names() -> list`
 * `arrays() -> Mapping[str, np.ndarray]`
 * `elements()` -- Per-element table as a list of dicts (also in summary['elements']).
+* `unverified_inputs() -> List[UnverifiedInput]` -- Approximate or unverified catalogue values this run used (empty when every input is verified). Check it before quoting a number; ``physics.strictMaterials`` turns the same list into an error.
+* `ase_pedestal(element: Optional[str] = None, duration_s: Optional[float] = None) -> Dict[str, Any]` -- The ``pulse.pedestal`` component that carries the inter-pulse ASE of a gain / amplifier element (run with ``aseModel``) into the next stage: ``{"kind": "ase", "energyFraction": f}`` with f = ASE energy per pulse period / output pulse energy. ``element``: the element id (default: the last element that reports an ASE pedestal). ``duration_s``: the length the ASE is spread over in the next stage (default of the engine: 10 ns; the pulse period is the physical choice). Raises ``KeyError`` if no element reports one.
 * `instrument(name: str) -> dict`
 * `comparisons() -> 'List[_measured.Comparison]'` -- Instruments compared with recorded data (their ``measured`` key): chi^2, rms error, scalar readings, notes. See :mod:`ultrafast.measured`.
 * `comparison(instrument: str) -> '_measured.Comparison'` -- The comparison of one instrument with its recorded data (KeyError if it has none).
