@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+**Added (WP-2b, 2026-11-17: MCP server, first slice)**
+- **`ultrafast-mcp`** (`python/src/ultrafast/mcp/`, entry point in the wheel): a local MCP server over stdio, workspace-sandboxed, no dependencies (decision E8).
+  Hand-written JSON-RPC 2.0 for both protocol eras (2026-07-28 `server/discover` with per-request `_meta`; 2025-11-25 ... 2024-11-05 `initialize`).
+  Tools `describe`, `validate`, `run` (with `fidelity`; returns the fidelity report, warnings and `validity`), `scan` (with `fidelity`), `explain_warning`, `plot`;
+  resources: run and system schemas, the fidelity table, the examples index. The engine runs in a persistent child process with an empty private `ULTRAFAST_HOME`,
+  killed and respawned when a call uses its time budget; refusals (callbacks, user code, paths outside the workspace or through links, bad names, unknown arguments,
+  parameter paths, size, memory) come back as `isError` results. `ultrafast twin serve <folder>` starts it. Docs: `docs/agents.md` (MCP server).
+
 **Added (WP-1b, 2026-11-17: memory safety; a fit of a 46-pass multipass cell had run out of memory after 2 h)**
 - **Fitting keeps bounded memory.** The residual cache holds numbers only (same eviction rule, so the same evaluations); the latest and
   best evaluations keep their full result, the Jacobian runs keep what the uncertainties read (instruments, records), and all

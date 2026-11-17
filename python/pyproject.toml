@@ -32,6 +32,7 @@ test = ["pytest>=7"]
 
 [project.scripts]
 ultrafast-plot = "ultrafast.plot:main"
+ultrafast-mcp = "ultrafast.mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/JosephCodemard/UltrafastEngine"

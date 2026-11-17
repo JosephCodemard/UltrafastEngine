@@ -316,6 +316,9 @@ class Builder:
         pkg = stage / "ultrafast"
         if not Log.dry:
             shutil.copytree(REPO / "python" / "src" / "ultrafast", pkg, ignore=shutil.ignore_patterns("bin", "__pycache__", "*.pyc"))
+            (pkg / "schemas").mkdir()      # the MCP server serves them as resources (ultrafast.mcp.resources)
+            for f in (REPO / "schemas").glob("*.schema.json"):
+                shutil.copy2(f, pkg / "schemas" / f.name)
         binp = pkg / "bin"
         if engine == "hosted":
             run(["dotnet", "build", NATIVE, "-c", "Release", "-nologo", "-p:UF_NO_AOT=true", "-p:GenerateDocumentationFile=false", "-o", binp / "hosted"] + self._compiled_in_flags())

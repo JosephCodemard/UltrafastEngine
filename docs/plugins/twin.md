@@ -39,7 +39,7 @@ ultrafast twin check lab [--goals goals.json] | --benchmark
 
 `ultrafast twin` starts `python -m ultrafast_twin`. It uses `ULTRAFAST_PYTHON` as the interpreter (else `python3`, or `python` on Windows):
 point it at a Python that has NumPy and the `ultrafast` package (in a source checkout also set `PYTHONPATH=python/src`).
-`ultrafast twin serve` (the MCP server for agents) is **not implemented**; it exits with code 2.
+`ultrafast twin serve <folder>` starts the MCP server for agents (the core `ultrafast-mcp`, [agents](../agents.md#mcp-server)) with the project folder as workspace. The twin-specific tools (fit, validate, predict) are not in it yet.
 
 ## Python
 
