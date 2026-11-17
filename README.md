@@ -89,6 +89,19 @@ writes a self-describing results folder: scalar summaries (`summary.json`), arra
 records, a loss budget, and the provenance of every model value. See [Getting started](docs/getting-started.md) for
 Windows, macOS and Linux setup and the Python package.
 
+### Calculators without a simulation
+
+```python
+from ultrafast import calc
+calc.tbp("sech2")                                                                      # 0.3148
+calc.beam.single_lens_match(waist_in_m=0.3e-3, waist_out_m=0.1e-3, wavelength_m=1030e-9, focal_length_m=0.5)
+calc.nonlinear.b_integral_estimate(1030e-9, n2_m2_per_w=2.7e-20, length_m=5e-3, pulse_energy_j=1e-3,
+                                   duration_fwhm_s=200e-15, beam_radius_m=1e-3)["bPulseAveragedRad"]
+```
+
+Pulse, crystal, cell, beam / mode-matching and nonlinear-estimate calculators: [Calculators](docs/reference/calculators.md). The beam and
+nonlinear ones need only NumPy.
+
 ## What it models
 
 | Area | What is modelled |

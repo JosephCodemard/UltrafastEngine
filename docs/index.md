@@ -50,6 +50,7 @@ polarimeter, camera, each with its own resolution and detector.
 | fibres and supercontinuum | [Fibres](reference/fibers.md) |
 | frequency conversion, OPA / OPCPA | [Crystals](reference/crystals.md) |
 | time-bandwidth product, transform limit | [Pulse calculator](reference/pulse-calculator.md) |
+| Gaussian beams, mode matching, critical power, B-integral (no engine needed) | [Calculators](reference/calculators.md) |
 | amplifiers and lasers | [Gain media](reference/gain.md), [Oscillators](reference/oscillators.md) |
 | diffraction, self-focusing, filaments | [Spatial models](reference/transverse.md), [Ionisation](reference/ionization.md) |
 | splitters, interferometers, loops | [Branched systems](reference/branches.md) |

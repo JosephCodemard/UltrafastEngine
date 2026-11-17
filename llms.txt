@@ -45,6 +45,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Fibres & waveguides](docs/reference/fibers.md)
 - [Active elements & aux beams](docs/reference/active-elements.md)
 - [Crystals (χ(2))](docs/reference/crystals.md)
+- [Calculators: `ultrafast.calc` (pulse, crystal, cell, beam / mode matching, nonlinear estimates)](docs/reference/calculators.md)
 - [Pulse calculator (time-bandwidth product)](docs/reference/pulse-calculator.md)
 - [Gain media & amplifiers](docs/reference/gain.md)
 - [Oscillators & saturable absorbers](docs/reference/oscillators.md)

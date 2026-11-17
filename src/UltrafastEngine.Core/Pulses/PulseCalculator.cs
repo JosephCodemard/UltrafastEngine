@@ -33,9 +33,10 @@ namespace UltrafastEngine.Pulses
         private const double C = PhysicalConstants.SpeedOfLightMPerS;
 
         /// <summary>Shapes with a closed-form product (intensity FWHM in time times intensity FWHM in frequency).</summary>
-        public static readonly string[] Shapes = { "gaussian", "sech2", "rectangular" };
+        public static readonly string[] Shapes = { "gaussian", "sech2", "lorentzian", "asymmetric-exponential", "rectangular" };
 
-        /// <summary>Exact TBP: Gaussian 2 ln2 / pi; sech^2 (2 ln(1+sqrt2))^2 / pi^2; rectangular pulse (sinc^2 spectrum) 0.8859.</summary>
+        /// <summary>Exact TBP: Gaussian 2 ln2 / pi; sech^2 (2 ln(1+sqrt2))^2 / pi^2; Lorentzian field E = 1/(1+(t/tau)^2), I = E^2, ln2 sqrt(sqrt2-1) / pi = 0.1420
+        /// (tabulated as 0.142, Diels and Rudolph, Table 2.1); one-sided exponential I = exp(-t/tau), t >= 0, ln2 / (2 pi) = 0.1103 (tabulated as 0.110); rectangular pulse (sinc^2 spectrum) 0.8859.</summary>
         public static double TbpOf(string shape)
         {
             switch ((shape ?? "gaussian").ToLowerInvariant())
@@ -43,6 +44,8 @@ namespace UltrafastEngine.Pulses
                 case "gaussian": case "gauss": return 2 * Math.Log(2) / Math.PI;
                 case "sech2": case "sech": case "sech^2": { double a = 2 * Math.Log(1 + Math.Sqrt(2)); return a * a / (Math.PI * Math.PI); }
                 // sinc^2(x) = 1/2 at x = 1.39156 (sin x / x = 1/sqrt2); FWHM in frequency = 2 x / (pi T)
+                case "lorentzian": case "lorentz": return Math.Log(2) * Math.Sqrt(Math.Sqrt(2) - 1) / Math.PI;
+                case "asymmetric-exponential": case "asym-exp": case "asymmetric_exponential": case "exponential": return Math.Log(2) / (2 * Math.PI);
                 case "rectangular": case "square": case "rect": return 2 * 1.3915574 / Math.PI;
                 default: throw new JsonException("unknown pulse shape '" + shape + "' (use " + string.Join(", ", Shapes) + ")");
             }

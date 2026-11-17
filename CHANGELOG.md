@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Added (WP-2 part A, 2026-11-17: calculators)**
+- **`ultrafast.calc` is a package**: `pulse` (the old `calc` module), `crystal` (`phase_match`), `cell` (`cell_mode`), and two new pure-Python modules that need no engine: `beam` (Gaussian `q`, waist, Rayleigh range, ABCD matrices, single- and two-lens mode matching, telescopes, M² from widths) and `nonlinear` (critical power, Marburger collapse distance, B-integral with the pulse (1/√2, 2/3) and beam (1/2) averages, peak power / intensity / fluence). `ultrafast.calc.tbp / limit / analyze / measure`, `ultrafast.crystal` and `ultrafast.cells` keep working. See `docs/reference/calculators.md`.
+- **TBP shapes `lorentzian` (0.1420) and `asymmetric-exponential` (0.1103)** in `PulseCalculator` (C#, CLI, C API, Python), tested against the tabulated values and a numerical Fourier transform. `pulse.shapes()` and `tbp()` work without the engine; a test compares them with the engine's table.
+- **Calculator keywords carry their unit**: `duration_s`, `center_m`, `fundamental_m`, `pump_m`, `signal_m`, `idler_m`, `a_m`, `b_m`, `length_m`, `pump_intensity_w_per_m2`, `wavelength_m`, `mirror_radius_m`, `separation_m`, `peak_power_w`. The old names work with a `DeprecationWarning`. Engine errors of the calculators are raised as `ValueError`.
+- Tested: the phase-matching calculator already accepts `noncollinearDeg` for `sfg` (0 gives the collinear angle).
+
 **Added and fixed (WP-1, 2026-11-17: issues from a user's 46-pass multipass cell, physics questions)**
 - **Validity in machine-readable form:** `summary.json` `validity` lists every check that fired (`zeroFrequency`, `criticalPower`, `kerrLensCollapse`, `lidt`, `windowEdge`) per element with its value and threshold; one warning per check names every element (it used to name only the first pass). `physics.strictValidity` / `ULTRAFAST_STRICT_VALIDITY=1` makes them an error after the run. Tests `ValidityTests`.
 - **Fixed: false "zero frequency" warning.** Any energy deficit of a nonlinear element (including the stepper's own error) was reported as broadening that reached zero frequency, so a narrow-band pass 1 of a cell warned. The check now needs the output spectrum to reach the blocked bins at ω ≤ 0.

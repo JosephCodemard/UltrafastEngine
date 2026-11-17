@@ -51,6 +51,7 @@ nav:
       - Ionisation & plasma: reference/ionization.md
       - Active elements & aux beams: reference/active-elements.md
       - Crystals (χ(2)): reference/crystals.md
+      - Calculators (pulse, crystal, cell, beam, nonlinear): reference/calculators.md
       - Pulse calculator (TBP): reference/pulse-calculator.md
       - Gain media & amplifiers: reference/gain.md
       - Oscillators & saturable absorbers: reference/oscillators.md

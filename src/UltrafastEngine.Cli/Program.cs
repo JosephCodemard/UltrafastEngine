@@ -414,7 +414,7 @@ Docs: docs/index.md   Examples: docs/examples/";
 
         private static int PulseCommand(string[] a)
         {
-            const string use = "usage: ultrafast pulse shapes | limit --shape gaussian|sech2|rectangular (--duration <s> | --bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>)\n" +
+            const string use = "usage: ultrafast pulse shapes | limit --shape gaussian|sech2|lorentzian|asymmetric-exponential|rectangular (--duration <s> | --bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>)\n" +
                                "       ultrafast pulse analyze --duration <s> (--bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>) [--shape gaussian] [--json]\n" +
                                "       ultrafast pulse measure --request <file.json> [--json]   (arrays timeS, intensity, wavelengthM|frequencyHz, spectrum)";
             var ci = CultureInfo.InvariantCulture;
