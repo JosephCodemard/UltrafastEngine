@@ -195,6 +195,35 @@ The plan for the first public release had seven work packages (WP-A agents / MCP
 * Findings: the GPU parity tests used to pass when a device run had failed and fallen back to the CPU (fixed); domain-resolved QPM at the default tolerance is only ~7e-4 accurate in field because of sliver steps at walls (CPU too; fixed in Stage 11); fixed steps ignore QPM walls (now a warning).
 * C# `--slow` 642 tests (16 `GpuTests`): 641 pass, 1 skip (HAPI); Python 267 pass / 1 skip; 41 example specs strict; `mkdocs --strict` clean.
 
+## Stage 11 -- WP-1: design docs, a user's multipass-cell report, physics questions  (2026-11-17, `dev/2026-11`, Windows + RTX 3060 Ti)
+
+The session started from a discovery pass over every planning document and split the remaining work into three packages (WP-1 engine and docs,
+WP-2 Python surface, WP-3 docs and release) plus WP-1b (memory safety, moved to its own session); see [roadmap-internal](roadmap-internal.md) §0.
+
+* **Design docs:** twelve files and `HANDOFF.md` merged into the seven current ones of this folder; the folder left the documentation site.
+* **A user's 46-pass cell report**, each item reproduced or answered:
+  validity is now machine-readable (`summary.json` `validity`, `physics.strictValidity`); the "zero frequency" warning on pass 1 was a false positive
+  (any energy deficit, solver error included, was reported; the check now needs the spectrum at omega <= 0); warnings name every pass, not the first;
+  B has pulse- and beam-averaged values beside the on-axis peak; the FWHM of a multi-peaked pulse is flagged (`peakCount`, `fwhmEnergyFraction`);
+  ionisation that cannot matter is skipped (a conservative bound: 4 x the entry peak intensity over 4 x the effective duration, phase < 1e-6 rad,
+  energy < 1e-9) and ionisation that matters runs on the GPU (rate table + one-work-item time scan + spectral Drude FFT; MPI exact to 1e-16, PPT /
+  Keldysh 4e-6 in the ionised density because the table is cubic across channel-closing kinks; an adaptive run may then take one step more, 5e-5 in
+  the field); the radial model through 46 `sameAs` passes equals the passes written out (`SameAsTests`). Not done: carrying the Kerr-lensed 1-D beam to
+  later elements (roadmap §2).
+* **Physics questions answered from the code** (recorded in `limitations.md`): free-electron plasma in solids (yes: Keldysh, avalanche, Drude; not in
+  chi(2) crystals); circular light on an oblique mirror (elliptical with a real surface: new test against Fresnel at 20-70 deg; an ideal mirror keeps it
+  circular); self-steepening (on by default, tau_shock = 1/omega0); thick optics (plates, thick waveplates, TFP substrates, Faraday crystals, lenses with
+  `thicknessM`, and now polarisers with `material` + `thicknessM`; beam splitters have no glass). Fixed on the way: `ionization` and `kerrLens` were
+  dropped on plates (the "key read only through overrides" pattern in another form).
+* **QPM sliver steps:** steps ending within 10 % of a wall land on it; tolerances 1e-7 apart now agree to 3e-8 (was 3e-5). The default tolerance is
+  still 4e-4 from converged over ~100 walls: the remaining error is ordinary global error, not slivers.
+* Verified: C# `--slow` 655 pass / 0 fail / 1 skip (HAPI; 17 `GpuTests` on CUDA and OpenCL); Python 268 pass / 1 skip (pyNLO, LightPipes);
+  `mkdocs --strict` clean; generated files current; examples strict: two READMEs differ from a Windows run in the last quoted digit
+  (`AdaptiveOptics/tiled-array` 0.878 vs 0.879, `Diffraction/iris-diffraction` 0.45 % vs 0.46 %), with 0 numbers changed against the previous
+  commit's engine: platform rounding of numbers recorded on macOS, not a change (READMEs left as they are).
+* Moved to WP-2: Lorentzian / asymmetric-exponential TBP shapes, PM calculator `noncollinearDeg` for `sfg`. Moved to the roadmap: a study schema,
+  glass in beam splitters, exact PPT / Keldysh rates on the device.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

@@ -33,6 +33,13 @@ namespace UltrafastEngine.Engine
             s.Background.AddRange(Background);
             return s;
         }
+        /// <summary>The same segment with another nonlinear medium (the executor drops a negligible plasma term).</summary>
+        public NonlinearSegment WithMedium(NonlinearMedium medium)
+        {
+            var s = new NonlinearSegment { Medium = medium, Beam = Beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved, KerrLens = KerrLens, KerrLensModel = KerrLensModel };
+            s.Background.AddRange(Background);
+            return s;
+        }
         /// <summary>The same segment with another background (the executor takes narrow lines out of the solver).</summary>
         public NonlinearSegment WithBackground(IEnumerable<LinearTerm> background)
         {
@@ -588,8 +595,18 @@ namespace UltrafastEngine.Engine
                     break;
                 }
                 case "polarizer":
+                {
+                    // the glass of a real polariser (a Glan prism, a crystal or film polariser) adds its dispersion before the polarising action
+                    double pth = Num(c, e, "thicknessM", 0);
+                    if (e.Json.Has("material") && pth > 0)
+                    {
+                        var pm = GetMaterial(c, Str(c, e, "material", null));
+                        ce.Pre.Add(new BulkTerm(pm, pth));
+                    }
+                    else if (e.Json.Has("material")) ce.Notes.Add("polarizer: a material without thicknessM adds no dispersion; give the glass path length in thicknessM");
                     ce.Post.Add(new PolarizerTerm(Angle(c, e, "axis", 0), Num(c, e, "extinctionRatio", 1e5), Num(c, e, "transmission", 1.0)));
                     break;
+                }
                 case "rotator":
                     ce.Post.Add(new RotatorTerm(Angle(c, e, "angle", 0)));
                     break;
@@ -622,6 +639,7 @@ namespace UltrafastEngine.Engine
                     ce.Active = new Optics.SurfaceOpticsElement("thin lens", fxl, fyl, lm, medium, c.Omega0, lensAb);
                     double th = Num(c, e, "thicknessM", 0);
                     if (lm != null && th > 0) ce.Pre.Add(new BulkTerm(lm, th));
+                    else if (lm != null) ce.Notes.Add("lens: the material sets the chromatic focal length only; give thicknessM (the glass on axis) for its dispersion (GDD, TOD)");
                     c.Out.Provenance.Record("element:" + e.Id, "lens", ce.Active.Description, ModelSource.SystemData, "system file");
                     break;
                 }

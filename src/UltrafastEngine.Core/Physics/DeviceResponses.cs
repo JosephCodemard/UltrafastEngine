@@ -38,6 +38,46 @@ namespace UltrafastEngine.Physics
         public string Key;
     }
 
+    /// <summary>
+    /// The plasma term (<see cref="PlasmaResponse"/>) in a form a device kernel evaluates: the ionisation rate of each channel tabulated
+    /// as ln W against ln I (Catmull-Rom cubic between nodes; <see cref="RateFromTable"/> is the host mirror of the kernel), the constants of
+    /// the rate equation and the Drude term, and for the frequency-resolved Drude index the spectral factor i (omega / c) R(omega) in the
+    /// engine's centred order. The device runs the same time scan as <c>PlasmaResponse.Run</c> (envelope mode only).
+    /// </summary>
+    public sealed class PlasmaDeviceSpec
+    {
+        public const int TableN = 16384;
+        /// <summary>Table range of ln I (I in W/m^2): 1e8 to 1e22 W/m^2. Below it the rate is 0; above it ln W is extrapolated linearly.</summary>
+        public const double LnIMin = 18.420680743952367, LnIMax = 50.65687204586901;
+        public int Channels;
+        public double[] DensityM3, EnergyJ;
+        /// <summary>ln W at TableN nodes per channel (channel-major).</summary>
+        public double[] LnRate;
+        public double Drude, OmegaTauC, K0, Sigma, UMean, RecombinationRatePerS, RecombinationBetaM3PerS, InitialDensityM3;
+        public bool Avalanche, Absorption, FrequencyResolved;
+        /// <summary>i (omega / c) R(omega, omega0) per bin, centred order (0 for omega &lt;= 0); null unless <see cref="FrequencyResolved"/>.</summary>
+        public System.Numerics.Complex[] SpectralRate;
+        /// <summary>Called by the device back-end with the peak electron density it found (the CPU path records it itself).</summary>
+        public Action<double> ReportPeakDensity;
+
+        public double DLnI => (LnIMax - LnIMin) / (TableN - 1);
+
+        /// <summary>The rate of channel <paramref name="k"/> at intensity I from the table, exactly as the kernel computes it.</summary>
+        public double RateFromTable(int k, double intensity)
+        {
+            if (!(intensity > 0)) return 0;
+            double x = (Math.Log(intensity) - LnIMin) / DLnI;
+            if (x < 0) return 0;
+            int o = k * TableN;
+            if (x >= TableN - 1) { double s = LnRate[o + TableN - 1] - LnRate[o + TableN - 2]; return Math.Exp(LnRate[o + TableN - 1] + s * (x - (TableN - 1))); }
+            int i = (int)x; double f = x - i;
+            double p1 = LnRate[o + i], p2 = LnRate[o + i + 1];
+            double p0 = i > 0 ? LnRate[o + i - 1] : 2 * p1 - p2, p3 = i + 2 < TableN ? LnRate[o + i + 2] : 2 * p2 - p1;
+            double v = p1 + 0.5 * f * (p2 - p0 + f * (2 * p0 - 5 * p1 + 4 * p2 - p3 + f * (3 * (p1 - p2) + p3 - p0)));
+            return Math.Exp(v);
+        }
+    }
+
     public static class DeviceResponses
     {
         /// <summary>The name of a response variable in the generated C source.</summary>

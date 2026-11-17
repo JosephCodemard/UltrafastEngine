@@ -156,6 +156,31 @@ namespace UltrafastEngine.Tests
             Assert.False(adaptive.Records[0].Steps.Notes.Contains(Physics.Steppers.FixedStepsIgnoreBreakpoints), "the adaptive stepper lands on the walls: no warning");
         }
 
+        [Test(Category = "physics", Reference = "convergence: runs at nearby tolerances agree, and the error against tolerance 1e-9 falls with the tolerance", Tolerance = "1e-7 between tolerances 1e-7 relative apart (was 3e-5 with sliver steps); 1e-5 at tolerance 1e-8")]
+        public void Qpm_DomainResolved_NoSliverSteps_ResultDoesNotDependOnTheLastBitsOfTheStep()
+        {
+            // found in WP-C(B): the adaptive stepper lands on every wall, but a step that ended just short of a wall left a sliver step
+            // (down to 2e-9 m) before it, so the result depended on the last bits of the step size; steps within 10 % of a wall are now
+            // stretched onto it. At the default tolerance the field is still ~4e-4 from the converged one (the global error of ~100 walls):
+            // use tolerance 1e-8 for quantitative domain-resolved work (docs/reference/crystals.md).
+            var sys = Sys(O("id", "ppln", "type", "crystal", "crystal", "MgO:LiNbO3", "lengthM", 1e-3, "temperatureC", 24.5,
+                "interaction", O("process", "shg", "qpm", O("model", "domains")), "overlap", PlaneWave(50e-6), "chi3", false, "output", "sh"));
+            RunResult At(double tol) => Go(sys, Spec(Gauss(1550e-9, 1e-12, 50e-9), O("physics", O("selfSteepening", false), "stepper", O("method", "adaptive", "tolerance", tol))));
+            double Err(RunResult r, RunResult reference)
+            {
+                double num = 0, den = 0;
+                for (int i = 0; i < r.Output.Grid.N; i++) { var d = r.Output.Ax[i] - reference.Output.Ax[i]; num += d.Real * d.Real + d.Imaginary * d.Imaginary; den += reference.Output.Ax[i].Real * reference.Output.Ax[i].Real + reference.Output.Ax[i].Imaginary * reference.Output.Ax[i].Imaginary; }
+                return Math.Sqrt(num / den);
+            }
+            var converged = At(1e-9);
+            var def = At(1e-6);
+            double near = Err(At(1.0000001e-6), def), tight = Err(At(1e-8), converged);
+            Console.WriteLine("    tolerances 1e-7 apart: " + near.ToString("E2") + "; tolerance 1e-8 vs 1e-9: " + tight.ToString("E2") + "; default vs 1e-9: " + Err(def, converged).ToString("E2") + "; min step " + def.Records[0].Steps.MinStepM.ToString("E2") + " m");
+            Assert.Less(near, 1e-7, "a tolerance 1e-7 relative away gives the same field (2.8e-8; was 3e-5 with sliver steps)");
+            Assert.Less(tight, 1e-5, "tolerance 1e-8 converges");
+            Assert.Greater(def.Records[0].Steps.MinStepM, 1e-7, "no sliver steps (domains are 9.7 um)");
+        }
+
         [Test(Category = "physics")]
         public void Qpm_AveragedAndDomainResolvedModelsAgree()
         {

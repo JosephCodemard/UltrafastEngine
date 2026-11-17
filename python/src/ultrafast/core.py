@@ -206,16 +206,16 @@ def scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], output
     (``"pulse:end/fwhmS"``). Returns a :class:`Scan`; reading ``scan["pulse:end/fwhmS"]`` runs it and gives an array with one
     dimension per axis.
 
-    ``fidelity`` ("quick" | "standard" | "full", docs/reference/fidelity.md; needs ``run_spec`` as a dict) sets the run's fidelity;
+    ``fidelity`` ("quick" | "standard" | "full", docs/reference/fidelity.md) replaces the run's fidelity (``run_spec`` a dict or a file);
     the recommended workflow is to scan in "quick", then re-run the best points in "full". ``cache`` is a folder: each point is stored
     there under a hash of its inputs, so a repeated or interrupted scan computes only the missing points. The grid is frozen once for
     all points (the union of what the range ends need) and every point after the first changed element restarts from the cached
     nominal run, so a scan is much cheaper than a Python loop of :func:`run` calls."""
-    if fidelity is not None:
-        if not isinstance(run_spec, Mapping):
-            raise ValueError("scan(fidelity=...) needs run_spec as a dict; put \"fidelity\" in the run file otherwise")
-        run_spec = {**run_spec, "fidelity": fidelity}
     opts = dict(options)
+    if fidelity is not None:
+        if fidelity not in ("quick", "standard", "full"):
+            raise ValueError("fidelity must be \"quick\", \"standard\" or \"full\" (got %r)" % (fidelity,))
+        opts["fidelity"] = fidelity   # the engine applies it to the run, given as a dict or as a file
     opts["parallel"] = parallel
     if cache is not None:
         opts["cache"] = os.path.abspath(os.fspath(cache))

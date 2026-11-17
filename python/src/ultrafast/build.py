@@ -421,8 +421,14 @@ def pedestal(kind: str, **params) -> dict:
     return {"kind": kind, **params}
 
 
-def polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 1e5) -> "T.PolarizerElement":
-    return {"id": id, "type": "polarizer", "axisDeg": axis_deg, "extinctionRatio": extinction_ratio}
+def polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 1e5, material: Optional[str] = None,
+              thickness_m: float = 0.0) -> "T.PolarizerElement":
+    """A linear polariser. ``material`` with ``thickness_m`` adds the glass path of a real one (a Glan prism: its dispersion)."""
+    el: Dict[str, Any] = {"id": id, "type": "polarizer", "axisDeg": axis_deg, "extinctionRatio": extinction_ratio}
+    if material is not None:
+        el["material"] = material
+        el["thicknessM"] = thickness_m
+    return el  # type: ignore[return-value]
 
 
 def filter_element(id: str, model: Mapping[str, Any]) -> dict:

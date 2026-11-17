@@ -106,6 +106,8 @@ namespace UltrafastEngine.Specs
         public bool AbsoluteIndex { get; set; } = true;
         /// <summary>Refuse a run that uses approximate or unverified material-catalogue values (also: ULTRAFAST_STRICT_MATERIALS=1).</summary>
         public bool StrictMaterials { get; set; }
+        /// <summary>Raise <see cref="Results.ValidityException"/> after a run with validity findings (also: ULTRAFAST_STRICT_VALIDITY=1).</summary>
+        public bool StrictValidity { get; set; }
         /// <summary>Catalogue paths (or path prefixes) that strict mode accepts although they are not verified.</summary>
         public List<string> StrictMaterialsAllow { get; } = new List<string>();
         /// <summary>"jones" (full 2x2 polarisation) or "scalar" (s/p averaged).</summary>
@@ -134,6 +136,7 @@ namespace UltrafastEngine.Specs
             p.FieldHarmonic = o.GetDouble("fieldHarmonic", 3.0);
             p.AbsoluteIndex = o.GetBool("absoluteIndex", true);
             p.StrictMaterials = o.GetBool("strictMaterials", false);
+            p.StrictValidity = o.GetBool("strictValidity", false);
             var allow = o.GetArray("strictMaterialsAllow"); if (allow != null) foreach (var a in allow) p.StrictMaterialsAllow.Add(a.AsString());
             p.Polarization = o.GetString("polarization", "jones");
             p.Losses = o.GetBool("losses", true);

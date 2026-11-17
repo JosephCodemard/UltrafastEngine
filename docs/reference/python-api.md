@@ -349,7 +349,9 @@ One delay range of a cross-correlator scan measured through an attenuation (a po
 
 A pedestal / contrast component for ``pulse(..., pedestal=[...])``: kind replica | prePulse | postPulse | ase | phaseNoise | exponential (docs/reference/run-spec.md#pedestal); parameters in the engine's spelling (``delayS``, ``relativeIntensity``, ``rmsRad``, ...).
 
-### `polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 100000.0) -> 'T.PolarizerElement'`
+### `polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 100000.0, material: Optional[str] = None, thickness_m: float = 0.0) -> 'T.PolarizerElement'`
+
+A linear polariser. ``material`` with ``thickness_m`` adds the glass path of a real one (a Glan prism: its dispersion).
 
 ### `filter_element(id: str, model: Mapping[str, Any]) -> dict`
 

@@ -119,6 +119,7 @@ Physics switches (docs/reference/run-spec.md#physics).
 | `fieldHarmonic` | number |  | 3 | Highest harmonic the carrier-resolved grid holds |
 | `absoluteIndex` | boolean |  | true | Add air dispersion to air paths quoted relative to air |
 | `strictMaterialsAllow` | array |  |  | Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. "CS2.n2") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as "CS2" accepts all its quantities |
+| `strictValidity` | boolean |  | false | Turn the run's validity findings (summary.json "validity": energy reaching zero frequency, peak power above the critical power in 1-D, Kerr-lens collapse, LIDT exceeded, energy at the time-window edge) into an error after the run, instead of warnings. The environment variable ULTRAFAST_STRICT_VALIDITY=1 does the same |
 | `strictMaterials` | boolean |  | false | Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same |
 | `polarization` | `"jones"` \| `"scalar"` |  | jones | Jones (two polarisations) or scalar |
 | `losses` | boolean |  | true | false removes flat loss terms |
@@ -759,6 +760,8 @@ A linear polariser. More: [system-file.md](system-file.md)
 | `axisRad` | number | rad |  | Transmission axis |
 | `extinctionRatio` | number |  | 1e5 | Extinction ratio |
 | `transmission` | number |  | 1 | Transmission along the axis |
+| `material` | string |  |  | Glass or crystal of the polariser (a Glan prism: e.g. calcite or a-BBO; a film polariser's substrate); with thicknessM its dispersion is applied |
+| `thicknessM` | number | m | 0 | Glass path length through the polariser (adds the material's dispersion) |
 
 ### `polarizingSplitter`
 
@@ -1902,6 +1905,7 @@ Photo-ionisation and plasma (docs/reference/ionization.md).
 | `recombinationTimeS` | number | s |  | Recombination / trapping time |
 | `recombinationBetaM3PerS` | number | m^3/s |  | Two-body recombination |
 | `electronDensityM3` | number | 1/m^3 | 0 | Free-electron density present before the pulse (a prepared plasma) |
+| `skipNegligible` | boolean |  | true | Leave the plasma term out of an element when a conservative bound (rates at 4 x the entry peak intensity over 4 x the effective pulse duration, avalanche included) keeps its Drude phase below 1e-6 rad and its absorbed energy below 1e-9 of the pulse; the element note gives the density bound. 1-D elements only; never with a prepared plasma |
 | `frequencyResolved` | boolean |  | true | Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only |
 | `avalanche` | boolean |  | true for solids | Avalanche (impact) ionisation |
 | `absorption` | boolean |  | true | Plasma and ionisation losses |

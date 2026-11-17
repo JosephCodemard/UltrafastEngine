@@ -53,7 +53,23 @@ section (on by default for solids). The avalanche takes its energy from the inve
 A run that gives only some of the solid inputs (`bandGapEv`, `effectiveMass`, `neutralDensityM3`, `collisionTimeS`, `recombinationTimeS`) gets the rest from the catalogue (or, for a material without ionisation data, from the
 generic dielectric entry `defaults:solidIonization`); the run notes name the fields the run gave and the source of the others. Defaults: gases τ_c = 350 fs / p[bar], no recombination; solids τ_c = 1 fs,
 τ_rec = 150 fs. `electronDensityM3` gives a plasma that is there before the pulse (a prepared plasma or a discharge); it decays with the recombination time.
-Every element reports `peakElectronDensityM3` and `peakIonizationFraction`.
+Every element reports `peakElectronDensityM3` and `peakIonizationFraction`. The `ionization` key works on `plate`, `window` and `ndFilter`
+elements too (before 2026-11-17 it was accepted there but not passed to the plate's inside; also `kerrLens`).
+
+**Negligible ionisation is skipped** (`ionization.skipNegligible`, default `true`, 1-D elements). Before an element runs, a conservative bound is
+taken from the entry pulse: every rate at 4 × the peak intensity, over 4 × the effective duration E / P_peak, with avalanche growth exp(σ 16 I_pk T / U).
+When the bound keeps the Drude phase below 10⁻⁶ rad and the absorbed energy below 10⁻⁹ of the pulse, the plasma term is left out and the note
+"ionization skipped as negligible" gives the density bound (`ionizationDensityBoundM3` in the record). The field then differs by less than the
+stepper's tolerance (test `IonizationTests.NegligibleIonisation_IsSkipped_AndTheResultDoesNotChange`). A prepared plasma is never skipped. A user's
+46-pass multipass cell with ionisation on every air gap ran 20 × slower (all gaps on the CPU) with no change in the result; with the skip, and the GPU
+plasma term below, it no longer does.
+
+**On a GPU** (1-D envelope elements) the plasma term runs on the device: the rates are evaluated in parallel from a table of ln W against ln I
+(16384 nodes from 10⁸ to 10²² W/m², cubic between nodes, built once per rate model), then one work-item integrates the density along the pulse exactly
+as the CPU does, and the frequency-resolved Drude term is applied with one more FFT. With an MPI rate (a straight line in the table) the device equals
+the CPU to 10⁻¹⁶; PPT and Keldysh have kinks where a multiphoton channel closes, where the table is off by up to 10⁻² locally and the ionised density of a
+pulse by up to 4 × 10⁻⁶, far below the uncertainty of the rate models themselves (test `GpuTests.Plasma_IonisationDrudeAndAvalanche_MatchTheCpu`).
+Spatial elements and carrier-resolved propagation with ionisation stay on the CPU.
 
 In carrier-resolved mode (`physics.fieldMode: "carrier"`) PPT and ADK use the quasi-static rate at the instantaneous
 field, so the sub-cycle steps of ionisation are resolved; the Drude operator is the one above. Against it the envelope model agrees to 1 % in the energy

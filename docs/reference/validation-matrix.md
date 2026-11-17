@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **642 tests** in 69 classes. **403** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **25** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **656 tests** in 71 classes. **411** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -16,8 +16,8 @@ Every C# test of the engine: **642 tests** in 69 classes. **403** of them check 
 | [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 16 | 4 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
-| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 15 | 7 |
-| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 21 | 15 |
+| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 16 | 8 |
+| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 22 | 16 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
 | [Core sweep: element keys that override the material's must be read from the element itself](#coresweeptests) | `CoreSweepTests` | 5 | 5 |
 | [Crystal chains and phase-matching limits: SHG to THG, length against bandwidth](#crystalchaintests) | `CrystalChainTests` | 16 | 16 |
@@ -33,14 +33,14 @@ Every C# test of the engine: **642 tests** in 69 classes. **403** of them check 
 | [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
-| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 16 | 11 |
+| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 17 | 12 |
 | [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms](#instrumentfixestests) | `InstrumentFixesTests` | 5 | 5 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
-| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 11 | 11 |
+| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 15 | 13 |
 | [Kerr lens of the 1-D beam](#kerrlenstests) | `KerrLensTests` | 6 | 6 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
 | [Lens sampling warning](#lenssamplingtests) | `LensSamplingTests` | 1 | 1 |
@@ -57,12 +57,13 @@ Every C# test of the engine: **642 tests** in 69 classes. **403** of them check 
 | [Regressions from the open-bug sweep](#openbugregressiontests) | `OpenBugRegressionTests` | 8 | 5 |
 | [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
 | [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 8 | 2 |
-| [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 3 | 2 |
+| [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 4 | 3 |
 | [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 7 |
 | [Pulse calculator: time-bandwidth product, transform limit, chirp](#pulsecalculatortests) | `PulseCalculatorTests` | 5 | 4 |
 | [Instrument axes, resolution and measured-data resolution](#resolutiontests) | `ResolutionTests` | 7 | 1 |
 | [Pulse retrieval (FROG, d-scan)](#retrievaltests) | `RetrievalTests` | 2 | 2 |
 | [Regressions from the review: M^2, second moments, packets at ports, steady-state loops](#reviewregressiontests) | `ReviewRegressionTests` | 8 | 8 |
+| [Identical elements (sameAs) with transverse models](#sameastests) | `SameAsTests` | 1 | 1 |
 | [Schemas, validation and migrations](#schematests) | `SchemaTests` | 5 | 0 |
 | [Single-shot time-to-space cross-correlator (window, resolution, position to delay)](#singleshotcorrelatortests) | `SingleShotCorrelatorTests` | 8 | 8 |
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
@@ -74,6 +75,7 @@ Every C# test of the engine: **642 tests** in 69 classes. **403** of them check 
 | [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
+| [Run validity and pulse metrics](#validitytests) | `ValidityTests` | 5 | 2 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
 
 ## AoDeviceTests
@@ -293,6 +295,7 @@ Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells).
 | `PhaseMatchCalculator_ReproducesLiteratureAngles` | SNLO: BBO type-I SHG 29.2° (800 nm), 23.4° (1030 nm) | 1 %, 5 %, 10 % |
 | `Qpm_AveragedAndDomainResolvedModelsAgree` | -- | -- |
 | `Qpm_DomainResolved_FixedSteps_WarnThatTheyIgnoreTheWalls` | -- | -- |
+| `Qpm_DomainResolved_NoSliverSteps_ResultDoesNotDependOnTheLastBitsOfTheStep` | convergence: runs at nearby tolerances agree, and the error against tolerance 1e-9 falls with the tolerance | 1e-7 between tolerances 1e-7 relative apart (was 3e-5 with sliver steps); 1e-5 at tolerance 1e-8 |
 | `Shg_AngleDetuning_FollowsSincSquared` | sinc²(Δk L / 2) phase-mismatch law | 1 % |
 | `Shg_PlaneWave_MatchesArmstrongTanhSquared` | Armstrong et al., Phys. Rev. 127, 1918 (1962): tanh² SHG | 1e-09, 0.02 % |
 | `Shg_RadialModelAgreesWithGaussianOverlapAtLowConversion` | Gaussian-mode overlap of low-conversion SHG | 1 % |
@@ -320,6 +323,7 @@ Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday ro
 | `Pedestal_ReplicaPostPulseAndPrePulse` | -- | -- |
 | `Plate_GhostReplicaDelayAndIntensity` | ghost delay 2 n_g d / c, level R² | 0.2 %, 3 % |
 | `Plate_GhostTiltedOutOfTheBeamByAWedge` | -- | -- |
+| `ThickPolarizerAndLens_AddTheirGlassDispersion` | GDD of a glass path = beta2 L, beta2 = d^2 k / d omega^2 with k = n(omega) omega / c (finite differences of the Sellmeier index) | 1e-4 (finite differences) |
 | `ThickWaveplate_RetardanceFromMaterialDispersion` | retardance 2π Δn(λ) d / λ from the crystal's indices | 1e-09, 0.01 %, 0.1 %, 5 % |
 | `ThickWaveplate_SplitsPulseByGroupDelayDifference` | group-delay difference Δn_g d / c | 5 % |
 | `ThinFilmPolarizer_TransmitsPReflectsS` | thin-film transfer matrix at the design angle | -- |
@@ -591,6 +595,7 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 | `GasRotationalRaman_Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver (SpatialEnvelopeProblem.Nonlinear with the orientational response) | 1e-09 |
 | `MixedPrecision_IsRefusedForHighDynamicRangeInstruments_AndIgnoredOnTheCpu` | -- | -- |
 | `MixedPrecision_SpmPlateMpcSolitonAndShg_MeetTheFp32Criteria` | acceptance of the FP32 study (docs/reference/speed.md): energy 1e-6, spectrum L1 1e-4 against double precision | 1e-6, 1e-4 |
+| `Plasma_IonisationDrudeAndAvalanche_MatchTheCpu` | cross-check: the CPU solver (PlasmaResponse.Run, DispersiveResponses.AddRate); the device takes the rate from a ln W / ln I table (PlasmaDeviceSpec) | 1e-12 with an exact table (MPI); 1e-4 field, 1e-3 peak density and B for PPT / Keldysh (table at channel kinks, step path) |
 | `SmallOrUnsupportedProblems_StayOnTheCpu_WithANote` | -- | -- |
 | `Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver | 1e-09 |
 | `Spatial_UppeCoupling_MatchesTheCpu` | cross-check: the CPU solver | -- |
@@ -694,6 +699,8 @@ Photo-ionisation and plasma.
 | test | reference | tolerance |
 |---|---|---|
 | `Keldysh_MultiphotonOrderForFusedSilica` | Keldysh: K = ceil(U_g / ħω) | 8 % |
+| `NegligibleIonisation_IsSkipped_AndTheResultDoesNotChange` | bound: rates at 4 x the entry peak intensity over 4 x E / P_pk keep the Drude phase below 1e-6 rad and the absorbed fraction below 1e-9 | the skipped and full runs differ by less than 1e-6 (relative L2 of the field) |
+| `PlasmaDeviceTable_ReproducesTheIonisedDensity` | the exact rate models (PPT, Keldysh, MPI) against their ln W / ln I table (PlasmaDeviceSpec.RateFromTable, the device's arithmetic): the ionised density int W(I(t)) dt of Gaussian pulses | 1e-12 for MPI (a straight line in the table); 1e-5 for PPT and Keldysh (kinks where a multiphoton channel closes: local rate error up to 1.4e-2, ionised density 4e-6) |
 | `Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime` | Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007), eq. 6 and 15: the avalanche is fed by inverse-bremsstrahlung absorption, which the Drude imaginary part already is | 1e-4 |
 | `Plasma_ElectronDensityBlueshiftAndAbsorption` | ρ = ∫ W dt; Drude blue shift | 3 % |
 | `Plasma_EnvelopeAgreesWithCarrierResolved_ForA10FsMidInfraredPulse` | cross-check: the envelope model against the carrier-resolved field model, same operator | blueshift 2 %, energy 1 %, density 1e-4 |
@@ -701,8 +708,10 @@ Photo-ionisation and plasma.
 | `Plasma_FixedDensity_SpatialModel_AppliesTheSameDrudeFilter` | the same Drude filter in the radial spatial model (a uniform plasma commutes with diffraction): energy transmission | 1e-7 |
 | `Plasma_FrequencyResolved_TakesTheDriftEnergyOfTheElectronsBornInTheField` | drift energy of electrons born at rest in a linearly polarised field: U_p = e² E0² / (4 m ω²) per electron (Corkum, Phys. Rev. Lett. 71, 1994 (1993)) | 2 % |
 | `Plasma_FrequencyResolved_TendsToTheCarrierValue_ForNarrowSpectra` | narrow-band limit: the frequency-resolved operator tends to the carrier value as the bandwidth goes to zero; R(ω0) = 1 | 1e-15; difference halves with the bandwidth |
+| `Plate_ElementLevelIonization_IsApplied_AsOnABulkElement` | -- | -- |
 | `Ppt_MultiphotonAndTunnelLimits` | PPT rate: multiphoton I^K and tunnelling (ADK) limits | 3 %, 15 % |
 | `SpecialFunctions_DawsonAndElliptic` | tabulated Dawson and elliptic-integral values | 1e-12, 1e-07, 1e-06 |
+| `StrongIonisation_IsNotSkipped` | -- | -- |
 | `Uppe_AgreesWithEnvelopeForParaxialBeams_AndPlasmaClampsTheFocus` (slow) | cross-check: the envelope model for paraxial beams | 1e-06, 1 % |
 
 ## KerrLensTests
@@ -962,6 +971,7 @@ Polarisation: waveplates, Brewster windows, basis transport.
 |---|---|---|
 | `BasisTracker_PeriscopeRotatesTheTransportedBasis` | -- | -- |
 | `BrewsterWindow_TransmitsPOnly` | Fresnel equations at Brewster's angle | 1e-10, 1e-09 |
+| `CircularLight_ReflectedAtAnAngle_BecomesElliptical_AsFresnelSays` | Fresnel equations (Born & Wolf 1.5): r_s = (cos i - n cos t)/(cos i + n cos t), r_p = (n cos i - cos t)/(n cos i + cos t); circular light reflected keeps the 90 deg phase but its amplitudes become \|r_p\|, \|r_s\|: \|S3\| = 2\|r_s r_p\|/(r_s^2 + r_p^2), \|S1\| = \|r_s^2 - r_p^2\|/(r_s^2 + r_p^2) | 1e-9 |
 | `Waveplates_RotateAndCirculariseAsExpected` | Jones calculus | 1e-09, 1e-06, 0.1 % |
 
 ## PropagationTests
@@ -1031,6 +1041,14 @@ Regressions from the review: M^2, second moments, packets at ports, steady-state
 | `SteadyStateLoop_DoesNotClaimConvergenceWhileTheLightDecays` | a passive loop decays, so it has no steady state | exact |
 | `TiltAndDecentre_DoNotDegradeBeamQualityOrSize` | Siegman, Proc. SPIE 1224, 2 (1990): M^2 from central moments | 1e-6 |
 | `Vortex_HasItsAnalyticBeamQuality` | Laguerre-Gauss M^2 = 2p + \|l\| + 1 | 1e-6 |
+
+## SameAsTests
+
+Identical elements (sameAs) with transverse models.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Radial_ThroughFortySixSameAsPasses_EqualsExplicitPasses_AndTheEnergyCloses` | sameAs copies equal explicitly written passes (same compiled physics); loss budget: input - output = sum of booked losses | 1e-12 (field), 1e-9 (energy closure) |
 
 ## SchemaTests
 
@@ -1188,6 +1206,18 @@ The test framework and the generated validation matrix.
 |---|---|---|
 | `EveryTestClass_NamesItsArea` | -- | -- |
 | `ValidationMatrix_IsUpToDate` | -- | -- |
+
+## ValidityTests
+
+Run validity and pulse metrics.
+
+| test | reference | tolerance |
+|---|---|---|
+| `BIntegral_PulseAndBeamAveraged_AreTheAnalyticFractionsOfThePeak` | Gaussian pulse and beam with an instantaneous Kerr index: power-weighted mean over peak = int P^2 / (int P max P) = 1/sqrt 2 in time, 1/2 over a Gaussian cross-section | 1e-6 (SPM leaves \|A(t)\| unchanged in a dispersionless medium) |
+| `CriticalPower_InEveryPass_GivesOneWarningNamingAllPasses_AndOneValidityEntryEach` | -- | -- |
+| `HalfMaximumStructure_CountsSeparatePulses_AndTheEnergyInsideTheFwhm` | Gaussian: energy inside the FWHM = erf(sqrt(ln 2)) = 0.76100; sech^2: tanh(arcsech(1/sqrt 2)) = 1/sqrt 2 | 1e-4 (sampling) |
+| `StrictValidity_RaisesAfterTheRun_WithTheResultAttached` | -- | -- |
+| `ZeroFrequency_IsReportedOnlyWhenTheSpectrumReachesIt` | -- | -- |
 
 ## ZemaxTests
 

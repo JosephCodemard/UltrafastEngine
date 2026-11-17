@@ -2077,6 +2077,10 @@ class PolarizerElement(TypedDict, total=False):
     """Extinction ratio Default: 1e5."""
     transmission: float
     """Transmission along the axis Default: 1."""
+    material: str
+    """Glass or crystal of the polariser (a Glan prism: e.g. calcite or a-BBO; a film polariser's substrate); with thicknessM its dispersion is applied"""
+    thicknessM: float
+    """Glass path length through the polariser (adds the material's dispersion) [m] Default: 0."""
     sameAs: str
     """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
@@ -4672,6 +4676,8 @@ class Physics(TypedDict, total=False):
     """Add air dispersion to air paths quoted relative to air Default: true."""
     strictMaterialsAllow: List[Any]
     """Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. "CS2.n2") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as "CS2" accepts all its quantities"""
+    strictValidity: bool
+    """Turn the run's validity findings (summary.json "validity": energy reaching zero frequency, peak power above the critical power in 1-D, Kerr-lens collapse, LIDT exceeded, energy at the time-window edge) into an error after the run, instead of warnings. The environment variable ULTRAFAST_STRICT_VALIDITY=1 does the same Default: false."""
     strictMaterials: bool
     """Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same Default: false."""
     polarization: Literal["jones", "scalar"]

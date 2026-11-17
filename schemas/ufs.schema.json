@@ -9286,6 +9286,14 @@
           "type": "number",
           "description": "Transmission along the axis Default: 1."
         },
+        "material": {
+          "type": "string",
+          "description": "Glass or crystal of the polariser (a Glan prism: e.g. calcite or a-BBO; a film polariser's substrate); with thicknessM its dispersion is applied"
+        },
+        "thicknessM": {
+          "type": "number",
+          "description": "Glass path length through the polariser (adds the material's dispersion) [m] Default: 0."
+        },
         "id": {
           "type": "string",
           "description": "Unique id"

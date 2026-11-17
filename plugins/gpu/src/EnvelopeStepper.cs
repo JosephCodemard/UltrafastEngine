@@ -110,7 +110,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 bool onWall = false;
                 {   // as Steppers.AdaptiveErk43Ip: land on every breakpoint
                     double zb = NextBreakpoint(z + 1e-12 * Lm);
-                    if (zb < z + h * (1 + 1e-12)) { h = zb - z; onWall = true; }
+                    if (zb < z + h * (1 + Steppers.WallSnapFraction)) { h = zb - z; onWall = true; }
                 }
                 double zEnd = onWall ? z + h * (1 - 1e-9) : z + h;   // end-of-step stages on this side of a wall
                 Exp(0.5 * h, half);
@@ -217,11 +217,15 @@ namespace UltrafastEngine.Plugins.Gpu
         private readonly GpuFftF _fftStateF, _fftRamanF;
         private readonly GpuBuffer _Tf, _Cf, _Kf, _Kbf, _Rf;
         private readonly GpuBuffer _U, _tn, _Fl;
+        // plasma (PlasmaDeviceSpec): intensity, rates per channel, table, channel data, Drude term, product for the spectral Drude term,
+        // spectral factor, work space and the peak density
+        private readonly GpuBuffer _plI, _plW, _plTab, _plDens, _plU, _plD, _plP, _plS, _plIon, _plPeak, _plEnergy;
+        private readonly PlasmaDeviceSpec _pl;
         private readonly double _dtResp, _lambda0;
         private readonly double _cc0;
 
         /// <summary>Whether <paramref name="p"/> can run in mixed precision (not with orientational or user responses).</summary>
-        public static bool SupportsMixed(EnvelopeDeviceSpec p) => p.RotationalKernelFreq == null && p.Responses == null && GpuFft.BuiltInSupports(p.N);
+        public static bool SupportsMixed(EnvelopeDeviceSpec p) => p.RotationalKernelFreq == null && p.Responses == null && p.Plasma == null && GpuFft.BuiltInSupports(p.N);
 
         public EnvelopeStepper(GpuStream s, EnvelopeDeviceSpec p, bool allowVendorFft = true, bool mixed = false)
             : base(s, p.Scalar ? 1 : 2, p.N, p.LinearRate, p.LengthM, 4 * s.Context.Groups(p.N * (p.Scalar ? 1 : 2)) + 4)
@@ -267,6 +271,30 @@ namespace UltrafastEngine.Plugins.Gpu
                 _lambda0 = 2 * Math.PI * UltrafastEngine.Numerics.PhysicalConstants.SpeedOfLightMPerS / p.ResponseOmega0;
             }
             else _U = _C;
+            if (p.Plasma != null)
+            {
+                _pl = p.Plasma;
+                if (p.Responses == null)
+                {
+                    _U = Buf(_n * 16L);
+                    _dtResp = p.Time.Length > 1 ? p.Time[1] - p.Time[0] : 0;
+                }
+                int K = Math.Max(1, _pl.Channels);
+                _plI = Buf(_n * 8L); _plW = Buf((long)K * _n * 8L);
+                _plTab = Buf(Math.Max(1, _pl.LnRate.Length) * 8L); if (_pl.LnRate.Length > 0) S.Write(_plTab, _pl.LnRate);
+                var dens = new double[K]; var en = new double[K];
+                for (int k = 0; k < _pl.Channels; k++) { dens[k] = _pl.DensityM3[k]; en[k] = _pl.EnergyJ[k]; }
+                _plDens = Buf(K * 8L); S.Write(_plDens, dens);
+                _plEnergy = Buf(K * 8L); S.Write(_plEnergy, en);
+                _plU = Buf(K * 8L);   // the scan's per-channel ionised density
+                _plIon = _plU;
+                _plPeak = Buf(8L); S.Write(_plPeak, new double[] { 0.0 });
+                if (_pl.FrequencyResolved)
+                {
+                    _plD = Buf(_n * 16L); _plP = Buf(Len * 16L);
+                    _plS = Buf(_n * 16L); S.Write(_plS, Natural(_pl.SpectralRate, 1));
+                }
+            }
             _gN = C.Groups(_n);
             _mixed = mixed && SupportsMixed(p);
             if (_mixed)
@@ -292,7 +320,14 @@ namespace UltrafastEngine.Plugins.Gpu
             long nsig = p.RamanAnisoFreq != null && !p.Scalar ? 5 : 1;
             long rot = p.RotationalKernelFreq == null ? 0 : (long)p.RotationalKernelFreq.Length * ((p.Scalar ? 1 : 3) + 1);
             long user = p.Responses == null ? 0 : 2L * p.N;
-            return 16L * (len * 15 + nsig * p.N * 2 + 2 * p.N + rot) + 8L * 3 * p.N + 8L * user + (user > 0 ? 16L * p.N : 0);
+            long plasma = 0;
+            if (p.Plasma != null)
+            {
+                int K = Math.Max(1, p.Plasma.Channels);
+                plasma = 8L * (p.N + (long)K * p.N + p.Plasma.LnRate.Length + 3L * K + 1) + (p.Responses == null ? 16L * p.N : 0)
+                       + (p.Plasma.FrequencyResolved ? 16L * (2L * p.N + len) : 0);
+            }
+            return 16L * (len * 15 + nsig * p.N * 2 + 2 * p.N + rot) + 8L * 3 * p.N + 8L * user + (user > 0 ? 16L * p.N : 0) + plasma;
         }
 
         protected override double AreaAt(double z) => _p.AreaAt(z);
@@ -365,11 +400,30 @@ namespace UltrafastEngine.Plugins.Gpu
                 S.Launch(_user, _gN, _T, _n, 1, _n, sc, aeff, _tn, tArr, z, _p.LengthM, _p.ResponseOmega0, _lambda0, aeff,
                     _P, _P, _P, 0, 0.0, _Fl, useF ? 1 : 0, _U);
             }
+            bool disp = false;
+            if (_pl != null)
+            {
+                // the plasma term (PlasmaResponse.Run): rates in parallel, then the density scan in time order by one work-item
+                int K = _pl.Channels;
+                S.Launch("uf_plasma_rate", _gN, _T, _n, _p.Scalar ? 1 : 0, invA, K, _plTab, PlasmaDeviceSpec.TableN, PlasmaDeviceSpec.LnIMin, _pl.DLnI, _plI, _plW);
+                S.Launch("uf_plasma_scan", 1, _plI, _plW, _n, K, _plDens, _plEnergy, _dtResp, _pl.Drude, _pl.OmegaTauC, _pl.K0, _pl.Sigma, _pl.UMean,
+                    _pl.Avalanche ? 1 : 0, _pl.Absorption ? 1 : 0, _pl.RecombinationRatePerS, _pl.RecombinationBetaM3PerS, _pl.InitialDensityM3,
+                    _pl.FrequencyResolved ? 1 : 0, _U, _user != null ? 1 : 0, _plD ?? _U, _plIon, _plPeak);
+                disp = _pl.FrequencyResolved;
+            }
+            bool anyU = _user != null || _pl != null;
             S.Launch("uf_env_kerr", _gN, _T, _C, _n, _p.Scalar ? 1 : 0, _raman, invA, _p.K0, _p.N2, _p.RamanFraction, _p.DTime,
-                _cc0 / aeff, rate, _P, _D, Part, po, _Q, _rot, _m, _U, _user != null ? 1 : 0);
+                _cc0 / aeff, rate, _P, _D, Part, po, _Q, _rot, _m, _U, anyU ? 1 : 0, disp ? _plD : _U, disp ? 1 : 0);
             if (wantPeak) S.Launch("uf_peak", _gN, _P, _D, _n, Part, po, _gN, po + _gN);
             _fftState.Transform(rate, +1, false);
             if (_F != null) S.Launch("uf_scale_real", GLen, rate, _F, _n, Len);
+            if (disp)
+            {
+                // frequency-resolved Drude index: rate += i (omega / c) R(omega) FFT(Dd A) (DispersiveResponses.AddRate)
+                S.Launch("uf_plasma_dprod", GLen, _T, _plD, _n, Len, _plP);
+                _fftState.Transform(_plP, +1, false);
+                S.Launch("uf_plasma_dadd", GLen, rate, _plP, _plS, _n, Len);
+            }
             if (!wantPeak) return double.NaN;
             S.Read(Part, PartHost, po + _gN, _gN);
             double pk = 0;
@@ -377,8 +431,13 @@ namespace UltrafastEngine.Plugins.Gpu
             return _p.K0 * pk;
         }
 
+
         public override void Dispose()
         {
+            if (_pl != null && _plPeak != null && _pl.ReportPeakDensity != null)
+            {
+                try { var pk = new double[1]; S.Read(_plPeak, pk); _pl.ReportPeakDensity(pk[0]); } catch { }
+            }
             _fftState?.Dispose(); _fftRaman?.Dispose(); _fftRot?.Dispose(); _fftStateF?.Dispose(); _fftRamanF?.Dispose();
             base.Dispose();
         }

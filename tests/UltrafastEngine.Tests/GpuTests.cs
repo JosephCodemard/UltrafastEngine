@@ -195,6 +195,55 @@ namespace UltrafastEngine.Tests
             }
         }
 
+        private static RunResult PlasmaCell(JsonObject compute, string material, JsonObject materials, JsonObject ionization, JsonValue pol, double energyJ, double lam)
+        {
+            var el = O("id", "p", "type", "bulk", "material", material, "lengthM", 1e-3, "beam", O("kind", "constant", "areaM2", 1e-7), "ionization", ionization);
+            var s = O("format", "ultrafast-system", "version", 2, "name", "plasma", "elements", A(el));
+            if (materials != null) s.Set("materials", materials);
+            var pulse = O("shape", "gaussian", "centerWavelengthM", lam, "durationFwhmS", 50e-15, "energyJ", energyJ);
+            pulse.Set("polarization", pol);
+            var run = O("format", "ultrafast-run", "version", 2, "pulse", pulse, "grid", O("auto", false, "n", 2048, "windowS", 1.5e-12), "compute", compute, "physics", O("selfSteepening", true));
+            return Simulation.Run(Systems.SystemDescription.FromJson(s), Specs.RunSpec.FromJson(run));
+        }
+
+        [Test(Category = "gpu", Reference = "cross-check: the CPU solver (PlasmaResponse.Run, DispersiveResponses.AddRate); the device takes the rate from a ln W / ln I table (PlasmaDeviceSpec)", Tolerance = "1e-12 with an exact table (MPI); 1e-4 field, 1e-3 peak density and B for PPT / Keldysh (table at channel kinks, step path)")]
+        public void Plasma_IonisationDrudeAndAvalanche_MatchTheCpu()
+        {
+            // an ionising air gap used to send the element back to the CPU (20x slower in a 46-pass cell)
+            var argon = O("argon", O("gas", O("species", "Ar", "pressureBar", 1.0)));
+            var cases = new (string name, string mat, JsonObject mats, JsonObject ion, JsonValue pol, double e, double lam)[]
+            {
+                ("argon PPT, Drude at every frequency", "argon", argon, O("skipNegligible", false), "x", 4e-3, 800e-9),
+                ("argon MPI (exact power law in the table), Drude at every frequency", "argon", argon, O("skipNegligible", false, "model", "mpi", "sigmaK", 1e-186, "photons", 11), "x", 4e-3, 800e-9),
+                ("argon PPT, Drude at the carrier", "argon", argon, O("skipNegligible", false, "frequencyResolved", false), "x", 1e-3, 800e-9),
+                ("air (N2 + O2, rotational Raman), vector, avalanche", "Air", null, O("skipNegligible", false, "collisionTimeS", 350e-15), O("angleDeg", 20.0, "ellipticity", 0.2), 1.5e-3, 1030e-9),
+                ("fused silica Keldysh + avalanche", "FusedSilica", null, O("skipNegligible", false), "x", 3e-4, 800e-9),
+            };
+            var devices = AllDevices();
+            foreach (var (name, mat, mats, ion, pol, e, lam) in cases)
+            {
+                var c = PlasmaCell(O("backend", "cpu"), mat, mats, ion, pol, e, lam);
+                double rho = c.Records[0].Values["peakElectronDensityM3"];
+                Assert.Greater(rho, 1e18, name + ": the pulse ionises");
+                foreach (var b in devices)
+                {
+                    var d = PlasmaCell(On(b), mat, mats, ion, pol, e, lam);
+                    string label = b.Name + " " + name;
+                    Assert.True(OnDevice(d), label + " ran on the device: " + Notes(d));
+                    Console.WriteLine("    " + label + ": rel. field error " + Diff(d, c).ToString("E2") + ", peak density " + rho.ToString("E3") + " (device " + d.Records[0].Values["peakElectronDensityM3"].ToString("E3") + ") /m^3, B " + c.Records[0].BIntegralRad.ToString("F3") + " rad, steps " + c.Records[0].Steps.Accepted + " / " + d.Records[0].Steps.Accepted);
+                    // the MPI case has an exact table (a power law is a straight line in ln W / ln I): the kernel itself must match to 1e-12;
+                    // PPT and Keldysh have kinks where a multiphoton channel closes, the cubic table is off there by up to 1e-2 locally (4e-6 in the
+                    // ionised density) and the adaptive stepper may then take one step more or less (5e-5 in the field for argon PPT)
+                    bool exactTable = name.Contains("MPI");
+                    Assert.Less(Diff(d, c), exactTable ? 1e-12 : 1e-4, label + ": output field");
+                    Assert.Close(c.Output.TotalEnergyJ(), d.Output.TotalEnergyJ(), exactTable ? 1e-12 : 1e-5, 0, label + ": energy (ionisation and inverse-bremsstrahlung loss)");
+                    // the peak density is the largest seen in any evaluation (trial stages included), so a different step path moves it (2e-4 for argon PPT)
+                    Assert.Close(rho, d.Records[0].Values["peakElectronDensityM3"], exactTable ? 1e-12 : 1e-3, 0, label + ": peak electron density");
+                    Assert.Close(c.Records[0].BIntegralRad, d.Records[0].BIntegralRad, exactTable ? 1e-12 : 1e-3, 0, label + ": B-integral (a sum over the steps: step path)");
+                }
+            }
+        }
+
         [Test(Category = "gpu", Reference = "cross-check: the CPU solver (Crystals.Chi2Problem.Nonlinear, Steppers.AdaptiveErk43Ip with domain walls)", Tolerance = "1e-09")]
         public void Chi2CoupledWaves_ShgQpmAndOpa_MatchTheCpu()
         {

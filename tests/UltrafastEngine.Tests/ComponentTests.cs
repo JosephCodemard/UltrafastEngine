@@ -257,6 +257,22 @@ namespace UltrafastEngine.Tests
             Assert.Close(Math.Abs(dtau), Math.Abs(tu - tv), 0.05, 2e-16, "group delay difference of the axes");
         }
 
+        [Test(Reference = "GDD of a glass path = beta2 L, beta2 = d^2 k / d omega^2 with k = n(omega) omega / c (finite differences of the Sellmeier index)", Tolerance = "1e-4 (finite differences)")]
+        public void ThickPolarizerAndLens_AddTheirGlassDispersion()
+        {
+            // a user's question: do thick transmissive optics (Glan polarisers, lenses of a telescope) add GDD? They do when given their glass
+            var fs = Materials.MaterialLibrary.BuiltIn("FusedSilica");
+            double w0 = W(Lam), dw = 1e-3 * w0;
+            double K(double w) => fs.IndexAt(w) * w / C;
+            double beta2 = (K(w0 + dw) - 2 * K(w0) + K(w0 - dw)) / (dw * dw);
+            double Gdd(JsonObject el) => GoJ(SysWith(null, el), Run(Gauss(Lam, 100e-15, 1e-9))).Records[0].Own.GddS2;
+            Assert.Close(beta2 * 10e-3, Gdd(O("id", "glan", "type", "polarizer", "axisDeg", 0.0, "material", "FusedSilica", "thicknessM", 10e-3)), 1e-4, 0, "10 mm polariser glass");
+            Assert.Close(beta2 * 5e-3, Gdd(O("id", "L1", "type", "lens", "focalLengthM", 0.2, "material", "FusedSilica", "thicknessM", 5e-3)), 1e-4, 0, "5 mm lens on axis");
+            Assert.Close(0, Gdd(O("id", "pol", "type", "polarizer", "axisDeg", 0.0)), 0, 1e-40, "an ideal polariser adds none");
+            var thin = GoJ(SysWith(null, O("id", "L1", "type", "lens", "focalLengthM", 0.2, "material", "FusedSilica")), Run(Gauss(Lam, 100e-15, 1e-9)));
+            Assert.True(thin.Records[0].Notes.Any(n => n.Contains("give thicknessM")), "a lens with a material but no thickness says so");
+        }
+
         // ------------------------------------------------------------------------------------------ ripple, Zernike
 
         [Test]

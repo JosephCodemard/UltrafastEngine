@@ -32,6 +32,31 @@ namespace UltrafastEngine.Tests
             Assert.True(pol.Records[0].LossJ.ContainsKey("polarization"), "loss attributed to polarization");
         }
 
+        [Test(Reference = "Fresnel equations (Born & Wolf 1.5): r_s = (cos i - n cos t)/(cos i + n cos t), r_p = (n cos i - cos t)/(n cos i + cos t); circular light reflected keeps the 90 deg phase but its amplitudes become |r_p|, |r_s|: |S3| = 2|r_s r_p|/(r_s^2 + r_p^2), |S1| = |r_s^2 - r_p^2|/(r_s^2 + r_p^2)", Tolerance = "1e-9")]
+        public void CircularLight_ReflectedAtAnAngle_BecomesElliptical_AsFresnelSays()
+        {
+            // a question from a user: does circular light become elliptical on a mirror at non-zero incidence? Yes, when the mirror is a real
+            // surface (here bare glass, n = 1.5); an ideal mirror (no coating) has r_s = r_p and keeps it circular
+            var mats = O("g", O("index", O("kind", "constant", "value", 1.5)), "vac", O("index", O("kind", "constant", "value", 1.0)));
+            foreach (double aoiDeg in new[] { 20.0, 45.0, 70.0 })
+            {
+                var s = O("format", "ultrafast-system", "version", 2, "name", "m", "materials", mats);
+                s.Set("elements", A(O("id", "m", "type", "mirror", "aoiDeg", aoiDeg, "before", "vac", "after", "g")));
+                var pulse = O("shape", "gaussian", "centerWavelengthM", 1030e-9, "durationFwhmS", 200e-15, "energyJ", 1e-9, "polarization", "rcp");
+                var r = Go(SystemDescription.FromJson(s), Spec(pulse));
+                double i = aoiDeg * Math.PI / 180, t = Math.Asin(Math.Sin(i) / 1.5);
+                double rs = (Math.Cos(i) - 1.5 * Math.Cos(t)) / (Math.Cos(i) + 1.5 * Math.Cos(t)), rp = (1.5 * Math.Cos(i) - Math.Cos(t)) / (1.5 * Math.Cos(i) + Math.Cos(t));
+                double s0 = rs * rs + rp * rp;
+                var o = PulseMetrics.Summarize(r.Output);
+                Assert.Close(2 * Math.Abs(rs * rp) / s0, Math.Abs(o.S3), 1e-9, 0, aoiDeg + " deg: |S3| (ellipticity)");
+                Assert.Close(Math.Abs(rs * rs - rp * rp) / s0, Math.Abs(o.S1), 1e-9, 0, aoiDeg + " deg: |S1| (axes along s and p)");
+                Assert.Close(s0 / 2, r.Output.TotalEnergyJ() / r.Input.TotalEnergyJ(), 1e-9, 0, aoiDeg + " deg: reflectance (R_s + R_p) / 2");
+            }
+            // the ideal mirror keeps circular light circular
+            var ideal = Go(Sys(O("id", "m", "type", "mirror", "aoiDeg", 45.0)), Spec(O("shape", "gaussian", "centerWavelengthM", 1030e-9, "durationFwhmS", 200e-15, "energyJ", 1e-9, "polarization", "rcp")));
+            Assert.Close(1.0, Math.Abs(PulseMetrics.Summarize(ideal.Output).S3), 1e-12, 0, "ideal mirror: still circular");
+        }
+
         [Test(Reference = "Fresnel equations at Brewster's angle", Tolerance = "1e-10, 1e-09")]
         public void BrewsterWindow_TransmitsPOnly()
         {

@@ -26,7 +26,8 @@ namespace UltrafastEngine.Engine
 
         /// <summary>Keys a plate passes on to its internal bulk element.</summary>
         private static readonly string[] BulkPassKeys = { "beam", "transverse", "nonlinear", "n2", "timeResponse", "replaceKerr", "raman", "fR", "selfSteepening",
-            "indexProfile", "absorptionProfile", "n2Scale", "wavelengthsM", "dispersionSource", "kerrAnisotropy", "kerrCutAxis", "kerrAzimuthDeg" };
+            "indexProfile", "absorptionProfile", "n2Scale", "wavelengthsM", "dispersionSource", "kerrAnisotropy", "kerrCutAxis", "kerrAzimuthDeg",
+            "ionization", "kerrLens", "kerrLensModel" };   // ionization and kerrLens were silently dropped before 2026-11-17
 
         /// <summary>A bulk element standing for the inside of a component (same id, so element overrides apply).</summary>
         private static SystemElement InnerBulk(SystemElement e, string material, double lengthM, JsonValue transmission = null)

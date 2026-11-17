@@ -236,7 +236,9 @@ namespace UltrafastEngine.Schema
                 .Num("beamRadiusM", "m", "Beam radius for the 1-D Strehl estimate"));
             add(new ComponentSpec("element", "polarizer", "A linear polariser.").DocAt(D + "polarizer")
                 .Num("axisDeg", "deg", "Transmission axis from x", "0").Num("axisRad", "rad", "Transmission axis")
-                .Num("extinctionRatio", "", "Extinction ratio", "1e5").Num("transmission", "", "Transmission along the axis", "1"));
+                .Num("extinctionRatio", "", "Extinction ratio", "1e5").Num("transmission", "", "Transmission along the axis", "1")
+                .Str("material", "Glass or crystal of the polariser (a Glan prism: e.g. calcite or a-BBO; a film polariser's substrate); with thicknessM its dispersion is applied")
+                .Num("thicknessM", "m", "Glass path length through the polariser (adds the material's dispersion)", "0"));
             add(new ComponentSpec("element", "rotator", "Rotates the polarisation (and the image).").DocAt(D + "rotator")
                 .Num("angleDeg", "deg", "Rotation angle", "0").Num("angleRad", "rad", "Rotation angle"));
             add(new ComponentSpec("element", "probe", "A named place in the beam (does nothing; snapshots and instruments).").Alias("marker").DocAt(D + "probe"));

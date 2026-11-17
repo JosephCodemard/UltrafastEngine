@@ -319,9 +319,86 @@ KERNEL void uf_rot_mul(G cplx* Q, G const cplx* K, int m, int nsig)
    raman: 0 none, 1 scalar (C0), 2 vector (C0..C4); C already convolved (multiply by dt).
    rot: 0 none, 1 scalar, 2 vector -- the orientational index changes (EnvelopeProblem.Nonlinear), Q already convolved
    (centred order, padded length m): dnx += Q0, dny += Q1, coupling dnxy = Q2. */
+
+/* ---- plasma (PlasmaResponse, envelope mode; Physics.PlasmaDeviceSpec) ----
+   uf_plasma_rate: intensity and the ionisation rate of each channel per sample (natural order), from the ln W / ln I table
+   (Catmull-Rom, the same arithmetic as PlasmaDeviceSpec.RateFromTable). */
+KERNEL void uf_plasma_rate(G const cplx* T, int n, int scalar, double invA, int K, G const double* lnw, int tn, double lnI0, double dlnI,
+                           G double* I, G double* W)
+{
+    for (int i = GID; i < n; i += GSZ) {
+        double it = (cabs2(T[i]) + (scalar ? 0.0 : cabs2(T[n + i]))) * invA;
+        I[i] = it;
+        for (int k = 0; k < K; k++) {
+            double w = 0.0;
+            if (it > 0.0) {
+                double x = (log(it) - lnI0) / dlnI;
+                if (x >= 0.0) {
+                    int o = k * tn;
+                    if (x >= (double)(tn - 1)) { double sl = lnw[o + tn - 1] - lnw[o + tn - 2]; w = exp(lnw[o + tn - 1] + sl * (x - (double)(tn - 1))); }
+                    else {
+                        int j = (int)x; double f = x - (double)j;
+                        double p1 = lnw[o + j], p2 = lnw[o + j + 1];
+                        double p0 = j > 0 ? lnw[o + j - 1] : 2.0 * p1 - p2;
+                        double p3 = j + 2 < tn ? lnw[o + j + 2] : 2.0 * p2 - p1;
+                        w = exp(p1 + 0.5 * f * (p2 - p0 + f * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3 + f * (3.0 * (p1 - p2) + p3 - p0))));
+                    }
+                }
+            }
+            W[k * n + i] = w;
+        }
+    }
+}
+
+/* uf_plasma_scan: one work-item walks the pulse in time order (centred index c = natural d - n/2) and integrates the electron density
+   exactly as PlasmaResponse.Run: depletion per channel, avalanche, recombination; writes the index change U (carrier part; added to U when
+   accumulate) and, when fres, the Drude part to Dd (it is applied at every frequency afterwards). ion: K doubles of work space; peak[0]:
+   running maximum of the density. */
+KERNEL void uf_plasma_scan(G const double* I, G const double* W, int n, int K, G const double* dens, G const double* uj, double dt,
+                           double drude, double wt, double k0, double sigma, double umean, int aval, int absorb, double recRate, double recBeta,
+                           double rho0, int fres, G cplx* U, int accumulate, G cplx* Dd, G double* ion, G double* peak)
+{
+    if (GID != 0) return;
+    int h = n >> 1;
+    double rho = rho0, pk = rho0;
+    for (int k = 0; k < K; k++) ion[k] = 0.0;
+    for (int c = 0; c < n; c++) {
+        int d = c + h; if (d >= n) d -= n;
+        double it = I[d], gen = 0.0, loss = 0.0;
+        for (int k = 0; k < K; k++) {
+            double avail = fmax(0.0, dens[k] - ion[k]);
+            double g = W[k * n + d] * avail;
+            gen += g; loss += g * uj[k];
+            ion[k] = fmin(dens[k], ion[k] + g * dt);
+        }
+        double av = aval ? sigma * it / umean * rho : 0.0;
+        double dre = -drude * rho, dim = 0.0, cim = 0.0;
+        if (absorb) { dim = drude * rho / wt; if (it > 0.0) cim = loss / it / (2.0 * k0); }
+        cplx u = accumulate ? U[d] : C2(0.0, 0.0);
+        if (fres) { Dd[d] = C2(dre, dim); u = C2(u.x, u.y + cim); }
+        else u = C2(u.x + dre, u.y + dim + cim);
+        U[d] = u;
+        double drho = gen + av - rho * recRate - recBeta * rho * rho;
+        rho = fmax(0.0, rho + drho * dt);
+        pk = fmax(pk, rho);
+    }
+    peak[0] = fmax(peak[0], pk);
+}
+
+/* frequency-resolved Drude term: P = Dd A (each component), then after the forward transform rate += S P (S = i omega/c R(omega)) */
+KERNEL void uf_plasma_dprod(G const cplx* T, G const cplx* Dd, int n, int len, G cplx* P)
+{
+    for (int i = GID; i < len; i += GSZ) P[i] = cmul(Dd[i % n], T[i]);
+}
+
+KERNEL void uf_plasma_dadd(G cplx* R, G const cplx* P, G const cplx* S, int n, int len)
+{
+    for (int i = GID; i < len; i += GSZ) R[i] = cadd(R[i], cmul(S[i % n], P[i]));
+}
+
 KERNEL void uf_env_kerr(G const cplx* T, G const cplx* C, int n, int scalar, int raman, double invA, double k0, double n2,
                         double fR, double dt, double cc, G cplx* R, G double* P, G double* D, G double* part, int po,
-                        G const cplx* Q, int rot, int m, G const cplx* U, int user)
+                        G const cplx* Q, int rot, int m, G const cplx* U, int user, G const cplx* Dd, int disp)
 {
     LOC double sm[256];
     double pm = 0.0;
@@ -370,8 +447,11 @@ KERNEL void uf_env_kerr(G const cplx* T, G const cplx* C, int n, int scalar, int
         }
         R[i] = nx;
         double p = cabs2(ax) + cabs2(ay);
-        cplx s = cmul(cconj(ax), nx);
-        if (!scalar) s = cadd(s, cmul(cconj(ay), ny));
+        /* the peak index change includes the frequency-resolved Drude term (applied to the rate in the spectral domain) */
+        cplx nxp = nx, nyp = ny;
+        if (disp) { cplx dd = Dd[i]; cplx f = C2(-k0 * dd.y, k0 * dd.x); nxp = cadd(nx, cmul(f, ax)); if (!scalar) nyp = cadd(ny, cmul(f, ay)); }
+        cplx s = cmul(cconj(ax), nxp);
+        if (!scalar) s = cadd(s, cmul(cconj(ay), nyp));
         P[i] = p;
         D[i] = p > 0.0 ? fabs(s.y / (k0 * p)) : 0.0;
         pm = fmax(pm, p);

@@ -198,7 +198,7 @@ namespace UltrafastEngine.Plugins.Gpu
             if (!(p is EnvelopeProblem ep) || WhyNot(p) != null || ComputeBackends.Settings.Mixed) return null;
             if (string.Equals(st.Method, "rk4ip", StringComparison.OrdinalIgnoreCase) || string.Equals(st.Method, "fixed", StringComparison.OrdinalIgnoreCase)) return null;
             var s = ep.DeviceSpec();
-            if (s == null || s.Responses != null) return null;
+            if (s == null || s.Responses != null || s.Plasma != null) return null;
             bool raman = s.RamanKernelFreq != null && s.RamanFraction > 0 && s.N2 != 0;
             var inv = CultureInfo.InvariantCulture;
             return string.Join("|", Name, SelectDevice(IsAuto).ToString(inv), s.N.ToString(inv), s.Scalar ? "s" : "v", raman ? "R" + Hash(s.RamanKernelFreq) + Hash(s.RamanAnisoFreq) : "-",
@@ -255,7 +255,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 foreach (var j in jobs)
                 {
                     j.Stats.Notes.Add(Name + " ensemble failed (" + ex.Message.Split('\n')[0] + "); ran on the CPU");
-                    j.Stats.Accepted = 0; j.Stats.Rejected = 0; j.Stats.BIntegralRad = 0; j.Stats.MinStepM = double.PositiveInfinity; j.Stats.MaxStepM = 0;
+                    j.Stats.Accepted = 0; j.Stats.Rejected = 0; j.Stats.BIntegralRad = 0; j.Stats.BIntegralPulseAveragedRad = double.NaN; j.Stats.MinStepM = double.PositiveInfinity; j.Stats.MaxStepM = 0;
                     j.Result = Steppers.PropagateCpu(j.Problem, j.Initial, j.Settings, j.Stats, j.Progress);
                 }
             }
@@ -295,7 +295,7 @@ namespace UltrafastEngine.Plugins.Gpu
             catch (GpuException ex)
             {
                 stats.Notes.Add(Name + " failed (" + ex.Message.Split('\n')[0] + "); ran on the CPU");
-                stats.Accepted = 0; stats.Rejected = 0; stats.BIntegralRad = 0; stats.MinStepM = double.PositiveInfinity; stats.MaxStepM = 0;
+                stats.Accepted = 0; stats.Rejected = 0; stats.BIntegralRad = 0; stats.BIntegralPulseAveragedRad = double.NaN; stats.MinStepM = double.PositiveInfinity; stats.MaxStepM = 0;
                 return Steppers.PropagateCpu(p, a0, st, stats, progress);
             }
             finally { gate.Exit(); }

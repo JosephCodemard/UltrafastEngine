@@ -70,6 +70,84 @@ namespace UltrafastEngine.Tests
             Assert.Greater(SpectralCentroid(r.Output), SpectralCentroid(r.Input), "plasma blue-shifts the pulse");
             Assert.True(rec.LossJ.ContainsKey("absorption") && rec.LossJ["absorption"] > 0, "ionisation takes energy from the pulse");
         }
+        private static Results.RunResult AirGap(double energyJ, bool skip, double lengthM = 0.5)
+        {
+            // an air gap of a multipass cell: 1030 nm, 300 fs, constant area 1 mm^2, rotational Raman of air, PPT ionisation of N2 and O2
+            var o = O("format", "ultrafast-system", "version", 2, "name", "gap");
+            o.Set("elements", A(O("id", "air", "type", "bulk", "material", "Air", "lengthM", lengthM, "beam", O("kind", "constant", "areaM2", 1e-6), "ionization", O("skipNegligible", skip))));
+            var run = O("format", "ultrafast-run", "version", 2, "physics", O("selfSteepening", false));
+            run.Set("pulse", O("shape", "gaussian", "centerWavelengthM", 1030e-9, "durationFwhmS", 300e-15, "energyJ", energyJ));
+            return Simulation.Run(SystemDescription.FromJson(o), Specs.RunSpec.FromJson(run));
+        }
+
+        [Test(Reference = "bound: rates at 4 x the entry peak intensity over 4 x E / P_pk keep the Drude phase below 1e-6 rad and the absorbed fraction below 1e-9", Tolerance = "the skipped and full runs differ by less than 1e-6 (relative L2 of the field)")]
+        public void NegligibleIonisation_IsSkipped_AndTheResultDoesNotChange()
+        {
+            // 100 uJ in 1 mm^2: 3e14 W/m^2 (3e10 W/cm^2), four orders of magnitude below the ionisation of air
+            var skipped = AirGap(100e-6, true);
+            var full = AirGap(100e-6, false);
+            Assert.True(skipped.Records[0].Notes.Any(n => n.StartsWith("ionization skipped as negligible")), "note on the skipped element");
+            Assert.True(!full.Records[0].Notes.Any(n => n.StartsWith("ionization skipped")), "skipNegligible false keeps it");
+            double num = 0, den = 0;
+            for (int i = 0; i < full.Output.Grid.N; i++) { var d = skipped.Output.Ax[i] - full.Output.Ax[i]; num += d.Real * d.Real + d.Imaginary * d.Imaginary; den += full.Output.Ax[i].Real * full.Output.Ax[i].Real + full.Output.Ax[i].Imaginary * full.Output.Ax[i].Imaginary; }
+            Assert.Less(Math.Sqrt(num / den), 1e-6, "skipped vs full output field");
+            Assert.Less(full.Records[0].Values["peakElectronDensityM3"], skipped.Records[0].Values["ionizationDensityBoundM3"], "the bound is above the density the full run found");
+        }
+
+        [Test(Reference = "the exact rate models (PPT, Keldysh, MPI) against their ln W / ln I table (PlasmaDeviceSpec.RateFromTable, the device's arithmetic): the ionised density int W(I(t)) dt of Gaussian pulses", Tolerance = "1e-12 for MPI (a straight line in the table); 1e-5 for PPT and Keldysh (kinks where a multiphoton channel closes: local rate error up to 1.4e-2, ionised density 4e-6)")]
+        public void PlasmaDeviceTable_ReproducesTheIonisedDensity()
+        {
+            double w0 = W(800e-9);
+            var rates = new (string name, IIonizationRate r)[]
+            {
+                ("PPT argon", new PptRate(15.760, w0, 1, 1)),
+                ("Keldysh fused silica", new KeldyshRate(9.0, 0.635, w0, 2.2e28, 1.45)),
+                ("MPI K = 6", new MpiRate(1e-80, 6, 9.0)),
+            };
+            foreach (var (name, r) in rates)
+            {
+                var pr = new PlasmaResponse(); pr.Channels.Add(new PlasmaResponse.Channel { Name = name, Rate = r, DensityM3 = 1e25 });
+                var spec = pr.DeviceForm(w0, new[] { w0 });
+                double worstLocal = 0, worst = 0;
+                for (double lg = 13; lg <= 19; lg += 0.0137)
+                {
+                    double I = Math.Pow(10, lg), exact = r.Rate(I);
+                    if (exact > 1e-20 * r.Rate(1e18)) worstLocal = Math.Max(worstLocal, Math.Abs(spec.RateFromTable(0, I) / exact - 1));
+                }
+                foreach (double peak in new[] { 1e16, 3e16, 1e17, 3e17, 1e18 })
+                {
+                    double se = 0, st = 0;
+                    for (int i = -4000; i <= 4000; i++) { double I = peak * Math.Exp(-4 * Math.Log(2) * Math.Pow(i * 0.25e-15 / 50e-15, 2)); se += r.Rate(I); st += spec.RateFromTable(0, I); }
+                    if (se > 0) worst = Math.Max(worst, Math.Abs(st / se - 1));
+                }
+                Console.WriteLine("    " + name + ": worst local rate error " + worstLocal.ToString("E2") + ", worst density error " + worst.ToString("E2"));
+                Assert.Less(worst, name.StartsWith("MPI") ? 1e-12 : 1e-5, name + ": ionised density from the table");
+            }
+        }
+
+        [Test]
+        public void Plate_ElementLevelIonization_IsApplied_AsOnABulkElement()
+        {
+            // the plate's ionization key was accepted by the schema but not passed to its inside (BulkPassKeys) before 2026-11-17
+            JsonObject El(string type) => type == "plate"
+                ? O("id", "w", "type", "plate", "material", "FusedSilica", "thicknessM", 1e-3, "coating", O("kind", "ideal", "R", 0.0), "beam", O("kind", "constant", "areaM2", 1e-7), "ionization", O("skipNegligible", false))
+                : O("id", "w", "type", "bulk", "material", "FusedSilica", "lengthM", 1e-3, "beam", O("kind", "constant", "areaM2", 1e-7), "ionization", O("skipNegligible", false));
+            var run = Spec(O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 50e-15, "energyJ", 3e-4), O("physics", O("selfSteepening", false)));
+            var plate = Go(Sys(El("plate")), run).Records[0];
+            var bulk = Go(Sys(El("bulk")), run).Records[0];
+            Assert.True(plate.Values.ContainsKey("peakElectronDensityM3"), "the plate ionises: " + string.Join(" | ", plate.Notes));
+            Assert.Close(bulk.Values["peakElectronDensityM3"], plate.Values["peakElectronDensityM3"], 1e-9, 0, "plate = bulk of the same glass and length");
+        }
+
+        [Test]
+        public void StrongIonisation_IsNotSkipped()
+        {
+            // 100 mJ in 1 mm^2 at 300 fs: 3e17 W/m^2 (3e13 W/cm^2), air ionises
+            var r = AirGap(100e-3, true, 0.01);
+            Assert.True(!r.Records[0].Notes.Any(n => n.StartsWith("ionization skipped")), "kept");
+            Assert.Greater(r.Records[0].Values["peakElectronDensityM3"], 0, "plasma formed");
+        }
+
         [Test(Reference = "Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007), eq. 6 and 15: the avalanche is fed by inverse-bremsstrahlung absorption, which the Drude imaginary part already is", Tolerance = "1e-4")]
         public void Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime()
         {

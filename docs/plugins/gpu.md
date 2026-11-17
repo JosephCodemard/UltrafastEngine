@@ -57,7 +57,8 @@ CPU (`cuda: small problem (4096 samples < gpuMinPoints 8192); ran on the CPU`).
 | spatial (radial Hankel or cartesian) envelope propagation with the same physics, envelope or UPPE coupling, vector fields | yes |
 | rotational (orientational) Raman of molecular gases (N2, O2, CO2, air, mixtures; `n2Scale`), 1-D and spatial: the causal response is a zero-padded linear convolution, done with the same kernel spectrum as the CPU | yes |
 | `timeResponse` models `expression`, `twoPhotonAbsorption` and `kerr` (any number, summed in order; every variable, including the running fluence `F`), 1-D and spatial: each element's responses are translated to C and compiled into a kernel of their own the first time they are seen (NVRTC or the OpenCL compiler), then cached per device | yes |
-| `timeResponse` callbacks (user code), frequency-resolved responses (the Drude term of `ionization`), position-dependent properties | CPU |
+| `ionization` (photo-ionisation, avalanche, recombination, Drude index at the carrier or at every frequency) in 1-D envelope elements: rates from a table of ln W / ln I (exact for MPI, 4e-6 in the ionised density for PPT / Keldysh), the density integrated in time order by one work-item ([ionisation](../reference/ionization.md)) | yes |
+| `timeResponse` callbacks (user code), position-dependent properties, ionisation in spatial elements | CPU |
 | χ(2) crystals in the 1-D coupled-wave model: SHG, SFG / DFG / OPA (three waves), χ(3) SPM / XPM, self-steepening, averaged or domain-resolved QPM (the stepper lands on every domain wall, as on the CPU), crossing beams | yes |
 | spatial (radial / cartesian) χ(2) crystals, carrier-resolved field propagation, amplifiers, ionisation | CPU |
 

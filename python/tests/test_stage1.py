@@ -93,3 +93,17 @@ def test_scan_is_lazy_shaped_cached_and_matches_independent_runs(tmp_path):
     assert any("6 of 6 points read" in n for n in again.notes)
     q = uf.scan(sys, spec, {"element:nl/lengthM": lengths}, ["pulse:end/fwhmS"], fidelity="quick")
     assert q["pulse:end/fwhmS"].shape == (3,)
+
+
+def test_scan_fidelity_applies_to_a_run_file(tmp_path):
+    # uf.scan(fidelity=...) used to need the run spec as a dict; the engine now applies it to a run file too
+    import json
+    sys = b.system("k", [b.bulk("nl", "flat", 0.01, beam=b.constant_beam(area_m2=1e-8))], materials={"flat": {"index": 1.45, "n2": 2.5e-20}})
+    spec = b.run_spec(b.pulse(1.03e-6, 200e-15, peak_power_w=2e6), physics={"selfSteepening": False, "raman": False})
+    run_file = tmp_path / "run.json"
+    run_file.write_text(json.dumps(spec))
+    from_file = uf.scan(sys, str(run_file), {"element:nl/lengthM": [0.005, 0.01]}, ["pulse:end/fwhmS"], fidelity="quick")
+    from_dict = uf.scan(sys, spec, {"element:nl/lengthM": [0.005, 0.01]}, ["pulse:end/fwhmS"], fidelity="quick")
+    assert np.array_equal(from_file["pulse:end/fwhmS"], from_dict["pulse:end/fwhmS"])
+    with pytest.raises(ValueError):
+        uf.scan(sys, spec, {"element:nl/lengthM": [0.01]}, ["pulse:end/fwhmS"], fidelity="fast")

@@ -237,6 +237,12 @@ namespace UltrafastEngine.Physics
         /// <summary>True (default): the Drude index is applied at every frequency of the pulse, Δn(ω) ∝ 1/(ω (ω + iν)) (<see cref="Spectral"/>);
         /// false: at the carrier frequency only.</summary>
         public bool FrequencyResolved { get; set; } = true;
+        /// <summary>True (default, key <c>ionization.skipNegligible</c>): the executor leaves the plasma term out of an element when
+        /// <see cref="NegligibleAt"/> bounds its effect below 1e-6 rad of phase and 1e-9 of the energy.</summary>
+        public bool SkipNegligible { get; set; } = true;
+        /// <summary>Intensity and duration margin of <see cref="NegligibleAt"/>: the bound is evaluated at this many times the entry peak
+        /// intensity, over this many times the pulse's effective duration (the pulse may compress or focus inside the element).</summary>
+        public const double NegligibleMargin = 4;
         private double _peakRho;
         private readonly object _lock = new object();
 
@@ -311,6 +317,93 @@ namespace UltrafastEngine.Physics
             lock (_lock) if (peak > _peakRho) _peakRho = peak;
         }
 
+        /// <summary>The plasma term for a device kernel (<see cref="PlasmaDeviceSpec"/>), at carrier omega0 on a grid with the given absolute
+        /// frequencies (centred order). Envelope mode only (the cycle-averaged rate).</summary>
+        private static readonly Dictionary<string, double[]> TableCache = new Dictionary<string, double[]>();
+
+        public PlasmaDeviceSpec DeviceForm(double omega0, double[] omegaAbsolute)
+        {
+            double c = PhysicalConstants.SpeedOfLightMPerS, rhoC = Au.Eps0 * Au.Me * omega0 * omega0 / (Au.E * Au.E), wt = omega0 * CollisionTimeS, k0 = omega0 / c;
+            var s = new PlasmaDeviceSpec
+            {
+                Channels = Channels.Count, DensityM3 = Channels.Select(ch => ch.DensityM3).ToArray(), EnergyJ = Channels.Select(ch => ch.Rate.EnergyJ).ToArray(),
+                Drude = 1 / (2 * N0 * rhoC) / (1 + 1 / (wt * wt)), OmegaTauC = wt, K0 = k0, Sigma = k0 * omega0 * CollisionTimeS / (N0 * rhoC * (1 + wt * wt)),
+                UMean = Channels.Count > 0 ? Channels.Average(ch => ch.Rate.EnergyJ) : 1,
+                RecombinationRatePerS = double.IsInfinity(RecombinationTimeS) ? 0 : 1 / RecombinationTimeS, RecombinationBetaM3PerS = RecombinationBetaM3PerS,
+                InitialDensityM3 = InitialDensityM3, Avalanche = Avalanche, Absorption = Absorption, FrequencyResolved = FrequencyResolved,
+                ReportPeakDensity = rho => { lock (_lock) if (rho > _peakRho) _peakRho = rho; }
+            };
+            int nt = PlasmaDeviceSpec.TableN;
+            s.LnRate = new double[nt * Channels.Count];
+            for (int k = 0; k < Channels.Count; k++)
+            {
+                var rate = Channels[k].Rate;
+                // one table per rate model (the passes of a cell share it): key = model, description and the exact rate at four intensities
+                // (a fingerprint of every parameter, carrier and index included)
+                string key = rate.GetType().FullName + "|" + rate.Description + "|" + string.Join("|", new[] { 1e15, 1e16, 1e17, 1e18 }.Select(x => rate.Rate(x).ToString("R", CultureInfo.InvariantCulture)));
+                double[] tab;
+                lock (TableCache)
+                    if (!TableCache.TryGetValue(key, out tab))
+                    {
+                        tab = new double[nt];
+                        for (int i = 0; i < nt; i++)
+                        {
+                            double w = rate.Rate(Math.Exp(PlasmaDeviceSpec.LnIMin + i * s.DLnI));
+                            tab[i] = w > 1e-300 && !double.IsNaN(w) ? Math.Log(w) : -690.8;   // ln 1e-300
+                        }
+                        if (TableCache.Count > 64) TableCache.Clear();
+                        TableCache[key] = tab;
+                    }
+                Array.Copy(tab, 0, s.LnRate, k * nt, nt);
+            }
+            if (FrequencyResolved)
+            {
+                s.SpectralRate = new Complex[omegaAbsolute.Length];
+                for (int j = 0; j < omegaAbsolute.Length; j++)
+                {
+                    double w = omegaAbsolute[j];
+                    if (w > 0) s.SpectralRate[j] = Complex.ImaginaryOne * (w / c) * Spectral(w, omega0);
+                }
+            }
+            return s;
+        }
+
+        /// <summary>
+        /// Conservative upper bound of what this plasma term can do in an element, from the entry pulse: peak intensity I_pk, effective
+        /// duration T = E / P_pk. Every rate is taken at M I_pk (M = <see cref="NegligibleMargin"/>) over M T, with avalanche growth
+        /// exp(sigma M^2 I_pk T / U) (the bounds hold for rates that grow at least linearly with I, as MPI, PPT and Keldysh do). The density
+        /// bound rho gives the largest Drude phase k0 |dn| L (dn = -rho / (2 n0 rho_c) with the collision factor) and the largest absorbed
+        /// fraction (rho U plus inverse bremsstrahlung) L A / E. Negligible when the phase is below 1e-6 rad and the fraction below 1e-9: the
+        /// field then changes by less than the stepper's tolerance. A prepared plasma (electronDensityM3 &gt; 0) is never negligible.
+        /// </summary>
+        public bool NegligibleAt(double peakIntensityWPerM2, double energyJ, double peakPowerW, double lengthM, double areaM2, double omega0, out double rhoBoundM3, out double phaseRad, out double lossFraction)
+        {
+            double c = PhysicalConstants.SpeedOfLightMPerS, M = NegligibleMargin;
+            double rhoC = Au.Eps0 * Au.Me * omega0 * omega0 / (Au.E * Au.E), wt = omega0 * CollisionTimeS, k0 = omega0 / c;
+            double drude = 1 / (2 * N0 * rhoC) / (1 + 1 / (wt * wt));
+            double T = peakPowerW > 0 ? energyJ / peakPowerW : 0, I = M * peakIntensityWPerM2;
+            double rho = 0, uMean = Channels.Count > 0 ? Channels.Average(ch => ch.Rate.EnergyJ) : 1, absorbedPerVolume = 0;
+            foreach (var ch in Channels)
+            {
+                double frac = Math.Min(1, Math.Max(0, ch.Rate.Rate(I)) * M * T);
+                if (double.IsNaN(frac)) frac = 1;
+                rho += frac * ch.DensityM3;
+                absorbedPerVolume += frac * ch.DensityM3 * ch.Rate.EnergyJ;
+            }
+            if (Avalanche)
+            {
+                double sigma = k0 * omega0 * CollisionTimeS / (N0 * rhoC * (1 + wt * wt));
+                double g = sigma * I * M * T / uMean;
+                rho *= g < 700 ? Math.Exp(g) : double.PositiveInfinity;
+            }
+            rhoBoundM3 = rho + InitialDensityM3;
+            phaseRad = k0 * drude * rhoBoundM3 * Math.Max(1, 1 / wt) * lengthM;
+            // inverse bremsstrahlung: absorbed power 2 k0 Im(dn) I per volume over the time M T
+            double ib = Absorption ? 2 * k0 * drude * rhoBoundM3 / wt * I * M * T : 0;
+            lossFraction = energyJ > 0 ? (absorbedPerVolume + ib) * lengthM * areaM2 / energyJ : double.PositiveInfinity;
+            return InitialDensityM3 <= 0 && phaseRad < 1e-6 && lossFraction < 1e-9;
+        }
+
         /// <summary>Plasma response for a material: gases from GasData (air = N2 + O2), dielectrics from their
         /// SolidIonizationData; spec keys override (model, densities, times, avalanche).</summary>
         public static PlasmaResponse For(Material m, double omega0, Serialization.JsonObject spec, out string note)
@@ -319,7 +412,7 @@ namespace UltrafastEngine.Physics
             string model = spec.GetString("model", m.IsGas ? "ppt" : "keldysh").ToLowerInvariant();
             double n0 = m.IndexAt(omega0);
             var r = new PlasmaResponse { N0 = n0, Avalanche = spec.GetBool("avalanche", !m.IsGas || spec.Has("collisionTimeS")), Absorption = spec.GetBool("absorption", true),
-                InitialDensityM3 = spec.GetDouble("electronDensityM3", 0), FrequencyResolved = spec.GetBool("frequencyResolved", true) };
+                InitialDensityM3 = spec.GetDouble("electronDensityM3", 0), FrequencyResolved = spec.GetBool("frequencyResolved", true), SkipNegligible = spec.GetBool("skipNegligible", true) };
             note = null;
             if (m.IsGas)
             {

@@ -78,14 +78,31 @@ namespace UltrafastEngine
 
         // ------------------------------------------------------------------------------------------ study
 
-        /// <summary>{"command": "study", "system": path | object, "run": path | object, "study": {...} (or the study keys inline), "output": dir}</summary>
+        /// <summary>{"command": "study", "system": path | object, "run": path | object, "study": {...} (or the study keys inline), "output": dir,
+        /// "fidelity": "quick" | "standard" | "full" (optional: replaces the run's fidelity, for a run given as a file too)}</summary>
         public static JsonObject Study(JsonObject r, string baseDirectory)
         {
             SystemDescription sys; RunSpec run;
             var sv = r["system"] ?? throw new JsonException("study: \"system\" (file or object) is required");
             var rv = r["run"] ?? throw new JsonException("study: \"run\" (file or object) is required");
             if (sv.Kind == JsonKind.String) sys = SystemDescription.Load(Abs(sv.AsString(), baseDirectory)); else sys = SystemDescription.FromJson(sv.AsObject(), baseDirectory);
-            if (rv.Kind == JsonKind.String) run = RunSpec.Load(Abs(rv.AsString(), baseDirectory)); else run = RunSpec.FromJson(rv.AsObject(), baseDirectory);
+            string fid = r.GetString("fidelity", null);
+            if (rv.Kind == JsonKind.String)
+            {
+                string path = Abs(rv.AsString(), baseDirectory);
+                if (fid == null) run = RunSpec.Load(path);
+                else
+                {
+                    var ro = JsonValue.ParseFile(path).AsObject(); ro.Set("fidelity", fid);
+                    run = RunSpec.FromJson(ro, Path.GetDirectoryName(Path.GetFullPath(path)));
+                }
+            }
+            else
+            {
+                var ro = rv.AsObject();
+                if (fid != null) { ro = JsonValue.Parse(ro.ToJson(false)).AsObject(); ro.Set("fidelity", fid); }
+                run = RunSpec.FromJson(ro, baseDirectory);
+            }
             var so = r.GetObject("study") ?? r;
             var spec = StudySpec.FromJson(so);
             var res = Studies.Run(sys, run, spec);

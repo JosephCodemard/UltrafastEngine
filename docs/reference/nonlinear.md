@@ -48,6 +48,17 @@ the polarisation components: Δn_eff = Im(Σ A_c* N_c) / (k0 Σ |A_c|²). It con
 polarisation, including the coherent term, so circular light reports 2/3 of the linear value (an earlier version left
 the coherent term out of the report and gave 5/6; the propagation itself was correct).
 
+`bIntegralRad` is therefore the **on-axis peak**: the phase of the most intense time slice at the centre of the beam. Two averages are
+reported beside it for 1-D elements (and in `totals`):
+
+* `bIntegralPulseAveragedRad`: at each step the index change is weighted by the power over the pulse, Σ_t P Δn / Σ_t P. For a Gaussian pulse
+  and an instantaneous Kerr index it is B / √2. The CPU stepper accumulates it step by step; on a GPU it is estimated from the entry and exit
+  pulse shapes (a note says so).
+* `bIntegralBeamAveragedRad`: additionally weighted by intensity over the Gaussian cross-section of the 1-D beam, ∫I² dA / ∫I dA = I₀/2, so half of
+  the pulse-averaged value. It is the energy-weighted mean phase, the number that sets, for example, the average spectral broadening of a beam.
+
+Spatial and crystal elements report only the peak. Tests `ValidityTests.BIntegral_PulseAndBeamAveraged_AreTheAnalyticFractionsOfThePeak`.
+
 ### Raman models
 
 The delayed response h_R(t) is a material property (`"raman"` in a material, or on a `bulk` / `fiber` element), with

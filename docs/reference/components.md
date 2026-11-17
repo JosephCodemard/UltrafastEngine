@@ -244,6 +244,21 @@ delays (|Δn_g| d / c: about 30 fs per mm of quartz at 1 µm, enough to split a 
 retardance at the carrier and that delay. Crystals: Quartz, MgF2, Sapphire, Calcite, YVO4, aBBO; or give
 `indexOrdinary` and `indexExtraordinary` models.
 
+## Glass in polarisers and lenses
+
+Thick transmissive optics add the dispersion of their glass when they are given it:
+
+* `polarizer` with `material` and `thicknessM` (a Glan-Taylor or Glan-laser prism of calcite or α-BBO, a crystal or film polariser): the glass
+  path is applied before the polarising action, with the full Sellmeier phase (GDD, TOD, ...). Without them the polariser is ideal and adds none.
+* `lens` with `material` and `thicknessM` (the glass on axis): the slab's dispersion, and the chromatic focal length f(ω). A lens with a material
+  but no thickness gets only the chromatic focal length, and its note says to give `thicknessM`. The glass is a uniform slab: the centre-to-edge
+  thickness difference (Bor's propagation-time difference) appears only in the spatial models, through the chromatic lens phase at every frequency.
+* `waveplate` with a `material` (thick plates): ordinary and extraordinary dispersion, so the axes differ in group delay ([waveplates](#waveplates));
+  `plate` / `window`, `thinFilmPolarizer` (substrate) and `faradayRotator` (crystal) too.
+* Beam splitters (`beamSplitter`, `polarizingSplitter`) have no glass: put a `plate` of the cube's glass in the arm that crosses it.
+
+Test `ComponentTests.ThickPolarizerAndLens_AddTheirGlassDispersion` (GDD = β₂ L from the Sellmeier index).
+
 ## Thin-film polarisers
 
 ```jsonc
