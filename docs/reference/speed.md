@@ -153,8 +153,30 @@ a real single-precision kernel. Acceptance: energy 1e-6, spectrum L1 1e-4, contr
 Result: the operator in FP32 meets energy and spectrum criteria by three to four orders of magnitude. The **floor criterion fails** wherever the
 intensity floor is below about 1e-8 of the peak (the SPM plate and spatial cases): the rounding noise (about -85 dB) fills it. So mixed
 precision (consumer GPUs) is acceptable for energy, spectrum and pulse shape, and must be **refused when a contrast or pedestal instrument asks
-for more than about 70 dB of dynamic range**. Not yet checked: single-precision FFTs (the accumulated error over thousands of steps is expected
-to be about 1e-6 to 1e-5), the soliton and SHG cases; both need the GPU session ([GPU checklist](../design/gpu-windows-checklist.md)).
+for more than about 70 dB of dynamic range**.
+
+### Mixed precision on the GPU
+
+Built after the study (WP-C(B)): on a GPU back-end the nonlinear operator of 1-D envelope and χ(2) elements, **including its FFTs**, runs in
+single precision; the state, the linear step and the Runge-Kutta combinations stay double. Off by default. A run whose instruments ask for more than
+70 dB of dynamic range (`contrast` and `crossCorrelator` at their defaults, any `dynamicRangeDb` or detector above 70 dB) is refused with an error;
+spatial elements and elements with orientational (gas) or user-response kernels run in double with a note; the CPU back-end ignores the key with a
+warning; studies do not form device ensembles in mixed precision.
+
+Measured on the RTX 3060 Ti against the double-precision CPU run (`GpuTests.MixedPrecision_*`, CUDA and OpenCL agree):
+
+| case | energy | spectrum L1 | max abs(dI) / peak |
+|---|---|---|---|
+| `spm-plate` | 4e-10 to 2e-9 | 2e-8 | 4e-8 |
+| `mpc-argon` (20 passes) | 6e-9 to 8e-9 | 1e-6 | 7e-5 |
+| N = 3 soliton with a dispersive wave (1 mm, β2 = -10 ps²/km) | 2e-11 to 2e-10 | 2e-9 | 4e-9 |
+| BBO type-I SHG (1 mm, 200 fs, 20 µJ) | 5e-8 to 8e-8 | 2.5e-7 | 7e-7 to 8e-7 |
+
+All meet the acceptance (energy 1e-6, spectrum L1 1e-4). Single-precision FFTs make the error grow with the number of steps: the 20-pass cell reaches
+7e-5 of the peak intensity, three orders above the operator-only emulation, as the study expected. Speed on this card: 1.3 to 1.5 times faster than the
+double-precision device run (scalar N = 65536: 0.75 s to 0.52 s; vector N = 32768: 0.17 s to 0.12 s; scalar N = 262144: 11.5 s to 8.4 s), with
+1 to 8 % more steps (the rounding noise enters the error estimate). The double-precision path uses cuFFT, the mixed path the built-in single-precision
+FFT; a single-precision cuFFT plan is an open item.
 
 ## Practical advice
 

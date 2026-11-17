@@ -44,6 +44,10 @@ Reference pages stay reference pages. Missing AO / twin example still open: comp
 ## 3. Small items that are ready to do
 
 * (Done in WP-E: `result.ase_pedestal()`, the lens under-sampling warning, `result.unverified_inputs`.)
+* **GPU follow-ups (WP-C(B), measured on the RTX 3060 Ti).** Spatial χ(2) and spatial mixed precision run on the CPU / in double; a single-precision cuFFT plan
+  (the mixed path uses the built-in FFT, the double path cuFFT); an expression parameter that a study varies compiles one kernel per value (pass parameters
+  as kernel arguments instead); ensembles do not include elements with user-response kernels or fixed steps; carrier-resolved propagation and spatial
+  gain have no device path. None blocks 1.0.
 * **Domain-resolved QPM accuracy at the default tolerance (found in WP-C(B), CPU and GPU alike).** A 1 mm PPLN SHG crystal (1550 nm, 1 ps, 50 nJ,
   `qpm.model: domains`): the output field at the default stepper tolerance (1e-6) differs by 7e-4 from the run at 1e-9, and two runs whose
   tolerances differ by 1e-7 relative differ by 3e-5. Cause: the adaptive stepper lands on each wall, and whether a step reaches the wall or leaves a

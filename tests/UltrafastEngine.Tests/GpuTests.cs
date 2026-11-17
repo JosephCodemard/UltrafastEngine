@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -289,6 +290,88 @@ namespace UltrafastEngine.Tests
         }
 
         private static Engine.StudySpec StudySpec(JsonObject o) => Engine.StudySpec.FromJson(o);
+
+        /// <summary>Energy, spectrum L1 and intensity differences of a mixed-precision run against the double-precision CPU run (the
+        /// acceptance of the FP32 study, docs/reference/speed.md), over every field leaving the last element.</summary>
+        private static (double energy, double spectrumL1, double maxDI, double floor) Fp32Metrics(RunResult dbl, RunResult mix)
+        {
+            double e64 = dbl.Output.TotalEnergyJ(), e32 = mix.Output.TotalEnergyJ();
+            double sa = 0, sd = 0, pk = 0, maxd = 0;
+            var floor = new System.Collections.Generic.List<double>();
+            foreach (var (a, b) in new[] { (dbl.Output.Ax, mix.Output.Ax), (dbl.Output.Ay, mix.Output.Ay) })
+            {
+                if (a == null || b == null) continue;
+                for (int i = 0; i < a.Length; i++) { double p = a[i].Magnitude * a[i].Magnitude, q = b[i].Magnitude * b[i].Magnitude; sa += p; sd += Math.Abs(p - q); }
+            }
+            var ta = dbl.Output.TemporalAx(); var tb = mix.Output.TemporalAx(); var ua = dbl.Output.TemporalAy(); var ub = mix.Output.TemporalAy();
+            for (int i = 0; i < ta.Length; i++)
+            {
+                double p = ta[i].Magnitude * ta[i].Magnitude + ua[i].Magnitude * ua[i].Magnitude, q = tb[i].Magnitude * tb[i].Magnitude + ub[i].Magnitude * ub[i].Magnitude;
+                pk = Math.Max(pk, p); maxd = Math.Max(maxd, Math.Abs(p - q)); floor.Add(p);
+            }
+            floor.Sort();
+            return (Math.Abs(e32 - e64) / e64, sd / sa, maxd / pk, floor[floor.Count / 10] / pk);
+        }
+
+        private static (Systems.SystemDescription, JsonObject) Example(string folder, string ufs)
+        {
+            string dir = Path.Combine(SchemaTests.RepoRoot(), "docs", "examples", folder);
+            var sys = Systems.SystemDescription.Load(Path.Combine(dir, ufs));
+            var run = (JsonObject)JsonValue.ParseFile(Path.Combine(dir, "run.json"));
+            run.Set("instruments", new JsonArray());
+            if (run.Has("outputs")) run.Remove("outputs");
+            return (sys, run);
+        }
+
+        [Test(Category = "gpu", Reference = "acceptance of the FP32 study (docs/reference/speed.md): energy 1e-6, spectrum L1 1e-4 against double precision", Tolerance = "1e-6, 1e-4")]
+        public void MixedPrecision_SpmPlateMpcSolitonAndShg_MeetTheFp32Criteria()
+        {
+            // WP-C(B) step 3: the nonlinear operator and its FFTs in single precision on the device (compute.precision = mixed); the
+            // single-precision FFTs were not covered by the Mac study (cpu-fp32 emulates only the operator)
+            double b2 = -10e-27, b3 = 0.08e-39, gamma = 0.1, fw = 50e-15, t0 = fw / 1.763, p0 = 9 * Math.Abs(b2) / (gamma * t0 * t0);
+            var soliton = Systems.SystemDescription.FromJson(O("format", "ultrafast-system", "version", 2, "name", "soliton",
+                "elements", A(O("id", "pcf", "type", "fiber", "lengthM", 1e-3, "betas", A(b2, b3), "gamma", gamma))));
+            var solRun = O("format", "ultrafast-run", "version", 2, "pulse", O("shape", "sech2", "centerWavelengthM", 1550e-9, "durationFwhmS", fw, "energyJ", 2 * p0 * t0), "stepper", O("tolerance", 1e-8));
+            var shg = Systems.SystemDescription.FromJson(O("format", "ultrafast-system", "version", 2, "name", "shg", "elements",
+                A(O("id", "x", "type", "crystal", "crystal", "BBO", "lengthM", 1e-3, "interaction", O("process", "shg", "type", "I"), "beam", O("kind", "gaussian", "w0M", 100e-6), "output", "sh"))));
+            var shgRun = O("format", "ultrafast-run", "version", 2, "pulse", O("shape", "gaussian", "centerWavelengthM", 1030e-9, "durationFwhmS", 200e-15, "energyJ", 20e-6));
+            var (plate, plateRun) = Example("GettingStarted/spm-plate", "plate.ufs");
+            var (mpc, mpcRun) = Example("Nonlinear/mpc-argon", "mpc.ufs");
+            var cases = new (string name, Systems.SystemDescription sys, JsonObject run)[]
+            {
+                ("spm-plate", plate, plateRun), ("mpc-argon (20 passes)", mpc, mpcRun), ("N = 3 soliton with a dispersive wave", soliton, solRun), ("BBO type-I SHG", shg, shgRun)
+            };
+            foreach (var (name, sys, run) in cases)
+            {
+                RunResult R(JsonObject compute) { var r = (JsonObject)JsonValue.Parse(run.ToJson(false)); r.Set("compute", compute); return Simulation.Run(sys, Specs.RunSpec.FromJson(r, sys.BaseDirectory)); }
+                var dbl = R(O("backend", "cpu"));
+                foreach (var b in AllDevices())
+                {
+                    var mix = R(On(b, O("precision", "mixed")));
+                    string label = b.Name + " " + name;
+                    Assert.True(OnDevice(mix), label + ": ran on the device: " + Notes(mix));
+                    Assert.True(Notes(mix).Contains(GpuBackend.MixedNote), label + ": in mixed precision: " + Notes(mix));
+                    var (e, l1, di, fl) = Fp32Metrics(dbl, mix);
+                    Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "    {0}: energy {1:E2}, spectrum L1 {2:E2}, max |dI| / peak {3:E2}, floor (10th percentile of I / peak) {4:E2}", label, e, l1, di, fl));
+                    Assert.Less(e, 1e-6, label + ": energy");
+                    Assert.Less(l1, 1e-4, label + ": spectrum L1");
+                }
+            }
+        }
+
+        [Test(Category = "gpu")]
+        public void MixedPrecision_IsRefusedForHighDynamicRangeInstruments_AndIgnoredOnTheCpu()
+        {
+            JsonObject Run(JsonValue instruments, string backend) => O("format", "ultrafast-run", "version", 2, "pulse", O("shape", "gaussian", "centerWavelengthM", 1030e-9, "durationFwhmS", 100e-15, "energyJ", 1e-6),
+                "compute", O("backend", backend, "precision", "mixed"), "instruments", instruments);
+            Assert.Throws<JsonException>(() => Specs.RunSpec.FromJson(Run(A(O("kind", "contrast", "name", "c")), "cuda")), "contrast at its default 120 dB");
+            Assert.Throws<JsonException>(() => Specs.RunSpec.FromJson(Run(A(O("kind", "crossCorrelator", "name", "x")), "cuda")), "cross-correlator at its default 110 dB");
+            Assert.Throws<JsonException>(() => Specs.RunSpec.FromJson(Run(A(O("kind", "spectrometer", "name", "s", "detector", O("dynamicRangeDb", 90.0))), "cuda")), "a detector asking 90 dB");
+            Specs.RunSpec.FromJson(Run(A(O("kind", "contrast", "name", "c", "dynamicRangeDb", 60.0), O("kind", "spectrometer", "name", "s")), "cuda"));   // 60 dB is fine
+            var (sys, _) = GpuSelfTest.Problem("scalar", 1024, 0, null);
+            var r = Simulation.Run(sys, Specs.RunSpec.FromJson(Run(new JsonArray(), "cpu")));
+            Assert.True(r.Warnings.Any(w => w.Contains("GPU back-ends only")), "the CPU back-end says it computes in double: " + string.Join(" | ", r.Warnings));
+        }
 
         [Test(Category = "gpu")]
         public void CallbackResponses_StayOnTheCpu_WithTheReason()

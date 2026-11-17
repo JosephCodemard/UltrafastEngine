@@ -17,10 +17,17 @@ namespace UltrafastEngine.Plugins.Gpu
         private readonly GpuFft _fft;
         private readonly GpuBuffer _T, _xf, _xa, _St;
         private readonly double[] _ka;
+        private readonly bool _mixed;
+        private readonly GpuFftF _fftF;
+        private readonly GpuBuffer _Tf, _Rf;
 
-        public Chi2Stepper(GpuStream s, Chi2DeviceSpec p, bool allowVendorFft = true)
+        public bool Mixed => _mixed;
+
+        public Chi2Stepper(GpuStream s, Chi2DeviceSpec p, bool allowVendorFft = true, bool mixed = false)
             : base(s, p.K, p.N, p.LinearRate, p.LengthM, s.Context.Groups(p.N) + 4)
         {
+            _mixed = mixed && GpuFft.BuiltInSupports(p.N);
+            if (_mixed) { _fftF = new GpuFftF(s, p.N, p.K); _Tf = Buf(8L * p.K * p.N); _Rf = Buf(8L * p.K * p.N); }
             _p = p; _n = p.N; _K = p.K;
             _fft = new GpuFft(s, _n, _K, allowVendorFft);
             _T = Buf(Len * 16L);
@@ -38,13 +45,25 @@ namespace UltrafastEngine.Plugins.Gpu
 
         protected override double Nonlinear(GpuBuffer state, double z, GpuBuffer rate, bool wantPeak)
         {
-            S.Copy(state, 0, _T, 0, 16L * Len);
-            _fft.Transform(_T, -1, true);                      // A_j(t)
             var (g0, ep) = _p.CouplingAt(z);
             double w2 = _K > 2 ? _p.Omega0[2] : 0.0;
-            S.Launch("uf_chi2", _gN, _T, _n, _K, _p.Shg ? 1 : 0, g0, ep.Real, ep.Imaginary, _p.Omega0[0], _p.Omega0[1], w2,
-                _p.N2, _ka[0], _ka[1], _ka[2], _xf, _xa, rate, Part, 0);
-            _fft.Transform(rate, +1, false);
+            if (_mixed)
+            {
+                S.Launch("uf_d2f", GLen, state, _Tf, Len);
+                _fftF.Transform(_Tf, -1, true);
+                S.Launch("uf_chi2_f", _gN, _Tf, _n, _K, _p.Shg ? 1 : 0, g0, ep.Real, ep.Imaginary, _p.Omega0[0], _p.Omega0[1], w2,
+                    _p.N2, _ka[0], _ka[1], _ka[2], _xf, _xa, _Rf, Part, 0);
+                _fftF.Transform(_Rf, +1, false);
+                S.Launch("uf_f2d", GLen, _Rf, rate, Len);
+            }
+            else
+            {
+                S.Copy(state, 0, _T, 0, 16L * Len);
+                _fft.Transform(_T, -1, true);                      // A_j(t)
+                S.Launch("uf_chi2", _gN, _T, _n, _K, _p.Shg ? 1 : 0, g0, ep.Real, ep.Imaginary, _p.Omega0[0], _p.Omega0[1], w2,
+                    _p.N2, _ka[0], _ka[1], _ka[2], _xf, _xa, rate, Part, 0);
+                _fft.Transform(rate, +1, false);
+            }
             if (_St != null) S.Launch("uf_scale_real_mod", GLen, rate, _St, Len, Len);
             if (!wantPeak) return double.NaN;
             S.Read(Part, PartHost, 0, _gN);
@@ -55,7 +74,7 @@ namespace UltrafastEngine.Plugins.Gpu
 
         public override void Dispose()
         {
-            _fft?.Dispose();
+            _fft?.Dispose(); _fftF?.Dispose();
             base.Dispose();
         }
     }

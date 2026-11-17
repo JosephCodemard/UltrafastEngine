@@ -1495,6 +1495,7 @@ Compute back-end (docs/reference/speed.md).
 | `device` | integer |  | -1 (first suitable) | GPU device index (ultrafast devices lists them) |
 | `gpuMinPoints` | integer |  | 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end | backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU |
 | `deviceSlots` | integer |  | 4 | GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits |
+| `precision` | `"double"` \| `"mixed"` |  | double | double: everything in double precision. mixed (GPU back-ends, 1-D envelope and chi(2) elements): the nonlinear operator and its FFTs in single precision, the state and the linear step in double; energy and spectrum agree with double to about 1e-6, the intensity floor below about -85 dB is rounding noise, so a run whose instruments ask for more than 70 dB of dynamic range is refused |
 
 ### `detector`
 

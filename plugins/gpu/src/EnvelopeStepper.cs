@@ -213,11 +213,17 @@ namespace UltrafastEngine.Plugins.Gpu
         private readonly GpuBuffer _T, _C, _K, _Kb, _F, _P, _D, _Q, _Kr;
         private readonly int _rot, _m, _nrot;
         private readonly string _user;              // kernel of the extra time-domain responses, or null
+        private readonly bool _mixed;               // nonlinear operator in single precision (compute.precision = mixed)
+        private readonly GpuFftF _fftStateF, _fftRamanF;
+        private readonly GpuBuffer _Tf, _Cf, _Kf, _Kbf, _Rf;
         private readonly GpuBuffer _U, _tn, _Fl;
         private readonly double _dtResp, _lambda0;
         private readonly double _cc0;
 
-        public EnvelopeStepper(GpuStream s, EnvelopeDeviceSpec p, bool allowVendorFft = true)
+        /// <summary>Whether <paramref name="p"/> can run in mixed precision (not with orientational or user responses).</summary>
+        public static bool SupportsMixed(EnvelopeDeviceSpec p) => p.RotationalKernelFreq == null && p.Responses == null && GpuFft.BuiltInSupports(p.N);
+
+        public EnvelopeStepper(GpuStream s, EnvelopeDeviceSpec p, bool allowVendorFft = true, bool mixed = false)
             : base(s, p.Scalar ? 1 : 2, p.N, p.LinearRate, p.LengthM, 4 * s.Context.Groups(p.N * (p.Scalar ? 1 : 2)) + 4)
         {
             _p = p;
@@ -262,6 +268,20 @@ namespace UltrafastEngine.Plugins.Gpu
             }
             else _U = _C;
             _gN = C.Groups(_n);
+            _mixed = mixed && SupportsMixed(p);
+            if (_mixed)
+            {
+                _fftStateF = new GpuFftF(s, _n, _comp);
+                _Tf = Buf(Len * 8L); _Rf = Buf(Len * 8L);
+                _Cf = Buf(_nsig * _n * 8L);
+                if (_raman > 0)
+                {
+                    _fftRamanF = new GpuFftF(s, _n, _nsig);
+                    _Kf = Buf(_n * 8L); WriteF(_Kf, Natural(p.RamanKernelFreq, 1));
+                    _Kbf = Buf(_n * 8L); WriteF(_Kbf, Natural(_raman == 2 ? p.RamanAnisoFreq : p.RamanKernelFreq, 1));
+                }
+                else { _Kf = _Cf; _Kbf = _Cf; }
+            }
             _cc0 = p.N2 * (1 - p.RamanFraction) / 3.0;
         }
 
@@ -277,8 +297,45 @@ namespace UltrafastEngine.Plugins.Gpu
 
         protected override double AreaAt(double z) => _p.AreaAt(z);
 
+        /// <summary>Upload complex values rounded to single precision.</summary>
+        private unsafe void WriteF(GpuBuffer dst, Complex[] v)
+        {
+            var f = new float[2 * v.Length];
+            for (int i = 0; i < v.Length; i++) { f[2 * i] = (float)v[i].Real; f[2 * i + 1] = (float)v[i].Imaginary; }
+            fixed (float* q = f) S.Write(dst, 0, q, 4L * f.Length);
+        }
+
+        /// <summary>True when this stepper evaluates the nonlinear operator in single precision.</summary>
+        public bool Mixed => _mixed;
+
+        private double NonlinearMixed(GpuBuffer state, double z, GpuBuffer rate, bool wantPeak)
+        {
+            double aeff = _p.AreaAt(z), invA = 1.0 / aeff;
+            int po = 2 * GLen;
+            S.Launch("uf_d2f", GLen, state, _Tf, Len);
+            _fftStateF.Transform(_Tf, -1, true);
+            if (_raman > 0)
+            {
+                S.Launch("uf_env_raman_in_f", _gN, _Tf, _n, _p.Scalar ? 1 : 0, _nsig, invA, _Cf);
+                _fftRamanF.Transform(_Cf, +1, false);
+                S.Launch("uf_env_raman_mul_f", C.Groups((long)_n * _nsig), _Cf, _Kf, _Kbf, _n, _nsig);
+                _fftRamanF.Transform(_Cf, -1, true);
+            }
+            S.Launch("uf_env_kerr_f", _gN, _Tf, _Cf, _n, _p.Scalar ? 1 : 0, _raman, invA, _p.K0, _p.N2, _p.RamanFraction, _p.DTime, _cc0 / aeff, _Rf, _P, _D, Part, po);
+            if (wantPeak) S.Launch("uf_peak", _gN, _P, _D, _n, Part, po, _gN, po + _gN);
+            _fftStateF.Transform(_Rf, +1, false);
+            S.Launch("uf_f2d", GLen, _Rf, rate, Len);
+            if (_F != null) S.Launch("uf_scale_real", GLen, rate, _F, _n, Len);
+            if (!wantPeak) return double.NaN;
+            S.Read(Part, PartHost, po + _gN, _gN);
+            double pk = 0;
+            for (int g = 0; g < _gN; g++) pk = Math.Max(pk, PartHost[g]);
+            return _p.K0 * pk;
+        }
+
         protected override double Nonlinear(GpuBuffer state, double z, GpuBuffer rate, bool wantPeak)
         {
+            if (_mixed) return NonlinearMixed(state, z, rate, wantPeak);
             double aeff = _p.AreaAt(z), invA = 1.0 / aeff;
             int po = 2 * GLen;
             S.Copy(state, 0, _T, 0, 16L * Len);
@@ -322,7 +379,7 @@ namespace UltrafastEngine.Plugins.Gpu
 
         public override void Dispose()
         {
-            _fftState?.Dispose(); _fftRaman?.Dispose(); _fftRot?.Dispose();
+            _fftState?.Dispose(); _fftRaman?.Dispose(); _fftRot?.Dispose(); _fftStateF?.Dispose(); _fftRamanF?.Dispose();
             base.Dispose();
         }
     }

@@ -190,9 +190,12 @@ namespace UltrafastEngine.Plugins.Gpu
         /// <summary>Default largest ensemble (members per launch); the study key "ensemble" sets it (EnsembleGate.MaxMembers).</summary>
         public const int DefaultEnsembleMax = 256;
 
+        /// <summary>Note of an element whose nonlinear operator ran in single precision.</summary>
+        public const string MixedNote = "mixed precision: nonlinear operator and its FFTs in single precision (compute.precision)";
+
         public string EnsembleKey(IPropagationProblem p, StepperSettings st)
         {
-            if (!(p is EnvelopeProblem ep) || WhyNot(p) != null) return null;
+            if (!(p is EnvelopeProblem ep) || WhyNot(p) != null || ComputeBackends.Settings.Mixed) return null;
             if (string.Equals(st.Method, "rk4ip", StringComparison.OrdinalIgnoreCase) || string.Equals(st.Method, "fixed", StringComparison.OrdinalIgnoreCase)) return null;
             var s = ep.DeviceSpec();
             if (s == null || s.Responses != null) return null;
@@ -272,10 +275,20 @@ namespace UltrafastEngine.Plugins.Gpu
                 var ctx = Context(dev);
                 var s = StreamFor(ctx);
                 stats.Notes.Add("device: " + Name + " #" + dev + " " + ctx.Info.Name + (ctx.VendorFftName != null ? " (" + ctx.VendorFftName + ")" : " (built-in FFT)"));
+                bool mixed = ComputeBackends.Settings.Mixed;
                 if (p is EnvelopeProblem ep)
-                    using (var stp = new EnvelopeStepper(s, ep.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
+                    using (var stp = new EnvelopeStepper(s, ep.DeviceSpec(), true, mixed))
+                    {
+                        if (mixed) stats.Notes.Add(stp.Mixed ? MixedNote : "mixed precision not available for this element (orientational or user responses); ran in double");
+                        return stp.Propagate(a0, st, stats, progress);
+                    }
                 if (p is Crystals.Chi2Problem cp)
-                    using (var stp = new Chi2Stepper(s, cp.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
+                    using (var stp = new Chi2Stepper(s, cp.DeviceSpec(), true, mixed))
+                    {
+                        if (mixed) stats.Notes.Add(stp.Mixed ? MixedNote : "mixed precision needs a power-of-two grid; ran in double");
+                        return stp.Propagate(a0, st, stats, progress);
+                    }
+                if (mixed) stats.Notes.Add("mixed precision is not implemented for spatial elements; ran in double");
                 var sp = (SpatialEnvelopeProblem)p;
                 using (var stp = new SpatialStepper(s, sp.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
             }

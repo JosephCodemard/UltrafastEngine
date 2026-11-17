@@ -30,6 +30,8 @@ namespace UltrafastEngine.Plugins.Gpu
 #define DEVFN inline
 typedef double2 cplx;
 #define C2(a, b) ((double2)((a), (b)))
+typedef float2 cplxf;
+#define F2(a, b) ((float2)((a), (b)))
 #else
 #define KERNEL extern ""C"" __global__
 #define G
@@ -46,6 +48,10 @@ struct alignas(16) uf_cplx { double x, y; };
 typedef uf_cplx cplx;
 DEVFN cplx uf_c2(double a, double b) { cplx r; r.x = a; r.y = b; return r; }
 #define C2(a, b) uf_c2((a), (b))
+struct alignas(8) uf_cplxf { float x, y; };
+typedef uf_cplxf cplxf;
+DEVFN cplxf uf_f2(float a, float b) { cplxf r; r.x = a; r.y = b; return r; }
+#define F2(a, b) uf_f2((a), (b))
 #endif
 
 DEVFN cplx cmul(cplx a, cplx b) { return C2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x); }
@@ -55,6 +61,14 @@ DEVFN cplx csc(cplx a, double s) { return C2(a.x * s, a.y * s); }
 DEVFN cplx cconj(cplx a) { return C2(a.x, -a.y); }
 DEVFN cplx cimul(cplx a, double s) { return C2(-a.y * s, a.x * s); }   /* i s a */
 DEVFN double cabs2(cplx a) { return a.x * a.x + a.y * a.y; }
+/* single precision (compute.precision = mixed): every literal carries f, so nothing is promoted to double */
+DEVFN cplxf cmulf(cplxf a, cplxf b) { return F2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x); }
+DEVFN cplxf caddf(cplxf a, cplxf b) { return F2(a.x + b.x, a.y + b.y); }
+DEVFN cplxf csubf(cplxf a, cplxf b) { return F2(a.x - b.x, a.y - b.y); }
+DEVFN cplxf cscf(cplxf a, float s) { return F2(a.x * s, a.y * s); }
+DEVFN cplxf cconjf(cplxf a) { return F2(a.x, -a.y); }
+DEVFN cplxf cimulf(cplxf a, float s) { return F2(-a.y * s, a.x * s); }
+DEVFN float cabs2f(cplxf a) { return a.x * a.x + a.y * a.y; }
 ";
 
         /// <summary>The built-in kernels.</summary>
@@ -569,6 +583,174 @@ KERNEL void uf_ens_peak(G const double* P, G const double* D, int n, int B, G co
         if (LID == 0) out[o + b] = mc[b] * sm[0];
         SYNC();
     }
+}
+
+/* ---------------------------------------------------------------- mixed precision (compute.precision = mixed) */
+/* The stepper state and the linear step stay double; the nonlinear operator (intensities, Kerr / Raman / chi(2) products and the
+   FFTs inside it) runs in single precision. Scalar arguments arrive as doubles (the launch API has int and double) and are
+   rounded on entry. */
+
+KERNEL void uf_d2f(G const cplx* a, G cplxf* b, int len)
+{
+    for (int i = GID; i < len; i += GSZ) b[i] = F2((float)a[i].x, (float)a[i].y);
+}
+
+KERNEL void uf_f2d(G const cplxf* a, G cplx* b, int len)
+{
+    for (int i = GID; i < len; i += GSZ) b[i] = C2((double)a[i].x, (double)a[i].y);
+}
+
+/* radix-4 Stockham pass in single precision over contiguous rows (as uf_fft4 with inner 1) */
+KERNEL void uf_fft4f(G const cplxf* x, G cplxf* y, G const cplxf* tw, int n, int len, int s, int step, double sgd, int batch, double scaled)
+{
+    float sg = (float)sgd, scale = (float)scaled;
+    int quarter = n >> 2, m = len >> 2, total = quarter * batch;
+    for (int g = GID; g < total; g += GSZ) {
+        int b = g / quarter, j = g - b * quarter;
+        int p = j / s, q = j - p * s;
+        int k1 = p * step;
+        cplxf w1 = tw[k1], w2 = tw[2 * k1], w3 = tw[3 * k1];
+        w1.y *= sg; w2.y *= sg; w3.y *= sg;
+        int o = b * n;
+        cplxf a = x[o + q + s * p], bb = x[o + q + s * (p + m)], c = x[o + q + s * (p + 2 * m)], d = x[o + q + s * (p + 3 * m)];
+        cplxf apc = caddf(a, c), amc = csubf(a, c), bpd = caddf(bb, d), bmd = csubf(bb, d);
+        cplxf jb = F2(sg * bmd.y, -sg * bmd.x);
+        int o0 = o + q + s * 4 * p;
+        y[o0] = cscf(caddf(apc, bpd), scale);
+        y[o0 + s] = cscf(cmulf(w1, caddf(amc, jb)), scale);
+        y[o0 + 2 * s] = cscf(cmulf(w2, csubf(apc, bpd)), scale);
+        y[o0 + 3 * s] = cscf(cmulf(w3, csubf(amc, jb)), scale);
+    }
+}
+
+KERNEL void uf_fft2f(G const cplxf* x, G cplxf* y, int n, int batch, double scaled)
+{
+    float scale = (float)scaled;
+    int hn = n >> 1, total = hn * batch;
+    for (int g = GID; g < total; g += GSZ) {
+        int b = g / hn, q = g - b * hn;
+        int i0 = b * n + q, i1 = i0 + hn;
+        cplxf p0 = x[i0], p1 = x[i1];
+        y[i0] = cscf(caddf(p0, p1), scale);
+        y[i1] = cscf(csubf(p0, p1), scale);
+    }
+}
+
+KERNEL void uf_scalef(G cplxf* a, double sd, int len)
+{
+    float s = (float)sd;
+    for (int i = GID; i < len; i += GSZ) a[i] = cscf(a[i], s);
+}
+
+KERNEL void uf_env_raman_in_f(G const cplxf* T, int n, int scalar, int nsig, double invAd, G cplxf* C)
+{
+    float invA = (float)invAd;
+    for (int i = GID; i < n; i += GSZ) {
+        cplxf ax = T[i];
+        cplxf ay = scalar ? F2(0.0f, 0.0f) : T[n + i];
+        float ix = cabs2f(ax) * invA, iy = cabs2f(ay) * invA;
+        C[i] = F2(ix + iy, 0.0f);
+        if (nsig > 1) {
+            C[n + i] = F2(ix + iy, 0.0f);
+            C[2 * n + i] = F2(ix, 0.0f);
+            C[3 * n + i] = F2(iy, 0.0f);
+            C[4 * n + i] = F2((ax.x * ay.x + ax.y * ay.y) * invA, 0.0f);
+        }
+    }
+}
+
+KERNEL void uf_env_raman_mul_f(G cplxf* C, G const cplxf* K, G const cplxf* Kb, int n, int nsig)
+{
+    int total = n * nsig;
+    for (int g = GID; g < total; g += GSZ) { int s = g / n, i = g - s * n; C[g] = cmulf(C[g], s == 0 ? K[i] : Kb[i]); }
+}
+
+/* uf_env_kerr in single precision; P and D (for the B-integral) are written in double from the single-precision values */
+KERNEL void uf_env_kerr_f(G const cplxf* T, G const cplxf* C, int n, int scalar, int raman, double invAd, double k0d, double n2d,
+                          double fRd, double dtd, double ccd, G cplxf* R, G double* P, G double* D, G double* part, int po)
+{
+    LOC double sm[256];
+    float invA = (float)invAd, k0 = (float)k0d, n2 = (float)n2d, fR = (float)fRd, dt = (float)dtd, cc = (float)ccd;
+    double pm = 0.0;
+    for (int i = GID; i < n; i += GSZ) {
+        cplxf ax = T[i];
+        cplxf ay = scalar ? F2(0.0f, 0.0f) : T[n + i];
+        float ix = cabs2f(ax) * invA, iy = cabs2f(ay) * invA;
+        float rx = 0.0f, ry = 0.0f, rxy = 0.0f;
+        if (raman == 1) { rx = fR * C[i].x * dt; ry = rx; }
+        else if (raman == 2) {
+            float iso = (C[i].x - C[n + i].x) * dt;
+            rx = fR * (iso + C[2 * n + i].x * dt);
+            ry = fR * (iso + C[3 * n + i].x * dt);
+            rxy = C[4 * n + i].x * dt;
+        }
+        float dnx = n2 * ((1.0f - fR) * (ix + 2.0f / 3.0f * iy) + rx);
+        float dny = n2 * ((1.0f - fR) * (iy + 2.0f / 3.0f * ix) + ry);
+        cplxf nx = cimulf(ax, k0 * dnx);
+        cplxf ny = F2(0.0f, 0.0f);
+        if (!scalar) {
+            ny = cimulf(ay, k0 * dny);
+            if (cc != 0.0f) {
+                nx = caddf(nx, cimulf(cmulf(cmulf(ay, ay), cconjf(ax)), k0 * cc));
+                ny = caddf(ny, cimulf(cmulf(cmulf(ax, ax), cconjf(ay)), k0 * cc));
+            }
+            if (raman == 2) { float d = n2 * fR * rxy; nx = caddf(nx, cimulf(ay, k0 * d)); ny = caddf(ny, cimulf(ax, k0 * d)); }
+            R[n + i] = ny;
+        }
+        R[i] = nx;
+        double p = (double)cabs2f(ax) + (double)cabs2f(ay);
+        cplxf s = cmulf(cconjf(ax), nx);
+        if (!scalar) s = caddf(s, cmulf(cconjf(ay), ny));
+        P[i] = p;
+        D[i] = p > 0.0 ? fabs((double)s.y / (k0d * p)) : 0.0;
+        pm = fmax(pm, p);
+    }
+    sm[LID] = pm;
+    SYNC();
+    for (int s2 = LSZ / 2; s2 > 0; s2 >>= 1) { if (LID < s2) sm[LID] = fmax(sm[LID], sm[LID + s2]); SYNC(); }
+    if (LID == 0) part[po + GRP] = sm[0];
+}
+
+/* uf_chi2 in single precision */
+KERNEL void uf_chi2_f(G const cplxf* T, int n, int K, int shg, double g0d, double epx, double epy, double w0d, double w1d, double w2d,
+                      double n2d, double k0a, double k0b, double k0c, G const double* xf, G const double* xa, G cplxf* R, G double* part, int po)
+{
+    LOC double sm[256];
+    double pm = 0.0;
+    float n2 = (float)n2d;
+    cplxf ep = F2((float)epx, (float)epy), em = F2((float)epx, (float)-epy);
+    float c0 = (float)(w0d * g0d), c1 = (float)(w1d * g0d), c2 = (float)(w2d * g0d);
+    float ka[3]; ka[0] = (float)k0a; ka[1] = (float)k0b; ka[2] = (float)k0c;
+    float f[9], ar[9];
+    for (int q = 0; q < K * K; q++) { f[q] = (float)xf[q]; ar[q] = (float)xa[q]; }
+    for (int i = GID; i < n; i += GSZ) {
+        cplxf t[3]; t[0] = T[i]; t[1] = T[n + i]; t[2] = K > 2 ? T[2 * n + i] : F2(0.0f, 0.0f);
+        cplxf r[3]; r[2] = F2(0.0f, 0.0f);
+        if (shg) {
+            r[0] = cmulf(cmulf(cmulf(F2(0.0f, c0), t[1]), cconjf(t[0])), em);
+            r[1] = cmulf(cmulf(cmulf(F2(0.0f, c0), t[0]), t[0]), ep);
+        } else {
+            r[0] = cmulf(cmulf(cmulf(F2(0.0f, c0), t[2]), cconjf(t[1])), em);
+            r[1] = cmulf(cmulf(cmulf(F2(0.0f, c1), t[2]), cconjf(t[0])), em);
+            r[2] = cmulf(cmulf(cmulf(F2(0.0f, c2), t[0]), t[1]), ep);
+        }
+        if (n2 != 0.0f) {
+            float p[3]; for (int b = 0; b < 3; b++) p[b] = cabs2f(t[b]);
+            for (int a = 0; a < K; a++) {
+                float dn = 0.0f;
+                for (int b = 0; b < K; b++) dn += f[a * K + b] * (p[b] / ar[a * K + b]);
+                dn *= n2;
+                r[a] = caddf(r[a], cmulf(F2(0.0f, ka[a] * dn), t[a]));
+                pm = fmax(pm, (double)(ka[a] * dn));
+            }
+        }
+        R[i] = r[0]; R[n + i] = r[1];
+        if (K > 2) R[2 * n + i] = r[2];
+    }
+    sm[LID] = pm;
+    SYNC();
+    for (int s = LSZ / 2; s > 0; s >>= 1) { if (LID < s) sm[LID] = fmax(sm[LID], sm[LID + s]); SYNC(); }
+    if (LID == 0) part[po + GRP] = sm[0];
 }
 
 /* ---------------------------------------------------------------- spatial (SpatialEnvelopeProblem) */

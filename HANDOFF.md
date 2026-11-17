@@ -1,6 +1,44 @@
-# Handoff: state on 2026-11-16, end of the WP-C(A) session (road to 1.0.0)
+# Handoff: state on 2026-11-16, end of the WP-C(B) session (road to 1.0.0)
 
-**Read this block first; the text below it is the handoff of the session before (WP-D / WP-E), kept for context.**
+**Read this block first; below it are the WP-C(A) handoff and older ones, kept for context.**
+
+## This session: WP-C(B) (GPU on Windows + NVIDIA), done
+
+Run on the owner's Windows machine (RTX 3060 Ti, driver 610.88, CUDA 13.3) by Claude Code directly, CUDA and OpenCL both. Branch `dev/2026-11`,
+pushed (no tag, no release), one commit per piece. Verified for each commit: build 0 errors, C# `--slow` (last: 642 tests, 16 `GpuTests`, 641 pass,
+1 skip = HAPI), Python 267 pass / 1 skip (with pyNLO and LightPipes; for the last commit, mixed precision, the Python suite ran against the previous engine build because another process held the DLL: rerun `python python/tools/build_engine.py` and pytest), 41 example specs strict, `mkdocs --strict` 0 warnings.
+
+Built (details and numbers: `CHANGELOG.md`, `docs/plugins/gpu.md`, `docs/reference/speed.md`, `docs/design/gpu-windows-checklist.md` section 0):
+* **Kernel 1, gas rotational Raman** on the device, 1-D and spatial (`IPaddedKernelResponse`: the CPU's zero-padded causal convolution). MPC air gaps
+  no longer stay on the CPU.
+* **Kernel 2, modulator / tile source**: parity extended (realistic panel, vector pulse) and run on both runtimes; no code change needed.
+* **Kernel 3, time responses compiled to kernels**: `expression` (all functions and variables incl. `F`), `twoPhotonAbsorption`, `kerr`
+  (`CompiledExpression.ToC`, `Physics/DeviceResponses.cs`, `UserResponseKernel.cs`). Callbacks and the Drude term stay on the CPU.
+* **Kernel 4, χ(2)** 1-D coupled waves (`Chi2Stepper.cs`); the device stepper lands on QPM walls like the CPU.
+* **Study ensembles** (`Numerics/Ensemble.cs`, `EnsembleStepper.cs`, study key `ensemble`): 3.5-6x faster than a stream per point, level with
+  a 20-core CPU at N = 4096 and 1.6x faster at 16384 on this FP64-limited card.
+* **Mixed precision** (`compute.precision: mixed`, regenerated schema / options / types): 1-D and χ(2) operators with FP32 FFTs; meets energy
+  1e-6 / spectrum 1e-4 on SPM plate, 20-pass MPC, soliton, SHG; 1.3-1.5x faster; refused above 70 dB of instrument dynamic range.
+
+Findings (in `docs/design/next-steps.md` section 3): the GPU parity tests used to pass when a device run had failed and fallen back to the CPU (fixed);
+domain-resolved QPM at the default tolerance is only ~7e-4 accurate in field because of sliver steps at walls (CPU too; not changed, needs
+`/physics-change`); fixed steps ignore QPM walls (now a warning). GPU follow-ups (spatial χ(2) / mixed, FP32 cuFFT, ...) are listed there too.
+
+Environment notes for this machine: `python3` is the Microsoft Store stub, use `python` (the venv at `../.venv`); HTTPS certificate checks fail
+for git and pip because the antivirus inspects TLS: this repository has `http.sslBackend schannel` (local config); for pip pass
+`--cert` with a bundle of the Windows roots (exported with PowerShell from `Cert:\LocalMachine\Root`). pytest, mkdocs, jsonpickle, LightPipes and
+jsonschema were installed into `../.venv`; pyNLO is in `python/third_party`. Other Python processes (`mpc_study.py --backend cuda`) can lock
+`python/src/ultrafast/bin` during `build_engine.py`: retry after they finish.
+
+## Next
+
+WP-B (honest docs, version 1.0.0), WP-A (agents / MCP; expose `fidelity`, and now `ensemble` / `precision`), WP-F (wheels, TestPyPI, the real upload
+only on the owner's explicit go-ahead).
+
+---
+
+# Handoff: state on 2026-11-16, end of the WP-C(A) session
+
 
 ## This session: WP-C(A) (speed on the Mac), done
 
@@ -14,7 +52,7 @@ Built (owner approved the conservative fidelity bundles):
 
 Measured and **deliberately not built** (reasons and revisit conditions in `docs/reference/speed.md`): linear fast path, CPU ensemble batching, pooled buffers / SIMD Hankel. No measured case is slow (runs take 20 ms to 0.5 s), so they would add risk for no gain. Reopen if a large spatial scan is slow.
 
-## Next: WP-C(B) on the Windows + NVIDIA machine (needs the owner)
+## Next (at the time): WP-C(B) on the Windows + NVIDIA machine -- done, see the block above
 
 Follow `docs/design/gpu-windows-checklist.md`: run the four commands and paste the output back; then write the kernels in the order of the checklist (gas rotational Raman first), each with a CPU-parity test at 1e-9 for CUDA and OpenCL, then batched study points as an ensemble in one launch, then mixed precision (only after parity; see the FP32 finding). Not done: PoCL on the Mac (`brew install pocl` changes the owner's system; unverified on arm64).
 

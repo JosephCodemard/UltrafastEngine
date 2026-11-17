@@ -195,4 +195,56 @@ namespace UltrafastEngine.Plugins.Gpu
 
         public void Dispose() { _vendor?.Dispose(); _tw?.Dispose(); _scratch?.Dispose(); }
     }
+
+    /// <summary>
+    /// Batched single-precision complex FFT over contiguous rows (compute.precision = mixed): the built-in radix-4 Stockham kernels
+    /// in float (power-of-two lengths), the same sign and normalisation convention as <see cref="GpuFft"/>. Twiddles are computed in
+    /// double and rounded once. Elements are two floats (8 bytes).
+    /// </summary>
+    public sealed class GpuFftF : IDisposable
+    {
+        private readonly GpuStream _s;
+        private readonly GpuBuffer _tw, _scratch;
+        public int N { get; }
+        public int Batch { get; }
+
+        public GpuFftF(GpuStream s, int n, int batch)
+        {
+            _s = s; N = n; Batch = batch;
+            if (!GpuFft.BuiltInSupports(n)) throw new GpuException("mixed precision needs a power-of-two grid (got " + n + ")");
+            var tw = new float[2 * n];
+            for (int k = 0; k < n; k++) { double a = -2.0 * Math.PI * k / n; tw[2 * k] = (float)Math.Cos(a); tw[2 * k + 1] = (float)Math.Sin(a); }
+            _tw = s.Context.Alloc(8L * n);
+            unsafe { fixed (float* p = tw) s.Write(_tw, 0, p, 8L * n); }
+            _scratch = s.Context.Alloc(8L * n * batch);
+        }
+
+        public void Transform(GpuBuffer data, int exponentSign, bool normalize)
+        {
+            var ctx = _s.Context;
+            long total = (long)N * Batch;
+            double sg = exponentSign > 0 ? -1.0 : 1.0;
+            GpuBuffer src = data, dst = _scratch;
+            int len = N, st = 1, passes = 0;
+            for (int l = N; l >= 4; l >>= 2) passes++;
+            bool radix2 = (N >> (2 * passes)) == 2;
+            int totalPasses = passes + (radix2 ? 1 : 0), done = 0;
+            while (len >= 4)
+            {
+                done++;
+                double scale = normalize && done == totalPasses ? 1.0 / N : 1.0;
+                _s.Launch("uf_fft4f", ctx.Groups(total / 4), src, dst, _tw, N, len, st, N / len, sg, Batch, scale);
+                var t = src; src = dst; dst = t;
+                len >>= 2; st <<= 2;
+            }
+            if (len == 2)
+            {
+                _s.Launch("uf_fft2f", ctx.Groups(total / 2), src, dst, N, Batch, normalize ? 1.0 / N : 1.0);
+                var t = src; src = dst; dst = t;
+            }
+            if (!ReferenceEquals(src, data)) _s.Copy(src, 0, data, 0, 8 * total);
+        }
+
+        public void Dispose() { _tw?.Dispose(); _scratch?.Dispose(); }
+    }
 }

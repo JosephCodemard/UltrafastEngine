@@ -87,7 +87,8 @@ namespace UltrafastEngine.Engine
             try
             {
                 ComputeBackends.Current = b;
-                ComputeBackends.Settings = new ComputeSettings { Device = ComputeBackends.ResolveDevice(cr.Run.ComputeDevice), GpuMinPoints = cr.Run.GpuMinPoints, DeviceSlots = cr.Run.DeviceSlots, Options = cr.Run.ComputeOptions };
+                ComputeBackends.Settings = new ComputeSettings { Device = ComputeBackends.ResolveDevice(cr.Run.ComputeDevice), GpuMinPoints = cr.Run.GpuMinPoints, DeviceSlots = cr.Run.DeviceSlots, Options = cr.Run.ComputeOptions, Precision = cr.Run.ComputePrecision ?? "double" };
+                if (ComputeBackends.Settings.Mixed && b is CpuBackend) cr.Warnings.Add("compute.precision \"mixed\" applies to the GPU back-ends only; the CPU back-end computes in double precision.");
                 if (cr.Run.Threads > 0) ParallelismSettings.MaxDegreeOfParallelism = cr.Run.Threads;
                 var r = Execute(cr, progress, cancel, true);
                 if (!(b is CpuBackend)) r.Notes.Add("compute back-end: " + b.Description);

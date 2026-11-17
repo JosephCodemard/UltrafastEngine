@@ -70,6 +70,9 @@ launches of a few µs each. An explicit `"cuda"` / `"opencl"` uses the device fo
 `gpuMinPoints` is set. `"auto"` never picks an OpenCL device that is a CPU (PoCL, Intel's CPU runtime) unless
 `ULTRAFAST_OPENCL_ALLOW_CPU=1`. What speed-up to expect: [Speed](../reference/speed.md#what-gains-from-a-gpu).
 
+`"compute": {"precision": "mixed"}` evaluates the nonlinear operator of 1-D envelope and χ(2) elements in single precision (off by default;
+refused when an instrument asks for more than 70 dB of dynamic range): [Speed](../reference/speed.md#mixed-precision-on-the-gpu).
+
 Parameter studies run their points as one device ensemble (all points' 1-D elements in the same launches; study key `ensemble`):
 [Parameter studies](../reference/studies.md), measured gains in [Speed](../reference/speed.md#device-ensembles-for-studies).
 

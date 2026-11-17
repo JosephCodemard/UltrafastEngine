@@ -4,6 +4,20 @@ For the owner's Windows machine with an NVIDIA GPU, in a Claude Code session sta
 is done (WP-C(A)); what is left is the GPU kernels and their parity checks, which need a device. A 3060 Ti runs FP64 at about 1/64 of its
 FP32 rate, so **parity (same answer as the CPU) is the goal there, not speed**; speed-ups need an A100-class card.
 
+## 0. Results of the first run (2026-11-16, WP-C(B))
+
+RTX 3060 Ti, driver 610.88 (CUDA 13.3), NVRTC 12, cuFFT 11, cuBLAS 12; OpenCL from the NVIDIA driver. Done in the session itself (Claude Code on the
+Windows machine), not pasted back.
+
+* Self-test passed on CUDA and OpenCL (relative errors 2e-16 to 8e-15); `GpuTests` 8 of 8 before this session's work, 14 of 14 after it.
+* Benchmark (double precision; CPU = 20 cores): scalar N = 8192 0.75x (CUDA) / 1.06x (OpenCL), N = 65536 4.6x, vector 32768 4.9x / 6.9x,
+  radial 1024 x 64 7.8x / 8.3x, cartesian 512 x 1024 6.8x / 6.3x.
+* Kernels 1-4 built with parity tests on both runtimes (1e-13 to 1e-16); study ensembles (1e-15); mixed precision (energy 8e-8, spectrum 1e-6 at worst).
+* Findings: a device failure that fell back to the CPU used to pass the parity tests (fixed); the domain-resolved QPM stepping is sensitive to the
+  last bits of the step size and fixed steps ignore the walls (`next-steps.md` section 3).
+* Environment: HTTPS from git and pip failed certificate checks (an antivirus inspecting TLS); fixed for this repository with
+  `git config --local http.sslBackend schannel` and a Windows-root bundle passed to pip with `--cert`.
+
 ## 1. Build and self-test (about 5 minutes)
 
 ```bat

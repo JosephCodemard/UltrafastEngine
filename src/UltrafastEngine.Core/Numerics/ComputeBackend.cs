@@ -72,6 +72,9 @@ namespace UltrafastEngine.Numerics
         public int GpuMinPoints;
         /// <summary>Concurrent element propagations per device (0: back-end default).</summary>
         public int DeviceSlots;
+        /// <summary>"double" (default) or "mixed": GPU back-ends evaluate the nonlinear operator in single precision (docs/reference/speed.md).</summary>
+        public string Precision = "double";
+        public bool Mixed => string.Equals(Precision, "mixed", StringComparison.OrdinalIgnoreCase);
         public Serialization.JsonObject Options;
     }
 

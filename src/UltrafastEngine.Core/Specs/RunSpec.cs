@@ -206,6 +206,41 @@ namespace UltrafastEngine.Specs
         public int DeviceSlots { get; set; }
         /// <summary>The raw "compute" object (back-end specific keys).</summary>
         public JsonObject ComputeOptions { get; set; }
+        /// <summary>"double" (default) or "mixed" (GPU back-ends: nonlinear operator in single precision).</summary>
+        public string ComputePrecision { get; set; } = "double";
+
+        /// <summary>Largest dynamic range (dB) a run may ask of an instrument in mixed precision: the single-precision rounding noise fills
+        /// the intensity floor below about -85 dB (docs/reference/speed.md, FP32 study), so 70 dB keeps a 15 dB margin.</summary>
+        public const double MixedPrecisionMaxDynamicRangeDb = 70;
+
+        /// <summary>Why mixed precision is refused for these instruments (one asks for more than <see cref="MixedPrecisionMaxDynamicRangeDb"/>), or null.</summary>
+        public static string MixedPrecisionConflict(JsonArray instruments)
+        {
+            if (instruments == null) return null;
+            foreach (var v in instruments)
+            {
+                if (v.Kind != JsonKind.Object) continue;
+                var o = v.AsObject();
+                string kind = o.GetString("kind", "");
+                double db = double.NaN;
+                if (o.Has("dynamicRangeDb")) db = o.GetDouble("dynamicRangeDb", double.NaN);
+                else if (o.Has("noiseFloor") && o.GetDouble("noiseFloor", 0) > 0) db = -10 * Math.Log10(o.GetDouble("noiseFloor", 1));
+                else if (kind == "contrast") db = 120;            // the declared defaults (BuiltInInstruments.cs)
+                else if (kind == "crossCorrelator") db = 110;
+                var det = o.GetObject("detector");
+                if (det != null)
+                {
+                    double d2 = det.Has("dynamicRangeDb") ? det.GetDouble("dynamicRangeDb", double.NaN)
+                        : det.Has("noiseFloor") && det.GetDouble("noiseFloor", 0) > 0 ? -10 * Math.Log10(det.GetDouble("noiseFloor", 1)) : double.NaN;
+                    if (!double.IsNaN(d2)) db = double.IsNaN(db) ? d2 : Math.Max(db, d2);
+                }
+                if (db > MixedPrecisionMaxDynamicRangeDb)
+                    return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "compute.precision \"mixed\" is refused: instrument \"{0}\" ({1}) asks for {2:G3} dB of dynamic range, and single-precision rounding fills the intensity floor below about -85 dB; the limit is {3:G2} dB. Use \"double\" precision, or set its dynamicRangeDb to {3:G2} or less.",
+                        o.GetString("name", kind), kind, db, MixedPrecisionMaxDynamicRangeDb);
+            }
+            return null;
+        }
         public int Threads { get; set; }
         /// <summary>Beam at the system input (used by elements that have no beam of their own).</summary>
         public JsonObject InputBeam { get; set; }
@@ -246,6 +281,13 @@ namespace UltrafastEngine.Specs
                 r.ComputeBackend = co.GetString("backend", null); r.Threads = co.GetInt("threads", 0);
                 r.ComputeFft = co.GetString("fft"); r.ComputeDevice = co.GetInt("device", -1);
                 r.GpuMinPoints = co.GetInt("gpuMinPoints", 0); r.DeviceSlots = co.GetInt("deviceSlots", 0); r.ComputeOptions = co;
+                r.ComputePrecision = co.GetString("precision", "double");
+                if (r.ComputePrecision != "double" && r.ComputePrecision != "mixed") throw new JsonException("compute.precision must be \"double\" or \"mixed\" (got \"" + r.ComputePrecision + "\")");
+                if (r.ComputePrecision == "mixed")
+                {
+                    var why = MixedPrecisionConflict(o.GetArray("instruments"));
+                    if (why != null) throw new JsonException(why);
+                }
             }
             var st = o.GetObject("stepper");
             if (st != null)
