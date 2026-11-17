@@ -175,7 +175,13 @@ namespace UltrafastEngine.Plugins.Gpu
             int err;
             var m = Api.CreateBuffer(Ctx, 1 /* READ_WRITE */, (nuint)Math.Max(16, bytes), null, &err);
             OpenClApi.Check(err, "clCreateBuffer (" + bytes + " bytes)");
-            return new ClBuffer(Api, m, bytes);
+            Track(bytes);
+            return new ClBuffer(this, Api, m, bytes);
+        }
+
+        protected override void DropProgram(string kernelName)
+        {
+            lock (_extra) { if (_extra.TryGetValue(kernelName, out var p)) { _extra.Remove(kernelName); Api.ReleaseProgram(p); } }   // kernels made from it keep it alive until released
         }
 
         public override GpuStream CreateStream() => new ClStream(this);
@@ -191,8 +197,9 @@ namespace UltrafastEngine.Plugins.Gpu
         {
             private readonly OpenClApi _api;
             public IntPtr Mem;
-            public ClBuffer(OpenClApi api, IntPtr m, long bytes) { _api = api; Mem = m; Bytes = bytes; }
-            public override void Dispose() { if (Mem != IntPtr.Zero) { _api.ReleaseMemObject(Mem); Mem = IntPtr.Zero; } }
+            private readonly GpuContext _ctx;
+            public ClBuffer(GpuContext ctx, OpenClApi api, IntPtr m, long bytes) { _ctx = ctx; _api = api; Mem = m; Bytes = bytes; }
+            public override void Dispose() { if (Mem != IntPtr.Zero) { _api.ReleaseMemObject(Mem); Mem = IntPtr.Zero; _ctx.Track(-Bytes); } }
         }
 
         internal sealed class ClStream : GpuStream

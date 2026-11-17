@@ -29,8 +29,9 @@ the evidence (test, repro or code location) and whether the limitation is planne
 
 | limitation | cause / evidence | status |
 |---|---|---|
-| A run keeps the pulse after every element and, by default, every element's transverse profile (`outputs.keepProfiles: all`); the fitting plugin's residual cache holds up to 65 full results (a fit ran out of memory after 2 h); no memory estimate or limit exists | `Engine/Executor.cs`, `plugins/fitting/src/Fitting.cs:330-340` | planned: WP-1b (roadmap §0) |
-| GPU memory check compares the estimate with 80 % of the **total** device memory, not the free memory, and ignores the concurrent device slots (4 by default); kernel / program caches are unbounded (small) | `plugins/gpu/src/GpuBackend.cs:123-153` | planned: WP-1b |
+| The memory estimate is a planning figure (the retained memory lies between 0.1 x and 1 x of it in the tests): instruments' two-dimensional outputs (spectrograms), the other runs of a parallel study and the .NET runtime are not counted; branched systems keep every profile whatever `keepProfiles` says | `Engine/MemoryEstimate.cs`, `Executor.cs` (`measure && !branched`) | accepted; branched `used` open (roadmap §2) |
+| OpenCL has no free-memory query: the figure is the device total minus this process's buffers (other processes are not seen); a CUDA free figure is the driver's | `GpuContext.FreeMemoryBytes` | accepted |
+| An evicted GPU user-response program is recompiled on its next use; more than 32 different ones in flight at once on one device could release one that a launch is about to use | `GpuContext.EnsureProgram` | accepted |
 | GPU coverage: no spatial χ(2), spatial mixed precision, carrier-resolved propagation or spatial gain on the device; callbacks always run on the CPU | `GpuBackend.WhyNot` | planned (roadmap §3) |
 | Mixed precision is refused above 70 dB of instrument dynamic range (FP32 fills the contrast floor below about -85 dB) | FP32 study, `docs/reference/speed.md` | accepted |
 

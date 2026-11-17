@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **656 tests** in 71 classes. **411** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **670 tests** in 74 classes. **425** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -28,11 +28,13 @@ Every C# test of the engine: **656 tests** in 71 classes. **411** of them check 
 | [Fidelity switch](#fidelitytests) | `FidelityTests` | 6 | 0 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
+| [Memory safety: fitting](#fittingmemorytests) | `FittingMemoryTests` | 2 | 2 |
 | [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 10 | 7 |
 | [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
 | [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
+| [Memory safety: GPU](#gpumemorytests) | `GpuMemoryTests` | 5 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 17 | 12 |
 | [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
@@ -49,6 +51,7 @@ Every C# test of the engine: **656 tests** in 71 classes. **411** of them check 
 | [Materials and crystals: d_eff of explicit cuts, delayed-response split, CS2, cubic chi(3)](#materialscrystalstests) | `MaterialsCrystalsTests` | 14 | 14 |
 | [Measured input spectra, comparisons and satellite room](#measuredspectrumtests) | `MeasuredSpectrumTests` | 13 | 0 |
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
+| [Memory safety: estimate and limit](#memoryestimatetests) | `MemoryEstimateTests` | 7 | 7 |
 | [Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs](#modelledinstrumentstests) | `ModelledInstrumentsTests` | 4 | 3 |
 | [Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation, fill factor, chromatic rules](#modulatortests) | `ModulatorTests` | 24 | 24 |
 | [Multi-trace FROG retrieval (double FROG)](#multitraceretrievaltests) | `MultiTraceRetrievalTests` | 1 | 1 |
@@ -509,6 +512,15 @@ Fitting plugin: conditions, dependence, surfaces.
 | `Surface_Penalties_VanishOnAPlane_AndGrowWithRoughness` | second differences of a straight line are zero | 1e-12 |
 | `Surface_SmoothnessPenalty_ReducesTheErrorOfASurfaceFittedToNoisyData` | -- | -- |
 
+## FittingMemoryTests
+
+Memory safety: fitting.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Fit_ManyEvaluations_KeepABoundedNumberOfFullResults` | a fit keeps the latest and the best result only (the old residual cache kept up to 65) | at most 4 full results alive at any time, with 28 evaluations |
+| `Fit_ResultIsBitIdenticalToTheUnboundedCacheVersion` | values recorded from the fit before the memory changes (the cache and slimming must not change a number) | bit-identical |
+
 ## FoundationTests
 
 Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy.
@@ -577,6 +589,18 @@ Gases: rotational Raman, indices, the refractiveindex.info database.
 | `RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory` | isolated-molecule alignment, high-T limit: n2 = N Δα² / (4 c ε0² 15 kT) | 3 % |
 | `RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter` | rotational n2 of circular light = 1/4 of linear (tensor Raman, Hellwarth) | 3 %, 5 % |
 | `RotationalRaman_RevivalsAtTheRotationalPeriod` | rotational revival period 1 / (2 B c) | 5 % |
+
+## GpuMemoryTests
+
+Memory safety: GPU.
+
+| test | reference | tolerance |
+|---|---|---|
+| `FakeFreeMemory_TooSmall_RunsOnTheCpu_WithANote_AndLargeEnough_RunsOnTheDevice` | a device with less free memory than the problem needs is refused and the element runs on the CPU, with the reason in the notes | result equals the CPU run |
+| `Fits_UsesTheFreeMemory_At80Percent` | needed <= 0.8 x free; unknown free memory accepts | exact |
+| `FreeMemory_IsQueried_AndTracksLiveBuffers` | the driver's free memory is at most the total and falls while buffers are alive | exact ordering |
+| `MaxConcurrent_IsBoundedByTheDeviceSize_AndTheSlots` | slots in use: floor(0.8 x total / needed), between 1 and the configured slots | exact |
+| `ProgramCache_IsBounded_AndReleasedOnTeardown` | compiled extra programs are bounded (least recently used released) and released on teardown | count <= MaxPrograms |
 
 ## GpuTests
 
@@ -837,6 +861,20 @@ Sampling apertures, measured data and fits.
 | `Sampling_GaussianApertures_TransmitTheAnalyticFraction` | Gaussian through a pinhole / slit: analytic transmitted fraction | 1e-06, 2 %, 5 % |
 | `Sampling_IgnoredByImagingInstruments_AndBadPlaneRejected` | -- | -- |
 | `Sampling_Integrated_IsTheWholeBeam` | -- | -- |
+
+## MemoryEstimateTests
+
+Memory safety: estimate and limit.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Estimate_CartesianVector_MatchesTheHandCount` | hand count: nx x ny points, vector fields doubled, frequency block limits the workspace | exact |
+| `Estimate_OneDimensional_MatchesTheHandCount` | hand count: (elements + input) x 2 polarisations x N x 16 B; 24 N-sample solver arrays | exact |
+| `Estimate_Radial_MatchesTheHandCount_AllAndUsed` | hand count: profiles kept = spatial elements + 1 in flight (all) or instruments + 1 + 1 (used); M x spectralSamples x 16 B each | exact |
+| `FreeMemory_Above80Percent_Warns_NotBelow` | a warning above 80 % of the free memory, none below | exact |
+| `Limit_BelowTheEstimate_FailsAtCompile_AboveItPasses` | compute.memoryLimitBytes refuses the run before it starts, with advice | exact |
+| `RealRun_RetainedManagedMemory_IsBelowTheEstimate_AndNotFarBelow` | the estimate is a planning figure: the managed memory a finished run retains lies between a tenth of it and all of it | 0.1 x estimate < retained <= estimate |
+| `Study_PointsWithUsedProfiles_GiveTheSameOutputsAsAllProfiles` | study points run with outputs.keepProfiles "used": outputs identical to the run with every profile kept | exact |
 
 ## ModelledInstrumentsTests
 

@@ -3880,6 +3880,8 @@ class Compute(TypedDict, total=False):
     """GPU device index (ultrafast devices lists them) Default: -1 (first suitable)."""
     gpuMinPoints: int
     """backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU Default: 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end."""
+    memoryLimitBytes: float
+    """The run is refused before it starts when its estimated memory (shown in validate and in the run notes) is above this; 0 = no limit. A warning is given above 80 % of the free physical memory whatever this is (docs/reference/memory.md) [B] Default: 0."""
     deviceSlots: int
     """GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits Default: 4."""
     precision: Literal["double", "mixed"]

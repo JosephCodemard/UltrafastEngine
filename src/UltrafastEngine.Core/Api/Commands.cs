@@ -24,6 +24,7 @@ namespace UltrafastEngine
             {
                 case "study": return Study(request, baseDirectory);
                 case "retrieve": return Retrieve(request, baseDirectory);
+                case "memory": return Memory(request, baseDirectory);
                 case "cellmode": return Lasers.CellModeSolver.Solve(request);
                 case "materials.list": return MaterialsList();
                 case "materials.show": return MaterialsShow(request.GetRequiredString("name", "materials.show"), baseDirectory);
@@ -33,7 +34,7 @@ namespace UltrafastEngine
                     if (request.Has("backend")) Numerics.ComputeBackends.DefaultName = request.GetString("backend", null);
                     if (request.Has("fft")) { var note = Numerics.FftProviders.Select(request.GetString("fft", "auto")); if (note != null) return new JsonObject().Set("backend", Numerics.ComputeBackends.DefaultName).Set("fft", Numerics.Fft.Provider.Name).Set("warning", note); }
                     return new JsonObject().Set("backend", Numerics.ComputeBackends.DefaultName).Set("fft", Numerics.Fft.Provider.Name);
-                default: throw new JsonException("unknown command \"" + cmd + "\" (study, retrieve, cellMode, materials.list, materials.show, materials.import, devices, compute.default)");
+                default: throw new JsonException("unknown command \"" + cmd + "\" (study, retrieve, memory, cellMode, materials.list, materials.show, materials.import, devices, compute.default)");
             }
         }
 
@@ -80,6 +81,29 @@ namespace UltrafastEngine
 
         /// <summary>{"command": "study", "system": path | object, "run": path | object, "study": {...} (or the study keys inline), "output": dir,
         /// "fidelity": "quick" | "standard" | "full" (optional: replaces the run's fidelity, for a run given as a file too)}</summary>
+        /// <summary>
+        /// {"command": "memory", "system": file | object, "run": file | object}: the memory one run is estimated to hold (Engine/MemoryEstimate.cs):
+        /// {"estimate": {totalBytes, pulseBytes, profileBytes, workspaceBytes, tailBytes, ...}, "summary": "...", "availableBytes",
+        /// "limitBytes", "exceedsLimit", "warning"}. The run is compiled (not executed); compute.memoryLimitBytes is reported, not enforced.
+        /// </summary>
+        public static JsonObject Memory(JsonObject r, string baseDirectory)
+        {
+            var sv = r["system"] ?? throw new JsonException("memory: \"system\" (file or object) is required");
+            var rv = r["run"] ?? throw new JsonException("memory: \"run\" (file or object) is required");
+            var sys = sv.Kind == JsonKind.String ? SystemDescription.Load(Abs(sv.AsString(), baseDirectory)) : SystemDescription.FromJson(sv.AsObject(), baseDirectory);
+            RunSpec run;
+            if (rv.Kind == JsonKind.String) run = RunSpec.Load(Abs(rv.AsString(), baseDirectory));
+            else run = RunSpec.FromJson(rv.AsObject(), baseDirectory);
+            long limit = run.MemoryLimitBytes;
+            run.MemoryLimitBytes = 0;   // report, do not refuse
+            var cr = Compiler.Compile(sys, run);
+            var m = cr.Memory;
+            string msg = m.Check(limit, out bool isError);
+            return new JsonObject().Set("estimate", m.ToJson()).Set("summary", m.Summary()).Set("totalBytes", (double)m.TotalBytes)
+                .Set("availableBytes", (double)MemoryEstimate.AvailableBytes()).Set("limitBytes", (double)limit).Set("exceedsLimit", isError)
+                .Set("warning", msg ?? "");
+        }
+
         public static JsonObject Study(JsonObject r, string baseDirectory)
         {
             SystemDescription sys; RunSpec run;

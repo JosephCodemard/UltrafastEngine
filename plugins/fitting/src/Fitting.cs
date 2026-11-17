@@ -183,7 +183,21 @@ namespace UltrafastEngine.Plugins.Fitting
             public List<CondEval> Cond = new List<CondEval>();
             /// <summary>The first training condition's result (the one returned by the run).</summary>
             public RunResult Result; public double[] Data; public double[] R; public double Cost;
+            public string Key;
+            /// <summary>Drops what only the final report reads from every condition's result (pulses after each element, transverse profiles,
+            /// probe snapshots, the compiled run). Instruments, comparisons and element records stay: <c>Predict</c> and the reports read them.</summary>
+            public void Slim()
+            {
+                foreach (var c in Cond)
+                {
+                    var r = c.Result; if (r == null) continue;
+                    r.At.Clear(); r.TailAt.Clear(); r.Snapshots.Clear(); r.Output = null; r.Input = null; r.Compiled = null; r.TailLedger = null;
+                }
+            }
         }
+
+        /// <summary>Diagnostic hook: called with the result of every fit evaluation (tests use it to check that evaluations are not retained).</summary>
+        public static Action<RunResult> EvaluationObserver;
 
         public static RunResult Run(SystemDescription system, RunSpec run, ModelRegistry registry, ProgressCallback progress = null, CancellationToken cancel = default)
         {
@@ -271,7 +285,18 @@ namespace UltrafastEngine.Plugins.Fitting
             if (estimator.Name != "levenbergMarquardt" && rep.Parameters.Any(p => double.IsInfinity(p.Max - p.Min)))
                 rep.Warnings.Add(estimator.Name + " searches inside the bounds: give min and max for every parameter (unbounded ones use +-10 x scale around the start)");
             int evals = 0;
-            Eval Evaluate(double[] x, bool withHeld = false)
+            // memory: only the latest and the best evaluation keep their full result; every other one is slimmed (Eval.Slim) and the residual cache holds numbers only
+            Eval latest = null, bestEval = null; var trackLock = new object();
+            void Track(Eval ev)
+            {
+                lock (trackLock)
+                {
+                    var old = new[] { latest, bestEval };
+                    latest = ev; if (bestEval == null || ev.Cost < bestEval.Cost) bestEval = ev;
+                    foreach (var o in old) if (o != null && !ReferenceEquals(o, latest) && !ReferenceEquals(o, bestEval)) o.Slim();
+                }
+            }
+            Eval Evaluate(double[] x, bool withHeld = false, bool track = true)
             {
                 cancel.ThrowIfCancellationRequested();
                 var ev = new Eval();
@@ -281,6 +306,8 @@ namespace UltrafastEngine.Plugins.Fitting
                     var sj = (JsonObject)JsonValue.Parse(sysJson.ToJson(false));
                     var rj = (JsonObject)JsonValue.Parse(runJson.ToJson(false));
                     if (c.Grid != null) rj.Set("grid", JsonValue.Parse(c.Grid.ToJson(false)));
+                    var outs = rj.GetObject("outputs");
+                    if (outs == null || !outs.Has("keepProfiles")) rj.Set("outputs", (outs ?? new JsonObject()).Set("keepProfiles", "used"));   // evaluations need instrument readings only; an explicit keepProfiles of the run spec is honoured
                     foreach (var (path, value) in c.Set) FitValues.SetValue(sj, rj, path, value);
                     for (int i = 0; i < n; i++)
                     {
@@ -293,6 +320,7 @@ namespace UltrafastEngine.Plugins.Fitting
                     var sd = SystemDescription.FromJson(sj, system.BaseDirectory);
                     var rs = RunSpec.FromJson(rj, run.BaseDirectory);
                     var res = Executor.Execute(Compiler.Compile(sd, rs, registry), null, cancel);
+                    EvaluationObserver?.Invoke(res);
                     int e = Interlocked.Increment(ref evals);
                     progress?.Invoke("fit", e, 0, 0);
                     var data = res.Comparisons().SelectMany(q => q.Residuals).ToArray();
@@ -304,6 +332,8 @@ namespace UltrafastEngine.Plugins.Fitting
                 ev.Data = train.SelectMany(q => q.Data).ToArray();
                 ev.R = ev.Data.Concat(Penalties(x, rep.Parameters, regs, deps)).ToArray();
                 ev.Cost = ev.R.Sum(v => v * v);
+                ev.Key = Key(x);
+                if (track) Track(ev);
                 return ev;
             }
             var x0 = rep.Parameters.Select(p => p.Initial).ToArray();
@@ -327,9 +357,8 @@ namespace UltrafastEngine.Plugins.Fitting
             if (rep.Points < n) rep.Warnings.Add("fewer data points than parameters: the fit is under-determined (priors and smoothness help)");
             rep.Simulated = Layer(e0, rep, x0, "the system as described (initial parameter values): the forward model before fitting", multi);
             // ------------------------------------------------------------ estimate
-            var cache = new Dictionary<string, Eval>();
-            string Key(double[] x) => string.Join(",", x.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
-            cache[Key(x0)] = e0;
+            var cache = new Dictionary<string, (double[] R, double Cost)>();
+            cache[Key(x0)] = (e0.R, e0.Cost);
             var problem = new FitProblem
             {
                 N = n, X0 = x0, Names = rep.Parameters.Select(p => p.Name).ToArray(),
@@ -337,7 +366,7 @@ namespace UltrafastEngine.Plugins.Fitting
                 Max = rep.Parameters.Select(p => double.IsInfinity(p.Max) && estimator.Name != "levenbergMarquardt" ? p.Initial + 10 * p.Scale : p.Max).ToArray(),
                 Scale = rep.Parameters.Select(p => p.Scale).ToArray(), Step = rep.Parameters.Select(p => p.Step).ToArray(),
                 Parallel = Math.Max(1, fo.GetInt("parallel", 1)), Cancel = cancel,
-                Residuals = x => { var k = Key(x); Eval ev; lock (cache) if (cache.TryGetValue(k, out ev)) return ev.R; ev = Evaluate(x); lock (cache) { if (cache.Count > 64) cache.Clear(); cache[k] = ev; } return ev.R; }
+                Residuals = x => { var k = Key(x); lock (cache) if (cache.TryGetValue(k, out var hit)) return hit.R; var ev = Evaluate(x); lock (cache) { if (cache.Count > 64) cache.Clear(); cache[k] = (ev.R, ev.Cost); } return ev.R; }
             };
             var er = estimator.Estimate(problem, fo);
             rep.CostHistory.AddRange(er.CostHistory.Count > 0 ? er.CostHistory : new List<double> { e0.Cost });
@@ -345,11 +374,11 @@ namespace UltrafastEngine.Plugins.Fitting
             rep.Notes.AddRange(er.Notes); rep.Warnings.AddRange(er.Warnings);
             var x = er.X;
             // the optimum with the held-out conditions evaluated too (they are never in the cost)
-            Eval cur;
-            if (cache.TryGetValue(Key(x), out var cx) && cx.Cond.Count == conds.Count) cur = cx;
-            else cur = Evaluate(x, true);
+            Eval cur; string kx = Key(x);
+            lock (trackLock) cur = new[] { latest, bestEval }.FirstOrDefault(c => c != null && c.Key == kx && c.Cond.Count == conds.Count);
+            if (cur == null) cur = Evaluate(x, true);
             // ------------------------------------------------------------ uncertainties at the optimum
-            var (J, jacRuns) = Jacobian(x, cur, rep, xx => Evaluate(xx, true));
+            var (J, jacRuns) = Jacobian(x, cur, rep, xx => { var je = Evaluate(xx, true, false); je.Slim(); return je; });
             int mm = cur.R.Length, md = cur.Data.Length, mPts = cur.Cond.Where(q => !q.Cond.HeldOut).Sum(q => q.Result.Comparisons().Sum(c => c.Points));   // mPts: compared points only (not those outside a range)
             var H = new double[n, n];
             for (int a = 0; a < n; a++) for (int b = 0; b < n; b++) { double s = 0; for (int k = 0; k < mm; k++) s += J[k, a] * J[k, b]; H[a, b] = s; }
@@ -443,6 +472,8 @@ namespace UltrafastEngine.Plugins.Fitting
             foreach (var w in rep.Warnings) best.Warnings.Add("Fit: " + w);
             return best;
         }
+
+        private static string Key(double[] x) => string.Join(",", x.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
 
         /// <summary>Prior and smoothness residuals (appended after the data residuals).</summary>
         private static IEnumerable<double> Penalties(double[] x, List<FitParameter> ps, List<FitCollector.Smoothness> regs, List<Dependence> deps)

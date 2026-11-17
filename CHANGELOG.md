@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Added (WP-1b, 2026-11-17: memory safety; a fit of a 46-pass multipass cell had run out of memory after 2 h)**
+- **Fitting keeps bounded memory.** The residual cache holds numbers only (same eviction rule, so the same evaluations); the latest and
+  best evaluations keep their full result, the Jacobian runs keep what the uncertainties read (instruments, records), and all
+  evaluations run with `outputs.keepProfiles: "used"` unless the run spec sets it. The fit result is bit-identical (tested).
+- **Core memory estimate** (`Engine/MemoryEstimate.cs`): a compile note on every run, in `validate`, `uf.estimate_memory(system, run)`
+  and the `memory` command; pulses, transverse profiles, solver workspace, tail grid. **`compute.memoryLimitBytes`** refuses a run
+  above it before it starts; a warning above 80 % of the free physical memory (not on Mono / unknown).
+- Study points run with `keepProfiles: "used"` unless the run spec sets it.
+- **GPU:** free device memory (`cuMemGetInfo`; OpenCL: total minus held buffers) instead of the total, slots lowered when they would not fit
+  together, ensembles halved for memory with a note, program caches bounded (32, least recently used) and released on teardown.
+- **Python:** `uf.estimate_memory`, a pre-flight in `uf.scan(memory=)` and `uf.run(...)` of a fit (`MemoryWarning` / `MemoryError`),
+  `close()` and `with` on systems, runs and results.
+- New page `docs/reference/memory.md`.
+
 **Added and fixed (WP-1, 2026-11-17: issues from a user's 46-pass multipass cell, physics questions)**
 - **Validity in machine-readable form:** `summary.json` `validity` lists every check that fired (`zeroFrequency`, `criticalPower`, `kerrLensCollapse`, `lidt`, `windowEdge`) per element with its value and threshold; one warning per check names every element (it used to name only the first pass). `physics.strictValidity` / `ULTRAFAST_STRICT_VALIDITY=1` makes them an error after the run. Tests `ValidityTests`.
 - **Fixed: false "zero frequency" warning.** Any energy deficit of a nonlinear element (including the stepper's own error) was reported as broadening that reached zero frequency, so a narrow-band pass 1 of a cell warned. The check now needs the output spectrum to reach the blocked bins at ω ≤ 0.

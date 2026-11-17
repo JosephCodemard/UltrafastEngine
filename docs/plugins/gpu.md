@@ -142,6 +142,21 @@ evaluations and coherence trials overlap on one device. `"compute": {"deviceSlot
 propagations running on a device at once (memory, queue depth); when all slots are busy, `auto` runs the element on
 the CPU (CPU and GPU then work together) and an explicit back-end waits.
 
+## Memory
+
+* **Free memory, not total.** An element is accepted when the stepper's memory need is at most 80 % of the device's *free* memory:
+  CUDA asks the driver (`cuMemGetInfo`, which also counts other processes); OpenCL has no such query, so the figure is the total
+  minus the buffers this process holds. Otherwise the element runs on the CPU, and its notes give both figures
+  (`not enough free device memory (needs 1.2 GB, 600 MB free)`).
+* **Slots follow the size.** `compute.deviceSlots` (default 4) is lowered to `floor(0.8 x total / needed)` (at least 1) when that many
+  propagations of this size would not fit together; a problem close to the device size runs alone.
+* **Ensembles are halved for memory.** A study batch that does not fit is split in halves until it does, and every point's notes say so
+  (`an ensemble of 64 study points does not fit the free device memory (...); run as 32 + 32`).
+* **Bounded caches.** Programs compiled for user-response expressions are kept per device up to 32 (least recently used released);
+  the contexts are disposed by `GpuBackend.ReleaseContexts()`. The built-in kernels are compiled once and stay.
+* The decisions are pure functions (`GpuMemory.Fits`, `GpuMemory.MaxConcurrent`), tested with a fake device size
+  (`GpuMemoryTests`). See [memory](../reference/memory.md) for the host-side estimate.
+
 ## How it works (for developers and AI agents)
 
 Source: `plugins/gpu/src/`.

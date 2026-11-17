@@ -64,6 +64,7 @@ nav:
       - Parameter studies: reference/studies.md
       - Fidelity (quick / standard / full): reference/fidelity.md
       - Speed & compute back-ends: reference/speed.md
+      - Memory (estimate, limit, what to change): reference/memory.md
       - Results: reference/results.md
       - Option reference (generated): reference/options.md
       - Schemas, validation & migrations: reference/schema.md

@@ -58,6 +58,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Parameter studies](docs/reference/studies.md)
 - [Fidelity: quick, standard, full](docs/reference/fidelity.md)
 - [Speed & compute back-ends](docs/reference/speed.md)
+- [Memory: what a run keeps, the estimate, compute.memoryLimitBytes, what to change when it is too large](docs/reference/memory.md)
 - [Results](docs/reference/results.md)
 - [Option reference (generated)](docs/reference/options.md)
 - [Schemas, validation & migrations](docs/reference/schema.md)

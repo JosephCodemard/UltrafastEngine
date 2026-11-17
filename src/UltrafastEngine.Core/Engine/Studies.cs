@@ -241,6 +241,8 @@ namespace UltrafastEngine.Engine
                     return (hit, null);
                 }
                 var (s, r) = Build(sysJson, runJson, spec.Parameters, values, system.BaseDirectory, run.BaseDirectory);
+                // memory: a point's outputs read scalars and 1-D pulses, never a transverse profile that no instrument reads; an explicit outputs.keepProfiles is kept
+                if (r.Outputs != null && !(runJson.GetObject("outputs")?.Has("keepProfiles") ?? false)) r.Outputs.KeepProfiles = "used";
                 RunResult rr;
                 string err = null;
                 double[] outv;

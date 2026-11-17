@@ -29,6 +29,8 @@ namespace UltrafastEngine.Plugins.Gpu
         public readonly delegate* unmanaged[Cdecl]<IntPtr*, IntPtr, byte*, int> ModuleGetFunction;
         public readonly delegate* unmanaged[Cdecl]<ulong*, nuint, int> MemAlloc;
         public readonly delegate* unmanaged[Cdecl]<ulong, int> MemFree;
+        public readonly delegate* unmanaged[Cdecl]<nuint*, nuint*, int> MemGetInfo;
+        public readonly delegate* unmanaged[Cdecl]<IntPtr, int> ModuleUnload;
         public readonly delegate* unmanaged[Cdecl]<ulong, void*, nuint, IntPtr, int> MemcpyHtoDAsync;
         public readonly delegate* unmanaged[Cdecl]<void*, ulong, nuint, IntPtr, int> MemcpyDtoHAsync;
         public readonly delegate* unmanaged[Cdecl]<ulong, ulong, nuint, IntPtr, int> MemcpyDtoDAsync;
@@ -72,6 +74,8 @@ namespace UltrafastEngine.Plugins.Gpu
             ModuleGetFunction = (delegate* unmanaged[Cdecl]<IntPtr*, IntPtr, byte*, int>)drv.Get("cuModuleGetFunction");
             MemAlloc = (delegate* unmanaged[Cdecl]<ulong*, nuint, int>)drv.Get("cuMemAlloc_v2");
             MemFree = (delegate* unmanaged[Cdecl]<ulong, int>)drv.Get("cuMemFree_v2");
+            MemGetInfo = (delegate* unmanaged[Cdecl]<nuint*, nuint*, int>)drv.Get("cuMemGetInfo_v2");
+            ModuleUnload = (delegate* unmanaged[Cdecl]<IntPtr, int>)drv.Get("cuModuleUnload");
             MemcpyHtoDAsync = (delegate* unmanaged[Cdecl]<ulong, void*, nuint, IntPtr, int>)drv.Get("cuMemcpyHtoDAsync_v2");
             MemcpyDtoHAsync = (delegate* unmanaged[Cdecl]<void*, ulong, nuint, IntPtr, int>)drv.Get("cuMemcpyDtoHAsync_v2");
             MemcpyDtoDAsync = (delegate* unmanaged[Cdecl]<ulong, ulong, nuint, IntPtr, int>)drv.Get("cuMemcpyDtoDAsync_v2");
@@ -312,18 +316,46 @@ namespace UltrafastEngine.Plugins.Gpu
         {
             MakeCurrent();
             ulong p; Api.Check(Api.MemAlloc(&p, (nuint)Math.Max(16, bytes)), "cuMemAlloc (" + bytes + " bytes)");
+            Track(bytes);
             return new CuBuffer(this, p, bytes);
         }
 
+        public override long FreeMemoryBytes()
+        {
+            if (Api.MemGetInfo == null) return base.FreeMemoryBytes();
+            MakeCurrent();
+            nuint free = 0, total = 0;
+            return Api.MemGetInfo(&free, &total) == 0 ? (long)free : base.FreeMemoryBytes();
+        }
+
+        protected override void DropProgram(string kernelName)
+        {
+            lock (_functions)
+            {
+                if (!_extraModules.TryGetValue(kernelName, out var mod)) return;
+                _extraModules.Remove(kernelName); _functions.Remove(kernelName);
+                if (Api.ModuleUnload != null) { MakeCurrent(); Api.ModuleUnload(mod); }
+            }
+        }
+
         public override GpuStream CreateStream() => new CuStream(this);
-        public override void Dispose() { }   // the primary context lives as long as the process
+
+        /// <summary>Unloads the extra programs; the primary context lives as long as the process.</summary>
+        public override void Dispose()
+        {
+            lock (_functions)
+            {
+                foreach (var kv in _extraModules.ToList()) { _functions.Remove(kv.Key); if (Api.ModuleUnload != null) { MakeCurrent(); Api.ModuleUnload(kv.Value); } }
+                _extraModules.Clear();
+            }
+        }
 
         internal sealed class CuBuffer : GpuBuffer
         {
             private readonly CudaContext _c;
             public ulong Ptr;
             public CuBuffer(CudaContext c, ulong p, long bytes) { _c = c; Ptr = p; Bytes = bytes; }
-            public override void Dispose() { if (Ptr != 0) { _c.MakeCurrent(); _c.Api.MemFree(Ptr); Ptr = 0; } }
+            public override void Dispose() { if (Ptr != 0) { _c.MakeCurrent(); _c.Api.MemFree(Ptr); Ptr = 0; _c.Track(-Bytes); } }
         }
 
         internal sealed class CuStream : GpuStream

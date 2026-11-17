@@ -86,6 +86,12 @@ namespace UltrafastEngine.Plugins.Gpu
             }
         }
 
+        /// <summary>Disposes the device contexts (compiled extra programs) and forgets them; the next use creates them again.</summary>
+        public void ReleaseContexts()
+        {
+            lock (_lock) { foreach (var c in _contexts.Values) { try { c.Dispose(); } catch (GpuException) { } } _contexts.Clear(); }
+        }
+
         /// <summary>The calling thread's stream on a context (created on first use).</summary>
         public static GpuStream StreamFor(GpuContext c)
         {
@@ -104,6 +110,33 @@ namespace UltrafastEngine.Plugins.Gpu
             return spatial ? DefaultMinPointsSpatial : DefaultMinPoints1D;
         }
 
+        /// <summary>Free memory of a device in bytes: the driver's figure once the device is in use (CUDA: cuMemGetInfo), else its total; -1 when unknown.</summary>
+        public long FreeBytes(int dev)
+        {
+            var fake = GpuMemory.FreeOverride?.Invoke(dev); if (fake.HasValue) return fake.Value;
+            GpuContext ctx; lock (_lock) _contexts.TryGetValue(dev, out ctx);
+            if (ctx != null) { try { return ctx.FreeMemoryBytes(); } catch (GpuException) { } }
+            return _devices[dev].MemoryBytes > 0 ? _devices[dev].MemoryBytes : -1;
+        }
+
+        public long TotalBytes(int dev) => GpuMemory.TotalOverride?.Invoke(dev) ?? _devices[dev].MemoryBytes;
+
+        /// <summary>Device memory a problem needs (0 when unknown).</summary>
+        private static long NeededBytes(IPropagationProblem p)
+        {
+            if (p is EnvelopeProblem ep && ep.DeviceSpec() != null) return EnvelopeStepper.MemoryNeeded(ep.DeviceSpec());
+            if (p is SpatialEnvelopeProblem sp && sp.DeviceSpec() != null) return SpatialStepper.MemoryNeeded(sp.DeviceSpec());
+            if (p is Crystals.Chi2Problem cp && cp.DeviceSpec() != null) return Chi2Stepper.MemoryNeeded(cp.DeviceSpec());
+            return 0;
+        }
+
+        /// <summary>Concurrent propagations allowed on a device for this problem: the slots, fewer when that many would not fit in the device memory.</summary>
+        private int SlotLimit(int dev, long needed)
+        {
+            int slots = ComputeBackends.Settings.DeviceSlots > 0 ? ComputeBackends.Settings.DeviceSlots : DefaultDeviceSlots;
+            return GpuMemory.MaxConcurrent(needed, TotalBytes(dev), slots);
+        }
+
         /// <summary>Why this back-end would not run <paramref name="p"/> (null when it would).</summary>
         public string WhyNot(IPropagationProblem p)
         {
@@ -120,7 +153,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 if (!vendorFft && !GpuFft.BuiltInSupports(spec.N)) return "grid size " + spec.N + " is not a power of two (built-in GPU FFT)";
                 int pts = spec.N * (spec.Scalar ? 1 : 2);
                 if (pts < MinPoints(false)) return "small problem (" + pts + " samples < gpuMinPoints " + MinPoints(false) + ")";
-                if (info.MemoryBytes > 0 && EnvelopeStepper.MemoryNeeded(spec) > 0.8 * info.MemoryBytes) return "not enough device memory";
+                if (!GpuMemory.Fits(EnvelopeStepper.MemoryNeeded(spec), FreeBytes(dev))) return "not enough free device memory (" + GpuMemory.Short(EnvelopeStepper.MemoryNeeded(spec), FreeBytes(dev)) + ")";
                 return null;
             }
             if (p is SpatialEnvelopeProblem sp)
@@ -131,7 +164,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 if (spec.Cartesian && !vendorFft && (!GpuFft.BuiltInSupports(spec.Nx) || (spec.Ny > 1 && !GpuFft.BuiltInSupports(spec.Ny)))) return "transverse sizes must be powers of two (built-in GPU FFT)";
                 long pts = (long)spec.N * spec.M * (spec.Vector ? 2 : 1);
                 if (pts < MinPoints(true)) return "small problem (" + pts + " samples < gpuMinPoints " + MinPoints(true) + ")";
-                if (info.MemoryBytes > 0 && SpatialStepper.MemoryNeeded(spec) > 0.8 * info.MemoryBytes) return "not enough device memory";
+                if (!GpuMemory.Fits(SpatialStepper.MemoryNeeded(spec), FreeBytes(dev))) return "not enough free device memory (" + GpuMemory.Short(SpatialStepper.MemoryNeeded(spec), FreeBytes(dev)) + ")";
                 return null;
             }
             if (p is Crystals.Chi2Problem cp)
@@ -141,7 +174,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 if (!vendorFft && !GpuFft.BuiltInSupports(spec.N)) return "grid size " + spec.N + " is not a power of two (built-in GPU FFT)";
                 int pts = spec.N * spec.K;
                 if (pts < MinPoints(false)) return "small problem (" + pts + " samples < gpuMinPoints " + MinPoints(false) + ")";
-                if (info.MemoryBytes > 0 && Chi2Stepper.MemoryNeeded(spec) > 0.8 * info.MemoryBytes) return "not enough device memory";
+                if (!GpuMemory.Fits(Chi2Stepper.MemoryNeeded(spec), FreeBytes(dev))) return "not enough free device memory (" + GpuMemory.Short(Chi2Stepper.MemoryNeeded(spec), FreeBytes(dev)) + ")";
                 return null;
             }
             return "this kind of element (" + p.GetType().Name + ") runs on the CPU";
@@ -229,13 +262,16 @@ namespace UltrafastEngine.Plugins.Gpu
             int dev = SelectDevice(IsAuto);
             var specs = jobs.Select(j => ((EnvelopeProblem)j.Problem).DeviceSpec()).ToList();
             var info = _devices[dev];
-            if (info.MemoryBytes > 0 && EnsembleStepper.MemoryNeeded(specs[0], jobs.Count) > 0.8 * info.MemoryBytes && jobs.Count > 1)
+            long ensembleBytes = EnsembleStepper.MemoryNeeded(specs[0], jobs.Count);
+            if (!GpuMemory.Fits(ensembleBytes, FreeBytes(dev)) && jobs.Count > 1)
             {   // split in halves until it fits
                 int h = jobs.Count / 2;
+                string halved = Name + ": an ensemble of " + jobs.Count + " study points does not fit the free device memory (" + GpuMemory.Short(ensembleBytes, FreeBytes(dev)) + "); run as " + h + " + " + (jobs.Count - h);
+                foreach (var j in jobs) j.Stats.Notes.Add(halved);
                 RunEnsemble(jobs.GetRange(0, h)); RunEnsemble(jobs.GetRange(h, jobs.Count - h));
                 return;
             }
-            int slots = ComputeBackends.Settings.DeviceSlots > 0 ? ComputeBackends.Settings.DeviceSlots : DefaultDeviceSlots;
+            int slots = SlotLimit(dev, ensembleBytes);
             var gate = Gate(dev);
             gate.Enter(slots, true);
             try
@@ -267,7 +303,7 @@ namespace UltrafastEngine.Plugins.Gpu
             var why = WhyNot(p);
             if (why != null) { stats.Notes.Add(Name + ": " + why + "; ran on the CPU"); return Steppers.PropagateCpu(p, a0, st, stats, progress); }
             int dev = SelectDevice(IsAuto);
-            int slots = ComputeBackends.Settings.DeviceSlots > 0 ? ComputeBackends.Settings.DeviceSlots : DefaultDeviceSlots;
+            int slots = SlotLimit(dev, NeededBytes(p));   // the configured slots, fewer when that many such problems would not fit together
             var gate = Gate(dev);
             if (!gate.Enter(slots, !IsAuto)) { stats.Notes.Add(Name + ": all " + slots + " device slots busy; ran on the CPU"); return Steppers.PropagateCpu(p, a0, st, stats, progress); }
             try

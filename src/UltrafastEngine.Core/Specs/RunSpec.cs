@@ -211,6 +211,8 @@ namespace UltrafastEngine.Specs
         public JsonObject ComputeOptions { get; set; }
         /// <summary>"double" (default) or "mixed" (GPU back-ends: nonlinear operator in single precision).</summary>
         public string ComputePrecision { get; set; } = "double";
+        /// <summary>compute.memoryLimitBytes: the run is refused before it starts when its estimated memory (Engine/MemoryEstimate.cs) is above this (0: no limit).</summary>
+        public long MemoryLimitBytes { get; set; }
 
         /// <summary>Largest dynamic range (dB) a run may ask of an instrument in mixed precision: the single-precision rounding noise fills
         /// the intensity floor below about -85 dB (docs/reference/speed.md, FP32 study), so 70 dB keeps a 15 dB margin.</summary>
@@ -285,6 +287,9 @@ namespace UltrafastEngine.Specs
                 r.ComputeFft = co.GetString("fft"); r.ComputeDevice = co.GetInt("device", -1);
                 r.GpuMinPoints = co.GetInt("gpuMinPoints", 0); r.DeviceSlots = co.GetInt("deviceSlots", 0); r.ComputeOptions = co;
                 r.ComputePrecision = co.GetString("precision", "double");
+                double mlb = co.GetDouble("memoryLimitBytes", 0);
+                if (!(mlb >= 0)) throw new JsonException("compute.memoryLimitBytes must be 0 (no limit) or a positive number of bytes.");
+                r.MemoryLimitBytes = (long)mlb;
                 if (r.ComputePrecision != "double" && r.ComputePrecision != "mixed") throw new JsonException("compute.precision must be \"double\" or \"mixed\" (got \"" + r.ComputePrecision + "\")");
                 if (r.ComputePrecision == "mixed")
                 {

@@ -463,6 +463,11 @@ Accessors: `fit_report`, `fitted_system`, `reconstructed_pulse`. Measured data i
   parameters rest on priors.
 * **Model the instrument**, including its resolution, sampling and where it looks (`sampling`). A fit that compares
   an on-axis measurement with a whole-beam simulation biases the parameters to explain the difference.
+* **Watch the memory of long fits.** A fit runs the system many times. It keeps the latest and the best evaluation in full and only
+  the residuals of the others, runs evaluations with `outputs.keepProfiles: "used"` (set it yourself to keep profiles in the
+  result) and, in Python, checks the memory estimate first (`uf.run(..., memory="warn" | "raise" | "off")`, times `fit.parallel`).
+  On a long multipass system or a spatial model, look at the estimate (`uf.estimate_memory`, `ultrafast validate`) before starting;
+  see [memory](../reference/memory.md).
 * **Look at the residuals** in `measurements.png`. Structure rather than noise means the model misses something,
   which is often a missing transform operator.
 

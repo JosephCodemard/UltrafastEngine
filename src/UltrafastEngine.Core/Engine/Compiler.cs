@@ -137,6 +137,8 @@ namespace UltrafastEngine.Engine
         public SystemGraph Graph { get; set; }
         /// <summary>Branched systems in a study: element outputs shared between points.</summary>
         public GraphCache GraphCache { get; set; }
+        /// <summary>The memory the run is estimated to hold (also in <see cref="Notes"/>; docs/reference/memory.md).</summary>
+        public MemoryEstimate Memory { get; set; }
     }
 
     /// <summary>
@@ -402,6 +404,15 @@ namespace UltrafastEngine.Engine
                     throw new ModelException("strict materials: the run uses " + open.Count + " catalogue value" + (open.Count == 1 ? "" : "s") + " that " + (open.Count == 1 ? "is" : "are") + " not verified:\n  "
                         + string.Join("\n  ", open.Select(u => u.Material + "." + u.Property.Replace(" (catalogue)", "") + " [" + u.Catalogue.Path + "] " + u.Catalogue.Status.ToString().ToLowerInvariant() + ": " + u.Catalogue.Source))
                         + "\nOverride each value (docs/reference/materials.md#the-material-catalogue), put a verified one in your own catalogue file, , accept one by its path in physics.strictMaterialsAllow, or switch physics.strictMaterials off.");
+            }
+            // memory: the estimate is a note; above compute.memoryLimitBytes the run is refused, above 80 % of the free memory it is a warning
+            c.Out.Memory = MemoryEstimate.Of(c.Out);
+            c.Out.Notes.Add(c.Out.Memory.Summary());
+            var memMsg = c.Out.Memory.Check(run.MemoryLimitBytes, out bool memError);
+            if (memMsg != null)
+            {
+                if (memError) throw new ModelException("memory limit: " + memMsg);
+                c.Out.Warnings.Add("Memory: " + memMsg);
             }
             return c.Out;
         }

@@ -4,6 +4,7 @@ from __future__ import annotations
 import ctypes
 import json
 import os
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
@@ -127,6 +128,46 @@ def _as_source(x: Any) -> Any:
     return x
 
 
+class MemoryWarning(UserWarning):
+    """A run, scan or fit is estimated to need more than 80 % of the free memory (docs/reference/memory.md)."""
+
+
+def estimate_memory(system: Any, run_spec: Any) -> dict:
+    """Memory one run of ``system`` with ``run_spec`` is estimated to hold, without running it (docs/reference/memory.md).
+
+    The engine compiles the run and counts what it keeps: the pulse after every element, the transverse profiles (``outputs.keepProfiles``),
+    the solver's working arrays and the delayed-light tail. Returns ``{"totalBytes", "estimate": {"pulseBytes", "profileBytes",
+    "workspaceBytes", "tailBytes", "instrumentBytes", ...}, "summary": str, "availableBytes" (-1: unknown), "limitBytes"
+    (``compute.memoryLimitBytes``, 0: none), "exceedsLimit": bool, "warning": str (empty: none)}``. The figure is a planning estimate
+    (within about a factor of two); a scan or fit holds one such run per parallel worker."""
+    return command({"command": "memory", "system": _as_source(system), "run": _as_source(run_spec)})
+
+
+def _preflight(system: Any, run_spec: Any, memory: str, copies: int = 1) -> None:
+    """Check the estimate before a long job: ``memory`` "warn" (default) warns, "raise" raises :class:`MemoryError`, "off" skips it.
+    ``copies`` is the number of runs alive at once (parallel scan points, fit workers)."""
+    if memory not in ("warn", "raise", "off"):
+        raise ValueError("memory must be \"warn\", \"raise\" or \"off\" (got %r)" % (memory,))
+    if memory == "off":
+        return
+    try:
+        est = estimate_memory(system, run_spec)
+    except Exception:   # a run that does not compile reports its own error when it runs
+        return
+    if est.get("exceedsLimit"):
+        raise MemoryError(est["warning"])
+    msg = est.get("warning") or ""
+    avail = est.get("availableBytes", -1)
+    if not msg and copies > 1 and avail > 0 and est["totalBytes"] * copies > 0.8 * avail:
+        msg = ("%d runs at once need an estimated %.2f GB (%.2f GB each), above 80 %% of the free memory (%.2f GB); lower parallel, "
+               "set outputs.keepProfiles to \"used\" or reduce the grid (docs/reference/memory.md)."
+               % (copies, est["totalBytes"] * copies / 1e9, est["totalBytes"] / 1e9, avail / 1e9))
+    if msg:
+        if memory == "raise":
+            raise MemoryError(msg)
+        warnings.warn(msg, MemoryWarning, stacklevel=3)
+
+
 def study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = (), outputs: Sequence[str] = (), mode: str = "scan",
           output: Optional[PathLike] = None, **options: Any) -> dict:
     """Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid | random | lhs | sobol,
@@ -148,7 +189,9 @@ class Scan:
     ``.compute()``, ``.rows``): the arrays are *lazy*. ``scan[output]`` is a numpy array with one dimension per axis, in the order the axes
     were given; ``scan.axes`` holds the axis values; failed points are NaN and listed in ``scan.errors``."""
 
-    def __init__(self, system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], options: Mapping[str, Any]):
+    def __init__(self, system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], options: Mapping[str, Any],
+                 memory: str = "warn"):
+        self._memory = memory
         self.axes: Dict[str, np.ndarray] = {k: np.asarray(v, dtype=float) for k, v in axes.items()}
         self.outputs = list(outputs)
         self._args = (system, run_spec, options)
@@ -162,6 +205,7 @@ class Scan:
         """Run the study now (done once; later reads reuse it)."""
         if self._result is None:
             system, run_spec, options = self._args
+            _preflight(system, run_spec, self._memory, int(options.get("parallel", 1) or 1))
             params = [{"path": k, "values": [float(x) for x in v]} for k, v in self.axes.items()]
             self._result = study(system, run_spec, params, self.outputs, mode="scan", sampling="grid", **options)
         return self
@@ -200,7 +244,7 @@ class Scan:
 
 
 def scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], fidelity: Optional[str] = None,
-         cache: Optional[PathLike] = None, parallel: int = 1, **options: Any) -> Scan:
+         cache: Optional[PathLike] = None, parallel: int = 1, memory: str = "warn", **options: Any) -> Scan:
     """Lazy grid scan over named axes (docs/reference/studies.md). ``axes`` maps a study path (``"element:plate/lengthM"``,
     ``"pulse/chirp/gddFs2"``, ...) to its values; every combination is run. ``outputs`` are study output names
     (``"pulse:end/fwhmS"``). Returns a :class:`Scan`; reading ``scan["pulse:end/fwhmS"]`` runs it and gives an array with one
@@ -210,7 +254,11 @@ def scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], output
     the recommended workflow is to scan in "quick", then re-run the best points in "full". ``cache`` is a folder: each point is stored
     there under a hash of its inputs, so a repeated or interrupted scan computes only the missing points. The grid is frozen once for
     all points (the union of what the range ends need) and every point after the first changed element restarts from the cached
-    nominal run, so a scan is much cheaper than a Python loop of :func:`run` calls."""
+    nominal run, so a scan is much cheaper than a Python loop of :func:`run` calls.
+
+    Before the first point is computed the memory estimate (:func:`estimate_memory`, times ``parallel``) is checked: ``memory="warn"``
+    (default) warns with a :class:`MemoryWarning` above 80 % of the free memory, ``"raise"`` raises :class:`MemoryError`, ``"off"`` skips
+    it. A run above its own ``compute.memoryLimitBytes`` always raises."""
     opts = dict(options)
     if fidelity is not None:
         if fidelity not in ("quick", "standard", "full"):
@@ -219,7 +267,7 @@ def scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], output
     opts["parallel"] = parallel
     if cache is not None:
         opts["cache"] = os.path.abspath(os.fspath(cache))
-    return Scan(system, run_spec, axes, outputs, opts)
+    return Scan(system, run_spec, axes, outputs, opts, memory)
 
 
 def coherence(system: Any, run_spec: Any, trials: int = 10, at: str = "end", parallel: int = 4, seed: int = 1,
@@ -272,16 +320,34 @@ def retrieve_multi(traces: Sequence[dict], output: Optional[PathLike] = None, en
 
 
 class _Handle:
+    """An engine object (system, run, result). It is released when garbage-collected; call :meth:`close` (or use ``with``) to give its
+    memory back at once -- a result holds the pulse after every element, which is large for long systems and spatial runs."""
+
     def __init__(self, h: ctypes.c_void_p):
         self._h = h
 
-    def __del__(self):
+    @property
+    def closed(self) -> bool:
+        """True once :meth:`close` has released the engine object."""
+        return not (self._h and self._h.value)
+
+    def close(self) -> None:
+        """Release the engine object now (safe to call twice). Arrays already copied out of a result stay valid."""
         try:
             if self._h and self._h.value:
                 _lib().fn("uf_release")(self._h)
-                self._h = None
+            self._h = None
         except Exception:  # interpreter shutdown
             pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+    def __del__(self):
+        self.close()
 
 
 class System(_Handle):
@@ -635,11 +701,15 @@ class Result(_Handle):
 
 
 def run(system: Union[System, JsonLike], spec: JsonLike, callbacks: Optional[Mapping[str, Any]] = None,
-        progress=None, elements: Optional[Mapping[str, Any]] = None, fields: Optional[Mapping[str, Any]] = None) -> Result:
+        progress=None, elements: Optional[Mapping[str, Any]] = None, fields: Optional[Mapping[str, Any]] = None, memory: str = "warn") -> Result:
     """One-call simulation. ``callbacks``: {"name": function} time responses (take a ResponseContext);
     ``elements``: {"name": function} user elements (take an ElementContext); ``fields``: {"name": f(x, y, z)}
     position-dependent properties. Use :class:`Run` directly for index/filter/beam callbacks or carrier-resolved
-    responses."""
+    responses. A run spec with a ``fit`` section is checked against the free memory first (``memory``: "warn" | "raise" | "off";
+    :func:`estimate_memory`, times ``fit.parallel``): a fit runs the system many times (docs/reference/memory.md)."""
+    if isinstance(spec, Mapping) and spec.get("fit"):
+        fit_opts = spec["fit"] if isinstance(spec["fit"], Mapping) else {}
+        _preflight(system, spec, memory, int(fit_opts.get("parallel", 1) or 1))
     sys_ = system if isinstance(system, System) else System.load(system)
     r = Run(sys_, spec)
     for name, fn in (callbacks or {}).items():

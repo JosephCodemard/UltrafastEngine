@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `Scan`, `System`, `UltrafastError`, `UnverifiedInput`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `scan`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
+Exported names: `ElementContext`, `MemoryWarning`, `ResponseContext`, `Result`, `Run`, `Scan`, `System`, `UltrafastError`, `UnverifiedInput`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `estimate_memory`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `scan`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -59,6 +59,15 @@ Seconds per run on the CPU and on each device for growing 1-D and spatial proble
 
 Process-wide defaults: the back-end of runs whose spec has no ``compute.backend`` ("cpu", "auto", "cuda", "opencl"; None keeps the current one) and the CPU FFT provider ("auto", "managed", "fftw", "accelerate"). Returns the settings in force. The ULTRAFAST_BACKEND / ULTRAFAST_FFT environment variables set the initial values.
 
+### class `MemoryWarning(UserWarning)`
+
+A run, scan or fit is estimated to need more than 80 % of the free memory (docs/reference/memory.md).
+
+
+### `estimate_memory(system: Any, run_spec: Any) -> dict`
+
+Memory one run of ``system`` with ``run_spec`` is estimated to hold, without running it (docs/reference/memory.md).
+
 ### `study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = (), outputs: Sequence[str] = (), mode: str = 'scan', output: Optional[PathLike] = None, **options) -> dict`
 
 Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid | random | lhs | sobol, ``samples``), "optimize" (``objective={"output": ..., "goal": "min" | "max" | "target", "target": ...}``) or "sensitivity" (``sensitivity={"method": "local" | "sobol"}``) or "coherence" (``coherence={"trials": 10, "at": "end"}``: repeated runs with independent quantum noise, result in ``analysis["coherence"]``). Parameters are ``{"path": "element:ID/key", "min", "max"}``; outputs are names like ``"pulse:end/fwhmS"``, ``"record:plate/BIntegralRad"``, ``"instrument:ac/fwhmS"``. Returns the study result (rows, analysis); ``output`` also writes study.json / study.csv.
@@ -67,7 +76,7 @@ Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid 
 
 A parameter scan on a grid of axes (made by :func:`scan`). Nothing is computed until a result is read (``scan["pulse:end/fwhmS"]``, ``.compute()``, ``.rows``): the arrays are *lazy*. ``scan[output]`` is a numpy array with one dimension per axis, in the order the axes were given; ``scan.axes`` holds the axis values; failed points are NaN and listed in ``scan.errors``.
 
-* `__init__(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], options: Mapping[str, Any])`
+* `__init__(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], options: Mapping[str, Any], memory: str = 'warn')`
 * `shape() -> Tuple[int, ...]`
 * `compute() -> 'Scan'` -- Run the study now (done once; later reads reuse it).
 * `result() -> dict` -- The raw study result (``rows``, ``notes``, ``elapsedS``).
@@ -75,7 +84,7 @@ A parameter scan on a grid of axes (made by :func:`scan`). Nothing is computed u
 * `notes() -> List[str]`
 * `errors() -> List[dict]`
 
-### `scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], fidelity: Optional[str] = None, cache: Optional[PathLike] = None, parallel: int = 1, **options) -> Scan`
+### `scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], fidelity: Optional[str] = None, cache: Optional[PathLike] = None, parallel: int = 1, memory: str = 'warn', **options) -> Scan`
 
 Lazy grid scan over named axes (docs/reference/studies.md). ``axes`` maps a study path (``"element:plate/lengthM"``, ``"pulse/chirp/gddFs2"``, ...) to its values; every combination is run. ``outputs`` are study output names (``"pulse:end/fwhmS"``). Returns a :class:`Scan`; reading ``scan["pulse:end/fwhmS"]`` runs it and gives an array with one dimension per axis.
 
@@ -149,9 +158,9 @@ Everything a run produced. ``result.summary`` (dict), ``result['output_power_w']
 * `comparison(instrument: str) -> '_measured.Comparison'` -- The comparison of one instrument with its recorded data (KeyError if it has none).
 * `write(directory: PathLike) -> Path`
 
-### `run(system: Union[System, JsonLike], spec: JsonLike, callbacks: Optional[Mapping[str, Any]] = None, progress = None, elements: Optional[Mapping[str, Any]] = None, fields: Optional[Mapping[str, Any]] = None) -> Result`
+### `run(system: Union[System, JsonLike], spec: JsonLike, callbacks: Optional[Mapping[str, Any]] = None, progress = None, elements: Optional[Mapping[str, Any]] = None, fields: Optional[Mapping[str, Any]] = None, memory: str = 'warn') -> Result`
 
-One-call simulation. ``callbacks``: {"name": function} time responses (take a ResponseContext); ``elements``: {"name": function} user elements (take an ElementContext); ``fields``: {"name": f(x, y, z)} position-dependent properties. Use :class:`Run` directly for index/filter/beam callbacks or carrier-resolved responses.
+One-call simulation. ``callbacks``: {"name": function} time responses (take a ResponseContext); ``elements``: {"name": function} user elements (take an ElementContext); ``fields``: {"name": f(x, y, z)} position-dependent properties. Use :class:`Run` directly for index/filter/beam callbacks or carrier-resolved responses. A run spec with a ``fit`` section is checked against the free memory first (``memory``: "warn" | "raise" | "off"; :func:`estimate_memory`, times ``fit.parallel``): a fit runs the system many times (docs/reference/memory.md).
 
 ## `ultrafast.build`
 

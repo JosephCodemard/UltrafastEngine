@@ -54,7 +54,19 @@ namespace UltrafastEngine.Plugins.Gpu
         /// <summary>Groups for a grid-stride launch over <paramref name="items"/> items.</summary>
         public int Groups(long items) => (int)Math.Max(1, Math.Min(MaxGroups, (items + GroupSize - 1) / GroupSize));
 
-        private readonly HashSet<string> _programs = new HashSet<string>();
+        private long _allocated;
+        internal void Track(long delta) => System.Threading.Interlocked.Add(ref _allocated, delta);
+        /// <summary>Device memory held by this context's live buffers (bytes).</summary>
+        public long AllocatedBytes => System.Threading.Interlocked.Read(ref _allocated);
+        /// <summary>Free device memory now (bytes), -1 when unknown. CUDA asks the driver (cuMemGetInfo, which also counts other processes);
+        /// the default (OpenCL has no such query) is the total minus this context's live buffers.</summary>
+        public virtual long FreeMemoryBytes() => Info.MemoryBytes > 0 ? Math.Max(0, Info.MemoryBytes - AllocatedBytes) : -1;
+
+        /// <summary>Most extra programs (user-response kernels) kept compiled per context; the least recently used is released beyond it.</summary>
+        public const int MaxPrograms = 32;
+        private readonly List<string> _programs = new List<string>();   // least recently used first
+        /// <summary>Extra programs currently compiled on this context.</summary>
+        public int ProgramCount { get { lock (_programs) return _programs.Count; } }
 
         /// <summary>Compile an extra program (<see cref="Kernels.Header"/> + <paramref name="body"/>) that defines the kernel
         /// <paramref name="kernelName"/>, once per context; afterwards <see cref="GpuStream.Launch"/> finds it by name.</summary>
@@ -62,11 +74,16 @@ namespace UltrafastEngine.Plugins.Gpu
         {
             lock (_programs)
             {
-                if (_programs.Contains(kernelName)) return;
+                int at = _programs.IndexOf(kernelName);
+                if (at >= 0) { _programs.RemoveAt(at); _programs.Add(kernelName); return; }
                 BuildProgram(kernelName, Kernels.Header + body);
                 _programs.Add(kernelName);
+                while (_programs.Count > MaxPrograms) { string old = _programs[0]; _programs.RemoveAt(0); DropProgram(old); }
             }
         }
+
+        /// <summary>Release the compiled program of <paramref name="kernelName"/> (the next <see cref="EnsureProgram"/> compiles it again).</summary>
+        protected abstract void DropProgram(string kernelName);
 
         /// <summary>Compile <paramref name="source"/> and register <paramref name="kernelName"/> (throws <see cref="GpuException"/> with the log).</summary>
         protected abstract void BuildProgram(string kernelName, string source);

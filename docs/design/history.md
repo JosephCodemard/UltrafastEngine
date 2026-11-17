@@ -224,6 +224,25 @@ WP-2 Python surface, WP-3 docs and release) plus WP-1b (memory safety, moved to 
 * Moved to WP-2: Lorentzian / asymmetric-exponential TBP shapes, PM calculator `noncollinearDeg` for `sfg`. Moved to the roadmap: a study schema,
   glass in beam splitters, exact PPT / Keldysh rates on the device.
 
+## Stage 12 -- WP-1b: memory safety  (2026-11-17, `dev/2026-11`, Windows + RTX 3060 Ti)
+
+Trigger: a user's fit of a 46-pass multipass cell ran out of memory after more than 2 h. Cause, read from the code: the fitting residual cache kept
+up to 65 full `RunResult`s (every element's pulse and profile), the Jacobian n more, and nothing estimated or limited memory.
+
+* **Fitting** (`Fitting.cs`): the cache holds `(residuals, cost)` with the old eviction rule (so the same evaluations happen); `Track` keeps the latest and best
+  `Eval` in full and slims every other one (`Eval.Slim`: `At`, `TailAt`, snapshots, `Output`, `Input`, `Compiled` dropped; instruments and records stay, `Predict`
+  reads them); Jacobian runs are slimmed at once; evaluations use `keepProfiles: used` unless the spec sets it. Golden values were recorded from the old code
+  first: 28 evaluations, 6 iterations, chi^2 476.58415279612495, all parameters, sigmas and predictions bit-identical afterwards. The retention test counts full
+  results alive after a GC at every evaluation (`Fitter.EvaluationObserver`): 28 with the old code, fewer than 5 now.
+* **Core**: `Engine/MemoryEstimate.cs` (formulas in `docs/reference/memory.md`), compile note, `compute.memoryLimitBytes` (a `ModelException` at compile time; `validate` shows it as
+  an error), 80 % free-memory warning (`GCMemoryInfo` on .NET, `GlobalMemoryStatusEx` / `/proc/meminfo` on net48, silent when unknown), `CompiledRun.Memory`,
+  `ValidationReport.Memory`, the `memory` command. Study points run with `used` profiles (the study outputs read no profile; the nominal run keeps the user's setting).
+  Finding while testing: vacuum gaps share one pulse array between elements, so a retained-memory test needs dispersive elements.
+* **GPU**: `GpuContext.FreeMemoryBytes` (CUDA `cuMemGetInfo_v2`; others total minus tracked buffers), `GpuMemory` pure decisions (`Fits` 0.8 x free, `MaxConcurrent`),
+  slots lowered for large problems, ensembles halved with a note, LRU (32) program cache with `cuModuleUnload` / `clReleaseProgram`, `ReleaseContexts`.
+* **Python**: `uf.estimate_memory`, `MemoryWarning`, pre-flight in `scan` and in `run` of a fit, `close()` / `with` on engine handles.
+* Not done: `keepProfiles used` for branched systems, instrument 2-D outputs in the estimate (roadmap §2); mypy is not installed in the Windows venv (the regen step was skipped).
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
