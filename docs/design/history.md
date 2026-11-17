@@ -224,6 +224,27 @@ WP-2 Python surface, WP-3 docs and release) plus WP-1b (memory safety, moved to 
 * Moved to WP-2: Lorentzian / asymmetric-exponential TBP shapes, PM calculator `noncollinearDeg` for `sfg`. Moved to the roadmap: a study schema,
   glass in beam splitters, exact PPT / Keldysh rates on the device.
 
+## Stage 12 -- WP-2: calculators, plotting and schematics  (2026-11-17, `dev/2026-11-wp2` merged into `dev/2026-11`, Windows)
+
+Built in a git worktree (`../UltrafastEngine-wp2`) while another session worked on `dev/2026-11`; two commits (part A, part B). MCP (part C of the
+brief) was split off as WP-2b.
+
+* **Calculators (A):** `ultrafast.calc` became a package (`pulse`, `crystal`, `cell`, and the new pure-Python `beam` and `nonlinear`; decision E7: they work without the engine, tested by
+  making the engine unavailable in a subprocess). The old module names stay as re-exports (`ultrafast.crystal`, `ultrafast.cells` keep every 2.2.0 name: `test_structure`
+  snapshots them). Keywords carry their unit; the old ones warn (`calc/_compat.py`). Engine errors are `ValueError`. TBP shapes `lorentzian` (field 1/(1+(t/tau)^2), 0.1420) and
+  `asymmetric-exponential` (one-sided exponential, 0.1103), checked against the table and a numerical Fourier transform. The phase-match calculator already accepted
+  `noncollinearDeg` for `sfg` (the roadmap item was done in WP-1 or earlier): tested, no change. Marburger's `z_sf` uses `z_R = pi n0 w0^2 / lambda` (checked against published
+  statements of the formula), `P_cr = 3.77 lambda^2 / (8 pi n0 n2)` as the engine's `criticalPower` check.
+* **Plotting (B):** `use_style` (4 styles, call and context manager, `ULTRAFAST_PLOT_STYLE`, `--style`, `--column`); palettes validated with the dataviz validator (the `ultrafast`
+  light palette has three colours below 3:1 on the light surface: labels are needed, documented). Paper figures wider than 9 in keep their size (a dashboard shrunk to 7 in
+  overlaps its text) and are saved under 4800 px across. Schematics: `plotting/graph_layout.py` (pure layout, golden tests) and a new `draw_graph`; `SystemGraph.ToMermaid`
+  with types, virtual ports, loops. `spectrogram_3d` / `spectrogram` / `animate_evolution` (a probe stores the spectrum and the spectral phase, not a time-domain phase:
+  its envelope is rebuilt on a frequency grid). `docs/reference/plotting.md` with before / after images from `python/tools/make_plotting_docs.py`.
+* **Verified:** Python 304 passed, 12 skipped; C# filters `PulseCalculator`, `Branching`, `Crystal`, `PhaseMatch` pass; solution build 0 errors; `mkdocs --strict` 0 warnings.
+  **Not run before the merge:** the full C# suite (`dotnet ... UltrafastEngine.Tests.dll`, ~5 min) and net48 were skipped for time on 2026-11-17. Run only: `PulseCalculator`, `Branching`, `Crystal`, `PhaseMatch` filters (all pass), the solution build (0 errors) and the whole Python suite (304 passed, 12 skipped, `mkdocs --strict` 0 warnings). If the full suite fails later, suspect first the C# changes of WP-2: `PulseCalculator.cs` (two new TBP shapes in `Shapes`, which the CLI and the `shapes` op list), `SystemGraph.cs` (`Types`, `ToMermaid`).
+* **Not done:** `mypy` on the new modules (not installed in the venv); `PROJECT_STATUS.md` counts not updated (test counts changed: +about 50 Python, +3 C#);
+  the paper `run.py` scripts still use the old keyword names (they work, with a `DeprecationWarning`).
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

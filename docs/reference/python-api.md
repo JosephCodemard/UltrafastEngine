@@ -822,7 +822,7 @@ Publication-style plots of UltrafastEngine results (needs matplotlib: ``pip inst
 
 Add a figure to :func:`report` and ``ultrafast-plot`` (used by plugins, e.g. the fitting plugin's ``measurements`` and ``fit``). ``maker(res)`` returns a matplotlib figure, or None when the result has no data for it. ``after`` places it after an existing figure in the default order.
 
-### `report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] = ('png',), pdf: bool = True, only: Optional[Iterable[str]] = None, db: bool = False, dpi: int = 160, close: bool = True) -> Dict[str, object]`
+### `report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] = ('png',), pdf: bool = True, only: Optional[Iterable[str]] = None, db: bool = False, dpi: Optional[int] = None, close: bool = True) -> Dict[str, object]`
 
 Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (optionally) all of them in one ``report.pdf``. ``out_dir`` defaults to ``<results folder>/plots``. Returns {name: figure or path}.
 
@@ -834,11 +834,27 @@ Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (op
 
 Themes, matplotlib style, SI-prefix formatting.
 
-Colour themes, matplotlib style, SI-prefix formatting and small axis helpers shared by every figure.
+Styles, colour themes, matplotlib rc, SI-prefix formatting and small axis helpers shared by every figure.
+
+### `use_style(name: Optional[str] = None, *, column: Optional[str] = None) -> _StyleHandle`
+
+Select the plot style for figures created afterwards: ``"ultrafast"``, ``"ultrafast-dark"``, ``"paper"`` or ``"science"``.
+
+### `current_style() -> str`
+
+Name of the style in force.
+
+### `default_dpi(fallback: int = 160) -> int`
+
+Resolution of saved figures: the style's own (600 for the paper styles) or ``fallback``.
+
+### `save_dpi(fig, dpi: Optional[int] = None, max_pixels_wide: int = 4800) -> int`
+
+Resolution for saving ``fig``: ``dpi`` if given, else the style's (600 for the paper styles, 160 otherwise) but never more than ``max_pixels_wide`` pixels across (a 15-inch dashboard at 600 dpi would be 9000 pixels wide).
 
 ### `set_theme(dark: bool = False) -> None`
 
-Switch the colour theme for figures created afterwards.
+Switch the colour theme for figures created afterwards (``use_style("ultrafast-dark" | "ultrafast")``).
 
 ### `fmt(x, unit: str = '', digits: int = 3) -> str`
 
@@ -983,17 +999,17 @@ Collapse repeated units (e.g. 20 x [pass, mirror] in a multipass cell) into one 
 
 Draw the schematic of ``res`` (live Result or results folder) on ``ax``.
 
-### `draw_graph(res, ax, theme: dict, compact: bool = False)`
+### `draw_graph(res, ax, theme: dict, compact: bool = False, params: bool = False, group: bool = True)`
 
-Draw a Branched system as a graph on ``ax``: elements as boxes by layer, arms as lanes, links coloured by the carrier after their source element, virtual inputs and outputs as small open markers, the energy at the end, loops as arcs.
+Draw a Branched system as a graph on ``ax``: elements as boxes by layer (a run of identical elements as one box with xN), links routed orthogonally around the boxes and coloured by the carrier after their source, loop-closing links as arcs below the row inside a shaded loop region, virtual ports as open circles, aux beams in and by-products out as arrows, numbered instrument tags above the boxes. ``params=True`` adds the key numbers of each element under its box. The layout is deterministic (:func:`ultrafast.plotting.graph_layout.layout_graph`). Returns the instrument locations.
 
-### `system_diagram(res, ax = None, compact: bool = False)`
+### `system_diagram(res, ax = None, compact: bool = False, params: bool = False)`
 
-Schematic of the system on ``ax``: elements, beam line coloured by carrier wavelength, aux beams in, by-products out, probes and numbered instrument locations (the numbers used in every instrument title).
+Schematic of the system on ``ax``: elements, beam line coloured by carrier wavelength, aux beams in, by-products out, probes and numbered instrument locations (the numbers used in every instrument title). A branched system is drawn as a graph (``params=True`` adds the key numbers of each element).
 
-### `system(res)`
+### `system(res, params: bool = False)`
 
-Stand-alone system schematic with a numbered list of the instruments and where they sit.
+Stand-alone system schematic with a numbered list of the instruments and where they sit (``params=True``: key numbers of each element under its box in a branched system).
 
 ## `ultrafast.plotting.zernike`
 

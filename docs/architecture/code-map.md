@@ -9,7 +9,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Api/Simulation.cs` | `Run(system, run)`, `Validate(system, run)`; the entry point for every front end |
 | `src/UltrafastEngine.Cli/Program.cs` | the `ultrafast` command: `run`, `validate`, `study`, `retrieve`, `schema`, ... |
 | `src/UltrafastEngine.Native/` | the C API (`include/ultrafast.h`) |
-| `python/src/ultrafast/` | the Python package: `build.py` builders, `types.py` generated TypedDicts; `system/`, `components/`, `sources.py`, `instruments/` (the builders by kind, CapWords aliases), `algorithms/` (`zernike`, NumPy only), `results/`, `plotting/` (package: figures, `zernike`, `animate`, `diagrams`), `core.py` (running) |
+| `python/src/ultrafast/` | the Python package: `build.py` builders, `types.py` generated TypedDicts; `system/`, `components/`, `sources.py`, `instruments/` (the builders by kind, CapWords aliases), `algorithms/` (`zernike`, NumPy only), `results/`, `plotting/` (package: figures, `style` (`use_style`, the four styles), `zernike`, `animate`, `diagrams` (system schematic), `graph_layout` (deterministic layers, lanes, grouped runs, loop arcs, orthogonal routes of a branched graph; no drawing), `spectrogram` (`spectrogram`, `spectrogram_3d`, `animate_evolution`)), `core.py` (running) |
 
 ## Describing a run
 

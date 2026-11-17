@@ -30,7 +30,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Dict, Iterable, Optional, Union
 
-from .style import (C, _LIGHT, _DARK, _theme, set_theme, _plt, _rc, _cmap, _figure, _Style, _PREFIX, _si, fmt, _note, _end_label, _db, _auto_floor, _sanitize)  # noqa: F401
+from .style import (STYLES, FIGURE_WIDTH_IN, use_style, current_style, default_dpi, save_dpi, C, _LIGHT, _DARK, _theme, set_theme, _plt, _rc, _cmap, _figure, _Style, _PREFIX, _si, fmt, _note, _end_label, _db, _auto_floor, _sanitize)  # noqa: F401
 from .data import (SavedResult, load, _has, _label)  # noqa: F401
 from .time_domain import (_time_axis, _residual_phase, temporal)  # noqa: F401
 from .spectral import (_sorted_spectrum, _wl_range, spectrum, spectral_phase)  # noqa: F401
@@ -38,6 +38,7 @@ from .run_figures import (evolution, _element_ticks, losses, key_numbers, _wrap,
 from .spatial import (_image)  # noqa: F401
 from .instrument_panels import (_instrument_panel, _generic_panel, _axis_scale, _dscan_panels, instruments, probes, _AXIS_LABELS, _named_axis, _PLAIN_UNITS, _fmtu, _value_unit, measurements)  # noqa: F401
 from .diagrams import system, system_diagram  # noqa: F401
+from .spectrogram import spectrogram, spectrogram_3d, animate_evolution  # noqa: F401
 from . import animate, zernike  # noqa: F401  (submodules: plotting.animate, plotting.zernike)
 
 
@@ -57,7 +58,7 @@ def register_figure(name: str, maker: Callable, after: Optional[str] = None) -> 
 
 
 def report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] = ("png",), pdf: bool = True,
-           only: Optional[Iterable[str]] = None, db: bool = False, dpi: int = 160, close: bool = True) -> Dict[str, object]:
+           only: Optional[Iterable[str]] = None, db: bool = False, dpi: Optional[int] = None, close: bool = True) -> Dict[str, object]:
     """Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (optionally) all of them in
     one ``report.pdf``. ``out_dir`` defaults to ``<results folder>/plots``. Returns {name: figure or path}."""
     _, plt = _plt()
@@ -83,7 +84,7 @@ def report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] =
     for name, f in figs.items():
         for ext in formats:
             p = out_dir / f"{name}.{ext}"
-            f.savefig(p, dpi=dpi)
+            f.savefig(p, dpi=save_dpi(f, dpi))              # the style's own resolution (600 for the paper styles), else 160
             written.setdefault(name, []).append(p)
     if pdf and figs:
         from matplotlib.backends.backend_pdf import PdfPages

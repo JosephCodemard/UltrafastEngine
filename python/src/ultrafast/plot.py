@@ -32,8 +32,10 @@ def main(argv=None) -> int:
     ap.add_argument("--no-pdf", action="store_true", help="do not write the combined report.pdf")
     ap.add_argument("--out", help="output folder (single run: default DIR/plots; comparison: default .)")
     ap.add_argument("--db", action="store_true", help="spectra in dB in the overview / comparison")
-    ap.add_argument("--dark", action="store_true", help="dark theme")
-    ap.add_argument("--dpi", type=int, default=160)
+    ap.add_argument("--style", choices=up.STYLES, help="plot style (default: $ULTRAFAST_PLOT_STYLE or ultrafast); paper and science give publication figures at 600 dpi")
+    ap.add_argument("--column", choices=("single", "double"), help="paper styles: figure width 3.4 in (single) or 7.0 in (double, default)")
+    ap.add_argument("--dark", action="store_true", help="dark theme (same as --style ultrafast-dark)")
+    ap.add_argument("--dpi", type=int, default=None, help="resolution of saved images (default: the style's, 160 for ultrafast)")
     ap.add_argument("--labels", nargs="+", help="legend labels for a comparison (default: run names)")
     ap.add_argument("--show", action="store_true", help="open the figures in a window as well")
     a = ap.parse_args(argv)
@@ -41,7 +43,7 @@ def main(argv=None) -> int:
     if not a.show:
         import matplotlib
         matplotlib.use("Agg")
-    up.set_theme(dark=a.dark)
+    up.use_style("ultrafast-dark" if a.dark and not a.style else a.style, column=a.column)
     formats = [f.strip().lstrip(".") for f in a.format.split(",") if f.strip()]
     only = [s.strip() for s in a.only.split(",")] if a.only else None
 
@@ -61,7 +63,7 @@ def main(argv=None) -> int:
             out = out or r.directory / "plots"
             for name, f in res.items():
                 for ext in formats:
-                    f.savefig(Path(out) / f"{name}.{ext}", dpi=a.dpi)
+                    f.savefig(Path(out) / f"{name}.{ext}", dpi=up.save_dpi(f, a.dpi))
             print(f"{r.directory}: {', '.join(res)} -> {out}")
         else:
             files = [p for ps in res.values() for p in ps]
@@ -71,7 +73,7 @@ def main(argv=None) -> int:
         out.mkdir(parents=True, exist_ok=True)
         f = up.compare(results, a.labels, db=a.db)
         for ext in formats:
-            f.savefig(out / f"compare.{ext}", dpi=a.dpi)
+            f.savefig(out / f"compare.{ext}", dpi=up.save_dpi(f, a.dpi))
         print(f"comparison -> {out / ('compare.' + formats[0])}")
         figs_to_show.append(f)
     if a.show:
