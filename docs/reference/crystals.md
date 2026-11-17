@@ -209,7 +209,7 @@ ultrafast crystal MgO:LiNbO3 --process dfg --pump 1064e-9 --signal 1550e-9 --qpm
 
 ```python
 import ultrafast as uf
-r = uf.crystal.phase_match("LBO", "shg", fundamental=1030e-9)
+r = uf.calc.crystal.phase_match("LBO", "shg", fundamental_m=1030e-9)   # also uf.crystal.phase_match
 r["best"]["phiDeg"], r["best"]["deffPmPerV"], r["best"]["acceptance"]
 ```
 

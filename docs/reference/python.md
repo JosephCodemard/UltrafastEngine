@@ -198,6 +198,8 @@ thousand times.
 
 ## Plotting results
 
+Styles (`up.use_style("ultrafast" | "ultrafast-dark" | "paper" | "science")`, `--style`, `ULTRAFAST_PLOT_STYLE`), the schematics of branched systems, `spectrogram_3d` and `animate_evolution`: [Plotting](plotting.md).
+
 `ultrafast-plot` (installed with the package; or `python -m ultrafast.plot`, or simply
 `python python/src/ultrafast/plot.py` from a checkout without installing) turns a results folder written by the
 CLI into figures. It needs only NumPy and matplotlib, not the engine:
@@ -207,6 +209,7 @@ ultrafast run docs/examples/Nonlinear/mpc-argon/mpc.ufs docs/examples/Nonlinear/
 ultrafast-plot results/                         # -> results/plots/{system,overview,instruments,measurements,fit,probes,elements,byproducts,...}.png + report.pdf
 ultrafast-plot results/ --show --db             # open windows too; spectra in dB
 ultrafast-plot results/ --only overview --format svg,pdf --dark
+ultrafast-plot results/ --style paper --column single      # publication style: serif, inward ticks, 3.4 in wide, 600 dpi (reference/plotting.md)
 ultrafast-plot runA/ runB/ --labels "no CM" "with CM" --out compare/   # each run + compare.png
 ```
 

@@ -51,10 +51,12 @@ nav:
       - Ionisation & plasma: reference/ionization.md
       - Active elements & aux beams: reference/active-elements.md
       - Crystals (χ(2)): reference/crystals.md
+      - Calculators (pulse, crystal, cell, beam, nonlinear): reference/calculators.md
       - Pulse calculator (TBP): reference/pulse-calculator.md
       - Gain media & amplifiers: reference/gain.md
       - Oscillators & saturable absorbers: reference/oscillators.md
       - Branched systems: reference/branches.md
+      - Plotting (styles, schematics, 3-D spectrogram, animation): reference/plotting.md
       - Position-dependent properties: reference/spatial-properties.md
       - Spatial models: reference/transverse.md
       - Modulator (pixelated devices): reference/modulator.md

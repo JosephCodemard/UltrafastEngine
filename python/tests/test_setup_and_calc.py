@@ -74,8 +74,8 @@ def test_calc_tbp_of_shapes_matches_closed_forms():
 
 def test_calc_analyze_and_limit_round_trip():
     import ultrafast as uf
-    lim = uf.calc.limit("gaussian", duration=100e-15, center=800e-9)
-    r = uf.calc.analyze(duration=100e-15, bandwidth_m=lim["bandwidthFwhmM"], center=800e-9)
+    lim = uf.calc.limit("gaussian", duration_s=100e-15, center_m=800e-9)
+    r = uf.calc.analyze(duration_s=100e-15, bandwidth_m=lim["bandwidthFwhmM"], center_m=800e-9)
     assert r["ratioToLimit"] == pytest.approx(1.0, abs=1e-9) and r["gddMagnitudeFs2"] == pytest.approx(0.0, abs=1e-6)
 
 

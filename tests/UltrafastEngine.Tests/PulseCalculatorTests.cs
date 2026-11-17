@@ -17,6 +17,40 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.8859, PulseCalculator.TbpOf("rectangular"), 1e-4, 0, "rectangular");
         }
 
+        [Test(Reference = "Diels & Rudolph table 2.1: Lorentzian 0.142, one-sided (asymmetric) exponential 0.110", Tolerance = "1e-3")]
+        public void Tbp_OfLorentzianAndAsymmetricExponential_MatchesTheTable()
+        {
+            Assert.Close(0.142, PulseCalculator.TbpOf("lorentzian"), 0, 1e-3, "Lorentzian");
+            Assert.Close(0.110, PulseCalculator.TbpOf("asymmetric-exponential"), 0, 1e-3, "asymmetric exponential");
+            Assert.Close(PulseCalculator.TbpOf("lorentzian"), PulseCalculator.TbpOf("lorentz"), 0, 0, "alias");
+            Assert.Close(PulseCalculator.TbpOf("asymmetric-exponential"), PulseCalculator.TbpOf("asym-exp"), 0, 0, "alias");
+        }
+
+        [Test(Reference = "closed forms ln2 sqrt(sqrt2-1)/pi and ln2/(2 pi) against a brute-force Fourier transform of the field", Tolerance = "1e-3")]
+        public void Tbp_OfLorentzianAndAsymmetricExponential_MatchesANumericalTransform()
+        {
+            const int n = 16384; const double dt = 0.05;          // tau = 1; t from -410 to 410 (the Lorentzian field falls as 1/t^2)
+            var t = new double[n]; for (int i = 0; i < n; i++) t[i] = (i - n / 2) * dt;
+            foreach (var shape in new[] { "lorentzian", "asymmetric-exponential" })
+            {
+                var e = new double[n];
+                for (int i = 0; i < n; i++)
+                    e[i] = shape == "lorentzian" ? 1 / (1 + t[i] * t[i]) : (t[i] >= 0 ? Math.Exp(-t[i] / 2) : 0);   // I = e^2
+                if (shape != "lorentzian") e[n / 2] *= 0.5;       // trapezoid weight at the step t = 0
+                var inten = new double[n]; for (int i = 0; i < n; i++) inten[i] = e[i] * e[i];
+                int m = 600; double dw = 0.01; var w = new double[m]; var sp = new double[m];  // |FT|^2 on a coarse omega grid
+                for (int k = 0; k < m; k++)
+                {
+                    w[k] = (k - m / 2) * dw; double re = 0, im = 0;
+                    for (int i = 0; i < n; i++) { if (e[i] < 1e-9) continue; re += e[i] * Math.Cos(w[k] * t[i]); im += e[i] * Math.Sin(w[k] * t[i]); }
+                    sp[k] = re * re + im * im;
+                }
+                double dtau = shape == "lorentzian" ? UltrafastEngine.Results.PulseMetrics.Fwhm(t, inten) : Math.Log(2);   // I = exp(-t): FWHM = ln 2 (the step edge is not sampled)
+                double dnu = UltrafastEngine.Results.PulseMetrics.Fwhm(w, sp) / (2 * Math.PI);
+                Assert.Close(PulseCalculator.TbpOf(shape), dtau * dnu, 0, 2e-3, shape);
+            }
+        }
+
         [Test(Reference = "dnu = c dlambda / lambda^2", Tolerance = "1e-9")]
         public void Limit_FromWavelengthBandwidth_IsInverseOfDurationLimit()
         {

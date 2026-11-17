@@ -303,7 +303,7 @@ same for a `mirror` coating (with an optional reflectance ripple).
 A Herriott or quasi-concentric cell is stable only for a beam whose complex parameter q reproduces itself after one round trip. In the empty cell
 this is the Kogelnik-Li eigenmode; at high peak power the Kerr lens of the gas or the glass plates changes it, and the matched mode depends on the
 power. `cellMode` finds it, so no trial runs in the radial model are needed. It is a command (`uf_command`), reached from Python as
-`ultrafast.cells.cell_mode(...)` and from C# as `Lasers.CellModeSolver.Solve`.
+`ultrafast.calc.cell.cell_mode(...)` (also `ultrafast.cells.cell_mode`) and from C# as `Lasers.CellModeSolver.Solve`.
 
 ```python
 from ultrafast import cells
