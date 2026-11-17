@@ -24,7 +24,7 @@ first build for a platform other than this machine's downloads that platform's .
 ## A release is the whole repository, in pieces you can take separately
 
 A release on GitHub has three kinds of file: the **source archive** (the full repository), one **asset per component and platform**
-(`cli-2.2.0-osx-arm64.tar.gz`, `python-2.2.0.tar.gz`, `examples.Branched-2.2.0.tar.gz` ...), and `manifest.json` (every asset with its size,
+(`cli-1.0.0-osx-arm64.tar.gz`, `python-1.0.0.tar.gz`, `examples.Branched-1.0.0.tar.gz` ...), and `manifest.json` (every asset with its size,
 SHA-256, the platform and what it needs) with **`install.py`**. GitHub cannot serve part of an asset, so the pieces are separate assets;
 for source folders `install.py` can instead use git's partial clone (below). Maintainers build the assets; users run `install.py`.
 
@@ -61,7 +61,7 @@ Standard library only; it is in the repository and attached to every release.
 python install.py --list                                                  # components, sizes for this platform, what is installed
 python install.py --include python tests examples.Branched --dest ~/uf    # only these (and what they need)
 python install.py --include examples.Branched.pump-probe --dest ~/uf      # adds to the same folder
-python install.py --include all --exclude media --version 2.2.0
+python install.py --include all --exclude media --version 1.0.0
 python install.py --preset cli-plugins                                    # ready-made selections: cli, cli-plugins, python, python-native, cpp, full
 python install.py --include docs examples.Fibres --source git             # source folders by git partial clone (see below)
 python install.py --uninstall --include tests --dest ~/uf                 # remove part ...
@@ -97,8 +97,8 @@ and writes `<dest>/.ultrafast-install.json` with every file, its hash, the compo
 ./build.sh --components cli python plugins schemas docs examples tests papers --platform linux-x64 osx-arm64 win-x64
 ./build.sh --components cpp python-native --platform osx-arm64      # NativeAOT: on the target OS (the owner's Mac for macOS)
 ./build.sh --components all media source --exclude papers --dry-run # the plan only
-python build/release_components.py merge dist/release-2.2.0/manifest.json dist/a/manifest.json dist/b/manifest.json   # manifests of several jobs
-python build/release_components.py check-zosapi dist/release-2.2.0   # fails if any archive or wheel holds a ZOSAPI file
+python build/release_components.py merge dist/release-1.0.0/manifest.json dist/a/manifest.json dist/b/manifest.json   # manifests of several jobs
+python build/release_components.py check-zosapi dist/release-1.0.0   # fails if any archive or wheel holds a ZOSAPI file
 ```
 
 Output: `dist/release-<version>/` with `<component>-<version>[-<platform>].tar.gz` (reproducible: sorted, fixed timestamps), `manifest.json`, `install.py`.

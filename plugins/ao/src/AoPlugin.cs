@@ -8,7 +8,7 @@ namespace UltrafastEngine.Plugins.Ao
 {
     public sealed class AoPlugin : IPlugin
     {
-        public const string PluginVersion = "2.2.0";
+        public const string PluginVersion = "1.0.0";
         public string Id => "ao";
         public string Name => "Adaptive optics, beam and pulse shaping";
         public string Version => PluginVersion;
