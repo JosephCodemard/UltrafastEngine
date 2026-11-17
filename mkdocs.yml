@@ -7,6 +7,7 @@ docs_dir: docs
 # CLAUDE.md files are instructions for Claude Code, not pages of the site
 exclude_docs: |
   CLAUDE.md
+  design/
 theme:
   name: readthedocs
   custom_dir: overrides            # main.html adds the long logo as a footer
@@ -90,18 +91,6 @@ nav:
   - For AI agents: agents.md
   - Claude Code: claude-code.md
   - Releasing (build.sh): releasing.md
-  - Design notes:
-      - Development history: design/history.md
-      - "Next steps": design/next-steps.md
-      - "Backlog (parked design)": design/backlog.md
-      - "Release plan 1.0.0": design/release-plan.md
-      - "WP-D core fixes": design/wp-d-core-fixes.md
-      - "WP-E leftovers and Zemax": design/wp-e-leftovers-zemax.md
-      - "WP-C(A) speed on the Mac": design/wp-ca-speed-mac.md
-      - "WP-C(B) GPU on Windows": design/wp-cb-gpu-windows.md
-      - "WP-B documentation": design/wp-b-docs.md
-      - "WP-A agents and MCP": design/wp-a-agents-mcp.md
-      - "WP-F release pipeline": design/wp-f-release.md
 markdown_extensions:
   - admonition
   - tables

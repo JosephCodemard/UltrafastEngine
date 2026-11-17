@@ -94,8 +94,8 @@ construction of the synthetic lab (placement; a phase proportional to the energy
 
 ## Limits and not built
 
-* The MCP server for agents (T6: eight workspace-scoped tools, user expressions refused, time and memory budgets) is designed
-  ([design record](../design/next-steps.md#4-mcp-server-the-agreed-design-not-built)) and **not built**.
+* The MCP server for agents is the core package's `ultrafast-mcp` ([agents](../agents.md)), not part of this plugin; `ultrafast_twin serve` starts it.
+  Its `fit` and `compare_to_measured` tools are not built yet.
 * The only project template is the synthetic spectral lab; a spatial (wavefront) template does not exist.
 * Gradients through the engine are finite differences (one run per parameter and condition); the network transform needed 1050 runs
   in its test.

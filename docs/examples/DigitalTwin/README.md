@@ -12,5 +12,5 @@ A digital twin is a simulation that has been fitted to a real system *and knows 
 
 Run: `python docs/examples/make_all.py --group DigitalTwin`. Plugin pages: [fitting](../../plugins/fitting.md), [twin](../../plugins/twin.md).
 
-**Not here yet:** a wavefront twin (needs a spatial project template that does not exist yet), and agent-driven design through an MCP server (the MCP
-server is not built; the design is in [the design record](../../design/next-steps.md#4-mcp-server-the-agreed-design-not-built)).
+**Not here yet:** a wavefront twin (needs a spatial project template that does not exist yet), and agent-driven fitting through the MCP server (`ultrafast-mcp`, see
+[agents](../../agents.md): its `fit` tool is not built yet).

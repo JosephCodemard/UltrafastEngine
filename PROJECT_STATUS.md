@@ -48,4 +48,4 @@ The test matrix lists every test with the analytic or published value it checks:
 pyNLO (fibre propagation with Raman and gain, DFG in PPLN, branched arms), LightPipes (diffraction, lenses, apertures, tilt,
 Talbot, interferometers), HAPI (water, CO2 and O2 lines).
 
-What the last consolidation did, what is still open and what to do next: [HANDOFF.md](HANDOFF.md).
+What was built, session by session: [docs/design/history.md](docs/design/history.md); open engineering work: [docs/design/roadmap-internal.md](docs/design/roadmap-internal.md).

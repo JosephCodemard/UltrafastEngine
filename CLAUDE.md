@@ -16,7 +16,7 @@ folder-level `CLAUDE.md` files (loaded only when you work in that folder), in th
 * Must run on Apple silicon (arm64 macOS), Windows and Linux; .NET 10 and .NET Framework 4.8 (OpticStudio).
 * Physical accuracy first: a physics change needs an analytic or published reference value in a test.
 * Plain, precise English in docs and messages. SI units with the unit in the key name.
-* PyPI: the first public release (1.0.0) is uploaded with `twine`, **only on the owner's explicit go-ahead** in that session (credentials come from the owner's environment, never from the repository). Pushing branches to GitHub is allowed; tags / releases only when the owner asks. Plan: `docs/design/release-plan.md`.
+* PyPI: releases are published by `release.yml` through PyPI trusted publishing (no token anywhere), **only on the owner's explicit go-ahead** (the owner creates tags and approves the protected `pypi` environment). Pushing branches to GitHub is allowed; tags / releases only when the owner asks. Decisions: `docs/design/decisions.md`; procedure: `docs/releasing.md`.
 * The owner's `../Experiments/` folder is off-limits (never read code from it or modify it); only its `data/` files
   may be copied into `docs/papers/`. Licensed paper PDFs and their figures never go into the repository.
 
@@ -67,7 +67,7 @@ after a code change.
 | speed: CPU FFT providers, compute back-ends, GPU | `docs/reference/speed.md`, `docs/plugins/gpu.md`; tests `ComputeTests`, `GpuTests` |
 | tests | `tests/UltrafastEngine.Tests/CLAUDE.md` |
 | status / what is verified | `PROJECT_STATUS.md`; history in `CHANGELOG.md` (top section only) |
-| current plan, owner decisions | `docs/design/next-steps.md` (open items), `docs/design/backlog.md` (parked), `docs/design/history.md` (what was built) (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
+| current plan, owner decisions | `docs/design/README.md` (internal; index): `roadmap-internal.md` (open items), `decisions.md`, `limitations.md`, `future-plugins.md` (parked designs), `history.md` (what was built; end every session there, no HANDOFF file) (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
 | paper replications | `docs/papers/` (`docs/papers/CLAUDE.md`): published headline results reproduced, plots + commentary |
 | component checks with plots | `tests/components/` (`tests/components/CLAUDE.md`): one script per component family, HTML gallery |
 

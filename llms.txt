@@ -89,21 +89,11 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Claude Code setup](docs/claude-code.md): CLAUDE.md files, commands, subagents, skills, hooks
 - [Releasing](docs/releasing.md): build.sh / build.bat release packages, release components, `install.py` (selective install / uninstall)
 
-## Design notes
-- [Development history](docs/design/history.md)
-- [Next steps](docs/design/next-steps.md)
-- [Backlog (parked design)](docs/design/backlog.md)
-- [Release plan 1.0.0](docs/design/release-plan.md)
-- [WP-D core fixes](docs/design/wp-d-core-fixes.md)
-- [WP-E leftovers and Zemax](docs/design/wp-e-leftovers-zemax.md)
-- [WP-C(A) speed on the Mac](docs/design/wp-ca-speed-mac.md)
-- [WP-C(B) GPU on Windows](docs/design/wp-cb-gpu-windows.md)
-- [WP-B documentation](docs/design/wp-b-docs.md)
-- [WP-A agents and MCP](docs/design/wp-a-agents-mcp.md)
-- [WP-F release pipeline](docs/design/wp-f-release.md)
+## Architecture
 - [Architecture](docs/architecture/index.md)
 - [Code map](docs/architecture/code-map.md)
 - [Key processes](docs/architecture/processes.md)
+- [Internal design notes](docs/design/README.md): for developers only (decisions, internal roadmap, limitations with evidence, history); not user documentation
 
 
 ## Optional

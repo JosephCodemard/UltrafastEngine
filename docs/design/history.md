@@ -1,7 +1,8 @@
 # Development history
 
-This page records how the engine was built, phase by phase, up to 2.1.8-beta (for what comes next see the
-[roadmap](../roadmap.md)). UltrafastEngine 2.0 was developed in phases. Each phase ends with tests that pin the new physics to analytic
+Internal page ([folder index](README.md)). This page records how the engine was built, phase by phase and session by session, with the
+findings and numbers of each (open work: [roadmap-internal](roadmap-internal.md); public summary: [roadmap](../roadmap.md)). The intro below
+was written at 2.1.8-beta. UltrafastEngine 2.0 was developed in phases. Each phase ends with tests that pin the new physics to analytic
 results or another code. Status as of **2.1.8-beta** (Stage 1 complete).
 
 Order from here (decided 2026-10-16): **Stage 1** finishes the core engine and its documentation (released as **2.1.8-beta**, the stable core);
@@ -153,7 +154,7 @@ up to a full 1920 x 1080 SLM; the twin is its own plugin on top of fitting; CI o
 
 ## Stage 9 -- the road to 1.0.0: core fixes and leftovers  (2026-11-16; sessions WP-D and WP-E on `dev/2026-11`)
 
-The plan for the first public release is [release-plan.md](release-plan.md) (owner decisions, order of the work packages, one spec each).
+The plan for the first public release had seven work packages (WP-A agents / MCP, WP-B docs, WP-C(A) speed on the Mac, WP-C(B) GPU on Windows, WP-D core fixes, WP-E leftovers and Zemax, WP-F release); its owner decisions are in [decisions.md](decisions.md).
 
 **WP-D (core fixes).**
 * `n2Scale` in a 1-D element scaled only the Kerr n2; the rotational Raman of gases (air gaps of a multipass cell) kept its full strength, while the spatial model already scaled it.
@@ -162,7 +163,7 @@ The plan for the first public release is [release-plan.md](release-plan.md) (own
 * **Kerr lens in the 1-D beam model** (`kerrLens: off | peak | pulseWeighted`, `kerrLensModel`): the Gaussian beam of a bulk element self-focuses with thin Kerr lenses of the pulse's power
   (second-moment radius, Ermakov equation). Reference: the exact solution w² = w0²[1 + (1 − P/P_c)(z/zR)²]; the model's P_c is 1.06 × Marburger's. Limits: one power per element (entry), the
   beam leaving the element is not carried on, off by default. Tests: `KerrLensTests`, `GasTests.N2Scale_In1D_ScalesTheRotationalRamanToo`.
-* **D3 sweep** (see [wp-d-core-fixes.md](wp-d-core-fixes.md)): an element's own `raman` / `fR` were read only through overrides (fixed; the same pattern as `n2`); `thinFilmPolarizer.bandPosition` was read but not declared; crystal elements dropped ~1e-6 of the energy at the output resampling without booking it (now the mechanism `grid boundary`); a list of keys with a unit missing from their name went to `next-steps.md`. Slowest tests: 31 s (`SingleShotCorrelatorTests.SpatialSfgOfTwoCrossedBeams...`) and 20 s (`BeamSourceTests.BinaryPhaseZonePlate...`); the whole suite takes about 3.5 minutes.
+* **D3 sweep** (a bug-hunter agent in its own worktree): an element's own `raman` / `fR` were read only through overrides (fixed; the same pattern as `n2`); `thinFilmPolarizer.bandPosition` was read but not declared; crystal elements dropped ~1e-6 of the energy at the output resampling without booking it (now the mechanism `grid boundary`); a list of keys with a unit missing from their name went to the roadmap (unit-in-key renames). Slowest tests: 31 s (`SingleShotCorrelatorTests.SpatialSfgOfTwoCrossedBeams...`) and 20 s (`BeamSourceTests.BinaryPhaseZonePlate...`); the whole suite takes about 3.5 minutes.
 
 **WP-E (leftovers and Zemax).**
 * Python: `result.unverified_inputs` (typed) and `result.ase_pedestal()` (one stage's inter-pulse ASE as the next stage's `pulse.pedestal`).
@@ -172,3 +173,34 @@ The plan for the first public release is [release-plan.md](release-plan.md) (own
 * New examples: `AdaptiveOptics/component-gallery` (the four `ao` elements against analytic answers; the deformable-mirror sensor reading is 8 % below 2 × poke for a cause not traced, noted in its README) and `DigitalTwin/dependence-models` (proportional, quadratic, Chebyshev and constrained-network energy laws on a saturating lab: only the Chebyshev series passes inside and outside the training range; the network is sensitive to its size and start). Fixed on the way: the twin plugin crashed predicting from a fit whose reported width was `null`. `UF_WITH_AO` in the native library was already done in Stage 7 (the WP-E spec was stale).
 * **Zemax** is documented as experimental and never verified against OpticStudio: out of the core narrative, one status box on its plugin page, `plugins/zemax/HARDWARE-CHECKLIST.md` for the first run, `TODO(zemax-hw)` markers on the unverified ZOS-API assumptions, and an unreadable lens unit is now an error instead of a silent default to millimetres.
 * State after both: C# 614 pass / 0 fail / 9 skipped; Python 265 pass / 2 skipped (after D3); strict examples 0 problems; `mkdocs --strict` clean. net48 under Mono was not run (Mono is not installed on the owner's Mac).
+
+## Stage 10 -- speed and GPU  (2026-11-16; sessions WP-C(A) on the Mac and WP-C(B) on Windows, `dev/2026-11`)
+
+**WP-C(A), speed on the Mac** (owner approved the conservative fidelity bundles).
+* **`fidelity`** run key (`full` / `standard` / `quick`, CLI `--fidelity`): `Specs/Fidelity.cs`, applied in `RunSpec.FromJson` to unset keys only; `fidelityReport` in `summary.json`; unreliability warnings from cheap indicators (B, P/P_cr, ...). Page `docs/reference/fidelity.md`. Tests `FidelityTests`.
+* **Studies:** grid union over the range ends, instruments skipped when no output reads one, point cache (`"cache": folder`) with resume, Python `uf.scan` (lazy, shaped). A study is 5.7x faster than a loop on the multipass cell. Tests `StudyCacheTests`.
+* **FP32 study:** `cpu-fp32` back-end (`Numerics/Fp32Emulation.cs`). The operator in single precision is good to 1e-9 (energy, spectrum) but fills the contrast floor below about -85 dB, so mixed precision is refused above about 70 dB of dynamic range.
+* `tools/bench` (developer benchmark, not in the solution) and `tools/bench/golden-osx-arm64.txt` (outputs of the five baseline cases before any change).
+* Measured and **deliberately not built** (reasons and revisit conditions in `docs/reference/speed.md`): linear fast path, CPU ensemble batching, pooled buffers / SIMD Hankel. No measured case is slow (20 ms to 0.5 s).
+* C# 622 pass / 0 fail / 9 skipped (GPU and HAPI gates); Python 266 pass / 2 skipped; 39 example specs strict; `mkdocs --strict` clean.
+
+**WP-C(B), GPU on Windows + NVIDIA** (RTX 3060 Ti, driver 610.88, CUDA 13.3; NVRTC 12, cuFFT 11, cuBLAS 12; OpenCL from the NVIDIA driver; run by Claude Code on the owner's machine).
+* Self-test on CUDA and OpenCL: relative errors 2e-16 to 8e-15. Benchmark (double precision; CPU = 20 cores): scalar N = 8192 0.75x (CUDA) / 1.06x (OpenCL), N = 65536 4.6x, vector 32768 4.9x / 6.9x, radial 1024 x 64 7.8x / 8.3x, cartesian 512 x 1024 6.8x / 6.3x.
+* **Kernel 1**, gas rotational Raman on the device, 1-D and spatial (`IPaddedKernelResponse`: the CPU's zero-padded causal convolution); MPC air gaps no longer stay on the CPU (unless they ionise: fixed in Stage 11).
+* **Kernel 2**, modulator / tile source: parity extended (realistic panel, vector pulse), no code change needed.
+* **Kernel 3**, time responses compiled to kernels: `expression` (all functions and variables incl. `F`), `twoPhotonAbsorption`, `kerr` (`CompiledExpression.ToC`, `Physics/DeviceResponses.cs`, `UserResponseKernel.cs`). Callbacks stay on the CPU.
+* **Kernel 4**, χ(2) 1-D coupled waves (`Chi2Stepper.cs`); the device stepper lands on QPM walls like the CPU.
+* **Study ensembles** (`Numerics/Ensemble.cs`, `EnsembleStepper.cs`, study key `ensemble`): 3.5-6x faster than a stream per point; level with a 20-core CPU at N = 4096, 1.6x faster at 16384 on this FP64-limited card.
+* **Mixed precision** (`compute.precision: mixed`): 1-D and χ(2) operators with FP32 FFTs; energy 1e-6 / spectrum 1e-4 met on SPM plate, 20-pass MPC, soliton, SHG (worst: energy 8e-8, spectrum 1e-6); 1.3-1.5x faster; refused above 70 dB of instrument dynamic range.
+* Findings: the GPU parity tests used to pass when a device run had failed and fallen back to the CPU (fixed); domain-resolved QPM at the default tolerance is only ~7e-4 accurate in field because of sliver steps at walls (CPU too; fixed in Stage 11); fixed steps ignore QPM walls (now a warning).
+* C# `--slow` 642 tests (16 `GpuTests`): 641 pass, 1 skip (HAPI); Python 267 pass / 1 skip; 41 example specs strict; `mkdocs --strict` clean.
+
+## Working notes that still help
+
+* **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
+* **Honesty rules that worked:** a paper disagreement is a finding, never tuned away; a KNOWN mark in a component check must have a repro; unverifiable numbers are UNVERIFIED and soft; a test tolerance is never loosened to hide a failure.
+* **Parallel agents:** implementers in separate git worktrees (`isolation: worktree`), each on a distinct part of the code; the lead merges and regenerates the generated files once. A subagent started inside a worktree session cannot run commands in the main checkout (and vice versa).
+* **Python environment:** export `ULTRAFAST_LIBRARY` and `PYTHONPATH` in the same shell command as the Python call, or a stale `bin/native` library is used. Rebuild with `python/tools/build_engine.py` after any C# change, never while another job uses the library (other Python processes can lock `python/src/ultrafast/bin` on Windows: retry after they finish).
+* **Windows machine (owner's):** `python3` is the Microsoft Store stub, use `python` from `../.venv`; HTTPS certificate checks fail for git and pip because the antivirus inspects TLS: the repository has `http.sslBackend schannel` (local config), and pip takes `--cert` with a bundle of the Windows roots exported from `Cert:\LocalMachine\Root`.
+* **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
+* **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.

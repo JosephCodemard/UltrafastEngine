@@ -1,22 +1,14 @@
-# GPU check on Windows + NVIDIA (WP-C(B))
+# Hardware checklists
 
-For the owner's Windows machine with an NVIDIA GPU, in a Claude Code session started in the repository. Everything that can be done on the Mac
-is done (WP-C(A)); what is left is the GPU kernels and their parity checks, which need a device. A 3060 Ti runs FP64 at about 1/64 of its
-FP32 rate, so **parity (same answer as the CPU) is the goal there, not speed**; speed-ups need an A100-class card.
+Internal page ([folder index](README.md)). Exact steps for checks that need hardware the development machines may not have. The results of
+each run go to [history.md](history.md) (the first GPU run: Stage 10, 2026-11-16). Zemax has its own checklist in
+`plugins/zemax/HARDWARE-CHECKLIST.md` (never run: no OpticStudio).
 
-## 0. Results of the first run (2026-11-16, WP-C(B))
+# GPU (CUDA / OpenCL on an NVIDIA card)
 
-RTX 3060 Ti, driver 610.88 (CUDA 13.3), NVRTC 12, cuFFT 11, cuBLAS 12; OpenCL from the NVIDIA driver. Done in the session itself (Claude Code on the
-Windows machine), not pasted back.
-
-* Self-test passed on CUDA and OpenCL (relative errors 2e-16 to 8e-15); `GpuTests` 8 of 8 before this session's work, 14 of 14 after it.
-* Benchmark (double precision; CPU = 20 cores): scalar N = 8192 0.75x (CUDA) / 1.06x (OpenCL), N = 65536 4.6x, vector 32768 4.9x / 6.9x,
-  radial 1024 x 64 7.8x / 8.3x, cartesian 512 x 1024 6.8x / 6.3x.
-* Kernels 1-4 built with parity tests on both runtimes (1e-13 to 1e-16); study ensembles (1e-15); mixed precision (energy 8e-8, spectrum 1e-6 at worst).
-* Findings: a device failure that fell back to the CPU used to pass the parity tests (fixed); the domain-resolved QPM stepping is sensitive to the
-  last bits of the step size and fixed steps ignore the walls (`next-steps.md` section 3).
-* Environment: HTTPS from git and pip failed certificate checks (an antivirus inspecting TLS); fixed for this repository with
-  `git config --local http.sslBackend schannel` and a Windows-root bundle passed to pip with `--cert`.
+A consumer card (RTX 3060 Ti) runs FP64 at about 1/64 of its FP32 rate, so **parity (same answer as the CPU) is the goal there, not speed**;
+speed-ups need an A100-class card. Kernels 1-4, study ensembles and mixed precision were built and checked on 2026-11-16; re-run this list after any
+change to `plugins/gpu` and on any new device.
 
 ## 1. Build and self-test (about 5 minutes)
 
@@ -31,7 +23,7 @@ Paste back **the full output** of the four commands, the output of `nvidia-smi` 
 `ultrafast devices --json`. Expected: `selftest` passes on the CUDA device (relative L2 difference to the CPU at most 1e-9); the OpenCL device
 too if the NVIDIA OpenCL runtime is present; `GpuTests` all PASS (none skipped: a skip means no double-precision device was found).
 
-## 2. Kernels to write, in order (backlog B3)
+## 2. Kernels and their CPU references (all four built 2026-11-16; the list stays as the parity map)
 
 Each kernel needs a CPU-parity test in `GpuTests` (relative L2 of the output field at most 1e-9) for **both** CUDA and OpenCL. Start at
 `plugins/gpu/src/Kernels.cs` (source of the kernels), `EnvelopeStepper.cs` (1-D), `SpatialStepper.cs`, `GpuBackend.cs` (what a device
