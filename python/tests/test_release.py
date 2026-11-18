@@ -7,6 +7,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -406,3 +407,73 @@ def test_git_sparse_checkout_and_uninstall_in_a_temporary_repository(tmp_path):
     assert not (dest / "tests").exists() and (dest / "docs/examples/Branched/pump-probe/run.json").exists()
     inst.uninstall(dest, None, use_pip=False, log=lambda *_: None)
     assert not dest.exists()
+
+
+# ----------------------------------------------------------------- assembling the artifacts of the build jobs (release.yml, job publish)
+def _job_artifact(parts, job, archives, installer=b"print('install')\n", crlf=False):
+    """What ``actions/download-artifact`` leaves for one build job: ``parts/<artifact>/release-1.0.0/`` with archives, manifest.json and install.py."""
+    import hashlib
+    folder = parts / job / "release-1.0.0"
+    folder.mkdir(parents=True)
+    comps = {}
+    for name, platform, payload in archives:
+        f = folder / ("%s-1.0.0-%s.tar.gz" % (name, platform) if platform != "any" else "%s-1.0.0.tar.gz" % name)
+        f.write_bytes(payload)
+        comps.setdefault(name, {"kind": "built", "assets": []})["assets"].append(
+            {"platform": platform, "file": f.name, "size": len(payload), "sha256": hashlib.sha256(payload).hexdigest()})
+    (folder / "manifest.json").write_text(json.dumps({"version": "1.0.0", "components": comps}), encoding="utf-8")
+    (folder / "install.py").write_bytes(installer.replace(b"\n", b"\r\n") if crlf else installer)
+    return folder
+
+
+def test_assemble_merges_nested_artifacts_and_normalises_the_installer(tmp_path):
+    rc = _load("release_components_asm", REPO / "build" / "release_components.py")
+    parts = tmp_path / "parts"
+    _job_artifact(parts, "assets-managed", [("cli", "linux-x64", b"A" * 10), ("schemas", "any", b"S")])
+    _job_artifact(parts, "assets-native-win-x64", [("cpp", "win-x64", b"C" * 7)], crlf=True)        # a Windows checkout has CRLF in install.py
+    out = tmp_path / "release"
+    m = rc.assemble(parts, out)
+    assert set(m["components"]) == {"cli", "schemas", "cpp"}
+    assert sorted(p.name for p in out.glob("*.tar.gz")) == ["cli-1.0.0-linux-x64.tar.gz", "cpp-1.0.0-win-x64.tar.gz", "schemas-1.0.0.tar.gz"]
+    assert (out / "install.py").read_bytes() == b"print('install')\n"
+    assert json.loads((out / "manifest.json").read_text(encoding="utf-8")) == m
+
+
+def test_assemble_refuses_inconsistent_artifacts(tmp_path):
+    rc = _load("release_components_asm2", REPO / "build" / "release_components.py")
+    with pytest.raises(SystemExit, match="expected the artifacts"):
+        rc.assemble(tmp_path / "empty", tmp_path / "out")
+    parts = tmp_path / "p1"
+    _job_artifact(parts, "a", [("cli", "linux-x64", b"one")])
+    _job_artifact(parts, "b", [("cli", "linux-x64", b"two")])                    # the same name with other content
+    with pytest.raises(SystemExit, match="built twice"):
+        rc.assemble(parts, tmp_path / "o1")
+    parts = tmp_path / "p2"
+    _job_artifact(parts, "a", [("cli", "linux-x64", b"one")], installer=b"x=1\n")
+    _job_artifact(parts, "b", [("cpp", "linux-x64", b"two")], installer=b"x=2\n")
+    with pytest.raises(SystemExit, match="install.py differs"):
+        rc.assemble(parts, tmp_path / "o2")
+    parts = tmp_path / "p3"
+    f = _job_artifact(parts, "a", [("cli", "linux-x64", b"one")])
+    (f / "cli-1.0.0-linux-x64.tar.gz").write_bytes(b"tampered")                   # the manifest says otherwise
+    with pytest.raises(SystemExit, match="differs from the manifest"):
+        rc.assemble(parts, tmp_path / "o3")
+
+
+def test_the_workflow_assembles_instead_of_guessing_paths():
+    text = (REPO / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "release_components.py assemble parts release" in text and "assets-managed/install.py" not in text
+
+
+def test_every_workflow_job_that_runs_a_tool_installs_it():
+    """The publish job of the first alpha tag ran `python -m pytest` without installing pytest. Jobs that call pytest, twine or mkdocs must pip-install them."""
+    yaml = pytest.importorskip("yaml")
+    for wf in sorted((REPO / ".github" / "workflows").glob("*.yml")):
+        doc = yaml.safe_load(wf.read_text(encoding="utf-8"))
+        for job_id, job in (doc.get("jobs") or {}).items():
+            runs = [str(st.get("run", "")) for st in job.get("steps", [])]
+            blob = "\n".join(runs)
+            for tool, pkg in (("pytest", "pytest"), ("twine", "twine"), ("mkdocs", "mkdocs")):
+                used = any(("python -m %s" % tool in r or r.strip().startswith(tool + " ") or ("\n" + tool + " ") in r) for r in runs)
+                installed = any("pip install" in r and (pkg in r or (pkg == "pytest" and re.search(r"[\[,]test[\],]", r))) for r in runs)      # the package extra "test" brings pytest or "setup.sh" in blob or "setup.py" in blob or "requirements" in blob
+                assert not used or installed, "%s: job %r runs %s but never installs it" % (wf.name, job_id, tool)

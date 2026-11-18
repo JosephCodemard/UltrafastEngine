@@ -12,7 +12,7 @@ Component names: ``cli`` ``python`` ``python-native`` ``cpp`` ``csharp`` ``zemax
 ``plugins.<id>``, ``schemas``, ``docs``, ``examples.<Group>`` + ``examples.shared``, ``media``, ``tests``, ``component-tests``,
 ``papers``, ``source``. A name selects its children (``examples`` = every group). Files of source components are repository-relative
 (``docs/examples/Branched/...``), the same tree as a git sparse checkout. Command line: ``python build/release_components.py merge OUT IN...``
-and ``... check-zosapi PATH...``. Guide: docs/releasing.md.
+``... assemble PARTS OUT`` (the artifacts of the build jobs into one verified release folder) and ``... check-zosapi PATH...``. Guide: docs/releasing.md.
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ import gzip
 import hashlib
 import io
 import json
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -230,12 +231,63 @@ def merge(manifests: list[dict]) -> dict:
     return out
 
 
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def assemble(parts: Path, out: Path) -> dict:
+    """Put the downloaded artifacts of the build jobs (``parts/<artifact>/[release-X.Y.Z/]*``) into one release folder ``out``.
+
+    Every ``*.tar.gz`` is copied (a name found twice must have the same content), the one ``install.py`` (identical in every job) is copied, the
+    ``manifest.json`` files are merged, and the result is checked: every asset the merged manifest lists is in ``out`` with the recorded size and
+    SHA-256, and ``install.py`` is there. Returns the merged manifest; raises ``SystemExit`` with the reason on any inconsistency."""
+    parts, out = Path(parts), Path(out)
+    archives = sorted(parts.rglob("*.tar.gz"))
+    manifests = sorted(parts.rglob("manifest.json"))
+    installers = sorted(parts.rglob("install.py"))
+    if not archives or not manifests or not installers:
+        raise SystemExit("%s holds %d archives, %d manifests and %d install.py: expected the artifacts of the build jobs" % (parts, len(archives), len(manifests), len(installers)))
+    out.mkdir(parents=True, exist_ok=True)
+    for a in archives:
+        dst = out / a.name
+        if dst.exists():
+            if _sha256(dst) != _sha256(a):
+                raise SystemExit("%s was built twice with different content (%s)" % (a.name, a))
+            continue
+        shutil.copy2(a, dst)
+    texts = {i.read_bytes().replace(b"\r\n", b"\n") for i in installers}      # a Windows checkout has CRLF; the content must be the same
+    if len(texts) != 1:
+        raise SystemExit("install.py differs between the build jobs: %s" % ", ".join(str(i) for i in installers))
+    (out / "install.py").write_bytes(texts.pop())
+    merged = merge([json.loads(m.read_text(encoding="utf-8")) for m in manifests])
+    (out / "manifest.json").write_text(json.dumps(merged, indent=1), encoding="utf-8")
+    problems = []
+    for name, comp in merged["components"].items():
+        for asset in comp["assets"]:
+            f = out / asset["file"]
+            if not f.is_file():
+                problems.append("%s: %s is not in the release folder" % (name, asset["file"]))
+            elif f.stat().st_size != asset["size"] or _sha256(f) != asset["sha256"]:
+                problems.append("%s: %s differs from the manifest (size or SHA-256)" % (name, asset["file"]))
+    if problems:
+        raise SystemExit("the merged release folder is inconsistent:\n  " + "\n  ".join(problems))
+    return merged
+
+
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["merge"] and len(argv) >= 3:
         m = merge([json.loads(Path(p).read_text(encoding="utf-8")) for p in argv[2:]])
         Path(argv[1]).write_text(json.dumps(m, indent=1), encoding="utf-8")
         print("merged %d manifests -> %s (%d components)" % (len(argv) - 2, argv[1], len(m["components"])))
+        return 0
+    if argv[:1] == ["assemble"] and len(argv) == 3:
+        m = assemble(Path(argv[1]), Path(argv[2]))
+        print("assembled %s -> %s (%d components, %d archives, manifest verified)" % (argv[1], argv[2], len(m["components"]), len(list(Path(argv[2]).glob("*.tar.gz")))))
         return 0
     if argv[:1] == ["check-zosapi"] and len(argv) >= 2:
         paths = []

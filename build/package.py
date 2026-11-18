@@ -160,6 +160,60 @@ def native_lib_names(rid):
     return ["ultrafast.dll", "ultrafast.lib"] if o == "win" else (["libultrafast.dylib"] if o == "osx" else ["libultrafast.so"])
 
 
+def pe_exports(dll: Path):
+    """The names a Windows DLL exports (its PE export table), read without any Windows tool."""
+    d = Path(dll).read_bytes()
+    u16 = lambda o: int.from_bytes(d[o:o + 2], "little")
+    u32 = lambda o: int.from_bytes(d[o:o + 4], "little")
+    pe = u32(0x3C)
+    if d[pe:pe + 4] != b"PE\0\0":
+        raise SystemExit("%s is not a PE file" % dll)
+    nsec, optsize = u16(pe + 6), u16(pe + 20)
+    opt = pe + 24
+    export_rva = u32(opt + (112 if u16(opt) == 0x20B else 96))
+    secs = [(u32(o + 12), u32(o + 8), u32(o + 20), u32(o + 16)) for o in (opt + optsize + 40 * i for i in range(nsec))]   # rva, virtual size, raw offset, raw size
+
+    def off(rva):
+        for va, vs, raw, rs in secs:
+            if va <= rva < va + max(vs, rs):
+                return raw + rva - va
+        raise SystemExit("%s: bad export table" % dll)
+    if not export_rva:
+        return []
+    e = off(export_rva)
+    n_names, names_rva = u32(e + 24), u32(e + 32)
+    names = []
+    for i in range(n_names):
+        o = off(u32(off(names_rva) + 4 * i))
+        names.append(d[o:d.index(b"\0", o)].decode("ascii"))
+    return names
+
+
+def make_import_library(dll: Path, lib: Path, rid: str):
+    """``ultrafast.lib`` for a DLL: a .def file of its exports and the MSVC librarian (found with vswhere when it is not on the PATH)."""
+    names = pe_exports(dll)
+    if not names:
+        raise SystemExit("%s exports nothing: no import library can be made" % dll)
+    deff = Path(lib).with_suffix(".def")
+    deff.write_text("LIBRARY %s\nEXPORTS\n%s\n" % (Path(dll).name, "\n".join("    " + n for n in names)), encoding="ascii")
+    machine = "ARM64" if rid.endswith("arm64") else ("X86" if rid.endswith("x86") else "X64")
+    exe = shutil.which("lib")      # on the PATH inside a Visual Studio developer prompt
+    if not exe:
+        vswhere = Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Microsoft Visual Studio" / "Installer" / "vswhere.exe"
+        if vswhere.is_file():
+            host = "Hostarm64" if _platform.machine().lower() in ("arm64", "aarch64") else "Hostx64"
+            out = subprocess.run([str(vswhere), "-latest", "-products", "*", "-find", "VC\\Tools\\MSVC\\**\\bin\\%s\\%s\\lib.exe" % (host, machine.lower())],
+                                 capture_output=True, text=True).stdout.splitlines()
+            exe = out[-1].strip() if out else None
+    if not exe:
+        raise SystemExit("lib.exe (Visual Studio build tools) was not found: it makes the import library for the C API package")
+    run([exe, "/nologo", "/def:%s" % deff, "/machine:%s" % machine, "/out:%s" % lib])
+    for extra in (deff, Path(lib).with_suffix(".exp")):          # the .def and the export file of the librarian are not part of the package
+        extra.unlink(missing_ok=True)
+    if not Path(lib).is_file():
+        raise SystemExit("lib.exe did not make %s" % lib)
+
+
 # ---------------------------------------------------------------------------------------------------- build steps
 class Builder:
     def __init__(self, a):
@@ -277,13 +331,17 @@ class Builder:
                 name = p.name if p.name in native_lib_names(rid) else "lib" + p.name
                 shutil.copy2(p, dst / "lib" / name)
                 found.append(name)
+        if os_of(rid) == "win" and "ultrafast.lib" not in found:
+            # the NativeAOT build makes the DLL only; the C example links an import library, so make it from the DLL's export table
+            make_import_library(dst / "lib" / "ultrafast.dll", dst / "lib" / "ultrafast.lib", rid)
+            found.append("ultrafast.lib")
         if not found:
             raise SystemExit("no native library found in " + str(lib))
         copy_tree(REPO / "src" / "UltrafastEngine.Native" / "include", dst / "include")
         ex = dst / "example"
         ex.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(REPO / "docs" / "examples" / "cpp" / "run_system.cpp", ex / "run_system.cpp")
-        shutil.copy2(REPO / "docs" / "examples" / "cpp" / "devices.cpp", ex / "devices.cpp")
+        shutil.copy2(REPO / "docs" / "examples" / "Interop" / "cpp" / "run_system.cpp", ex / "run_system.cpp")
+        shutil.copy2(REPO / "docs" / "examples" / "Interop" / "cpp" / "devices.cpp", ex / "devices.cpp")
         (ex / "CMakeLists.txt").write_text(CPP_CMAKE)
         gpu = ("The gpu plugin is compiled in: `uf_devices_json` lists CUDA / OpenCL devices and `uf_set_default_backend(\"auto\")` "
                "uses them." if "gpu" in self.a.plugins else "Built without the gpu plugin (add `--plugins gpu`).")
@@ -785,7 +843,7 @@ def build_release(a, builder: "Builder") -> Path:
     keep = set(names) | {c for c in m["components"] if any(c.startswith(x + ".") for x in names)}
     m["components"] = {c: v for c, v in m["components"].items() if c in keep}
     (out / "manifest.json").write_text(json.dumps(m, indent=1), encoding="utf-8")
-    shutil.copy2(REPO / "install.py", out / "install.py")
+    (out / "install.py").write_bytes((REPO / "install.py").read_bytes().replace(b"\r\n", b"\n"))      # LF on every OS (a Windows checkout has CRLF)
     bad = rc.check_archives([out])
     if bad:
         raise SystemExit("ZOS-API files found in the release (Ansys property, never packaged): " + ", ".join(bad))

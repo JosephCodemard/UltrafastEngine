@@ -1,17 +1,17 @@
 # Release assets on a version tag (v*): one .tar.gz per component and platform, manifest.json and install.py, attached to a GitHub release.
-# docs/releasing.md. NO TAG IS CREATED BY ANYONE BUT THE OWNER. The workflow can also be started by hand (workflow_dispatch) to build and
+# docs/releasing.md. Release tags are created by a maintainer only. The workflow can also be started by hand (workflow_dispatch) to build and
 # smoke-test the assets without publishing (the files stay as workflow artifacts).
 #
 # Jobs: `managed` builds everything that is pure .NET or plain files (the CLI for every platform is cross-published here, so macOS needs
 # no macOS runner), `native` builds the NativeAOT components (C API, native wheel) on each OS they must be built on, `publish` merges the
 # manifests, checks that no archive holds a ZOS-API file, installs a selection into a temporary folder, removes it again and uploads.
-# macOS NativeAOT (cpp, python-native for osx-*) is built on the owner's Mac (./build.sh --components cpp python-native ...) and uploaded
+# macOS NativeAOT (cpp, python-native for osx-*) is built on a maintainer's Mac (./build.sh --components cpp python-native ...) and uploaded
 # with `gh release upload`, because the macOS runner is not available to this repository (see ci.yml).
 #
 # PyPI (decisions E4 and E5, docs/releasing.md): `version` checks that the tag, pyproject.toml, the engine and the plugins carry one version
 # (build/check_version.py) before anything is built. After `publish`, the wheels are checked with `twine check` and, ONLY on a tag, uploaded by
 # trusted publishing (GitHub OIDC; no token is stored anywhere): a tag v<X.Y.Z>rc<N> goes to TestPyPI (job `testpypi`); a tag v<X.Y.Z> and an alpha tag v<X.Y.Z>a<N> (wheel X.Y.ZaN, a pre-release that pip installs only with --pre) go to PyPI (job `pypi`).
-# Both jobs run in a GitHub environment (`testpypi`, `pypi`) that the owner protects with required reviewers, so nothing is uploaded without approval.
+# Both jobs run in a GitHub environment (`testpypi`, `pypi`) whose rules the repository sets (allowed tags `v*`; optionally required reviewers: with reviewers the upload job waits until a maintainer approves it in the GitHub Actions UI, without them a tag publishes at once).
 # No sdist is published (the package needs the compiled engine). Linux native wheels are not uploaded until they are built in a manylinux container.
 name: Release
 
@@ -146,17 +146,16 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: parts
-      - name: Merge the job outputs into one release folder
+      - name: Merge the job outputs into one verified release folder
         run: |
-          mkdir -p release
-          # every job wrote manifest.json beside its assets; the assets have unique names, install.py is identical
-          for d in parts/*/; do cp -n "$d"*.tar.gz release/ 2>/dev/null || true; done
-          cp parts/assets-managed/install.py release/install.py
-          python build/release_components.py merge release/manifest.json parts/*/manifest.json
+          # each artifact holds release-<version>/ with its archives, manifest.json and install.py (identical in every job, up to line ends)
+          python build/release_components.py assemble parts release
       - name: No ZOS-API file in any archive or wheel (Ansys property)
         run: python build/release_components.py check-zosapi release
       - name: Planted file must be caught (the gate itself is tested)
-        run: python -m pytest -q python/tests/test_release.py -k "zosapi"
+        run: |
+          python -m pip install pytest
+          python -m pytest -q python/tests/test_release.py -k "zosapi"
         env: { PYTHONDONTWRITEBYTECODE: "1" }
       - name: Smoke test, a selection into a temporary folder, then uninstall leaves it empty
         run: |
@@ -175,7 +174,9 @@ jobs:
           "$RUNNER_TEMP/venv/bin/pip" install --pre --find-links "$RUNNER_TEMP/py/python" "ultrafast-engine[hosted]"
           "$RUNNER_TEMP/venv/bin/python" -c "import ultrafast; print(ultrafast.version())"
           "$RUNNER_TEMP/venv/bin/python" -c "import ultrafast; print(ultrafast.devices())"
-          "$RUNNER_TEMP/venv/bin/python" docs/examples/GettingStarted/quickstart/quickstart.py
+          # run a copy outside the checkout: the script prefers python/src next to it, which has no engine library; a user runs it against the installed wheel
+          cp docs/examples/GettingStarted/quickstart/quickstart.py "$RUNNER_TEMP/quickstart.py"
+          "$RUNNER_TEMP/venv/bin/python" "$RUNNER_TEMP/quickstart.py"
       - name: "Collect the wheels for PyPI and check them with twine (wheels only, decision E5)"
         run: |
           set -e
@@ -218,7 +219,7 @@ jobs:
           path: release/*
 
   testpypi:
-    name: Upload to TestPyPI (release-candidate tags; needs the owner's approval of the environment)
+    name: Upload to TestPyPI (release-candidate tags; protected environment testpypi)
     needs: [version, publish]
     if: startsWith(github.ref, 'refs/tags/v') && needs.version.outputs.is_rc == 'true'
     runs-on: ubuntu-24.04
@@ -239,7 +240,7 @@ jobs:
           packages-dir: dist
 
   pypi:
-    name: Upload to PyPI (final and alpha tags; needs the owner's approval of the environment)
+    name: Upload to PyPI (final and alpha tags; protected environment pypi)
     needs: [version, publish]
     if: startsWith(github.ref, 'refs/tags/v') && needs.version.outputs.is_rc == 'false'
     runs-on: ubuntu-24.04

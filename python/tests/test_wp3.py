@@ -3,6 +3,7 @@ import importlib
 import json
 import re
 import shutil
+import os
 import sys
 from pathlib import Path
 
@@ -167,3 +168,84 @@ def test_public_roadmap_has_three_blocks_and_the_root_copy_is_in_sync():
     assert [l for l in text.splitlines() if l.startswith("## ")] == ["## In 1.0.0", "## Next", "## Later"]
     assert sync_roadmap.main(["--check"]) == 0
     assert "](docs/capabilities.md)" in (REPO / "ROADMAP.md").read_text(encoding="utf-8")
+
+
+def test_every_repository_path_named_in_the_packager_exists():
+    """build/package.py names files of the repository (examples, headers, ...); a moved folder broke the NativeAOT jobs of the first alpha tag."""
+    import re
+    src = (REPO / "build" / "package.py").read_text(encoding="utf-8")
+    missing = set()
+    for m in re.finditer(r'REPO((?: / "[^"]+")+)', src):
+        parts = re.findall(r'"([^"]+)"', m.group(1))
+        if not {"dist", "artifacts", "bin", "obj"} & set(parts) and not REPO.joinpath(*parts).exists():      # build outputs do not exist before a build
+            missing.add("/".join(parts))
+    assert not missing, sorted(missing)
+
+
+def _fake_dll(names, pe32plus=True):
+    """A minimal PE file with one section and an export table naming ``names`` (enough for the packager's reader)."""
+    import struct
+    sec_rva, sec_raw, opt_size = 0x1000, 0x400, 240 if pe32plus else 224
+    pe = 0x80
+    exp_dir = 40
+    strings = b"".join(n.encode() + b"\0" for n in names)
+    offs = []
+    o = sec_rva + exp_dir + 4 * len(names)                        # the strings follow the table of name pointers
+    for n in names:
+        offs.append(o)
+        o += len(n) + 1
+    blob = bytearray(exp_dir) + b"".join(struct.pack("<I", v) for v in offs) + strings
+    struct.pack_into("<I", blob, 24, len(names))                  # NumberOfNames
+    struct.pack_into("<I", blob, 32, sec_rva + exp_dir)            # AddressOfNames
+    d = bytearray(sec_raw + len(blob))
+    d[0:2] = b"MZ"
+    struct.pack_into("<I", d, 0x3C, pe)
+    d[pe:pe + 4] = b"PE\0\0"
+    struct.pack_into("<HH", d, pe + 4, 0x8664, 1)                  # machine, sections
+    struct.pack_into("<H", d, pe + 20, opt_size)
+    opt = pe + 24
+    struct.pack_into("<H", d, opt, 0x20B if pe32plus else 0x10B)
+    struct.pack_into("<I", d, opt + (112 if pe32plus else 96), sec_rva)   # export directory RVA
+    sec = opt + opt_size
+    d[sec:sec + 8] = b".edata\0\0"
+    struct.pack_into("<IIII", d, sec + 8, len(blob), sec_rva, len(blob), sec_raw)
+    d[sec_raw:sec_raw + len(blob)] = blob
+    return bytes(d)
+
+
+@pytest.mark.parametrize("plus", [True, False])
+def test_packager_reads_the_exports_of_a_dll(tmp_path, plus):
+    package = importlib.import_module("package")
+    names = ["uf_version", "uf_run_json", "uf_devices_json"]
+    dll = tmp_path / "ultrafast.dll"
+    dll.write_bytes(_fake_dll(names, plus))
+    assert package.pe_exports(dll) == names
+    bad = tmp_path / "x.dll"
+    bad.write_bytes(b"not a pe file" * 20)
+    with pytest.raises(SystemExit):
+        package.pe_exports(bad)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="uses a POSIX stand-in for lib.exe")
+def test_import_library_is_made_from_the_exports_with_the_librarian(tmp_path, monkeypatch):
+    """The command line given to the MSVC librarian (a stand-in script records it): a .def of the exports, the machine type, the output path."""
+    package = importlib.import_module("package")
+    names = ["uf_version", "uf_run_json"]
+    dll = tmp_path / "ultrafast.dll"
+    dll.write_bytes(_fake_dll(names))
+    log = tmp_path / "args.txt"
+    stub = tmp_path / "bin" / "lib"
+    stub.parent.mkdir()
+    stub.write_text('#!/bin/sh\nprintf "%%s\\n" "$@" > "%s"\nfor a in "$@"; do case "$a" in /def:*) cp "${a#/def:}" "%s.def";; /out:*) : > "${a#/out:}";; esac; done\n' % (log, log), encoding="utf-8")
+    stub.chmod(0o755)
+    monkeypatch.setenv("PATH", str(stub.parent) + os.pathsep + os.environ["PATH"])
+    out = tmp_path / "ultrafast.lib"
+    package.make_import_library(dll, out, "win-x64")
+    args = log.read_text(encoding="utf-8").split()
+    assert "/machine:X64" in args and any(a.startswith("/out:") and a.endswith("ultrafast.lib") for a in args)
+    assert out.is_file() and not out.with_suffix(".def").exists()
+    assert (tmp_path / "args.txt.def").read_text(encoding="utf-8").splitlines() == ["LIBRARY ultrafast.dll", "EXPORTS", "    uf_version", "    uf_run_json"]
+    with pytest.raises(SystemExit):                              # no librarian found
+        monkeypatch.setenv("PATH", "")
+        monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path / "none"))
+        package.make_import_library(dll, tmp_path / "again.lib", "win-x64")

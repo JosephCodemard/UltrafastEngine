@@ -1,0 +1,4 @@
+
+# the installer is shipped as a single file and compared byte for byte between build jobs
+install.py text eol=lf
+*.sh text eol=lf

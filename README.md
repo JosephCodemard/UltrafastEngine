@@ -19,11 +19,10 @@
 </p>
 <p align="center">
 <img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-664%20passing-brightgreen">
-<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-435%20passing-brightgreen">
+<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-439%20passing-brightgreen">
 <img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1691%2F1694-brightgreen">
 <img alt="Paper replications" src="https://img.shields.io/badge/papers%20replicated-12-blueviolet">
 </p>
-**Status: 1.0.0 alpha.** Everything described here is built and tested (see [PROJECT_STATUS](PROJECT_STATUS.md)); the alpha is the first public release, meant for use in real labs so that what that shows is fixed before 1.0.0. Install with `pip install --pre "ultrafast-engine[hosted]"`.
 
 <p align="center">
 <img alt=".NET" src="https://img.shields.io/badge/.NET-10%20%7C%20Framework%204.8-512bd4">
@@ -31,6 +30,9 @@
 <img alt="Platforms" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20(Apple%20silicon)%20%7C%20Linux-lightgrey">
 <img alt="Dependencies" src="https://img.shields.io/badge/NuGet%20dependencies-none-success">
 </p>
+
+> **Status: 1.0.0 alpha.** Everything described here is built and tested (see [PROJECT_STATUS](PROJECT_STATUS.md)); the alpha is the first public release, meant for use in real labs so that what that shows is fixed before 1.0.0. Install with `pip install --pre "ultrafast-engine[hosted]"`.
+
 
 UltrafastEngine propagates an ultrashort pulse through a **complete optical system**: stretchers and compressors,
 amplifiers, multi-pass cells, fibres, crystals, plates, gas cells, mirrors and coatings. It models the pulse as a

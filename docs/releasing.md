@@ -95,7 +95,7 @@ and writes `<dest>/.ultrafast-install.json` with every file, its hash, the compo
 
 ```bash
 ./build.sh --components cli python plugins schemas docs examples tests papers --platform linux-x64 osx-arm64 win-x64
-./build.sh --components cpp python-native --platform osx-arm64      # NativeAOT: on the target OS (the owner's Mac for macOS)
+./build.sh --components cpp python-native --platform osx-arm64      # NativeAOT: on the target OS (a maintainer's Mac for macOS)
 ./build.sh --components all media source --exclude papers --dry-run # the plan only
 python build/release_components.py merge dist/release-1.0.0/manifest.json dist/a/manifest.json dist/b/manifest.json   # manifests of several jobs
 python build/release_components.py check-zosapi dist/release-1.0.0   # fails if any archive or wheel holds a ZOSAPI file
@@ -112,13 +112,14 @@ Built components reuse the steps of the single-folder packages above, so a platf
 the CLI for win-x64, linux-x64, linux-arm64, osx-arm64 and osx-x64; job `native` builds `cpp` and `python-native` on Linux x64 / arm64 and Windows and runs the C example;
 job `publish` merges the manifests, runs the ZOS-API gate, installs a selection into a temporary folder (`cli`, `schemas`, `examples.Branched`), runs the CLI and an example
 in strict mode, uninstalls and checks the folder is empty, installs the wheel in a fresh virtual environment (`ultrafast.devices()`, the quickstart), and attaches the assets
-to a **draft** release. The NativeAOT components for macOS are built on the owner's Mac and added with `gh release upload`. **A tag is created only when the owner asks.**
+to a **draft** release. The NativeAOT components for macOS are built on a maintainer's Mac and added with `gh release upload`. Release tags are created by a maintainer only.
 The workflow has not run on GitHub yet (the tag-to-PyPI jobs are described in the next section). Rehearsed by hand on macOS: the asset build, the manifest merge, the ZOS-API gate, and the installer install / run / uninstall steps. Not run: the Windows and Linux NativeAOT builds, the CMake example, the wheel in a fresh environment, the upload (see session-f (development history, `docs/design/history.md`)).
 
 ## Publishing to PyPI (maintainers; decisions E4, E5)
 
-`release.yml` publishes by **trusted publishing** (GitHub OIDC): no token or password exists anywhere. Nothing is uploaded without the owner: tags are created by the
-owner, and the upload jobs run in GitHub environments that need the owner's approval.
+`release.yml` publishes by **trusted publishing** (GitHub OIDC): no token or password exists anywhere. A release is started by a maintainer pushing a release tag. The upload jobs run in the GitHub environments `testpypi` and `pypi`, whose rules the repository owner sets: deployment is allowed from tags `v*` only,
+and **required reviewers are recommended**: with them the upload waits in the GitHub Actions UI until a maintainer clicks *Review deployments*; without them a tag publishes at once. Check the environments
+(`gh api repos/<owner>/<repo>/environments/pypi`) before tagging: a PyPI version can never be uploaded again.
 
 * `version` (first job): `python build/check_version.py <tag>`: `python/pyproject.toml`, `ultrafast/__init__.py`, `Directory.Build.props`, `CITATION.cff`, the engine constant and
   every plugin (`plugin.json`, C# constant) must carry the same `X.Y.Z`, and the tag must be `vX.Y.Z` (final), `vX.Y.ZaN` (alpha: the wheels are built as `X.Y.ZaN`, a pre-release that `pip` installs only with `--pre`) or `vX.Y.ZrcN` (release candidate;
@@ -130,7 +131,7 @@ owner, and the upload jobs run in GitHub environments that need the owner's appr
 * `testpypi`: a tag `vX.Y.ZrcN` uploads to TestPyPI (environment `testpypi`). `pypi`: a tag `vX.Y.Z` or `vX.Y.ZaN` uploads to PyPI (environment `pypi`).
   **The first public release is the alpha `v1.0.0a1`** (`pip install --pre ultrafast-engine`); the files keep `1.0.0`, so the same files build the later alphas, the candidates and the final release.
 
-**Steps for the owner** (the maintainer's assistant does none of them):
+**One-time setup and release steps for a maintainer:**
 
 1. **Name:** confirm `ultrafast-engine` is yours on PyPI and TestPyPI (checked free on 2026-11-17; `ultrafast` is taken on TestPyPI, so it cannot be rehearsed there).
 2. **Trusted publishers**, on both [pypi.org](https://pypi.org/manage/account/publishing/) and [test.pypi.org](https://test.pypi.org/manage/account/publishing/) ("Add a new pending publisher"):

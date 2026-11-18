@@ -138,7 +138,7 @@ Python-side details: [Python](reference/python.md).
 
 A pip-installable wheel is a release artifact: `./build.sh --python` (hosted) or `--python-engine native` writes
 `dist/.../ultrafast_engine-<version>-py3-none-any.whl`, and `install.py --preset python` installs it. The metadata and extras
-(`hosted`, `plot`, `animate`, `test`) are ready; **nothing is uploaded to PyPI** until the owner decides to release.
+(`hosted`, `plot`, `animate`, `test`) are ready; **nothing is uploaded to PyPI** until a maintainer publishes a release.
 
 ## Developing the engine
 
