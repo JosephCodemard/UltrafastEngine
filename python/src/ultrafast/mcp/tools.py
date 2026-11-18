@@ -1,10 +1,11 @@
-"""The six MCP tools: definitions (name, description, JSON Schema) and the preparation of their arguments.
+"""The eight MCP tools: definitions (name, description, JSON Schema) and the preparation of their arguments.
 
 ``TOOLS`` maps a tool name to :class:`Tool` ``(description, schema, op, timeout_s)``. ``prepare(tool, args, ws)`` applies the policy
 (:mod:`ultrafast.mcp.policy`) and returns the arguments for the worker operation (:mod:`ultrafast.mcp.ops`); ``explain_warning`` has no
 worker (``op`` None) and is answered by :mod:`ultrafast.mcp.explain`.
 
-Tools: ``describe``, ``validate``, ``run`` (``fidelity``), ``scan`` (``fidelity``), ``explain_warning``, ``plot``. Results of ``run`` are
+Tools: ``describe``, ``validate``, ``run`` (``fidelity``), ``scan`` (``fidelity``), ``explain_warning``, ``plot``, ``compare_to_measured``,
+``fit`` (a ``fit`` section in the run spec, a time budget, the memory pre-flight). Results of ``run`` are
 written to ``.ultrafast-mcp/<name>/`` in the workspace; ``plot`` reads them from there.
 """
 from __future__ import annotations
@@ -56,6 +57,19 @@ TOOLS: Dict[str, Tool] = {
     "explain_warning": Tool(
         "Explain a warning of the engine (text from summary.warnings) or a validity code (zeroFrequency, criticalPower, kerrLensCollapse, lidt, windowEdge): what it means and what to do.",
         {"type": "object", "properties": {"warning": {"type": "string"}, "code": {"type": "string"}}, "additionalProperties": False}, None, 5),
+    "compare_to_measured": Tool(
+        "Run a system whose instruments carry recordings ('measured' on an instrument in the run spec) and return only how well each simulated reading matches its recording: chi2, "
+        "reduced chi2, rms error, scalar deviations and the notes (units assumed, background removed, points outside the range). Files named in the run spec must be in the workspace.",
+        {"type": "object", "properties": {"system": _SRC, "run": _SRC, "fidelity": _FIDELITY,
+                                           "name": {"type": "string", "description": "Optional: also write the full results to .ultrafast-mcp/<name>/."}},
+         "required": ["system", "run"], "additionalProperties": False}, "compare", 300),
+    "fit": Tool(
+        "Fit parameters of a system to recordings: the run spec carries a 'fit' section (and 'measured' on the instruments). Runs under a time budget and the memory pre-flight; "
+        "returns the fitted values with their uncertainties, chi2 before and after, and writes the fitted system to .ultrafast-mcp/<name>/. A fit killed at the budget returns nothing; "
+        "use a coarser fidelity or fewer parameters, then confirm in 'full'.",
+        {"type": "object", "properties": {"system": _SRC, "run": _SRC, "name": {"type": "string", "description": "Result folder name."}, "fidelity": _FIDELITY,
+                                           "timeBudgetS": {"type": "number", "exclusiveMinimum": 0, "description": "Time budget in seconds (default and upper limit: the server's budget)."}},
+         "required": ["system", "run", "name"], "additionalProperties": False}, "fit", 300),
     "plot": Tool(
         "Draw a figure of a finished run (from the run tool's result folder) and return it as a PNG. Styles: ultrafast (default), ultrafast-dark, paper, science.",
         {"type": "object", "properties": {"result": {"type": "string", "description": "The 'name' given to the run tool."}, "figure": {"type": "string", "enum": _FIGURES},
@@ -73,17 +87,27 @@ def definitions() -> list:
 def prepare(tool: str, args: Dict[str, Any], ws: Workspace) -> Dict[str, Any]:
     """Policy checks for one tool call; the result goes to the worker operation of the same name."""
     out: Dict[str, Any] = {}
-    if tool in ("describe", "validate", "run", "scan"):
+    if tool in ("describe", "validate", "run", "scan", "compare_to_measured", "fit"):
         out["system"] = ws.source(args["system"], "system")
         run_doc: Dict[str, Any] = {}
         if args.get("run") is not None:
             out["run"], run_doc = ws.document(args["run"], "run")
         for k in ("fit", "study", "backward"):
-            if k in run_doc:       # inline dicts and run files alike
-                raise Refused("run: the '%s' section is not available through this server (use the scan tool, or run it with the CLI)" % k)
-    if tool in ("run", "scan"):
+            if k in run_doc and not (tool == "fit" and k == "fit"):       # inline dicts and run files alike
+                raise Refused("run: the '%s' section is not available through this tool (%s)" % (k, "use the fit tool" if k == "fit" else "use the scan tool, or run it with the CLI"))
+        if tool == "fit" and "fit" not in run_doc:
+            raise Refused("fit: the run spec has no 'fit' section (docs/plugins/fitting.md)")
+        if tool == "compare_to_measured" and not any(isinstance(i, dict) and "measured" in i for i in (run_doc.get("instruments") or [])):
+            raise Refused("compare_to_measured: no instrument of the run spec has a 'measured' recording (docs/reference/measured-data.md)")
+    if tool in ("run", "scan", "compare_to_measured", "fit"):
         if args.get("fidelity"):
             out["fidelity"] = args["fidelity"]
+    if tool in ("fit", "compare_to_measured") and args.get("name"):
+        out["outDir"] = str(ws.result_dir(check_name(args["name"])))
+        out["outDirRel"] = RESULTS_FOLDER + "/" + args["name"]
+    if tool == "fit":
+        if args.get("timeBudgetS") is not None:
+            out["timeBudgetS"] = float(args["timeBudgetS"])
     if tool == "run":
         out["outDir"] = str(ws.result_dir(check_name(args["name"])))
         out["outDirRel"] = RESULTS_FOLDER + "/" + args["name"]

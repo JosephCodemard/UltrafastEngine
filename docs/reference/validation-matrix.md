@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **670 tests** in 74 classes. **425** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **680 tests** in 75 classes. **434** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -11,11 +11,12 @@ Every C# test of the engine: **670 tests** in 74 classes. **425** of them check 
 | [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 15 | 14 |
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 17 | 16 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
-| [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
+| [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 19 | 8 |
 | [Material catalogue: values pinned, provenance, user catalogues](#cataloguesnapshottests) | `CatalogueSnapshotTests` | 1 | 1 |
 | [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 16 | 4 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
+| [Ionisation in chi(2) crystals](#chi2ionizationtests) | `Chi2IonizationTests` | 7 | 7 |
 | [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 16 | 8 |
 | [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 22 | 16 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
@@ -62,7 +63,7 @@ Every C# test of the engine: **670 tests** in 74 classes. **425** of them check 
 | [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 8 | 2 |
 | [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 4 | 3 |
 | [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 7 |
-| [Pulse calculator: time-bandwidth product, transform limit, chirp](#pulsecalculatortests) | `PulseCalculatorTests` | 5 | 4 |
+| [Pulse calculator: time-bandwidth product, transform limit, chirp](#pulsecalculatortests) | `PulseCalculatorTests` | 7 | 6 |
 | [Instrument axes, resolution and measured-data resolution](#resolutiontests) | `ResolutionTests` | 7 | 1 |
 | [Pulse retrieval (FROG, d-scan)](#retrievaltests) | `RetrievalTests` | 2 | 2 |
 | [Regressions from the review: M^2, second moments, packets at ports, steady-state loops](#reviewregressiontests) | `ReviewRegressionTests` | 8 | 8 |
@@ -216,6 +217,7 @@ Branched systems: ports, graph compiler, interference, loops.
 | `Sequential_VirtualBeam_InterferesAtTheSplitter` | 2x2 unitary: c = t a - r b | 1e-9 |
 | `SteadyStateLoop_SettlesOnlyWhenShapeAndEnergyRepeat` | -- | -- |
 | `Targets_ByNumberNameAndDict_AreTheSame` | -- | -- |
+| `ToMermaid_ShowsTypesVirtualPortsAndLoops` | -- | -- |
 | `TwoSourcesOnOnePort_AreAnError_NamingThePort` | -- | -- |
 | `UnusedPorts_RaiseAlerts_AndBecomeVirtual_UnlessDeclared` | -- | -- |
 | `Validate_PrintsTheGraph` | -- | -- |
@@ -280,6 +282,20 @@ Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells).
 | `MatchedMode_ReproducesItselfAndTendsToTheEmptyCellModeAtLowPower` | self-consistency of the round trip: the matched q reproduces itself with the Kerr lenses it creates (residual < 1e-9); a vanishing power gives the empty-cell mode | 1e-9 |
 | `WeakKerrPlateAtTheWaist_ShiftsTheRoundTripStabilityAsTheThinLensFormula` | first order in a thin Kerr lens: cos(theta') - cos(theta) = -(Phi_total / 2) z_R sin(theta), theta = 2 arccos(g) the round-trip Gouy phase of the symmetric cell, Phi = 2 n2 dz P / (pi w0^4) per pass | 0.3 % |
 | `WhenNoStableMatchedModeExists_TheHelperReportsIt` | the matched mode ceases to exist when the Kerr lens pushes the round trip out of its stability range; the helper says so instead of returning a mode | - |
+
+## Chi2IonizationTests
+
+Ionisation in chi(2) crystals.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CatalogueBandGap_IsUsed_AndAMissingOneIsRefused` | catalogue: the band gap of BBO is read from the crystal entry; a crystal without data is refused with a message | exact |
+| `Density_FollowsTheMultiphotonIntegral_AndTheIonisationEnergyIsTaken` | closed form: rho = rho_n (1 - exp(-int sigma_K I^K dt)) for a Gaussian pulse (multiphoton rate, no avalanche) | 0.5 % |
+| `EachFieldIonisesAtItsOwnCarrier_NoSpuriousPlasmaFromTheHarmonicsRate` | photon order of each field's own carrier: the fundamental of 800 nm SHG in BBO (6.56 eV gap) is a 5-photon process, not the 2-photon one of the 400 nm carrier | factor 1e3 |
+| `KeldyshCrystalWithZeroD_EqualsTheBulkPlasma` | a crystal with d = 0 is a bulk element: the default (Keldysh) plasma gives the same electron density and energy as a bulk element of the same index, band gap, mass and density | 0.2 % |
+| `PreparedPlasma_GivesTheDrudePhase` | Drude model: dn = -rho / (2 n rho_c), rho_c = eps0 m w^2 / e^2; phase = k dn L | 0.5 % |
+| `RadialModel_OnAxisDensityMatchesTheOneDimensionalPeak` | a radial chi(2) model: the on-axis plasma density equals the 1-D (Gaussian) one; energy budget closes | 1 %, 1e-6 |
+| `Shg_WithPlasma_KeepsTheEnergyBudget_AndZeroRateRecoversTheNoPlasmaResult` | energy conservation: input - output = sum of the budget entries (SH, plasma); the SH of a plasma-free run is recovered when the rate is zero | 1e-6 |
 
 ## Chi2Tests
 
@@ -519,7 +535,7 @@ Memory safety: fitting.
 | test | reference | tolerance |
 |---|---|---|
 | `Fit_ManyEvaluations_KeepABoundedNumberOfFullResults` | a fit keeps the latest and the best result only (the old residual cache kept up to 65) | at most 4 full results alive at any time, with 28 evaluations |
-| `Fit_ResultIsBitIdenticalToTheUnboundedCacheVersion` | values recorded from the fit before the memory changes (the cache and slimming must not change a number) | bit-identical |
+| `Fit_ResultIsBitIdenticalToTheUnboundedCacheVersion` | values recorded from the fit before the memory changes (the cache and slimming must not change a number) | 1e-9 relative (the last bits differ between CPU architectures) |
 
 ## FoundationTests
 
@@ -1041,6 +1057,8 @@ Pulse calculator: time-bandwidth product, transform limit, chirp.
 | `Limit_WithBothDurationAndBandwidth_IsRejected` | -- | -- |
 | `Measure_SampledGaussianPulse_GivesTheTransformLimit` | Gaussian: sigma_t sigma_nu = 1/(4 pi) and FWHM product 2 ln2 / pi | 1 % |
 | `Tbp_OfGaussianAndSech2_MatchesTheTextbookValues` | Diels & Rudolph, Ultrashort Laser Pulse Phenomena, table 2.1: 2 ln2 / pi = 0.4413, sech^2 0.3148 | 1e-4 |
+| `Tbp_OfLorentzianAndAsymmetricExponential_MatchesANumericalTransform` | closed forms ln2 sqrt(sqrt2-1)/pi and ln2/(2 pi) against a brute-force Fourier transform of the field | 1e-3 |
+| `Tbp_OfLorentzianAndAsymmetricExponential_MatchesTheTable` | Diels & Rudolph table 2.1: Lorentzian 0.142, one-sided (asymmetric) exponential 0.110 | 1e-3 |
 
 ## ResolutionTests
 

@@ -13,8 +13,8 @@ spatial propagation, branched systems, spatio-temporal couplings, delayed light,
 checked against an analytic or published value ([test matrix](reference/validation-matrix.md)); published results are reproduced in [papers](papers/README.md).
 
 * **Done:** the core engine and plugins; calculators (`ultrafast.calc`); plot styles and system schematics; memory estimate and limit; fidelity levels
-  (quick / standard / full); adaptive optics, temporal shaping and the digital twin; the first MCP tools for agents (`ultrafast-mcp`: describe, validate, run, scan,
-  explain_warning, plot; see [For AI agents](agents.md#mcp-server)).
+  (quick / standard / full); adaptive optics, temporal shaping and the digital twin; MCP tools for agents (`ultrafast-mcp`: describe, validate, run, scan,
+  explain_warning, plot, compare_to_measured, fit; prompts; `ultrafast-agent install`; see [For AI agents](agents.md#mcp-server)).
 * **Still to do before the first upload:** the first run of the release workflow on a release-candidate tag, and a check of the wheel in a fresh environment on
   Linux, Windows and macOS (the macOS NativeAOT wheel is built on the maintainer's Mac). Install is `pip install ultrafast-engine` (the import name is `ultrafast`).
 * **Examples:** one structure for every example README (template, a metadata file and a lint check); the twelve adaptive-optics, digital-twin and fibre examples
@@ -24,13 +24,13 @@ checked against an analytic or published value ([test matrix](reference/validati
 
 Most useful first.
 
-1. **Agents:** MCP tools `compare_to_measured` and `fit` (with a time budget and the memory check), MCP prompts, a shipped agent pack for Claude Code and Codex, and a few
-   evaluation prompts driven through the tools.
+1. **Agents:** a `design-system` skill, scoring the evaluation prompts with live agents (the replays of reference trajectories exist), MCP tools for studies and the digital twin.
+   (Done: `compare_to_measured`, `fit`, prompts and the shipped agent pack `ultrafast-agent install`.)
 2. **Design plugins** (separate plugins; each emits ordinary `.ufs` objects that the core re-checks): *coating design* (R, T, group delay and GDD over band, angle
    and polarisation; then design against a goal; then tolerance Monte Carlo) and *crystal design* (custom crystals from index data; quasi-phase-matching domain
    engineering). Both use the fitting plugin's estimators.
 3. **Engine accuracy:** carrier frame (a dispersive pulse off the lattice drifts), pulses near one optical cycle (a carrier-resolved path), the Kerr-lensed beam carried
-   to later elements, field snapshots along z inside an element, ionisation in χ(2) crystals, built-in metal mirrors from a published table.
+   to later elements, field snapshots along z inside an element, built-in metal mirrors from a published table.
 4. **More paper replications** (`docs/papers/`): polarisation, diffraction, supercontinuum, hollow-fibre compression, OPCPA design, SPIDER, d-scan.
 5. **Speed and GPU:** spatial χ(2) and mixed precision on the device, carrier-resolved propagation on the device, a CPU OpenCL device in CI so the GPU tests run there.
 

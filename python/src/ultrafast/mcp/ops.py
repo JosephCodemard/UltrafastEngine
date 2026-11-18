@@ -1,6 +1,6 @@
 """The operations the MCP worker runs (inside the child process; they import the engine).
 
-``describe``, ``validate``, ``run``, ``scan`` and ``plot`` take the arguments the server has already checked
+``describe``, ``validate``, ``run``, ``scan``, ``compare``, ``fit`` and ``plot`` take the arguments the server has already checked
 (:mod:`ultrafast.mcp.policy`) and return plain JSON-able dicts. ``system`` / ``run`` arrive as an absolute path string or a dict;
 ``outDir`` is an absolute folder inside the workspace. ``preflight`` raises :class:`~ultrafast.mcp.policy.Refused` when the memory
 estimate is above the limit.
@@ -165,6 +165,67 @@ def scan(a: Dict[str, Any]) -> dict:
     return _clean(r)
 
 
+def _write_if_named(res: Any, a: Dict[str, Any]) -> None:
+    if a.get("outDir"):
+        out = Path(a["outDir"]); out.mkdir(parents=True, exist_ok=True)
+        res.write(out)
+
+
+def compare(a: Dict[str, Any]) -> dict:
+    """Run and return only the comparisons of the instruments with their recordings."""
+    uf = _uf()
+    spec, tmp = _with_fidelity(a["run"], a.get("fidelity"))
+    try:
+        preflight(a["system"], spec)
+        t0 = time.time()
+        res = uf.run(a["system"], spec, memory="off")
+        _write_if_named(res, a)
+        s = res.summary
+        comps = list(s.get("comparisons") or [])
+        if not comps:
+            raise ValueError("the run produced no comparison: check that the instruments' 'measured' files exist and overlap the simulated range (see the run notes: %s)" % "; ".join(list(s.get("notes", []))[:3]))
+        keep = ("instrument", "kind", "at", "mode", "points", "chi2", "reducedChi2", "rmsError", "file", "normalization", "xAxis", "values", "notes")
+        r: Dict[str, Any] = {"comparisons": [{k: c[k] for k in keep if k in c} for c in comps[:MAX_LIST]],
+                             "totalChi2": sum(float(c.get("chi2", 0.0)) for c in comps), "warnings": list(s.get("warnings", []))[:MAX_LIST],
+                             "elapsedS": round(time.time() - t0, 3)}
+        if a.get("outDirRel"):
+            r["resultFolder"] = a["outDirRel"]
+        if (a.get("fidelity") or "full") != "full":
+            r["advice"] = "Compared in '%s': confirm the agreement with fidelity 'full' before reporting it." % a["fidelity"]
+        return _clean(r)
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
+def fit(a: Dict[str, Any]) -> dict:
+    """Run a spec with a ``fit`` section (fitting plugin); return the fitted values, their uncertainties and chi2."""
+    uf = _uf()
+    spec, tmp = _with_fidelity(a["run"], a.get("fidelity"))
+    try:
+        est = preflight(a["system"], spec)
+        t0 = time.time()
+        res = uf.run(a["system"], spec, memory="off")
+        _write_if_named(res, a)
+        s = res.summary
+        f = s.get("fit")
+        if not f:
+            raise ValueError("the run produced no fit result: is the fitting plugin loaded (ultrafast plugins) and does the run spec have a 'fit' section? Notes: %s" % "; ".join(list(s.get("notes", []))[:3]))
+        r: Dict[str, Any] = {"fit": f, "warnings": list(s.get("warnings", []))[:MAX_LIST], "resultFolder": a.get("outDirRel"), "elapsedS": round(time.time() - t0, 3),
+                             "estimatedMemoryBytes": est.get("totalBytes")}
+        r["advice"] = "Read the parameter uncertainties and the chi2 before and after; a parameter at its bound is not determined. Confirm the fitted system with the run tool in fidelity 'full'."
+        return _clean(r)
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
 _FIGURES = ("overview", "system", "instruments", "measurements", "probes", "elements", "byproducts", "gain", "oscillator", "spectrogram_3d")
 
 
@@ -198,4 +259,4 @@ def plot(a: Dict[str, Any]) -> dict:
     return r
 
 
-OPS = {"validate": validate, "describe": describe, "run": run, "scan": scan, "plot": plot}
+OPS = {"validate": validate, "describe": describe, "run": run, "scan": scan, "compare": compare, "fit": fit, "plot": plot}

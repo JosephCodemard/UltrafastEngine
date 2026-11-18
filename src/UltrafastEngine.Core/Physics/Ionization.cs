@@ -273,18 +273,19 @@ namespace UltrafastEngine.Physics
             return omegaRef * new Complex(omegaRef, nu) / (omegaAbs * new Complex(omegaAbs, nu));
         }
 
-        private void Run(ResponseContext ctx, double[] dnRe, double[] dnIm, double[] dispRe, double[] dispIm)
+        /// <summary>The electron density and the energy taken by ionisation along the time axis of <paramref name="ctx"/>: rho[i] is the density made before
+        /// sample i (what acts on the field there), lossWPerM3[i] the ionisation power density sum_s W_s U_s (ρ_s - ρ_s,ionised) at sample i. The peak density
+        /// is recorded for <see cref="Report"/>. Shared by <see cref="Run"/> and the chi(2) crystals.</summary>
+        public void History(ResponseContext ctx, double[] rho, double[] lossWPerM3)
         {
             int n = ctx.N; double w0 = ctx.Omega0, c = PhysicalConstants.SpeedOfLightMPerS;
             double n0 = double.IsNaN(ctx.N0) ? N0 : ctx.N0;
             double rhoC = Au.Eps0 * Au.Me * w0 * w0 / (Au.E * Au.E);
-            double wt = w0 * CollisionTimeS, k0 = w0 / c;
-            double drude = 1 / (2 * n0 * rhoC) / (1 + 1 / (wt * wt));
-            double sigma = k0 * w0 * CollisionTimeS / (n0 * rhoC * (1 + wt * wt));
+            double sigma = (w0 / c) * w0 * CollisionTimeS / (n0 * rhoC * (1 + w0 * CollisionTimeS * w0 * CollisionTimeS));
             int K = Channels.Count;
             var ionised = new double[K];
-            double rho = InitialDensityM3, dt = n > 1 ? ctx.T[1] - ctx.T[0] : 0, peak = rho;
-            double uMean = Channels.Count > 0 ? Channels.Average(ch => ch.Rate.EnergyJ) : 1;
+            double r = InitialDensityM3, dt = n > 1 ? ctx.T[1] - ctx.T[0] : 0, peak = r;
+            double uMean = K > 0 ? Channels.Average(ch => ch.Rate.EnergyJ) : 1;
             for (int i = 0; i < n; i++)
             {
                 double I = ctx.Intensity[i];
@@ -299,22 +300,47 @@ namespace UltrafastEngine.Physics
                     gen += g; loss += g * ch.Rate.EnergyJ;
                     ionised[k] = Math.Min(ch.DensityM3, ionised[k] + g * dt);
                 }
-                double aval = Avalanche ? sigma * I / uMean * rho : 0;
-                // index change at this instant (the plasma made before)
-                var dRe = dispRe ?? dnRe; var dIm = dispIm ?? dnIm;
-                dRe[i] += -drude * rho;
-                if (Absorption)
-                {
-                    dIm[i] += drude * rho / wt;
-                    // The avalanche takes its energy from the inverse-bremsstrahlung absorption already booked in the Drude
-                    // imaginary part: aval * uMean / (I 2 k0) = sigma rho / (2 k0) = drude rho / wt. Adding it again would count it twice.
-                    if (I > 0) dnIm[i] += loss / I / (2 * k0);
-                }
-                double drho = gen + aval - (double.IsInfinity(RecombinationTimeS) ? 0 : rho / RecombinationTimeS) - RecombinationBetaM3PerS * rho * rho;
-                rho = Math.Max(0, rho + drho * dt);
-                if (rho > peak) peak = rho;
+                double aval = Avalanche ? sigma * I / uMean * r : 0;
+                rho[i] = r; lossWPerM3[i] = loss;
+                double drho = gen + aval - (double.IsInfinity(RecombinationTimeS) ? 0 : r / RecombinationTimeS) - RecombinationBetaM3PerS * r * r;
+                r = Math.Max(0, r + drho * dt);
+                if (r > peak) peak = r;
             }
             lock (_lock) if (peak > _peakRho) _peakRho = peak;
+        }
+
+        private void Run(ResponseContext ctx, double[] dnRe, double[] dnIm, double[] dispRe, double[] dispIm)
+        {
+            int n = ctx.N; double w0 = ctx.Omega0, c = PhysicalConstants.SpeedOfLightMPerS;
+            double n0 = double.IsNaN(ctx.N0) ? N0 : ctx.N0;
+            double rhoC = Au.Eps0 * Au.Me * w0 * w0 / (Au.E * Au.E);
+            double wt = w0 * CollisionTimeS, k0 = w0 / c;
+            double drude = 1 / (2 * n0 * rhoC) / (1 + 1 / (wt * wt));
+            var rho = new double[n]; var loss = new double[n];
+            History(ctx, rho, loss);
+            var dRe = dispRe ?? dnRe; var dIm = dispIm ?? dnIm;
+            for (int i = 0; i < n; i++)
+            {
+                double I = ctx.Intensity[i];
+                // index change at this instant (the plasma made before)
+                dRe[i] += -drude * rho[i];
+                if (Absorption)
+                {
+                    dIm[i] += drude * rho[i] / wt;
+                    // The avalanche takes its energy from the inverse-bremsstrahlung absorption already booked in the Drude
+                    // imaginary part: aval * uMean / (I 2 k0) = sigma rho / (2 k0) = drude rho / wt. Adding it again would count it twice.
+                    if (I > 0) dnIm[i] += loss[i] / I / (2 * k0);
+                }
+            }
+        }
+
+        /// <summary>The Drude index change Δn = dRe + i dIm of a density ρ at carrier ω and background index n: dRe = -ρ / (2 n ρ_c (1 + 1/(ωτ)²)), dIm = -dRe / (ωτ)
+        /// (inverse bremsstrahlung, when <see cref="Absorption"/>). The ionisation loss is separate (<see cref="History"/>).</summary>
+        public (double Re, double Im) Drude(double rho, double omega, double n)
+        {
+            double rhoC = Au.Eps0 * Au.Me * omega * omega / (Au.E * Au.E), wt = omega * CollisionTimeS;
+            double d = 1 / (2 * n * rhoC) / (1 + 1 / (wt * wt));
+            return (-d * rho, Absorption ? d * rho / wt : 0);
         }
 
         /// <summary>The plasma term for a device kernel (<see cref="PlasmaDeviceSpec"/>), at carrier omega0 on a grid with the given absolute
@@ -434,20 +460,33 @@ namespace UltrafastEngine.Physics
                 r.RecombinationBetaM3PerS = spec.GetDouble("recombinationBetaM3PerS", 0);
                 r.RecombinationTimeS = spec.GetDouble("recombinationTimeS", double.PositiveInfinity);
             }
-            else
-            {
-                var d = m.Ionization ?? SolidIonizationData.For(m.Name);
-                if (d == null && !spec.Has("bandGapEv")) throw new Serialization.JsonException("ionization: no band-gap data for material '" + m.Name + "' (give bandGapEv, effectiveMass, neutralDensityM3)");
-                d = d ?? new SolidIonizationData();
-                double ug = spec.GetDouble("bandGapEv", d.BandGapEv), ms = spec.GetDouble("effectiveMass", d.EffectiveMass), rn = spec.GetDouble("neutralDensityM3", d.NeutralDensityM3);
-                IIonizationRate rate = model == "mpi" ? new MpiRate(spec.GetDouble("sigmaK", 0), spec.GetInt("photons", (int)Math.Ceiling(ug * Au.Ev / (Au.Hbar * omega0))), ug)
-                    : model == "keldysh" ? (IIonizationRate)new KeldyshRate(ug, ms, omega0, rn, n0)
-                    : throw new Serialization.JsonException("ionization model for solids: keldysh or mpi");
-                r.Channels.Add(new Channel { Name = m.Name, Rate = rate, DensityM3 = rn });
-                r.CollisionTimeS = spec.GetDouble("collisionTimeS", d.CollisionTimeS);
-                r.RecombinationTimeS = spec.GetDouble("recombinationTimeS", d.RecombinationTimeS);
-            }
+            else r.ConfigureSolid(m.Name, m.Ionization ?? SolidIonizationData.For(m.Name), omega0, n0, spec, model);
             return r;
+        }
+
+        /// <summary>The dielectric branch of <see cref="For"/> for a named solid (a glass or a χ(2) crystal) with its <see cref="SolidIonizationData"/>
+        /// (null: the run must give bandGapEv, effectiveMass and neutralDensityM3); spec keys override the data.</summary>
+        public static PlasmaResponse ForSolid(string name, SolidIonizationData d, double omega0, double n0, Serialization.JsonObject spec)
+        {
+            spec = spec ?? new Serialization.JsonObject();
+            string model = spec.GetString("model", "keldysh").ToLowerInvariant();
+            var r = new PlasmaResponse { N0 = n0, Avalanche = spec.GetBool("avalanche", true), Absorption = spec.GetBool("absorption", true),
+                InitialDensityM3 = spec.GetDouble("electronDensityM3", 0), FrequencyResolved = spec.GetBool("frequencyResolved", true), SkipNegligible = spec.GetBool("skipNegligible", true) };
+            r.ConfigureSolid(name, d, omega0, n0, spec, model);
+            return r;
+        }
+
+        private void ConfigureSolid(string name, SolidIonizationData d, double omega0, double n0, Serialization.JsonObject spec, string model)
+        {
+            if (d == null && !spec.Has("bandGapEv")) throw new Serialization.JsonException("ionization: no band-gap data for material '" + name + "' (give bandGapEv, effectiveMass, neutralDensityM3)");
+            d = d ?? new SolidIonizationData();
+            double ug = spec.GetDouble("bandGapEv", d.BandGapEv), ms = spec.GetDouble("effectiveMass", d.EffectiveMass), rn = spec.GetDouble("neutralDensityM3", d.NeutralDensityM3);
+            IIonizationRate rate = model == "mpi" ? new MpiRate(spec.GetDouble("sigmaK", 0), spec.GetInt("photons", (int)Math.Ceiling(ug * Au.Ev / (Au.Hbar * omega0))), ug)
+                : model == "keldysh" ? (IIonizationRate)new KeldyshRate(ug, ms, omega0, rn, n0)
+                : throw new Serialization.JsonException("ionization model for solids: keldysh or mpi");
+            Channels.Add(new Channel { Name = name, Rate = rate, DensityM3 = rn });
+            CollisionTimeS = spec.GetDouble("collisionTimeS", d.CollisionTimeS);
+            RecombinationTimeS = spec.GetDouble("recombinationTimeS", d.RecombinationTimeS);
         }
     }
 }

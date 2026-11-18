@@ -22,6 +22,12 @@ Build a system in Python, run it, read the results and scan a parameter.
 
 ![00 -- Python quick start: figure](examples/GettingStarted/quickstart/hero.png)
 
+### [12 -- A user element in Python: a programmable pulse shaper](examples/GettingStarted/user-element/README.md)
+
+`{"type": "user", "callback": "@dazzler", "params": {...}}` hands the main beam's spectrum to a function you register (`uf.run(..., elements={"dazzler": dazzler})` or `Run.element("dazzler", fn)`), and continues with the spectrum it returns.
+
+![12 -- A user element in Python: a programmable pulse shaper: figure](examples/GettingStarted/user-element/hero.png)
+
 ## LaserSystems
 
 ### [38 -- A four-grating compressor, grating by grating](examples/LaserSystems/four-grating-compressor/README.md)
@@ -89,6 +95,14 @@ A Michelson interferometer on the command line, in a Branched `.ufs` file.
 A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod once, end-pumped by 60 W at 940 nm (super-Gaussian, 0.6 mm, double pass).
 
 ![15 -- Spatially resolved gain and the thermal lens: figure](examples/Wavefronts/spatial-gain-thermal-lens/hero.png)
+
+## Branched
+
+### [31 -- A resonator and a partially coherent beam](examples/Branched/cavity-and-coherence/README.md)
+
+Two short runs with one-frequency (`"shape": "cw"`) sources.
+
+![31 -- A resonator and a partially coherent beam: figure](examples/Branched/cavity-and-coherence/hero.png)
 
 ## Diagnostics
 

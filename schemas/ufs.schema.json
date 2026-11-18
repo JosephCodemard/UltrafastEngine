@@ -2804,6 +2804,9 @@
           "type": "number",
           "description": "Crystal temperature [degC]"
         },
+        "ionization": {
+          "description": "Photo-ionisation and plasma: each field ionises at its own carrier and intensity, the densities add (Keldysh or MPI; band gap from the catalogue): true or an ionization object (element-level only; off by default) Default: false."
+        },
         "chi3": {
           "type": "boolean",
           "description": "Include the crystal's chi(3) (SPM/XPM) Default: true."

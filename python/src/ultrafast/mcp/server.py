@@ -8,7 +8,7 @@ Classes and functions:
 
 * :class:`McpServer` ``(workspace, worker=None, budget_s=300)``: ``handle(message) -> reply | None`` (None for notifications), ``serve(stdin, stdout)``.
   Methods: ``initialize``, ``server/discover``, ``ping``, ``tools/list``, ``tools/call``, ``resources/list``, ``resources/read``,
-  ``resources/templates/list``; any other request gets -32601; notifications never get a reply.
+  ``resources/templates/list``, ``prompts/list``, ``prompts/get``; any other request gets -32601; notifications never get a reply.
 * A refusal (:class:`~ultrafast.mcp.policy.Refused`), a time-out or an engine error is a tool result with ``isError: true`` that tells the agent what to do.
 * :func:`main` ``(argv)``: the command line (``--workspace``, ``--budget-s``, ``--memory-limit-gb``).
 """
@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import explain as _explain
+from . import prompts as _prompts
 from . import resources as _resources
 from . import tools as _tools
 from .policy import Refused, Workspace, check_arguments
@@ -115,10 +116,10 @@ class McpServer:
         if method == "initialize":
             want = params.get("protocolVersion")
             ver = want if want in LEGACY_VERSIONS else LEGACY_VERSIONS[0]
-            return {"protocolVersion": ver, "capabilities": {"tools": {"listChanged": False}, "resources": {"listChanged": False, "subscribe": False}},
+            return {"protocolVersion": ver, "capabilities": {"tools": {"listChanged": False}, "resources": {"listChanged": False, "subscribe": False}, "prompts": {"listChanged": False}},
                     "serverInfo": {"name": "ultrafast-mcp", "version": _version()}, "instructions": INSTRUCTIONS}
         if method == "server/discover":
-            return {"supportedVersions": SUPPORTED_VERSIONS, "capabilities": {"tools": {}, "resources": {}},
+            return {"supportedVersions": SUPPORTED_VERSIONS, "capabilities": {"tools": {}, "resources": {}, "prompts": {}},
                     "_meta": {_META + "serverInfo": {"name": "ultrafast-mcp", "version": _version()}}, "instructions": INSTRUCTIONS}
         if method == "ping":
             return {}
@@ -126,6 +127,15 @@ class McpServer:
             return {"tools": _tools.definitions()}
         if method == "tools/call":
             return self._call_tool(params)
+        if method == "prompts/list":
+            return {"prompts": _prompts.list_prompts()}
+        if method == "prompts/get":
+            try:
+                return _prompts.get_prompt(params.get("name"), params.get("arguments") or {})
+            except KeyError as e:
+                raise _Invalid("unknown prompt: %s" % e.args[0])
+            except ValueError as e:
+                raise _Invalid(str(e))
         if method == "resources/list":
             return {"resources": _resources.list_resources(self.ws)}
         if method == "resources/templates/list":
@@ -154,7 +164,12 @@ class McpServer:
                 res = _explain.explain(args.get("warning"), args.get("code"))
             else:
                 wargs = _tools.prepare(name, args, self.ws)
-                timeout = self.budget_s if tool.op in ("run", "scan") else min(tool.timeout_s, self.budget_s)
+                if tool.op == "fit":
+                    timeout = min(float(wargs.pop("timeBudgetS", self.budget_s)), self.budget_s)
+                elif tool.op in ("run", "scan", "compare"):
+                    timeout = self.budget_s
+                else:
+                    timeout = min(tool.timeout_s, self.budget_s)
                 res = self.worker.call(tool.op, wargs, timeout)
         except Refused as e:
             return _tool_result("refused: %s" % e, True)

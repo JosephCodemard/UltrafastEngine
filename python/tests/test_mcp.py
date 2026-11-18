@@ -1,4 +1,4 @@
-"""MCP server (ultrafast.mcp): handshake, the six tools, every refusal, a call over budget (killed, next call works), packaging.
+"""MCP server (ultrafast.mcp): handshake, the eight tools, prompts, every refusal, a call over budget (killed, next call works), packaging.
 
 Light: the server is driven with a fake worker (no engine) except one small end-to-end run marked ``requires_engine``.
 """
@@ -27,7 +27,7 @@ for line in sys.stdin:
     sys.stdout.write(json.dumps({"id": r["id"], "ok": True, "result": {"op": r["op"], "pid": os.getpid(), "home": os.environ.get("ULTRAFAST_HOME")}}) + "\\n")
     sys.stdout.flush()
 '''
-TOOL_NAMES = {"describe", "validate", "run", "scan", "explain_warning", "plot"}
+TOOL_NAMES = {"describe", "validate", "run", "scan", "explain_warning", "plot", "compare_to_measured", "fit"}
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ def test_discover_and_modern_requests(server):
     assert r["resultType"] == "complete" and "2026-07-28" in r["supportedVersions"] and "2025-11-25" in r["supportedVersions"]
     assert r["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "ultrafast-mcp"
     r = rpc(server, "tools/list", {"_meta": meta})["result"]
-    assert r["resultType"] == "complete" and len(r["tools"]) == 6
+    assert r["resultType"] == "complete" and len(r["tools"]) == 8
     bad = rpc(server, "tools/list", {"_meta": {"io.modelcontextprotocol/protocolVersion": "1900-01-01", "io.modelcontextprotocol/clientCapabilities": {}}})
     assert bad["error"]["code"] == -32022 and "2026-07-28" in bad["error"]["data"]["supported"]
     assert rpc(server, "tools/list", {"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28"}})["error"]["code"] == -32602
@@ -92,9 +92,9 @@ def test_ping_unknown_method_notifications_and_bad_messages(server):
     assert rpc(server, "tools/call", {"name": "nope", "arguments": {}})["error"]["code"] == -32602
 
 
-def test_tools_list_has_six_tools_with_schemas(server):
+def test_tools_list_has_eight_tools_with_schemas(server):
     ts = rpc(server, "tools/list")["result"]["tools"]
-    assert {t["name"] for t in ts} == TOOL_NAMES and len(ts) == 6
+    assert {t["name"] for t in ts} == TOOL_NAMES and len(ts) == 8
     for t in ts:
         assert t["description"] and t["inputSchema"]["type"] == "object"
     run = next(t for t in ts if t["name"] == "run")
@@ -126,6 +126,16 @@ REFUSALS = [
     ("scan", {"system": "plate.ufs", "run": "run.json", "axes": {"pulse/energyJ": list(range(1, 402))}, "outputs": ["pulse:end/fwhmS"]}, "above the limit"),
     ("scan", {"system": "plate.ufs", "run": "run.json", "axes": {"pulse/energyJ": [1e-6]}, "outputs": ["rm -rf /"]}, "not valid"),
     ("scan", {"system": "plate.ufs", "run": "run.json", "axes": {"pulse/energyJ": []}, "outputs": ["pulse:end/fwhmS"]}, "non-empty"),
+    ("fit", {"system": "plate.ufs", "run": {"pulse": {}}, "name": "f"}, "no 'fit' section"),
+    ("fit", {"system": "plate.ufs", "run": {"fit": {}, "study": {}}, "name": "f"}, "'study'"),
+    ("fit", {"system": "plate.ufs", "run": {"fit": {"callback": "x"}}, "name": "f"}, "user code"),
+    ("fit", {"system": "plate.ufs", "run": {"fit": {}, "measured": {"dataFile": "/etc/x.csv"}}, "name": "f"}, "outside the workspace"),
+    ("fit", {"system": "plate.ufs", "run": {"fit": {}}, "name": "f", "timeBudgetS": 0}, "must be greater"),
+    ("fit", {"system": "plate.ufs", "run": {"fit": {}}, "name": "../f"}, "bad name"),
+    ("compare_to_measured", {"system": "plate.ufs", "run": {"pulse": {}}}, "no instrument"),
+    ("compare_to_measured", {"system": "plate.ufs", "run": {"fit": {}, "instruments": [{"kind": "spectrometer", "measured": {"csv": "a.csv"}}]}}, "use the fit tool"),
+    ("compare_to_measured", {"system": "plate.ufs", "run": {"instruments": [{"kind": "spectrometer", "measured": {"csv": "../a.csv"}}]}}, "outside the workspace"),
+    ("compare_to_measured", {"system": "plate.ufs", "run": {"instruments": [{"kind": "spectrometer", "measured": {"csv": "a.csv"}}]}, "name": "a b"}, "bad name"),
     ("plot", {"result": "../../etc"}, "bad name"),
     ("plot", {"result": "a", "figure": "bogus"}, "must be one of"),
     ("explain_warning", {}, "give 'warning'"),
@@ -214,6 +224,39 @@ def test_valid_calls_reach_the_worker_with_private_home(server):
     assert not res["isError"] and res["structuredContent"]["op"] == "run"
 
 
+def test_fit_and_compare_reach_the_worker_when_the_spec_is_fit_for_them(server):
+    run = {"fit": {}, "instruments": [{"kind": "spectrometer", "name": "osa", "measured": {"csv": "osa.csv"}}]}
+    res = call(server, "fit", {"system": "plate.ufs", "run": run, "name": "f1", "fidelity": "quick", "timeBudgetS": 1.5})
+    assert not res["isError"] and res["structuredContent"]["op"] == "fit", text(res)
+    run.pop("fit")
+    res = call(server, "compare_to_measured", {"system": "plate.ufs", "run": run})
+    assert not res["isError"] and res["structuredContent"]["op"] == "compare", text(res)
+
+
+def test_fit_is_killed_at_its_own_time_budget_and_the_next_call_works(server):
+    server.budget_s = 30
+    run = {"fit": {}}
+    slow = call(server, "fit", {"system": {"sleep": 30}, "run": run, "name": "f2", "timeBudgetS": 1})
+    assert slow["isError"] and "time budget" in text(slow)
+    assert server.worker.pid is None
+    assert not call(server, "validate", {"system": {"sleep": 0}})["isError"]
+
+
+# -------------------------------------------------------------------------------- prompts
+def test_prompts_list_and_get(server):
+    ps = rpc(server, "prompts/list")["result"]["prompts"]
+    assert {p["name"] for p in ps} == {"explore-in-quick", "compare-to-measurement"}
+    assert all(p["description"] and p["arguments"] for p in ps)
+    g = rpc(server, "prompts/get", {"name": "explore-in-quick", "arguments": {"system": "plate.ufs", "goal": "the shortest pulse"}})["result"]
+    body = g["messages"][0]["content"]["text"]
+    assert "plate.ufs" in body and "the shortest pulse" in body and "fidelity 'full'" in body
+    assert "compare_to_measured" in rpc(server, "prompts/get", {"name": "compare-to-measurement", "arguments": {"system": "a.ufs", "recording": "osa.csv"}})["result"]["messages"][0]["content"]["text"]
+    assert rpc(server, "prompts/get", {"name": "explore-in-quick", "arguments": {"system": "a.ufs"}})["error"]["code"] == -32602
+    assert rpc(server, "prompts/get", {"name": "nope"})["error"]["code"] == -32602
+    assert "prompts" in rpc(server, "initialize", {"protocolVersion": "2025-11-25"})["result"]["capabilities"]
+    assert server.worker.spawns == 0
+
+
 # -------------------------------------------------------- over budget: killed, next call works
 def test_call_over_budget_is_killed_and_the_next_call_works(server):
     server.budget_s = 1
@@ -271,7 +314,7 @@ def test_stdio_process_handshake(tmp_path):
     out, err = p.communicate("".join(json.dumps(m) + "\n" for m in msgs).encode() + b"not json\n", timeout=60)
     lines = [json.loads(l) for l in out.decode().splitlines()]
     assert [l.get("id") for l in lines] == [1, 2, 3, None]                        # the notification got no reply; stdout holds JSON only
-    assert len(lines[1]["result"]["tools"]) == 6 and lines[2]["error"]["code"] == -32601 and lines[3]["error"]["code"] == -32700
+    assert len(lines[1]["result"]["tools"]) == 8 and lines[2]["error"]["code"] == -32601 and lines[3]["error"]["code"] == -32700
     assert b"workspace" in err
 
 
@@ -311,10 +354,41 @@ def test_real_run_validate_plot(tmp_path):
         srv.worker.close()
 
 
+@requires_engine
+def test_real_compare_to_measured_and_fit(tmp_path):
+    """A small recorded-data example: the comparison returns chi2 per instrument; a short fit lowers chi2 and writes its folder; a fit over a tiny budget is killed and the server lives."""
+    ex = REPO / "docs" / "examples" / "Diagnostics" / "measured-data"
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    shutil.copy(ex / "line.ufs", ws / "line.ufs")
+    shutil.copytree(ex / "data", ws / "data")
+    def load(name):
+        return json.loads(policy.strip_jsonc((ex / name).read_text(encoding="utf-8")))
+    cmp_run, fit_run = load("run-compare.json"), load("run-fit.json")
+    fit_run["fit"]["maxIterations"] = 3
+    srv = McpServer(ws, worker=Worker(ws, env={"PYTHONPATH": str(SRC)}), budget_s=240)
+    try:
+        c = call(srv, "compare_to_measured", {"system": "line.ufs", "run": cmp_run, "fidelity": "quick", "name": "cmp"})
+        assert not c["isError"], text(c)
+        s = c["structuredContent"]
+        assert {x["instrument"] for x in s["comparisons"]} >= {"fibre_spectrum", "ac_out"} and s["totalChi2"] > 0 and "advice" in s
+        assert (ws / ".ultrafast-mcp" / "cmp" / "summary.json").is_file()
+        f = call(srv, "fit", {"system": "line.ufs", "run": fit_run, "name": "fit1", "fidelity": "quick", "timeBudgetS": 200})
+        assert not f["isError"], text(f)
+        fit = f["structuredContent"]["fit"]
+        assert fit["chi2Final"] < fit["chi2Initial"] and len(fit["parameters"]) == 3
+        assert (ws / ".ultrafast-mcp" / "fit1" / "summary.json").is_file()
+        slow = call(srv, "fit", {"system": "line.ufs", "run": fit_run, "name": "fit2", "timeBudgetS": 0.2})
+        assert slow["isError"] and "time budget" in text(slow)
+        assert not call(srv, "validate", {"system": "line.ufs"})["isError"]            # the next call respawns the worker
+    finally:
+        srv.worker.close()
+
+
 def test_twin_serve_starts_the_mcp_server(tmp_path):
     twin = REPO / "plugins" / "twin" / "python"
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(SRC), str(twin)]))
     p = subprocess.run([sys.executable, "-m", "ultrafast_twin", "serve", str(tmp_path)], input=b'{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n',
                        capture_output=True, env=env, timeout=60)
     assert p.returncode == 0, p.stderr.decode()
-    assert len(json.loads(p.stdout.decode().splitlines()[0])["result"]["tools"]) == 6
+    assert len(json.loads(p.stdout.decode().splitlines()[0])["result"]["tools"]) == 8

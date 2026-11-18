@@ -5,6 +5,9 @@
 The first version published on PyPI (`pip install "ultrafast-engine[hosted]"`; the import name is `ultrafast`). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Added (2026-11-18)**
+- **Photo-ionisation and plasma in χ(2) crystals** (`ionization` on `crystal` elements, off by default): Keldysh or MPI rate from the catalogue band gap, one per field at its own carrier and intensity (densities add); Drude index, inverse-bremsstrahlung absorption and ionisation loss on every field at its own carrier; 1-D and spatial models; CPU only. Band gaps of BBO, LBO, KDP, KTP, LiNbO₃ added to the catalogue as `unverified` estimates. Tests `Chi2IonizationTests`.
+
 **Added (WP-3, 2026-11-18: release groundwork)**
 - **Version 1.0.0** in the engine, the plugins, the wheel and the docs; `build/check_version.py` checks that every place agrees and that a tag is `vX.Y.Z` or `vX.Y.ZrcN`.
 - **`release.yml`**: version gate, light tests, `twine check --strict` and the ZOS-API gate on the wheels, upload to TestPyPI (release-candidate tags) and PyPI (final tags) by

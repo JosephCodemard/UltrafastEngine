@@ -455,6 +455,8 @@ class CrystalElement(TypedDict, total=False):
     """Effective nonlinearity (overrides the tensor) [pm/V]"""
     temperatureC: float
     """Crystal temperature [degC]"""
+    ionization: Any
+    """Photo-ionisation and plasma: each field ionises at its own carrier and intensity, the densities add (Keldysh or MPI; band gap from the catalogue): true or an ionization object (element-level only; off by default) Default: false."""
     chi3: bool
     """Include the crystal's chi(3) (SPM/XPM) Default: true."""
     n2: float

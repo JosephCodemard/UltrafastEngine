@@ -85,8 +85,8 @@ tools: [Assets](assets/README.md).
 
 * **Free electrons in solids (high-energy lasers in crystals and glass)?** Yes in bulk elements, plates, windows and fibres: Keldysh (or MPI)
   photo-ionisation across the band gap, avalanche, recombination, and the Drude index with inverse-bremsstrahlung absorption, in the 1-D,
-  carrier-resolved and spatial models ([Ionisation](reference/ionization.md)). Not in χ(2) crystal elements. Ionisation that cannot matter
-  is skipped automatically, with a note.
+  carrier-resolved and spatial models ([Ionisation](reference/ionization.md)), and in χ(2) crystal elements (one rate per field at its own carrier; CPU only; band gaps
+  of BBO, LBO, KDP, KTP and LiNbO₃ are estimates from the transmission edge). Ionisation that cannot matter is skipped automatically in bulk elements, with a note.
 * **Does circular light become elliptical on a mirror at an angle?** Yes when the mirror is a real surface: bare glass or metal (a material
   with n and k), a thin-film stack, or a `table` coating with s and p phases; checked against the Fresnel equations. An ideal mirror (no
   coating) and `ideal` / `ar` / `gdd` coatings give s and p the same phase and keep circular light circular. There are no built-in metals: load

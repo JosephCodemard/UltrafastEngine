@@ -77,6 +77,34 @@ loss and 2 % in the blue shift for a 10 fs pulse at 2 µm (same MPI rate in both
 broadened to zero frequency is cut, as stated in the capabilities), and a density that changes within a cycle (the carrier-resolved
 ionisation steps) is only resolved in the rate, not in the Drude response.
 
+## In χ(2) crystals
+
+A `crystal` element takes the same `ionization` key (`true` or an object). It is **off by default and set per element**: the run-level `physics.ionization` is for bulk elements and does not reach crystals.
+The coupled-wave solver adds, at every step and for every time row (one row in the 1-D model, one per transverse point in a radial or cartesian model):
+
+* one electron density per field, each with its **own rate model built at that field's carrier** (so the photon order is its own: the 800 nm fundamental in BBO is a
+  five-photon process, the 400 nm harmonic a two-photon one) and driven by that field's own intensity, I_j = P_j / A_eff,j (1-D; A_eff = π w² / 2 of the assumed Gaussian mode) or
+  the local intensity (spatial models); the densities add;
+* the Keldysh (default) or `mpi` rate with the band gap of the crystal from the catalogue (`ionization` quantity of the crystal entry; BBO, LBO, KDP, KTP and LiNbO₃), or
+  from `bandGapEv`, `effectiveMass`, `neutralDensityM3` in the object; avalanche, recombination and `collisionTimeS` as for glasses;
+* on **each field at its own carrier**: the Drude index Δn_j = −ρ / (2 n_j ρ_c(ω_j)) / (1 + 1/(ω_j τ)²) and its inverse-bremsstrahlung absorption, and the energy the
+  ionisation takes (U W (ρ_n − ρ_ionised) per volume, shared between the fields in proportion to their intensity).
+
+The energy budget of the element then has an entry "ionisation and plasma absorption", and `peakElectronDensityM3` is reported. Approximations, stated so that nobody is
+surprised: multiphoton steps that mix colours (one photon of each field) are not included, so the plasma is a lower bound where both fields are strong; each field's avalanche
+follows its own intensity; a prepared density (`electronDensityM3`) is counted once; the Drude response is applied at each field's carrier, not
+frequency by frequency; the plasma is made by the pulse as it is at each z (no memory between steps), as in bulk elements. Not available on the GPU (the element runs on
+the CPU; `chi2` device kernels are used only without a plasma). The band gaps of the crystals are estimates from the quoted UV transmission edge and are marked `unverified` in the
+catalogue (`docs/reference/materials-catalogue.md`) and their source is recalled, not checked; replace them with the gap you trust in the `ionization` object.
+
+```jsonc
+{ "id": "shg", "type": "crystal", "crystal": "BBO", "lengthM": 2e-3, "cut": { "thetaDeg": 29.2 },
+  "interaction": { "process": "shg", "type": "I" }, "ionization": { "avalanche": false } }
+```
+
+Tests (`Chi2IonizationTests`): a d = 0 crystal with the default Keldysh plasma equals a bulk element of the same index, gap, mass and density (0.2 %); the photon order of each field's own carrier (no plasma from the fundamental at the harmonic's rate); density against ρ_n (1 − exp(−∫ σ_K I^K dt)) to 0.5 %; the energy taken, U ρ A_eff L, to 3 %; the Drude phase of a prepared plasma
+to 0.5 %; the catalogue band gap and the refusal without data; the energy budget of an SHG with a plasma; a radial model against the 1-D density.
+
 ## With spatial models: filaments
 
 On a radial or cartesian grid Kerr self-focusing and plasma defocusing balance (intensity clamping). The UPPE coupling

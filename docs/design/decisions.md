@@ -25,6 +25,7 @@ Internal page ([folder index](README.md)). Decisions still in force, merged from
 | Ph2 | 11-16 | Kerr lens in the 1-D beam model: the most physically accurate option that fits one Gaussian (opt-in `kerrLens: peak / pulseWeighted`). | the spatial model is the exact answer; 1-D is an estimate |
 | Ph3 | 11-08 | XPW (anisotropic cubic χ(3)) in 1-D first; spatial and carrier-resolved later. | contrast cleaning is 1-D first |
 | Ph4 | 11-17 | Ionisation that is negligible at the element's entry peak intensity is skipped automatically (`ionization.skipNegligible`, default true, with a note giving the estimated density); the plasma term also runs on the GPU. | an MPC with ionising air gaps ran 20× slower on the CPU with no change in the result |
+| Ph5 | 11-18 | Ionisation in χ(2) crystals is per element (the run-level `physics.ionization` is for bulk elements only), off by default; one rate per field at its own carrier and own intensity, densities added; no mixed-colour multiphoton terms; CPU only. Band gaps of BBO, LBO, KDP, KTP, LiNbO₃ are `unverified` estimates from the UV edge until the owner supplies sources. | a rate built at one carrier gives the wrong photon order for the other fields (800 nm SHG in BBO: 5 photons against 2); a run-level switch would change every existing crystal run |
 
 ## Engineering, packaging, release
 

@@ -586,7 +586,7 @@ def adk_rate(i_wm2, ip_ev, l=1, m=0, z=1):
 def ion_cell(i0, lam, tau, model, p=1.0, L=1e-3, species="Ar", avalanche=False, freq_resolved=True):
     area = 1e-7
     mat = {"gas": b.gas(species, p, 293.15), "n2": 0.0}
-    el = b.bulk("cell", "m", L, beam=b.constant_beam(area_m2=area), ionization={"model": model, "avalanche": avalanche, "frequencyResolved": freq_resolved})
+    el = b.bulk("cell", "m", L, beam=b.constant_beam(area_m2=area), ionization={"model": model, "avalanche": avalanche, "frequencyResolved": freq_resolved, "skipNegligible": False})
     r = uf.run(b.system("c", [el], materials={"m": mat}), b.run_spec(b.pulse(lam, tau, energy=i0 * area * tau / GAUSS_P0), physics={"selfSteepening": False}))
     return r, area
 

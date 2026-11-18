@@ -33,6 +33,7 @@ test = ["pytest>=7"]
 [project.scripts]
 ultrafast-plot = "ultrafast.plot:main"
 ultrafast-mcp = "ultrafast.mcp.server:main"
+ultrafast-agent = "ultrafast.agents:main"
 
 [project.urls]
 Homepage = "https://github.com/JosephCodemard/UltrafastEngine"
@@ -45,7 +46,7 @@ Citation = "https://github.com/JosephCodemard/UltrafastEngine/blob/main/CITATION
 where = ["src"]
 
 [tool.setuptools.package-data]
-ultrafast = ["bin/*", "bin/*/*", "py.typed"]
+ultrafast = ["bin/*", "bin/*/*", "py.typed", "agents/pack/*/SKILL.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

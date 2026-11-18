@@ -265,7 +265,7 @@ namespace UltrafastEngine.Schema
                 .P("record", ParamType.Array, "", "Names of fields kept as by-products")
                 .P("overlap", ParamType.Any, "", "\"gaussian\", \"planeWave\", {model, radiusM} or {areaM2}", "\"gaussian\"")
                 .Num("deffPmPerV", "pm/V", "Effective nonlinearity (overrides the tensor)").Num("temperatureC", "degC", "Crystal temperature")
-                .Bool("chi3", "Include the crystal's chi(3) (SPM/XPM)", "true").Num("n2", "m^2/W", "n2 of the crystal")
+                .P("ionization", ParamType.Any, "", "Photo-ionisation and plasma: each field ionises at its own carrier and intensity, the densities add (Keldysh or MPI; band gap from the catalogue): true or an ionization object (element-level only; off by default)", "false").Bool("chi3", "Include the crystal's chi(3) (SPM/XPM)", "true").Num("n2", "m^2/W", "n2 of the crystal")
                 .Bool("seedNoise", "Seed generated fields with vacuum noise", "true").Int("noiseSeed", "Noise random seed")
                 .Num("spectralMargin", "", "Spectral span factor").Num("polarizationAxisDeg", "deg", "Angle of the crystal's slow axis in the lab x-y plane")
                 .Obj("transverse", "Spatial model", "transverse"));

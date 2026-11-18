@@ -287,6 +287,7 @@ Chi(2) frequency conversion and parametric amplification (SHG, SFG, OPA, DFG). M
 | `overlap` | any |  | "gaussian" | "gaussian", "planeWave", {model, radiusM} or {areaM2} |
 | `deffPmPerV` | number | pm/V |  | Effective nonlinearity (overrides the tensor) |
 | `temperatureC` | number | degC |  | Crystal temperature |
+| `ionization` | any |  | false | Photo-ionisation and plasma: each field ionises at its own carrier and intensity, the densities add (Keldysh or MPI; band gap from the catalogue): true or an ionization object (element-level only; off by default) |
 | `chi3` | boolean |  | true | Include the crystal's chi(3) (SPM/XPM) |
 | `n2` | number | m^2/W |  | n2 of the crystal |
 | `seedNoise` | boolean |  | true | Seed generated fields with vacuum noise |

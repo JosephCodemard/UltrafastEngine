@@ -71,6 +71,17 @@
       "source": "Zelmon, Small & Jundt, JOSA B 14, 3319 (1997)",
       "status": "approximate",
       "uncertainty": "range of the index data; outside it the formula is extrapolated"
+    },
+    "ionization": {
+      "bandGapEv": 3.87,
+      "effectiveMassRatio": 0.5,
+      "neutralDensityM3": 2e+28,
+      "collisionTimeS": 1e-15,
+      "recombinationTimeS": 1.5e-13,
+      "source": "band gap = hc / a UV transmission edge (transmission edge 320 nm, congruent) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization)",
+      "status": "unverified",
+      "conditions": {},
+      "uncertainty": "band gap from the transmission edge, 5-10 %; the Keldysh rate depends on it exponentially (Eg / hbar w photons); effective mass, density and times are generic"
     }
   }
 }

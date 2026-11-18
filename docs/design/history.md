@@ -290,6 +290,19 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
   net48, any NativeAOT build (the solution did build: 0 errors), the release workflow itself (it has never run on GitHub), `PROJECT_STATUS.md` counts (not updated). The engine in the worktree was rebuilt (hosted, plugins fitting and twin only).
 * **Not done:** the LaTeX report (not committed by design); MCP tools `compare_to_measured` and `fit`, prompts, agent pack, evals (roadmap section 4); the owner's PyPI steps; the macOS NativeAOT wheel.
 
+## Stage 15 -- CI repair, ionisation in χ(2) crystals, MCP and agents completed  (2026-11-18, `dev/2026-11`, macOS arm64)
+
+* **CI failures of the Stage 14 merge, all fixed:** `FittingMemoryTests.Fit_ResultIsBitIdentical...` compared to the last bit and failed on Linux and arm (…612467 against …612495); it now compares to 1e-9 relative and says why.
+  `ValidationMatrixTests` and the schemas were stale (regenerated). The `media.py` ionisation component script lost the plasma to the negligible-ionisation skip (it now sets `skipNegligible: false`).
+  Python: `test_version_and_capabilities` still expected 2.x; the MCP policy took `C:\Windows\x.npz` for a relative path on POSIX (drive and UNC forms are refused off Windows; on Windows pathlib decides).
+* **Ionisation in χ(2) crystals** (`ionization` on `crystal`, element-level, off by default; decision Ph5): `PlasmaResponse.History` (shared with the bulk path) and `ForSolid`; `Chi2Problem.Plasmas`, one rate per field at its own carrier and own
+  intensity, densities added, Drude index and loss on each field, 1-D and spatial; band gaps for BBO, LBO, KDP, KTP, LiNbO₃ in the catalogue as `unverified` (from the UV edge, recalled, not checked against a source). A first version built the rate at the highest carrier; review showed
+  that gives a 2-photon rate for 800 nm light in BBO (really 5), so it was replaced. Tests `Chi2IonizationTests` (7): density against the multiphoton integral, energy taken, Drude phase, d = 0 Keldysh crystal equals the bulk plasma to 0.2 %, photon order, SHG budget, radial against 1-D.
+* **MCP and agents:** tools `compare_to_measured` and `fit` (own time budget, memory pre-flight, run against the real engine), prompts, `ultrafast-agent install --target claude|codex|cursor` with five shipped skills, `tests/agent-evals/` (five prompts with criteria and replayed reference trajectories; no live agent has been scored).
+* **Gallery:** every `make_figures.py` re-run (60 examples, 0 problems) and `docs/gallery.md` rebuilt; new hero figure for `Branched/cavity-and-coherence`. WP9 waves 2-4 are not done.
+* **Release:** `release.yml` unchanged (tag `v*`, environments `testpypi` / `pypi`, project `ultrafast-engine`); the owner still creates the pending publishers and tags.
+* **Not done / open:** see `roadmap-internal.md` sections 1, 4, 5; CI on GitHub for this stage has not run yet; net48 on Mono not available on this machine.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

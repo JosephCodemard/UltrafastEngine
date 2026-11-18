@@ -65,6 +65,9 @@ namespace UltrafastEngine.Crystals
         public bool SeedNoise;
         public int NoiseSeed = 12345;
         public bool Chi3 = true;
+        /// <summary>Photo-ionisation and plasma (Keldysh / MPI, Drude): on, and the optional <c>ionization</c> object (docs/reference/ionization.md).</summary>
+        public bool IonizationOn;
+        public JsonObject IonizationSpec;
         public double N2;
         public double PolarizationAxisRad = double.NaN; // azimuth of the crystal's slow axis in the lab (NaN = auto)
         public double NominalOmegaMain;
@@ -551,6 +554,16 @@ namespace UltrafastEngine.Crystals
             for (int k = 0; k < K; k++) Array.Copy(fields[k].Initial, 0, state, k * M * n, M * n);
             double eTot0 = 0; for (int k = 0; k < K; k++) eTot0 += FieldEnergy(fields[k].Initial, fields[k].Grid, basis);
             var prob = new Chi2Problem(fields, K == 2, gamma, overlap, dk0, LengthM, basis, qpmPhase, domainSign, Chi3 ? N2 : 0, SelfSteepening, vRefInv, Paraxial, maxStep) { Walls = walls, Crossing = crossing };
+            bool plasmaOn = IonizationOn;
+            if (plasmaOn)
+            {
+                // one rate model per field, at that field's carrier and driven by its own intensity; the densities add (mixed-colour multiphoton terms are left out)
+                var data = SolidIonizationData.For(Crystal.Name);
+                prob.Plasmas = fields.Select(f => PlasmaResponse.ForSolid(Crystal.Name, data, f.Omega0, f.N0, IonizationSpec)).ToArray();
+                for (int k = 1; k < prob.Plasmas.Length; k++) prob.Plasmas[k].InitialDensityM3 = 0;   // a prepared plasma is counted once, in field 0
+                notes.Add("ionization: " + prob.Plasmas[0].Description + " per field at its own carrier (" + string.Join(", ", fields.Select(f => (2 * Math.PI * 299792458.0 / f.Omega0 * 1e9).ToString("F0", CultureInfo.InvariantCulture) + " nm")) +
+                    "), densities added; Drude index and loss on each field at its own carrier");
+            }
             var st = ctx.Run.Run.Stepper;
             // The coupled-wave rates carry exp(i phi(z)) with phi' = dk0 (less the QPM grating wave). The adaptive error estimate is relative to the
             // (huge) fundamental, so a 1e-9 generated amplitude never limits the step and the integrator can step over many mismatch periods
@@ -574,6 +587,7 @@ namespace UltrafastEngine.Crystals
             stats.Representation = (basis == null ? "1-D coupled waves" : basis.Describe()) + string.Format(CultureInfo.InvariantCulture, ", {0} fields x {1} samples", K, n);
             ctx.Record.Representation = stats.Representation;
             foreach (var s in stats.Notes) notes.Add(s);
+            if (plasmaOn) ctx.Record.Values["peakElectronDensityM3"] = prob.PeakElectronDensityM3;
             // ---------------------------------------------------------------- results per field
             var fo = new Dictionary<string, PulseField>(StringComparer.OrdinalIgnoreCase);
             fieldsOut = fo;
@@ -621,9 +635,9 @@ namespace UltrafastEngine.Crystals
             foreach (var kv in auxEnergyIn) ctx.Energy("from " + kv.Key + " (aux)", -kv.Value);
             foreach (var kv in fo) if (kv.Key != outName) ctx.Energy("to " + kv.Key, kv.Value.TotalEnergyJ());
             double resid = eIn - eOut + auxEnergyIn.Values.Sum() - fo.Where(kv => kv.Key != outName).Sum(kv => kv.Value.TotalEnergyJ());
-            ctx.Energy(Crystal.Absorption != null ? "absorption" : "numerical", resid);
+            ctx.Energy(Crystal.Absorption != null ? "absorption" : plasmaOn ? "ionisation and plasma absorption" : "numerical", resid);
             double totIn = eIn + auxEnergyIn.Values.Sum();
-            if (Crystal.Absorption == null && resid > 1e-3 * totIn)
+            if (Crystal.Absorption == null && !plasmaOn && resid > 1e-3 * totIn)
             {
                 string msg = string.Format(CultureInfo.InvariantCulture, "crystal '{0}': {1:P2} of the energy reached the edge of the internal spectral window and was absorbed -- raise \"spectralMargin\" (now {2:G3})", Id, resid / totIn, SpectralMargin);
                 notes.Add(msg);
@@ -632,7 +646,7 @@ namespace UltrafastEngine.Crystals
             ctx.Record.Values["conversionEfficiency"] = eOut / Math.Max(1e-300, eIn + auxEnergyIn.Values.Sum());
             foreach (var kv in fo) ctx.Record.Values["energy_" + kv.Key + "_J"] = kv.Value.TotalEnergyJ();
             // photon bookkeeping (Manley-Rowe check), lossless case
-            if (Crystal.Absorption == null && !SeedNoise)
+            if (Crystal.Absorption == null && !plasmaOn && !SeedNoise)
             {
                 // spectrally resolved photon numbers: sum |A(w)|^2 / (hbar w)
                 double Ph(string nm, bool start)
@@ -762,6 +776,16 @@ namespace UltrafastEngine.Crystals
             el.NoiseSeed = j.GetInt("noiseSeed", 12345);
             el.Chi3 = j.GetBool("chi3", true) && c.Run.Physics.Nonlinear;
             el.N2 = j.Has("n2") ? c.Num(e, "n2", crystal.N2) : crystal.N2;
+            var ionOv = c.Find(e, "ionization");
+            JsonValue ionV = ionOv != null ? ionOv.RawValue : j.Has("ionization") ? j["ionization"] : null;   // element-level only: run-level physics.ionization is for bulk elements
+            el.IonizationOn = c.Run.Physics.Nonlinear && ionV != null && !ionV.IsNull && (ionV.Kind == JsonKind.Object || (ionV.Kind == JsonKind.Bool && ionV.AsBool()));
+            el.IonizationSpec = el.IonizationOn && ionV.Kind == JsonKind.Object ? ionV.AsObject() : null;
+            if (el.IonizationOn)
+            {
+                var iq = SolidIonizationData.CatalogueQuantityOf(crystal.Name);
+                if (iq == null && !(el.IonizationSpec?.Has("bandGapEv") ?? false)) throw new JsonException("crystal '" + e.Id + "': ionization needs band-gap data; '" + crystal.Name + "' has none in the catalogue (give ionization.bandGapEv, effectiveMass, neutralDensityM3)");
+                if (iq != null && !(el.IonizationSpec?.Has("bandGapEv") ?? false)) c.Provenance.UseCatalogue("element:" + e.Id, "ionization", iq, crystal.Name, c.Notes);
+            }
             el.SelfSteepening = c.Run.Physics.SelfSteepening;
             el.PolarizationAxisRad = j.Has("polarizationAxisDeg") ? c.Num(e, "polarizationAxisDeg", 0) * Math.PI / 180 : double.NaN;
             el.Transverse = TransverseSpec.FromJson(c.Find(e, "transverse")?.RawValue ?? (j.Has("transverse") ? j["transverse"] : c.Run.Physics.Transverse));

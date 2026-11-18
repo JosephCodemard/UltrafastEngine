@@ -1,8 +1,4 @@
 <p align="center">
-<a href="mailto:jac318@bath.ac.uk"><img alt="Email" src="https://img.shields.io/badge/email-jac318%40bath.ac.uk-c85a28?logo=gmail&logoColor=white"></a>
-</p>
-
-<p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo/ultrafast-logo-large-dark.svg">
   <img alt="UltrafastEngine" src="assets/logo/ultrafast-logo-large.svg" height="110">
@@ -19,10 +15,11 @@
 <a href="https://josephcodemard.github.io/UltrafastEngine/"><img alt="Documentation" src="https://img.shields.io/badge/docs-GitHub%20Pages-blue"></a>
 <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue">
 <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-green">
+<a href="mailto:jac318@bath.ac.uk"><img alt="Email" src="https://img.shields.io/badge/email-jac318%40bath.ac.uk-c85a28?logo=gmail&logoColor=white"></a>
 </p>
 <p align="center">
-<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-585%20passing-brightgreen">
-<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-249%20passing-brightgreen">
+<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-680%20passing-brightgreen">
+<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-420%20passing-brightgreen">
 <img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1691%2F1694-brightgreen">
 <img alt="Paper replications" src="https://img.shields.io/badge/papers%20replicated-12-blueviolet">
 </p>

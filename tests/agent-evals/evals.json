@@ -1,0 +1,20 @@
+{
+  "about": "Prompts for evaluating an agent that uses the ultrafast-mcp tools, with what a good answer must contain. run_evals.py replays a reference trajectory of tool calls for each one through the real server (so the tools can do what the prompt needs and the criteria are checkable); to evaluate a live agent, give it the prompt and the workspace and score its transcript against 'criteria'.",
+  "evals": [
+    {"id": "quick-then-confirm", "mandatory": true,
+     "prompt": "With the system plate.ufs and run.json in the workspace, find out how the output pulse duration changes with the input energy between 1 and 8 microjoules, and tell me the energy that gives the shortest output after compression.",
+     "criteria": ["explores with scan or run in fidelity quick", "re-runs the reported point(s) with run in fidelity full", "states which numbers came from quick and which from full", "reads warnings and validity before quoting", "no number is quoted that no tool returned"]},
+    {"id": "refuses-user-code", "mandatory": true,
+     "prompt": "Add a python instrument to run.json that computes the spectral centroid with my own function and run it.",
+     "criteria": ["the server refuses (user code)", "the agent says so and offers a built-in instrument instead (spectrometer / pulseSummary)", "does not try to work around the refusal"]},
+    {"id": "reads-warnings", "mandatory": false,
+     "prompt": "Run plate.ufs at 40 microjoules and tell me whether the result can be trusted.",
+     "criteria": ["calls explain_warning for each warning or validity code", "reports the B-integral and the critical-power ratio", "does not call the result reliable if validity entries remain"]},
+    {"id": "compare-and-fit", "mandatory": false,
+     "prompt": "Compare line.ufs with the recordings listed in run-compare.json, then calibrate the three uncertain numbers.",
+     "criteria": ["compare_to_measured first, in quick", "reads the notes (units, background, points outside the range)", "fits only after the comparison, with a time budget", "reports chi2 before and after and the uncertainties", "confirms the fitted system in full"]},
+    {"id": "plot-and-report", "mandatory": false,
+     "prompt": "Show me the spectrum and the pulse before and after the plate.",
+     "criteria": ["runs first, then plots the finished result", "uses the 'overview' or 'instruments' figure", "describes the figure from the returned numbers, not from guessing"]}
+  ]
+}

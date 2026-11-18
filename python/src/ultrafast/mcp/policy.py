@@ -99,6 +99,8 @@ class Workspace:
         s = str(value)
         if not s or "\x00" in s:
             raise Refused("empty or invalid path")
+        if os.name != "nt" and (_DRIVE.match(s) or s.startswith("\\\\")):   # on Windows pathlib sees these as absolute and the workspace test below decides
+            raise Refused("path %r is outside the workspace %s (a Windows drive or network path); copy the file into the workspace first" % (s, self.root))
         cand = Path(s)
         if not cand.is_absolute():
             cand = (base or self.root) / cand
@@ -235,6 +237,8 @@ def check_arguments(tool: str, schema: Mapping[str, Any], args: Any) -> Dict[str
             raise Refused("%s: argument '%s' must be of type %s" % (tool, k, "/".join(str(x) for x in types)))
         if "enum" in spec and v not in spec["enum"]:
             raise Refused("%s: argument '%s' must be one of %s (got %r)" % (tool, k, ", ".join(map(str, spec["enum"])), v))
+        if "exclusiveMinimum" in spec and v <= spec["exclusiveMinimum"]:
+            raise Refused("%s: argument '%s' must be greater than %s" % (tool, k, spec["exclusiveMinimum"]))
         if "minimum" in spec and v < spec["minimum"] or "maximum" in spec and v > spec["maximum"]:
             raise Refused("%s: argument '%s' must be between %s and %s" % (tool, k, spec.get("minimum"), spec.get("maximum")))
     return args
