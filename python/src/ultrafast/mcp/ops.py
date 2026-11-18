@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
-from .policy import Refused
+from .policy import Refused, strip_jsonc
 
 MAX_ELEMENTS = 200
 MAX_LIST = 40
@@ -44,34 +44,6 @@ def _clean(x: Any) -> Any:
     if isinstance(x, (list, tuple)):
         return [_clean(v) for v in x]
     return x
-
-
-def strip_jsonc(text: str) -> str:
-    """Remove ``//`` and ``/* */`` comments (outside strings) and trailing commas from JSON with comments."""
-    out: List[str] = []
-    i, n, in_str = 0, len(text), False
-    while i < n:
-        c = text[i]
-        if in_str:
-            out.append(c)
-            if c == "\\" and i + 1 < n:
-                out.append(text[i + 1]); i += 1
-            elif c == '"':
-                in_str = False
-        elif c == '"':
-            in_str = True; out.append(c)
-        elif text.startswith("//", i):
-            while i < n and text[i] != "\n":
-                i += 1
-            continue
-        elif text.startswith("/*", i):
-            j = text.find("*/", i + 2)
-            i = n if j < 0 else j + 2
-            continue
-        else:
-            out.append(c)
-        i += 1
-    return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
 
 
 def load_json_file(path: str) -> dict:
@@ -193,7 +165,7 @@ def scan(a: Dict[str, Any]) -> dict:
     return _clean(r)
 
 
-_FIGURES = ("overview", "system", "instruments", "measurements", "probes", "elements", "byproducts", "gain", "oscillator", "spectrogram")
+_FIGURES = ("overview", "system", "instruments", "measurements", "probes", "elements", "byproducts", "gain", "oscillator", "spectrogram_3d")
 
 
 def plot(a: Dict[str, Any]) -> dict:

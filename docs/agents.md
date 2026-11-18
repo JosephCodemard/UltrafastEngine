@@ -135,8 +135,8 @@ read `warnings` and `validity` of every result (`explain_warning`); say which nu
 
 **What the server refuses** (a tool result with `isError: true` and the reason; the agent can correct the call):
 
-* strings that start with `@` (callbacks and field references), `kind` / `type` of `callback`, `python`, `expression` or `user`: no user code runs;
-* paths outside the workspace, paths through a symbolic link or Windows junction, file keys (`...File`, `...Folder`, `...Dir`, `path`) that point elsewhere;
+* strings that start with `@` (callbacks and field references), `kind` / `type` of `callback`, `python`, `expression` or `user`: no user code runs. Files you name are read and checked like inline objects;
+* paths outside the workspace, paths through a symbolic link or Windows junction, and any string in a system or run that is absolute, goes up with `..` or ends in a data extension (`.csv`, `.npz`, `.json`, ...) unless it resolves inside the workspace (relative paths in a file are taken from that file's folder);
 * names for result folders that are not 1 to 64 letters, digits, `_`, `-`, `.`; unknown, missing or mistyped arguments;
 * scan paths that do not start with `pulse/`, `element:` or `instrument:`; more than 4 axes or 400 points; a run spec with a `fit`, `study` or `backward` section;
 * a request above 4 MB, and a run or scan whose memory estimate is above the limit or 60 % of the free memory (before it starts).

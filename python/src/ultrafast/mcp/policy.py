@@ -15,6 +15,7 @@ Main entry points (all pure Python, no engine):
 """
 from __future__ import annotations
 
+import json
 import math
 import os
 import re
@@ -26,8 +27,47 @@ REFUSED_KINDS = frozenset({"callback", "python", "expression", "user"})
 SET_PREFIXES = ("pulse/", "element:", "instrument:")
 OUTPUT_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(:[A-Za-z0-9_.-]+)?/[A-Za-z0-9_./-]+$")
 _FILE_KEY = re.compile(r"(file|folder|dir|directory)$", re.IGNORECASE)
+_DATA_EXT = (".csv", ".npz", ".npy", ".json", ".ufs", ".txt", ".dat", ".par", ".tsv", ".h5", ".hdf5", ".mat", ".xlsx", ".png", ".tif", ".tiff", ".bmp")
+_DRIVE = re.compile(r"^[A-Za-z]:[\\/]")
+MAX_FILE_BYTES = 8_000_000
 RESULTS_FOLDER = ".ultrafast-mcp"
 _MAX_DEPTH = 40
+
+
+def strip_jsonc(text: str) -> str:
+    """Remove ``//`` and ``/* */`` comments (outside strings) and trailing commas from JSON with comments."""
+    out = []
+    i, n, in_str = 0, len(text), False
+    while i < n:
+        c = text[i]
+        if in_str:
+            out.append(c)
+            if c == "\\" and i + 1 < n:
+                out.append(text[i + 1]); i += 1
+            elif c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True; out.append(c)
+        elif text.startswith("//", i):
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+            continue
+        else:
+            out.append(c)
+        i += 1
+    return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
+
+
+def looks_like_path(value: str) -> bool:
+    """A string the engine may open as a file: absolute, going up (``..``), or ending in a data extension. Study paths (``pulse/...``) are not."""
+    if value.startswith(SET_PREFIXES) or value.startswith("@"):
+        return False
+    v = value.strip()
+    return (v.startswith(("/", "\\")) or bool(_DRIVE.match(v)) or ".." in re.split(r"[\\/]", v) or v.lower().endswith(_DATA_EXT))
 
 
 class Refused(Exception):
@@ -54,13 +94,14 @@ class Workspace:
             raise ValueError("workspace is not a folder: %s" % self.root)
 
     # ------------------------------------------------------------------ paths
-    def resolve(self, value: Any, *, must_exist: bool = False) -> Path:
+    def resolve(self, value: Any, *, must_exist: bool = False, base: Optional[Path] = None) -> Path:
+        """``value`` as a path inside the workspace; a relative one is taken from ``base`` (the folder of the file that names it; default: the workspace)."""
         s = str(value)
         if not s or "\x00" in s:
             raise Refused("empty or invalid path")
         cand = Path(s)
         if not cand.is_absolute():
-            cand = self.root / cand
+            cand = (base or self.root) / cand
         norm = Path(os.path.normpath(cand))
         try:
             rel = norm.relative_to(self.root)
@@ -86,17 +127,32 @@ class Workspace:
 
     # ----------------------------------------------------------- system / run
     def source(self, value: Any, what: str) -> Any:
-        """A system or run argument: a file in the workspace (returned as an absolute path string) or an inline dict (checked)."""
+        """A system or run argument: a file in the workspace (returned as an absolute path string) or an inline dict. Both are checked
+        with :func:`check_document`; use :meth:`document` when the parsed content is needed too."""
+        return self.document(value, what)[0]
+
+    def document(self, value: Any, what: str):
+        """``(source, parsed dict)``. A file is read and parsed here (JSON with comments), so the policy sees what the engine will read; relative
+        data paths inside it are taken from the file's own folder, as the engine does."""
         if isinstance(value, str):
             if value.startswith("@"):
                 raise Refused("%s: strings starting with '@' name callbacks, which this server does not run" % what)
             p = self.resolve(value, must_exist=True)
             if not p.is_file():
                 raise Refused("%s: %s is not a file" % (what, self.rel(p)))
-            return str(p)
+            if p.stat().st_size > MAX_FILE_BYTES:
+                raise Refused("%s: %s is larger than %d MB" % (what, self.rel(p), MAX_FILE_BYTES // 1_000_000))
+            try:
+                doc = json.loads(strip_jsonc(p.read_text(encoding="utf-8-sig")))
+            except (ValueError, UnicodeDecodeError) as e:
+                raise Refused("%s: %s is not valid JSON (%s)" % (what, self.rel(p), e)) from None
+            if not isinstance(doc, dict):
+                raise Refused("%s: %s must hold a JSON object" % (what, self.rel(p)))
+            check_document(doc, self, what, base=p.parent)
+            return str(p), doc
         if isinstance(value, dict):
             check_document(value, self, what)
-            return value
+            return value, value
         raise Refused("%s must be a path inside the workspace or a JSON object" % what)
 
 
@@ -118,26 +174,31 @@ def check_output(name: Any) -> str:
     return name
 
 
-def check_document(obj: Any, ws: Optional[Workspace] = None, what: str = "document", _depth: int = 0) -> None:
-    """Walk a system or run dict: no callbacks, no user code, file names inside the workspace."""
+def check_document(obj: Any, ws: Optional[Workspace] = None, what: str = "document", _depth: int = 0, base: Optional[Path] = None) -> None:
+    """Walk a system or run dict: no callbacks, no user code, every file name inside the workspace (relative ones from ``base``, the folder of the
+    file being checked; default the workspace)."""
     if _depth > _MAX_DEPTH:
         raise Refused("%s is nested too deeply" % what)
     if isinstance(obj, dict):
         for key, value in obj.items():
+            if key == "$schema":
+                continue                  # a link to the schema, not data the engine reads
             if key in ("kind", "type") and isinstance(value, str) and value.lower() in REFUSED_KINDS:
                 raise Refused("%s: %s '%s' runs user code, which this server does not do" % (what, key, value))
             if key == "callback" or key == "callbacks":
                 raise Refused("%s: key '%s' names user code, which this server does not run" % (what, key))
-            if isinstance(value, str) and ws is not None and (_FILE_KEY.search(key) or (key == "path" and not value.startswith(SET_PREFIXES))):
-                if not value.startswith("@"):
-                    ws.resolve(value)       # raises Refused when outside the workspace or through a link
-            check_document(value, ws, what, _depth + 1)
+            if isinstance(value, str) and ws is not None and not value.startswith("@"):
+                if _FILE_KEY.search(key) or (key == "path" and not value.startswith(SET_PREFIXES)) or looks_like_path(value):
+                    ws.resolve(value, base=base)       # raises Refused when outside the workspace or through a link
+            check_document(value, ws, what, _depth + 1, base)
     elif isinstance(obj, list):
         for item in obj:
-            check_document(item, ws, what, _depth + 1)
+            check_document(item, ws, what, _depth + 1, base)
     elif isinstance(obj, str):
         if obj.startswith("@"):
             raise Refused("%s: the string %r starts with '@' (a callback or field reference); this server does not run user code" % (what, obj))
+        if ws is not None and looks_like_path(obj):
+            ws.resolve(obj, base=base)
 
 
 _TYPES = {"string": str, "object": dict, "array": list, "boolean": bool}

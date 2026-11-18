@@ -22,7 +22,7 @@ _SRC = {"description": "A path of a file inside the workspace (relative or absol
 _FIDELITY = {"type": "string", "enum": ["quick", "standard", "full"],
              "description": "quick: explore (Raman, self-steepening and polarisation dropped; fastest); standard: looser tolerance; full (default): the physics as written. "
                             "Explore in quick, then confirm the points you report in full (resource ultrafast://fidelity)."}
-_FIGURES = ["overview", "system", "instruments", "measurements", "probes", "elements", "byproducts", "gain", "oscillator", "spectrogram"]
+_FIGURES = ["overview", "system", "instruments", "measurements", "probes", "elements", "byproducts", "gain", "oscillator", "spectrogram_3d"]
 
 
 @dataclass(frozen=True)
@@ -75,14 +75,13 @@ def prepare(tool: str, args: Dict[str, Any], ws: Workspace) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     if tool in ("describe", "validate", "run", "scan"):
         out["system"] = ws.source(args["system"], "system")
+        run_doc: Dict[str, Any] = {}
         if args.get("run") is not None:
-            out["run"] = ws.source(args["run"], "run")
+            out["run"], run_doc = ws.document(args["run"], "run")
+        for k in ("fit", "study", "backward"):
+            if k in run_doc:       # inline dicts and run files alike
+                raise Refused("run: the '%s' section is not available through this server (use the scan tool, or run it with the CLI)" % k)
     if tool in ("run", "scan"):
-        run = out["run"]
-        if isinstance(run, dict):
-            for k in ("fit", "study", "backward"):
-                if k in run:
-                    raise Refused("run: the '%s' section is not available through this server (use the scan tool, or run it with the CLI)" % k)
         if args.get("fidelity"):
             out["fidelity"] = args["fidelity"]
     if tool == "run":

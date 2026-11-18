@@ -159,6 +159,46 @@ def test_absolute_path_outside_workspace_and_symlink_refused(server, tmp_path):
         os.rmdir(link)
 
 
+FILE_REFUSALS = [
+    ("run.json", '// comment\n{"pulse": {"energyJ": "@energy"}, }', "starts with '@'"),
+    ("run.json", '{"instruments": [{"kind": "python"}]}', "user code"),
+    ("run.json", '{"fit": {"parameters": []}}', "'fit'"),
+    ("run.json", '{"measured": {"dataFile": "../../outside.csv"}}', "outside the workspace"),
+    ("run.json", '{"pulse": {"spectrum": {"x": "../outside.csv"}}}', "outside the workspace"),
+    ("run.json", '{"phaseTargetRad": "C:\\\\Windows\\\\x.npz"}', "outside the workspace"),
+    ("run.json", '{"phaseTargetRad": "/etc/passwd.dat"}', "outside the workspace"),
+    ("plate.ufs", '{"elements": [{"id": "e", "type": "user"}]}', "user code"),
+    ("plate.ufs", '{"elements": [{"id": "e", "type": "plate", "beam": {"mapFile": "../m.npz"}}]}', "outside the workspace"),
+    ("plate.ufs", 'not json', "not valid JSON"),
+]
+
+
+@pytest.mark.parametrize("fname,content,fragment", FILE_REFUSALS, ids=[f"{i}-{r[0]}" for i, r in enumerate(FILE_REFUSALS)])
+def test_file_arguments_get_the_same_policy_as_inline_ones(server, fname, content, fragment):
+    """A file in the workspace is read and checked too (the engine will read the same text)."""
+    (server.ws.root / fname).write_text(content, encoding="utf-8")
+    res = call(server, "run", {"system": "plate.ufs", "run": "run.json", "name": "a"})
+    assert res["isError"] is True and fragment in text(res), text(res)
+    assert server.worker.spawns == 0
+
+
+def test_relative_paths_in_a_file_are_taken_from_the_files_folder(server):
+    sub = server.ws.root / "data"
+    sub.mkdir()
+    (sub / "run.json").write_text('{"measured": {"dataFile": "spec.csv"}, "$schema": "../../schemas/run.schema.json"}', encoding="utf-8")
+    res = call(server, "validate", {"system": "plate.ufs", "run": "data/run.json"})
+    assert not res["isError"], text(res)
+    (sub / "run.json").write_text('{"measured": {"dataFile": "../../spec.csv"}}', encoding="utf-8")
+    assert call(server, "validate", {"system": "plate.ufs", "run": "data/run.json"})["isError"]
+
+
+def test_ordinary_strings_are_not_taken_for_paths():
+    for ok in ("~5 fs", "pulse/energyJ", "element:plate/lengthM", "m/s", "a..b", "FusedSilica", "x"):
+        assert not policy.looks_like_path(ok), ok
+    for bad in ("../x", "..\\x", "/abs", "C:\\x", "C:/x", "data.CSV", "map.npz"):
+        assert policy.looks_like_path(bad), bad
+
+
 def test_workspace_must_be_a_folder(tmp_path):
     with pytest.raises(ValueError):
         policy.Workspace(tmp_path / "nope")
