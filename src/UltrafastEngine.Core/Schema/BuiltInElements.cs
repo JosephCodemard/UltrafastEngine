@@ -157,7 +157,7 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("element", "fiber", "A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material; gamma or n2 + effective area; loss; gain; Raman; soliton and dispersive-wave diagnostics.")
                 .Alias("fibre", "waveguide").DocAt("reference/fibers.md")
                 .Num("lengthM", "m", "Fibre length", required: true)
-                .Arr("betas", "s^k/m", "Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI)")
+                .Arr("betasSkPerM", "s^k/m", "Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI)").Arr("betas", "s^k/m", "Deprecated name of betasSkPerM (still accepted)")
                 .Arr("betasPsKm", "ps^k/km", "Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units)")
                 .Num("referenceWavelengthM", "m", "Wavelength of the Taylor expansion", "the carrier")
                 .Obj("dispersion", "Dispersion curve {wavelengthsM, dPsNmKm | beta2S2PerM} (alternative to betas)", "fiberDispersion")
@@ -218,12 +218,12 @@ namespace UltrafastEngine.Schema
                 .Num("axisDeg", "deg", "Transmission (p) axis from x", "0").Num("axisRad", "rad", "Transmission axis")
                 .Str("substrate", "Substrate", "FusedSilica").Num("thicknessM", "m", "Substrate thickness", "3e-3").Str("medium", "Surrounding medium", "Air")
                 .Num("designWavelengthM", "m", "Stack design wavelength", "the carrier").Int("pairs", "HL pairs", "12")
-                .Str("high", "High-index film", "HfO2").Str("low", "Low-index film", "SiO2_film").Model("coatingBack", "coating", "Back-surface coating")
+                .Num("bandPosition", "", "stack: where the operating wavelength lies between the p band edge (0) and the s band edge (1) of the quarter-wave stack", "0.5").Str("high", "High-index film", "HfO2").Str("low", "Low-index film", "SiO2_film").Model("coatingBack", "coating", "Back-surface coating")
                 .Num("transmissionP", "", "ideal: Tp", "0.98").Num("transmissionS", "", "ideal: Ts", "1e-3").Num("reflectanceS", "", "ideal: Rs", "0.998").Num("reflectanceP", "", "ideal: Rp", "1 - Tp"));
             add(new ComponentSpec("element", "faradayRotator", "Faraday rotator: non-reciprocal rotation with Verdet dispersion, optional crystal (dispersion, B-integral).").Alias("faraday")
                 .DocAt("reference/components.md#faraday-rotators").Include("nonlinearMedium")
                 .Num("rotationDeg", "deg", "Rotation at the design wavelength", "45").Num("designWavelengthM", "m", "Design wavelength", "the carrier")
-                .Num("verdetRadPerTM", "rad/(T m)", "Verdet constant (with fieldT and lengthM)").Num("fieldT", "T", "Magnetic field")
+                .Num("verdetRadPerTM", "rad/(T m)", "Verdet constant (with fieldTesla and lengthM)").Num("fieldTesla", "T", "Magnetic field").Num("fieldT", "T", "Deprecated name of fieldTesla")
                 .Num("lengthM", "m", "Crystal length").Str("material", "Crystal (e.g. TGG)")
                 .Enum("verdetDispersion", new[] { "inverseSquare", "none" }, "V ~ 1/(lambda^2 - lambda0^2)", "inverseSquare").Num("verdetPoleWavelengthM", "m", "lambda0", "258e-9")
                 .Num("direction", "", "+1 forward, -1 backward (non-reciprocal)", "1").Num("transmission", "", "Power transmission", "1"));
@@ -236,7 +236,9 @@ namespace UltrafastEngine.Schema
                 .Num("beamRadiusM", "m", "Beam radius for the 1-D Strehl estimate"));
             add(new ComponentSpec("element", "polarizer", "A linear polariser.").DocAt(D + "polarizer")
                 .Num("axisDeg", "deg", "Transmission axis from x", "0").Num("axisRad", "rad", "Transmission axis")
-                .Num("extinctionRatio", "", "Extinction ratio", "1e5").Num("transmission", "", "Transmission along the axis", "1"));
+                .Num("extinctionRatio", "", "Extinction ratio", "1e5").Num("transmission", "", "Transmission along the axis", "1")
+                .Str("material", "Glass or crystal of the polariser (a Glan prism: e.g. calcite or a-BBO; a film polariser's substrate); with thicknessM its dispersion is applied")
+                .Num("thicknessM", "m", "Glass path length through the polariser (adds the material's dispersion)", "0"));
             add(new ComponentSpec("element", "rotator", "Rotates the polarisation (and the image).").DocAt(D + "rotator")
                 .Num("angleDeg", "deg", "Rotation angle", "0").Num("angleRad", "rad", "Rotation angle"));
             add(new ComponentSpec("element", "probe", "A named place in the beam (does nothing; snapshots and instruments).").Alias("marker").DocAt(D + "probe"));
@@ -263,7 +265,7 @@ namespace UltrafastEngine.Schema
                 .P("record", ParamType.Array, "", "Names of fields kept as by-products")
                 .P("overlap", ParamType.Any, "", "\"gaussian\", \"planeWave\", {model, radiusM} or {areaM2}", "\"gaussian\"")
                 .Num("deffPmPerV", "pm/V", "Effective nonlinearity (overrides the tensor)").Num("temperatureC", "degC", "Crystal temperature")
-                .Bool("chi3", "Include the crystal's chi(3) (SPM/XPM)", "true").Num("n2", "m^2/W", "n2 of the crystal")
+                .P("ionization", ParamType.Any, "", "Photo-ionisation and plasma: each field ionises at its own carrier and intensity, the densities add (Keldysh or MPI; band gap from the catalogue): true or an ionization object (element-level only; off by default)", "false").Bool("chi3", "Include the crystal's chi(3) (SPM/XPM)", "true").Num("n2", "m^2/W", "n2 of the crystal")
                 .Bool("seedNoise", "Seed generated fields with vacuum noise", "true").Int("noiseSeed", "Noise random seed")
                 .Num("spectralMargin", "", "Spectral span factor").Num("polarizationAxisDeg", "deg", "Angle of the crystal's slow axis in the lab x-y plane")
                 .Obj("transverse", "Spatial model", "transverse"));

@@ -33,6 +33,9 @@ namespace UltrafastEngine.Engine
         public double ArrivalS;
         public DispersionPoint Own, System;
         public double BIntegralRad, CumulativeBIntegralRad;
+        /// <summary>B-integral with the index change weighted by power over the pulse (on axis), and additionally weighted by intensity over a
+        /// Gaussian beam's cross-section (1/2 of the pulse-averaged value in the 1-D model). NaN where not computed (spatial and crystal elements).</summary>
+        public double BIntegralPulseAveragedRad = double.NaN, BIntegralBeamAveragedRad = double.NaN;
         public StepStatistics Steps;
         public double PeakIntensityWPerM2 = double.NaN, PeakFluenceJPerM2 = double.NaN, LidtFluenceJPerM2 = double.NaN, LidtMargin = double.NaN;
         public double OutsideDataFraction = double.NaN;
@@ -87,7 +90,8 @@ namespace UltrafastEngine.Engine
             try
             {
                 ComputeBackends.Current = b;
-                ComputeBackends.Settings = new ComputeSettings { Device = ComputeBackends.ResolveDevice(cr.Run.ComputeDevice), GpuMinPoints = cr.Run.GpuMinPoints, DeviceSlots = cr.Run.DeviceSlots, Options = cr.Run.ComputeOptions };
+                ComputeBackends.Settings = new ComputeSettings { Device = ComputeBackends.ResolveDevice(cr.Run.ComputeDevice), GpuMinPoints = cr.Run.GpuMinPoints, DeviceSlots = cr.Run.DeviceSlots, Options = cr.Run.ComputeOptions, Precision = cr.Run.ComputePrecision ?? "double" };
+                if (ComputeBackends.Settings.Mixed && b is CpuBackend) cr.Warnings.Add("compute.precision \"mixed\" applies to the GPU back-ends only; the CPU back-end computes in double precision.");
                 if (cr.Run.Threads > 0) ParallelismSettings.MaxDegreeOfParallelism = cr.Run.Threads;
                 var r = Execute(cr, progress, cancel, true);
                 if (!(b is CpuBackend)) r.Notes.Add("compute back-end: " + b.Description);
@@ -156,7 +160,7 @@ namespace UltrafastEngine.Engine
             }
             var st = new ExecutionState { Cr = cr, Res = res, Tail = tail, TailKeys = tailKeys, SnapPoints = snapPoints, AxisOf = AxisOf, Progress = progress, Cancel = cancel, Count = count };
             bool branched = cr.Graph?.IsBranched == true;
-            if (measure && !branched && cr.Run.Outputs?.KeepProfiles == "used") st.KeepProfiles = ProfilesInUse(cr);
+            if (measure && cr.Run.Outputs?.KeepProfiles == "used") st.KeepProfiles = ProfilesInUse(cr);
             if (branched) RunGraph(st);
             for (int ei = first; ei < count && !branched; ei++)
             {
@@ -179,9 +183,19 @@ namespace UltrafastEngine.Engine
                     res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "{0:P2} of the tail energy is near the edge of the tail window ({1:G4} ps): the tail wraps around; raise grid.tail.windowS.", edge, tail.WindowS * 1e12));
             }
             if (!branched) { res.FinalArrivalS = path.ArrivalS; res.FinalSystem = path.System; }
+            if (res.Output != null && cr.Run?.Pulse?.IsCw != true)
+            {
+                var so = PulseMetrics.Summarize(res.Output);
+                if (so.PeakCount > 1)
+                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "The output pulse has {0} separate peaks above half maximum: its FWHM ({1:G4} fs) spans them all and holds {2:P1} of the energy; use rmsWidthS, temporalStrehl or the temporal trace instead.", so.PeakCount, so.FwhmS * 1e15, so.FwhmEnergyFraction));
+            }
 
             if (measure) MeasureInstruments(cr, res, cancel);
+            Specs.Fidelity.Assess(res);
+            res.FinishValidity();
             res.ElapsedS = sw.Elapsed.TotalSeconds;
+            if (res.Validity.Count > 0 && (cr.Run.Physics.StrictValidity || Environment.GetEnvironmentVariable("ULTRAFAST_STRICT_VALIDITY") == "1"))
+                throw new ValidityException(res);
             return res;
         }
 
@@ -205,6 +219,12 @@ namespace UltrafastEngine.Engine
             foreach (var i in cr.Run.Instruments) { string a = i.GetString("at", "end").Replace(':', '#'); at.Add(a); at.Add(a.Split('#')[0]); }   // a port location id#port reads its element too
             var keep = new HashSet<string>(at, StringComparer.OrdinalIgnoreCase);
             var on = cr.Elements.Where(x => x.Enabled).ToList();
+            if (cr.Graph?.IsBranched == true)
+            {
+                // a branched system: the elements that feed an instrument's element, and every element that ends on the output
+                foreach (var edge in cr.Graph.Edges) if (at.Contains(edge.To) || edge.ToEnd) keep.Add(edge.From);
+                return keep;
+            }
             for (int i = 1; i < on.Count; i++) if (at.Contains(on[i].Id)) keep.Add(on[i - 1].Id);
             if (on.Count > 0) keep.Add(on[on.Count - 1].Id);
             return keep;
@@ -281,9 +301,24 @@ namespace UltrafastEngine.Engine
                     double lam = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / grid.OmegaCenter, n0 = seg.Material.IndexAt(grid.OmegaCenter);
                     double pcr = PhysicalConstants.CriticalPowerFactor * lam * lam / (8 * Math.PI * n0 * seg.Medium.N2);
                     rec.CriticalPowerRatio = PulseMetrics.TemporalPower(pulse).Max() / pcr;
-                    if (rec.CriticalPowerRatio > 0.3 && !res.Warnings.Any(w => w.Contains("critical power")))
-                        res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));
+                    if (rec.CriticalPowerRatio > 0.3 && seg.KerrLens == null)
+                        res.Flag("criticalPower", el.Id, rec.CriticalPowerRatio, 0.3, string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak power is {1:G3} x the critical power for self-focusing; spatial effects (Kerr lensing, filamentation) are not modelled in 1-D -- use \"transverse\": {{\"model\": \"radial\"}} on this element.", el.Id, rec.CriticalPowerRatio));
                 }
+                double lensPowerBefore = 0;
+                if (seg.KerrLens != null && seg.Beam is GaussianBeam gb0)
+                {
+                    // self-focusing of the 1-D beam: thin Kerr lenses of the power at the entry (Physics/KerrLens.cs)
+                    var pw = PulseMetrics.TemporalPower(pulse);
+                    lensPowerBefore = KerrLens.EffectivePowerW(pw, seg.KerrLens);
+                    var lensed = KerrLens.Integrate(gb0, seg.Medium.N2, seg.Material.IndexAt(grid.OmegaCenter), lensPowerBefore, seg.LengthM, KerrLens.LensFactor(seg.KerrLensModel), out double collapseAt);
+                    rec.Values["kerrLensPowerW"] = lensPowerBefore;
+                    rec.Values["kerrLensExitRadiusXM"] = lensed.RadiusX(seg.LengthM); rec.Values["kerrLensExitRadiusYM"] = lensed.RadiusY(seg.LengthM);
+                    rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "kerrLens ({0}, {1}): P = {2:G4} W; beam radius {3:G4} -> {4:G4} um (x) at the exit; the beam leaving the element is not carried to later elements", seg.KerrLens, seg.KerrLensModel, lensPowerBefore, seg.Beam.RadiusX(seg.LengthM) * 1e6, lensed.RadiusX(seg.LengthM) * 1e6));
+                    if (!double.IsNaN(collapseAt))
+                        res.Flag("kerrLensCollapse", el.Id, collapseAt, seg.LengthM, string.Format(CultureInfo.InvariantCulture, "Element '{0}': the Kerr lens collapses the beam at z = {1:G4} m (P above the critical power of the model); the 1-D result after that point is not meaningful -- use \"transverse\" on this element.", el.Id, collapseAt));
+                    seg = seg.WithBeam(lensed);
+                }
+                seg = DropNegligiblePlasma(seg, pulse, rec);
                 var stats = new StepStatistics();
                 double deadFraction = 0;
                 var pulseBefore = pulse;
@@ -291,6 +326,12 @@ namespace UltrafastEngine.Engine
                 pulse = seg.CarrierResolved
                     ? PropagateField(cr, pulse, seg, arrival, tauEl, el.Id, stats, rec, prog)
                     : PropagateEnvelope(cr, pulse, seg, AxisOf(grid), arrival, tauEl, el.Id, stats, prog, out deadFraction);
+                if (lensPowerBefore > 0)
+                {
+                    double pAfter = KerrLens.EffectivePowerW(PulseMetrics.TemporalPower(pulse), seg.KerrLens);
+                    if (Math.Abs(pAfter / lensPowerBefore - 1) > 0.2)
+                        res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': the {1} power changed from {2:G3} to {3:G3} W inside the element, but the Kerr lens used the entry power; split the element in shorter parts for an accurate lens.", el.Id, seg.KerrLens == "peak" ? "peak" : "pulse-weighted", lensPowerBefore, pAfter));
+                }
                 foreach (var b in seg.Background) { var d = Reported(b, grid); own += d; rec.Terms.Add(b.Description); }
                 tail?.PropagateTail(seg.Background, (m, dE) => AddLoss(rec, m, dE));
                 if (tail != null && cr.Run.Grid.TailCrossPhase && !seg.CarrierResolved && !seg.Medium.ReplaceKerr && seg.Medium.N2 > 0 && ReferenceEquals(pulseBefore.Grid, pulse.Grid))
@@ -310,11 +351,23 @@ namespace UltrafastEngine.Engine
                 {
                     AddLoss(rec, "spectrum at non-positive frequency", eDead);
                     string msg = string.Format(CultureInfo.InvariantCulture, "Element '{0}': nonlinear broadening reached zero frequency of the envelope grid; {1:G3} of the pulse energy was dropped there (an envelope model has no negative frequencies). The pulse is too short for its carrier (a few cycles) or too strongly broadened: the result is not reliable; use a carrier-resolved model (a time response with carrierResolved) or less nonlinearity.", el.Id, eDead / eBefore);
-                    if (!res.Warnings.Contains(msg)) res.Warnings.Add(msg);
+                    res.Flag("zeroFrequency", el.Id, eDead / eBefore, 1e-7, msg);
                     eBefore -= eDead;
                 }
                 AddLoss(rec, absorbs ? "absorption" : (seg.Medium.EffectiveRamanFraction > 0 ? "raman+numerical" : "numerical"), eBefore - eAfter);
                 rec.Steps = stats; rec.BIntegralRad = stats.BIntegralRad;
+                if (!seg.CarrierResolved && stats.BIntegralRad > 0)
+                {
+                    // the stepper weights the index change by power at every step (CPU envelope); otherwise (GPU) estimate it from the entry and exit
+                    // shapes for an instantaneous Kerr response: sum P^2 / (sum P max P), exact for a pulse whose shape does not change
+                    if (!double.IsNaN(stats.BIntegralPulseAveragedRad)) rec.BIntegralPulseAveragedRad = stats.BIntegralPulseAveragedRad;
+                    else
+                    {
+                        rec.BIntegralPulseAveragedRad = stats.BIntegralRad * 0.5 * (KerrShapeFactor(pulseBefore) + KerrShapeFactor(pulse));
+                        rec.Notes.Add("pulse-averaged B-integral estimated from the entry and exit pulse shapes (instantaneous Kerr response); the stepper did not report it");
+                    }
+                    rec.BIntegralBeamAveragedRad = 0.5 * rec.BIntegralPulseAveragedRad;   // Gaussian beam: int I^2 dA / int I dA = I0 / 2
+                }
                 foreach (var rr in seg.Medium.ExtraResponses.OfType<IReportingResponse>()) rr.Report(rec.Values);
                 double minA = double.PositiveInfinity;
                 for (int k = 0; k <= 200; k++) minA = Math.Min(minA, seg.Beam.EffectiveArea(seg.LengthM * k / 200.0));
@@ -373,12 +426,12 @@ namespace UltrafastEngine.Engine
             {
                 rec.LidtFluenceJPerM2 = el.Surface.Lidt.FluenceAt(double.IsNaN(rec.Out.FwhmS) ? 1e-12 : rec.Out.FwhmS);
                 rec.LidtMargin = rec.LidtFluenceJPerM2 / rec.PeakFluenceJPerM2;
-                if (rec.LidtMargin < 1) res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak fluence {1:G3} J/cm^2 exceeds the scaled LIDT {2:G3} J/cm^2.", el.Id, rec.PeakFluenceJPerM2 * 1e-4, rec.LidtFluenceJPerM2 * 1e-4));
+                if (rec.LidtMargin < 1) res.Flag("lidt", el.Id, rec.LidtMargin, 1, string.Format(CultureInfo.InvariantCulture, "Element '{0}': peak fluence {1:G3} J/cm^2 exceeds the scaled LIDT {2:G3} J/cm^2.", el.Id, rec.PeakFluenceJPerM2 * 1e-4, rec.LidtFluenceJPerM2 * 1e-4));
             }
             if (rec.Out.EdgeEnergyFraction > 1e-3 && cr.Run?.Pulse?.IsCw != true)
             {
                 string w = string.Format(CultureInfo.InvariantCulture, "After element '{0}' {1:P2} of the energy is near the time-window edge (wrap-around likely).", el.Id, rec.Out.EdgeEnergyFraction);
-                if (!res.Warnings.Any(x => x.Contains("time-window edge"))) res.Warnings.Add(w);
+                res.Flag("windowEdge", el.Id, rec.Out.EdgeEnergyFraction, 1e-3, w);
             }
             if (rec.OutsideDataFraction > 1e-3)
                 rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "{0:P2} of the spectral energy lies outside the sampled data range (extrapolated dispersion)", rec.OutsideDataFraction));
@@ -659,6 +712,58 @@ namespace UltrafastEngine.Engine
             }
         }
 
+        /// <summary>
+        /// True when the envelope grid has bins at omega &lt;= 0 that the medium blocks (background amplitude 0) and the output spectrum
+        /// actually reaches them: the four lowest positive-frequency live bins hold more than 1e-10 of the output energy. Without the
+        /// second condition any energy deficit (the stepper's own error) was reported as "reached zero frequency" (a user's 46-pass
+        /// cell warned on pass 1 with a narrow spectrum far from zero frequency).
+        /// </summary>
+        /// <summary>Leaves a plasma term out of the segment when its bound effect is negligible (<see cref="PlasmaResponse.NegligibleAt"/>),
+        /// with a note giving the density bound; otherwise returns the segment unchanged. A user's 46-pass cell with ionising air gaps ran 20x
+        /// slower on the CPU (the plasma term had no device form) with no change in the result.</summary>
+        internal static NonlinearSegment DropNegligiblePlasma(NonlinearSegment seg, PulseField pulse, ElementRecord rec)
+        {
+            var pr = seg.Medium.ExtraResponses.OfType<PlasmaResponse>().FirstOrDefault();
+            if (pr == null || !pr.SkipNegligible) return seg;
+            double minA = double.PositiveInfinity;
+            for (int k = 0; k <= 200; k++) minA = Math.Min(minA, seg.Beam.EffectiveArea(seg.LengthM * k / 200.0));
+            double pk = PulseMetrics.TemporalPower(pulse).Max(), e = pulse.TotalEnergyJ();
+            if (!(pk > 0) || !(minA > 0)) return seg;
+            bool negligible = pr.NegligibleAt(pk / minA, e, pk, seg.LengthM, minA, pulse.Grid.ReportOmega, out double rho, out double phase, out double loss);
+            rec.Values["ionizationDensityBoundM3"] = rho;
+            if (!negligible) return seg;
+            rec.Notes.Add(string.Format(CultureInfo.InvariantCulture, "ionization skipped as negligible: at {0} x the entry peak intensity ({1:G3} W/cm^2) the electron density stays below {2:G3} /m^3 (Drude phase < {3:G2} rad, absorbed fraction < {4:G2}); set ionization.skipNegligible false to keep it", PlasmaResponse.NegligibleMargin, pk / minA * 1e-4, rho, phase, loss));
+            return seg.WithMedium(seg.Medium.WithoutResponse(pr));
+        }
+
+        /// <summary>sum_t P^2 / (sum_t P * max_t P): the power-weighted mean of P over its peak (1/sqrt 2 for a Gaussian).</summary>
+        internal static double KerrShapeFactor(PulseField p)
+        {
+            var pw = PulseMetrics.TemporalPower(p);
+            double s1 = 0, s2 = 0, mx = 0;
+            foreach (var v in pw) { s1 += v; s2 += v * v; if (v > mx) mx = v; }
+            return s1 > 0 && mx > 0 ? s2 / (s1 * mx) : 0;
+        }
+
+        internal static bool ReachedZeroFrequency(FrequencyGrid g, double[] ampX, Complex[] ax, Complex[] ay)
+        {
+            var w = g.OmegaAbsolute; int n = g.N;
+            bool dead = false;
+            for (int i = 0; i < n && !dead; i++) if (ampX[i] < 1e-12 && w[i] <= 0) dead = true;
+            if (!dead) return false;
+            var live = new List<int>();
+            for (int i = 0; i < n; i++) if (w[i] > 0 && ampX[i] >= 1e-12) live.Add(i);
+            live.Sort((a, b) => w[a].CompareTo(w[b]));
+            double tot = 0, edge = 0;
+            for (int i = 0; i < n; i++) tot += ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary + (ay == null ? 0 : ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary);
+            for (int k = 0; k < Math.Min(4, live.Count); k++)
+            {
+                int i = live[k];
+                edge += ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary + (ay == null ? 0 : ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary);
+            }
+            return tot > 0 && edge > 1e-10 * tot;
+        }
+
         private static PulseField PropagateEnvelope(CompiledRun cr, PulseField p, NonlinearSegment seg, OmegaAxis axis, double arrival, double tauEl, string id, StepStatistics stats, Action<double> prog, out double deadFraction)
         {
             var g = p.Grid; int n = g.N;
@@ -675,7 +780,7 @@ namespace UltrafastEngine.Engine
             if (!scalar) Array.Copy(outS, n, ay, 0, n);
             // fraction of the energy that the linear background alone would have kept but the run did not: it went into bins with amplitude 0 (omega <= 0)
             deadFraction = 0;
-            if (ampX.Any(a => a < 1e-12))
+            if (ReachedZeroFrequency(g, ampX, ax, ay))
             {
                 double expected = 0, got = 0;
                 for (int i = 0; i < n; i++)

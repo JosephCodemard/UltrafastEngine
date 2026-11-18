@@ -73,6 +73,7 @@ namespace UltrafastEngine
                 rep.Notes.AddRange(c.Notes);
                 rep.ElementCount = c.Elements.Count;
                 rep.NonlinearElements = c.Elements.Count(x => x.Nonlinear != null);
+                rep.Memory = c.Memory?.ToJson();
                 rep.Provenance = c.Provenance.ToJson();
             }
             catch (Exception ex) when (ex is JsonException || ex is ModelException || ex is ArgumentException || ex is InvalidOperationException || ex is FormatException)
@@ -91,9 +92,11 @@ namespace UltrafastEngine
         public int ElementCount { get; set; }
         public int NonlinearElements { get; set; }
         public JsonArray Provenance { get; set; }
+        /// <summary>The memory estimate of the run (Engine/MemoryEstimate.cs ToJson), null when the run did not compile.</summary>
+        public JsonObject Memory { get; set; }
         public bool Ok => Errors.Count == 0;
 
         public JsonObject ToJson() => new JsonObject().Set("ok", Ok).Set("errors", JsonValue.FromArray(Errors)).Set("warnings", JsonValue.FromArray(Warnings))
-            .Set("notes", JsonValue.FromArray(Notes)).Set("elements", ElementCount).Set("nonlinearElements", NonlinearElements).Set("provenance", Provenance ?? new JsonArray());
+            .Set("notes", JsonValue.FromArray(Notes)).Set("elements", ElementCount).Set("nonlinearElements", NonlinearElements).Set("provenance", Provenance ?? new JsonArray()).Set("memory", Memory ?? new JsonObject());
     }
 }

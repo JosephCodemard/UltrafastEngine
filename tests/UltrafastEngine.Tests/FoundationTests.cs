@@ -26,6 +26,25 @@ namespace UltrafastEngine.Tests
             Assert.Throws<JsonException>(() => JsonValue.Parse("{\"a\": [1, 2"), "unterminated");
         }
 
+        [Test(Reference = "exact: C literals round-trip with G17; the CPU evaluation order is kept")]
+        public void Expression_ToC_WritesExactDoubleLiteralsAndRefusesNonFiniteConstants()
+        {
+            // the C form of an expression is compiled into GPU kernels (Physics/DeviceResponses.cs)
+            var e = CompiledExpression.Compile("3/2*x + 0.1 - -x + min(x, 1, 2)", new[] { "x" });
+            var used = new HashSet<string>();
+            string c = e.ToC(v => "v_" + v, used);
+            Assert.True(c.Contains("1.5"), "integer division folded as doubles (3/2 = 1.5): " + c);
+            Assert.True(c.Contains("0.10000000000000001"), "G17 literal of 0.1: " + c);
+            Assert.True(c.Contains("fmin(fmin(v_x, 1.0), 2.0)"), "variadic min as a left fold, integers written as doubles: " + c);
+            Assert.True(used.SetEquals(new[] { "x" }), "used variables");
+            foreach (var v in new[] { 0.1, 1e-300, -2.5e-20, 299792458.0, Math.PI })
+                Assert.Equal(v, double.Parse(CompiledExpression.CLiteral(v).Trim('(', ')'), System.Globalization.CultureInfo.InvariantCulture), "literal round-trips: " + v);
+            Assert.True(CompiledExpression.Compile("1/0 + x", new[] { "x" }).ToC(v => v) == null, "an infinite constant has no C form");
+            // two-photon absorption has no real part: the sum must still be valid C
+            var code = DeviceResponses.Build(new ITimeDomainResponse[] { new TwoPhotonAbsorptionResponse(1e-11), new ExtraKerrResponse(5e-21) }, out var why);
+            Assert.True(code != null && code.Re == "((0.0 + 0.0) + (4.9999999999999997E-21 * v_I))", "real part: " + code?.Re + why);
+        }
+
         [Test]
         public void Expression_PrecedenceFunctionsAndErrors()
         {

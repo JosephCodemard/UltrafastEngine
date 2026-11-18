@@ -15,7 +15,7 @@ Every physical ingredient is a **model** created from a small JSON spec. The sam
 |---|---|
 | `index` (material `index`) | `constant`, `sellmeier` (B, C, A), `cauchy`, `table`, `expression`, `callback`, `ciddor` (air), `gas` (Borzsonyi 2008), `library` (a built-in by name), `refractiveindex` (a refractiveindex.info page: [Materials](materials.md#refractiveindexinfo-pages)) |
 | `attenuation` (material, 1/m power) | `constant`, `table` (`alphaPerM` or `internalTransmission` + `thicknessM`), `expression`, `callback`, `refractiveindex` (from a page's k), `none` |
-| `delayedResponse` (material `raman`) | `silica` (fR 0.18), `dampedOscillator` (tau1, tau2, fR), `expression` in t, `callback`, `none` |
+| `delayedResponse` (material `raman`) | `silica` (fR 0.18), `dampedOscillator` (tau1S, tau2S, fR), `expression` in t, `callback`, `none` |
 | `timeResponse` (element / override) | `expression`, `callback`, `kerr` (extra n2), `twoPhotonAbsorption` (beta, m/W) |
 | `filter` (filter elements, override `filter`) | `table`, `expression` (`transmission`, `phase`), `gaussian`, `superGaussian`, `constant`, `callback` |
 | `beam` (bulk `beam`, `inputBeam`) | `gaussian` (w0M, zWaistM, m2, wavelengthM, n or zRayleighM; x/y variants), `sampled` (zM, radiusM / radiusXM, radiusYM), `constant` (radiusM or areaM2), `expression` in z, `callback` |
@@ -36,7 +36,8 @@ Every physical ingredient is a **model** created from a small JSON spec. The sam
 Constants: `pi`, `e`, `c`, `eps0`, `mu0`, `h`, `hbar`, `kB`, `qe`, plus anything in `"params": {...}`.
 Functions: `sin cos tan asin acos atan atan2 sinh cosh tanh sech exp log log10 sqrt abs sign floor ceil round
 step pow hypot min max if clamp gauss`; operators `+ - * / ^ ** < <= > >= == != && || !`. Expressions are
-compiled once and evaluated over whole arrays (one call per solver stage), so they are fast.
+compiled once and evaluated over whole arrays (one call per solver stage), so they are fast. With a GPU back-end a
+`timeResponse` expression is also translated into a device kernel, so the element stays on the GPU ([GPU](../plugins/gpu.md#what-runs-on-the-device)).
 
 ## The time-domain response n(t, I)
 

@@ -14,8 +14,11 @@ Durations and bandwidths are **intensity FWHM**. The bandwidth is in Hz, or in m
 |---|---|---|
 | `gaussian` | 0.4413 | 2 ln 2 / π |
 | `sech2` | 0.3148 | (2 ln(1+√2))² / π² |
+| `lorentzian` | 0.1420 | ln 2 √(√2 − 1) / π; field 1/(1 + (t/τ)²), intensity its square (Diels and Rudolph table 2.1: 0.142) |
+| `asymmetric-exponential` | 0.1103 | ln 2 / (2π); intensity exp(−t/τ) for t ≥ 0 (table: 0.110) |
 | `rectangular` | 0.8859 | 2 x / π with sin x / x = 1/√2 |
 
+Aliases: `lorentz`, `asym-exp`, `exponential`. `shapes()` and `tbp()` are closed forms and work without the engine; the other functions call it.
 With the root-mean-square widths of the intensities, a Gaussian has σ_t σ_ν = 1/(4π) = 0.0796 (`timeBandwidthProductRms`).
 
 ## Command line
@@ -34,10 +37,10 @@ magnitude of 14 400 fs².
 ## Python
 
 ```python
-from ultrafast import calc
+from ultrafast import calc            # = ultrafast.calc.pulse; see also the other calculators in calculators.md
 calc.tbp("sech2")                                                        # 0.3148
-calc.limit("gaussian", duration=100e-15, center=800e-9)                  # bandwidth in Hz and m
-r = calc.analyze(duration=300e-15, bandwidth_m=10e-9, center=1030e-9)
+calc.limit("gaussian", duration_s=100e-15, center_m=800e-9)              # bandwidth in Hz and m
+r = calc.analyze(duration_s=300e-15, bandwidth_m=10e-9, center_m=1030e-9)
 r["timeBandwidthProduct"], r["stretchFactor"], r["gddMagnitudeFs2"]
 calc.measure(time_s, intensity, spectrum, wavelength_m=wl)               # from measured arrays (FWHM and rms products)
 ```

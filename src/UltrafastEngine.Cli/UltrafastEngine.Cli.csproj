@@ -11,5 +11,9 @@
   <ItemGroup>
     <ProjectReference Include="..\UltrafastEngine.Core\UltrafastEngine.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- the agent pack: one source, the skills of the Python wheel (python/src/ultrafast/agents/pack); `ultrafast agent install` writes them -->
+    <EmbeddedResource Include="..\..\python\src\ultrafast\agents\pack\**\SKILL.md" LogicalName="agentpack/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
   <Import Project="$(RepoRoot)build/CopyPlugins.targets" />
 </Project>

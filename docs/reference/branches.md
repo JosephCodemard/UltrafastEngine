@@ -163,7 +163,7 @@ A study of a Branched system reuses elements upstream of what it changes: output
 
 ```bash
 ultrafast validate system.ufs --graph              # links, loops, virtual ports, alerts
-ultrafast validate system.ufs --graph --mermaid    # a Mermaid diagram
+ultrafast validate system.ufs --graph --mermaid    # a Mermaid diagram: element types, virtual ports, loops as subgraphs (the drawn version: reference/plotting.md)
 ```
 
 | problem | result |

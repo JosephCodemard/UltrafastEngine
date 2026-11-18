@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using UltrafastEngine.Numerics;
@@ -15,7 +16,7 @@ namespace UltrafastEngine.Plugins.Gpu
     /// (kernels compiled on first use), one stream per (device, thread) so concurrent runs overlap, the decision which
     /// problems go to the device, and a fall-back to the CPU with a note if the device fails.
     /// </summary>
-    public abstract class GpuBackend : IDeviceBackend
+    public abstract class GpuBackend : IEnsembleBackend
     {
         public abstract string Name { get; }
         public abstract int Priority { get; }
@@ -85,6 +86,12 @@ namespace UltrafastEngine.Plugins.Gpu
             }
         }
 
+        /// <summary>Disposes the device contexts (compiled extra programs) and forgets them; the next use creates them again.</summary>
+        public void ReleaseContexts()
+        {
+            lock (_lock) { foreach (var c in _contexts.Values) { try { c.Dispose(); } catch (GpuException) { } } _contexts.Clear(); }
+        }
+
         /// <summary>The calling thread's stream on a context (created on first use).</summary>
         public static GpuStream StreamFor(GpuContext c)
         {
@@ -103,6 +110,33 @@ namespace UltrafastEngine.Plugins.Gpu
             return spatial ? DefaultMinPointsSpatial : DefaultMinPoints1D;
         }
 
+        /// <summary>Free memory of a device in bytes: the driver's figure once the device is in use (CUDA: cuMemGetInfo), else its total; -1 when unknown.</summary>
+        public long FreeBytes(int dev)
+        {
+            var fake = GpuMemory.FreeOverride?.Invoke(dev); if (fake.HasValue) return fake.Value;
+            GpuContext ctx; lock (_lock) _contexts.TryGetValue(dev, out ctx);
+            if (ctx != null) { try { return ctx.FreeMemoryBytes(); } catch (GpuException) { } }
+            return _devices[dev].MemoryBytes > 0 ? _devices[dev].MemoryBytes : -1;
+        }
+
+        public long TotalBytes(int dev) => GpuMemory.TotalOverride?.Invoke(dev) ?? _devices[dev].MemoryBytes;
+
+        /// <summary>Device memory a problem needs (0 when unknown).</summary>
+        private static long NeededBytes(IPropagationProblem p)
+        {
+            if (p is EnvelopeProblem ep && ep.DeviceSpec() != null) return EnvelopeStepper.MemoryNeeded(ep.DeviceSpec());
+            if (p is SpatialEnvelopeProblem sp && sp.DeviceSpec() != null) return SpatialStepper.MemoryNeeded(sp.DeviceSpec());
+            if (p is Crystals.Chi2Problem cp && cp.DeviceSpec() != null) return Chi2Stepper.MemoryNeeded(cp.DeviceSpec());
+            return 0;
+        }
+
+        /// <summary>Concurrent propagations allowed on a device for this problem: the slots, fewer when that many would not fit in the device memory.</summary>
+        private int SlotLimit(int dev, long needed)
+        {
+            int slots = ComputeBackends.Settings.DeviceSlots > 0 ? ComputeBackends.Settings.DeviceSlots : DefaultDeviceSlots;
+            return GpuMemory.MaxConcurrent(needed, TotalBytes(dev), slots);
+        }
+
         /// <summary>Why this back-end would not run <paramref name="p"/> (null when it would).</summary>
         public string WhyNot(IPropagationProblem p)
         {
@@ -114,12 +148,12 @@ namespace UltrafastEngine.Plugins.Gpu
             if (p is EnvelopeProblem ep)
             {
                 var spec = ep.DeviceSpec();
-                if (spec == null) return "the element uses a response only the CPU implements (user responses or rotational Raman)";
+                if (spec == null) return "the element uses " + (ep.DeviceUnsupportedReason ?? "a feature only the CPU implements");
                 if (spec.N % 2 != 0) return "odd grid size";
                 if (!vendorFft && !GpuFft.BuiltInSupports(spec.N)) return "grid size " + spec.N + " is not a power of two (built-in GPU FFT)";
                 int pts = spec.N * (spec.Scalar ? 1 : 2);
                 if (pts < MinPoints(false)) return "small problem (" + pts + " samples < gpuMinPoints " + MinPoints(false) + ")";
-                if (info.MemoryBytes > 0 && EnvelopeStepper.MemoryNeeded(spec) > 0.8 * info.MemoryBytes) return "not enough device memory";
+                if (!GpuMemory.Fits(EnvelopeStepper.MemoryNeeded(spec), FreeBytes(dev))) return "not enough free device memory (" + GpuMemory.Short(EnvelopeStepper.MemoryNeeded(spec), FreeBytes(dev)) + ")";
                 return null;
             }
             if (p is SpatialEnvelopeProblem sp)
@@ -130,7 +164,17 @@ namespace UltrafastEngine.Plugins.Gpu
                 if (spec.Cartesian && !vendorFft && (!GpuFft.BuiltInSupports(spec.Nx) || (spec.Ny > 1 && !GpuFft.BuiltInSupports(spec.Ny)))) return "transverse sizes must be powers of two (built-in GPU FFT)";
                 long pts = (long)spec.N * spec.M * (spec.Vector ? 2 : 1);
                 if (pts < MinPoints(true)) return "small problem (" + pts + " samples < gpuMinPoints " + MinPoints(true) + ")";
-                if (info.MemoryBytes > 0 && SpatialStepper.MemoryNeeded(spec) > 0.8 * info.MemoryBytes) return "not enough device memory";
+                if (!GpuMemory.Fits(SpatialStepper.MemoryNeeded(spec), FreeBytes(dev))) return "not enough free device memory (" + GpuMemory.Short(SpatialStepper.MemoryNeeded(spec), FreeBytes(dev)) + ")";
+                return null;
+            }
+            if (p is Crystals.Chi2Problem cp)
+            {
+                var spec = cp.DeviceSpec();
+                if (spec == null) return "the crystal uses " + cp.DeviceUnsupportedReason;
+                if (!vendorFft && !GpuFft.BuiltInSupports(spec.N)) return "grid size " + spec.N + " is not a power of two (built-in GPU FFT)";
+                int pts = spec.N * spec.K;
+                if (pts < MinPoints(false)) return "small problem (" + pts + " samples < gpuMinPoints " + MinPoints(false) + ")";
+                if (!GpuMemory.Fits(Chi2Stepper.MemoryNeeded(spec), FreeBytes(dev))) return "not enough free device memory (" + GpuMemory.Short(Chi2Stepper.MemoryNeeded(spec), FreeBytes(dev)) + ")";
                 return null;
             }
             return "this kind of element (" + p.GetType().Name + ") runs on the CPU";
@@ -166,10 +210,100 @@ namespace UltrafastEngine.Plugins.Gpu
 
         public Complex[] Propagate(IPropagationProblem p, Complex[] a0, StepperSettings st, StepStatistics stats, Action<double> progress)
         {
+            // a study batch on a device: wait for the other points and run them as one ensemble (Numerics/Ensemble.cs)
+            var gate = EnsembleGate.Current;
+            if (gate != null)
+            {
+                var key = EnsembleKey(p, st);
+                if (key != null) return gate.Submit(new EnsembleJob { Problem = p, Initial = a0, Settings = st, Stats = stats, Progress = progress, Key = key }, this);
+            }
+            return PropagateOne(p, a0, st, stats, progress);
+        }
+
+        /// <summary>Default largest ensemble (members per launch); the study key "ensemble" sets it (EnsembleGate.MaxMembers).</summary>
+        public const int DefaultEnsembleMax = 256;
+
+        /// <summary>Note of an element whose nonlinear operator ran in single precision.</summary>
+        public const string MixedNote = "mixed precision: nonlinear operator and its FFTs in single precision (compute.precision)";
+
+        public string EnsembleKey(IPropagationProblem p, StepperSettings st)
+        {
+            if (!(p is EnvelopeProblem ep) || WhyNot(p) != null || ComputeBackends.Settings.Mixed) return null;
+            if (string.Equals(st.Method, "rk4ip", StringComparison.OrdinalIgnoreCase) || string.Equals(st.Method, "fixed", StringComparison.OrdinalIgnoreCase)) return null;
+            var s = ep.DeviceSpec();
+            if (s == null || s.Responses != null || s.Plasma != null) return null;
+            bool raman = s.RamanKernelFreq != null && s.RamanFraction > 0 && s.N2 != 0;
+            var inv = CultureInfo.InvariantCulture;
+            return string.Join("|", Name, SelectDevice(IsAuto).ToString(inv), s.N.ToString(inv), s.Scalar ? "s" : "v", raman ? "R" + Hash(s.RamanKernelFreq) + Hash(s.RamanAnisoFreq) : "-",
+                s.RotationalKernelFreq != null ? "Q" + Hash(s.RotationalKernelFreq) : "-", s.SelfSteepening ? "S" + Hash(s.OmegaOffset) + s.OmegaCenter.ToString("R", inv) : "-",
+                s.DTime.ToString("R", inv), st.Tolerance.ToString("R", inv), st.MaxNonlinearPhasePerStepRad.ToString("R", inv), st.MaxStepM.ToString("R", inv),
+                st.MinStepM.ToString("R", inv), st.MaxSteps.ToString(inv), st.MaxAreaChangePerStep.ToString("R", inv));
+        }
+
+        private static string Hash(Complex[] a) { if (a == null) return "0"; ulong h = 14695981039346656037UL; foreach (var c in a) { h = (h ^ (ulong)BitConverter.DoubleToInt64Bits(c.Real)) * 1099511628211UL; h = (h ^ (ulong)BitConverter.DoubleToInt64Bits(c.Imaginary)) * 1099511628211UL; } return h.ToString("x16"); }
+        private static string Hash(double[] a) { if (a == null) return "0"; ulong h = 14695981039346656037UL; foreach (var c in a) h = (h ^ (ulong)BitConverter.DoubleToInt64Bits(c)) * 1099511628211UL; return h.ToString("x16"); }
+
+        public void PropagateEnsemble(IList<EnsembleJob> jobs)
+        {
+            int max = EnsembleGate.Current?.MaxMembers > 0 ? EnsembleGate.Current.MaxMembers : DefaultEnsembleMax;
+            if (max < 1) max = 1;
+            for (int start = 0; start < jobs.Count; start += max)
+            {
+                var part = new List<EnsembleJob>();
+                for (int i = start; i < Math.Min(jobs.Count, start + max); i++) part.Add(jobs[i]);
+                RunEnsemble(part);
+            }
+        }
+
+        private void RunEnsemble(List<EnsembleJob> jobs)
+        {
+            void Alone(EnsembleJob j, string note) { if (note != null) j.Stats.Notes.Add(note); j.Result = PropagateOne(j.Problem, j.Initial, j.Settings, j.Stats, j.Progress); }
+            if (jobs.Count == 1) { Alone(jobs[0], null); return; }
+            int dev = SelectDevice(IsAuto);
+            var specs = jobs.Select(j => ((EnvelopeProblem)j.Problem).DeviceSpec()).ToList();
+            var info = _devices[dev];
+            long ensembleBytes = EnsembleStepper.MemoryNeeded(specs[0], jobs.Count);
+            if (!GpuMemory.Fits(ensembleBytes, FreeBytes(dev)) && jobs.Count > 1)
+            {   // split in halves until it fits
+                int h = jobs.Count / 2;
+                string halved = Name + ": an ensemble of " + jobs.Count + " study points does not fit the free device memory (" + GpuMemory.Short(ensembleBytes, FreeBytes(dev)) + "); run as " + h + " + " + (jobs.Count - h);
+                foreach (var j in jobs) j.Stats.Notes.Add(halved);
+                RunEnsemble(jobs.GetRange(0, h)); RunEnsemble(jobs.GetRange(h, jobs.Count - h));
+                return;
+            }
+            int slots = SlotLimit(dev, ensembleBytes);
+            var gate = Gate(dev);
+            gate.Enter(slots, true);
+            try
+            {
+                var ctx = Context(dev);
+                var s = StreamFor(ctx);
+                string note = "device: " + Name + " #" + dev + " " + ctx.Info.Name + (ctx.VendorFftName != null ? " (" + ctx.VendorFftName + ")" : " (built-in FFT)") + "; ensemble of " + jobs.Count + " study points in one launch";
+                foreach (var j in jobs) j.Stats.Notes.Add(note);
+                using (var stp = new EnsembleStepper(s, specs))
+                {
+                    var outs = stp.Propagate(jobs.Select(j => j.Initial).ToList(), jobs.Select(j => j.Settings).ToList(), jobs.Select(j => j.Stats).ToList());
+                    for (int i = 0; i < jobs.Count; i++) { jobs[i].Result = outs[i]; jobs[i].Progress?.Invoke(1.0); }
+                }
+            }
+            catch (GpuException ex)
+            {
+                foreach (var j in jobs)
+                {
+                    j.Stats.Notes.Add(Name + " ensemble failed (" + ex.Message.Split('\n')[0] + "); ran on the CPU");
+                    j.Stats.Accepted = 0; j.Stats.Rejected = 0; j.Stats.BIntegralRad = 0; j.Stats.BIntegralPulseAveragedRad = double.NaN; j.Stats.MinStepM = double.PositiveInfinity; j.Stats.MaxStepM = 0;
+                    j.Result = Steppers.PropagateCpu(j.Problem, j.Initial, j.Settings, j.Stats, j.Progress);
+                }
+            }
+            finally { gate.Exit(); }
+        }
+
+        private Complex[] PropagateOne(IPropagationProblem p, Complex[] a0, StepperSettings st, StepStatistics stats, Action<double> progress)
+        {
             var why = WhyNot(p);
             if (why != null) { stats.Notes.Add(Name + ": " + why + "; ran on the CPU"); return Steppers.PropagateCpu(p, a0, st, stats, progress); }
             int dev = SelectDevice(IsAuto);
-            int slots = ComputeBackends.Settings.DeviceSlots > 0 ? ComputeBackends.Settings.DeviceSlots : DefaultDeviceSlots;
+            int slots = SlotLimit(dev, NeededBytes(p));   // the configured slots, fewer when that many such problems would not fit together
             var gate = Gate(dev);
             if (!gate.Enter(slots, !IsAuto)) { stats.Notes.Add(Name + ": all " + slots + " device slots busy; ran on the CPU"); return Steppers.PropagateCpu(p, a0, st, stats, progress); }
             try
@@ -177,15 +311,27 @@ namespace UltrafastEngine.Plugins.Gpu
                 var ctx = Context(dev);
                 var s = StreamFor(ctx);
                 stats.Notes.Add("device: " + Name + " #" + dev + " " + ctx.Info.Name + (ctx.VendorFftName != null ? " (" + ctx.VendorFftName + ")" : " (built-in FFT)"));
+                bool mixed = ComputeBackends.Settings.Mixed;
                 if (p is EnvelopeProblem ep)
-                    using (var stp = new EnvelopeStepper(s, ep.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
+                    using (var stp = new EnvelopeStepper(s, ep.DeviceSpec(), true, mixed))
+                    {
+                        if (mixed) stats.Notes.Add(stp.Mixed ? MixedNote : "mixed precision not available for this element (orientational or user responses); ran in double");
+                        return stp.Propagate(a0, st, stats, progress);
+                    }
+                if (p is Crystals.Chi2Problem cp)
+                    using (var stp = new Chi2Stepper(s, cp.DeviceSpec(), true, mixed))
+                    {
+                        if (mixed) stats.Notes.Add(stp.Mixed ? MixedNote : "mixed precision needs a power-of-two grid; ran in double");
+                        return stp.Propagate(a0, st, stats, progress);
+                    }
+                if (mixed) stats.Notes.Add("mixed precision is not implemented for spatial elements; ran in double");
                 var sp = (SpatialEnvelopeProblem)p;
                 using (var stp = new SpatialStepper(s, sp.DeviceSpec())) return stp.Propagate(a0, st, stats, progress);
             }
             catch (GpuException ex)
             {
                 stats.Notes.Add(Name + " failed (" + ex.Message.Split('\n')[0] + "); ran on the CPU");
-                stats.Accepted = 0; stats.Rejected = 0; stats.BIntegralRad = 0; stats.MinStepM = double.PositiveInfinity; stats.MaxStepM = 0;
+                stats.Accepted = 0; stats.Rejected = 0; stats.BIntegralRad = 0; stats.BIntegralPulseAveragedRad = double.NaN; stats.MinStepM = double.PositiveInfinity; stats.MaxStepM = 0;
                 return Steppers.PropagateCpu(p, a0, st, stats, progress);
             }
             finally { gate.Exit(); }

@@ -736,6 +736,24 @@ namespace UltrafastEngine.Transverse
         }
 
         /// <summary>Thin lens on a profile: phase -k(omega) r^2 / (2 f(omega)).</summary>
+        /// <summary>Largest phase step (rad) between neighbouring grid points of a thin lens, phi(r) = k r^2 / (2 f), at the edge of the beam
+        /// (1.5 second-moment radii, where the intensity is still 1 % of the peak), at the stored frequency of the main sample. Above pi the lens phase is
+        /// aliased: the grid cannot represent the field after the lens (a lens needs about 2 f / (k r_edge) per cell or finer).</summary>
+        public static double LensPhaseStepAtBeamEdgeRad(TransverseProfile p, Func<double, double> focalLengthAt, Func<double, double> indexAt, bool yAxis = false)
+        {
+            var B = p.Basis; double w = p.Omega[p.MainSample], fl = focalLengthAt(w);
+            if (double.IsInfinity(fl) || double.IsNaN(fl) || fl == 0) return 0;
+            var (wx, wy) = p.SecondMomentRadius();
+            double edge = 1.5 * (yAxis && !double.IsNaN(wy) ? wy : wx);
+            if (!(edge > 0)) return 0;
+            // spacing of the grid at the edge: distinct sorted |coordinate| values (radial: r; cartesian: x)
+            var s = (B.Kind == "radial" ? B.Radius : yAxis ? B.Y : B.X).Select(Math.Abs).Distinct().OrderBy(v => v).ToArray();
+            if (s.Length < 2) return 0;
+            int i = Array.FindIndex(s, v => v >= edge); if (i <= 0) i = s.Length - 1;
+            double dr = s[i] - s[i - 1], k = indexAt(w) * w / C;
+            return k * Math.Min(edge, s[i]) * dr / Math.Abs(fl);   // d phi / dr = k r / f
+        }
+
         public static TransverseProfile ApplyLens(TransverseProfile p, Func<double, double> focalLengthAt, Func<double, double> indexAt)
         {
             var q = p.Clone(); var B = q.Basis; int nf = q.Omega.Length;

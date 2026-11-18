@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **608 tests** in 63 classes. **386** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **20** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **684 tests** in 75 classes. **438** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -11,63 +11,75 @@ Every C# test of the engine: **608 tests** in 63 classes. **386** of them check 
 | [Beam sources and masks: Hermite-Gauss, Laguerre-Gauss, Bessel, Airy, measured near fields, axicon, zone plate, vortex, slits](#beamsourcetests) | `BeamSourceTests` | 15 | 14 |
 | [Gaussian beam tracking: thermal lenses and spatio-temporal couplings](#beamtrackingtests) | `BeamTrackingTests` | 17 | 16 |
 | [Branched systems: splitter family, Gouy and crystal phases, mode overlap, profiles meeting, crystal ports](#branchedelementstests) | `BranchedElementsTests` | 12 | 8 |
-| [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 18 | 8 |
+| [Branched systems: ports, graph compiler, interference, loops](#branchingtests) | `BranchingTests` | 19 | 8 |
 | [Material catalogue: values pinned, provenance, user catalogues](#cataloguesnapshottests) | `CatalogueSnapshotTests` | 1 | 1 |
 | [Material catalogue: values pinned, provenance, user catalogues](#cataloguetests) | `CatalogueTests` | 16 | 4 |
 | [Resonators, partial coherence, thermal stress birefringence, amplifier thermal lens](#cavityandcoherencetests) | `CavityAndCoherenceTests` | 9 | 8 |
 | [Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells)](#cellmodetests) | `CellModeTests` | 7 | 7 |
-| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 14 | 7 |
-| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 21 | 15 |
+| [Ionisation in chi(2) crystals](#chi2ionizationtests) | `Chi2IonizationTests` | 7 | 7 |
+| [χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams](#chi2tests) | `Chi2Tests` | 16 | 8 |
+| [Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday rotators, waveplates, chirped mirrors, aberrations, pedestals](#componenttests) | `ComponentTests` | 22 | 16 |
 | [CPU FFTs and compute back-ends](#computetests) | `ComputeTests` | 5 | 1 |
+| [Core sweep: element keys that override the material's must be read from the element itself](#coresweeptests) | `CoreSweepTests` | 5 | 5 |
 | [Crystal chains and phase-matching limits: SHG to THG, length against bandwidth](#crystalchaintests) | `CrystalChainTests` | 16 | 16 |
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
 | [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 9 | 9 |
+| [Fidelity switch](#fidelitytests) | `FidelityTests` | 6 | 0 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
-| [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 9 | 6 |
+| [Memory safety: fitting](#fittingmemorytests) | `FittingMemoryTests` | 2 | 2 |
+| [Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy](#foundationtests) | `FoundationTests` | 10 | 7 |
 | [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
+| [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
-| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 6 | 5 |
-| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 8 | 5 |
-| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
+| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
+| [Memory safety: GPU](#gpumemorytests) | `GpuMemoryTests` | 5 | 5 |
+| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 17 | 12 |
+| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 10 | 10 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
 | [Instrument fixes: band edges, IAC peak, cross-correlator resolution and arms](#instrumentfixestests) | `InstrumentFixesTests` | 5 | 5 |
 | [Instruments: autocorrelators, spectrometer, compressor, polarimeter, d-scan](#instrumenttests) | `InstrumentTests` | 4 | 3 |
-| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 11 | 11 |
+| [Photo-ionisation and plasma](#ionizationtests) | `IonizationTests` | 15 | 13 |
+| [Kerr lens of the 1-D beam](#kerrlenstests) | `KerrLensTests` | 6 | 6 |
 | [Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved χ(2)](#lasertests) | `LaserTests` | 12 | 7 |
+| [Lens sampling warning](#lenssamplingtests) | `LensSamplingTests` | 1 | 1 |
 | [Component sheet: linear elements and splitters at 515 nm / 1030 nm / 2 um, 1 ps / 10 fs, Sequential = Branched](#linearcomponenttests) | `LinearComponentTests` | 5 | 4 |
 | [Loss budget and overrides](#lossandoverridetests) | `LossAndOverrideTests` | 4 | 1 |
 | [Materials and crystals: d_eff of explicit cuts, delayed-response split, CS2, cubic chi(3)](#materialscrystalstests) | `MaterialsCrystalsTests` | 14 | 14 |
 | [Measured input spectra, comparisons and satellite room](#measuredspectrumtests) | `MeasuredSpectrumTests` | 13 | 0 |
 | [Sampling apertures, measured data and fits](#measurementtests) | `MeasurementTests` | 13 | 2 |
+| [Memory safety: estimate and limit](#memoryestimatetests) | `MemoryEstimateTests` | 7 | 7 |
 | [Modelled instruments: IAC, FTS, FROG from elements; study node cache and array outputs](#modelledinstrumentstests) | `ModelledInstrumentsTests` | 4 | 3 |
 | [Modulator: pixelated phase and amplitude devices (SLM, DM surface), quantisation, fill factor, chromatic rules](#modulatortests) | `ModulatorTests` | 24 | 24 |
 | [Multi-trace FROG retrieval (double FROG)](#multitraceretrievaltests) | `MultiTraceRetrievalTests` | 1 | 1 |
 | [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 10 | 10 |
 | [Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain](#noncollinearopatests) | `NoncollinearOpaTests` | 6 | 6 |
 | [Regressions from the open-bug sweep](#openbugregressiontests) | `OpenBugRegressionTests` | 8 | 5 |
-| [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
+| [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 9 | 5 |
 | [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 8 | 2 |
-| [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 3 | 2 |
+| [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 4 | 3 |
 | [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 7 |
-| [Pulse calculator: time-bandwidth product, transform limit, chirp](#pulsecalculatortests) | `PulseCalculatorTests` | 5 | 4 |
+| [Pulse calculator: time-bandwidth product, transform limit, chirp](#pulsecalculatortests) | `PulseCalculatorTests` | 7 | 6 |
 | [Instrument axes, resolution and measured-data resolution](#resolutiontests) | `ResolutionTests` | 7 | 1 |
 | [Pulse retrieval (FROG, d-scan)](#retrievaltests) | `RetrievalTests` | 2 | 2 |
 | [Regressions from the review: M^2, second moments, packets at ports, steady-state loops](#reviewregressiontests) | `ReviewRegressionTests` | 8 | 8 |
-| [Schemas, validation and migrations](#schematests) | `SchemaTests` | 5 | 0 |
+| [Identical elements (sameAs) with transverse models](#sameastests) | `SameAsTests` | 1 | 1 |
+| [Schemas, validation and migrations](#schematests) | `SchemaTests` | 6 | 1 |
 | [Single-shot time-to-space cross-correlator (window, resolution, position to delay)](#singleshotcorrelatortests) | `SingleShotCorrelatorTests` | 8 | 8 |
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
-| [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 6 | 6 |
+| [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 7 | 7 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
+| [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 3 | 0 |
 | [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
+| [Run validity and pulse metrics](#validitytests) | `ValidityTests` | 5 | 2 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
 
 ## AoDeviceTests
@@ -205,6 +217,7 @@ Branched systems: ports, graph compiler, interference, loops.
 | `Sequential_VirtualBeam_InterferesAtTheSplitter` | 2x2 unitary: c = t a - r b | 1e-9 |
 | `SteadyStateLoop_SettlesOnlyWhenShapeAndEnergyRepeat` | -- | -- |
 | `Targets_ByNumberNameAndDict_AreTheSame` | -- | -- |
+| `ToMermaid_ShowsTypesVirtualPortsAndLoops` | -- | -- |
 | `TwoSourcesOnOnePort_AreAnError_NamingThePort` | -- | -- |
 | `UnusedPorts_RaiseAlerts_AndBecomeVirtual_UnlessDeclared` | -- | -- |
 | `Validate_PrintsTheGraph` | -- | -- |
@@ -270,6 +283,20 @@ Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells).
 | `WeakKerrPlateAtTheWaist_ShiftsTheRoundTripStabilityAsTheThinLensFormula` | first order in a thin Kerr lens: cos(theta') - cos(theta) = -(Phi_total / 2) z_R sin(theta), theta = 2 arccos(g) the round-trip Gouy phase of the symmetric cell, Phi = 2 n2 dz P / (pi w0^4) per pass | 0.3 % |
 | `WhenNoStableMatchedModeExists_TheHelperReportsIt` | the matched mode ceases to exist when the Kerr lens pushes the round trip out of its stability range; the helper says so instead of returning a mode | - |
 
+## Chi2IonizationTests
+
+Ionisation in chi(2) crystals.
+
+| test | reference | tolerance |
+|---|---|---|
+| `CatalogueBandGap_IsUsed_AndAMissingOneIsRefused` | catalogue: the band gap of BBO is read from the crystal entry; a crystal without data is refused with a message | exact |
+| `Density_FollowsTheMultiphotonIntegral_AndTheIonisationEnergyIsTaken` | closed form: rho = rho_n (1 - exp(-int sigma_K I^K dt)) for a Gaussian pulse (multiphoton rate, no avalanche) | 0.5 % |
+| `EachFieldIonisesAtItsOwnCarrier_NoSpuriousPlasmaFromTheHarmonicsRate` | photon order of each field's own carrier: the fundamental of 800 nm SHG in BBO (6.56 eV gap) is a 5-photon process, not the 2-photon one of the 400 nm carrier | factor 1e3 |
+| `KeldyshCrystalWithZeroD_EqualsTheBulkPlasma` | a crystal with d = 0 is a bulk element: the default (Keldysh) plasma gives the same electron density and energy as a bulk element of the same index, band gap, mass and density | 0.2 % |
+| `PreparedPlasma_GivesTheDrudePhase` | Drude model: dn = -rho / (2 n rho_c), rho_c = eps0 m w^2 / e^2; phase = k dn L | 0.5 % |
+| `RadialModel_OnAxisDensityMatchesTheOneDimensionalPeak` | a radial chi(2) model: the on-axis plasma density equals the 1-D (Gaussian) one; energy budget closes | 1 %, 1e-6 |
+| `Shg_WithPlasma_KeepsTheEnergyBudget_AndZeroRateRecoversTheNoPlasmaResult` | energy conservation: input - output = sum of the budget entries (SH, plasma); the SH of a plasma-free run is recovered when the rate is zero | 1e-6 |
+
 ## Chi2Tests
 
 χ(2) crystals: SHG, OPA, QPM, cascading, phase matching, aux beams.
@@ -286,6 +313,8 @@ Multi-pass cell modes (Kerr-matched Herriott and quasi-concentric cells).
 | `Opa_SmallSignalGain_MatchesCoshSquared_AndConservesPhotons` | OPA cosh² small-signal gain; Manley-Rowe | 0.1 % |
 | `PhaseMatchCalculator_ReproducesLiteratureAngles` | SNLO: BBO type-I SHG 29.2° (800 nm), 23.4° (1030 nm) | 1 %, 5 %, 10 % |
 | `Qpm_AveragedAndDomainResolvedModelsAgree` | -- | -- |
+| `Qpm_DomainResolved_FixedSteps_WarnThatTheyIgnoreTheWalls` | -- | -- |
+| `Qpm_DomainResolved_NoSliverSteps_ResultDoesNotDependOnTheLastBitsOfTheStep` | convergence: runs at nearby tolerances agree, and the error against tolerance 1e-9 falls with the tolerance | 1e-7 between tolerances 1e-7 relative apart (was 3e-5 with sliver steps); 1e-5 at tolerance 1e-8 |
 | `Shg_AngleDetuning_FollowsSincSquared` | sinc²(Δk L / 2) phase-mismatch law | 1 % |
 | `Shg_PlaneWave_MatchesArmstrongTanhSquared` | Armstrong et al., Phys. Rev. 127, 1918 (1962): tanh² SHG | 1e-09, 0.02 % |
 | `Shg_RadialModelAgreesWithGaussianOverlapAtLowConversion` | Gaussian-mode overlap of low-conversion SHG | 1 % |
@@ -313,6 +342,7 @@ Components: beam tracking, ND filters, plates and ghosts, polarisers, Faraday ro
 | `Pedestal_ReplicaPostPulseAndPrePulse` | -- | -- |
 | `Plate_GhostReplicaDelayAndIntensity` | ghost delay 2 n_g d / c, level R² | 0.2 %, 3 % |
 | `Plate_GhostTiltedOutOfTheBeamByAWedge` | -- | -- |
+| `ThickPolarizerAndLens_AddTheirGlassDispersion` | GDD of a glass path = beta2 L, beta2 = d^2 k / d omega^2 with k = n(omega) omega / c (finite differences of the Sellmeier index) | 1e-4 (finite differences) |
 | `ThickWaveplate_RetardanceFromMaterialDispersion` | retardance 2π Δn(λ) d / λ from the crystal's indices | 1e-09, 0.01 %, 0.1 %, 5 % |
 | `ThickWaveplate_SplitsPulseByGroupDelayDifference` | group-delay difference Δn_g d / c | 5 % |
 | `ThinFilmPolarizer_TransmitsPReflectsS` | thin-film transfer matrix at the design angle | -- |
@@ -330,6 +360,18 @@ CPU FFTs and compute back-ends.
 | `EnvelopeFastPath_GivesTheGeneralPathResult_ScalarAndVectorWithRaman` | -- | -- |
 | `FftProviders_ManagedAlwaysWorks_NativeOnesPassTheSelfCheckOrSayWhy` | -- | -- |
 | `Stockham_MatchesRadix2AndTheDft_ForEveryPowerOfTwo` | direct DFT | -- |
+
+## CoreSweepTests
+
+Core sweep: element keys that override the material's must be read from the element itself.
+
+| test | reference | tolerance |
+|---|---|---|
+| `BulkElement_FRKeyOnTheElement_EqualsRamanFractionOnTheMaterial` | identity: the element's fR equals the material's ramanFraction | 1e-12 |
+| `BulkElement_RamanKindNameOnTheElement_EqualsTheMaterial` | identity: an element raman kind name equals the material's | 1e-12 |
+| `BulkElement_RamanModelAndFractionOnTheElement_EqualThoseOnTheMaterial` | identity: a key on the element gives the same run as the same key on the material | 1e-12 |
+| `Crystal_LossBudget_ClosesPerElement_AfterTheOutputIsResampled` | energy conservation: input - output = sum of the booked losses, exactly, for a crystal whose output is resampled onto the downstream grid | 1e-9 of the input |
+| `ThinFilmPolarizer_BandPosition_IsADeclaredKey` | consistency: every key the compiler reads for a thin-film polariser is declared (strict mode would reject it) | exact |
 
 ## CrystalChainTests
 
@@ -438,6 +480,19 @@ Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence.
 | `SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon` | Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain) | 2 % |
 | `TaperedGamma_BIntegralFollowsTheIntegral` | B = ∫ γ(z) P dz | 1 % |
 
+## FidelityTests
+
+Fidelity switch.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Fidelity_FullIsTheDefaultAndChangesNothing` | -- | -- |
+| `Fidelity_QuickFillsOnlyUnsetSwitchesAndReportsThem` | -- | -- |
+| `Fidelity_QuickReplacesASpatialModelByTheBeamModel` | -- | -- |
+| `Fidelity_QuickSkipsFrogUnlessKept` | -- | -- |
+| `Fidelity_QuickStaysCloseToFullAtLowB` | -- | -- |
+| `Fidelity_QuickWarnsWhenTheDroppedPhysicsMatters` | -- | -- |
+
 ## FieldToolsTests
 
 Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps.
@@ -473,6 +528,15 @@ Fitting plugin: conditions, dependence, surfaces.
 | `Surface_Penalties_VanishOnAPlane_AndGrowWithRoughness` | second differences of a straight line are zero | 1e-12 |
 | `Surface_SmoothnessPenalty_ReducesTheErrorOfASurfaceFittedToNoisyData` | -- | -- |
 
+## FittingMemoryTests
+
+Memory safety: fitting.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Fit_ManyEvaluations_KeepABoundedNumberOfFullResults` | a fit keeps the latest and the best result only (the old residual cache kept up to 65) | at most 4 full results alive at any time, with 28 evaluations |
+| `Fit_ResultIsBitIdenticalToTheUnboundedCacheVersion` | values recorded from the fit before the memory changes (the cache and slimming must not change a number) | 1e-9 relative (the last bits differ between CPU architectures) |
+
 ## FoundationTests
 
 Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, thin films, Treacy.
@@ -481,6 +545,7 @@ Foundations: JSON, expressions, NPZ, FFT, dispersion maths, materials, Fresnel, 
 |---|---|---|
 | `DispersionMath_RecoversPolynomialPhase` | known polynomial phase | 1e-09, 1e-06, 0.01 % |
 | `Expression_PrecedenceFunctionsAndErrors` | -- | -- |
+| `Expression_ToC_WritesExactDoubleLiteralsAndRefusesNonFiniteConstants` | exact: C literals round-trip with G17; the CPU evaluation order is kept | -- |
 | `Fft_RoundTripParsevalAndSignConvention` | Parseval's theorem | 1e-12, 0.1 % |
 | `Fresnel_EnergyConservationNormalIncidenceAndBrewster` | Fresnel equations: R + T = 1, Brewster angle | 1e-12 |
 | `GratingPair_GroupDelayMatchesTreacy` | Treacy, IEEE JQE 5, 454 (1969) | 0.01 % |
@@ -500,6 +565,15 @@ FROG geometries: PG, SD, XFROG, kind inference.
 | `Retrieve_WithoutAKind_DoesNotAssumeShg_ForAPolarisationGateTrace` | SHG-FROG traces are symmetric in the delay; PG traces of a chirped pulse are not | exact |
 | `Xfrog_PcgpaAndEpie_RecoverAChirpedPulse_WithTheSign` | known chirped pulse, known reference | 3 % duration, 6 % GDD, sign exact |
 | `Xfrog_TraceCentroid_TiltsWithTheChirpRate_AtTheSumFrequency` | first moment of a Gaussian product: slope b T^2 / (T^2 + T_R^2) | 2 % |
+
+## GainCatalogueConsistencyTests
+
+Gain catalogue consistency (Fuchtbauer-Ladenburg).
+
+| test | reference | tolerance |
+|---|---|---|
+| `NdYag_SingleLineFit_DoesNotExceedTheTotalDecayRate` | a single emission line cannot radiate faster than the whole upper level: 1 / tau_line <= 1 / tau | bound |
+| `YbYag_EmissionFit_ReproducesTheCatalogueLifetime` | Fuchtbauer-Ladenburg: 1 / tau_rad = 8 pi n^2 integral sigma_e(nu) nu^2 / c^2 dnu (Aull and Jenssen, IEEE JQE 18, 925 (1982)); catalogue lifetime 0.95 ms (+-10 %) | 15 % (10 % lifetime uncertainty + the fit's own) |
 
 ## GainTests
 
@@ -525,11 +599,24 @@ Gases: rotational Raman, indices, the refractiveindex.info database.
 | test | reference | tolerance |
 |---|---|---|
 | `Gases_IndicesOfNewSpecies` | published refractivities of the gases | 1e-09, 2 % |
+| `N2Scale_In1D_ScalesTheRotationalRamanToo` | linearity of every chi(3) response in n2Scale (the scale multiplies the third-order susceptibility) | 1e-6 |
 | `RefractiveIndexInfo_AsAMaterialInARun` | -- | -- |
 | `RefractiveIndexInfo_FormulasAndTablesMatchTheLibrary` | refractiveindex.info formulas and tables | 1e-12, 1e-09, 2 % |
 | `RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory` | isolated-molecule alignment, high-T limit: n2 = N Δα² / (4 c ε0² 15 kT) | 3 % |
 | `RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter` | rotational n2 of circular light = 1/4 of linear (tensor Raman, Hellwarth) | 3 %, 5 % |
 | `RotationalRaman_RevivalsAtTheRotationalPeriod` | rotational revival period 1 / (2 B c) | 5 % |
+
+## GpuMemoryTests
+
+Memory safety: GPU.
+
+| test | reference | tolerance |
+|---|---|---|
+| `FakeFreeMemory_TooSmall_RunsOnTheCpu_WithANote_AndLargeEnough_RunsOnTheDevice` | a device with less free memory than the problem needs is refused and the element runs on the CPU, with the reason in the notes | result equals the CPU run |
+| `Fits_UsesTheFreeMemory_At80Percent` | needed <= 0.8 x free; unknown free memory accepts | exact |
+| `FreeMemory_IsQueried_AndTracksLiveBuffers` | the driver's free memory is at most the total and falls while buffers are alive | exact ordering |
+| `MaxConcurrent_IsBoundedByTheDeviceSize_AndTheSlots` | slots in use: floor(0.8 x total / needed), between 1 and the configured slots | exact |
+| `ProgramCache_IsBounded_AndReleasedOnTeardown` | compiled extra programs are bounded (least recently used released) and released on teardown | count <= MaxPrograms |
 
 ## GpuTests
 
@@ -537,13 +624,22 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 
 | test | reference | tolerance |
 |---|---|---|
+| `CallbackResponses_StayOnTheCpu_WithTheReason` | -- | -- |
+| `Chi2CoupledWaves_ShgQpmAndOpa_MatchTheCpu` | cross-check: the CPU solver (Crystals.Chi2Problem.Nonlinear, Steppers.AdaptiveErk43Ip with domain walls) | 1e-09 |
 | `ConcurrentRuns_ShareTheDevice_AndMatchTheCpu` | -- | -- |
 | `DevicesCommand_ListsTheCpuAndTheDevice_AndTheSelfTestPasses` | -- | -- |
 | `Envelope_ScalarAndVector_MatchTheCpu_AdaptiveAndFixed` | cross-check: the CPU solver | 1e-09 |
+| `ExpressionResponses_CompiledToKernels_MatchTheCpu` | cross-check: the CPU solver (CompiledExpression.Evaluate, ExpressionTimeResponse, TwoPhotonAbsorptionResponse, ExtraKerrResponse) | 1e-09 |
 | `Fft_BuiltInAndVendor_MatchTheManagedFft` | cross-check: the managed CPU FFT | -- |
+| `GasRotationalRaman_ScalarAndVector_MatchTheCpu` | cross-check: the CPU solver (RotationalRamanResponse.Convolve, EnvelopeProblem.Nonlinear) | 1e-09 |
+| `GasRotationalRaman_Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver (SpatialEnvelopeProblem.Nonlinear with the orientational response) | 1e-09 |
+| `MixedPrecision_IsRefusedForHighDynamicRangeInstruments_AndIgnoredOnTheCpu` | -- | -- |
+| `MixedPrecision_SpmPlateMpcSolitonAndShg_MeetTheFp32Criteria` | acceptance of the FP32 study (docs/reference/speed.md): energy 1e-6, spectrum L1 1e-4 against double precision | 1e-6, 1e-4 |
+| `Plasma_IonisationDrudeAndAvalanche_MatchTheCpu` | cross-check: the CPU solver (PlasmaResponse.Run, DispersiveResponses.AddRate); the device takes the rate from a ln W / ln I table (PlasmaDeviceSpec) | 1e-12 with an exact table (MPI); 1e-4 field, 1e-3 peak density and B for PPT / Keldysh (table at channel kinks, step path) |
 | `SmallOrUnsupportedProblems_StayOnTheCpu_WithANote` | -- | -- |
 | `Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver | 1e-09 |
 | `Spatial_UppeCoupling_MatchesTheCpu` | cross-check: the CPU solver | -- |
+| `StudyPoints_AsOneDeviceEnsemble_MatchTheCpuStudy` | cross-check: the same study on the CPU (each point integrated alone) | 1e-09 |
 | `TilesAndModulator_IntoANonlinearPlate_MatchTheCpu` | cross-check (C6 of the S2 roadmap): the S2 primitives -- a coherent tile source and a modulator -- feeding a nonlinear spatial plate give the CPU result on the device | 1e-9 relative |
 
 ## GridSolverTests
@@ -552,6 +648,7 @@ Grid, carrier and solver accuracy.
 
 | test | reference | tolerance |
 |---|---|---|
+| `CircularAperture_OnADecentredBeam_IsTheOffsetGaussianIntegral` | decentred Gaussian through a circular aperture: round beam = noncentral chi-square probability (Poisson mixture of regularised incomplete gamma functions, i.e. 1 - Marcum Q1(2d/w, 2a/w)); elliptical beam = 2-D quadrature; small aperture T = 2 a^2/(wx wy) exp(-2 d^2/w^2) | 1e-6 (round), 2e-4 (quadrature), 1e-3 (limit) |
 | `CircularAperture_OnAnEllipticalBeam_IsTheTwoDimensionalIntegral` | elliptical Gaussian through a circular aperture: 2-D quadrature; small aperture T = 2 a^2 / (wx wy); round beam 1 - exp(-2 a^2 / w^2) | 1e-6 (quadrature), 1e-5 (small-aperture limit) |
 | `DelayedResponseLongerThanTheWindow_IsWarnedAbout_AndTheAutoGridHoldsIt` | periodic time grid: the response to a pulse must fit the window (convergence against a window four times larger) | total variation of the spectra 0.02 |
 | `FiberDispersionTable_Coarse_ReproducesBeta2_BetweenThePoints` | definition D = -2 pi c beta2 / lambda^2 (Agrawal, Nonlinear Fiber Optics); beta2(w) = b3 (w - wz) + b4 (w - wz)^2 / 2 | 2e-4 relative to beta2 (a linear interpolation of the 53-point table gave ~1e-3) |
@@ -643,6 +740,8 @@ Photo-ionisation and plasma.
 | test | reference | tolerance |
 |---|---|---|
 | `Keldysh_MultiphotonOrderForFusedSilica` | Keldysh: K = ceil(U_g / ħω) | 8 % |
+| `NegligibleIonisation_IsSkipped_AndTheResultDoesNotChange` | bound: rates at 4 x the entry peak intensity over 4 x E / P_pk keep the Drude phase below 1e-6 rad and the absorbed fraction below 1e-9 | the skipped and full runs differ by less than 1e-6 (relative L2 of the field) |
+| `PlasmaDeviceTable_ReproducesTheIonisedDensity` | the exact rate models (PPT, Keldysh, MPI) against their ln W / ln I table (PlasmaDeviceSpec.RateFromTable, the device's arithmetic): the ionised density int W(I(t)) dt of Gaussian pulses | 1e-12 for MPI (a straight line in the table); 1e-5 for PPT and Keldysh (kinks where a multiphoton channel closes: local rate error up to 1.4e-2, ionised density 4e-6) |
 | `Plasma_Avalanche_DoesNotAbsorbTheFieldASecondTime` | Couairon & Mysyrowicz, Phys. Rep. 441, 47 (2007), eq. 6 and 15: the avalanche is fed by inverse-bremsstrahlung absorption, which the Drude imaginary part already is | 1e-4 |
 | `Plasma_ElectronDensityBlueshiftAndAbsorption` | ρ = ∫ W dt; Drude blue shift | 3 % |
 | `Plasma_EnvelopeAgreesWithCarrierResolved_ForA10FsMidInfraredPulse` | cross-check: the envelope model against the carrier-resolved field model, same operator | blueshift 2 %, energy 1 %, density 1e-4 |
@@ -650,9 +749,24 @@ Photo-ionisation and plasma.
 | `Plasma_FixedDensity_SpatialModel_AppliesTheSameDrudeFilter` | the same Drude filter in the radial spatial model (a uniform plasma commutes with diffraction): energy transmission | 1e-7 |
 | `Plasma_FrequencyResolved_TakesTheDriftEnergyOfTheElectronsBornInTheField` | drift energy of electrons born at rest in a linearly polarised field: U_p = e² E0² / (4 m ω²) per electron (Corkum, Phys. Rev. Lett. 71, 1994 (1993)) | 2 % |
 | `Plasma_FrequencyResolved_TendsToTheCarrierValue_ForNarrowSpectra` | narrow-band limit: the frequency-resolved operator tends to the carrier value as the bandwidth goes to zero; R(ω0) = 1 | 1e-15; difference halves with the bandwidth |
+| `Plate_ElementLevelIonization_IsApplied_AsOnABulkElement` | -- | -- |
 | `Ppt_MultiphotonAndTunnelLimits` | PPT rate: multiphoton I^K and tunnelling (ADK) limits | 3 %, 15 % |
 | `SpecialFunctions_DawsonAndElliptic` | tabulated Dawson and elliptic-integral values | 1e-12, 1e-07, 1e-06 |
+| `StrongIonisation_IsNotSkipped` | -- | -- |
 | `Uppe_AgreesWithEnvelopeForParaxialBeams_AndPlasmaClampsTheFocus` (slow) | cross-check: the envelope model for paraxial beams | 1e-06, 1 % |
+
+## KerrLensTests
+
+Kerr lens of the 1-D beam.
+
+| test | reference | tolerance |
+|---|---|---|
+| `ElementN2_OverridesTheMaterial` | B = k0 n2 I L is linear in n2; the element key n2 overrides the material's (docs/reference/system-file.md) | 1e-3 (the pulse reshapes slightly at B = 0.1) |
+| `Integrate_RoundBeamAtItsWaist_FollowsTheExactSolution` | Ermakov equation w'' = w0^4 (1 - P/P_c) / (zR^2 w^3): w^2 = w0^2 [1 + (1 - P/P_c)(z/zR)^2] | 1e-6 (RK4) |
+| `KerrLens_AtLowPower_ChangesNothing` | P -> 0: the lens vanishes | 1e-5 |
+| `KerrLens_InAnElement_ReproducesTheExactBeamAndRaisesTheB` | Ermakov solution with the pulse's own peak power | 0.1 % |
+| `ModelCriticalPower_IsWithinSixPercentOfMarburger` | Marburger, Prog. Quantum Electron. 4, 35 (1975): P_cr = 3.77 lambda^2 / (8 pi n0 n2) | 1 % (the ratio 4/3.77 of the second-moment model) |
+| `PulseWeightedPower_IsBelowThePeakAndEqualsItForAFlatPulse` | weighted power sum(P^2)/sum(P) <= peak power | exact |
 
 ## LaserTests
 
@@ -672,6 +786,14 @@ Lasers: Haus master equation, absorbers, cavities, apertures, carrier-resolved �
 | `Haus_SolitonModeLocking_ObeysTheAreaTheorem` | soliton area theorem (Haus master equation) | 1e-12, 10 % |
 | `Sesam_SlowAbsorber_SaturatesAsTheEnergyIntegral` | slow absorber: q0 (1 − e^−S) / S | 1e-09, 2 % |
 | `ThermalLens_ExportsAsGradient1` | GRIN thin lens n_r2 = −1 / (2 f L) | 1e-09 |
+
+## LensSamplingTests
+
+Lens sampling warning.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Lens_WithAPhaseStepAbovePiAtTheBeamEdge_WarnsAndAGentleOneDoesNot` | Nyquist: the lens phase k r dr / f per cell at the beam edge (1.5 w) must stay below pi | exact threshold |
 
 ## LinearComponentTests
 
@@ -756,6 +878,20 @@ Sampling apertures, measured data and fits.
 | `Sampling_GaussianApertures_TransmitTheAnalyticFraction` | Gaussian through a pinhole / slit: analytic transmitted fraction | 1e-06, 2 %, 5 % |
 | `Sampling_IgnoredByImagingInstruments_AndBadPlaneRejected` | -- | -- |
 | `Sampling_Integrated_IsTheWholeBeam` | -- | -- |
+
+## MemoryEstimateTests
+
+Memory safety: estimate and limit.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Estimate_CartesianVector_MatchesTheHandCount` | hand count: nx x ny points, vector fields doubled, frequency block limits the workspace | exact |
+| `Estimate_OneDimensional_MatchesTheHandCount` | hand count: (elements + input) x 2 polarisations x N x 16 B; 24 N-sample solver arrays | exact |
+| `Estimate_Radial_MatchesTheHandCount_AllAndUsed` | hand count: profiles kept = spatial elements + 1 in flight (all) or instruments + 1 + 1 (used); M x spectralSamples x 16 B each | exact |
+| `FreeMemory_Above80Percent_Warns_NotBelow` | a warning above 80 % of the free memory, none below | exact |
+| `Limit_BelowTheEstimate_FailsAtCompile_AboveItPasses` | compute.memoryLimitBytes refuses the run before it starts, with advice | exact |
+| `RealRun_RetainedManagedMemory_IsBelowTheEstimate_AndNotFarBelow` | the estimate is a planning figure: the managed memory a finished run retains lies between a tenth of it and all of it | 0.1 x estimate < retained <= estimate |
+| `Study_PointsWithUsedProfiles_GiveTheSameOutputsAsAllProfiles` | study points run with outputs.keepProfiles "used": outputs identical to the run with every profile kept | exact |
 
 ## ModelledInstrumentsTests
 
@@ -860,6 +996,7 @@ Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stre
 |---|---|---|
 | `Coherence_TooFewModes_Warns_AndKeepsTheEnergy` | -- | -- |
 | `CurvedBeam_ActsOnTheTrackedSpatialChirp_WithTheProfilesSign` | -- | -- |
+| `CwSource_OffTheLattice_SitsOnTheRequestedFrequency` | a cw source's single line sits on the requested frequency, 2 pi c / lambda, to rounding, wherever it falls between the bins of a snapped lattice; snapCarrier: true moves it to the nearest bin | 1e-14 relative |
 | `DispersedBeamInGlass_ActsAsTheReducedDistance` | paraxial reduced distance: a glass path L acts as L / n for angular dispersion | 1 % |
 | `FoxLi_WithNoAperture_DoesNotClaimAMode` | -- | -- |
 | `LinearCavity_ReturnPass_ReversesAnAnamorphicElement` | Linear-cavity round trip with element matrices reversed on the return (A, B, C, D) -> (D, B, C, A) | 0.3 % |
@@ -890,6 +1027,7 @@ Polarisation: waveplates, Brewster windows, basis transport.
 |---|---|---|
 | `BasisTracker_PeriscopeRotatesTheTransportedBasis` | -- | -- |
 | `BrewsterWindow_TransmitsPOnly` | Fresnel equations at Brewster's angle | 1e-10, 1e-09 |
+| `CircularLight_ReflectedAtAnAngle_BecomesElliptical_AsFresnelSays` | Fresnel equations (Born & Wolf 1.5): r_s = (cos i - n cos t)/(cos i + n cos t), r_p = (n cos i - cos t)/(n cos i + cos t); circular light reflected keeps the 90 deg phase but its amplitudes become \|r_p\|, \|r_s\|: \|S3\| = 2\|r_s r_p\|/(r_s^2 + r_p^2), \|S1\| = \|r_s^2 - r_p^2\|/(r_s^2 + r_p^2) | 1e-9 |
 | `Waveplates_RotateAndCirculariseAsExpected` | Jones calculus | 1e-09, 1e-06, 0.1 % |
 
 ## PropagationTests
@@ -921,6 +1059,8 @@ Pulse calculator: time-bandwidth product, transform limit, chirp.
 | `Limit_WithBothDurationAndBandwidth_IsRejected` | -- | -- |
 | `Measure_SampledGaussianPulse_GivesTheTransformLimit` | Gaussian: sigma_t sigma_nu = 1/(4 pi) and FWHM product 2 ln2 / pi | 1 % |
 | `Tbp_OfGaussianAndSech2_MatchesTheTextbookValues` | Diels & Rudolph, Ultrashort Laser Pulse Phenomena, table 2.1: 2 ln2 / pi = 0.4413, sech^2 0.3148 | 1e-4 |
+| `Tbp_OfLorentzianAndAsymmetricExponential_MatchesANumericalTransform` | closed forms ln2 sqrt(sqrt2-1)/pi and ln2/(2 pi) against a brute-force Fourier transform of the field | 1e-3 |
+| `Tbp_OfLorentzianAndAsymmetricExponential_MatchesTheTable` | Diels & Rudolph table 2.1: Lorentzian 0.142, one-sided (asymmetric) exponential 0.110 | 1e-3 |
 
 ## ResolutionTests
 
@@ -960,6 +1100,14 @@ Regressions from the review: M^2, second moments, packets at ports, steady-state
 | `TiltAndDecentre_DoNotDegradeBeamQualityOrSize` | Siegman, Proc. SPIE 1224, 2 (1990): M^2 from central moments | 1e-6 |
 | `Vortex_HasItsAnalyticBeamQuality` | Laguerre-Gauss M^2 = 2p + \|l\| + 1 | 1e-6 |
 
+## SameAsTests
+
+Identical elements (sameAs) with transverse models.
+
+| test | reference | tolerance |
+|---|---|---|
+| `Radial_ThroughFortySixSameAsPasses_EqualsExplicitPasses_AndTheEnergyCloses` | sameAs copies equal explicitly written passes (same compiled physics); loss budget: input - output = sum of booked losses | 1e-12 (field), 1e-9 (energy closure) |
+
 ## SchemaTests
 
 Schemas, validation and migrations.
@@ -970,6 +1118,7 @@ Schemas, validation and migrations.
 | `ExamplesUseOnlyDeclaredOptions` | -- | -- |
 | `Migration_V1Cameras_BecomeTheUnifiedCamera` | -- | -- |
 | `Schemas_AreGeneratedForEveryElementAndInstrument` | -- | -- |
+| `UnitInKeyRenames_OldNamesStillWork_AndNewOnesAreDeclared` | 1.0.0 renames (the unit goes into the key): the old names are rewritten on load with a note, give an identical run, and the new names pass the strict key check | exact |
 | `UnknownKey_IsReportedWithSuggestion` | -- | -- |
 
 ## SingleShotCorrelatorTests
@@ -1018,6 +1167,7 @@ Large spatial runs: frequency streaming, profile retention, cylindrical lens, fu
 | `CylindricalLens_FocusesOneAxisOnly` | cylindrical lens (focalLengthXM = f, focalLengthYM = 1e30 m): x focuses to lambda f / (pi w), y diffracts freely to w sqrt(1 + (z / z_R)^2) with z_R = pi w^2 / lambda (Siegman, Lasers, ch. 17) | 2 % |
 | `FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget` (slow) | S2 scale spike (docs/design/history.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y) | budget 4x the spike time (13 s; 45 s when the CI variable is set); keepProfiles used holds at least one profile less than all; transmission 1e-3 |
 | `KeepProfilesUsed_DropsUnreadProfiles_AndChangesNoResult` | outputs.keepProfiles = "used" drops the profiles no instrument reads; the instruments and the output are unchanged | exact |
+| `KeepProfilesUsed_InABranchedMachZehnder_DropsTheArms_AndChangesNoResult` | outputs.keepProfiles = "used" in a branched system: the profiles of the arms are dropped, the element that feeds the output is kept, and the camera at the end is unchanged | exact |
 | `OneStoredFrequency_IsTheCentroid_OrTheNearestLitBin` | one stored frequency: the bin nearest the energy centroid; for a two-colour spectrum with no light at the centroid, the nearest bin that carries light (review finding M1) | exact |
 | `PrefixCachedStudy_WithKeepProfilesUsed_EqualsTheUncachedStudy` | a prefix-cached study resumes from the nominal run's pulses, so with keepProfiles "used" the nominal run still keeps every profile: the cached sweep equals the uncached one (review finding H2, 2026-11-10) | 1e-12 |
 | `Streaming_InFrequencyBlocks_EqualsAllAtOnce` | linear propagation is independent per stored frequency, so propagating them in blocks (streaming) gives the all-at-once result | 1e-12 of the peak |
@@ -1047,6 +1197,16 @@ FFTs, SIMD kernels and studies.
 | `Sobol_SequenceIsStratified` | -- | -- |
 | `Study_OptimizeAndSensitivities` | -- | -- |
 | `Study_ScanWithPrefixCacheMatchesFullRuns` | B = γ P L | 1e-09, 1 % |
+
+## StudyCacheTests
+
+Study grid union and point cache.
+
+| test | reference | tolerance |
+|---|---|---|
+| `EnsembleGate_BatchesWaitingThreads_AndNeverWaitsForFinishedOnes` | -- | -- |
+| `Study_FrozenGridServesTheWholeRange` | -- | -- |
+| `Study_PointCacheResumesAndInvalidates` | -- | -- |
 
 ## TileSourceTests
 
@@ -1106,6 +1266,18 @@ The test framework and the generated validation matrix.
 |---|---|---|
 | `EveryTestClass_NamesItsArea` | -- | -- |
 | `ValidationMatrix_IsUpToDate` | -- | -- |
+
+## ValidityTests
+
+Run validity and pulse metrics.
+
+| test | reference | tolerance |
+|---|---|---|
+| `BIntegral_PulseAndBeamAveraged_AreTheAnalyticFractionsOfThePeak` | Gaussian pulse and beam with an instantaneous Kerr index: power-weighted mean over peak = int P^2 / (int P max P) = 1/sqrt 2 in time, 1/2 over a Gaussian cross-section | 1e-6 (SPM leaves \|A(t)\| unchanged in a dispersionless medium) |
+| `CriticalPower_InEveryPass_GivesOneWarningNamingAllPasses_AndOneValidityEntryEach` | -- | -- |
+| `HalfMaximumStructure_CountsSeparatePulses_AndTheEnergyInsideTheFwhm` | Gaussian: energy inside the FWHM = erf(sqrt(ln 2)) = 0.76100; sech^2: tanh(arcsech(1/sqrt 2)) = 1/sqrt 2 | 1e-4 (sampling) |
+| `StrictValidity_RaisesAfterTheRun_WithTheResultAttached` | -- | -- |
+| `ZeroFrequency_IsReportedOnlyWhenTheSpectrumReachesIt` | -- | -- |
 
 ## ZemaxTests
 

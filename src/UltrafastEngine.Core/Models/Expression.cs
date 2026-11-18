@@ -90,6 +90,39 @@ namespace UltrafastEngine.Models
         {
             /// <summary>Returns an array of length N, or of length 1 for a scalar result (broadcast).</summary>
             public abstract double[] Eval(Ctx c);
+            /// <summary>The node as a C expression in double precision (OpenCL C and CUDA alike), or null when it has no C form.</summary>
+            public abstract string C(CEmit e);
+        }
+
+        /// <summary>State of <see cref="ToC"/>: the C name of each variable and the variables used.</summary>
+        private sealed class CEmit
+        {
+            public Func<string, string> Var;
+            public IReadOnlyList<string> Names;
+            public HashSet<string> Used = new HashSet<string>();
+        }
+
+        /// <summary>A C double literal that reads back to exactly <paramref name="v"/> (null for infinities and NaN).</summary>
+        public static string CLiteral(double v)
+        {
+            if (double.IsNaN(v) || double.IsInfinity(v)) return null;
+            string t = v.ToString("G17", CultureInfo.InvariantCulture);
+            if (t.IndexOf('.') < 0 && t.IndexOf('E') < 0) t += ".0";
+            return v < 0 || t.StartsWith("-") ? "(" + t + ")" : t;
+        }
+
+        /// <summary>
+        /// The expression as C source for a device kernel (double precision; the same in OpenCL C and CUDA), with every
+        /// variable written as <paramref name="variableName"/>(name). Null when a part has no C form (a non-finite constant).
+        /// The arithmetic is the same as <see cref="Evaluate"/>; transcendental functions of the device library may differ
+        /// from .NET's in the last bits. <paramref name="used"/> receives the variables the expression reads.
+        /// </summary>
+        public string ToC(Func<string, string> variableName, ISet<string> used = null)
+        {
+            var e = new CEmit { Var = variableName, Names = Variables };
+            var c = _root.C(e);
+            if (c != null && used != null) foreach (var u in e.Used) used.Add(u);
+            return c;
         }
 
         private sealed class ConstNode : Node
@@ -97,6 +130,7 @@ namespace UltrafastEngine.Models
             private readonly double[] _v;
             public ConstNode(double v) { _v = new[] { v }; }
             public override double[] Eval(Ctx c) => _v;
+            public override string C(CEmit e) => CLiteral(_v[0]);
             public double Value => _v[0];
         }
 
@@ -105,13 +139,26 @@ namespace UltrafastEngine.Models
             private readonly int _i;
             public VarNode(int i) { _i = i; }
             public override double[] Eval(Ctx c) => c.Vars[_i];
+            public override string C(CEmit e) { var n = e.Names[_i]; e.Used.Add(n); return e.Var(n); }
         }
 
         private sealed class MapNode : Node
         {
             private readonly Node[] _args;
             private readonly Func<double[], double> _f; // receives one value per argument
-            public MapNode(Func<double[], double> f, params Node[] args) { _f = f; _args = args; }
+            private readonly Func<string[], string> _c; // the C form from the arguments' C forms
+            public MapNode(Func<double[], double> f, Func<string[], string> c, params Node[] args) { _f = f; _c = c; _args = args; }
+            /// <summary>C form from a format string ({0}, {1}, ... = the arguments).</summary>
+            public static Func<string[], string> Fmt(string fmt) => a => string.Format(CultureInfo.InvariantCulture, fmt, a);
+            /// <summary>C form of a variadic function as a left fold of a two-argument one: f(f(a, b), c).</summary>
+            public static Func<string[], string> Fold(string fn) => a => { var r = a[0]; for (int i = 1; i < a.Length; i++) r = fn + "(" + r + ", " + a[i] + ")"; return r; };
+            public override string C(CEmit e)
+            {
+                if (_c == null) return null;
+                var a = new string[_args.Length];
+                for (int k = 0; k < a.Length; k++) { a[k] = _args[k].C(e); if (a[k] == null) return null; }
+                return _c(a);
+            }
             public override double[] Eval(Ctx c)
             {
                 var vals = new double[_args.Length][];
@@ -133,6 +180,12 @@ namespace UltrafastEngine.Models
         {
             private readonly Node _a, _b; private readonly char _op;
             public BinNode(char op, Node a, Node b) { _op = op; _a = a; _b = b; }
+            public override string C(CEmit e)
+            {
+                var x = _a.C(e); var y = _b.C(e);
+                if (x == null || y == null) return null;
+                return _op == '^' ? "pow(" + x + ", " + y + ")" : "(" + x + " " + _op + " " + y + ")";
+            }
             public override double[] Eval(Ctx c)
             {
                 var x = _a.Eval(c); var y = _b.Eval(c);
@@ -191,14 +244,14 @@ namespace UltrafastEngine.Models
             private Node ParseOr()
             {
                 var a = ParseAnd();
-                while (Accept("||")) { var b = ParseAnd(); a = new MapNode(v => (v[0] != 0 || v[1] != 0) ? 1 : 0, a, b); }
+                while (Accept("||")) { var b = ParseAnd(); a = new MapNode(v => (v[0] != 0 || v[1] != 0) ? 1 : 0, MapNode.Fmt("(({0}) != 0.0 || ({1}) != 0.0 ? 1.0 : 0.0)"), a, b); }
                 return a;
             }
 
             private Node ParseAnd()
             {
                 var a = ParseCompare();
-                while (Accept("&&")) { var b = ParseCompare(); a = new MapNode(v => (v[0] != 0 && v[1] != 0) ? 1 : 0, a, b); }
+                while (Accept("&&")) { var b = ParseCompare(); a = new MapNode(v => (v[0] != 0 && v[1] != 0) ? 1 : 0, MapNode.Fmt("(({0}) != 0.0 && ({1}) != 0.0 ? 1.0 : 0.0)"), a, b); }
                 return a;
             }
 
@@ -207,12 +260,12 @@ namespace UltrafastEngine.Models
                 var a = ParseAdd();
                 while (true)
                 {
-                    if (Accept("<=")) { var b = ParseAdd(); a = new MapNode(v => v[0] <= v[1] ? 1 : 0, a, b); }
-                    else if (Accept(">=")) { var b = ParseAdd(); a = new MapNode(v => v[0] >= v[1] ? 1 : 0, a, b); }
-                    else if (Accept("==")) { var b = ParseAdd(); a = new MapNode(v => v[0] == v[1] ? 1 : 0, a, b); }
-                    else if (Accept("!=")) { var b = ParseAdd(); a = new MapNode(v => v[0] != v[1] ? 1 : 0, a, b); }
-                    else if (Accept("<")) { var b = ParseAdd(); a = new MapNode(v => v[0] < v[1] ? 1 : 0, a, b); }
-                    else if (Accept(">")) { var b = ParseAdd(); a = new MapNode(v => v[0] > v[1] ? 1 : 0, a, b); }
+                    if (Accept("<=")) { var b = ParseAdd(); a = new MapNode(v => v[0] <= v[1] ? 1 : 0, MapNode.Fmt("(({0}) <= ({1}) ? 1.0 : 0.0)"), a, b); }
+                    else if (Accept(">=")) { var b = ParseAdd(); a = new MapNode(v => v[0] >= v[1] ? 1 : 0, MapNode.Fmt("(({0}) >= ({1}) ? 1.0 : 0.0)"), a, b); }
+                    else if (Accept("==")) { var b = ParseAdd(); a = new MapNode(v => v[0] == v[1] ? 1 : 0, MapNode.Fmt("(({0}) == ({1}) ? 1.0 : 0.0)"), a, b); }
+                    else if (Accept("!=")) { var b = ParseAdd(); a = new MapNode(v => v[0] != v[1] ? 1 : 0, MapNode.Fmt("(({0}) != ({1}) ? 1.0 : 0.0)"), a, b); }
+                    else if (Accept("<")) { var b = ParseAdd(); a = new MapNode(v => v[0] < v[1] ? 1 : 0, MapNode.Fmt("(({0}) < ({1}) ? 1.0 : 0.0)"), a, b); }
+                    else if (Accept(">")) { var b = ParseAdd(); a = new MapNode(v => v[0] > v[1] ? 1 : 0, MapNode.Fmt("(({0}) > ({1}) ? 1.0 : 0.0)"), a, b); }
                     else return a;
                 }
             }
@@ -244,7 +297,7 @@ namespace UltrafastEngine.Models
             {
                 if (Accept("-")) return Fold(new BinNode('-', new ConstNode(0), ParseUnary()));
                 if (Accept("+")) return ParseUnary();
-                if (Accept("!")) { var x = ParseUnary(); return new MapNode(v => v[0] == 0 ? 1 : 0, x); }
+                if (Accept("!")) { var x = ParseUnary(); return new MapNode(v => v[0] == 0 ? 1 : 0, MapNode.Fmt("(({0}) == 0.0 ? 1.0 : 0.0)"), x); }
                 return ParsePow();
             }
 
@@ -326,34 +379,34 @@ namespace UltrafastEngine.Models
                 void Arity(int k) { if (a.Count != k) throw Error(name + "() takes " + k + " argument(s), got " + a.Count); }
                 switch (name)
                 {
-                    case "sin": Arity(1); return new MapNode(v => Math.Sin(v[0]), a[0]);
-                    case "cos": Arity(1); return new MapNode(v => Math.Cos(v[0]), a[0]);
-                    case "tan": Arity(1); return new MapNode(v => Math.Tan(v[0]), a[0]);
-                    case "asin": Arity(1); return new MapNode(v => Math.Asin(v[0]), a[0]);
-                    case "acos": Arity(1); return new MapNode(v => Math.Acos(v[0]), a[0]);
-                    case "atan": Arity(1); return new MapNode(v => Math.Atan(v[0]), a[0]);
-                    case "atan2": Arity(2); return new MapNode(v => Math.Atan2(v[0], v[1]), a[0], a[1]);
-                    case "sinh": Arity(1); return new MapNode(v => Math.Sinh(v[0]), a[0]);
-                    case "cosh": Arity(1); return new MapNode(v => Math.Cosh(v[0]), a[0]);
-                    case "tanh": Arity(1); return new MapNode(v => Math.Tanh(v[0]), a[0]);
-                    case "sech": Arity(1); return new MapNode(v => 1.0 / Math.Cosh(v[0]), a[0]);
-                    case "exp": Arity(1); return new MapNode(v => Math.Exp(v[0]), a[0]);
-                    case "log": Arity(1); return new MapNode(v => Math.Log(v[0]), a[0]);
-                    case "log10": Arity(1); return new MapNode(v => Math.Log10(v[0]), a[0]);
-                    case "sqrt": Arity(1); return new MapNode(v => Math.Sqrt(v[0]), a[0]);
-                    case "abs": Arity(1); return new MapNode(v => Math.Abs(v[0]), a[0]);
-                    case "sign": Arity(1); return new MapNode(v => Math.Sign(v[0]), a[0]);
-                    case "floor": Arity(1); return new MapNode(v => Math.Floor(v[0]), a[0]);
-                    case "ceil": Arity(1); return new MapNode(v => Math.Ceiling(v[0]), a[0]);
-                    case "round": Arity(1); return new MapNode(v => Math.Round(v[0]), a[0]);
-                    case "step": Arity(1); return new MapNode(v => v[0] >= 0 ? 1 : 0, a[0]);
+                    case "sin": Arity(1); return new MapNode(v => Math.Sin(v[0]), MapNode.Fmt("sin({0})"), a[0]);
+                    case "cos": Arity(1); return new MapNode(v => Math.Cos(v[0]), MapNode.Fmt("cos({0})"), a[0]);
+                    case "tan": Arity(1); return new MapNode(v => Math.Tan(v[0]), MapNode.Fmt("tan({0})"), a[0]);
+                    case "asin": Arity(1); return new MapNode(v => Math.Asin(v[0]), MapNode.Fmt("asin({0})"), a[0]);
+                    case "acos": Arity(1); return new MapNode(v => Math.Acos(v[0]), MapNode.Fmt("acos({0})"), a[0]);
+                    case "atan": Arity(1); return new MapNode(v => Math.Atan(v[0]), MapNode.Fmt("atan({0})"), a[0]);
+                    case "atan2": Arity(2); return new MapNode(v => Math.Atan2(v[0], v[1]), MapNode.Fmt("atan2({0}, {1})"), a[0], a[1]);
+                    case "sinh": Arity(1); return new MapNode(v => Math.Sinh(v[0]), MapNode.Fmt("sinh({0})"), a[0]);
+                    case "cosh": Arity(1); return new MapNode(v => Math.Cosh(v[0]), MapNode.Fmt("cosh({0})"), a[0]);
+                    case "tanh": Arity(1); return new MapNode(v => Math.Tanh(v[0]), MapNode.Fmt("tanh({0})"), a[0]);
+                    case "sech": Arity(1); return new MapNode(v => 1.0 / Math.Cosh(v[0]), MapNode.Fmt("(1.0 / cosh({0}))"), a[0]);
+                    case "exp": Arity(1); return new MapNode(v => Math.Exp(v[0]), MapNode.Fmt("exp({0})"), a[0]);
+                    case "log": Arity(1); return new MapNode(v => Math.Log(v[0]), MapNode.Fmt("log({0})"), a[0]);
+                    case "log10": Arity(1); return new MapNode(v => Math.Log10(v[0]), MapNode.Fmt("log10({0})"), a[0]);
+                    case "sqrt": Arity(1); return new MapNode(v => Math.Sqrt(v[0]), MapNode.Fmt("sqrt({0})"), a[0]);
+                    case "abs": Arity(1); return new MapNode(v => Math.Abs(v[0]), MapNode.Fmt("fabs({0})"), a[0]);
+                    case "sign": Arity(1); return new MapNode(v => Math.Sign(v[0]), MapNode.Fmt("(({0}) > 0.0 ? 1.0 : (({0}) < 0.0 ? -1.0 : 0.0))"), a[0]);
+                    case "floor": Arity(1); return new MapNode(v => Math.Floor(v[0]), MapNode.Fmt("floor({0})"), a[0]);
+                    case "ceil": Arity(1); return new MapNode(v => Math.Ceiling(v[0]), MapNode.Fmt("ceil({0})"), a[0]);
+                    case "round": Arity(1); return new MapNode(v => Math.Round(v[0]), MapNode.Fmt("rint({0})"), a[0]);
+                    case "step": Arity(1); return new MapNode(v => v[0] >= 0 ? 1 : 0, MapNode.Fmt("(({0}) >= 0.0 ? 1.0 : 0.0)"), a[0]);
                     case "pow": Arity(2); return new BinNode('^', a[0], a[1]);
-                    case "hypot": Arity(2); return new MapNode(v => Math.Sqrt(v[0] * v[0] + v[1] * v[1]), a[0], a[1]);
-                    case "min": if (a.Count < 2) throw Error("min() needs at least 2 arguments"); return new MapNode(v => v.Min(), a.ToArray());
-                    case "max": if (a.Count < 2) throw Error("max() needs at least 2 arguments"); return new MapNode(v => v.Max(), a.ToArray());
-                    case "if": Arity(3); return new MapNode(v => v[0] != 0 ? v[1] : v[2], a[0], a[1], a[2]);
-                    case "clamp": Arity(3); return new MapNode(v => Math.Max(v[1], Math.Min(v[2], v[0])), a[0], a[1], a[2]);
-                    case "gauss": Arity(2); return new MapNode(v => Math.Exp(-0.5 * v[0] * v[0] / (v[1] * v[1])), a[0], a[1]);
+                    case "hypot": Arity(2); return new MapNode(v => Math.Sqrt(v[0] * v[0] + v[1] * v[1]), MapNode.Fmt("sqrt(({0}) * ({0}) + ({1}) * ({1}))"), a[0], a[1]);
+                    case "min": if (a.Count < 2) throw Error("min() needs at least 2 arguments"); return new MapNode(v => v.Min(), MapNode.Fold("fmin"), a.ToArray());
+                    case "max": if (a.Count < 2) throw Error("max() needs at least 2 arguments"); return new MapNode(v => v.Max(), MapNode.Fold("fmax"), a.ToArray());
+                    case "if": Arity(3); return new MapNode(v => v[0] != 0 ? v[1] : v[2], MapNode.Fmt("(({0}) != 0.0 ? ({1}) : ({2}))"), a[0], a[1], a[2]);
+                    case "clamp": Arity(3); return new MapNode(v => Math.Max(v[1], Math.Min(v[2], v[0])), MapNode.Fmt("fmax({1}, fmin({2}, {0}))"), a[0], a[1], a[2]);
+                    case "gauss": Arity(2); return new MapNode(v => Math.Exp(-0.5 * v[0] * v[0] / (v[1] * v[1])), MapNode.Fmt("exp(-0.5 * ({0}) * ({0}) / (({1}) * ({1})))"), a[0], a[1]);
                     default: throw Error("unknown function '" + name + "'");
                 }
             }

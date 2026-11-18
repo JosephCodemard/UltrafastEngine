@@ -16,9 +16,9 @@ namespace UltrafastEngine.Cli
 {
     public static class Program
     {
-        private const string Usage = @"UltrafastEngine 2.0 command line
+        private const string Usage = @"UltrafastEngine command line
 
-  ultrafast run <system.ufs> <run.json> [-o <dir>] [--quiet] [--threads <n>] [--backend cpu|auto|cuda|opencl] [--device <i>]
+  ultrafast run <system.ufs> <run.json> [-o <dir>] [--quiet] [--threads <n>] [--backend cpu|auto|cuda|opencl] [--device <i>] [--fidelity full|standard|quick]
         Propagate the pulse through the system; writes summary.json, result.npz, provenance.json and CSVs.
         --backend / --device override the run spec's compute settings (GPU back-ends: the gpu plugin, docs/plugins/gpu.md).
   ultrafast validate <system.ufs> [run.json]
@@ -43,6 +43,7 @@ namespace UltrafastEngine.Cli
         Markdown reference of every option (generated from the engine; docs/reference/options.md).
   ultrafast migrate <file.ufs|run.json> [-o out]
         Upgrade an older file to the current format version.
+  ultrafast agent list | install --target claude|codex|cursor [--dest <dir>] [--force] | mcp-config   the agent pack (skills for coding agents)
   ultrafast devices [--selftest] [--benchmark] [--backend <name>] [--device <i>] [--json]
         Compute back-ends and devices (CPU, CUDA, OpenCL), the CPU FFT in use; --selftest compares each device with
         the CPU on standard problems, --benchmark also times both (docs/reference/speed.md).
@@ -78,6 +79,7 @@ Docs: docs/index.md   Examples: docs/examples/";
                     case "schema": return SchemaCommand(args.Skip(1).ToArray());
                     case "migrate": return MigrateCommand(args.Skip(1).ToArray());
                     case "study": ApplyBackend(args); return StudyCommand(args.Skip(1).ToArray());
+                    case "agent": return AgentCommand.Run(args.Skip(1).ToArray(), Console.Out, Console.Error);
                     case "devices": return DevicesCommand(args.Skip(1).ToArray());
                     case "retrieve": return RetrieveCommand(args.Skip(1).ToArray());
                     case "materials": return MaterialsCommand(args.Skip(1).ToArray());
@@ -111,11 +113,21 @@ Docs: docs/index.md   Examples: docs/examples/";
             var r = new System.Collections.Generic.List<string>();
             for (int i = 0; i < a.Length; i++)
             {
-                if (a[i] == "-o" || a[i] == "--out" || a[i] == "--threads" || a[i] == "--backend" || a[i] == "--device") { i++; continue; }
+                if (a[i] == "-o" || a[i] == "--out" || a[i] == "--threads" || a[i] == "--backend" || a[i] == "--device" || a[i] == "--fidelity") { i++; continue; }
                 if (a[i].StartsWith("--")) continue;
                 r.Add(a[i]);
             }
             return r.ToArray();
+        }
+
+        /// <summary>The run spec; --fidelity full|standard|quick sets the run's "fidelity" key (docs/reference/fidelity.md).</summary>
+        private static RunSpec LoadRun(string path, string[] a)
+        {
+            var f = Opt(a, "--fidelity");
+            if (f == null) return RunSpec.Load(path);
+            var raw = JsonValue.ParseFile(path).AsObject();
+            raw.Set("fidelity", f);
+            return RunSpec.FromJson(raw, System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)));
         }
 
         /// <summary>--backend / --device: override every run's "compute" back-end (and device index).</summary>
@@ -176,7 +188,7 @@ Docs: docs/index.md   Examples: docs/examples/";
             bool quiet = a.Contains("--quiet");
             bool showProgress = !quiet && !Console.IsOutputRedirected;
             var sys = SystemDescription.Load(p[0]);
-            var run = RunSpec.Load(p[1]);
+            var run = LoadRun(p[1], a);
             var compiled = Compiler.Compile(sys, run);
             if (!quiet)
             {
@@ -404,7 +416,7 @@ Docs: docs/index.md   Examples: docs/examples/";
 
         private static int PulseCommand(string[] a)
         {
-            const string use = "usage: ultrafast pulse shapes | limit --shape gaussian|sech2|rectangular (--duration <s> | --bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>)\n" +
+            const string use = "usage: ultrafast pulse shapes | limit --shape gaussian|sech2|lorentzian|asymmetric-exponential|rectangular (--duration <s> | --bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>)\n" +
                                "       ultrafast pulse analyze --duration <s> (--bandwidth-hz <Hz> | --bandwidth-m <m> --center <m>) [--shape gaussian] [--json]\n" +
                                "       ultrafast pulse measure --request <file.json> [--json]   (arrays timeS, intensity, wavelengthM|frequencyHz, spectrum)";
             var ci = CultureInfo.InvariantCulture;

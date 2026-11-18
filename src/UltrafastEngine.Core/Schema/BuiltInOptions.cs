@@ -60,6 +60,7 @@ namespace UltrafastEngine.Schema
                 .Obj("pulse", "The input pulse", "pulse", required: true)
                 .Obj("grid", "Time/frequency grid", "grid")
                 .Obj("physics", "Physics switches", "physics")
+                .Enum("fidelity", new[] { "full", "standard", "quick" }, "Cost / accuracy level (docs/reference/fidelity.md): a named bundle of switches that are not written in the run spec itself; every switch you write stays as you wrote it. summary.json lists what changed (fidelityReport) and warns when a quick result is unreliable", "full")
                 .Obj("stepper", "Nonlinear solver settings", "stepper")
                 .P("probes", ParamType.Any, "", "Snapshots of the pulse: \"all\", \"end\" or a list of element ids", "\"end\"")
                 .ListOf("instruments", "instrument", "Instruments")
@@ -123,6 +124,7 @@ namespace UltrafastEngine.Schema
                 .Num("fieldHarmonic", "", "Highest harmonic the carrier-resolved grid holds", "3")
                 .Bool("absoluteIndex", "Add air dispersion to air paths quoted relative to air", "true")
                 .P("strictMaterialsAllow", ParamType.Array, "", "Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. \"CS2.n2\") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as \"CS2\" accepts all its quantities")
+                .Bool("strictValidity", "Turn the run's validity findings (summary.json \"validity\": energy reaching zero frequency, peak power above the critical power in 1-D, Kerr-lens collapse, LIDT exceeded, energy at the time-window edge) into an error after the run, instead of warnings. The environment variable ULTRAFAST_STRICT_VALIDITY=1 does the same", "false")
                 .Bool("strictMaterials", "Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same", "false")
                 .Enum("polarization", new[] { "jones", "scalar" }, "Jones (two polarisations) or scalar", "jones")
                 .Bool("losses", "false removes flat loss terms", "true")
@@ -136,7 +138,7 @@ namespace UltrafastEngine.Schema
                 .Num("bandGapEv", "eV", "Band gap (solids)").Num("effectiveMass", "", "Reduced mass / m_e (solids)").Num("neutralDensityM3", "1/m^3", "Density of ionisable atoms / valence electrons")
                 .Num("sigmaK", "(m^2/W)^K/s", "MPI cross section").Int("photons", "MPI order K")
                 .Num("collisionTimeS", "s", "Electron collision time").Num("recombinationTimeS", "s", "Recombination / trapping time").Num("recombinationBetaM3PerS", "m^3/s", "Two-body recombination")
-                .Num("electronDensityM3", "1/m^3", "Free-electron density present before the pulse (a prepared plasma)", "0").Bool("frequencyResolved", "Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only", "true").Bool("avalanche", "Avalanche (impact) ionisation", "true for solids").Bool("absorption", "Plasma and ionisation losses", "true").Str("species", "Gas species (when the material does not say)"));
+                .Num("electronDensityM3", "1/m^3", "Free-electron density present before the pulse (a prepared plasma)", "0").Bool("skipNegligible", "Leave the plasma term out of an element when a conservative bound (rates at 4 x the entry peak intensity over 4 x the effective pulse duration, avalanche included) keeps its Drude phase below 1e-6 rad and its absorbed energy below 1e-9 of the pulse; the element note gives the density bound. 1-D elements only; never with a prepared plasma", "true").Bool("frequencyResolved", "Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only", "true").Bool("avalanche", "Avalanche (impact) ionisation", "true for solids").Bool("absorption", "Plasma and ionisation losses", "true").Str("species", "Gas species (when the material does not say)"));
             add(new ComponentSpec("coherence", "", "A Gaussian-Schell beam as an incoherent sum of Hermite-Gauss modes (docs/reference/transverse.md#partial-coherence).")
                 .Enum("model", new[] { "gaussianSchell" }, "Coherence model", "gaussianSchell")
                 .Num("m2", "", "Beam quality M^2 >= 1", required: true)
@@ -148,7 +150,9 @@ namespace UltrafastEngine.Schema
                 .Enum("fft", new[] { "auto", "managed", "fftw", "accelerate" }, "CPU FFT provider (process-wide): auto = Accelerate on macOS, FFTW when installed, else managed", "ULTRAFAST_FFT or auto")
                 .Int("device", "GPU device index (ultrafast devices lists them)", "-1 (first suitable)")
                 .Int("gpuMinPoints", "backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU", "8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end")
-                .Int("deviceSlots", "GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits", "4"));
+                .Num("memoryLimitBytes", "B", "The run is refused before it starts when its estimated memory (shown in validate and in the run notes) is above this; 0 = no limit. A warning is given above 80 % of the free physical memory whatever this is (docs/reference/memory.md)", "0")
+                .Int("deviceSlots", "GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits", "4")
+                .Enum("precision", new[] { "double", "mixed" }, "double: everything in double precision. mixed (GPU back-ends, 1-D envelope and chi(2) elements): the nonlinear operator and its FFTs in single precision, the state and the linear step in double; energy and spectrum agree with double to about 1e-6, the intensity floor below about -85 dB is rounding noise, so a run whose instruments ask for more than 70 dB of dynamic range is refused", "double"));
             add(new ComponentSpec("pedestalComponent", "", "A pedestal / contrast component of the input pulse (docs/reference/run-spec.md#pedestal).").Open()
                 .Enum("kind", new[] { "replica", "prePulse", "postPulse", "ase", "phaseNoise", "exponential", "measured" }, "Component", required: true)
                 .Num("delayS", "s", "Delay (replica; ASE envelope centre)").Num("relativeIntensity", "", "Intensity relative to the main peak").Num("relativeEnergy", "", "Energy relative to the main pulse (replica)")
@@ -252,7 +256,7 @@ namespace UltrafastEngine.Schema
                 .Arr("wavelengthsM", "m", "Wavelengths of this element's per-wavelength arrays (default: the file's sampling)")
                 .Model("indexProfile", "field", "Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md)")
                 .Model("absorptionProfile", "field", "Position-dependent absorption alpha(x, y, z) [1/m]")
-                .Model("n2Scale", "field", "Position-dependent factor on n2")
+                .Model("n2Scale", "field", "Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled")
                 .Free("params", ParamType.Any, "Free parameters (expressions, user elements)"));
             add(new ComponentSpec("group", "beamSize", "Beam size at a surface.")
                 .Arr("beamRadiusM", "m", "1/e^2 beam radius (per wavelength)").Arr("beamRadiusXM", "m", "Beam radius in x").Arr("beamRadiusYM", "m", "Beam radius in y")
@@ -264,6 +268,8 @@ namespace UltrafastEngine.Schema
                 .Num("kerrAnisotropy", "", "Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100]", "the material's (BaF2 -1.2, others 0)")
                 .Arr("kerrCutAxis", "", "Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...)", "[0, 0, 1]")
                 .Num("kerrAzimuthDeg", "deg", "Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction", "0")
+                .Enum("kerrLens", new[] { "off", "peak", "pulseWeighted" }, "Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): \"peak\" uses the peak power at the entry, \"pulseWeighted\" sum(P^2)/sum(P); a 1-D approximation, use \"transverse\" when P approaches the critical power", "off")
+                .Enum("kerrLensModel", new[] { "secondMoment", "paraxial" }, "Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4)", "secondMoment")
                 .Model("timeResponse", "timeResponse", "An extra time-domain response n(t, I)")
                 .Bool("replaceKerr", "true switches off the built-in Kerr/Raman (use with your own timeResponse)", "false")
                 .P("raman", ParamType.Any, "", "false, or a delayed-response model")

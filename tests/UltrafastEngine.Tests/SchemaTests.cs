@@ -116,5 +116,37 @@ namespace UltrafastEngine.Tests
             Assert.Equal(2, notes.Count, "a note per camera");
             Assert.Throws<JsonException>(() => Migrations.MigrateRun((JsonObject)JsonValue.Parse("{\"format\":\"ultrafast-run\",\"version\":99}"), null), "newer versions refused");
         }
+
+        [Test(Reference = "1.0.0 renames (the unit goes into the key): the old names are rewritten on load with a note, give an identical run, and the new names pass the strict key check", Tolerance = "exact")]
+        public void UnitInKeyRenames_OldNamesStillWork_AndNewOnesAreDeclared()
+        {
+            var notes = new List<string>();
+            var sys = (JsonObject)JsonValue.Parse(@"{""format"":""ultrafast-system"",""elements"":[
+              {""id"":""f"",""type"":""fiber"",""lengthM"":0.1,""betas"":[-2e-26],""gamma"":1e-3},
+              {""id"":""r"",""type"":""faradayRotator"",""verdetRadPerTM"":40,""fieldT"":1.1,""lengthM"":0.018}],
+              ""materials"":{""m"":{""index"":{""kind"":""refractiveindex"",""page"":""x"",""dnDT"":1e-5}}}}");
+            Migrations.MigrateSystem(sys, notes);
+            var f = sys.GetArray("elements")[0].AsObject(); var r = sys.GetArray("elements")[1].AsObject();
+            Assert.True(f.Has("betasSkPerM") && !f.Has("betas"), "fibre betas renamed");
+            Assert.Close(-2e-26, f.GetDoubleArray("betasSkPerM")[0], 0, 0, "value kept");
+            Assert.True(r.Has("fieldTesla") && !r.Has("fieldT"), "Faraday field renamed");
+            Assert.True(sys.GetObject("materials").GetObject("m").GetObject("index").Has("dnDTPerK"), "thermo-optic coefficient renamed (nested)");
+            Assert.Equal(3, notes.Count, "one note per renamed key");
+            var run = (JsonObject)JsonValue.Parse(@"{""format"":""ultrafast-run"",""models"":{""x"":{""kind"":""dampedOscillator"",""tau1"":12.2e-15,""tau2"":32e-15}}}");
+            Migrations.MigrateRun(run, null);
+            var model = run.GetObject("models").GetObject("x");
+            Assert.True(model.Has("tau1S") && model.Has("tau2S") && !model.Has("tau1"), "Raman time constants renamed");
+            // a file that already uses the new name is left alone, and the new names are declared options (strict mode accepts them)
+            var again = new List<string>(); Migrations.MigrateSystem(sys, again);
+            Assert.Equal(0, again.Count, "nothing to rename twice");
+            foreach (var (type, key) in new[] { ("fiber", "betasSkPerM"), ("faradayRotator", "fieldTesla") })
+                Assert.True(OptionRegistry.Get("element", type).Params.Any(o => o.Name == key), type + "." + key + " is declared");
+            // the same run from the old and the new name
+            JsonObject Fib(string key) => O("id", "f", "type", "fiber", "lengthM", 0.5, key, A(-20e-27), "gamma", 1e-3);
+            var a = Go(Sys(Fib("betas")), Spec(Gauss(1550e-9, 100e-15, 1e-9)));
+            var b = Go(Sys(Fib("betasSkPerM")), Spec(Gauss(1550e-9, 100e-15, 1e-9)));
+            Assert.Equal(a.Output.TotalEnergyJ(), b.Output.TotalEnergyJ(), "same run");
+            Assert.Equal(a.Records[0].Values.Count, b.Records[0].Values.Count, "same record");
+        }
     }
 }

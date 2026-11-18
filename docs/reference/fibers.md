@@ -7,7 +7,7 @@ overrides and studies all apply.
 
 ```jsonc
 { "id": "pcf", "type": "fiber", "lengthM": 0.15,
-  "betasPsKm": [-11.830, 8.1038e-2, -9.5205e-5, 2.0737e-7],   // beta2, beta3, ... in ps^k/km (or "betas" in s^k/m)
+  "betasPsKm": [-11.830, 8.1038e-2, -9.5205e-5, 2.0737e-7],   // beta2, beta3, ... in ps^k/km (or "betasSkPerM" in s^k/m)
   "referenceWavelengthM": 835e-9,                              // where the expansion is taken (default: the carrier)
   "gamma": 0.11,                                               // 1/(W m)
   "lossDbPerKm": 0, "raman": "silica" }
@@ -17,7 +17,7 @@ overrides and studies all apply.
 
 | key | meaning |
 |---|---|
-| `betas` | [beta2, beta3, ...] in s^k/m, about `referenceWavelengthM` |
+| `betasSkPerM` | [beta2, beta3, ...] in s^k/m, about `referenceWavelengthM` (old name `betas`, still accepted) |
 | `betasPsKm` | the same in ps^k/km (pyNLO and datasheet units) |
 | `dispersion` | a curve: `{"wavelengthsM": [...], "dPsNmKm": [...]}` (dispersion parameter D) or `"beta2S2PerM"`; integrated twice to beta(omega); beta2(omega) is a natural cubic spline through the table (a linear interpolation was 0.8 % off for a 53-point table near D = 0) |
 | `material` | a bulk material instead (e.g. a hollow-core fibre filled with a gas, or an unguided rod) |

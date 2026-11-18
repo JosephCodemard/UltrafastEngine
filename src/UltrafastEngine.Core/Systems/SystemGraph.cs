@@ -10,7 +10,8 @@
 //     static SystemGraph Build(SystemDescription system)                 parse, connect, verify; throws JsonException on errors
 //     string Topology; List<GraphStage> Stages; List<GraphEdge> Edges; List<string> Warnings; List<string> VirtualOutputs
 //     GraphEdge EdgeFrom(string id, string port)                         null if the port is a virtual output
-//     string ToText(); string ToMermaid(); JsonObject ToJson()
+//     string ToText(); string ToMermaid(); JsonObject ToJson()        ToMermaid: element types, virtual ports, loops as subgraphs
+//     Dictionary<string,string> Types                                   element id -> element type (for labels)
 //   static class Ports
 //     string[] Inputs(SystemElement e), Outputs(SystemElement e)         declared in Schema/BuiltIn*.cs (default: in, out)
 //
@@ -88,6 +89,8 @@ namespace UltrafastEngine.Systems
         /// <summary>Input ports with no source, as "id#port".</summary>
         public List<string> VirtualInputs { get; } = new List<string>();
         public string FirstId;
+        /// <summary>Element id to element type, in file order (labels of the diagrams).</summary>
+        public Dictionary<string, string> Types { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public bool IsBranched => Topology == Branched;
 
         public GraphEdge EdgeFrom(string id, string port) =>
@@ -107,6 +110,7 @@ namespace UltrafastEngine.Systems
                 return g;
             }
             g.FirstId = system.Elements[0].Id;
+            foreach (var e in system.Elements) g.Types[e.Id] = e.Type;
             if (g.IsBranched) g.BuildBranched(system);
             else g.BuildChain(system);
             return g;
@@ -366,16 +370,52 @@ namespace UltrafastEngine.Systems
             return sb.ToString();
         }
 
-        /// <summary>The graph as a Mermaid flowchart, for documents.</summary>
+        /// <summary>The graph as a Mermaid flowchart, for documents: every element as a box "id / type", the input, the end, virtual input and
+        /// output ports as open circles on dotted links, and each loop as a subgraph naming its kind and entry. A sequential system is the chain.</summary>
         public string ToMermaid()
         {
             var sb = new StringBuilder("flowchart LR\n");
-            if (FirstId != null) sb.AppendLine("  input([input]) --> " + Node(FirstId));
+            if (FirstId == null) return sb.ToString();
+            sb.AppendLine("  input([input]) --> " + Node(FirstId));
+            var inLoop = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int k = 0;
+            foreach (var st in Stages.Where(x => x.Loop != null))
+            {
+                var l = st.Loop;
+                sb.AppendLine("  subgraph loop" + (++k) + "[\"loop: " + l.Kind + ", enters at " + l.Entry + "\"]");
+                foreach (var m in l.Members) { sb.AppendLine("    " + Label(m)); inLoop.Add(m); }
+                sb.AppendLine("  end");
+            }
+            foreach (var st in Stages)
+                foreach (var id in st.Ids)
+                    if (!inLoop.Contains(id)) sb.AppendLine("  " + Label(id));
+            if (!IsBranched)
+            {
+                for (int i = 0; i + 1 < Stages.Count; i++) sb.AppendLine("  " + Node(Stages[i].Ids[0]) + " --> " + Node(Stages[i + 1].Ids[0]));
+                if (Stages.Count > 0) sb.AppendLine("  " + Node(Stages[Stages.Count - 1].Ids[0]) + " --> finish([end])");
+                return sb.ToString();
+            }
             foreach (var e in Edges) sb.AppendLine("  " + Node(e.From) + " -- " + e.FromPort + " --> " + (e.ToEnd ? "finish([end])" : Node(e.To)));
+            foreach (var v in VirtualInputs)
+            {
+                var (id, port) = SplitPort(v);
+                sb.AppendLine("  vin_" + Safe(id) + "_" + Safe(port) + "((\" \")) -. " + port + " (virtual) .-> " + Node(id));
+            }
+            foreach (var v in VirtualOutputs)
+            {
+                var (id, port) = SplitPort(v);
+                sb.AppendLine("  " + Node(id) + " -. " + port + " (virtual) .-> vout_" + Safe(id) + "_" + Safe(port) + "((\" \"))");
+            }
             return sb.ToString();
         }
 
-        private static string Node(string id) => "n_" + new string(id.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
+        private string Label(string id) => Node(id) + "[\"" + id + "<br/>" + (Types.TryGetValue(id, out var t) ? t : "") + "\"]";
+
+        private static (string, string) SplitPort(string v) { int i = v.IndexOf('#'); return i < 0 ? (v, "") : (v.Substring(0, i), v.Substring(i + 1)); }
+
+        private static string Safe(string id) => new string(id.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
+
+        private static string Node(string id) => "n_" + Safe(id);
 
         private static JsonArray Strings(IEnumerable<string> items) => new JsonArray(items.Select(x => (JsonValue)x));
 

@@ -1,6 +1,6 @@
 # UltrafastEngine
 
-> C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators, interferometers; table-top optics with some fibre support), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 2.2.0.
+> C# engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators, interferometers; table-top optics with some fibre support), with a CLI, a C API, a Python package and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Version 1.0.0 (alpha: `pip install --pre ultrafast-engine`).
 
 Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change the code; Claude Code: CLAUDE.md). Every option with units and defaults: docs/reference/options.md.
 
@@ -45,6 +45,8 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Fibres & waveguides](docs/reference/fibers.md)
 - [Active elements & aux beams](docs/reference/active-elements.md)
 - [Crystals (χ(2))](docs/reference/crystals.md)
+- [Calculators: `ultrafast.calc` (pulse, crystal, cell, beam / mode matching, nonlinear estimates)](docs/reference/calculators.md)
+- [Plotting: styles (ultrafast, paper, science), schematics of branched systems, 3-D spectrogram, evolution animation](docs/reference/plotting.md)
 - [Pulse calculator (time-bandwidth product)](docs/reference/pulse-calculator.md)
 - [Gain media & amplifiers](docs/reference/gain.md)
 - [Oscillators & saturable absorbers](docs/reference/oscillators.md)
@@ -56,11 +58,15 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Measured data: input spectra and comparison with recordings](docs/reference/measured-data.md)
 - [Pulse retrieval](docs/reference/retrieval.md)
 - [Parameter studies](docs/reference/studies.md)
+- [Fidelity: quick, standard, full](docs/reference/fidelity.md)
 - [Speed & compute back-ends](docs/reference/speed.md)
+- [Memory: what a run keeps, the estimate, compute.memoryLimitBytes, what to change when it is too large](docs/reference/memory.md)
 - [Results](docs/reference/results.md)
 - [Option reference (generated)](docs/reference/options.md)
 - [Schemas, validation & migrations](docs/reference/schema.md)
 - [Plugin system](docs/reference/plugins.md)
+- [Command line: every command and option](docs/reference/cli.md)
+- [MCP server and agent pack: tools, prompts, resources, what is refused](docs/reference/mcp.md)
 
 ## Interfaces
 - [Python](docs/reference/python.md)
@@ -84,17 +90,15 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Validation matrix (generated: every test and its reference)](docs/reference/validation-matrix.md)
 - [Paper replications](docs/papers/README.md): published results reproduced with the engine, with plots and commentary
 - [Roadmap](docs/roadmap.md)
-- [For AI agents](docs/agents.md)
+- [For AI agents](docs/agents.md): includes the MCP server `ultrafast-mcp` (tools describe, validate, run, scan, explain_warning, plot)
 - [Claude Code setup](docs/claude-code.md): CLAUDE.md files, commands, subagents, skills, hooks
 - [Releasing](docs/releasing.md): build.sh / build.bat release packages, release components, `install.py` (selective install / uninstall)
 
-## Design notes
-- [Development history](docs/design/history.md)
-- [Next steps](docs/design/next-steps.md)
-- [Backlog (parked design)](docs/design/backlog.md)
+## Architecture
 - [Architecture](docs/architecture/index.md)
 - [Code map](docs/architecture/code-map.md)
 - [Key processes](docs/architecture/processes.md)
+- [Internal design notes](docs/design/README.md): for developers only (decisions, internal roadmap, limitations with evidence, history); not user documentation
 
 
 ## Optional

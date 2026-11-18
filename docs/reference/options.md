@@ -42,6 +42,7 @@ A run: the pulse, the instruments and numerical settings. More: [run-spec.md](ru
 | `pulse` | object (`pulse`) |  |  | The input pulse **Required.** |
 | `grid` | object (`grid`) |  |  | Time/frequency grid |
 | `physics` | object (`physics`) |  |  | Physics switches |
+| `fidelity` | `"full"` \| `"standard"` \| `"quick"` |  | full | Cost / accuracy level (docs/reference/fidelity.md): a named bundle of switches that are not written in the run spec itself; every switch you write stays as you wrote it. summary.json lists what changed (fidelityReport) and warns when a quick result is unreliable |
 | `stepper` | object (`stepper`) |  |  | Nonlinear solver settings |
 | `probes` | any |  | "end" | Snapshots of the pulse: "all", "end" or a list of element ids |
 | `instruments` | array of `instrument` |  |  | Instruments |
@@ -118,6 +119,7 @@ Physics switches (docs/reference/run-spec.md#physics).
 | `fieldHarmonic` | number |  | 3 | Highest harmonic the carrier-resolved grid holds |
 | `absoluteIndex` | boolean |  | true | Add air dispersion to air paths quoted relative to air |
 | `strictMaterialsAllow` | array |  |  | Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. "CS2.n2") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as "CS2" accepts all its quantities |
+| `strictValidity` | boolean |  | false | Turn the run's validity findings (summary.json "validity": energy reaching zero frequency, peak power above the critical power in 1-D, Kerr-lens collapse, LIDT exceeded, energy at the time-window edge) into an error after the run, instead of warnings. The environment variable ULTRAFAST_STRICT_VALIDITY=1 does the same |
 | `strictMaterials` | boolean |  | false | Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same |
 | `polarization` | `"jones"` \| `"scalar"` |  | jones | Jones (two polarisations) or scalar |
 | `losses` | boolean |  | true | false removes flat loss terms |
@@ -285,6 +287,7 @@ Chi(2) frequency conversion and parametric amplification (SHG, SFG, OPA, DFG). M
 | `overlap` | any |  | "gaussian" | "gaussian", "planeWave", {model, radiusM} or {areaM2} |
 | `deffPmPerV` | number | pm/V |  | Effective nonlinearity (overrides the tensor) |
 | `temperatureC` | number | degC |  | Crystal temperature |
+| `ionization` | any |  | false | Photo-ionisation and plasma: each field ionises at its own carrier and intensity, the densities add (Keldysh or MPI; band gap from the catalogue): true or an ionization object (element-level only; off by default) |
 | `chi3` | boolean |  | true | Include the crystal's chi(3) (SPM/XPM) |
 | `n2` | number | m^2/W |  | n2 of the crystal |
 | `seedNoise` | boolean |  | true | Seed generated fields with vacuum noise |
@@ -387,8 +390,9 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 |---|---|---|---|---|
 | `rotationDeg` | number | deg | 45 | Rotation at the design wavelength |
 | `designWavelengthM` | number | m | the carrier | Design wavelength |
-| `verdetRadPerTM` | number | rad/(T m) |  | Verdet constant (with fieldT and lengthM) |
-| `fieldT` | number | T |  | Magnetic field |
+| `verdetRadPerTM` | number | rad/(T m) |  | Verdet constant (with fieldTesla and lengthM) |
+| `fieldTesla` | number | T |  | Magnetic field |
+| `fieldT` | number | T |  | Deprecated name of fieldTesla |
 | `lengthM` | number | m |  | Crystal length |
 | `material` | string |  |  | Crystal (e.g. TGG) |
 | `verdetDispersion` | `"inverseSquare"` \| `"none"` |  | inverseSquare | V ~ 1/(lambda^2 - lambda0^2) |
@@ -403,7 +407,8 @@ A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `lengthM` | number | m |  | Fibre length **Required.** |
-| `betas` | number or array | s^k/m |  | Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) |
+| `betasSkPerM` | number or array | s^k/m |  | Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) |
+| `betas` | number or array | s^k/m |  | Deprecated name of betasSkPerM (still accepted) |
 | `betasPsKm` | number or array | ps^k/km |  | Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units) |
 | `referenceWavelengthM` | number | m | the carrier | Wavelength of the Taylor expansion |
 | `dispersion` | object (`fiberDispersion`) |  |  | Dispersion curve {wavelengthsM, dPsNmKm \| beta2S2PerM} (alternative to betas) |
@@ -758,6 +763,8 @@ A linear polariser. More: [system-file.md](system-file.md)
 | `axisRad` | number | rad |  | Transmission axis |
 | `extinctionRatio` | number |  | 1e5 | Extinction ratio |
 | `transmission` | number |  | 1 | Transmission along the axis |
+| `material` | string |  |  | Glass or crystal of the polariser (a Glan prism: e.g. calcite or a-BBO; a film polariser's substrate); with thicknessM its dispersion is applied |
+| `thicknessM` | number | m | 0 | Glass path length through the polariser (adds the material's dispersion) |
 
 ### `polarizingSplitter`
 
@@ -897,6 +904,7 @@ Also accepts: `nonlinearMedium`, `beamSize` (see *Common key groups*).
 | `medium` | string |  | Air | Surrounding medium |
 | `designWavelengthM` | number | m | the carrier | Stack design wavelength |
 | `pairs` | integer |  | 12 | HL pairs |
+| `bandPosition` | number |  | 0.5 | stack: where the operating wavelength lies between the p band edge (0) and the s band edge (1) of the quarter-wave stack |
 | `high` | string |  | HfO2 | High-index film |
 | `low` | string |  | SiO2_film | Low-index film |
 | `coatingBack` | model (coating) |  |  | Back-surface coating |
@@ -1278,7 +1286,7 @@ Keys every element accepts.
 | `wavelengthsM` | number or array | m |  | Wavelengths of this element's per-wavelength arrays (default: the file's sampling) |
 | `indexProfile` | model (field) |  |  | Position-dependent index change dn(x, y, z) (docs/reference/spatial-properties.md) |
 | `absorptionProfile` | model (field) |  |  | Position-dependent absorption alpha(x, y, z) [1/m] |
-| `n2Scale` | model (field) |  |  | Position-dependent factor on n2 |
+| `n2Scale` | model (field) |  |  | Position-dependent factor on every third-order response of the element: n2 (Kerr, delayed Raman, cubic anisotropy) and the rotational Raman of gases; user-defined responses are not scaled |
 | `params` | any |  |  | Free parameters (expressions, user elements) |
 
 ### `gainCommon`
@@ -1320,6 +1328,8 @@ Keys of elements that propagate nonlinearly in a material.
 | `kerrAnisotropy` | number |  | the material's (BaF2 -1.2, others 0) | Cubic anisotropy sigma = (chi1111 - 3 chi1122) / chi1111 of the electronic Kerr response (overrides the material's); n2 is then the value for light along [100] |
 | `kerrCutAxis` | number or array |  | [0, 0, 1] | Propagation direction in crystal coordinates [h, k, l] of a cubic crystal with kerrAnisotropy != 0 ([001] cut, [011] holographic cut, ...) |
 | `kerrAzimuthDeg` | number | deg | 0 | Angle of the lab x axis from the in-plane reference axis (the projection of [100], or of [010] for a [100] cut) about the propagation direction |
+| `kerrLens` | `"off"` \| `"peak"` \| `"pulseWeighted"` |  | off | Self-focusing of the element's Gaussian beam by the pulse's Kerr lens (thin slices, second-moment radius): "peak" uses the peak power at the entry, "pulseWeighted" sum(P^2)/sum(P); a 1-D approximation, use "transverse" when P approaches the critical power |
+| `kerrLensModel` | `"secondMoment"` \| `"paraxial"` |  | secondMoment | Thin-lens factor of kerrLens: second-moment radius (c = 1) or paraxial on-axis curvature (c = 4) |
 | `timeResponse` | model (timeResponse) |  |  | An extra time-domain response n(t, I) |
 | `replaceKerr` | boolean |  | false | true switches off the built-in Kerr/Raman (use with your own timeResponse) |
 | `raman` | any |  |  | false, or a delayed-response model |
@@ -1490,7 +1500,9 @@ Compute back-end (docs/reference/speed.md).
 | `fft` | `"auto"` \| `"managed"` \| `"fftw"` \| `"accelerate"` |  | ULTRAFAST_FFT or auto | CPU FFT provider (process-wide): auto = Accelerate on macOS, FFTW when installed, else managed |
 | `device` | integer |  | -1 (first suitable) | GPU device index (ultrafast devices lists them) |
 | `gpuMinPoints` | integer |  | 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end | backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU |
+| `memoryLimitBytes` | number | B | 0 | The run is refused before it starts when its estimated memory (shown in validate and in the run notes) is above this; 0 = no limit. A warning is given above 80 % of the free physical memory whatever this is (docs/reference/memory.md) |
 | `deviceSlots` | integer |  | 4 | GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits |
+| `precision` | `"double"` \| `"mixed"` |  | double | double: everything in double precision. mixed (GPU back-ends, 1-D envelope and chi(2) elements): the nonlinear operator and its FFTs in single precision, the state and the linear step in double; energy and spectrum agree with double to about 1e-6, the intensity floor below about -85 dB is rounding noise, so a run whose instruments ask for more than 70 dB of dynamic range is refused |
 
 ### `detector`
 
@@ -1897,6 +1909,7 @@ Photo-ionisation and plasma (docs/reference/ionization.md).
 | `recombinationTimeS` | number | s |  | Recombination / trapping time |
 | `recombinationBetaM3PerS` | number | m^3/s |  | Two-body recombination |
 | `electronDensityM3` | number | 1/m^3 | 0 | Free-electron density present before the pulse (a prepared plasma) |
+| `skipNegligible` | boolean |  | true | Leave the plasma term out of an element when a conservative bound (rates at 4 x the entry peak intensity over 4 x the effective pulse duration, avalanche included) keeps its Drude phase below 1e-6 rad and its absorbed energy below 1e-9 of the pulse; the element note gives the density bound. 1-D elements only; never with a prepared plasma |
 | `frequencyResolved` | boolean |  | true | Apply the Drude index at every frequency of the pulse (1/(omega (omega + i nu))); false: at the carrier only |
 | `avalanche` | boolean |  | true for solids | Avalanche (impact) ionisation |
 | `absorption` | boolean |  | true | Plasma and ionisation losses |
@@ -2213,8 +2226,8 @@ Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1). More: [nonlinear.md#ra
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `tau1` | number | s |  | Period parameter |
-| `tau2` | number | s |  | Damping time |
+| `tau1S` | number | s |  | Period parameter |
+| `tau2S` | number | s |  | Damping time |
 | `fR` | number |  |  | Raman fraction |
 | `anisotropicFraction` | number |  | 0 | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
 
@@ -2244,9 +2257,9 @@ Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full mo
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `fR` | number |  | 0.245 | Raman fraction |
-| `tau1` | number | s | 12.2e-15 | Oscillator period parameter |
-| `tau2` | number | s | 32e-15 | Oscillator damping time |
-| `taub` | number | s | 96e-15 | Boson-peak time |
+| `tau1S` | number | s | 12.2e-15 | Oscillator period parameter |
+| `tau2S` | number | s | 32e-15 | Oscillator damping time |
+| `taubS` | number | s | 96e-15 | Boson-peak time |
 | `fa` | number |  | 0.75 | Weight a |
 | `fb` | number |  | 0.21 | Weight b (boson peak) |
 | `fc` | number |  | 0.04 | Weight c |
@@ -2334,7 +2347,8 @@ A refractiveindex.info page (bundled, imported, a file, or ULTRAFAST_RII_PATH). 
 | `file` | string |  |  | YAML file (alternative) |
 | `pressureBar` | number | bar |  | Gas pressure (density scaling from the page's SPECS) |
 | `temperatureK` | number | K |  | Temperature |
-| `dnDT` | number | 1/K | 0 | Thermo-optic coefficient (solids) |
+| `dnDTPerK` | number | 1/K | 0 | Thermo-optic coefficient (solids) |
+| `dnDT` | number | 1/K |  | Deprecated name of dnDTPerK |
 | `relativeToAir` | boolean |  | false | The page's n are relative to air |
 
 ### index / `sellmeier`

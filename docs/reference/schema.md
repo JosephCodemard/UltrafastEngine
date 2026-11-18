@@ -64,8 +64,18 @@ rewrites a file in the current version (note: it writes plain JSON, so comments 
 | run 1 → 2 | `nearFieldCamera` → `camera` with `"imaging": {"plane": "near"}`; `farFieldCamera` → `camera` with `"imaging": {"plane": "far", "focalLengthM": ...}`; `propagateM`, `focalLengthM`, `magnification` move into `imaging` |
 | system 1 → 2 | no changes (the version marks files checked against version 2) |
 
+**Renamed keys (1.0.0).** Keys now carry their unit in the name. The old names are renamed when a file is loaded, in every version, with one note per
+key (`"betas" is now "betasSkPerM" ...`); they are deprecated and will not be removed before 2.0:
+
+| old | new | where |
+|---|---|---|
+| `betas` | `betasSkPerM` | `fiber` element (an override of the old name works too) |
+| `fieldT` | `fieldTesla` | `faradayRotator` |
+| `dnDT` | `dnDTPerK` | `refractiveindex` index model, gain media |
+| `tau1`, `tau2`, `taub` | `tau1S`, `tau2S`, `taubS` | `linAgrawal` and `dampedOscillator` Raman models |
+
 A file newer than the engine is refused with a clear message. Migrations are pure JSON transformations in
-`Schema.Migrations`, each tested (`SchemaTests.Migration_*`).
+`Schema.Migrations`, each tested (`SchemaTests.Migration_*`, `SchemaTests.UnitInKeyRenames_*`).
 
 ## Adding an option (contributors)
 

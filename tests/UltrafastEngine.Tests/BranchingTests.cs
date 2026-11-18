@@ -259,5 +259,20 @@ namespace UltrafastEngine.Tests
             Assert.True(g.ToText().Contains("link: bs1:c -> armA:in"), g.ToText());
             Assert.True(g.ToMermaid().StartsWith("flowchart"), "Mermaid");
         }
+
+        [Test]
+        public void ToMermaid_ShowsTypesVirtualPortsAndLoops()
+        {
+            var mz = SystemGraph.Build(MachZehnder(0.2, 0.2)).ToMermaid();
+            Assert.True(mz.Contains("n_bs1[\"bs1<br/>beamSplitter\"]"), "element boxes carry the type: " + mz);
+            Assert.True(mz.Contains("vin_bs1_b") && mz.Contains("vout_bs2_d") && mz.Contains("(virtual)"), "virtual ports: " + mz);
+            var fp = SystemGraph.Build(Branched(
+                O("id", "m1", "type", "beamSplitter", "reflectivity", 0.8, "next", O("c", "forth", "d", "virtual"), "loop", O("maxRoundTrips", 20, "tolerance", 1e-9)),
+                Vac("forth", 0.01, "m2:2"), Bs("m2", 0.8, O("c", "back", "d", "end")), Vac("back", 0.01, "m1:2"))).ToMermaid();
+            Assert.True(fp.Contains("subgraph loop1[\"loop: ringDown, enters at m1\"]") && fp.Contains("n_back[\"back<br/>"), "the loop is a subgraph: " + fp);
+            Assert.True(fp.Contains("n_m2 -- c --> n_back") && fp.Contains("finish([end])"), "links: " + fp);
+            var seq = SystemGraph.Build(Sys(O("id", "a", "type", "bulk", "material", "FusedSilica", "lengthM", 1e-3), O("id", "b", "type", "bulk", "material", "FusedSilica", "lengthM", 1e-3))).ToMermaid();
+            Assert.True(seq.Contains("n_a --> n_b") && seq.Contains("n_b --> finish([end])"), "a sequential system is a chain: " + seq);
+        }
     }
 }

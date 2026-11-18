@@ -88,6 +88,14 @@ namespace UltrafastEngine.Optics
                     ctx.Note(string.Format(CultureInfo.InvariantCulture, "astigmatism (f_x = {0:G5} m, f_y = {1:G5} m) cannot be held by a radial grid: applied the mean power f = {2:G5} m (use a cartesian transverse model)", fxr, fyr, fm));
                     fxr = fyr = fm;
                 }
+                // the lens phase k r^2 / 2f must be resolved: below pi per cell at the beam edge (Nyquist)
+                double step = TransverseOps.LensPhaseStepAtBeamEdgeRad(prof, w => Chromatic(fxr, w), w => _medium?.IndexAt(w) ?? 1.0);
+                if (!radial) step = Math.Max(step, TransverseOps.LensPhaseStepAtBeamEdgeRad(prof, w => Chromatic(fyr, w), w => _medium?.IndexAt(w) ?? 1.0, true));
+                if (step > Math.PI)
+                {
+                    string msg = string.Format(CultureInfo.InvariantCulture, "Element '{0}': the {1} phase changes by {2:G3} rad between neighbouring grid points at the beam edge (above pi): it is under-sampled and the field after it is aliased. Use more transverse points, a smaller grid extent or a longer focal length.", ctx.Element.Id, _what, step);
+                    if (!ctx.Result.Warnings.Contains(msg)) ctx.Result.Warnings.Add(msg);
+                }
                 for (int f = 0; f < nf; f++)
                 {
                     double w = prof.Omega[f], k = (_medium?.IndexAt(w) ?? 1.0) * w / PhysicalConstants.SpeedOfLightMPerS;

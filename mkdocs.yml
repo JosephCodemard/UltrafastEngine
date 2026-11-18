@@ -7,6 +7,8 @@ docs_dir: docs
 # CLAUDE.md files are instructions for Claude Code, not pages of the site
 exclude_docs: |
   CLAUDE.md
+  design/
+  examples/_template.md
 theme:
   name: readthedocs
   custom_dir: overrides            # main.html adds the long logo as a footer
@@ -50,10 +52,12 @@ nav:
       - Ionisation & plasma: reference/ionization.md
       - Active elements & aux beams: reference/active-elements.md
       - Crystals (χ(2)): reference/crystals.md
+      - Calculators (pulse, crystal, cell, beam, nonlinear): reference/calculators.md
       - Pulse calculator (TBP): reference/pulse-calculator.md
       - Gain media & amplifiers: reference/gain.md
       - Oscillators & saturable absorbers: reference/oscillators.md
       - Branched systems: reference/branches.md
+      - Plotting (styles, schematics, 3-D spectrogram, animation): reference/plotting.md
       - Position-dependent properties: reference/spatial-properties.md
       - Spatial models: reference/transverse.md
       - Modulator (pixelated devices): reference/modulator.md
@@ -61,11 +65,15 @@ nav:
       - Measured data: reference/measured-data.md
       - Pulse retrieval: reference/retrieval.md
       - Parameter studies: reference/studies.md
+      - Fidelity (quick / standard / full): reference/fidelity.md
       - Speed & compute back-ends: reference/speed.md
+      - Memory (estimate, limit, what to change): reference/memory.md
       - Results: reference/results.md
       - Option reference (generated): reference/options.md
       - Schemas, validation & migrations: reference/schema.md
       - Plugin system: reference/plugins.md
+      - Command line (every command): reference/cli.md
+      - MCP server and agent pack: reference/mcp.md
   - Interfaces:
       - Python: reference/python.md
       - Python API (generated): reference/python-api.md
@@ -89,10 +97,6 @@ nav:
   - For AI agents: agents.md
   - Claude Code: claude-code.md
   - Releasing (build.sh): releasing.md
-  - Design notes:
-      - Development history: design/history.md
-      - "Next steps": design/next-steps.md
-      - "Backlog (parked design)": design/backlog.md
 markdown_extensions:
   - admonition
   - tables

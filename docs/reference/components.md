@@ -140,7 +140,7 @@ At angle of incidence θ a spherical mirror has the tangential focal length f_t 
 incidence) and the sagittal one f_s = R / (2 cos θ). `planeOfIncidenceDeg` is the angle of the s direction from x
 (90°, the default, folds in the x-z plane, so x is tangential). The astigmatism acts on the tracked beam and on a
 carried transverse profile. A radial grid cannot hold astigmatism: it gets the mean power, with a note (use a
-cartesian model). A `lens` can be astigmatic too (`focalLengthXM`, `focalLengthYM`).
+cartesian model). A `lens` can be astigmatic too (`focalLengthXM`, `focalLengthYM`). A lens or curved mirror whose phase k r² / 2f changes by more than π between neighbouring grid points at the beam edge (1.5 second-moment radii) is under-sampled: the field after it is aliased, and the run warns (more points, a smaller extent or a longer focal length fix it).
 
 ## Aberrations
 
@@ -244,6 +244,21 @@ delays (|Δn_g| d / c: about 30 fs per mm of quartz at 1 µm, enough to split a 
 retardance at the carrier and that delay. Crystals: Quartz, MgF2, Sapphire, Calcite, YVO4, aBBO; or give
 `indexOrdinary` and `indexExtraordinary` models.
 
+## Glass in polarisers and lenses
+
+Thick transmissive optics add the dispersion of their glass when they are given it:
+
+* `polarizer` with `material` and `thicknessM` (a Glan-Taylor or Glan-laser prism of calcite or α-BBO, a crystal or film polariser): the glass
+  path is applied before the polarising action, with the full Sellmeier phase (GDD, TOD, ...). Without them the polariser is ideal and adds none.
+* `lens` with `material` and `thicknessM` (the glass on axis): the slab's dispersion, and the chromatic focal length f(ω). A lens with a material
+  but no thickness gets only the chromatic focal length, and its note says to give `thicknessM`. The glass is a uniform slab: the centre-to-edge
+  thickness difference (Bor's propagation-time difference) appears only in the spatial models, through the chromatic lens phase at every frequency.
+* `waveplate` with a `material` (thick plates): ordinary and extraordinary dispersion, so the axes differ in group delay ([waveplates](#waveplates));
+  `plate` / `window`, `thinFilmPolarizer` (substrate) and `faradayRotator` (crystal) too.
+* Beam splitters (`beamSplitter`, `polarizingSplitter`) have no glass: put a `plate` of the cube's glass in the arm that crosses it.
+
+Test `ComponentTests.ThickPolarizerAndLens_AddTheirGlassDispersion` (GDD = β₂ L from the Sellmeier index).
+
 ## Thin-film polarisers
 
 ```jsonc
@@ -263,7 +278,7 @@ port. `axisDeg` is the transmitted (p) axis in the lab. `model: "ideal"` uses `t
 
 ```jsonc
 { "id": "fr", "type": "faradayRotator", "rotationDeg": 45, "material": "TGG", "lengthM": 0.02, "beam": {...} }
-{ "id": "fr2", "type": "faradayRotator", "verdetRadPerTM": -40, "fieldT": 1.1, "lengthM": 0.018 }
+{ "id": "fr2", "type": "faradayRotator", "verdetRadPerTM": -40, "fieldTesla": 1.1, "lengthM": 0.018 }
 ```
 
 The rotation follows θ(λ) = θ_d (λ_d² - λ0²) / (λ² - λ0²) (`verdetPoleWavelengthM`, 258 nm for TGG; `"none"`
@@ -288,7 +303,7 @@ same for a `mirror` coating (with an optional reflectance ripple).
 A Herriott or quasi-concentric cell is stable only for a beam whose complex parameter q reproduces itself after one round trip. In the empty cell
 this is the Kogelnik-Li eigenmode; at high peak power the Kerr lens of the gas or the glass plates changes it, and the matched mode depends on the
 power. `cellMode` finds it, so no trial runs in the radial model are needed. It is a command (`uf_command`), reached from Python as
-`ultrafast.cells.cell_mode(...)` and from C# as `Lasers.CellModeSolver.Solve`.
+`ultrafast.calc.cell.cell_mode(...)` (also `ultrafast.cells.cell_mode`) and from C# as `Lasers.CellModeSolver.Solve`.
 
 ```python
 from ultrafast import cells

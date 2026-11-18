@@ -54,6 +54,7 @@ the fitting plugin only".
 | `.claude/skills/replicate-paper/` + `.claude/agents/paper-replicator.md`, command `/replicate` | when reproducing a published result | extract the paper's inputs and headline numbers, build the smallest faithful system, compare, and say what agrees and why anything does not (folders in `docs/papers/`) |
 | `.claude/skills/mirror-lab-setup/` + `.claude/agents/lab-mirror.md`, command `/lab` | when modelling a real beamline | interview for the layout and data, build and validate stage by stage, calibrate few unknowns with the fitting plugin, report where model and lab disagree |
 | `.claude/skills/optimise-setup/` + `.claude/agents/setup-optimiser.md` | when tuning a setup | state the goal as a number, scan before optimising, verify in the full model, report sensitivity |
+| `.claude/skills/design-system/` | when designing a new system from a goal | size on paper with the calculators, build the smallest faithful system, add one effect at a time, scan, confirm in full, report margins |
 | `.claude/skills/debug-setup/` | when a run looks wrong | checks in order: validate, units, grid, energy budget, physics switches, polarisation and carrier, the measurement itself |
 | `.claude/agents/bug-hunter.md` | when developing the engine | runs real cases at several carriers, bandwidths, grids and topologies and reduces every disagreement to a failing test and a fix |
 

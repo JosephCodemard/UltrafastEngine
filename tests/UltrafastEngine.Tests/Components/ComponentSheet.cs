@@ -1,4 +1,4 @@
-// ComponentSheet.cs -- the shared, parametrised component test sheet (docs/design/next-basics-and-catalogue.md §1).
+// ComponentSheet.cs -- the shared, parametrised component test sheet (design recorded in docs/design/history.md, Stage 8).
 //
 // A component is listed once as a SheetCase; ComponentSheet.Run answers the sheet's questions for it at every carrier
 // (515 nm, 1030 nm, 2 um) and bandwidth (1 ps, 10 fs):

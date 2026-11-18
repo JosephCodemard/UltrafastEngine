@@ -1,0 +1,14 @@
+{
+  "title": "Focusing through a scatterer by wavefront shaping",
+  "summary": "Wavefront shaping measures a scatterer's transmission matrix from intensities alone and turns speckle into a focus about 47 times brighter.",
+  "group": "AdaptiveOptics",
+  "script": "scatterer.py",
+  "plugins": [
+    "ao"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

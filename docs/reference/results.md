@@ -17,7 +17,19 @@
 energyJ, peakPowerW, fwhmS, rmsWidthS, transformLimitFwhmS, temporalStrehl (peak / TL peak), spectralFwhmM,
 spectralRmsWidthM, centroidWavelengthM, peakWavelengthM, timeBandwidthProduct, pulseGddS2 / pulseTodS3 (cubic
 fit of the spectral phase above -10 dB), centroidTimeS, edgeEnergyFraction (energy in the outer 5 % of the
-window: wrap-around check), stokes [s1, s2, s3], degreeOfPolarization.
+window: wrap-around check), peakCount (separate intervals above half maximum: 1 for a single pulse; above 1 the FWHM spans several
+pulses and the run warns for the output), fwhmEnergyFraction (energy between the outermost half-maximum crossings: 0.761 for a Gaussian,
+1/√2 for sech²), stokes [s1, s2, s3], degreeOfPolarization. For a multi-peaked pulse use rmsWidthS, temporalStrehl or the trace, not fwhmS.
+
+## Validity (`validity`)
+
+One entry per element and check that crossed its threshold: `{code, elementId, value, threshold, message}`. Codes: `zeroFrequency`
+(nonlinear broadening reached zero frequency of the envelope grid), `criticalPower` (peak power above 0.3 P_cr in a 1-D element),
+`kerrLensCollapse`, `lidt` (peak fluence above the scaled LIDT), `windowEdge` (energy near the time-window edge). Each check also gives one
+human warning in `warnings`, which names every element where it fired (a 46-pass cell gives one warning listing the passes, not only the first).
+`physics.strictValidity: true` or the environment variable `ULTRAFAST_STRICT_VALIDITY=1` turns any entry into an error after the run
+(`ValidityException`; the C# exception keeps the whole result). The zero-frequency check fires only when the output spectrum reaches the blocked
+bins at ω ≤ 0 (before 2026-11-17 any energy deficit, including the stepper's own error, was reported as reaching zero frequency).
 
 ## Per-element records
 
@@ -25,7 +37,7 @@ index, id, type, label, lengthM, cumulativeLengthM, energyInJ/OutJ, lossJ by mec
 carrier delay so far), own and cumulative system dispersion (GD at the grid centre, where the pulse sits and the arrival time is counted;
 GDD and TOD at the requested carrier wavelength, not at the grid centre, which is snapped to the frequency step and can be up to half a step away:
 a 1000 fs² element with 2000 fs³ TOD reports 1000 fs², not 1004 fs² at the snapped centre of a 30 fs run), bIntegralRad and
-cumulative, peakIntensityWPerM2, peakFluenceJPerM2, lidtFluenceJPerM2, lidtMargin, outsideDataFraction,
+cumulative (the on-axis peak, [nonlinear](nonlinear.md)), bIntegralPulseAveragedRad and bIntegralBeamAveragedRad (1-D elements), peakIntensityWPerM2, peakFluenceJPerM2, lidtFluenceJPerM2, lidtMargin, outsideDataFraction,
 criticalPowerRatio, solver statistics (method, representation, accepted/rejected steps, min/max step), the
 list of linear terms applied, and notes. Active elements add:
 

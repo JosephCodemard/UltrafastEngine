@@ -9,6 +9,7 @@ First runs: build a system, run it, read the results, bring your own index, elem
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
 | [quickstart](GettingStarted/quickstart/README.md) | 00 | Python | build a system in code, run it, read results, scan a parameter | `python quickstart.py` |
+| [calculators](GettingStarted/calculators/README.md) | new | Python | `ultrafast.calc`: transform limit, lens mode matching, critical power and B-integral, BBO phase matching, checked against an engine run | `python calculators.py` |
 | [spm-plate](GettingStarted/spm-plate/README.md) | 01 | CLI | SPM in an AR-coated plate, instruments, provenance, overrides | `ultrafast run plate.ufs run.json` |
 | [custom-index-python](GettingStarted/custom-index-python/README.md) | 04 | Python | your own n(t, I) as a NumPy callback (plasma + MPA) | `python custom_response.py` |
 | [user-element](GettingStarted/user-element/README.md) | 12 | Python | a pulse shaper written in Python as a user element | `python dazzler.py` |
@@ -74,6 +75,7 @@ Interferometers, cavities, f-2f and pump-probe built as systems with ports, link
 | [cavity-and-coherence](Branched/cavity-and-coherence/README.md) | 31 | CLI + Python | a ring resonator's eigenmode against its Fox-Li mode; a Gaussian-Schell beam of M² = 2.5 against the M² law; cw sources | `ultrafast run lens-guide.ufs run-cavity.json`, `python report.py` |
 | [interferometers](Branched/interferometers/README.md) | 32 | Python | a Mach-Zehnder and an etalon as branched systems, with their budgets; the Airy function from a loop | `python interferometers.py` |
 | [f2f-cep](Branched/f2f-cep/README.md) | 37 | Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
+| [system-schematics](Branched/system-schematics/README.md) | new | Python | `ultrafast.plotting` schematics of a Mach-Zehnder and a loop in every plot style (default, dark, paper, science) | `python schematics.py` |
 | [pump-probe](Branched/pump-probe/README.md) | 41 | Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
 
 ## Diagnostics
@@ -107,6 +109,7 @@ Fitting a simulated line to measurements and trusting it: transforms, calibratio
 |---|---|---|---|---|
 | [transforms](DigitalTwin/transforms/README.md) | 26 | CLI | fitting plugin: a `transform` (residual dispersion, gain narrowing, post-pulse, ASE pedestal) fitted to a spectrum, d-scan, cross-correlator and power meter; the fitted line on a new seed; backward propagation of the measured output to the seed | `ultrafast run line.ufs run-fit.json -o results-fit` |
 | [build-the-twin](DigitalTwin/build-the-twin/README.md) | - | Python | five energies, one set of shared parameters, held-out predictions with credible bands, a validation report that catches a failing twin | `python build_twin.py` |
+| [dependence-models](DigitalTwin/dependence-models/README.md) | - | Python | which model of an unknown energy law predicts held-out energies: proportional, polynomial, Chebyshev, constrained network, each judged by the validation report | `python compare.py` |
 | [explore-the-twin](DigitalTwin/explore-the-twin/README.md) | - | Python | what-if with bands, the most informative next measurement, drift tracking (ensemble Kalman filter) | `python explore.py` |
 
 ## AdaptiveOptics
@@ -118,6 +121,7 @@ Deformable mirror, SLM, tiled apertures, temporal shaping (the `ao` plugin). See
 | [dm-correction](AdaptiveOptics/dm-correction/README.md) | - | Python | calibrate, correct and close the loop on a Zernike aberration; Zernike plots | `python dm_correction.py` |
 | [sensorless-correction](AdaptiveOptics/sensorless-correction/README.md) | - | Python | modal search and SPGD from the focal peak alone | `python sensorless.py` |
 | [aberrated-high-power](AdaptiveOptics/aberrated-high-power/README.md) | - | Python | a DM removes hot spots and nonlinear phase of a 2 GW beam in a Kerr plate | `python high_power.py` |
+| [component-gallery](AdaptiveOptics/component-gallery/README.md) | - | Python | the four `ao` elements side by side, each against an analytic answer | `python ao_components.py` |
 | [slm-beam-shaping](AdaptiveOptics/slm-beam-shaping/README.md) | - | Python | Gerchberg-Saxton holograms with 8-bit grey levels; full 1920 x 1080 panel | `python slm_shaping.py` |
 | [tiled-array](AdaptiveOptics/tiled-array/README.md) | - | Python | coherent combining of 7 and 61 beams; piston, delay, SPGD locking | `python tiled_array.py` |
 | [temporal-shaping](AdaptiveOptics/temporal-shaping/README.md) | - | Python | spectral shaper and AOPDF: pulses on demand, side pulses, closed-loop chirp search | `python temporal_shaping.py` |
@@ -135,11 +139,11 @@ Single-mode fibres: solitons, Raman, self-phase modulation. See [Fibres](Fibres/
 
 ## Interop
 
-OpticStudio (Zemax) export and the C API from C++.
+The C API from C++, and the experimental OpticStudio (Zemax) export.
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [zemax-workflow](Interop/zemax-workflow/README.md) | 07 | CLI | OpticStudio export -> system file -> run; try it with the fake MPC | `ultrafast zemax-demo mpc export.json` |
+| [zemax-workflow](Interop/zemax-workflow/README.md) | 07 | CLI | experimental: OpticStudio export -> system file -> run; try it with the fake MPC (no OpticStudio) | `ultrafast zemax-demo mpc export.json` |
 | [cpp](Interop/cpp/README.md) | - | C++ | the C API from C++: run a system with callbacks, list compute devices (CMake / Visual Studio) | see README |
 
 ## Figures

@@ -9,6 +9,6 @@ Bug report: $ARGUMENTS
 2. Verdict: valid / valid with a different cause / not a bug -- with the evidence (numbers, analytic value).
 3. Write a failing test that captures it, then fix the cause (not the symptom). Check the same pattern elsewhere
    (1-D vs spatial vs carrier-resolved; CLI vs Python).
-4. Full tests; Python tests after `build_engine.py` if C# changed; docs and CHANGELOG (Unreleased → Fixed) with a
+4. Full tests; Python tests after `build_engine.py` if C# changed; docs and CHANGELOG (top section → Fixed) with a
    one-sentence description a user recognises.
 5. Report per bug: verdict, cause, fix, test name.

@@ -114,7 +114,10 @@ crystal) overrides the tensor contraction.
 
 * `averaged`: first-order QPM, d → (2/π) d with the grating phase K_G z subtracted from the mismatch. Fast.
 * `domains`: the sign of d flips domain by domain (d ∝ sign cos(K_G z − phase)); the integrator lands exactly on
-  every domain wall, so each step sees a smooth right-hand side. Captures higher QPM orders and end effects of
+  every domain wall, so each step sees a smooth right-hand side. A step that would end within 10 % of a step before a wall is stretched onto it, so no
+  sliver step is left (before 2026-11-17 steps down to 2 nm made the result depend on the last bits of the step size: 3e-5 between tolerances 1e-7
+  apart, now 3e-8). At the default tolerance (1e-6) a 1 mm PPLN crystal (about 100 walls) is still 4e-4 from the converged field: use
+  `stepper.tolerance` 1e-8 (4e-6) for quantitative domain-resolved work. Captures higher QPM orders and end effects of
   the last domain; ~3-5x slower. `phaseDeg: 90` starts with a full positive domain (pyNLO's convention).
 
 `qpm: true` with `cut: "auto"` uses θ = 90°, φ = 0 (propagation along X, polarisations along Z: d33 for LN/KTP).
@@ -206,7 +209,7 @@ ultrafast crystal MgO:LiNbO3 --process dfg --pump 1064e-9 --signal 1550e-9 --qpm
 
 ```python
 import ultrafast as uf
-r = uf.crystal.phase_match("LBO", "shg", fundamental=1030e-9)
+r = uf.calc.crystal.phase_match("LBO", "shg", fundamental_m=1030e-9)   # also uf.crystal.phase_match
 r["best"]["phiDeg"], r["best"]["deffPmPerV"], r["best"]["acceptance"]
 ```
 

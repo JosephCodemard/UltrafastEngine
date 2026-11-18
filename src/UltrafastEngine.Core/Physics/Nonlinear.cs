@@ -34,6 +34,15 @@ namespace UltrafastEngine.Physics
         public bool NeedsCarrierResolution => ExtraResponses.Any(r => r.NeedsCarrierResolution);
         public bool IsActive => (!ReplaceKerr && N2 != 0) || ExtraResponses.Count > 0 || Rotational != null;
         public double EffectiveRamanFraction => EnableRaman && Raman != null ? RamanFraction : 0.0;
+
+        /// <summary>A copy of this medium without one of its extra responses (the executor drops a negligible plasma term).</summary>
+        public NonlinearMedium WithoutResponse(ITimeDomainResponse response)
+        {
+            var m = new NonlinearMedium { N2 = N2, RamanFraction = RamanFraction, Raman = Raman, EnableRaman = EnableRaman, EnableSelfSteepening = EnableSelfSteepening,
+                ReplaceKerr = ReplaceKerr, Rotational = Rotational, KerrAnisotropy = KerrAnisotropy, CubicAxes = CubicAxes };
+            m.ExtraResponses.AddRange(ExtraResponses.Where(r => !ReferenceEquals(r, response)));
+            return m;
+        }
     }
 
     /// <summary>
@@ -51,6 +60,45 @@ namespace UltrafastEngine.Physics
     }
 
     /// <summary>
+    /// An <see cref="IAnisotropicResponse"/> whose <see cref="IAnisotropicResponse.Convolve"/> is the zero-padded linear
+    /// convolution y[i] = Re IFFT_m(K · FFT_m(x))[i] (x padded with zeros to m = <see cref="AnisotropicKernels.PaddedLength"/>(n),
+    /// forward transform with exponent sign -1 and no normalisation, inverse with +1 and 1/m, x and y in the engine's
+    /// centred time order). A device back-end (GPU) evaluates it with the kernel spectrum K itself.
+    /// </summary>
+    public interface IPaddedKernelResponse
+    {
+        /// <summary>The kernel spectrum K (length m) for n samples of step dt. Shared: callers must not modify it.</summary>
+        Complex[] PaddedKernelSpectrum(int n, double dt);
+    }
+
+    /// <summary>Helpers for <see cref="IPaddedKernelResponse"/>.</summary>
+    public static class AnisotropicKernels
+    {
+        /// <summary>The padded transform length of an n-sample linear convolution: the smallest power of two at least 2n.</summary>
+        public static int PaddedLength(int n) { int m = 1; while (m < 2 * n) m <<= 1; return m; }
+    }
+
+    /// <summary>An <see cref="IAnisotropicResponse"/> multiplied by a constant (the element's <c>n2Scale</c>): the convolution and the adiabatic n2 scale together.</summary>
+    public sealed class ScaledAnisotropicResponse : IAnisotropicResponse, IPaddedKernelResponse
+    {
+        private readonly IAnisotropicResponse _inner; private readonly double _scale;
+        public ScaledAnisotropicResponse(IAnisotropicResponse inner, double scale) { _inner = inner; _scale = scale; }
+        public string Description => _inner.Description + string.Format(System.Globalization.CultureInfo.InvariantCulture, " x {0:G5}", _scale);
+        public double[] Convolve(double[] x, double dt) { var y = _inner.Convolve(x, dt); for (int i = 0; i < y.Length; i++) y[i] *= _scale; return y; }
+        public double AdiabaticN2 => _scale * _inner.AdiabaticN2;
+        /// <summary>The inner kernel times the scale (null when the inner response has no padded kernel).</summary>
+        public Complex[] PaddedKernelSpectrum(int n, double dt)
+        {
+            if (!(_inner is IPaddedKernelResponse p)) return null;
+            var k = p.PaddedKernelSpectrum(n, dt);
+            if (k == null) return null;
+            var r = new Complex[k.Length];
+            for (int i = 0; i < k.Length; i++) r[i] = k[i] * _scale;
+            return r;
+        }
+    }
+
+    /// <summary>
     /// What a stepper integrates: dA/dz = L(omega) A + N(A, z), with L diagonal in frequency (the
     /// frame-referenced linear operator of the element per unit length) and N the nonlinear operator.
     /// </summary>
@@ -64,6 +112,13 @@ namespace UltrafastEngine.Physics
         /// k0 * Re(Delta n) (1/m), used for the B-integral and step control.</summary>
         double Nonlinear(Complex[] state, double z, Complex[] rateOut);
         double AreaAt(double z);
+    }
+
+    /// <summary>Optional: a problem that reports, after each <see cref="IPropagationProblem.Nonlinear"/> call, the ratio of the power-weighted
+    /// mean index change over the pulse to its peak (for the pulse-averaged B-integral).</summary>
+    public interface IMeanIndexChange
+    {
+        double LastMeanToPeak { get; }
     }
 
     /// <summary>Optional: a problem whose nonlinear rate is discontinuous at known positions (e.g. QPM domain walls).
@@ -83,6 +138,10 @@ namespace UltrafastEngine.Physics
         public double MinStepM { get; set; } = double.PositiveInfinity;
         public double MaxStepM { get; set; }
         public double BIntegralRad { get; set; }
+        /// <summary>B-integral with the index change weighted by the power over the pulse at each step (sum_t P dn / sum_t P), on axis;
+        /// NaN when the problem does not report it (then the executor estimates it). For an unchanged Gaussian pulse with an instantaneous
+        /// Kerr response it is BIntegralRad / sqrt(2).</summary>
+        public double BIntegralPulseAveragedRad { get; set; }
         public string Representation { get; set; } = "envelope";
         public List<string> Notes { get; } = new List<string>();
     }
@@ -96,8 +155,10 @@ namespace UltrafastEngine.Physics
     /// basis (XPM 2/3 plus the coherent term, so circular light correctly sees 2/3 of the linear SPM).
     /// When the input is purely x-polarised and the medium is isotropic, only Ax is propagated.
     /// </summary>
-    public sealed class EnvelopeProblem : IPropagationProblem
+    public sealed class EnvelopeProblem : IPropagationProblem, IMeanIndexChange
     {
+        /// <summary>Power-weighted mean over peak of the index change in the last <see cref="Nonlinear"/> call.</summary>
+        public double LastMeanToPeak { get; private set; }
         private readonly FrequencyGrid _g;
         private readonly NonlinearMedium _m;
         private readonly IBeamModel _beam;
@@ -177,12 +238,16 @@ namespace UltrafastEngine.Physics
         /// <summary>The largest nonlinear index change seen by the pulse, from the power-weighted effective index
         /// Re(sum_c A_c^* N_c / (i k0)) / sum_c |A_c|^2 (N_c: the nonlinear rate of component c): every coupling term
         /// is included, so circular light gives 2/3 of the linear value, as it should.</summary>
-        internal static double PeakIndexChange(Complex[] ax, Complex[] ay, Complex[] nx, Complex[] ny, double k0)
+        internal static double PeakIndexChange(Complex[] ax, Complex[] ay, Complex[] nx, Complex[] ny, double k0) => PeakIndexChange(ax, ay, nx, ny, k0, out _);
+
+        /// <summary>As <see cref="PeakIndexChange(Complex[], Complex[], Complex[], Complex[], double)"/>, also giving the power-weighted mean
+        /// index change sum P |dn| / sum P over the same samples.</summary>
+        internal static double PeakIndexChange(Complex[] ax, Complex[] ay, Complex[] nx, Complex[] ny, double k0, out double mean)
         {
-            int n = ax.Length; double pmax = 0;
+            int n = ax.Length; double pmax = 0; mean = 0;
             for (int i = 0; i < n; i++) { double p = ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary + (ay != null ? ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary : 0); if (p > pmax) pmax = p; }
             if (!(pmax > 0)) return 0;
-            double peak = 0;
+            double peak = 0, sp = 0, spd = 0;
             for (int i = 0; i < n; i++)
             {
                 double p = ax[i].Real * ax[i].Real + ax[i].Imaginary * ax[i].Imaginary + (ay != null ? ay[i].Real * ay[i].Real + ay[i].Imaginary * ay[i].Imaginary : 0);
@@ -191,7 +256,9 @@ namespace UltrafastEngine.Physics
                 if (ay != null && ny != null) s += Complex.Conjugate(ay[i]) * ny[i];
                 double dn = Math.Abs(s.Imaginary / (k0 * p));   // Re(s / i) = Im(s)
                 if (dn > peak) peak = dn;
+                sp += p; spd += p * dn;
             }
+            mean = sp > 0 ? spd / sp : 0;
             return peak;
         }
 
@@ -271,14 +338,43 @@ namespace UltrafastEngine.Physics
         /// <summary>Process-wide switch for the in-place fast path (tests compare it with the general path).</summary>
         public static bool UseFastPath = true;
 
+        /// <summary>Why <see cref="DeviceSpec"/> returns null (null when it does not).</summary>
+        public string DeviceUnsupportedReason
+        {
+            get
+            {
+                if (_m.HasCubicAnisotropy) return "cubic Kerr anisotropy";
+                if (_m.Rotational != null && (_m.Rotational as IPaddedKernelResponse)?.PaddedKernelSpectrum(_g.N, _g.DTime) == null) return "a rotational response without a padded kernel";
+                if (_m.ExtraResponses.OfType<PlasmaResponse>().Count() > 1) return "more than one plasma response";
+                var others = _m.ExtraResponses.Where(r => !(r is PlasmaResponse)).ToList();
+                if (others.Count != 0 && DeviceResponses.Build(others, out var why) == null) return why;
+                return null;
+            }
+        }
+
         /// <summary>The data a device back-end (GPU) needs to evaluate this problem's nonlinear operator itself; null when
-        /// the problem uses features only the CPU path implements (user responses, rotational Raman).</summary>
+        /// the problem uses features only the CPU path implements (<see cref="DeviceUnsupportedReason"/>: callbacks, frequency-resolved
+        /// responses, cubic Kerr anisotropy, a rotational response without a padded kernel).</summary>
         public EnvelopeDeviceSpec DeviceSpec()
         {
-            if (_m.Rotational != null || _m.ExtraResponses.Count != 0 || _m.HasCubicAnisotropy) return null;
+            if (_m.HasCubicAnisotropy) return null;
+            Complex[] rot = null;
+            if (_m.Rotational != null)
+            {
+                rot = (_m.Rotational as IPaddedKernelResponse)?.PaddedKernelSpectrum(_g.N, _g.DTime);
+                if (rot == null) return null;
+            }
+            DeviceResponseCode user = null;
+            var plasmas = _m.ExtraResponses.OfType<PlasmaResponse>().ToList();
+            if (plasmas.Count > 1) return null;
+            var others = _m.ExtraResponses.Where(r => !(r is PlasmaResponse)).ToList();
+            if (others.Count != 0) { user = DeviceResponses.Build(others, out _); if (user == null) return null; }
+            var plasma = plasmas.Count == 1 ? plasmas[0].DeviceForm(_g.OmegaCenter, _g.OmegaAbsolute) : null;
             bool kerr = !_m.ReplaceKerr && _m.N2 != 0;
             return new EnvelopeDeviceSpec
             {
+                RotationalKernelFreq = rot,
+                Responses = user, Plasma = plasma, Time = _g.Time, TArrivalAtStart = _tArrival0, ElementCarrierGroupDelay = _tauElement, ResponseOmega0 = _g.OmegaCenter,
                 N = _g.N, Scalar = _scalar, K0 = _k0, N2 = kerr ? _m.N2 : 0, RamanFraction = kerr ? _m.EffectiveRamanFraction : 0,
                 RamanKernelFreq = kerr && _m.EffectiveRamanFraction > 0 ? _ramanKernelFreq : null,
                 RamanAnisoFreq = kerr && _m.EffectiveRamanFraction > 0 && !_scalar ? _ramanAnisoFreq : null,
@@ -359,7 +455,8 @@ namespace UltrafastEngine.Physics
                     if (cubic) AddCubic(ax[i], ay[i], aeff, (1 - fR), ref nx[i], ref ny[i]);
                 }
             }
-            double peak = PeakIndexChange(ax, ay, nx, ny, _k0);
+            double peak = PeakIndexChange(ax, ay, nx, ny, _k0, out double meanDn);
+            LastMeanToPeak = peak > 0 ? meanDn / peak : 0;
             SpectralTransform.TimeToFreqInPlace(nx);
             if (!_scalar) SpectralTransform.TimeToFreqInPlace(ny);
             if (_m.EnableSelfSteepening)
@@ -495,7 +592,8 @@ namespace UltrafastEngine.Physics
                 nxP = (Complex[])nx.Clone(); DispersiveResponses.AddToTime(disp, ax, _k0, nxP);
                 if (!_scalar) { nyP = (Complex[])ny.Clone(); DispersiveResponses.AddToTime(disp, ay, _k0, nyP); }
             }
-            double peak = PeakIndexChange(ax, _scalar ? null : ay, nxP, nyP, _k0);
+            double peak = PeakIndexChange(ax, _scalar ? null : ay, nxP, nyP, _k0, out double meanDn);
+            LastMeanToPeak = peak > 0 ? meanDn / peak : 0;
 
             var nxF = SpectralTransform.TimeToFreq(nx);
             var nyF = _scalar ? null : SpectralTransform.TimeToFreq(ny);
@@ -529,6 +627,17 @@ namespace UltrafastEngine.Physics
         public double K0, N2, RamanFraction, OmegaCenter, DTime, LengthM;
         public bool SelfSteepening;
         public Complex[] RamanKernelFreq, RamanAnisoFreq, LinearRate;
+        /// <summary>Orientational (gas rotational Raman) response: the padded kernel spectrum of
+        /// <see cref="IPaddedKernelResponse"/> (length <see cref="AnisotropicKernels.PaddedLength"/>(N)), or null.</summary>
+        public Complex[] RotationalKernelFreq;
+        /// <summary>Extra time-domain responses (user expressions, two-photon absorption, extra Kerr) as C source, or null. The
+        /// response variables: t = <see cref="Time"/> (centred order), t_lab = t + t_arrival with t_arrival = TArrivalAtStart +
+        /// ElementCarrierGroupDelay z / L, omega0 = <see cref="ResponseOmega0"/>, intensities |A|^2 / Aeff.</summary>
+        public DeviceResponseCode Responses;
+        /// <summary>The plasma term (ionisation, Drude index, avalanche), or null. Evaluated after <see cref="Responses"/> and added to them.</summary>
+        public PlasmaDeviceSpec Plasma;
+        public double[] Time;
+        public double TArrivalAtStart, ElementCarrierGroupDelay, ResponseOmega0;
         public double[] OmegaOffset;
         public Func<double, double> AreaAt;
     }
@@ -754,6 +863,9 @@ namespace UltrafastEngine.Physics
 
     public static class Steppers
     {
+        /// <summary>Note of a fixed-step run over a rate with breakpoints (QPM domain walls): the steps do not land on them.</summary>
+        public const string FixedStepsIgnoreBreakpoints = "fixed steps do not land on the breakpoints of this element (QPM domain walls): steps that straddle a wall integrate a discontinuous rate (a 1 mm PPLN SHG crystal at 0.5 domain per step is 1 % off in energy); use the adaptive stepper";
+
         private static double StaticLimit(IPropagationProblem p, StepperSettings st)
             => p is IStaticRate s && s.StaticPhaseRate > 0 ? 0.2 / s.StaticPhaseRate : double.PositiveInfinity;   // linear terms: RK4 is accurate to ~1e-5 at 0.2 rad per step
 
@@ -823,11 +935,13 @@ namespace UltrafastEngine.Physics
             var k = new Complex[n];
             int every = Math.Max(1, steps / 200);
             stats.Method = "rk4ip (fixed)";
+            if (p is IBreakpoints bpf && bpf.NextBreakpoint(0) < p.LengthM) stats.Notes.Add(FixedStepsIgnoreBreakpoints);
             for (int s = 0; s < steps; s++)
             {
                 double z = s * h;
                 var aI = new Complex[n]; Mul(half, a, aI);
                 double pk = p.Nonlinear(a, z, k);
+                double rk = MeanToPeak(p);
                 var k1 = new Complex[n]; Mul(half, k, k1);
                 p.Nonlinear(Axpy(aI, 0.5 * h, k1), z + 0.5 * h, k); var k2 = (Complex[])k.Clone();
                 p.Nonlinear(Axpy(aI, 0.5 * h, k2), z + 0.5 * h, k); var k3 = (Complex[])k.Clone();
@@ -838,7 +952,7 @@ namespace UltrafastEngine.Physics
                 Mul(half, beta, beta);
                 for (int i = 0; i < n; i++) a[i] = beta[i] + h / 6.0 * k4[i];
                 k = new Complex[n];
-                stats.Accepted++; stats.BIntegralRad += pk * h;
+                stats.Accepted++; stats.BIntegralRad += pk * h; stats.BIntegralPulseAveragedRad += pk * rk * h;
                 stats.MinStepM = Math.Min(stats.MinStepM, h); stats.MaxStepM = Math.Max(stats.MaxStepM, h);
                 if (progress != null && ((s + 1) % every == 0 || s == steps - 1)) progress((s + 1.0) / steps);
             }
@@ -851,6 +965,13 @@ namespace UltrafastEngine.Physics
         /// share all stages; the relative difference |A4 - A3| / |A4| controls the step
         /// (h_new = h min(2, max(0.5, 0.9 (tol/err)^(1/4)))). k5 is reused as the next step's k1 (FSAL).
         /// </summary>
+        /// <summary>An adaptive step whose end falls within this fraction of a step before a breakpoint (QPM domain wall) is stretched onto
+        /// the wall, so no sliver step is left (the next step starts at least this fraction of a step away from the wall).</summary>
+        public const double WallSnapFraction = 0.1;
+
+        /// <summary>Mean-to-peak index ratio of the last nonlinear evaluation, NaN when the problem does not report it.</summary>
+        private static double MeanToPeak(IPropagationProblem p) => p is IMeanIndexChange m ? m.LastMeanToPeak : double.NaN;
+
         public static Complex[] AdaptiveErk43Ip(IPropagationProblem p, Complex[] a0, StepperSettings st, StepStatistics stats, Action<double> progress)
         {
             int n = p.Length;
@@ -858,6 +979,7 @@ namespace UltrafastEngine.Physics
             var a = (Complex[])a0.Clone();
             var kN = new Complex[n];
             double pk = p.Nonlinear(a, 0, kN); // N(A) at z = 0 (FSAL seed)
+            double rk = MeanToPeak(p);
             double h = pk > 0 ? Math.Min(L, st.MaxNonlinearPhasePerStepRad / pk) : L;
             h = Math.Min(h, st.MaxStepM);
             double z = 0;
@@ -879,7 +1001,9 @@ namespace UltrafastEngine.Physics
                 if (bp != null)
                 {
                     double zb = bp.NextBreakpoint(z + 1e-12 * L);
-                    if (zb < z + h * (1 + 1e-12)) { h = zb - z; onWall = true; }
+                    // land on the wall, stretching the step by up to WallSnapFraction: a step that ended just short of a wall left a
+                    // sliver step before it (down to 1e-9 m), and the result depended on the last bits of the step size
+                    if (zb < z + h * (1 + WallSnapFraction)) { h = zb - z; onWall = true; }
                 }
                 double zEnd = onWall ? z + h * (1 - 1e-9) : z + h; // evaluate end-of-step stages on this side of a wall
                 ComplexKernels.Exp(p.LinearRate, 0.5 * h, half);
@@ -893,6 +1017,7 @@ namespace UltrafastEngine.Physics
                 Mul(half, beta, beta);
                 for (int i = 0; i < n; i++) a4[i] = beta[i] + h / 6.0 * k4[i];
                 double pk5 = p.Nonlinear(a4, zEnd, k5);
+                double rk5 = MeanToPeak(p);
                 double num = 0;
                 for (int i = 0; i < n; i++)
                 {
@@ -907,10 +1032,11 @@ namespace UltrafastEngine.Physics
                 {
                     stats.Accepted++;
                     stats.BIntegralRad += 0.5 * (pk + pk5) * h;
+                    stats.BIntegralPulseAveragedRad += 0.5 * (pk * rk + pk5 * rk5) * h;
                     stats.MinStepM = Math.Min(stats.MinStepM, h); stats.MaxStepM = Math.Max(stats.MaxStepM, h);
-                    z += h; pk = pk5;
+                    z += h; pk = pk5; rk = rk5;
                     { var t = a; a = a4; a4 = t; t = kN; kN = k5; k5 = t; }   // a <- a4, kN <- k5 (buffers swapped, not copied)
-                    if (onWall && z < L * (1 - 1e-12)) pk = p.Nonlinear(a, z + 1e-9 * h, kN); // the other side of the wall
+                    if (onWall && z < L * (1 - 1e-12)) { pk = p.Nonlinear(a, z + 1e-9 * h, kN); rk = MeanToPeak(p); } // the other side of the wall
                     if (forced && err > st.Tolerance && !stats.Notes.Contains("tolerance not met at minimum step")) stats.Notes.Add("tolerance not met at minimum step");
                     if (progress != null && (z / L - lastReport >= 0.005 || z >= L * (1 - 1e-12))) { lastReport = z / L; progress(Math.Min(1.0, z / L)); }
                 }

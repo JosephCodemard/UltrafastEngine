@@ -70,3 +70,40 @@ def test_fiber_builder_coherence_and_instrument_settings():
     assert ins["settings"]["normalize"] == "area" and ins["settings"]["points"] == 2048
     co = uf.coherence(sysd, b.run_spec(pulse, stepper={"tolerance": 1e-5}), trials=3, parallel=3)
     assert co["meanCoherence"] > 0.99 and len(co["g12"]) == len(co["wavelength_m"])
+
+
+def test_scan_is_lazy_shaped_cached_and_matches_independent_runs(tmp_path):
+    sys = b.system("k", [b.bulk("nl", "flat", 0.01, beam=b.constant_beam(area_m2=1e-8))], materials={"flat": {"index": 1.45, "n2": 2.5e-20}})
+    spec = b.run_spec(b.pulse(1.03e-6, 200e-15, peak_power_w=2e6), physics={"selfSteepening": False, "raman": False})
+    lengths = [0.005, 0.01, 0.02]
+    sc = uf.scan(sys, spec, {"element:nl/lengthM": lengths, "pulse/peakPowerW": [1e6, 2e6]}, ["record:nl/BIntegralRad", "pulse:end/fwhmS"], cache=tmp_path)
+    assert sc._result is None                                    # nothing computed yet
+    bint = sc["record:nl/BIntegralRad"]
+    assert sc._result is not None and bint.shape == (3, 2)
+    # B = gamma P L: proportional to both axes
+    assert np.allclose(bint / np.array(lengths)[:, None] / np.array([1e6, 2e6])[None, :], bint[0, 0] / 0.005 / 1e6, rtol=1e-3)
+    # every point equals an independent run
+    for i, L in enumerate(lengths):
+        s2 = b.system("k", [b.bulk("nl", "flat", L, beam=b.constant_beam(area_m2=1e-8))], materials={"flat": {"index": 1.45, "n2": 2.5e-20}})
+        r = uf.run(uf.System.load(s2), spec)
+        assert r.summary["totals"]["bIntegralRad"] == pytest.approx(bint[i, 1], rel=1e-6)
+        assert r.summary["output"]["fwhmS"] == pytest.approx(sc["pulse:end/fwhmS"][i, 1], rel=1e-3)
+    again = uf.scan(sys, spec, {"element:nl/lengthM": lengths, "pulse/peakPowerW": [1e6, 2e6]}, ["record:nl/BIntegralRad", "pulse:end/fwhmS"], cache=tmp_path)
+    assert np.array_equal(again["record:nl/BIntegralRad"], bint)
+    assert any("6 of 6 points read" in n for n in again.notes)
+    q = uf.scan(sys, spec, {"element:nl/lengthM": lengths}, ["pulse:end/fwhmS"], fidelity="quick")
+    assert q["pulse:end/fwhmS"].shape == (3,)
+
+
+def test_scan_fidelity_applies_to_a_run_file(tmp_path):
+    # uf.scan(fidelity=...) used to need the run spec as a dict; the engine now applies it to a run file too
+    import json
+    sys = b.system("k", [b.bulk("nl", "flat", 0.01, beam=b.constant_beam(area_m2=1e-8))], materials={"flat": {"index": 1.45, "n2": 2.5e-20}})
+    spec = b.run_spec(b.pulse(1.03e-6, 200e-15, peak_power_w=2e6), physics={"selfSteepening": False, "raman": False})
+    run_file = tmp_path / "run.json"
+    run_file.write_text(json.dumps(spec))
+    from_file = uf.scan(sys, str(run_file), {"element:nl/lengthM": [0.005, 0.01]}, ["pulse:end/fwhmS"], fidelity="quick")
+    from_dict = uf.scan(sys, spec, {"element:nl/lengthM": [0.005, 0.01]}, ["pulse:end/fwhmS"], fidelity="quick")
+    assert np.array_equal(from_file["pulse:end/fwhmS"], from_dict["pulse:end/fwhmS"])
+    with pytest.raises(ValueError):
+        uf.scan(sys, spec, {"element:nl/lengthM": [0.01]}, ["pulse:end/fwhmS"], fidelity="fast")

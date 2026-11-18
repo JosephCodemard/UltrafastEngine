@@ -1,5 +1,7 @@
 # 07 -- The OpticStudio workflow
 
+![The OpticStudio workflow, run on the built-in argon cell](hero.png)
+
 ```
  OpticStudio (Windows)                         anywhere (Windows / macOS / Linux / Python)
  ---------------------                         -------------------------------------------

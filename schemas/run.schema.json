@@ -53,6 +53,11 @@
       ],
       "description": "Physics switches"
     },
+    "fidelity": {
+      "type": "string",
+      "enum": ["full", "standard", "quick"],
+      "description": "Cost / accuracy level (docs/reference/fidelity.md): a named bundle of switches that are not written in the run spec itself; every switch you write stays as you wrote it. summary.json lists what changed (fidelityReport) and warns when a quick result is unreliable Default: full."
+    },
     "stepper": {
       "anyOf": [
         {
@@ -579,6 +584,10 @@
           "type": "array",
           "description": "Catalogue quantities that strictMaterials accepts although they are not verified, by catalogue path (e.g. \"CS2.n2\") as listed in the error and in summary.json unverifiedInputs; matching is case-insensitive and an entry name such as \"CS2\" accepts all its quantities"
         },
+        "strictValidity": {
+          "type": "boolean",
+          "description": "Turn the run's validity findings (summary.json \"validity\": energy reaching zero frequency, peak power above the critical power in 1-D, Kerr-lens collapse, LIDT exceeded, energy at the time-window edge) into an error after the run, instead of warnings. The environment variable ULTRAFAST_STRICT_VALIDITY=1 does the same Default: false."
+        },
         "strictMaterials": {
           "type": "boolean",
           "description": "Refuse a run that uses approximate or unverified material-catalogue values (the compile error lists them; override each, or give a verified value in your own catalogue file). The environment variable ULTRAFAST_STRICT_MATERIALS=1 does the same Default: false."
@@ -1066,9 +1075,18 @@
           "type": "integer",
           "description": "backend auto: smallest problem (complex samples) sent to a GPU; smaller ones stay on the CPU Default: 8192 (1-D), 32768 (spatial); 0 for an explicit GPU back-end."
         },
+        "memoryLimitBytes": {
+          "type": "number",
+          "description": "The run is refused before it starts when its estimated memory (shown in validate and in the run notes) is above this; 0 = no limit. A warning is given above 80 % of the free physical memory whatever this is (docs/reference/memory.md) [B] Default: 0."
+        },
         "deviceSlots": {
           "type": "integer",
           "description": "GPU back-ends: element propagations running on one device at the same time (parallel studies, fits); when all are busy, auto runs the element on the CPU and an explicit back-end waits Default: 4."
+        },
+        "precision": {
+          "type": "string",
+          "enum": ["double", "mixed"],
+          "description": "double: everything in double precision. mixed (GPU back-ends, 1-D envelope and chi(2) elements): the nonlinear operator and its FFTs in single precision, the state and the linear step in double; energy and spectrum agree with double to about 1e-6, the intensity floor below about -85 dB is rounding noise, so a run whose instruments ask for more than 70 dB of dynamic range is refused Default: double."
         },
         "comment": {
           "description": "Free text."

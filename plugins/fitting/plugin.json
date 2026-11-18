@@ -1,9 +1,9 @@
 {
   "id": "fitting",
   "name": "Fitting: transforms, fits and backward propagation",
-  "version": "2.2.0",
+  "version": "1.0.0",
   "description": "Fittable \"transform\" elements, fits to recorded data with replaceable estimators (\"fit\") and backward propagation (\"backward\").",
-  "engine": "2.2.0",
+  "engine": "1.0.0",
   "entry": "UltrafastEngine.Plugins.Fitting.FittingPlugin",
   "assemblies": {
     "net10.0": "lib/net10.0/UltrafastEngine.Plugins.Fitting.dll",

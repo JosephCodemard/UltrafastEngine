@@ -12,6 +12,11 @@ namespace UltrafastEngine.Results
         public double EnergyJ, PeakPowerW, FwhmS, RmsWidthS, TransformLimitFwhmS, SpectralFwhmM, CentroidWavelengthM, PeakWavelengthM,
             SpectralRmsWidthM, TimeBandwidthProduct, TemporalStrehl, PulseGddS2, PulseTodS3, EdgeEnergyFraction, CentroidTimeS,
             PolarizationDegree, S1, S2, S3;
+        /// <summary>Number of separate intervals in which the temporal power is at least half its maximum (1 for a single pulse); above 1 the
+        /// FWHM spans several pulses.</summary>
+        public int PeakCount;
+        /// <summary>Fraction of the energy between the outermost half-maximum crossings (erf(sqrt(ln 2)) = 0.761 for a Gaussian, 1/sqrt 2 for sech^2).</summary>
+        public double FwhmEnergyFraction = double.NaN;
     }
 
     public static class PulseMetrics
@@ -29,6 +34,36 @@ namespace UltrafastEngine.Results
             double xl = x[l - 1] + (half - y[l - 1]) / (y[l] - y[l - 1]) * (x[l] - x[l - 1]);
             double xr = x[r] + (half - y[r]) / (y[r + 1] - y[r]) * (x[r + 1] - x[r]);
             return Math.Abs(xr - xl);
+        }
+
+        /// <summary>Number of separate intervals with y at least half its maximum, and the fraction of sum(y) between the outermost crossings.</summary>
+        public static (int Count, double EnergyFraction) HalfMaximumStructure(double[] y)
+        {
+            int n = y.Length; if (n == 0) return (0, double.NaN);
+            double mx = y.Max(); if (!(mx > 0)) return (0, double.NaN);
+            double half = 0.5 * mx, tot = 0, inside = 0;
+            int count = 0, first = -1, last = -1; bool above = false;
+            for (int i = 0; i < n; i++)
+            {
+                tot += y[i];
+                bool hi = y[i] >= half;
+                if (hi && !above) count++;
+                if (hi) { if (first < 0) first = i; last = i; }
+                above = hi;
+            }
+            // integrate the piecewise-linear y between the interpolated outermost crossings (index units; the same crossings as Fwhm)
+            double a = first > 0 ? first - 1 + (half - y[first - 1]) / (y[first] - y[first - 1]) : 0;
+            double b = last < n - 1 ? last + (half - y[last]) / (y[last + 1] - y[last]) : n - 1;
+            double Y(double x) { int i = Math.Min(n - 2, Math.Max(0, (int)Math.Floor(x))); double f = x - i; return y[i] + f * (y[i + 1] - y[i]); }
+            int ia = (int)Math.Ceiling(a), ib = (int)Math.Floor(b);
+            if (ia > ib) inside = 0.5 * (Y(a) + Y(b)) * (b - a);
+            else
+            {
+                inside = 0.5 * (Y(a) + y[ia]) * (ia - a) + 0.5 * (y[ib] + Y(b)) * (b - ib);
+                for (int i = ia; i < ib; i++) inside += 0.5 * (y[i] + y[i + 1]);
+            }
+            tot = 0; for (int i = 0; i < n - 1; i++) tot += 0.5 * (y[i] + y[i + 1]);
+            return (count, tot > 0 ? inside / tot : double.NaN);
         }
 
         public static (double Mean, double Rms) Moments(double[] x, double[] w)
@@ -141,6 +176,7 @@ namespace UltrafastEngine.Results
             var pt = TemporalPower(p);
             s.PeakPowerW = pt.Max();
             s.FwhmS = Fwhm(g.Time, pt);
+            (s.PeakCount, s.FwhmEnergyFraction) = HalfMaximumStructure(pt);
             var (tm, trms) = Moments(g.Time, pt);
             s.CentroidTimeS = tm; s.RmsWidthS = trms;
             var tl = TransformLimitedPower(p);

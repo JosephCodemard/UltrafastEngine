@@ -5,7 +5,7 @@ predict*. The `twin` plugin is the project layer on top of the [fitting plugin](
 validation against held-out conditions with credible bands, a planner for the next measurement, a what-if explorer and drift tracking.
 It is Python (`ultrafast_twin`, NumPy only) plus one command, `ultrafast twin`.
 
-Examples: [build-the-twin](../examples/DigitalTwin/build-the-twin/README.md) and [explore-the-twin](../examples/DigitalTwin/explore-the-twin/README.md).
+Examples: [build-the-twin](../examples/DigitalTwin/build-the-twin/README.md), [dependence-models](../examples/DigitalTwin/dependence-models/README.md) and [explore-the-twin](../examples/DigitalTwin/explore-the-twin/README.md).
 
 ## Project layout
 
@@ -39,7 +39,7 @@ ultrafast twin check lab [--goals goals.json] | --benchmark
 
 `ultrafast twin` starts `python -m ultrafast_twin`. It uses `ULTRAFAST_PYTHON` as the interpreter (else `python3`, or `python` on Windows):
 point it at a Python that has NumPy and the `ultrafast` package (in a source checkout also set `PYTHONPATH=python/src`).
-`ultrafast twin serve` (the MCP server for agents) is **not implemented**; it exits with code 2.
+`ultrafast twin serve <folder>` starts the MCP server for agents (the core `ultrafast-mcp`, [MCP reference](../reference/mcp.md)) with the project folder as workspace. The twin-specific tools (fit, validate, predict) are not in it yet.
 
 ## Python
 
@@ -94,8 +94,8 @@ construction of the synthetic lab (placement; a phase proportional to the energy
 
 ## Limits and not built
 
-* The MCP server for agents (T6: eight workspace-scoped tools, user expressions refused, time and memory budgets) is designed
-  ([design record](../design/next-steps.md#4-mcp-server-the-agreed-design-not-built)) and **not built**.
+* The MCP server for agents is the core package's `ultrafast-mcp` ([agents](../agents.md)), not part of this plugin; `ultrafast_twin serve` starts it.
+  Its `fit` and `compare_to_measured` tools are not built yet.
 * The only project template is the synthetic spectral lab; a spatial (wavefront) template does not exist.
 * Gradients through the engine are finite differences (one run per parameter and condition); the network transform needed 1050 runs
   in its test.

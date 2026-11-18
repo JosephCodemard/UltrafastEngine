@@ -26,7 +26,8 @@ namespace UltrafastEngine.Engine
 
         /// <summary>Keys a plate passes on to its internal bulk element.</summary>
         private static readonly string[] BulkPassKeys = { "beam", "transverse", "nonlinear", "n2", "timeResponse", "replaceKerr", "raman", "fR", "selfSteepening",
-            "indexProfile", "absorptionProfile", "n2Scale", "wavelengthsM", "dispersionSource", "kerrAnisotropy", "kerrCutAxis", "kerrAzimuthDeg" };
+            "indexProfile", "absorptionProfile", "n2Scale", "wavelengthsM", "dispersionSource", "kerrAnisotropy", "kerrCutAxis", "kerrAzimuthDeg",
+            "ionization", "kerrLens", "kerrLensModel" };   // ionization and kerrLens were silently dropped before 2026-11-17
 
         /// <summary>A bulk element standing for the inside of a component (same id, so element overrides apply).</summary>
         private static SystemElement InnerBulk(SystemElement e, string material, double lengthM, JsonValue transmission = null)
@@ -380,8 +381,9 @@ namespace UltrafastEngine.Engine
             if (e.Json.Has("rotationDeg") || Find(c, e, "rotationDeg") != null) angle = Num(c, e, "rotationDeg", 45) * Math.PI / 180;
             else if (e.Json.Has("verdetRadPerTM") || Find(c, e, "verdetRadPerTM") != null)
             {
-                double V = Num(c, e, "verdetRadPerTM", double.NaN), B = Num(c, e, "fieldT", double.NaN);
-                if (double.IsNaN(B) || !(L > 0)) throw new JsonException("faradayRotator with verdetRadPerTM needs fieldT and lengthM (rotation = V B L).");
+                double V = Num(c, e, "verdetRadPerTM", double.NaN), B = Num(c, e, "fieldTesla", double.NaN);
+                if (double.IsNaN(B)) B = Num(c, e, "fieldT", double.NaN);   // the old name
+                if (double.IsNaN(B) || !(L > 0)) throw new JsonException("faradayRotator with verdetRadPerTM needs fieldTesla and lengthM (rotation = V B L).");
                 angle = V * B * L;
             }
             else angle = 45 * Math.PI / 180;

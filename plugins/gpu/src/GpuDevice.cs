@@ -53,6 +53,40 @@ namespace UltrafastEngine.Plugins.Gpu
 
         /// <summary>Groups for a grid-stride launch over <paramref name="items"/> items.</summary>
         public int Groups(long items) => (int)Math.Max(1, Math.Min(MaxGroups, (items + GroupSize - 1) / GroupSize));
+
+        private long _allocated;
+        internal void Track(long delta) => System.Threading.Interlocked.Add(ref _allocated, delta);
+        /// <summary>Device memory held by this context's live buffers (bytes).</summary>
+        public long AllocatedBytes => System.Threading.Interlocked.Read(ref _allocated);
+        /// <summary>Free device memory now (bytes), -1 when unknown. CUDA asks the driver (cuMemGetInfo, which also counts other processes);
+        /// the default (OpenCL has no such query) is the total minus this context's live buffers.</summary>
+        public virtual long FreeMemoryBytes() => Info.MemoryBytes > 0 ? Math.Max(0, Info.MemoryBytes - AllocatedBytes) : -1;
+
+        /// <summary>Most extra programs (user-response kernels) kept compiled per context; the least recently used is released beyond it.</summary>
+        public const int MaxPrograms = 32;
+        private readonly List<string> _programs = new List<string>();   // least recently used first
+        /// <summary>Extra programs currently compiled on this context.</summary>
+        public int ProgramCount { get { lock (_programs) return _programs.Count; } }
+
+        /// <summary>Compile an extra program (<see cref="Kernels.Header"/> + <paramref name="body"/>) that defines the kernel
+        /// <paramref name="kernelName"/>, once per context; afterwards <see cref="GpuStream.Launch"/> finds it by name.</summary>
+        public void EnsureProgram(string kernelName, string body)
+        {
+            lock (_programs)
+            {
+                int at = _programs.IndexOf(kernelName);
+                if (at >= 0) { _programs.RemoveAt(at); _programs.Add(kernelName); return; }
+                BuildProgram(kernelName, Kernels.Header + body);
+                _programs.Add(kernelName);
+                while (_programs.Count > MaxPrograms) { string old = _programs[0]; _programs.RemoveAt(0); DropProgram(old); }
+            }
+        }
+
+        /// <summary>Release the compiled program of <paramref name="kernelName"/> (the next <see cref="EnsureProgram"/> compiles it again).</summary>
+        protected abstract void DropProgram(string kernelName);
+
+        /// <summary>Compile <paramref name="source"/> and register <paramref name="kernelName"/> (throws <see cref="GpuException"/> with the log).</summary>
+        protected abstract void BuildProgram(string kernelName, string source);
     }
 
     /// <summary>An in-order queue of device work (an OpenCL command queue or a CUDA stream). Not thread-safe: one per
@@ -177,5 +211,57 @@ namespace UltrafastEngine.Plugins.Gpu
         public void AlternateSign(GpuBuffer data) => _s.Launch("uf_alt_sign", _s.Context.Groups((long)N / 2 * Batch), data, N, Batch, _inner, _os, _st);
 
         public void Dispose() { _vendor?.Dispose(); _tw?.Dispose(); _scratch?.Dispose(); }
+    }
+
+    /// <summary>
+    /// Batched single-precision complex FFT over contiguous rows (compute.precision = mixed): the built-in radix-4 Stockham kernels
+    /// in float (power-of-two lengths), the same sign and normalisation convention as <see cref="GpuFft"/>. Twiddles are computed in
+    /// double and rounded once. Elements are two floats (8 bytes).
+    /// </summary>
+    public sealed class GpuFftF : IDisposable
+    {
+        private readonly GpuStream _s;
+        private readonly GpuBuffer _tw, _scratch;
+        public int N { get; }
+        public int Batch { get; }
+
+        public GpuFftF(GpuStream s, int n, int batch)
+        {
+            _s = s; N = n; Batch = batch;
+            if (!GpuFft.BuiltInSupports(n)) throw new GpuException("mixed precision needs a power-of-two grid (got " + n + ")");
+            var tw = new float[2 * n];
+            for (int k = 0; k < n; k++) { double a = -2.0 * Math.PI * k / n; tw[2 * k] = (float)Math.Cos(a); tw[2 * k + 1] = (float)Math.Sin(a); }
+            _tw = s.Context.Alloc(8L * n);
+            unsafe { fixed (float* p = tw) s.Write(_tw, 0, p, 8L * n); }
+            _scratch = s.Context.Alloc(8L * n * batch);
+        }
+
+        public void Transform(GpuBuffer data, int exponentSign, bool normalize)
+        {
+            var ctx = _s.Context;
+            long total = (long)N * Batch;
+            double sg = exponentSign > 0 ? -1.0 : 1.0;
+            GpuBuffer src = data, dst = _scratch;
+            int len = N, st = 1, passes = 0;
+            for (int l = N; l >= 4; l >>= 2) passes++;
+            bool radix2 = (N >> (2 * passes)) == 2;
+            int totalPasses = passes + (radix2 ? 1 : 0), done = 0;
+            while (len >= 4)
+            {
+                done++;
+                double scale = normalize && done == totalPasses ? 1.0 / N : 1.0;
+                _s.Launch("uf_fft4f", ctx.Groups(total / 4), src, dst, _tw, N, len, st, N / len, sg, Batch, scale);
+                var t = src; src = dst; dst = t;
+                len >>= 2; st <<= 2;
+            }
+            if (len == 2)
+            {
+                _s.Launch("uf_fft2f", ctx.Groups(total / 2), src, dst, N, Batch, normalize ? 1.0 / N : 1.0);
+                var t = src; src = dst; dst = t;
+            }
+            if (!ReferenceEquals(src, data)) _s.Copy(src, 0, data, 0, 8 * total);
+        }
+
+        public void Dispose() { _tw?.Dispose(); _scratch?.Dispose(); }
     }
 }

@@ -39,10 +39,10 @@ def _cli(site, *args, **env):
 
 def test_wheel_metadata_and_contents(unpacked):
     whl, site = unpacked
-    assert whl.name == "ultrafast_examples-2.2.0-py3-none-any.whl"
-    meta = (site / "ultrafast_examples-2.2.0.dist-info" / "METADATA").read_text()
-    assert "Name: ultrafast-examples" in meta and "Requires-Dist: ultrafast-engine>=2.2.0" in meta
-    assert "ultrafast-examples = ultrafast_examples.cli:main" in (site / "ultrafast_examples-2.2.0.dist-info" / "entry_points.txt").read_text()
+    assert whl.name == "ultrafast_examples-1.0.0-py3-none-any.whl"
+    meta = (site / "ultrafast_examples-1.0.0.dist-info" / "METADATA").read_text()
+    assert "Name: ultrafast-examples" in meta and "Requires-Dist: ultrafast-engine>=1.0.0" in meta
+    assert "ultrafast-examples = ultrafast_examples.cli:main" in (site / "ultrafast_examples-1.0.0.dist-info" / "entry_points.txt").read_text()
     data = site / "ultrafast_examples" / "data"
     assert (data / "Computing" / "4f-correlator" / "correlator.py").exists() and (data / "Computing" / "_optics.py").exists()
     # nothing generated or repository-only travels with the wheel

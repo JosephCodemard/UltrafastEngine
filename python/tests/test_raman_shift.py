@@ -42,7 +42,7 @@ def test_exact_rate_reduces_to_gordon_for_a_narrow_response():
 
 
 def _engine_centroid(length):
-    fib = {"id": "fibre", "type": "fiber", "lengthM": length, "betas": [B2], "gamma": GAMMA, "raman": "silica", "referenceWavelengthM": LAM}
+    fib = {"id": "fibre", "type": "fiber", "lengthM": length, "betasSkPerM": [B2], "gamma": GAMMA, "raman": "silica", "referenceWavelengthM": LAM}
     pulse = b.pulse(LAM, 1.763 * T0, peak_power_w=abs(B2) / (GAMMA * T0 ** 2), shape="sech2")
     r = uf.run(b.system("raman", [fib]), b.run_spec(pulse, physics={"selfSteepening": False, "raman": True}, grid={"auto": False, "n": 8192, "windowS": 20e-12}))
     w, s = r["output_omega_rad_s"], r["output_spectrum"]

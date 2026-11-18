@@ -19,7 +19,7 @@ def flat_kerr_system(length=0.01, n2=2.5e-20, area=1e-8, extra_material=None):
 
 
 def test_version_and_capabilities():
-    assert uf.version().startswith("2.")
+    assert uf.version().startswith("1.")
     caps = uf.capabilities()
     assert "sellmeier" in caps["models"]["index"]
     assert "spectrometer" in caps["instruments"]

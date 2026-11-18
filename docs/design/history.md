@@ -1,7 +1,8 @@
 # Development history
 
-This page records how the engine was built, phase by phase, up to 2.1.8-beta (for what comes next see the
-[roadmap](../roadmap.md)). UltrafastEngine 2.0 was developed in phases. Each phase ends with tests that pin the new physics to analytic
+Internal page ([folder index](README.md)). This page records how the engine was built, phase by phase and session by session, with the
+findings and numbers of each (open work: [roadmap-internal](roadmap-internal.md); public summary: [roadmap](../roadmap.md)). The intro below
+was written at 2.1.8-beta. UltrafastEngine 2.0 was developed in phases. Each phase ends with tests that pin the new physics to analytic
 results or another code. Status as of **2.1.8-beta** (Stage 1 complete).
 
 Order from here (decided 2026-10-16): **Stage 1** finishes the core engine and its documentation (released as **2.1.8-beta**, the stable core);
@@ -150,3 +151,177 @@ up to a full 1920 x 1080 SLM; the twin is its own plugin on top of fitting; CI o
 - [x] **WP8 (F) release system:** components and manifest, `install.py` (release and git sources, install, add, upgrade, uninstall), packager `--components`, ZOS-API gate, `release.yml`, 23 tests (see [releasing](../releasing.md))
 - [x] **Polish:** README picture grid and contact badge, logo palette and banner on every docs page, CI timeouts and apt retries, plasma component check split into carrier and frequency-resolved rows
 - [x] **Follow-up (PR #1):** avalanche / inverse-bremsstrahlung double count fixed; catalogue defaults for user gain media and solids without data; `strictMaterialsAllow`; partial-override notes; Keldysh far-wing NaN. Spall gain sequences judged unnecessary (the running-maximum normalisation covers the range 1e-3 to 1e3)
+
+## Stage 9 -- the road to 1.0.0: core fixes and leftovers  (2026-11-16; sessions WP-D and WP-E on `dev/2026-11`)
+
+The plan for the first public release had seven work packages (WP-A agents / MCP, WP-B docs, WP-C(A) speed on the Mac, WP-C(B) GPU on Windows, WP-D core fixes, WP-E leftovers and Zemax, WP-F release); its owner decisions are in [decisions.md](decisions.md).
+
+**WP-D (core fixes).**
+* `n2Scale` in a 1-D element scaled only the Kerr n2; the rotational Raman of gases (air gaps of a multipass cell) kept its full strength, while the spatial model already scaled it.
+  Now every third-order response of the element is scaled (Kerr, delayed Raman, XPW, rotational Raman); user `responses` are not, and the element note says so.
+* Found while testing: the element's own `n2` key was ignored (only run-spec overrides were read). Fixed, with a regression test.
+* **Kerr lens in the 1-D beam model** (`kerrLens: off | peak | pulseWeighted`, `kerrLensModel`): the Gaussian beam of a bulk element self-focuses with thin Kerr lenses of the pulse's power
+  (second-moment radius, Ermakov equation). Reference: the exact solution w² = w0²[1 + (1 − P/P_c)(z/zR)²]; the model's P_c is 1.06 × Marburger's. Limits: one power per element (entry), the
+  beam leaving the element is not carried on, off by default. Tests: `KerrLensTests`, `GasTests.N2Scale_In1D_ScalesTheRotationalRamanToo`.
+* **D3 sweep** (a bug-hunter agent in its own worktree): an element's own `raman` / `fR` were read only through overrides (fixed; the same pattern as `n2`); `thinFilmPolarizer.bandPosition` was read but not declared; crystal elements dropped ~1e-6 of the energy at the output resampling without booking it (now the mechanism `grid boundary`); a list of keys with a unit missing from their name went to the roadmap (unit-in-key renames). Slowest tests: 31 s (`SingleShotCorrelatorTests.SpatialSfgOfTwoCrossedBeams...`) and 20 s (`BeamSourceTests.BinaryPhaseZonePlate...`); the whole suite takes about 3.5 minutes.
+
+**WP-E (leftovers and Zemax).**
+* Python: `result.unverified_inputs` (typed) and `result.ase_pedestal()` (one stage's inter-pulse ASE as the next stage's `pulse.pedestal`).
+* A lens or curved mirror whose phase changes by more than π per grid cell at the beam edge warns that it is under-sampled.
+* Fuchtbauer-Ladenburg check of the gain catalogue: Yb:YAG's emission fit reproduces its lifetime to 6.7 %; Nd:YAG's is one 1064 nm line that carries about 8 % of 1/τ (documented in the catalogue notes; the missing lines need the Stark-level spectrum).
+* The SPGD examples use the default scale-free step.
+* New examples: `AdaptiveOptics/component-gallery` (the four `ao` elements against analytic answers; the deformable-mirror sensor reading is 8 % below 2 × poke for a cause not traced, noted in its README) and `DigitalTwin/dependence-models` (proportional, quadratic, Chebyshev and constrained-network energy laws on a saturating lab: only the Chebyshev series passes inside and outside the training range; the network is sensitive to its size and start). Fixed on the way: the twin plugin crashed predicting from a fit whose reported width was `null`. `UF_WITH_AO` in the native library was already done in Stage 7 (the WP-E spec was stale).
+* **Zemax** is documented as experimental and never verified against OpticStudio: out of the core narrative, one status box on its plugin page, `plugins/zemax/HARDWARE-CHECKLIST.md` for the first run, `TODO(zemax-hw)` markers on the unverified ZOS-API assumptions, and an unreadable lens unit is now an error instead of a silent default to millimetres.
+* State after both: C# 614 pass / 0 fail / 9 skipped; Python 265 pass / 2 skipped (after D3); strict examples 0 problems; `mkdocs --strict` clean. net48 under Mono was not run (Mono is not installed on the owner's Mac).
+
+## Stage 10 -- speed and GPU  (2026-11-16; sessions WP-C(A) on the Mac and WP-C(B) on Windows, `dev/2026-11`)
+
+**WP-C(A), speed on the Mac** (owner approved the conservative fidelity bundles).
+* **`fidelity`** run key (`full` / `standard` / `quick`, CLI `--fidelity`): `Specs/Fidelity.cs`, applied in `RunSpec.FromJson` to unset keys only; `fidelityReport` in `summary.json`; unreliability warnings from cheap indicators (B, P/P_cr, ...). Page `docs/reference/fidelity.md`. Tests `FidelityTests`.
+* **Studies:** grid union over the range ends, instruments skipped when no output reads one, point cache (`"cache": folder`) with resume, Python `uf.scan` (lazy, shaped). A study is 5.7x faster than a loop on the multipass cell. Tests `StudyCacheTests`.
+* **FP32 study:** `cpu-fp32` back-end (`Numerics/Fp32Emulation.cs`). The operator in single precision is good to 1e-9 (energy, spectrum) but fills the contrast floor below about -85 dB, so mixed precision is refused above about 70 dB of dynamic range.
+* `tools/bench` (developer benchmark, not in the solution) and `tools/bench/golden-osx-arm64.txt` (outputs of the five baseline cases before any change).
+* Measured and **deliberately not built** (reasons and revisit conditions in `docs/reference/speed.md`): linear fast path, CPU ensemble batching, pooled buffers / SIMD Hankel. No measured case is slow (20 ms to 0.5 s).
+* C# 622 pass / 0 fail / 9 skipped (GPU and HAPI gates); Python 266 pass / 2 skipped; 39 example specs strict; `mkdocs --strict` clean.
+
+**WP-C(B), GPU on Windows + NVIDIA** (RTX 3060 Ti, driver 610.88, CUDA 13.3; NVRTC 12, cuFFT 11, cuBLAS 12; OpenCL from the NVIDIA driver; run by Claude Code on the owner's machine).
+* Self-test on CUDA and OpenCL: relative errors 2e-16 to 8e-15. Benchmark (double precision; CPU = 20 cores): scalar N = 8192 0.75x (CUDA) / 1.06x (OpenCL), N = 65536 4.6x, vector 32768 4.9x / 6.9x, radial 1024 x 64 7.8x / 8.3x, cartesian 512 x 1024 6.8x / 6.3x.
+* **Kernel 1**, gas rotational Raman on the device, 1-D and spatial (`IPaddedKernelResponse`: the CPU's zero-padded causal convolution); MPC air gaps no longer stay on the CPU (unless they ionise: fixed in Stage 11).
+* **Kernel 2**, modulator / tile source: parity extended (realistic panel, vector pulse), no code change needed.
+* **Kernel 3**, time responses compiled to kernels: `expression` (all functions and variables incl. `F`), `twoPhotonAbsorption`, `kerr` (`CompiledExpression.ToC`, `Physics/DeviceResponses.cs`, `UserResponseKernel.cs`). Callbacks stay on the CPU.
+* **Kernel 4**, χ(2) 1-D coupled waves (`Chi2Stepper.cs`); the device stepper lands on QPM walls like the CPU.
+* **Study ensembles** (`Numerics/Ensemble.cs`, `EnsembleStepper.cs`, study key `ensemble`): 3.5-6x faster than a stream per point; level with a 20-core CPU at N = 4096, 1.6x faster at 16384 on this FP64-limited card.
+* **Mixed precision** (`compute.precision: mixed`): 1-D and χ(2) operators with FP32 FFTs; energy 1e-6 / spectrum 1e-4 met on SPM plate, 20-pass MPC, soliton, SHG (worst: energy 8e-8, spectrum 1e-6); 1.3-1.5x faster; refused above 70 dB of instrument dynamic range.
+* Findings: the GPU parity tests used to pass when a device run had failed and fallen back to the CPU (fixed); domain-resolved QPM at the default tolerance is only ~7e-4 accurate in field because of sliver steps at walls (CPU too; fixed in Stage 11); fixed steps ignore QPM walls (now a warning).
+* C# `--slow` 642 tests (16 `GpuTests`): 641 pass, 1 skip (HAPI); Python 267 pass / 1 skip; 41 example specs strict; `mkdocs --strict` clean.
+
+## Stage 11 -- WP-1: design docs, a user's multipass-cell report, physics questions  (2026-11-17, `dev/2026-11`, Windows + RTX 3060 Ti)
+
+The session started from a discovery pass over every planning document and split the remaining work into three packages (WP-1 engine and docs,
+WP-2 Python surface, WP-3 docs and release) plus WP-1b (memory safety, moved to its own session); see [roadmap-internal](roadmap-internal.md) §0.
+
+* **Design docs:** twelve files and `HANDOFF.md` merged into the seven current ones of this folder; the folder left the documentation site.
+* **A user's 46-pass cell report**, each item reproduced or answered:
+  validity is now machine-readable (`summary.json` `validity`, `physics.strictValidity`); the "zero frequency" warning on pass 1 was a false positive
+  (any energy deficit, solver error included, was reported; the check now needs the spectrum at omega <= 0); warnings name every pass, not the first;
+  B has pulse- and beam-averaged values beside the on-axis peak; the FWHM of a multi-peaked pulse is flagged (`peakCount`, `fwhmEnergyFraction`);
+  ionisation that cannot matter is skipped (a conservative bound: 4 x the entry peak intensity over 4 x the effective duration, phase < 1e-6 rad,
+  energy < 1e-9) and ionisation that matters runs on the GPU (rate table + one-work-item time scan + spectral Drude FFT; MPI exact to 1e-16, PPT /
+  Keldysh 4e-6 in the ionised density because the table is cubic across channel-closing kinks; an adaptive run may then take one step more, 5e-5 in
+  the field); the radial model through 46 `sameAs` passes equals the passes written out (`SameAsTests`). Not done: carrying the Kerr-lensed 1-D beam to
+  later elements (roadmap §2).
+* **Physics questions answered from the code** (recorded in `limitations.md`): free-electron plasma in solids (yes: Keldysh, avalanche, Drude; not in
+  chi(2) crystals); circular light on an oblique mirror (elliptical with a real surface: new test against Fresnel at 20-70 deg; an ideal mirror keeps it
+  circular); self-steepening (on by default, tau_shock = 1/omega0); thick optics (plates, thick waveplates, TFP substrates, Faraday crystals, lenses with
+  `thicknessM`, and now polarisers with `material` + `thicknessM`; beam splitters have no glass). Fixed on the way: `ionization` and `kerrLens` were
+  dropped on plates (the "key read only through overrides" pattern in another form).
+* **QPM sliver steps:** steps ending within 10 % of a wall land on it; tolerances 1e-7 apart now agree to 3e-8 (was 3e-5). The default tolerance is
+  still 4e-4 from converged over ~100 walls: the remaining error is ordinary global error, not slivers.
+* Verified: C# `--slow` 655 pass / 0 fail / 1 skip (HAPI; 17 `GpuTests` on CUDA and OpenCL); Python 268 pass / 1 skip (pyNLO, LightPipes);
+  `mkdocs --strict` clean; generated files current; examples strict: two READMEs differ from a Windows run in the last quoted digit
+  (`AdaptiveOptics/tiled-array` 0.878 vs 0.879, `Diffraction/iris-diffraction` 0.45 % vs 0.46 %), with 0 numbers changed against the previous
+  commit's engine: platform rounding of numbers recorded on macOS, not a change (READMEs left as they are).
+* Moved to WP-2: Lorentzian / asymmetric-exponential TBP shapes, PM calculator `noncollinearDeg` for `sfg`. Moved to the roadmap: a study schema,
+  glass in beam splitters, exact PPT / Keldysh rates on the device.
+
+## Stage 12 -- WP-1b: memory safety  (2026-11-17, `dev/2026-11`, Windows + RTX 3060 Ti)
+
+Trigger: a user's fit of a 46-pass multipass cell ran out of memory after more than 2 h. Cause, read from the code: the fitting residual cache kept
+up to 65 full `RunResult`s (every element's pulse and profile), the Jacobian n more, and nothing estimated or limited memory.
+
+* **Fitting** (`Fitting.cs`): the cache holds `(residuals, cost)` with the old eviction rule (so the same evaluations happen); `Track` keeps the latest and best
+  `Eval` in full and slims every other one (`Eval.Slim`: `At`, `TailAt`, snapshots, `Output`, `Input`, `Compiled` dropped; instruments and records stay, `Predict`
+  reads them); Jacobian runs are slimmed at once; evaluations use `keepProfiles: used` unless the spec sets it. Golden values were recorded from the old code
+  first: 28 evaluations, 6 iterations, chi^2 476.58415279612495, all parameters, sigmas and predictions bit-identical afterwards. The retention test counts full
+  results alive after a GC at every evaluation (`Fitter.EvaluationObserver`): 28 with the old code, fewer than 5 now.
+* **Core**: `Engine/MemoryEstimate.cs` (formulas in `docs/reference/memory.md`), compile note, `compute.memoryLimitBytes` (a `ModelException` at compile time; `validate` shows it as
+  an error), 80 % free-memory warning (`GCMemoryInfo` on .NET, `GlobalMemoryStatusEx` / `/proc/meminfo` on net48, silent when unknown), `CompiledRun.Memory`,
+  `ValidationReport.Memory`, the `memory` command. Study points run with `used` profiles (the study outputs read no profile; the nominal run keeps the user's setting).
+  Finding while testing: vacuum gaps share one pulse array between elements, so a retained-memory test needs dispersive elements.
+* **GPU**: `GpuContext.FreeMemoryBytes` (CUDA `cuMemGetInfo_v2`; others total minus tracked buffers), `GpuMemory` pure decisions (`Fits` 0.8 x free, `MaxConcurrent`),
+  slots lowered for large problems, ensembles halved with a note, LRU (32) program cache with `cuModuleUnload` / `clReleaseProgram`, `ReleaseContexts`.
+* **Python**: `uf.estimate_memory`, `MemoryWarning`, pre-flight in `scan` and in `run` of a fit, `close()` / `with` on engine handles.
+* Not done: `keepProfiles used` for branched systems, instrument 2-D outputs in the estimate (roadmap §2); mypy is not installed in the Windows venv (the regen step was skipped).
+
+## Stage 13 -- WP-2: calculators, plotting and schematics  (2026-11-17, `dev/2026-11-wp2` merged into `dev/2026-11`, Windows)
+
+Built in a git worktree (`../UltrafastEngine-wp2`) while another session worked on `dev/2026-11`; two commits (part A, part B). MCP (part C of the
+brief) was split off as WP-2b.
+
+* **Calculators (A):** `ultrafast.calc` became a package (`pulse`, `crystal`, `cell`, and the new pure-Python `beam` and `nonlinear`; decision E7: they work without the engine, tested by
+  making the engine unavailable in a subprocess). The old module names stay as re-exports (`ultrafast.crystal`, `ultrafast.cells` keep every 2.2.0 name: `test_structure`
+  snapshots them). Keywords carry their unit; the old ones warn (`calc/_compat.py`). Engine errors are `ValueError`. TBP shapes `lorentzian` (field 1/(1+(t/tau)^2), 0.1420) and
+  `asymmetric-exponential` (one-sided exponential, 0.1103), checked against the table and a numerical Fourier transform. The phase-match calculator already accepted
+  `noncollinearDeg` for `sfg` (the roadmap item was done in WP-1 or earlier): tested, no change. Marburger's `z_sf` uses `z_R = pi n0 w0^2 / lambda` (checked against published
+  statements of the formula), `P_cr = 3.77 lambda^2 / (8 pi n0 n2)` as the engine's `criticalPower` check.
+* **Plotting (B):** `use_style` (4 styles, call and context manager, `ULTRAFAST_PLOT_STYLE`, `--style`, `--column`); palettes validated with the dataviz validator (the `ultrafast`
+  light palette has three colours below 3:1 on the light surface: labels are needed, documented). Paper figures wider than 9 in keep their size (a dashboard shrunk to 7 in
+  overlaps its text) and are saved under 4800 px across. Schematics: `plotting/graph_layout.py` (pure layout, golden tests) and a new `draw_graph`; `SystemGraph.ToMermaid`
+  with types, virtual ports, loops. `spectrogram_3d` / `spectrogram` / `animate_evolution` (a probe stores the spectrum and the spectral phase, not a time-domain phase:
+  its envelope is rebuilt on a frequency grid). `docs/reference/plotting.md` with before / after images from `python/tools/make_plotting_docs.py`.
+* **Verified:** Python 304 passed, 12 skipped; C# filters `PulseCalculator`, `Branching`, `Crystal`, `PhaseMatch` pass; solution build 0 errors; `mkdocs --strict` 0 warnings.
+  **Not run before the merge:** the full C# suite (`dotnet ... UltrafastEngine.Tests.dll`, ~5 min) and net48 were skipped for time on 2026-11-17. Run only: `PulseCalculator`, `Branching`, `Crystal`, `PhaseMatch` filters (all pass), the solution build (0 errors) and the whole Python suite (304 passed, 12 skipped, `mkdocs --strict` 0 warnings). If the full suite fails later, suspect first the C# changes of WP-2: `PulseCalculator.cs` (two new TBP shapes in `Shapes`, which the CLI and the `shapes` op list), `SystemGraph.cs` (`Types`, `ToMermaid`).
+* **Not done:** `mypy` on the new modules (not installed in the venv); `PROJECT_STATUS.md` counts not updated (test counts changed: +about 50 Python, +3 C#);
+  the paper `run.py` scripts still use the old keyword names (they work, with a `DeprecationWarning`).
+
+## Stage 14 -- WP-2b and WP-3: MCP server, release groundwork  (2026-11-17 / 18, `dev/2026-11-wp2b` merged into `dev/2026-11`, Windows + RTX 3060 Ti)
+
+Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnight simulations used the main checkout's `python/src/ultrafast/bin`; only light tests were run.
+
+* **WP-2b, the MCP server (`ultrafast-mcp`, `python/src/ultrafast/mcp/`, decision E8).** The current MCP revision (2026-07-28) is *stateless* (`server/discover`, protocol version and capabilities in
+  every request's `_meta`, `resultType`, error -32022); most clients still speak the handshake revisions (`initialize`, 2025-11-25 and earlier). The server serves both: `initialize` selects the legacy
+  behaviour, a request with the modern `_meta` the new one. Layout: `server.py` (JSON-RPC, dispatch), `policy.py` (every refusal, no engine), `tools.py` (six definitions, `prepare`), `worker.py` +
+  `_worker_main.py` + `ops.py` (a persistent child with a private empty `ULTRAFAST_HOME`, killed on timeout, size and memory pre-flight), `explain.py`, `resources.py`. Design points worth keeping: refusals are
+  tool results with `isError` (the agent can correct the call), not protocol errors; `fidelity` for a run *file* is applied through a temporary copy next to the original (relative data paths keep working);
+  `fit` / `study` / `backward` sections are refused in `run` (a fit has no time budget yet; it is the next tool); the sandbox is policy plus a separate process, not an OS jail (documented). A junction
+  (Windows) counts as a link: tested with `mklink /J` because symlinks need a privilege. `ultrafast twin serve <folder>` starts it; its docstring, `plugin.json`, README and `docs/plugins/twin.md` were wrong
+  (said "not implemented") and are fixed. Schemas are shipped in the wheel by `build/package.py` (`ultrafast/schemas`).
+* **WP-3, release groundwork (nothing uploaded, no tag).** Version **1.0.0** in every place (`build/check_version.py` lists them: pyproject, `__init__`, `Directory.Build.props`, CITATION, the engine constant, six
+  plugin.json and C# constants); the 2.x numbers were internal and never released. `release.yml`: `version` job (tag = files; `vX.Y.ZrcN` builds `X.Y.ZrcN` wheels through `UF_WHEEL_VERSION` in
+  `package.py`), `light-tests`, `twine check --strict` and the ZOS-API gate on the extracted wheels, `testpypi` / `pypi` jobs with `id-token: write` behind the environments of the same names (E4), no sdist (E5),
+  Linux native wheels left out of the upload (built on the runner's glibc, not in a manylinux container). **PyPI name: `ultrafast-engine`.** The owner preferred `ultrafast`; on 2026-11-17 it had no project on PyPI
+  but is taken on TestPyPI by another author, which would make the rc rehearsal impossible (E13). Install docs (`docs/install.md`, `python/README.md`) and the owner's steps (`docs/releasing.md`).
+* **WP9 slice 1:** `docs/examples/_template.md` (excluded from the site), `example.json` in the 12 S5 examples, `build/example_lint.py` (structure and metadata, never runs an example; in CI and in `release.yml`);
+  `temporal-shaping` got the missing Layout label. `component-gallery`, `dependence-models` and `transforms` do not follow the structure yet (wave 2).
+* **Public roadmap** in three blocks (`docs/roadmap.md`); `ROADMAP.md` is generated from it (`build/sync_roadmap.py`, checked in CI and by `test_wp3.py`). The old page had two diverging copies.
+* **Review before the merge found four things, all fixed:** file arguments were not checked (only inline objects), so a `run.json` with `"@cb"` or an outside path passed (the document check now parses the file and resolves relative paths from the file's folder); `plot` offered `spectrogram`, which returns data (now `spectrogram_3d`); the `light-tests` job would have needed .NET and PyYAML (narrowed to `test_wp3`, `test_mcp`, the ZOS-API tests); and `twine check` had not run. **`twine check` still has not run here** (no package index reachable from this machine); the wheel was built (`UF_WHEEL_VERSION=1.0.0rc1`, 1 MB), its contents (mcp package, schemas, `ultrafast-mcp` entry point, metadata) were inspected and the installed copy answered `initialize`, `tools/list` and `resources/read`. `twine check --strict` runs in the `publish` job before any upload.
+* **Tests run:** `test_mcp.py` (52), `test_wp3.py` (22), `test_release.py`, `test_packaging.py`, `test_examples_package.py`, `test_structure.py`, `test_setup_and_calc.py`: 124 passed, 1 skipped before the review fixes, 74 in `test_mcp` + `test_wp3` after them; `mkdocs build --strict`.
+* **Not run (owner's overnight simulations were using the machine):** the full C# suite (`--slow`), the rest of the Python suite, the pyNLO and LightPipes cross-checks, the examples (`/example-check`),
+  net48, any NativeAOT build (the solution did build: 0 errors), the release workflow itself (it has never run on GitHub), `PROJECT_STATUS.md` counts (not updated). The engine in the worktree was rebuilt (hosted, plugins fitting and twin only).
+* **Not done:** the LaTeX report (not committed by design); MCP tools `compare_to_measured` and `fit`, prompts, agent pack, evals (roadmap section 4); the owner's PyPI steps; the macOS NativeAOT wheel.
+
+## Stage 15 -- CI repair, ionisation in χ(2) crystals, MCP and agents completed  (2026-11-18, `dev/2026-11`, macOS arm64)
+
+* **CI failures of the Stage 14 merge, all fixed:** `FittingMemoryTests.Fit_ResultIsBitIdentical...` compared to the last bit and failed on Linux and arm (…612467 against …612495); it now compares to 1e-9 relative and says why.
+  `ValidationMatrixTests` and the schemas were stale (regenerated). The `media.py` ionisation component script lost the plasma to the negligible-ionisation skip (it now sets `skipNegligible: false`).
+  Python: `test_version_and_capabilities` still expected 2.x; the MCP policy took `C:\Windows\x.npz` for a relative path on POSIX (drive and UNC forms are refused off Windows; on Windows pathlib decides).
+* **Ionisation in χ(2) crystals** (`ionization` on `crystal`, element-level, off by default; decision Ph5): `PlasmaResponse.History` (shared with the bulk path) and `ForSolid`; `Chi2Problem.Plasmas`, one rate per field at its own carrier and own
+  intensity, densities added, Drude index and loss on each field, 1-D and spatial; band gaps for BBO, LBO, KDP, KTP, LiNbO₃ in the catalogue as `unverified` (from the UV edge, recalled, not checked against a source). A first version built the rate at the highest carrier; review showed
+  that gives a 2-photon rate for 800 nm light in BBO (really 5), so it was replaced. Tests `Chi2IonizationTests` (7): density against the multiphoton integral, energy taken, Drude phase, d = 0 Keldysh crystal equals the bulk plasma to 0.2 %, photon order, SHG budget, radial against 1-D.
+* **MCP and agents:** tools `compare_to_measured` and `fit` (own time budget, memory pre-flight, run against the real engine), prompts, `ultrafast-agent install --target claude|codex|cursor` with five shipped skills, `tests/agent-evals/` (five prompts with criteria and replayed reference trajectories; no live agent has been scored).
+* **Gallery:** every `make_figures.py` re-run (60 examples, 0 problems) and `docs/gallery.md` rebuilt; new hero figure for `Branched/cavity-and-coherence`. WP9 waves 2-4 are not done.
+* **Release:** `release.yml` unchanged (tag `v*`, environments `testpypi` / `pypi`, project `ultrafast-engine`); the owner still creates the pending publishers and tags.
+* **Not done / open:** see `roadmap-internal.md` sections 1, 4, 5; CI on GitHub for this stage has not run yet; net48 on Mono not available on this machine.
+
+## Stage 16 -- Release completion: unit-in-key renames, decentred aperture, new examples, reference pages, benchmarks  (2026-11-18, `dev/2026-11`, macOS arm64, Apple M3)
+
+* **Unit-in-key renames by load-time migration** (`Schema/Migrations.cs`, `Renames` table; one deprecation note per old key): fibre `betas` -> `betasSkPerM`, Faraday rotator `fieldT` -> `fieldTesla`, Raman models `tau1` / `tau2` / `taub` -> `tau1S` / `tau2S` / `taubS`, `dnDT` -> `dnDTPerK`. Readers also fall back to the old names (models built by hand in C#). Old files, tests and examples keep working. Test `SchemaTests.UnitInKeyRenames_*`.
+* **Engine items closed:** `outputs.keepProfiles: "used"` now also works in branched systems (the links of the graph decide; `SpatialStreamingTests.KeepProfilesUsed_InABranchedMachZehnder_*`, result unchanged). The circular aperture now handles a decentred beam (angular trapezoid over a closed-form radial integral; `GridSolverTests.CircularAperture_OnADecentredBeam_*` against the noncentral chi-square mixture and 2-D quadrature). A cw source off the frequency lattice already sat on the requested frequency: only the test was missing (`PhysicsReviewTests.CwSource_OffTheLattice_*`). The CLI banner no longer says "2.0".
+* **Examples:** `Branched/system-schematics` (a Mach-Zehnder and a ring-down etalon in every plot style) and `GettingStarted/calculators` (pulse, beam, nonlinear and crystal calculators, with the B-integral checked against an engine run: ratio 1.00 with the catalogue n2 of 2.6e-20 m^2/W). Hero images for `Interop/zemax-workflow`, `Interop/cpp` and `GettingStarted/user-element`. All 64 `make_figures.py` re-run, 0 problems.
+* **Docs:** `reference/cli.md` and `reference/mcp.md` new; schema page lists the renamed keys; README and `docs/index.md` front-page table has four rows; `CONTRIBUTING.md` rule 7 (figures use the plotting backend); `speed.md` has a Benchmarks section (Apple M3 CPU measured today, RTX 3060 Ti figures from earlier stages).
+* **Finding:** the first calculator-versus-engine B-integral differed by 18 %: the script used n2 = 2.2e-20, the catalogue has 2.6e-20 for fused silica. Not an engine bug.
+* **CI of the first PR failed on one cause:** the schematic figures were written to `figures/`, which `.gitignore` excludes (`docs/examples/**/figures/`), so the README linked files that were not in the repository (docs build, example lint, one Python test). They are now in `styles/`. A scan of every tracked markdown file for image links to untracked files finds none left (only `_template.md`, a template).
+* **Agents completed in the same stage:** the `design-system` skill and `ultrafast agent` in the C# CLI (embedded resources from `python/src/ultrafast/agents/pack`; `test_the_cli_agent_install_writes_the_same_files_as_the_python_command`). Left for v1.1.0 from this area: live scoring of the evals, MCP tools for `study` / `backward` / the twin, one source for the skills.
+* **Second PR round (same stage):** the last CI failure was Windows only: Python `write_text` wrote CRLF where the C# command wrote LF (the installer now writes bytes). The owner decided the first release is an **alpha** (decision E17): tags `v1.0.0aN` go to PyPI as pre-releases, files keep `1.0.0`. MCP completed: tools `study`, `backward`, `twin_fit`, `twin_validate`, `twin_predict` (policy: study limits, a twin project is read through the same checks as any system), `tests/agent-evals/run_live.py` (live scoring with `claude -p`), two more evals, `build/sync_skills.py`. The first live run of the mandatory eval **failed** (Sonnet scanned in `full`): the default fidelity is `full`; the rule is now in the server instructions and the three skills; afterwards Sonnet (2 of 3 runs) and Haiku passed.
+* **Moved to v1.1.0** (design-heavy, no release blocker, each listed in `roadmap-internal.md`): glass in beam splitters, delayed-response window planning, non-collinear OPA overlap test, study schema, carrier frame, one-cycle pulses, Kerr-lensed beam carried on, spatial XPW, cross-correlator, `multiFrog`, birth phase, frequency-dependent A_eff, GPU Chi2 plasma / gain with ASE / instrument read-outs, multi-GPU and Apple Metal FP32, full conversion of every example README to the template, coverage and mypy in CI.
+* **Not done:** tags and PyPI uploads (owner); net48 on Mono not available here.
+
+## Working notes that still help
+
+* **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
+* **Honesty rules that worked:** a paper disagreement is a finding, never tuned away; a KNOWN mark in a component check must have a repro; unverifiable numbers are UNVERIFIED and soft; a test tolerance is never loosened to hide a failure.
+* **Parallel agents:** implementers in separate git worktrees (`isolation: worktree`), each on a distinct part of the code; the lead merges and regenerates the generated files once. A subagent started inside a worktree session cannot run commands in the main checkout (and vice versa).
+* **Python environment:** export `ULTRAFAST_LIBRARY` and `PYTHONPATH` in the same shell command as the Python call, or a stale `bin/native` library is used. Rebuild with `python/tools/build_engine.py` after any C# change, never while another job uses the library (other Python processes can lock `python/src/ultrafast/bin` on Windows: retry after they finish).
+* **Windows machine (owner's):** `python3` is the Microsoft Store stub, use `python` from `../.venv`; HTTPS certificate checks fail for git and pip because the antivirus inspects TLS: the repository has `http.sslBackend schannel` (local config), and pip takes `--cert` with a bundle of the Windows roots exported from `Cert:\LocalMachine\Root`.
+* **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
+* **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.

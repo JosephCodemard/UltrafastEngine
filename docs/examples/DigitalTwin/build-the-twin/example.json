@@ -1,0 +1,15 @@
+{
+  "title": "Build a digital twin: fit across conditions, predict, validate",
+  "summary": "A digital twin fitted to spectra at five pulse energies recovers the hidden filter and nonlinear phase, predicts two held-out energies with credible bands, and flags a twin that only fits its training data.",
+  "group": "DigitalTwin",
+  "script": "build_twin.py",
+  "plugins": [
+    "twin",
+    "fitting"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

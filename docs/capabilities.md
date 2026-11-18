@@ -8,7 +8,7 @@ listed with its unit and default in the [option reference](reference/options.md)
 UltrafastEngine is built for **table-top, open-air ultrafast optics**: a pulse that travels through mirrors, gratings,
 prisms, lenses, plates, crystals, gain media, gas-filled paths and optical instruments on an optical table, with some
 support for single-mode fibre. It is not a general waveguide, multimode-fibre or laser-cavity design tool, and it does
-not trace rays (geometry comes from element parameters or from a ray trace exported by the zemax plugin).
+not trace rays (geometry comes from element parameters or from ray-traced data you supply, e.g. a group delay table).
 
 The pulse is a field resolved in time and frequency (both polarisations). The beam enters in one of three ways: through
 its size (an effective area that follows a beam model or the tracked Gaussian beam), as a carried transverse profile on a
@@ -40,7 +40,7 @@ in the [option reference](reference/options.md#elements). Aliases in brackets.
 | `ndFilter` | absorptive or reflective neutral-density filter, substrate, ghosts | [Components](reference/components.md#ndfilter) |
 | `waveplate`, `polarizer`, `rotator`, `thinFilmPolarizer` (`tfp`), `faradayRotator` (`faraday`) | Jones-calculus polarisation optics, multi-order and zero-order waveplates, thin-film polarisers, non-reciprocal rotation | [Components](reference/components.md#waveplates), [Surfaces and polarisation](reference/coatings.md) |
 | `beamSplitter`, `polarizingSplitter`, `dichroic`, `leakMirror`, `delay` | splitting, recombination and delay in a Branched system | [Branched systems](reference/branches.md) |
-| calculators | phase matching (`ultrafast crystal`), time-bandwidth product / transform limit / chirp (`ultrafast pulse`, `ultrafast.calc`) | [Crystals](reference/crystals.md), [Pulse calculator](reference/pulse-calculator.md) |
+| calculators | phase matching (`ultrafast crystal`), time-bandwidth product / transform limit / chirp (`ultrafast pulse`, `ultrafast.calc`), Gaussian-beam / mode-matching and nonlinear estimates (`ultrafast.calc.beam`, `.nonlinear`, pure Python) | [Calculators](reference/calculators.md), [Crystals](reference/crystals.md), [Pulse calculator](reference/pulse-calculator.md) |
 | `crystal` | χ(2): SHG, SFG, DFG, OPA / OPCPA, collinear and non-collinear, birefringent and quasi-phase matching, χ(3) in the crystal | [Crystals](reference/crystals.md) |
 | `fiber` (`fibre`, `waveguide`) | single-mode fibre: Taylor betas or a dispersion curve, γ, loss, gain, Raman, noise, soliton and dispersive-wave diagnostics | [Fibres](reference/fibers.md) |
 | `gain`, `amplifier` | pumped gain media (rate equations, spectral saturation, thermal lens, optional stress birefringence, ASE); multipass and regenerative amplifiers | [Gain media](reference/gain.md) |
@@ -81,6 +81,23 @@ more) are listed in [Instruments](reference/instruments.md).
 Test details: [Testing and validation](testing.md). Synthetic measurements with known answers to try the analysis
 tools: [Assets](assets/README.md).
 
+### Common questions
+
+* **Free electrons in solids (high-energy lasers in crystals and glass)?** Yes in bulk elements, plates, windows and fibres: Keldysh (or MPI)
+  photo-ionisation across the band gap, avalanche, recombination, and the Drude index with inverse-bremsstrahlung absorption, in the 1-D,
+  carrier-resolved and spatial models ([Ionisation](reference/ionization.md)), and in χ(2) crystal elements (one rate per field at its own carrier; CPU only; band gaps
+  of BBO, LBO, KDP, KTP and LiNbO₃ are estimates from the transmission edge). Ionisation that cannot matter is skipped automatically in bulk elements, with a note.
+* **Does circular light become elliptical on a mirror at an angle?** Yes when the mirror is a real surface: bare glass or metal (a material
+  with n and k), a thin-film stack, or a `table` coating with s and p phases; checked against the Fresnel equations. An ideal mirror (no
+  coating) and `ideal` / `ar` / `gdd` coatings give s and p the same phase and keep circular light circular. There are no built-in metals: load
+  one from refractiveindex.info.
+* **Self-steepening?** On by default in every nonlinear model (the (1 + Ω/ω₀) factor, shock time 1/ω₀), with a per-element switch.
+* **Do thick optics add dispersion?** Plates and windows, thick waveplates (different group delay on the two axes), thin-film polariser
+  substrates, Faraday crystals, lenses with `thicknessM`, and polarisers (Glan prisms) with `material` and `thicknessM` do. Ideal polarisers and
+  beam splitters do not: put a `plate` of their glass in the path ([Glass in polarisers and lenses](reference/components.md#glass-in-polarisers-and-lenses)).
+* **Is the B-integral averaged?** `bIntegralRad` is the on-axis peak; pulse- and beam-averaged values are reported beside it for 1-D elements
+  ([Nonlinear](reference/nonlinear.md)).
+
 ## Plugins
 
 Capabilities that depend on outside software or are not needed by everyone are plugins, discovered at start-up:
@@ -91,8 +108,8 @@ Capabilities that depend on outside software or are not needed by everyone are p
   Levenberg–Marquardt, CMA-ES or MCMC (or your own estimator), priors, instrument-response parameters, three result
   layers (simulated, inferred, believed), an influence map and provenance; a fitted system file for new inputs; and
   backward propagation of a measured field to the input.
-* **zemax** — exports a sequential OpticStudio system (group delay along the real ray, angles of incidence, coatings,
-  beam sizes) to a system file. Runs on Windows with OpticStudio.
+* **zemax** (experimental) — exports a sequential OpticStudio system to a system file. Not tested against a real OpticStudio;
+  see [Zemax plugin](plugins/zemax.md) for its status.
 * **gpu** — CUDA and OpenCL compute back-ends for 1-D and spatial envelope propagation (double precision), and native CPU
   FFTs (Apple Accelerate, FFTW) ([GPU](plugins/gpu.md)).
 * **hitran** — gas absorption and dispersion from HITRAN line lists (Voigt lines, TIPS partition sums) in air gaps and
@@ -114,8 +131,7 @@ the same way ([Plugin system](reference/plugins.md)).
 
 **Optical layout**
 
-* No ray tracing. Geometry enters through ray-traced data exported from OpticStudio (zemax plugin) or through the
-  element parameters; prism pairs and Martinez stretchers need traced group delay.
+* No ray tracing. Geometry enters through element parameters or through ray-traced data you supply (traced group delay, angles); prism pairs and Martinez stretchers need traced group delay.
 * [Branched systems](reference/branches.md): mode overlap of meeting beams assumes simple Gaussian beams at one plane and
   ignores M²; a linked crystal port takes the strongest packet only; merged carried profiles share one transverse shape
   per stored frequency; a graph loop has one direction (a linear cavity is written as separate forward and return
@@ -165,9 +181,8 @@ the same way ([Plugin system](reference/plugins.md)).
 
 **Software**
 
-* The Python package and the NativeAOT C library are built from source (no PyPI wheels or NuGet package yet).
-* GPU back-ends (`gpu` plugin: CUDA, OpenCL) run 1-D envelope and spatial envelope propagation; user responses,
-  rotational Raman, position-dependent properties, carrier-resolved fields, χ(2), amplifiers and ionisation run on the CPU. Apple GPUs
+* The 1.0.0 alpha is the first release on PyPI (`pip install --pre ultrafast-engine`, platform-independent wheel; the NativeAOT library and a NuGet package are built from source or come with the release assets).
+* GPU back-ends (`gpu` plugin: CUDA, OpenCL) run 1-D envelope and spatial envelope propagation (with the rotational Raman
+  of gases and `expression` / two-photon / extra-Kerr time responses); response callbacks, position-dependent properties, carrier-resolved fields, spatial χ(2) models, amplifiers and ionisation run on the CPU (1-D χ(2) crystals run on the device). Apple GPUs
   are not used (no double precision); macOS uses the Accelerate FFT on the CPU ([GPU](plugins/gpu.md)).
-* The zemax plugin compiles against the OpticStudio API, but its operand conventions should be checked against a
-  running OpticStudio before quantitative use ([Zemax plugin](plugins/zemax.md#known-assumptions-to-confirm-on-your-installation)).
+* The zemax plugin has never been run against a real OpticStudio ([status](plugins/zemax.md)).

@@ -91,13 +91,21 @@ Two plugins, driven from Python (load them with `uf.plugins.load_python_plugins(
   Examples: [AdaptiveOptics](examples/AdaptiveOptics/README.md); reference page: [ao](plugins/ao.md).
 * **`twin`**: `ultrafast twin init|fit|validate|predict|design|track|check` (set `ULTRAFAST_PYTHON`) or `ultrafast_twin` from Python. A twin is the fit across
   conditions (the fitting plugin) plus a validation report: **always mark at least one condition `heldOut`**, read the verdict (`ok`, `marginal`,
-  `fits-training-only`, `unvalidated`) before trusting a prediction, and give the drift tracker the expected drift in physical units. The MCP server for
-  agents is not built. Examples: [DigitalTwin](examples/DigitalTwin/README.md); reference page: [twin](plugins/twin.md).
+  `fits-training-only`, `unvalidated`) before trusting a prediction, and give the drift tracker the expected drift in physical units. `ultrafast twin serve <folder>` starts
+  the [MCP server](reference/mcp.md) on the project folder (the twin tools `twin_fit`, `twin_validate` and `twin_predict` are in it). Examples: [DigitalTwin](examples/DigitalTwin/README.md); reference page: [twin](plugins/twin.md).
+
+## MCP server
+
+`ultrafast-mcp` is a local, workspace-sandboxed MCP server (stdio only) with the tools `describe`, `validate`, `run`, `scan`, `explain_warning`,
+`compare_to_measured`, `fit`, `study`, `backward`, `twin_fit`, `twin_validate`, `twin_predict` and `plot`, two prompts and four resources. Install the skills for your agent with `ultrafast agent install --target claude|codex|cursor` (or `ultrafast-agent install`, the same files).
+Configuration, every tool, what is refused and how the sandbox works: [MCP reference](reference/mcp.md). The workflow it asks for is
+*explore in `quick`, confirm in `full`* ([Fidelity](reference/fidelity.md)).
+
 
 ## Changing the code
 
 * Layout: `src/UltrafastEngine.Core` (engine), `src/UltrafastEngine.Cli`, `src/UltrafastEngine.Native` (C API),
-  `python/src/ultrafast`, `plugins/` (fitting, zemax, gpu, hitran), `tests/UltrafastEngine.Tests` (custom runner, no NuGet).
+  `python/src/ultrafast`, `plugins/` (fitting, gpu, hitran, ao, twin; zemax is experimental), `tests/UltrafastEngine.Tests` (custom runner, no NuGet).
 * Zero NuGet dependencies; the core must build for `net10.0` and `net48` (no newer APIs without `#if NET`).
 * Every element/option lives in `src/UltrafastEngine.Core/Schema/BuiltIn*.cs`; after changing one, regenerate
   `ultrafast schema system -o schemas/ufs.schema.json`, `ultrafast schema run -o schemas/run.schema.json`,

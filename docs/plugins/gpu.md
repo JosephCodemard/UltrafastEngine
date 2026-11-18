@@ -55,8 +55,12 @@ CPU (`cuda: small problem (4096 samples < gpuMinPoints 8192); ran on the CPU`).
 |---|---|
 | bulk, fibre, gap with 1-D envelope propagation: Kerr (scalar or vector, with the coherent coupling), Raman (scalar, or vector with the anisotropic part), self-steepening, z-dependent beam area | yes |
 | spatial (radial Hankel or cartesian) envelope propagation with the same physics, envelope or UPPE coupling, vector fields | yes |
-| user time responses (`timeResponse` models, callbacks), rotational Raman of gases, position-dependent properties | CPU |
-| carrier-resolved field propagation, χ(2) crystals, amplifiers, ionisation | CPU |
+| rotational (orientational) Raman of molecular gases (N2, O2, CO2, air, mixtures; `n2Scale`), 1-D and spatial: the causal response is a zero-padded linear convolution, done with the same kernel spectrum as the CPU | yes |
+| `timeResponse` models `expression`, `twoPhotonAbsorption` and `kerr` (any number, summed in order; every variable, including the running fluence `F`), 1-D and spatial: each element's responses are translated to C and compiled into a kernel of their own the first time they are seen (NVRTC or the OpenCL compiler), then cached per device | yes |
+| `ionization` (photo-ionisation, avalanche, recombination, Drude index at the carrier or at every frequency) in 1-D envelope elements: rates from a table of ln W / ln I (exact for MPI, 4e-6 in the ionised density for PPT / Keldysh), the density integrated in time order by one work-item ([ionisation](../reference/ionization.md)) | yes |
+| `timeResponse` callbacks (user code), position-dependent properties, ionisation in spatial elements | CPU |
+| χ(2) crystals in the 1-D coupled-wave model: SHG, SFG / DFG / OPA (three waves), χ(3) SPM / XPM, self-steepening, averaged or domain-resolved QPM (the stepper lands on every domain wall, as on the CPU), crossing beams | yes |
+| spatial (radial / cartesian) χ(2) crystals, carrier-resolved field propagation, amplifiers, ionisation | CPU |
 
 The built-in GPU FFT needs power-of-two lengths (the grid planner always picks them); with cuFFT any even length
 works for the time axis. Cartesian transverse grids must be powers of two on the device.
@@ -66,6 +70,17 @@ works for the time axis. Cartesian transverse grids must be powers of two on the
 launches of a few µs each. An explicit `"cuda"` / `"opencl"` uses the device for every supported element unless
 `gpuMinPoints` is set. `"auto"` never picks an OpenCL device that is a CPU (PoCL, Intel's CPU runtime) unless
 `ULTRAFAST_OPENCL_ALLOW_CPU=1`. What speed-up to expect: [Speed](../reference/speed.md#what-gains-from-a-gpu).
+
+`"compute": {"precision": "mixed"}` evaluates the nonlinear operator of 1-D envelope and χ(2) elements in single precision (off by default;
+refused when an instrument asks for more than 70 dB of dynamic range): [Speed](../reference/speed.md#mixed-precision-on-the-gpu).
+
+Parameter studies run their points as one device ensemble (all points' 1-D elements in the same launches; study key `ensemble`):
+[Parameter studies](../reference/studies.md), measured gains in [Speed](../reference/speed.md#device-ensembles-for-studies).
+
+An expression is compiled with its parameters written in as constants, so a study that changes an expression parameter
+compiles one kernel per value; a study over anything else reuses the kernel. The device evaluates the same arithmetic as
+the CPU; its `sin`, `exp`, `pow`, ... may differ from .NET's in the last bit, and `min` / `max` / `clamp` ignore a NaN
+argument instead of returning NaN.
 
 ## Setting up
 
@@ -126,6 +141,21 @@ Every thread that runs a simulation gets its own CUDA stream / OpenCL command qu
 evaluations and coherence trials overlap on one device. `"compute": {"deviceSlots": 4}` caps the element
 propagations running on a device at once (memory, queue depth); when all slots are busy, `auto` runs the element on
 the CPU (CPU and GPU then work together) and an explicit back-end waits.
+
+## Memory
+
+* **Free memory, not total.** An element is accepted when the stepper's memory need is at most 80 % of the device's *free* memory:
+  CUDA asks the driver (`cuMemGetInfo`, which also counts other processes); OpenCL has no such query, so the figure is the total
+  minus the buffers this process holds. Otherwise the element runs on the CPU, and its notes give both figures
+  (`not enough free device memory (needs 1.2 GB, 600 MB free)`).
+* **Slots follow the size.** `compute.deviceSlots` (default 4) is lowered to `floor(0.8 x total / needed)` (at least 1) when that many
+  propagations of this size would not fit together; a problem close to the device size runs alone.
+* **Ensembles are halved for memory.** A study batch that does not fit is split in halves until it does, and every point's notes say so
+  (`an ensemble of 64 study points does not fit the free device memory (...); run as 32 + 32`).
+* **Bounded caches.** Programs compiled for user-response expressions are kept per device up to 32 (least recently used released);
+  the contexts are disposed by `GpuBackend.ReleaseContexts()`. The built-in kernels are compiled once and stay.
+* The decisions are pure functions (`GpuMemory.Fits`, `GpuMemory.MaxConcurrent`), tested with a fake device size
+  (`GpuMemoryTests`). See [memory](../reference/memory.md) for the host-side estimate.
 
 ## How it works (for developers and AI agents)
 

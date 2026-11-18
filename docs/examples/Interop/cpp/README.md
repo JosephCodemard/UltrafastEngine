@@ -1,5 +1,7 @@
 # C++ example
 
+![The C++ examples](hero.png)
+
 `devices.cpp` lists the compute devices (CPU, CUDA, OpenCL), self-tests them (`--selftest`) and runs a system on
 the fastest suitable one (`uf_devices_json`, `uf_set_default_backend("auto")`; docs/plugins/gpu.md).
 

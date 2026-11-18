@@ -72,6 +72,32 @@ namespace UltrafastEngine.Tests
             Assert.True(used.At["src"].Profile == null || ReferenceEquals(used.At["src"].Profile, used.At["mod"].Profile), "used: the source profile is not read");
         }
 
+        [Test(Reference = "outputs.keepProfiles = \"used\" in a branched system: the profiles of the arms are dropped, the element that feeds the output is kept, and the camera at the end is unchanged", Tolerance = "exact")]
+        public void KeepProfilesUsed_InABranchedMachZehnder_DropsTheArms_AndChangesNoResult()
+        {
+            JsonObject Gap(string id, double l, string next, JsonObject initial = null)
+            {
+                var g = O("id", id, "type", "gap", "material", "Vacuum", "lengthM", l, "next", next, "transverse", Grid(0, 4, initial));
+                return g;
+            }
+            RunResult Mz(string keep)
+            {
+                var sys = Sys(Gap("src", 0.0, "bs1", O("kind", "gaussian", "radiusM", 0.5e-3)),
+                              O("id", "bs1", "type", "beamSplitter", "reflectivity", 0.5, "next", O("c", "armA", "d", "armB")),
+                              Gap("armA", 0.05, "bs2:1"), Gap("armB", 0.07, "bs2:2"),
+                              O("id", "bs2", "type", "beamSplitter", "reflectivity", 0.5, "next", O("c", "end", "d", "virtual")));
+                sys.Topology = UltrafastEngine.Systems.SystemGraph.Branched;
+                return Go(sys, Spec(Gauss(Lam, 30e-15, 1e-6), O("instruments", A(O("kind", "beamProfile", "name", "bp", "at", "end")), "outputs", O("keepProfiles", keep))));
+            }
+            var all = Mz("all"); var used = Mz("used");
+            var a = Map(all, "bp"); var b = Map(used, "bp");
+            for (int i = 0; i < a.Length; i++) Assert.Equal(a[i], b[i], "camera pixel " + i);
+            Assert.Close(all.Output.TotalEnergyJ(), used.Output.TotalEnergyJ(), 1e-14, 0, "energy");
+            Assert.True(all.At["armA"].Profile != null && all.At["armB"].Profile != null, "all: the arms' profiles are kept");
+            Assert.True(used.At["armA"].Profile == null && used.At["armB"].Profile == null, "used: nothing reads the arms' profiles");
+            Assert.True(used.At["bs2"].Profile != null, "used: the element that feeds the output keeps its profile");
+        }
+
         [Test(Reference = "a prefix-cached study resumes from the nominal run's pulses, so with keepProfiles \"used\" the nominal run still keeps every profile: the cached sweep equals the uncached one (review finding H2, 2026-11-10)", Tolerance = "1e-12")]
         public void PrefixCachedStudy_WithKeepProfilesUsed_EqualsTheUncachedStudy()
         {

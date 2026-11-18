@@ -101,13 +101,116 @@ Accelerate instead.
 ## Studies
 
 Parameter studies freeze the grid, cache the unchanged prefix of the system and run points in parallel batches:
-[Parameter studies](studies.md). With a GPU back-end, set `"parallel"` to 2-4 so the device always has work queued.
+[Parameter studies](studies.md). With a GPU back-end the points of a batch run as one device ensemble ([below](#device-ensembles-for-studies)); `"parallel"` then only matters for elements that cannot join it.
+
+## Parameter studies against a loop
+
+`tools/bench` (`dotnet run -c Release --project tools/bench -- scan-mpc loop-mpc`), Apple M-series, .NET 10, Accelerate FFT. "Loop" is the same
+points as independent `Simulation.Run` calls; "study" is `Studies.Run` (frozen grid, instruments skipped when unused, prefix cache).
+
+| case | points | loop | study | gain |
+|---|---|---|---|---|
+| `mpc-argon`, length of the last gap | 20 | 6.5 s | 1.1 s | x5.7 (outputs equal to 1e-11 relative) |
+| `spm-plate`, plate length | 200 | 0.78 s | 0.44 s | x1.8 |
+| `spm-plate`, input GDD (acts on the pulse: no prefix) | 200 | 0.8 to 1.1 s | 0.7 s | x1.2 to 1.5 |
+
+The gain grows with the cost of the elements before the changed one and of the instruments. When a single run takes 3 ms, nothing is gained
+by any machinery: the 200 runs already finish in less than a second. A separate *linear fast path* (one transfer function, no integration)
+and an *ensemble dimension on the CPU* were therefore **not built**: a linear element already costs one FFT pair, and
+the CPU has no launch latency to hide. On the GPU the ensemble was built (WP-C(B)): [Device ensembles for studies](#device-ensembles-for-studies).
+
+Allocation: the 200-point study allocates 0.8 GB (the loop 2.2 GB); a single 1-D run on 4096 points allocates 11 MB, a radial spatial run 1 GB
+(`spatial-kerr`). Pooling the spatial buffers is the remaining CPU item; it is not needed for any measured case to be slow.
+
+## Device ensembles for studies
+
+With a GPU back-end the points of a study batch run as one ensemble ([Parameter studies](studies.md)): every 1-D element of every point is
+integrated in the same kernel launches (each point with its own steps), so the launch latency is paid once per step for all points instead of
+once per point. RTX 3060 Ti (FP64 at 1/64 of FP32), .NET 10, 20-core CPU, 200-point scan of a Kerr + Raman plate (the self-test problem), whole
+study wall time (compile, nominal run, all points):
+
+| case | CPU, `parallel` 4 | CPU, `parallel` 20 | GPU, a stream per point (`ensemble: 0`, `parallel` 4) | GPU ensemble, CUDA / OpenCL |
+|---|---|---|---|---|
+| scalar, N = 4096 | 4.4 s | 1.7 s | 13.4 s | 2.2 s / 1.9 s |
+| vector, N = 4096 | 5.9 s | 2.4 s | 8.0 s | 2.3 s / 2.5 s |
+| scalar, N = 16384 | 18.1 s | 11.3 s | 13.8 s | 7.2 s / 9.2 s |
+
+The ensemble is 3.5 to 6 times faster than separate streams. On this consumer card it matches a fully loaded 20-core CPU at N = 4096 and is 1.6
+times faster at N = 16384; a card with full-rate FP64 (A100, H100) should gain much more, but that was not measured.
+
+## FP32 study (mixed precision)
+
+The `cpu-fp32` back-end (study only: `"compute": {"backend": "cpu-fp32"}`) rounds the input and the result of every nonlinear-operator
+evaluation, and the linear rate, to single precision; FFTs and the stepper arithmetic stay double, so it is a *lower bound* of the error of
+a real single-precision kernel. Acceptance: energy 1e-6, spectrum L1 1e-4, contrast floor unchanged.
+
+| case | energy | spectrum L1 | max abs(dI) / peak | floor (10th percentile of I / peak) |
+|---|---|---|---|---|
+| `spm-plate` | 3e-10 | 7e-10 | 3e-9 | 7e-33 |
+| `mpc-argon` | 6e-10 | 1e-9 | 1e-8 | 7e-10 |
+| `spatial-kerr` | 1e-10 | 4e-10 | 2e-9 | 4e-17 |
+
+Result: the operator in FP32 meets energy and spectrum criteria by three to four orders of magnitude. The **floor criterion fails** wherever the
+intensity floor is below about 1e-8 of the peak (the SPM plate and spatial cases): the rounding noise (about -85 dB) fills it. So mixed
+precision (consumer GPUs) is acceptable for energy, spectrum and pulse shape, and must be **refused when a contrast or pedestal instrument asks
+for more than about 70 dB of dynamic range**.
+
+### Mixed precision on the GPU
+
+Built after the study (WP-C(B)): on a GPU back-end the nonlinear operator of 1-D envelope and χ(2) elements, **including its FFTs**, runs in
+single precision; the state, the linear step and the Runge-Kutta combinations stay double. Off by default. A run whose instruments ask for more than
+70 dB of dynamic range (`contrast` and `crossCorrelator` at their defaults, any `dynamicRangeDb` or detector above 70 dB) is refused with an error;
+spatial elements and elements with orientational (gas) or user-response kernels run in double with a note; the CPU back-end ignores the key with a
+warning; studies do not form device ensembles in mixed precision.
+
+Measured on the RTX 3060 Ti against the double-precision CPU run (`GpuTests.MixedPrecision_*`, CUDA and OpenCL agree):
+
+| case | energy | spectrum L1 | max abs(dI) / peak |
+|---|---|---|---|
+| `spm-plate` | 4e-10 to 2e-9 | 2e-8 | 4e-8 |
+| `mpc-argon` (20 passes) | 6e-9 to 8e-9 | 1e-6 | 7e-5 |
+| N = 3 soliton with a dispersive wave (1 mm, β2 = -10 ps²/km) | 2e-11 to 2e-10 | 2e-9 | 4e-9 |
+| BBO type-I SHG (1 mm, 200 fs, 20 µJ) | 5e-8 to 8e-8 | 2.5e-7 | 7e-7 to 8e-7 |
+
+All meet the acceptance (energy 1e-6, spectrum L1 1e-4). Single-precision FFTs make the error grow with the number of steps: the 20-pass cell reaches
+7e-5 of the peak intensity, three orders above the operator-only emulation, as the study expected. Speed on this card: 1.3 to 1.5 times faster than the
+double-precision device run (scalar N = 65536: 0.75 s to 0.52 s; vector N = 32768: 0.17 s to 0.12 s; scalar N = 262144: 11.5 s to 8.4 s), with
+1 to 8 % more steps (the rounding noise enters the error estimate). The double-precision path uses cuFFT, the mixed path the built-in single-precision
+FFT; a single-precision cuFFT plan is an open item.
+
+## Benchmarks
+
+Wall times of complete runs, with the hardware and date of each measurement. They show the order of magnitude, not a promise: they
+depend on the machine, the load and the problem. `ultrafast devices --benchmark` times your own devices (it times only back-ends
+that pass the self-test, so on a Mac it prints none: Apple GPUs have no double precision).
+
+**Apple silicon CPU** (Apple M3, 8 cores, 16 GB, macOS, .NET 10, FFT: Accelerate vDSP; measured 2026-11-18). A scalar fibre of 0.5 m with
+Kerr, self-steepening and Raman (200 fs, 5 nJ); median of 5 runs, the first run excluded:
+
+| grid N | one run |
+|---|---|
+| 1024 | 42 ms |
+| 4096 | 109 ms |
+| 16384 | 0.48 s |
+| 65536 | 2.3 s |
+
+A 200-point scan of the fibre length over the same fibre (whole study, compile and nominal run included):
+
+| grid N | `parallel` 1 | `parallel` 4 | `parallel` 8 |
+|---|---|---|---|
+| 4096 | 19.8 s | 7.2 s | 5.3 s |
+| 16384 | 96 s | 36 s | 30 s |
+
+**GPU** (RTX 3060 Ti, FP64 at 1/64 of FP32, 20-core CPU, .NET 10): the 200-point scan and the CPU comparison are in
+[Device ensembles for studies](#device-ensembles-for-studies); the mixed-precision figures are in
+[Mixed precision on the GPU](#mixed-precision-on-the-gpu). Not measured: a data-centre GPU (full-rate FP64) and Apple Metal.
 
 ## Practical advice
 
 * Let the grid planner size the grid; a 4096-point 1-D run with a few nonlinear elements takes milliseconds to a
   second. Spatial models multiply the cost by the number of transverse points (radial 64-160, cartesian 64² ... 256²).
-* For many runs (scans, fits) prefer studies over a Python loop: they reuse the grid and the prefix.
+* For many runs (scans, fits) prefer studies over a Python loop: they reuse the grid and the prefix, skip instruments no output reads, and
+  can store points in a cache folder. To explore cheaply, add [`"fidelity": "quick"`](fidelity.md) and confirm the best points in full.
 * `"stepper": {"tolerance": 1e-5}` is usually enough; the default 1e-6 is conservative.
 * Install FFTW on Windows and Linux (on macOS Accelerate is already there): it is the cheapest speed-up.
 * `"compute": {"backend": "auto"}` is safe to leave on: without a GPU, or for small elements, it runs on the CPU.
@@ -119,4 +222,4 @@ Two speed-ups were considered and not built (owner decision, 2026-11-10). Each h
 * **A cache for the compiled system.** In a loop of many trials (sensorless optimisation, a fit) a trial on a 128 x 128 grid costs 10 ms *including* the compile, so a cache would save very little. **Revisit if** a loop over a much larger system shows the compile taking more than 30 % of the time of a trial.
 * **A fully streaming executor** (never holding all transverse frequency slices in memory). The peak memory of a large pulse run is set by the .NET garbage collector, not by the propagator: 2.7 to 3.4 GB at 1920 x 1080 with 16 stored frequencies, whatever the block size. **Revisit if** a 4096 x 4096 pulse run is needed, and measure it first: only the 1920 x 1080 case has been measured. A cw run at 4096 x 4096 needs 3.4 GB and 20 s today.
 
-Both are recorded with their numbers in [the S2 spikes](../design/history.md).
+Both are recorded with their numbers in the development history (`docs/design/history.md`, internal).

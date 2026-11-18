@@ -1,0 +1,9 @@
+{
+  "title": "The calculators: five design questions in one call each",
+  "summary": "ultrafast.calc answers pulse, beam, nonlinear and crystal design questions in one call each; its B-integral for 5 mm of fused silica matches a full engine run to three digits.",
+  "group": "GettingStarted",
+  "script": "calculators.py",
+  "plugins": [],
+  "figures": ["hero.png"],
+  "wave": 1
+}

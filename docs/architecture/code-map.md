@@ -9,7 +9,7 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Api/Simulation.cs` | `Run(system, run)`, `Validate(system, run)`; the entry point for every front end |
 | `src/UltrafastEngine.Cli/Program.cs` | the `ultrafast` command: `run`, `validate`, `study`, `retrieve`, `schema`, ... |
 | `src/UltrafastEngine.Native/` | the C API (`include/ultrafast.h`) |
-| `python/src/ultrafast/` | the Python package: `build.py` builders, `types.py` generated TypedDicts; `system/`, `components/`, `sources.py`, `instruments/` (the builders by kind, CapWords aliases), `algorithms/` (`zernike`, NumPy only), `results/`, `plotting/` (package: figures, `zernike`, `animate`, `diagrams`), `core.py` (running) |
+| `python/src/ultrafast/` | the Python package: `build.py` builders, `types.py` generated TypedDicts; `system/`, `components/`, `sources.py`, `instruments/` (the builders by kind, CapWords aliases), `algorithms/` (`zernike`, NumPy only), `results/`, `plotting/` (package: figures, `style` (`use_style`, the four styles), `zernike`, `animate`, `diagrams` (system schematic), `graph_layout` (deterministic layers, lanes, grouped runs, loop arcs, orthogonal routes of a branched graph; no drawing), `spectrogram` (`spectrogram`, `spectrogram_3d`, `animate_evolution`)), `core.py` (running) |
 
 ## Describing a run
 
@@ -47,7 +47,9 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 | `Engine/Active.cs` | `IActiveElement`, `ActiveContext` | the interface of elements that do more than linear terms and a nonlinear segment |
 | `Engine/AuxBeams.cs` | `AuxBeamSpec`, `VirtualInput` | beams on ports with no beamline |
 | `Engine/TailLedger.cs` | `TailLedger` | delayed light outside the main window |
-| `Engine/Studies.cs` | | scans and optimisation, with the prefix cache |
+| `Engine/Studies.cs` | `Studies`, `StudySpec` | scans and optimisation: frozen grid (union over the range ends), prefix cache, point cache (`cache`), instruments skipped when unused |
+| `Specs/Fidelity.cs` | `FidelityPlan`, `Fidelity` | the run-level `fidelity` bundles (applied in `RunSpec.FromJson`) and the unreliability warnings after a run |
+| `Numerics/Fp32Emulation.cs` | `Fp32EmulatedBackend` | `cpu-fp32`: nonlinear operator in single precision, for the FP32 study |
 | `Engine/PartialCoherence.cs` | `PartialCoherence` | a run over coherent modes |
 | `Results/` | `RunResult`, `PulseMetrics` | `summary.json`, `result.npz` |
 
@@ -55,11 +57,16 @@ Paths are under `src/UltrafastEngine.Core/` unless stated. Line counts change; u
 
 | folder | what it holds |
 |---|---|
-| `Physics/` | `LinearTerms.cs` (`LinearTerm`, `PhaseTerm`, `GroupDelayTerm`, `JonesTerm`, `DispersionPoint`); `Nonlinear.cs` (`EnvelopeProblem`, `FieldProblem`, steppers); `DispersiveResponses.cs`; `Ionization.cs` (rates, `PlasmaResponse` with its Drude operator) |
+| `Physics/` | `LinearTerms.cs` (`LinearTerm`, `PhaseTerm`, `GroupDelayTerm`, `JonesTerm`, `DispersionPoint`); `Nonlinear.cs` (`EnvelopeProblem`, `FieldProblem`, steppers); `DispersiveResponses.cs`; `DeviceResponses.cs` (time-domain responses as C source for the gpu plugin: `IDeviceTimeResponse`, `DeviceResponses.Build`); `Numerics/Ensemble.cs` (study points as one device ensemble: `EnsembleGate`, `IEnsembleBackend`; the gpu plugin's `EnsembleStepper.cs`); `Ionization.cs` (rates, `PlasmaResponse` with its Drude operator) |
 | `Transverse/` | `SpatialPropagation.cs` (the spatial nonlinear solver; `ExecuteLinear` streams the stored frequencies in blocks, `transverse.frequencyBlock`); `TransverseBasis.cs` (`RadialBasis`, `CartesianBasis`); `TransverseProfile.cs` (`TransverseProfile`, `TransverseOps`: expand, collapse, regrid, `Curvature`, `BeamQuality`); `BeamShapes.cs` (initial profiles) |
 | `Optics/` | `BeamTracking.cs`; `DispersiveSurface.cs` (gratings, prisms); `SurfaceOptics.cs` (lenses, curved mirrors); `MaskElement.cs`; `ModulatorElement.cs` (pixelated phase / amplitude device: cell grid, fill factor, quantisation, cross-talk, chromatic rules `opd` / `fixedPhase` / `index`, `PhaseScale`); `ComponentTerms.cs` (Zernike, figure); `MirrorSubstrate.cs`, `DelayedTerms.cs` |
 | `Crystals/` | χ(2): `CrystalElement`, phase matching |
-| `Pulses/PulseCalculator.cs` | `PulseCalculator.Solve` (ops `shapes`, `limit`, `analyze`, `measure`), `TbpOf`: time-bandwidth product, transform limit, stretch factor, Gaussian GDD; CLI `ultrafast pulse`, C API `uf_pulse_calc`, Python `ultrafast.calc` |
+| `Pulses/PulseCalculator.cs` | `PulseCalculator.Solve` (ops `shapes`, `limit`, `analyze`, `measure`), `TbpOf`: time-bandwidth product, transform limit, stretch factor, Gaussian GDD; CLI `ultrafast pulse`, C API `uf_pulse_calc`, Python `ultrafast.calc.pulse` |
+| `python/src/ultrafast/calc/` | the calculators package: `pulse.py` (TBP table without the engine; `limit`, `analyze`, `measure` through `uf_pulse_calc`), `crystal.py` (`phase_match`, `uf_crystal_phase_match`), `cell.py` (`cell_mode`), `beam.py` (pure Python: Gaussian q, ABCD, single- and two-lens mode matching, telescope, M²), `nonlinear.py` (pure Python: critical power, Marburger collapse distance, B-integral, intensity, fluence), `_compat.py` (`renamed_kwargs`, `engine_call`: engine errors as `ValueError`). `ultrafast.crystal` and `ultrafast.cells` re-export `calc.crystal` / `calc.cell` |
+| `python/src/ultrafast/mcp/` | the MCP server `ultrafast-mcp`: `server.py` (`McpServer`: JSON-RPC 2.0 over stdio, both protocol eras; `main`), `policy.py` (`Workspace`, `check_document`, `check_set_path`, `check_arguments`, `Refused`), `tools.py` (the six tool definitions, `prepare`), `worker.py` (`Worker`: persistent sandboxed child, killed on timeout, size pre-flight), `_worker_main.py` (the child's loop), `ops.py` (what the child runs: validate, describe, run, scan, plot; memory pre-flight), `explain.py` (`explain_warning` table), `resources.py` (schemas, fidelity, examples) |
+| `build/check_version.py` | the version gate: `collect()` lists every place that carries the version, `check(tag)` returns (version, wheel version, release candidate) or exits; used by `release.yml`, CI and `test_wp3.py` |
+| `build/example_lint.py`, `docs/examples/_template.md` | WP9: structure and metadata of the examples that have an `example.json` (`lint_folder`); never runs an example |
+| `build/sync_roadmap.py` | writes `ROADMAP.md` from `docs/roadmap.md` (`--check` in CI) |
 | `build/setup.py`, `python/tools/build_engine.py`, `install.py` | source builds with plugin choice (CLI, Python hosted / native, C API; `resolve_plugins` follows `plugin.json` `requires`); release install with `PRESETS` |
 | `Gain/`, `Lasers/` | amplifiers; `AseModel.cs` (`AseSpec`, `AseModel`: inter-pulse ASE, both directions, per transverse cell and frequency, at frozen N2; `Rates` feeds `GainCrystal.PumpCw` / `Decay`, `ModeOutput` gives the ASE in the signal mode); `GainElements.ApplyStressPattern` (the four-lobed Jones map); `Oscillator.cs`, `Resonator.cs`, saturable absorbers; `CellMode.cs` (`CellModeSolver.Solve`: Kerr-matched mode of a two-mirror multi-pass cell, command `cellMode`) |
 | `Materials/` | index models, the library, Raman; the catalogue (`Catalogue.cs`) with the numbers and their sources (`Data/materials/`) |

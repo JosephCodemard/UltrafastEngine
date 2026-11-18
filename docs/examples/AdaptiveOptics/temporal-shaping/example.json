@@ -1,0 +1,14 @@
+{
+  "title": "Temporal pulse shaping",
+  "summary": "A spectral shaper and an AOPDF make double pulses and pulse trains, show the side pulses of pixel gaps, restore a narrowed spectrum and find an unknown chirp in a closed loop.",
+  "group": "AdaptiveOptics",
+  "script": "temporal_shaping.py",
+  "plugins": [
+    "ao"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

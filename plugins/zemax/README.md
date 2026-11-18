@@ -1,6 +1,8 @@
 # zemax plugin
 
-The OpticStudio (Zemax) integration:
+The OpticStudio (Zemax) integration. **Status: experimental.** It has never been run against a real OpticStudio since the engine's rewrite; only the
+fake-OpticStudio path is tested. Before using it, follow [HARDWARE-CHECKLIST.md](HARDWARE-CHECKLIST.md).
+
 
 * `src/UltrafastEngine.Zemax.Sampling` (net10.0 + net48, any OS): the `IOpticStudio` abstraction, the sampler, the
   raw-sample format, the sample -> system-file builder, a fake OpticStudio and record/replay; the plugin class

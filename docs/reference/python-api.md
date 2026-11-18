@@ -13,7 +13,7 @@ Top level: `import ultrafast as uf`.
 
 UltrafastEngine -- nonlinear ultrafast pulse propagation through complete optical systems.
 
-Exported names: `ElementContext`, `ResponseContext`, `Result`, `Run`, `System`, `UltrafastError`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
+Exported names: `ElementContext`, `MemoryWarning`, `ResponseContext`, `Result`, `Run`, `Scan`, `System`, `UltrafastError`, `UnverifiedInput`, `algorithms`, `benchmark`, `build`, `calc`, `capabilities`, `cells`, `coherence`, `command`, `components`, `crystal`, `devices`, `estimate_memory`, `instruments`, `laser`, `load`, `materials`, `measured`, `plot`, `plugins`, `results`, `retrieve`, `retrieve_multi`, `run`, `scan`, `set_default_backend`, `sources`, `study`, `system`, `types`, `version`
 
 ### `plot(result, what: str = 'overview', ax = None)`
 
@@ -59,9 +59,34 @@ Seconds per run on the CPU and on each device for growing 1-D and spatial proble
 
 Process-wide defaults: the back-end of runs whose spec has no ``compute.backend`` ("cpu", "auto", "cuda", "opencl"; None keeps the current one) and the CPU FFT provider ("auto", "managed", "fftw", "accelerate"). Returns the settings in force. The ULTRAFAST_BACKEND / ULTRAFAST_FFT environment variables set the initial values.
 
+### class `MemoryWarning(UserWarning)`
+
+A run, scan or fit is estimated to need more than 80 % of the free memory (docs/reference/memory.md).
+
+
+### `estimate_memory(system: Any, run_spec: Any) -> dict`
+
+Memory one run of ``system`` with ``run_spec`` is estimated to hold, without running it (docs/reference/memory.md).
+
 ### `study(system: Any, run_spec: Any, parameters: Sequence[Mapping[str, Any]] = (), outputs: Sequence[str] = (), mode: str = 'scan', output: Optional[PathLike] = None, **options) -> dict`
 
 Parameter study (docs/reference/studies.md): ``mode`` "scan" (``sampling`` grid | random | lhs | sobol, ``samples``), "optimize" (``objective={"output": ..., "goal": "min" | "max" | "target", "target": ...}``) or "sensitivity" (``sensitivity={"method": "local" | "sobol"}``) or "coherence" (``coherence={"trials": 10, "at": "end"}``: repeated runs with independent quantum noise, result in ``analysis["coherence"]``). Parameters are ``{"path": "element:ID/key", "min", "max"}``; outputs are names like ``"pulse:end/fwhmS"``, ``"record:plate/BIntegralRad"``, ``"instrument:ac/fwhmS"``. Returns the study result (rows, analysis); ``output`` also writes study.json / study.csv.
+
+### class `Scan`
+
+A parameter scan on a grid of axes (made by :func:`scan`). Nothing is computed until a result is read (``scan["pulse:end/fwhmS"]``, ``.compute()``, ``.rows``): the arrays are *lazy*. ``scan[output]`` is a numpy array with one dimension per axis, in the order the axes were given; ``scan.axes`` holds the axis values; failed points are NaN and listed in ``scan.errors``.
+
+* `__init__(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], options: Mapping[str, Any], memory: str = 'warn')`
+* `shape() -> Tuple[int, ...]`
+* `compute() -> 'Scan'` -- Run the study now (done once; later reads reuse it).
+* `result() -> dict` -- The raw study result (``rows``, ``notes``, ``elapsedS``).
+* `rows() -> List[dict]`
+* `notes() -> List[str]`
+* `errors() -> List[dict]`
+
+### `scan(system: Any, run_spec: Any, axes: Mapping[str, Sequence[float]], outputs: Sequence[str], fidelity: Optional[str] = None, cache: Optional[PathLike] = None, parallel: int = 1, memory: str = 'warn', **options) -> Scan`
+
+Lazy grid scan over named axes (docs/reference/studies.md). ``axes`` maps a study path (``"element:plate/lengthM"``, ``"pulse/chirp/gddFs2"``, ...) to its values; every combination is run. ``outputs`` are study output names (``"pulse:end/fwhmS"``). Returns a :class:`Scan`; reading ``scan["pulse:end/fwhmS"]`` runs it and gives an array with one dimension per axis.
 
 ### `coherence(system: Any, run_spec: Any, trials: int = 10, at: str = 'end', parallel: int = 4, seed: int = 1, output: Optional[PathLike] = None) -> dict`
 
@@ -111,6 +136,11 @@ A system + a run spec (+ callbacks). Call :meth:`execute` to propagate.
 * `element(name: str, fn: Callable[['ElementContext'], Any]) -> 'Run'` -- Register a user element under ``name``; use it as ``{"type": "user", "callback": "@name", "params": {...}}``. ``fn(ctx)`` returns ``(ax, ay)``, ``ax``, or None (see :class:`ElementContext`).
 * `execute(progress: Optional[Callable[[str, int, int, float], Optional[bool]]] = None) -> 'Result'` -- Propagate. ``progress(element_id, index, count, fraction)`` may return True to cancel.
 
+### class `UnverifiedInput(TypedDict)`
+
+One approximate or unverified catalogue value a run used (summary.json ``unverifiedInputs``).
+
+
 ### class `Result(_Handle)`
 
 Everything a run produced. ``result.summary`` (dict), ``result['output_power_w']`` (NumPy), ``result.arrays`` (lazy mapping), ``result.write(directory)``.
@@ -121,14 +151,16 @@ Everything a run produced. ``result.summary`` (dict), ``result['output_power_w']
 * `names() -> list`
 * `arrays() -> Mapping[str, np.ndarray]`
 * `elements()` -- Per-element table as a list of dicts (also in summary['elements']).
+* `unverified_inputs() -> List[UnverifiedInput]` -- Approximate or unverified catalogue values this run used (empty when every input is verified). Check it before quoting a number; ``physics.strictMaterials`` turns the same list into an error.
+* `ase_pedestal(element: Optional[str] = None, duration_s: Optional[float] = None) -> Dict[str, Any]` -- The ``pulse.pedestal`` component that carries the inter-pulse ASE of a gain / amplifier element (run with ``aseModel``) into the next stage: ``{"kind": "ase", "energyFraction": f}`` with f = ASE energy per pulse period / output pulse energy. ``element``: the element id (default: the last element that reports an ASE pedestal). ``duration_s``: the length the ASE is spread over in the next stage (default of the engine: 10 ns; the pulse period is the physical choice). Raises ``KeyError`` if no element reports one.
 * `instrument(name: str) -> dict`
 * `comparisons() -> 'List[_measured.Comparison]'` -- Instruments compared with recorded data (their ``measured`` key): chi^2, rms error, scalar readings, notes. See :mod:`ultrafast.measured`.
 * `comparison(instrument: str) -> '_measured.Comparison'` -- The comparison of one instrument with its recorded data (KeyError if it has none).
 * `write(directory: PathLike) -> Path`
 
-### `run(system: Union[System, JsonLike], spec: JsonLike, callbacks: Optional[Mapping[str, Any]] = None, progress = None, elements: Optional[Mapping[str, Any]] = None, fields: Optional[Mapping[str, Any]] = None) -> Result`
+### `run(system: Union[System, JsonLike], spec: JsonLike, callbacks: Optional[Mapping[str, Any]] = None, progress = None, elements: Optional[Mapping[str, Any]] = None, fields: Optional[Mapping[str, Any]] = None, memory: str = 'warn') -> Result`
 
-One-call simulation. ``callbacks``: {"name": function} time responses (take a ResponseContext); ``elements``: {"name": function} user elements (take an ElementContext); ``fields``: {"name": f(x, y, z)} position-dependent properties. Use :class:`Run` directly for index/filter/beam callbacks or carrier-resolved responses.
+One-call simulation. ``callbacks``: {"name": function} time responses (take a ResponseContext); ``elements``: {"name": function} user elements (take an ElementContext); ``fields``: {"name": f(x, y, z)} position-dependent properties. Use :class:`Run` directly for index/filter/beam callbacks or carrier-resolved responses. A run spec with a ``fit`` section is checked against the free memory first (``memory``: "warn" | "raise" | "off"; :func:`estimate_memory`, times ``fit.parallel``): a fit runs the system many times (docs/reference/memory.md).
 
 ## `ultrafast.build`
 
@@ -190,7 +222,7 @@ A system file. ``substrates`` defines mirror substrates by name (see :func:`subs
 
 ### `fiber(id: str, length_m: float, betas: Optional[Sequence[float]] = None, gamma: Any = None, *, betas_ps_km: Optional[Sequence[float]] = None, loss_db_per_km: Optional[float] = None, gain_db_per_m: Optional[float] = None, raman: Any = None, **extra) -> 'T.FiberElement'`
 
-Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (or ``betas_ps_km`` in ps^k/km), ``gamma`` in 1/(W m) (or an expression in z), loss, gain, ``raman`` = "silica" | "linAgrawal" | "hollenbeck" | "none". ``extra``: ``dispersion``, ``material``, ``n2``, ``effectiveAreaM2``, ``gain`` (spectrum), ...
+Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (key ``betasSkPerM``; or ``betas_ps_km`` in ps^k/km), ``gamma`` in 1/(W m) (or an expression in z), loss, gain, ``raman`` = "silica" | "linAgrawal" | "hollenbeck" | "none". ``extra``: ``dispersion``, ``material``, ``n2``, ``effectiveAreaM2``, ``gain`` (spectrum), ...
 
 ### `gap(id: str, length_m: float, medium: str = 'Air', air: Optional[Mapping[str, Any]] = None, **extra) -> 'T.GapElement'`
 
@@ -326,7 +358,9 @@ One delay range of a cross-correlator scan measured through an attenuation (a po
 
 A pedestal / contrast component for ``pulse(..., pedestal=[...])``: kind replica | prePulse | postPulse | ase | phaseNoise | exponential (docs/reference/run-spec.md#pedestal); parameters in the engine's spelling (``delayS``, ``relativeIntensity``, ``rmsRad``, ...).
 
-### `polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 100000.0) -> 'T.PolarizerElement'`
+### `polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 100000.0, material: Optional[str] = None, thickness_m: float = 0.0) -> 'T.PolarizerElement'`
+
+A linear polariser. ``material`` with ``thickness_m`` adds the glass path of a real one (a Glan prism: its dispersion).
 
 ### `filter_element(id: str, model: Mapping[str, Any]) -> dict`
 
@@ -547,9 +581,45 @@ Fluent builder for an ``oscillator`` element (models "haus", "cavity", "parametr
 * `soliton_fwhm_s(gdd_s2: float, spm_rad_per_w: float, energy_j: float) -> float` -- Soliton area theorem: FWHM = 3.53 |GDD| / (delta E) (sech^2 pulse, lumped cavity).
 * `kerr_spm_coefficient(n2: float, length_m: float, mode_radius_m: float, wavelength_m: float, passes: int = 2) -> float` -- delta (rad/W) of a Kerr medium: k0 n2 L passes / (pi w^2 / 2).
 
-## `ultrafast.crystal`
+## `ultrafast.calc.pulse`
 
-χ(2) crystal helpers.
+Pulse calculator: time-bandwidth product, transform limit, chirp (also `ultrafast.calc.tbp` ...).
+
+Pulse calculator: time-bandwidth product (TBP), transform limit, stretch factor, chirp (also ``ultrafast pulse`` on the CLI).
+
+### class `ShapeRow(TypedDict)`
+
+One row of :func:`shapes`.
+
+
+### class `PulseReport(TypedDict)`
+
+Result of :func:`limit`, :func:`analyze` and :func:`measure` (the keys present depend on the call).
+
+
+### `shapes() -> List[ShapeRow]`
+
+The pulse shapes with a closed-form TBP: ``[{"shape": "gaussian", "timeBandwidthProduct": 0.4413}, ...]`` (no engine needed).
+
+### `tbp(shape: str = 'gaussian') -> float`
+
+Transform-limited time-bandwidth product (intensity FWHM x FWHM) of a shape: gaussian 0.4413, sech2 0.3148, lorentzian 0.1420 (field 1/(1+(t/tau)^2)), asymmetric-exponential 0.1103 (I = exp(-t/tau), t >= 0), rectangular 0.8859. No engine needed.
+
+### `limit(shape: str = 'gaussian', *, duration_s: Optional[float] = None, bandwidth_hz: Optional[float] = None, bandwidth_m: Optional[float] = None, center_m: Optional[float] = None) -> PulseReport`
+
+Transform limit: give the duration (s) *or* a bandwidth (Hz, or m with ``center_m``) and get the other.
+
+### `analyze(*, duration_s: float, bandwidth_hz: Optional[float] = None, bandwidth_m: Optional[float] = None, center_m: Optional[float] = None, shape: str = 'gaussian') -> PulseReport`
+
+TBP of a pulse from its FWHM duration and bandwidth, the ratio to the limit of ``shape``, the stretch factor and (Gaussian) the GDD magnitude in fs^2 that would compress it.
+
+### `measure(time_s: Sequence[float], intensity: Sequence[float], spectrum: Sequence[float], *, wavelength_m: Optional[Sequence[float]] = None, frequency_hz: Optional[Sequence[float]] = None, shape: str = 'gaussian') -> PulseReport`
+
+TBP from measured arrays: a temporal intensity and a spectrum (per wavelength or per frequency). Also returns ``timeBandwidthProductRms`` (limit 1/4pi for a Gaussian).
+
+## `ultrafast.calc.crystal`
+
+Phase-matching calculator for χ(2) crystals (also `ultrafast.crystal`).
 
 Phase-matching calculator (the engine's ``PhaseMatchCalculator``, also ``ultrafast crystal`` on the CLI).
 
@@ -557,9 +627,160 @@ Phase-matching calculator (the engine's ``PhaseMatchCalculator``, also ``ultrafa
 
 Names of the built-in chi(2) crystals.
 
-### `phase_match(crystal: Union[str, dict], process: str = 'shg', type: Optional[str] = None, *, fundamental: Optional[float] = None, pump: Optional[float] = None, signal: Optional[float] = None, idler: Optional[float] = None, a: Optional[float] = None, b: Optional[float] = None, plane: Optional[str] = None, theta_deg: Optional[float] = None, phi_deg: Optional[float] = None, noncollinear: Union[None, float, str] = None, qpm: Union[None, bool, float] = None, length: float = 0.001, temperature_c: Optional[float] = None, pump_intensity: Optional[float] = None, polarizations: Optional[Dict[str, str]] = None, **extra) -> dict`
+### `phase_match(crystal: Union[str, dict], process: str = 'shg', type: Optional[str] = None, *, fundamental_m: Optional[float] = None, pump_m: Optional[float] = None, signal_m: Optional[float] = None, idler_m: Optional[float] = None, a_m: Optional[float] = None, b_m: Optional[float] = None, plane: Optional[str] = None, theta_deg: Optional[float] = None, phi_deg: Optional[float] = None, noncollinear: Union[None, float, str] = None, qpm: Union[None, bool, float] = None, length_m: float = 0.001, temperature_c: Optional[float] = None, pump_intensity_w_per_m2: Optional[float] = None, polarizations: Optional[Dict[str, str]] = None, **extra) -> dict`
 
-Solve phase matching. Wavelengths in metres; ``noncollinear`` in degrees or ``"magic"``; ``qpm=True`` (period found) or a period in metres. ``type`` defaults to "I" (birefringent) or "0" (QPM). Returns the calculator's JSON as a dict with ``phaseMatched``, ``best`` (angles, deffPmPerV, waves, acceptance, gvm, gainSpectrum...) and ``solutions``.
+Solve phase matching. Wavelengths (``*_m``) and ``length_m`` in metres; ``noncollinear`` in degrees or ``"magic"``; ``qpm=True`` (period found) or a period in metres. ``type`` defaults to "I" (birefringent) or "0" (QPM). Returns the calculator's JSON as a dict with ``phaseMatched``, ``best`` (angles, deffPmPerV, waves, acceptance, gvm, gainSpectrum...) and ``solutions``.
+
+## `ultrafast.calc.cell`
+
+Kerr-matched mode of a multi-pass cell (also `ultrafast.cells`).
+
+Kerr-matched mode of a two-mirror multi-pass cell (Herriott or quasi-concentric): the engine's ``cellMode`` command.
+
+### `cell_mode(wavelength_m: float, *, mirror_radius_m: Union[None, float, Sequence[float]] = None, separation_m: Optional[float] = None, reentrant: Optional[Dict[str, int]] = None, passes: int = 2, peak_power_w: float = 0.0, gas: Optional[Dict[str, Any]] = None, plates: Optional[List[Dict[str, Any]]] = None, lens_model: str = 'secondMoment', slices: int = 12) -> dict`
+
+Eigenmode of a cell of two concave mirrors, with the Kerr lens of the intracavity medium at ``peak_power_w`` (W).
+
+## `ultrafast.calc.beam`
+
+Gaussian beams, ABCD, mode matching, telescopes, M² (pure Python).
+
+Gaussian-beam calculator (pure Python, no engine): q parameter, waist, Rayleigh range, ABCD matrices, mode matching, telescope, M^2.
+
+### class `GaussianBeam(TypedDict)`
+
+Result of :func:`gaussian_beam` and :func:`q_to_beam`.
+
+
+### class `LensMatchSolution(TypedDict)`
+
+One placement found by :func:`single_lens_match` / :func:`two_lens_match`.
+
+
+### class `SingleLensMatch(TypedDict)`
+
+
+### class `TwoLensMatch(TypedDict)`
+
+
+### class `TelescopeDesign(TypedDict)`
+
+
+### class `MSquaredFit(TypedDict)`
+
+
+### `rayleigh_range_m(waist_radius_m: float, wavelength_m: float, m2: float = 1.0) -> float`
+
+Rayleigh range ``zR = pi w0^2 / (m2 lambda)`` (m).
+
+### `waist_radius_m(rayleigh_range_m: float, wavelength_m: float, m2: float = 1.0) -> float`
+
+Waist radius for a given Rayleigh range: ``w0 = sqrt(m2 lambda zR / pi)`` (m).
+
+### `beam_radius_m(z_m: float, waist_radius_m: float, wavelength_m: float, m2: float = 1.0) -> float`
+
+1/e^2 intensity radius ``w(z) = w0 sqrt(1 + (z / zR)^2)`` (m), ``z`` from the waist.
+
+### `curvature_radius_m(z_m: float, waist_radius_m: float, wavelength_m: float, m2: float = 1.0) -> float`
+
+Wavefront radius of curvature ``R(z) = z (1 + (zR / z)^2)`` (m); ``inf`` at the waist.
+
+### `q_at(wavelength_m: float, *, waist_radius_m: float, z_m: float = 0.0, m2: float = 1.0) -> complex`
+
+Complex beam parameter ``q = z + i zR`` at distance ``z_m`` from the waist.
+
+### `q_from_radius_curvature(radius_m: float, curvature_radius_m: float, wavelength_m: float, m2: float = 1.0) -> complex`
+
+``q`` of a beam of 1/e^2 radius ``radius_m`` and wavefront radius ``curvature_radius_m`` (``math.inf`` = flat): ``1/q = 1/R - i m2 lambda / (pi w^2)``.
+
+### `q_to_beam(q: complex, wavelength_m: float, m2: float = 1.0) -> GaussianBeam`
+
+The beam described by ``q`` at a plane: radius and curvature there, and the waist (``zM`` is the plane's distance downstream of the waist).
+
+### `gaussian_beam(wavelength_m: float, *, waist_radius_m: float, m2: float = 1.0, z_m: float = 0.0) -> GaussianBeam`
+
+Parameters of a Gaussian beam of waist ``waist_radius_m`` (1/e^2 radius) at the distance ``z_m`` from the waist.
+
+### `free_space(length_m: float) -> Matrix`
+
+Propagation over ``length_m`` in the medium of the beam.
+
+### `thin_lens(focal_length_m: float) -> Matrix`
+
+Thin lens (``f > 0`` converging).
+
+### `curved_mirror(radius_m: float, angle_rad: float = 0.0, plane: str = 'sagittal') -> Matrix`
+
+Mirror of radius ``radius_m`` (concave > 0) at incidence ``angle_rad``: ``f = R cos(a) / 2`` (sagittal) or ``R / (2 cos a)`` (tangential).
+
+### `interface(n1: float, n2: float, radius_m: float = math.inf) -> Matrix`
+
+Refraction at a spherical interface of radius ``radius_m`` (``inf`` = flat) from index ``n1`` to ``n2`` (centre of curvature downstream > 0).
+
+### `system_matrix(*elements) -> Matrix`
+
+Product of the matrices in the order the light meets them (first element first).
+
+### `propagate_q(q: complex, matrix: Matrix) -> complex`
+
+``q' = (A q + B) / (C q + D)``.
+
+### `single_lens_match(*, waist_in_m: float, waist_out_m: float, wavelength_m: float, focal_length_m: float, m2: float = 1.0) -> SingleLensMatch`
+
+Where to put one thin lens of focal length ``f`` to turn a waist ``w1`` into a waist ``w2`` (Self 1983, Appl. Opt. 22, 658).
+
+### `two_lens_match(waist_in_m: float, waist_out_m: float, wavelength_m: float, *, focal_length_1_m: float, focal_length_2_m: float, separation_m: float, m2: float = 1.0, max_distance_m: Optional[float] = None, samples: int = 20001) -> TwoLensMatch`
+
+Input distance and output distance that turn a waist ``w1`` into a waist ``w2`` through two thin lenses a fixed ``separation_m`` apart.
+
+### `telescope(*, magnification: float, focal_length_1_m: float, kind: str = 'keplerian') -> TelescopeDesign`
+
+Two-lens beam expander: the beam radius grows by ``magnification`` (> 0; < 1 reduces) and the divergence shrinks by the same factor.
+
+### `m_squared_from_waist_divergence(waist_radius_m: float, half_angle_rad: float, wavelength_m: float) -> float`
+
+``M^2 = pi w0 theta / lambda`` from the waist radius and the far-field half angle (both second-moment or both 1/e^2).
+
+### `m_squared_from_widths(z_m: Sequence[float], d4sigma_m: Sequence[float], wavelength_m: float) -> MSquaredFit`
+
+ISO 11146 hyperbola fit of second-moment (4 sigma) diameters measured at positions ``z_m``: ``d^2(z) = A + B z + C z^2``, ``z0 = -B / 2C``, ``d0^2 = A - B^2 / 4C``, ``theta = sqrt(C)`` (full angle), ``M^2 = pi d0 theta / (4 lambda)``. Needs >= 3 positions (ISO asks for 10, half of them within one Rayleigh range of the waist and half beyond two).
+
+## `ultrafast.calc.nonlinear`
+
+Critical power, collapse distance, B-integral, intensity, fluence (pure Python).
+
+Closed-form nonlinear-optics estimates (pure Python, no engine): critical power, Marburger collapse distance, B-integral, peak intensity, fluence.
+
+### class `BIntegralEstimate(TypedDict)`
+
+
+### `critical_power_w(wavelength_m: float, *, n2_m2_per_w: float, n0: float = 1.0, profile: str = 'marburger') -> float`
+
+Critical power for self-focusing (W). ``profile``: ``"marburger"`` (factor 3.77, the Gaussian-beam fit used by the engine) or ``"townes"`` (3.7924, the self-trapped Townes profile).
+
+### `collapse_distance_m(peak_power_w: float, wavelength_m: float, *, waist_radius_m: float, n2_m2_per_w: float, n0: float = 1.0) -> float`
+
+Marburger's self-focusing (collapse) distance of a collimated Gaussian beam of waist ``waist_radius_m`` (1/e^2 radius), in metres. Raises ``ValueError`` for ``peak_power_w <= P_cr``: below the critical power the beam does not collapse.
+
+### `peak_power_w(pulse_energy_j: float, duration_fwhm_s: float, shape: str = 'gaussian') -> float`
+
+Peak power of a transform-limited-shape pulse: ``0.9394 E / tau`` (Gaussian), ``0.8814 E / tau`` (sech^2).
+
+### `peak_intensity_w_per_m2(peak_power_w: float, beam_radius_m: float) -> float`
+
+Peak intensity of a Gaussian beam: ``I0 = 2 P / (pi w^2)``.
+
+### `peak_fluence_j_per_m2(pulse_energy_j: float, beam_radius_m: float) -> float`
+
+Peak fluence of a Gaussian beam: ``F0 = 2 E / (pi w^2)`` (J/m^2; divide by 1e4 for J/cm^2).
+
+### `b_integral_rad(wavelength_m: float, *, n2_m2_per_w: float, peak_intensity_w_per_m2: float, length_m: float) -> float`
+
+B-integral of a constant intensity over ``length_m``: ``B = (2 pi / lambda) n2 I L`` (rad).
+
+### `b_integral_estimate(wavelength_m: float, *, n2_m2_per_w: float, length_m: float, pulse_energy_j: float, duration_fwhm_s: float, beam_radius_m: float, shape: str = 'gaussian', n0: Optional[float] = None) -> BIntegralEstimate`
+
+B-integral of a Gaussian beam carrying a ``gaussian`` or ``sech2`` pulse through a medium of length ``length_m`` (no diffraction, no dispersion, instantaneous Kerr effect): the peak value (peak intensity on axis), the pulse-averaged value (x 1/sqrt(2) Gaussian, x 2/3 sech^2), the beam-averaged value (x 1/2) and both. With ``n0`` the ratio to the critical power is also given (``nan`` otherwise).
 
 ## `ultrafast.plugins`
 
@@ -610,7 +831,7 @@ Publication-style plots of UltrafastEngine results (needs matplotlib: ``pip inst
 
 Add a figure to :func:`report` and ``ultrafast-plot`` (used by plugins, e.g. the fitting plugin's ``measurements`` and ``fit``). ``maker(res)`` returns a matplotlib figure, or None when the result has no data for it. ``after`` places it after an existing figure in the default order.
 
-### `report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] = ('png',), pdf: bool = True, only: Optional[Iterable[str]] = None, db: bool = False, dpi: int = 160, close: bool = True) -> Dict[str, object]`
+### `report(res, out_dir: Union[str, Path, None] = None, formats: Iterable[str] = ('png',), pdf: bool = True, only: Optional[Iterable[str]] = None, db: bool = False, dpi: Optional[int] = None, close: bool = True) -> Dict[str, object]`
 
 Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (optionally) all of them in one ``report.pdf``. ``out_dir`` defaults to ``<results folder>/plots``. Returns {name: figure or path}.
 
@@ -622,11 +843,27 @@ Draw every figure that has data, save them as ``<out_dir>/<name>.<fmt>`` and (op
 
 Themes, matplotlib style, SI-prefix formatting.
 
-Colour themes, matplotlib style, SI-prefix formatting and small axis helpers shared by every figure.
+Styles, colour themes, matplotlib rc, SI-prefix formatting and small axis helpers shared by every figure.
+
+### `use_style(name: Optional[str] = None, *, column: Optional[str] = None) -> _StyleHandle`
+
+Select the plot style for figures created afterwards: ``"ultrafast"``, ``"ultrafast-dark"``, ``"paper"`` or ``"science"``.
+
+### `current_style() -> str`
+
+Name of the style in force.
+
+### `default_dpi(fallback: int = 160) -> int`
+
+Resolution of saved figures: the style's own (600 for the paper styles) or ``fallback``.
+
+### `save_dpi(fig, dpi: Optional[int] = None, max_pixels_wide: int = 4800) -> int`
+
+Resolution for saving ``fig``: ``dpi`` if given, else the style's (600 for the paper styles, 160 otherwise) but never more than ``max_pixels_wide`` pixels across (a 15-inch dashboard at 600 dpi would be 9000 pixels wide).
 
 ### `set_theme(dark: bool = False) -> None`
 
-Switch the colour theme for figures created afterwards.
+Switch the colour theme for figures created afterwards (``use_style("ultrafast-dark" | "ultrafast")``).
 
 ### `fmt(x, unit: str = '', digits: int = 3) -> str`
 
@@ -771,17 +1008,17 @@ Collapse repeated units (e.g. 20 x [pass, mirror] in a multipass cell) into one 
 
 Draw the schematic of ``res`` (live Result or results folder) on ``ax``.
 
-### `draw_graph(res, ax, theme: dict, compact: bool = False)`
+### `draw_graph(res, ax, theme: dict, compact: bool = False, params: bool = False, group: bool = True)`
 
-Draw a Branched system as a graph on ``ax``: elements as boxes by layer, arms as lanes, links coloured by the carrier after their source element, virtual inputs and outputs as small open markers, the energy at the end, loops as arcs.
+Draw a Branched system as a graph on ``ax``: elements as boxes by layer (a run of identical elements as one box with xN), links routed orthogonally around the boxes and coloured by the carrier after their source, loop-closing links as arcs below the row inside a shaded loop region, virtual ports as open circles, aux beams in and by-products out as arrows, numbered instrument tags above the boxes. ``params=True`` adds the key numbers of each element under its box. The layout is deterministic (:func:`ultrafast.plotting.graph_layout.layout_graph`). Returns the instrument locations.
 
-### `system_diagram(res, ax = None, compact: bool = False)`
+### `system_diagram(res, ax = None, compact: bool = False, params: bool = False)`
 
-Schematic of the system on ``ax``: elements, beam line coloured by carrier wavelength, aux beams in, by-products out, probes and numbered instrument locations (the numbers used in every instrument title).
+Schematic of the system on ``ax``: elements, beam line coloured by carrier wavelength, aux beams in, by-products out, probes and numbered instrument locations (the numbers used in every instrument title). A branched system is drawn as a graph (``params=True`` adds the key numbers of each element).
 
-### `system(res)`
+### `system(res, params: bool = False)`
 
-Stand-alone system schematic with a numbered list of the instruments and where they sit.
+Stand-alone system schematic with a numbered list of the instruments and where they sit (``params=True``: key numbers of each element under its box in a branched system).
 
 ## `ultrafast.plotting.zernike`
 

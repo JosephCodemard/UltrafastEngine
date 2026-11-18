@@ -72,6 +72,9 @@ namespace UltrafastEngine.Numerics
         public int GpuMinPoints;
         /// <summary>Concurrent element propagations per device (0: back-end default).</summary>
         public int DeviceSlots;
+        /// <summary>"double" (default) or "mixed": GPU back-ends evaluate the nonlinear operator in single precision (docs/reference/speed.md).</summary>
+        public string Precision = "double";
+        public bool Mixed => string.Equals(Precision, "mixed", StringComparison.OrdinalIgnoreCase);
         public Serialization.JsonObject Options;
     }
 
@@ -101,7 +104,7 @@ namespace UltrafastEngine.Numerics
     public static class ComputeBackends
     {
         private static readonly object Lock = new object();
-        private static readonly Dictionary<string, IComputeBackend> All = new Dictionary<string, IComputeBackend>(StringComparer.OrdinalIgnoreCase) { { "cpu", new CpuBackend() }, { "auto", new AutoBackend() } };
+        private static readonly Dictionary<string, IComputeBackend> All = new Dictionary<string, IComputeBackend>(StringComparer.OrdinalIgnoreCase) { { "cpu", new CpuBackend() }, { "cpu-fp32", new Fp32EmulatedBackend() }, { "auto", new AutoBackend() } };
         [ThreadStatic] private static IComputeBackend _current;
         [ThreadStatic] private static ComputeSettings _settings;
 

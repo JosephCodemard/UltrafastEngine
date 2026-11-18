@@ -215,7 +215,7 @@ namespace UltrafastEngine.Materials
         }
 
         /// <summary>The catalogue quantity "ionization" of a solid (null when the material has none).</summary>
-        public static CatalogueQuantity CatalogueQuantityOf(string material) => Catalogue.Find(material, "solid")?.TryQ("ionization");
+        public static CatalogueQuantity CatalogueQuantityOf(string material) => (Catalogue.Find(material, "solid") ?? Catalogue.Find(material, "crystal"))?.TryQ("ionization");
 
         public static SolidIonizationData For(string material)
         {

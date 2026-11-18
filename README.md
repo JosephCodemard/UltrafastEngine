@@ -1,8 +1,4 @@
 <p align="center">
-<a href="mailto:jac318@bath.ac.uk"><img alt="Email" src="https://img.shields.io/badge/email-jac318%40bath.ac.uk-c85a28?logo=gmail&logoColor=white"></a>
-</p>
-
-<p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo/ultrafast-logo-large-dark.svg">
   <img alt="UltrafastEngine" src="assets/logo/ultrafast-logo-large.svg" height="110">
@@ -17,15 +13,18 @@
 <a href="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/ci.yml/badge.svg"></a>
 <a href="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml"><img alt="Docs" src="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml/badge.svg"></a>
 <a href="https://josephcodemard.github.io/UltrafastEngine/"><img alt="Documentation" src="https://img.shields.io/badge/docs-GitHub%20Pages-blue"></a>
-<img alt="Version" src="https://img.shields.io/badge/version-2.2.0-blue">
+<img alt="Version 1.0.0-alpha" src="https://img.shields.io/badge/version-1.0.0--alpha-orange">
 <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-green">
+<a href="mailto:jac318@bath.ac.uk"><img alt="Email" src="https://img.shields.io/badge/email-jac318%40bath.ac.uk-c85a28?logo=gmail&logoColor=white"></a>
 </p>
 <p align="center">
-<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-585%20passing-brightgreen">
-<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-249%20passing-brightgreen">
+<img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-664%20passing-brightgreen">
+<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-435%20passing-brightgreen">
 <img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1691%2F1694-brightgreen">
 <img alt="Paper replications" src="https://img.shields.io/badge/papers%20replicated-12-blueviolet">
 </p>
+**Status: 1.0.0 alpha.** Everything described here is built and tested (see [PROJECT_STATUS](PROJECT_STATUS.md)); the alpha is the first public release, meant for use in real labs so that what that shows is fixed before 1.0.0. Install with `pip install --pre "ultrafast-engine[hosted]"`.
+
 <p align="center">
 <img alt=".NET" src="https://img.shields.io/badge/.NET-10%20%7C%20Framework%204.8-512bd4">
 <img alt="Python" src="https://img.shields.io/badge/Python-%E2%89%A53.10-3776ab">
@@ -48,6 +47,7 @@ focus is free-space optics, with single-mode fibres and gas cells where a system
 <tr><td align="center"><a href="docs/examples/LaserSystems/yb-laser-system/"><img src="docs/examples/LaserSystems/yb-laser-system/hero.png" alt="A complete Yb laser system"></a><br><sub>A complete Yb laser system</sub></td><td align="center"><a href="docs/examples/Nonlinear/filament/"><img src="docs/examples/Nonlinear/filament/hero.png" alt="Filament in air"></a><br><sub>Filament in air</sub></td><td align="center"><a href="docs/examples/LaserSystems/noncollinear-opa/"><img src="docs/examples/LaserSystems/noncollinear-opa/hero.png" alt="Non-collinear OPA"></a><br><sub>Non-collinear OPA</sub></td></tr>
 <tr><td align="center"><a href="docs/examples/LaserSystems/four-grating-compressor/"><img src="docs/examples/LaserSystems/four-grating-compressor/hero.png" alt="Four-grating compressor"></a><br><sub>Four-grating compressor</sub></td><td align="center"><a href="docs/examples/Nonlinear/carrier-resolved/"><img src="docs/examples/Nonlinear/carrier-resolved/hero.png" alt="Carrier-resolved propagation"></a><br><sub>Carrier-resolved propagation</sub></td><td align="center"><a href="docs/examples/AdaptiveOptics/tiled-array/"><img src="docs/examples/AdaptiveOptics/tiled-array/hero.png" alt="Tiled-aperture combining"></a><br><sub>Tiled-aperture combining</sub></td></tr>
 <tr><td align="center"><a href="docs/examples/AdaptiveOptics/scatterer-focusing/"><img src="docs/examples/AdaptiveOptics/scatterer-focusing/hero.png" alt="Focusing through a scatterer"></a><br><sub>Focusing through a scatterer</sub></td><td align="center"><a href="docs/examples/DigitalTwin/build-the-twin/"><img src="docs/examples/DigitalTwin/build-the-twin/hero.png" alt="A digital twin"></a><br><sub>A digital twin</sub></td><td align="center"><a href="docs/examples/Diffraction/tilt-fringes/"><img src="docs/examples/Diffraction/tilt-fringes/hero.png" alt="Fringes from a tilted mirror"></a><br><sub>Fringes from a tilted mirror</sub></td></tr>
+<tr><td align="center"><a href="docs/examples/Branched/system-schematics/"><img src="docs/examples/Branched/system-schematics/hero.png" alt="System schematics in four plot styles"></a><br><sub>System schematics in four plot styles</sub></td><td align="center"><a href="docs/examples/GettingStarted/calculators/"><img src="docs/examples/GettingStarted/calculators/hero.png" alt="Calculators: one call per design question"></a><br><sub>Calculators: one call per design question</sub></td><td align="center"><a href="docs/examples/Branched/cavity-and-coherence/"><img src="docs/examples/Branched/cavity-and-coherence/hero.png" alt="Resonator eigenmode and coherence"></a><br><sub>Resonator eigenmode and coherence</sub></td></tr>
 </table>
 
 **Why use it**
@@ -88,6 +88,19 @@ options, instruments). The engine sizes its own time–frequency grid, propagate
 writes a self-describing results folder: scalar summaries (`summary.json`), arrays (`result.npz`, CSV), per-element
 records, a loss budget, and the provenance of every model value. See [Getting started](docs/getting-started.md) for
 Windows, macOS and Linux setup and the Python package.
+
+### Calculators without a simulation
+
+```python
+from ultrafast import calc
+calc.tbp("sech2")                                                                      # 0.3148
+calc.beam.single_lens_match(waist_in_m=0.3e-3, waist_out_m=0.1e-3, wavelength_m=1030e-9, focal_length_m=0.5)
+calc.nonlinear.b_integral_estimate(1030e-9, n2_m2_per_w=2.7e-20, length_m=5e-3, pulse_energy_j=1e-3,
+                                   duration_fwhm_s=200e-15, beam_radius_m=1e-3)["bPulseAveragedRad"]
+```
+
+Pulse, crystal, cell, beam / mode-matching and nonlinear-estimate calculators: [Calculators](docs/reference/calculators.md). The beam and
+nonlinear ones need only NumPy.
 
 ## What it models
 
@@ -149,9 +162,9 @@ The badges above are updated when the counts change (see [PROJECT_STATUS.md](PRO
   time-domain responses — each can be given as data, an expression or a function (C#, Python, C), per material,
   per element or globally, without editing the system file. A provenance report records where every value came from.
 * **Plugins.** Element types, instruments, models, run modes, estimators, retrieval algorithms, compute back-ends and
-  CLI commands can be added as plugins that the engine discovers at start-up. Four live in `plugins/`: **fitting**
-  (transforms, fitting, backward propagation), **zemax** (export a sequential OpticStudio system to a system file),
-  **gpu** (CUDA and OpenCL back-ends) and **hitran** (gas lines in air). See [Plugins](docs/plugins/index.md).
+  CLI commands can be added as plugins that the engine discovers at start-up. Several live in `plugins/`: **fitting**
+  (transforms, fitting, backward propagation), **gpu** (CUDA and OpenCL back-ends), **hitran** (gas lines in air),
+  **ao** and **twin**; an experimental **zemax** plugin (untested against OpticStudio) is listed on the plugin page. See [Plugins](docs/plugins/index.md).
 * **Schemas everywhere.** Every option is declared once with its type, unit and default. From that declaration come
   the JSON Schemas (editor completion for `.ufs` and run specs), unknown-key warnings with suggestions, the
   [option reference](docs/reference/options.md), and Python TypedDicts for autocompletion and type checking.
@@ -172,7 +185,7 @@ The full documentation is at **<https://josephcodemard.github.io/UltrafastEngine
 | [Reference](docs/reference/system-file.md) | system file, run spec, every element and instrument, models, results |
 | [Capabilities and limitations](docs/capabilities.md) | what is modelled, how it is validated, and what is not |
 | [Papers](docs/papers/README.md) and [component tests](docs/component-tests.md) | published results reproduced and every component checked, with plots |
-| [Plugins](docs/plugins/index.md) | the fitting, zemax, gpu and hitran plugins, [installing](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
+| [Plugins](docs/plugins/index.md) | the fitting, gpu, hitran, ao and twin plugins (and the experimental zemax plugin), [installing](docs/plugins/installing.md), [writing your own](docs/reference/plugins.md) |
 | [For AI agents](docs/agents.md) | how to drive and extend the engine programmatically ([`AGENTS.md`](AGENTS.md), [`llms.txt`](llms.txt)); the [Claude Code](docs/claude-code.md) setup |
 | [Releasing](docs/releasing.md) | `build.sh` / `build.bat`: compiled packages and release assets; `install.py` installs or removes only the components you name |
 
@@ -183,7 +196,7 @@ src/UltrafastEngine.Core     the engine (C#, net10.0 + net48, no NuGet dependenc
 src/UltrafastEngine.Cli      the `ultrafast` command
 src/UltrafastEngine.Native   C API (include/ultrafast.h)
 python/                      the `ultrafast` Python package
-plugins/                     fitting, zemax, gpu, hitran
+plugins/                     fitting, gpu, hitran, ao, twin, zemax (experimental)
 schemas/                     JSON Schemas of system files and run specs
 docs/                        documentation, tutorials, examples, paper replications (docs/papers)
 tests/                       C# test suite (no external framework) and tests/components (analytic checks with plots)
@@ -193,7 +206,7 @@ CLAUDE.md, .claude/          Claude Code setup (docs/claude-code.md)
 
 ## Status
 
-UltrafastEngine **2.2.0** is a stable release: file formats are versioned (older files are migrated on load with a
+UltrafastEngine **1.0.0** is a stable release: file formats are versioned (older files are migrated on load with a
 deprecation warning), the core is feature-complete for its scope, and the test suite pins the physics to analytic
 results and reference codes. What is planned next (coating and crystal design plugins, further paper replications,
 waveguides and fibre gain, deeper OpticStudio integration) is on the [roadmap](docs/roadmap.md); changes are in the
@@ -211,7 +224,7 @@ If UltrafastEngine contributes to published work (a paper, thesis, report or tal
   author    = {Codemard, Joseph},
   title     = {{UltrafastEngine}: nonlinear ultrashort-pulse propagation through complete optical systems},
   year      = {2026},
-  version   = {2.2.0},
+  version   = {1.0.0},
   url       = {https://github.com/JosephCodemard/UltrafastEngine},
   license   = {Apache-2.0}
 }

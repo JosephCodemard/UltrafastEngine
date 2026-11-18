@@ -19,6 +19,27 @@ namespace UltrafastEngine.Results
     /// <see cref="Arrays"/> lists every numerical array; <see cref="WriteAll"/> writes summary.json,
     /// result.npz, provenance.json and CSV files.
     /// </summary>
+    /// <summary>One validity finding of a run: which check (<see cref="Code"/>), where, the value and the threshold it crossed.</summary>
+    public sealed class ValidityIssue
+    {
+        /// <summary>Check code: <c>zeroFrequency</c>, <c>criticalPower</c>, <c>windowEdge</c>, <c>kerrLensCollapse</c>, <c>lidt</c></summary>
+        public string Code { get; set; }
+        public string ElementId { get; set; }
+        public double Value { get; set; }
+        public double Threshold { get; set; }
+        public string Message { get; set; }
+        public JsonObject ToJson() => new JsonObject().Set("code", Code).Set("elementId", ElementId)
+            .Set("value", double.IsNaN(Value) || double.IsInfinity(Value) ? double.NaN : Value).Set("threshold", Threshold).Set("message", Message);
+    }
+
+    /// <summary>Thrown after a run with validity findings when <c>physics.strictValidity</c> or <c>ULTRAFAST_STRICT_VALIDITY=1</c> is set;
+    /// <see cref="Result"/> still holds the whole run.</summary>
+    public sealed class ValidityException : Exception
+    {
+        public RunResult Result { get; }
+        public ValidityException(RunResult r) : base("strict validity: the run is not valid -- " + string.Join(" | ", r.Warnings.Where(w => r.Validity.Any(v => w.StartsWith(v.Message, StringComparison.Ordinal))).Distinct())) { Result = r; }
+    }
+
     public sealed class RunResult
     {
         public CompiledRun Compiled { get; set; }
@@ -43,6 +64,37 @@ namespace UltrafastEngine.Results
         public Dictionary<string, object> Extensions { get; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         public List<string> Notes { get; } = new List<string>();
         public List<string> Warnings { get; } = new List<string>();
+        /// <summary>Validity findings in machine-readable form (summary.json "validity"): one entry per element and check, with the
+        /// value and the threshold it crossed. Every entry also has a human warning in <see cref="Warnings"/> (one per check, naming every
+        /// element). <c>physics.strictValidity</c> or <c>ULTRAFAST_STRICT_VALIDITY=1</c> turns them into an error after the run.</summary>
+        public List<ValidityIssue> Validity { get; } = new List<ValidityIssue>();
+
+        /// <summary>Records a validity finding; the warning text is added once per check code (later elements are appended to it by
+        /// <see cref="FinishValidity"/>), so a 46-pass cell gives one warning naming the passes, not 46 warnings or only the first.</summary>
+        public void Flag(string code, string elementId, double value, double threshold, string warning)
+        {
+            Validity.Add(new ValidityIssue { Code = code, ElementId = elementId, Value = value, Threshold = threshold, Message = warning });
+            if (Validity.Count(v => v.Code == code) == 1) Warnings.Add(warning);
+        }
+
+        /// <summary>Appends the other elements of each check to its warning ("also at: ..."), once, at the end of the run.</summary>
+        public void FinishValidity()
+        {
+            foreach (var g in Validity.GroupBy(v => v.Code))
+            {
+                var ids = g.Select(v => v.ElementId).Where(i => i != null).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                if (ids.Count < 2) continue;
+                string first = g.First().Message;
+                int k = Warnings.IndexOf(first);
+                if (k < 0) continue;
+                const int show = 12;
+                string list = string.Join(", ", ids.Skip(1).Take(show)) + (ids.Count - 1 > show ? string.Format(CultureInfo.InvariantCulture, " and {0} more", ids.Count - 1 - show) : "");
+                Warnings[k] = first + string.Format(CultureInfo.InvariantCulture, " The same check fired at {0} elements in all; also at: {1} (summary.json \"validity\" has each value).", ids.Count, list);
+            }
+        }
+
+        /// <summary>Set when the run was below full fidelity: level, switches changed, indicators (summary.json "fidelityReport").</summary>
+        public JsonObject FidelityReport { get; set; }
         public double ElapsedS { get; set; }
         public double FinalArrivalS { get; set; }
         public DispersionPoint FinalSystem { get; set; }
@@ -58,6 +110,7 @@ namespace UltrafastEngine.Results
             .Set("spectralFwhmM", R(s.SpectralFwhmM)).Set("spectralRmsWidthM", R(s.SpectralRmsWidthM)).Set("centroidWavelengthM", R(s.CentroidWavelengthM)).Set("peakWavelengthM", R(s.PeakWavelengthM))
             .Set("timeBandwidthProduct", R(s.TimeBandwidthProduct)).Set("pulseGddS2", R(s.PulseGddS2)).Set("pulseTodS3", R(s.PulseTodS3))
             .Set("centroidTimeS", R(s.CentroidTimeS)).Set("edgeEnergyFraction", R(s.EdgeEnergyFraction))
+            .Set("peakCount", s.PeakCount).Set("fwhmEnergyFraction", R(s.FwhmEnergyFraction))
             .Set("stokes", JsonValue.FromArray(new[] { R(s.S1), R(s.S2), R(s.S3) })).Set("degreeOfPolarization", R(s.PolarizationDegree));
 
         public JsonObject SummaryJson()
@@ -80,6 +133,8 @@ namespace UltrafastEngine.Results
                     .Set("arrivalTimeS", FinalArrivalS)
                     .Set("systemGroupDelayS", FinalSystem.GroupDelayS).Set("systemGddS2", FinalSystem.GddS2).Set("systemTodS3", FinalSystem.TodS3)
                     .Set("bIntegralRad", Records.Sum(r => r.BIntegralRad))
+                    .Set("bIntegralPulseAveragedRad", R(Records.Where(r => r.BIntegralRad > 0).Sum(r => r.BIntegralPulseAveragedRad)))
+                    .Set("bIntegralBeamAveragedRad", R(Records.Where(r => r.BIntegralRad > 0).Sum(r => r.BIntegralBeamAveragedRad)))
                     .Set("lengthM", Records.Sum(r => r.LengthM)));
             // loss budget by mechanism
             var mech = new JsonObject();
@@ -109,6 +164,7 @@ namespace UltrafastEngine.Results
                     .Set("own", new JsonObject().Set("groupDelayS", R(r.Own.GroupDelayS)).Set("gddS2", R(r.Own.GddS2)).Set("todS3", R(r.Own.TodS3)))
                     .Set("system", new JsonObject().Set("groupDelayS", R(r.System.GroupDelayS)).Set("gddS2", R(r.System.GddS2)).Set("todS3", R(r.System.TodS3)))
                     .Set("bIntegralRad", r.BIntegralRad).Set("cumulativeBIntegralRad", r.CumulativeBIntegralRad)
+                    .Set("bIntegralPulseAveragedRad", R(r.BIntegralPulseAveragedRad)).Set("bIntegralBeamAveragedRad", R(r.BIntegralBeamAveragedRad))
                     .Set("peakIntensityWPerM2", R(r.PeakIntensityWPerM2)).Set("peakFluenceJPerM2", R(r.PeakFluenceJPerM2))
                     .Set("lidtFluenceJPerM2", R(r.LidtFluenceJPerM2)).Set("lidtMargin", R(r.LidtMargin))
                     .Set("outsideDataFraction", R(r.OutsideDataFraction)).Set("criticalPowerRatio", R(r.CriticalPowerRatio))
@@ -152,6 +208,8 @@ namespace UltrafastEngine.Results
             o.Set("arrays", new JsonArray(Arrays().Select(a => (JsonValue)new JsonObject().Set("name", a.Name).Set("shape", JsonValue.FromArray(a.Shape.Select(x => (double)x))).Set("unit", a.Unit).Set("description", a.Description))));
             o.Set("notes", JsonValue.FromArray(Notes));
             o.Set("warnings", JsonValue.FromArray(Warnings));
+            o.Set("validity", new JsonArray(Validity.Select(v => (JsonValue)v.ToJson())));
+            if (FidelityReport != null) o.Set("fidelityReport", FidelityReport);
             o.Set("unverifiedInputs", Compiled?.Provenance?.UnverifiedInputsJson() ?? new JsonArray());
             return o;
         }
@@ -332,6 +390,6 @@ namespace UltrafastEngine.Results
 
     public static class EngineInfo
     {
-        public const string Version = "2.2.0";
+        public const string Version = "1.0.0";
     }
 }

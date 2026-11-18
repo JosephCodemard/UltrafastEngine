@@ -15,6 +15,8 @@ squeezed; and a **closed loop** finds an unknown chirp (GDD and TOD) from the pe
 *The animation: each sweep of the modal search moves the AOPDF's GDD and TOD closer to minus the chirp; the pulse returns to the
 transform limit.*
 
+**Layout** (`temporal_shaping.py`): a 30 fs, 800 nm Gaussian pulse and the 1-D spectral transfer functions of the `spectralShaper` and `aopdf` elements; six small cases, each checked against a formula, then a closed loop that finds an unknown GDD and TOD. A few seconds.
+
 ```bash
 python temporal_shaping.py
 python make_figures.py          # optional: hero.png, animation.gif (a few seconds)

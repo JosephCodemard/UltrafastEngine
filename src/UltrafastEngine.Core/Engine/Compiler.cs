@@ -23,10 +23,27 @@ namespace UltrafastEngine.Engine
         public Material Material { get; set; }
         public List<LinearTerm> Background { get; } = new List<LinearTerm>();
         public bool CarrierResolved { get; set; }
+        /// <summary>Kerr lens of the 1-D beam: null (off), "peak" or "pulseWeighted" (<see cref="KerrLens"/>); <see cref="KerrLensModel"/> is "secondMoment" or "paraxial".</summary>
+        public string KerrLens { get; set; }
+        public string KerrLensModel { get; set; } = "secondMoment";
+        /// <summary>The same segment with another beam (the executor replaces the beam by the self-focused one).</summary>
+        public NonlinearSegment WithBeam(IBeamModel beam)
+        {
+            var s = new NonlinearSegment { Medium = Medium, Beam = beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved, KerrLens = KerrLens, KerrLensModel = KerrLensModel };
+            s.Background.AddRange(Background);
+            return s;
+        }
+        /// <summary>The same segment with another nonlinear medium (the executor drops a negligible plasma term).</summary>
+        public NonlinearSegment WithMedium(NonlinearMedium medium)
+        {
+            var s = new NonlinearSegment { Medium = medium, Beam = Beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved, KerrLens = KerrLens, KerrLensModel = KerrLensModel };
+            s.Background.AddRange(Background);
+            return s;
+        }
         /// <summary>The same segment with another background (the executor takes narrow lines out of the solver).</summary>
         public NonlinearSegment WithBackground(IEnumerable<LinearTerm> background)
         {
-            var s = new NonlinearSegment { Medium = Medium, Beam = Beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved };
+            var s = new NonlinearSegment { Medium = Medium, Beam = Beam, LengthM = LengthM, Material = Material, CarrierResolved = CarrierResolved, KerrLens = KerrLens, KerrLensModel = KerrLensModel };
             s.Background.AddRange(background);
             return s;
         }
@@ -120,6 +137,8 @@ namespace UltrafastEngine.Engine
         public SystemGraph Graph { get; set; }
         /// <summary>Branched systems in a study: element outputs shared between points.</summary>
         public GraphCache GraphCache { get; set; }
+        /// <summary>The memory the run is estimated to hold (also in <see cref="Notes"/>; docs/reference/memory.md).</summary>
+        public MemoryEstimate Memory { get; set; }
     }
 
     /// <summary>
@@ -386,6 +405,15 @@ namespace UltrafastEngine.Engine
                         + string.Join("\n  ", open.Select(u => u.Material + "." + u.Property.Replace(" (catalogue)", "") + " [" + u.Catalogue.Path + "] " + u.Catalogue.Status.ToString().ToLowerInvariant() + ": " + u.Catalogue.Source))
                         + "\nOverride each value (docs/reference/materials.md#the-material-catalogue), put a verified one in your own catalogue file, , accept one by its path in physics.strictMaterialsAllow, or switch physics.strictMaterials off.");
             }
+            // memory: the estimate is a note; above compute.memoryLimitBytes the run is refused, above 80 % of the free memory it is a warning
+            c.Out.Memory = MemoryEstimate.Of(c.Out);
+            c.Out.Notes.Add(c.Out.Memory.Summary());
+            var memMsg = c.Out.Memory.Check(run.MemoryLimitBytes, out bool memError);
+            if (memMsg != null)
+            {
+                if (memError) throw new ModelException("memory limit: " + memMsg);
+                c.Out.Warnings.Add("Memory: " + memMsg);
+            }
             return c.Out;
         }
 
@@ -578,8 +606,18 @@ namespace UltrafastEngine.Engine
                     break;
                 }
                 case "polarizer":
+                {
+                    // the glass of a real polariser (a Glan prism, a crystal or film polariser) adds its dispersion before the polarising action
+                    double pth = Num(c, e, "thicknessM", 0);
+                    if (e.Json.Has("material") && pth > 0)
+                    {
+                        var pm = GetMaterial(c, Str(c, e, "material", null));
+                        ce.Pre.Add(new BulkTerm(pm, pth));
+                    }
+                    else if (e.Json.Has("material")) ce.Notes.Add("polarizer: a material without thicknessM adds no dispersion; give the glass path length in thicknessM");
                     ce.Post.Add(new PolarizerTerm(Angle(c, e, "axis", 0), Num(c, e, "extinctionRatio", 1e5), Num(c, e, "transmission", 1.0)));
                     break;
+                }
                 case "rotator":
                     ce.Post.Add(new RotatorTerm(Angle(c, e, "angle", 0)));
                     break;
@@ -612,6 +650,7 @@ namespace UltrafastEngine.Engine
                     ce.Active = new Optics.SurfaceOpticsElement("thin lens", fxl, fyl, lm, medium, c.Omega0, lensAb);
                     double th = Num(c, e, "thicknessM", 0);
                     if (lm != null && th > 0) ce.Pre.Add(new BulkTerm(lm, th));
+                    else if (lm != null) ce.Notes.Add("lens: the material sets the chromatic focal length only; give thicknessM (the glass on axis) for its dispersion (GDD, TOD)");
                     c.Out.Provenance.Record("element:" + e.Id, "lens", ce.Active.Description, ModelSource.SystemData, "system file");
                     break;
                 }
@@ -940,6 +979,19 @@ namespace UltrafastEngine.Engine
         }
 
         /// <summary>The ionisation data (band gap or ionisation potential, ...) come from the catalogue unless the ionization block gives them itself.</summary>
+        /// <summary>Fidelity quick: the spatial models can be replaced by the 1-D model only when every spatial element has a beam to take over
+        /// (an element without one gets its transverse profile from the element before it).</summary>
+        private static bool CanCollapseTransverse(Ctx c)
+        {
+            if (c.Track != null || c.Run.InputBeam != null || c.Sys.InputBeam != null) return true;
+            foreach (var el in c.Sys.Elements)
+            {
+                bool spatial = el.Json.Has("transverse") ? Transverse.TransverseSpec.FromJson(el.Json["transverse"]).IsSpatial : c.Run.Physics.Transverse != null && Transverse.TransverseSpec.FromJson(c.Run.Physics.Transverse).IsSpatial;
+                if (spatial && !el.Json.Has("beam") && Find(c, el, "beam") == null) return false;
+            }
+            return true;
+        }
+
         private static void ReportIonizationCatalogue(Ctx c, SystemElement e, Material m, JsonObject spec)
         {
             var prov = c.Out.Provenance; string target = "element:" + e.Id;
@@ -1022,8 +1074,10 @@ namespace UltrafastEngine.Engine
                 c.Out.Provenance.Record("element:" + e.Id, "rotationalRaman", m.Rotational.Description + string.Format(CultureInfo.InvariantCulture, "; adiabatic n2 {0:G3} m^2/W", m.Rotational.AdiabaticN2), ModelSource.MaterialDefault, "material " + m.Name);
             }
             var n2r = Find(c, e, "n2");
+            bool n2InElement = n2r == null && e.Json.Has("n2");   // the element's own n2 (documented: overrides the material's)
             if (n2r != null) med.N2 = n2r.RawValue.AsDouble();
-            c.Out.Provenance.Record("element:" + e.Id, "n2", med.N2.ToString("G4", CultureInfo.InvariantCulture) + " m^2/W", n2r?.Source ?? (m.Provenance.TryGetValue("n2", out var np) ? np.Source : ModelSource.MaterialDefault), n2r?.Origin ?? "material " + m.Name);
+            else if (n2InElement) med.N2 = e.Json.GetDouble("n2", med.N2);
+            c.Out.Provenance.Record("element:" + e.Id, "n2", med.N2.ToString("G4", CultureInfo.InvariantCulture) + " m^2/W", n2r?.Source ?? (n2InElement ? ModelSource.SystemData : (m.Provenance.TryGetValue("n2", out var np) ? np.Source : ModelSource.MaterialDefault)), n2r?.Origin ?? (n2InElement ? "element " + e.Id : "material " + m.Name));
             // cubic anisotropy of the electronic Kerr response: element > override > material; orientation from the element
             var kar = Find(c, e, "kerrAnisotropy");
             med.KerrAnisotropy = kar != null ? kar.RawValue.AsDouble() : e.Json.Has("kerrAnisotropy") ? e.Json.GetDouble("kerrAnisotropy", 0) : m.KerrAnisotropy;
@@ -1035,6 +1089,14 @@ namespace UltrafastEngine.Engine
                     kar?.Source ?? (e.Json.Has("kerrAnisotropy") ? ModelSource.SystemData : ModelSource.MaterialDefault), kar?.Origin ?? (e.Json.Has("kerrAnisotropy") ? "element " + e.Id : "material " + m.Name));
             }
             var rr = Find(c, e, "raman");
+            // the element's own "raman" model (an object or a catalogue / kind name) is read like an override; a run override wins
+            if (rr == null && e.Json.TryGet("raman", out var ownRaman) && (ownRaman.Kind == JsonKind.Object || ownRaman.Kind == JsonKind.String) && !string.Equals(ownRaman.Kind == JsonKind.String ? ownRaman.AsString() : "", "none", StringComparison.OrdinalIgnoreCase))
+            {
+                var ownSpec = ownRaman.Kind == JsonKind.String
+                    ? new ModelSpec(ownRaman.AsString(), new JsonObject().Set("kind", ownRaman.AsString()), ModelSource.SystemData, "element " + e.Id + ".raman")
+                    : ModelSpec.FromJson(ownRaman, ModelSource.SystemData, "element " + e.Id + ".raman");
+                rr = new OverrideRule { Target = "element:" + e.Id, Property = "raman", Model = ownSpec, RawValue = ownRaman, Source = ModelSource.SystemData, Origin = "element " + e.Id };
+            }
             if (rr != null && rr.RawValue.Kind == JsonKind.Bool && !rr.RawValue.AsBool()) med.Rotational = null;
             if (e.Json.TryGet("raman", out var rawRaman) && rawRaman.Kind == JsonKind.Bool && !rawRaman.AsBool()) med.Rotational = null;
             if (rr != null)
@@ -1043,6 +1105,7 @@ namespace UltrafastEngine.Engine
                 med.RamanFraction = rr.Model.Json.GetDouble("fR", !double.IsNaN(MaterialLibrary.DefaultRamanFraction(rr.Model.Kind)) ? MaterialLibrary.DefaultRamanFraction(rr.Model.Kind) : med.RamanFraction);
                 if (med.Raman == null) med.RamanFraction = 0;
             }
+            if (e.Json.Has("fR") && med.Raman != null) med.RamanFraction = e.Json.GetDouble("fR", med.RamanFraction);   // the element's own Raman fraction
             var ssr = Find(c, e, "selfSteepening");
             if (ssr != null) med.EnableSelfSteepening = ssr.RawValue.AsBool();
             else if (e.Json.Has("selfSteepening")) med.EnableSelfSteepening = e.Json.GetBool("selfSteepening", med.EnableSelfSteepening);   // the element's own switch (fibres pass theirs on)
@@ -1087,6 +1150,13 @@ namespace UltrafastEngine.Engine
             // transverse (spatial) model: element > override > run default (physics.transverse)
             var tvOv = Find(c, e, "transverse");
             var tv = Transverse.TransverseSpec.FromJson(tvOv != null ? tvOv.RawValue : e.Json.Has("transverse") ? e.Json["transverse"] : c.Run.Physics.Transverse);
+            // fidelity quick: the 1-D beam model replaces the spatial model where the element has a beam to take over
+            if (tv.IsSpatial && c.Run.Fidelity.CollapseTransverse && !c.Run.Raw.Has("coherence") && CanCollapseTransverse(c))
+            {
+                c.Out.Notes.Add("element " + e.Id + ": fidelity quick uses the 1-D beam model instead of the " + tv.Model + " transverse model (self-focusing, diffraction and wavefront structure are not modelled)");
+                tv = Transverse.TransverseSpec.FromJson(null);
+                lock (c.Run.Fidelity.CollapsedElements) c.Run.Fidelity.CollapsedElements.Add(e.Id);
+            }
             if (tv.IsSpatial && wantNl && med.HasCubicAnisotropy)
                 throw new ModelException("element '" + e.Id + "': the cubic Kerr anisotropy (kerrAnisotropy " + med.KerrAnisotropy.ToString("G4", CultureInfo.InvariantCulture) + ") is implemented for the 1-D envelope model only; use no \"transverse\" model or set kerrAnisotropy 0");
             if (tv.IsSpatial)
@@ -1105,7 +1175,7 @@ namespace UltrafastEngine.Engine
                 ce.Active = sb;
                 c.Out.Provenance.Record("element:" + e.Id, "transverse", tv.Model + (tv.Model == "radial" ? " (" + tv.Points + " points)" : " (" + tv.Nx + " x " + tv.Ny + ")") + ", transport " + tv.Transport, tvOv?.Source ?? ModelSource.SystemData, tvOv?.Origin ?? "system file");
                 if (wantNl && med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
-                if (wantNl) ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
+                if (wantNl) ReportNonlinearCatalogue(c, e, m, med, n2r != null || n2InElement, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
                 return;
             }
             IBeamModel beam = null;
@@ -1140,10 +1210,20 @@ namespace UltrafastEngine.Engine
             if (wantNl)
             {
                 var seg = new NonlinearSegment { Medium = med, Beam = beam, LengthM = ce.LengthM, Material = m };
+                string lensMode = Str(c, e, "kerrLens", "off");
+                if (lensMode != "off")
+                {
+                    if (lensMode != "peak" && lensMode != "pulseWeighted") throw new ModelException("element '" + e.Id + "': kerrLens must be \"off\", \"peak\" or \"pulseWeighted\" (got \"" + lensMode + "\")");
+                    string lensModel = Str(c, e, "kerrLensModel", "secondMoment");
+                    if (lensModel != "secondMoment" && lensModel != "paraxial") throw new ModelException("element '" + e.Id + "': kerrLensModel must be \"secondMoment\" or \"paraxial\" (got \"" + lensModel + "\")");
+                    if (!(beam is GaussianBeam)) c.Out.Warnings.Add("Element '" + e.Id + "': kerrLens needs a gaussian beam model (or the tracked beam); it is ignored for " + (beam?.Description ?? "no beam") + ".");
+                    else if (med.ReplaceKerr || med.N2 <= 0) ce.Notes.Add("kerrLens: no Kerr index in this element, nothing to focus");
+                    else { seg.KerrLens = lensMode; seg.KerrLensModel = lensModel; }
+                }
                 seg.Background.AddRange(background);
                 ce.Nonlinear = seg;
                 if (med.EffectiveRamanFraction > 0) c.Out.Provenance.Record("element:" + e.Id, "raman", med.Raman.Description + ", fR = " + med.RamanFraction.ToString("G3", CultureInfo.InvariantCulture), rr?.Source ?? ModelSource.MaterialDefault, rr?.Origin ?? "material " + m.Name);
-                ReportNonlinearCatalogue(c, e, m, med, n2r != null, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
+                ReportNonlinearCatalogue(c, e, m, med, n2r != null || n2InElement, kar != null || e.Json.Has("kerrAnisotropy"), rr != null);
             }
             else ce.Pre.AddRange(background);
         }
@@ -1229,8 +1309,11 @@ namespace UltrafastEngine.Engine
             if (props.N2Scale != null && wantNl && L > 0)
             {
                 double sc = 0; for (int k = 0; k < nz; k++) sc += Avg(props.N2Scale, L * (k + 0.5) / nz, 2) / nz;
-                med.N2 *= sc;
-                ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "n2Scale {0} (intensity^2-weighted): n2 x {1:G5}", how, sc));
+                med.N2 *= sc;   // Kerr, the delayed (Raman) fraction of n2 and the cubic anisotropy are all fractions of n2
+                bool scalesRot = med.Rotational != null;
+                if (scalesRot) med.Rotational = new ScaledAnisotropicResponse(med.Rotational, sc);
+                ce.Notes.Add(string.Format(CultureInfo.InvariantCulture, "n2Scale {0} (intensity^2-weighted): every third-order response x {1:G5} (Kerr, Raman{2}{3})", how, sc,
+                    scalesRot ? ", rotational Raman" : "", med.ExtraResponses.Count > 0 ? "; user-defined responses are not scaled" : ""));
             }
             if (props.IndexChange != null)
                 ce.Notes.Add("indexProfile has no effect in a 1-D element (a uniform index change is only a phase); add \"transverse\": {\"model\": \"radial\"} (or cartesian) to see lensing / guiding");

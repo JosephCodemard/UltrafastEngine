@@ -1,38 +1,21 @@
-# Backlog: design that is parked for after the first release
+# Future plugins and larger core updates (not scheduled)
 
-This page was the plan for the work after 2.2.0 (written 2026-11-08). The adaptive-optics and digital-twin work from it is done
-([history](history.md)); the plan for the next iteration is [next-steps.md](next-steps.md). What stays here is design that is **not scheduled**:
-engineering (GPU coverage, FP32, speed), multimode and tapered fibres, fitting extensions, the crystal- and coating-design plugins, papers still to replicate,
-and the repetition / Pockels-cell sketch. Sizes are focused agent-days (S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Zemax is out of scope here. Owner decisions 1-11 below
-still hold unless next-steps.md says otherwise.
+Internal page ([folder index](README.md)). Designs that are worked out but not scheduled. Each section says whether it is a **separate plugin**
+or a **core update**. Sizes are focused agent-days (S ≈ 1, M ≈ 2-3, L ≈ 4-6, XL ≥ 7). Decisions referred to are in [decisions.md](decisions.md);
+scheduled work is in [roadmap-internal.md](roadmap-internal.md).
 
-## Decisions (owner)
+| design | class | first tier worth building |
+|---|---|---|
+| C. Fibres: A_eff(ω), tapers, saturated rate-equation gain, multimode tiers | core update | C1 A_eff(ω) (M) |
+| D. Fitting estimators and operators (low-rank, learned, ensemble Kalman, Bayesian optimisation, spatio-temporal operators, backward through gain, autodiff) | plugin `fitting` | D2 Bayesian optimisation (M) |
+| E1. Crystal design | separate plugin `crystaldesign` | tiers 1 and 2 |
+| E2. Coating / dielectric design | separate plugin `coatingdesign` | tier 1 analysis (M), most useful to multipass cells |
+| F. Repetition and Pockels cells | core update | a `pockelsCell` element and a pulse picker |
+| Hollow-capillary (Marcatili) gas waveguide | core update | needs C1 |
+| Ray-based ASE for bulk crystals and disks, parasitic lasing | separate plugin | builds on `Gain/AseModel.cs` |
+| Live-data plugin, ML / PINN surrogate plugins, NuGet package, OpticStudio User Extension | separate plugins / packaging | after 1.0 |
 
-| # | decision |
-|---|---|
-| 1 | Push to GitHub: yes. PoCL is added to CI so `GpuTests` run there (not done yet). |
-| 2 | No PyPI publishing. The release workflow builds packages and wheels and attaches them to a GitHub release on a version tag. |
-| 3 | **Plugins as pip extras**: `pip install "ultrafast[hitran,cuda,fitting]"`, `[opencl]`, `[coatingdesign]`, `[crystaldesign]`, `[all]`. The default Python engine is the NativeAOT library, which can only use plugins compiled into it, so: the native library in the `ultrafast` wheel is built with every non-Zemax plugin compiled in (off until used); each extra installs that plugin's Python module (`ultrafast-hitran`, `ultrafast-fitting`, ...) and its third-party dependencies (`[cuda]`: NVIDIA's NVRTC / cuFFT wheels, not on macOS); the hosted engine loads the plugin assemblies shipped in the same extra wheels. Without PyPI, extras resolve only with `pip install "ultrafast[hitran]" --find-links <release assets or dist/>`. Zemax is never an extra. |
-| 4 | (delegated) **FP32 study first; then mixed precision in the existing CUDA / OpenCL back-ends; Metal only if the study shows FP32 is enough for the steps that matter.** Reason: Apple GPUs have no FP64, so Metal is worthless unless FP32 works, and the study is cheap and runs on this Mac. |
-| 5 | (open-air focus) Fibre work is reshaped. **In**: frequency-dependent effective area (also needed by hollow capillaries); a **hollow-capillary (Marcatili) gas waveguide** model, the fibre most relevant to open-air post-compression; **rate-equation gain with ASE as a shared gain model**, used by the bulk `gain` / `amplifier` elements as well as fibres, because the ASE pedestal is a contrast question for CPA chains; multimode tier T0 (GRIN example). **Small**: tapers (C2). **Out for now**: GMMNLSE (T1) and a mode solver (T2). |
-| 6 | ASE is included in the rate-equation gain (forward and backward ASE, spectrally resolved, as an incoherent power spectrum and as a pedestal in the contrast). |
-| 7 | (asked) Recommendation: **keep the estimators in the fitting plugin**; the design plugins declare `"requires": ["fitting"]` in `plugin.json` (a new, small plugin-manager feature: load order and a clear error if missing), and `ultrafast[coatingdesign]` pulls `ultrafast-fitting` in. One home for optimisers, no core API churn; design is fitting with a target specification instead of data. |
-| 8 | Escoto 2024 uses the Seidel 2022 cell as a labelled hypothesis. |
-| 9 | The owner's separate lab project is not used or modified; only its recorded data files may be **copied into `papers/lab-mpc-ner-contrast/data/`** (the owner's own Pharos MPC recordings, not personal data, not Escoto's system). A separate paper-folder case `papers/lab-mpc-ner-contrast/` is built from scratch from the engine's docs: (1) fit the input and output spectra with `transform` elements; (2) put the fitted transform into the MPC model with the hitran air lines; (3) compare the predicted TOCC contrast with the recordings, then fit what remains. |
-| 10 | Build: `pedestal.kind: "measured"` (a contrast trace as the input pedestal; done), an XPW model (anisotropic cubic χ(3); done in 1-D, see the roadmap for spatial and carrier-resolved), the hollow-capillary model (open). |
-| 11 | Papers cover a range: MPCs / NER, Yb and Ti:sapphire lasers (oscillators, regenerative and multipass amplifiers), OPA / OPCPA chains, fibres and hollow capillaries, χ(2) conversion, beam propagation / filamentation, contrast cleaning. The goal is each paper's **headline results**; when one cannot be reproduced, its README says why (missing parameter, missing physics, a bug). |
-
-## B. Engineering
-
-| item | plan | Mac-verifiable | size |
-|---|---|---|---|
-| B1 release workflow | `.github/workflows/release.yml` on `v*` tags: linux-x64/arm64, osx-arm64/x64, win-x64 runners, each `build.sh --all --plugins fitting gpu hitran --platform <rid> --test`; smoke tests (CLI example 01 strict, wheel in a fresh venv runs 00-quickstart, C API example, `ultrafast devices`); a step failing if any archive contains `ZOSAPI*`, plus a test planting a fake DLL; publish with `gh release create` | osx-arm64 build only; YAML needs GitHub | M |
-| B2 GPU at install | `ultrafast[cuda]` (nvidia NVRTC/cuFFT wheels, not on Darwin), `ultrafast[opencl]`; a gpu plugin wheel; loader finds the CUDA libs; `ultrafast devices` reports where each back-end came from. NativeAOT can only use compiled-in plugins, so choose hosted-only or per-platform native wheels | packaging + "no device" path | M |
-| B3 GPU coverage | order: gas rotational Raman (today it keeps the air gaps of any MPC on the CPU), expression responses compiled to kernels, χ(2), carrier-resolved, spatial gain; each with CPU parity 1e-9 in `GpuTests` | no (needs PoCL in CI or the 3060 Ti) | XL |
-| B4 FP32 study | CPU FP32-emulation mode; SPM plate, 50-transit MPC, soliton, SHG, contrast floor vs FP64; accept if energy 1e-6, spectrum L1 1e-4, floor unchanged. Then a mixed-precision mode in CUDA/OpenCL (consumer GPUs run FP64 slowly) before Metal | study yes | M (+M; Metal XL) |
-| B5 speed | micro-benchmarks; pooled buffers (25 `new Complex[` in `Nonlinear.cs`); blocked SIMD Hankel; a zero-allocation-per-RHS test (`#if NET`); LightPipes timing benchmark (dev-only tool, tabled in `speed.md`) | yes | M + S |
-
-## C. Fibres (one serial worktree: all three touch the steppers and `CompilerFiber.cs`)
+## C. Fibres (core update; one serial worktree: all three touch the steppers and `CompilerFiber.cs`)
 
 **C1 frequency-dependent A_eff (M).** Table or expression for `effectiveAreaM2` / `modeFieldDiameterM`; Lægsgaard
 pseudo-field (Opt. Express 15, 16110 (2007)): nonlinear factor (1 + Ω/ω0)·[A_eff(ω0)/A_eff(ω)]^{1/4}. Tests: constant
@@ -57,7 +40,7 @@ iterated with the propagated spectrum; reuses `GainCrystal`. Yb:silica cross-sec
 IEEE JQE 33, 1049 (1997) (read from the paper, not recalled). Tests: closed-form two-level steady state (Saleh et al.,
 IEEE PTL 2, 714 (1990)) to 1e-4; exact photon balance; small-signal limit equals `gainDbPerM`. ASE out of scope here; `Gain/AseModel.cs` (session D) is the shared solver: use a fibre's mode as the bundle (Ω = λ0² / (n² A), p = 2) and its Γ-weighted N2.
 
-## D. Fitting plugin (all inside `plugins/fitting/src`, no packages: everything hand-written)
+## D. Fitting plugin extensions (plugin `fitting`; all inside `plugins/fitting/src`, no packages: everything hand-written)
 
 | item | design | reference test | size |
 |---|---|---|---|
@@ -71,9 +54,9 @@ IEEE PTL 2, 714 (1990)) to 1e-4; exact photon balance; small-signal limit equals
 
 The roadmap's condition for autodiff ("if inverse design becomes a goal") is met by the two design plugins below.
 
-## E. Two new plugins
+## E. Two new plugins (separate plugins)
 
-**Shared architecture (owner decision 8).** Both need estimators that live in the fitting plugin. Recommended: move
+**Shared architecture (decision E11).** Both need estimators that live in the fitting plugin. Recommended: move
 `IEstimator` / `FitProblem` to `UltrafastEngine.Core/Plugins` as public interfaces, so plugins never require plugins.
 Both register through `IPlugin.Register`: a CLI command `ultrafast design ...`, a `"design"` run-spec key, elements and
 result extensions (`Plugins.cs:105-133`). Each emits plain `.ufs` objects, so a design is re-checked in the core.
@@ -122,7 +105,7 @@ Kramers-Kronig-consistent by construction, instead of an ideal `gdd` coating.
 | fitting showcases | lab-mpc-ner-contrast (decision 9); Song 2022 spectra; Hollenbeck & Cantrell 2002 Raman response |
 
 
-## F. Repetition and Pockels cells (sketch, was "S6")
+## F. Repetition and Pockels cells (core update; sketch)
 
 *What the engine does today.* Most of it is single shot. Gain and amplifier elements with a `repRateHz` (on the pulse, or on the element, which then acts as an ideal
 pulse picker) iterate the pump-amplify cycle to a steady state with a fast energy model, then propagate the last pulse with the full model; period doubling is detected

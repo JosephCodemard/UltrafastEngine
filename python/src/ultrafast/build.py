@@ -123,10 +123,10 @@ def bulk(id: str, material: str, length_m: float, beam: Optional[Mapping[str, An
 def fiber(id: str, length_m: float, betas: Optional[Sequence[float]] = None, gamma: Any = None, *,
           betas_ps_km: Optional[Sequence[float]] = None, loss_db_per_km: Optional[float] = None, gain_db_per_m: Optional[float] = None,
           raman: Any = None, **extra) -> "T.FiberElement":
-    """Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (or ``betas_ps_km``
+    """Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (key ``betasSkPerM``; or ``betas_ps_km``
     in ps^k/km), ``gamma`` in 1/(W m) (or an expression in z), loss, gain, ``raman`` = "silica" | "linAgrawal" |
     "hollenbeck" | "none". ``extra``: ``dispersion``, ``material``, ``n2``, ``effectiveAreaM2``, ``gain`` (spectrum), ..."""
-    return _clean({"id": id, "type": "fiber", "lengthM": length_m, "betas": list(betas) if betas is not None else None,
+    return _clean({"id": id, "type": "fiber", "lengthM": length_m, "betasSkPerM": list(betas) if betas is not None else None,
                    "betasPsKm": list(betas_ps_km) if betas_ps_km is not None else None, "gamma": gamma,
                    "lossDbPerKm": loss_db_per_km, "gainDbPerM": gain_db_per_m, "raman": raman, **extra})
 
@@ -421,8 +421,14 @@ def pedestal(kind: str, **params) -> dict:
     return {"kind": kind, **params}
 
 
-def polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 1e5) -> "T.PolarizerElement":
-    return {"id": id, "type": "polarizer", "axisDeg": axis_deg, "extinctionRatio": extinction_ratio}
+def polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 1e5, material: Optional[str] = None,
+              thickness_m: float = 0.0) -> "T.PolarizerElement":
+    """A linear polariser. ``material`` with ``thickness_m`` adds the glass path of a real one (a Glan prism: its dispersion)."""
+    el: Dict[str, Any] = {"id": id, "type": "polarizer", "axisDeg": axis_deg, "extinctionRatio": extinction_ratio}
+    if material is not None:
+        el["material"] = material
+        el["thicknessM"] = thickness_m
+    return el  # type: ignore[return-value]
 
 
 def filter_element(id: str, model: Mapping[str, Any]) -> dict:

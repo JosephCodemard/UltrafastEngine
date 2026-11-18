@@ -13,7 +13,7 @@ How the files work, how to override a value and how runs report the values they 
 
 A run that uses an `approximate` or `unverified` value says so in its notes and lists it under `unverifiedInputs` in `summary.json`.
 
-**185 quantities in 54 entries: 43 verified, 70 approximate, 70 unverified.**
+**190 quantities in 54 entries: 43 verified, 70 approximate, 75 unverified.**
 
 ## Solids and liquids
 
@@ -497,6 +497,8 @@ Ti:sapphire is treated as a four-level system (no lasing-band absorption); the r
 
 Neodymium-doped YAG (four-level). Aliases: `ndyag`.
 
+The emission fit is one line (1064.2 nm, 0.6 nm). Its Fuchtbauer-Ladenburg integral is about 8 % of 1 / tau (the other Stark lines and the other 4F3/2 branches are missing), so the spontaneous-emission power (ASE source term) in the other lines and in 4I9/2 / 4I13/2 is not modelled; the 1064 nm line itself is as reliable as the quoted cross section.
+
 | quantity | values | status | uncertainty | source |
 |---|---|---|---|---|
 | `doping` | host = YAG; dopingDensityM3 = 1.38E+26 | approximate | user-specific: set dopingDensityM3 | 1 at.% Nd (Koechner), as in the original code |
@@ -519,6 +521,7 @@ beta-barium borate, negative uniaxial. Aliases: `b-bab2o4`, `bab2o4`, `beta-bbo`
 | `d` | pointGroup = 3m; tensor = 3m; dPmPerV = {"d22":2.2,"d31":0.04} (wavelengthM 1.064E-06) | unverified | about 10 % | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
 | `n2` | valueM2PerW = 2.8E-20 (wavelengthM 8E-07) | unverified | about 30 % | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
 | `validity` | validRangeUm = [0.188, 5.2] | approximate | range of the index data; outside it the formula is extrapolated | Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) |
+| `ionization` | bandGapEv = 6.56; effectiveMassRatio = 0.5; neutralDensityM3 = 2E+28; collisionTimeS = 1E-15; recombinationTimeS = 1.5E-13 | unverified | band gap from the transmission edge, 5-10 %; the Keldysh rate depends on it exponentially (Eg / hbar w photons); effective mass, density and times are generic | band gap = hc / a UV transmission edge (transmission edge 189 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 
 ### LBO
 
@@ -534,6 +537,7 @@ LBO indices are room-temperature (no thermal model): non-critical phase matching
 | `d` | pointGroup = mm2 (polar axis = Y); tensor = mm2:y; dPmPerV = {"d31":-0.67,"d32":0.85,"d33":0.04} (wavelengthM 1.064E-06) | unverified | about 10 % | Dmitriev, Gurzadyan & Nikogosyan, Handbook of Nonlinear Optical Crystals, as cited by the original code; not re-read |
 | `n2` | valueM2PerW = 1.9E-20 (wavelengthM 8E-07) | unverified | about 30 % | approximate value of the original code (no source recorded) |
 | `validity` | validRangeUm = [0.19, 2.6] | approximate | range of the index data; outside it the formula is extrapolated | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| `ionization` | bandGapEv = 7.75; effectiveMassRatio = 0.5; neutralDensityM3 = 2E+28; collisionTimeS = 1E-15; recombinationTimeS = 1.5E-13 | unverified | band gap from the transmission edge, 5-10 %; the Keldysh rate depends on it exponentially (Eg / hbar w photons); effective mass, density and times are generic | band gap = hc / a UV transmission edge (transmission edge 160 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 
 ### KTP
 
@@ -547,6 +551,7 @@ potassium titanyl phosphate, biaxial (the aliases ppktp name the periodically po
 | `d` | pointGroup = mm2; tensor = mm2; dPmPerV = {"d31":1.95,"d32":3.9,"d33":15.3} (wavelengthM 1.064E-06) | unverified | about 10 % | Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992), as cited by the original code; not re-read |
 | `n2` | valueM2PerW = 2.2E-19 (wavelengthM 8E-07) | unverified | about 30 % | DeSalvo et al., IEEE JQE 32, 1324 (1996), E\|\|z, as cited by the original code; not re-read |
 | `validity` | validRangeUm = [0.43, 3.54] | approximate | range of the index data; outside it the formula is extrapolated | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) |
+| `ionization` | bandGapEv = 3.54; effectiveMassRatio = 0.5; neutralDensityM3 = 2E+28; collisionTimeS = 1E-15; recombinationTimeS = 1.5E-13 | unverified | band gap from the transmission edge, 5-10 %; the Keldysh rate depends on it exponentially (Eg / hbar w photons); effective mass, density and times are generic | band gap = hc / a UV transmission edge (transmission edge 350 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 
 ### KDP
 
@@ -559,6 +564,7 @@ potassium dihydrogen phosphate, negative uniaxial. Aliases: `kh2po4`.
 | `d` | pointGroup = -42m; tensor = -42m; dPmPerV = {"d36":0.39} (wavelengthM 1.064E-06) | unverified | about 10 % | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
 | `n2` | valueM2PerW = 2E-20 (wavelengthM 8E-07) | unverified | about 30 % | Adair et al. (via refractiveindex.info), as cited by the original code; not re-read |
 | `validity` | validRangeUm = [0.2138, 1.529] | approximate | range of the index data; outside it the formula is extrapolated | Zernike, JOSA 54, 1215 (1964) |
+| `ionization` | bandGapEv = 7.04; effectiveMassRatio = 0.5; neutralDensityM3 = 2E+28; collisionTimeS = 1E-15; recombinationTimeS = 1.5E-13 | unverified | band gap from the transmission edge, 5-10 %; the Keldysh rate depends on it exponentially (Eg / hbar w photons); effective mass, density and times are generic | band gap = hc / a UV transmission edge (transmission edge 176 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 
 ### LiNbO3
 
@@ -571,6 +577,7 @@ congruent lithium niobate, negative uniaxial; the aliases ppln, cln name the pol
 | `d` | pointGroup = 3m; tensor = 3m; dPmPerV = {"d22":2.1,"d31":4.6,"d33":25} (wavelengthM 1.064E-06) | unverified | about 10 % | Shoji et al., JOSA B 14, 2268 (1997), as cited by the original code; not re-read |
 | `n2` | valueM2PerW = 9.3E-20 (wavelengthM 8E-07) | unverified | about 30 % | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
 | `validity` | validRangeUm = [0.4, 5] | approximate | range of the index data; outside it the formula is extrapolated | Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) |
+| `ionization` | bandGapEv = 3.87; effectiveMassRatio = 0.5; neutralDensityM3 = 2E+28; collisionTimeS = 1E-15; recombinationTimeS = 1.5E-13 | unverified | band gap from the transmission edge, 5-10 %; the Keldysh rate depends on it exponentially (Eg / hbar w photons); effective mass, density and times are generic | band gap = hc / a UV transmission edge (transmission edge 320 nm, congruent) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 
 ### MgO:LiNbO3
 
@@ -645,6 +652,7 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | BBO | `d` | unverified | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
 | BBO | `n2` | unverified | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
 | BBO | `validity` | approximate | Tamosauskas et al., Opt. Mater. Express 8, 1410 (2018) |
+| BBO | `ionization` | unverified | band gap = hc / a UV transmission edge (transmission edge 189 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 | Yb:YAG | `doping` | approximate | doping density of the original code (2 x 1.38e26 m^-3); give your crystal's doping |
 | Yb:YAG | `lifetime` | approximate | Sumida and Fan, OSA TOPS 1995 (upper-state lifetime 0.95 ms), as cited by the original code; not re-read |
 | Yb:YAG | `zeroLine` | approximate | zero-phonon line 968.8 nm of Yb:YAG, as used by the original code for the McCumber relation; not re-read |
@@ -661,6 +669,7 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | LBO | `d` | unverified | Dmitriev, Gurzadyan & Nikogosyan, Handbook of Nonlinear Optical Crystals, as cited by the original code; not re-read |
 | LBO | `n2` | unverified | approximate value of the original code (no source recorded) |
 | LBO | `validity` | approximate | Kato, IEEE J. Quantum Electron. 30, 2950 (1994) |
+| LBO | `ionization` | unverified | band gap = hc / a UV transmission edge (transmission edge 160 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 | Ti:sapphire | `doping` | approximate | doping density of the original code; give your crystal's doping |
 | Ti:sapphire | `lifetime` | approximate | Moulton, JOSA B 3, 125 (1986) (lifetime 3.2 us), as cited by the original code; not re-read |
 | Ti:sapphire | `thermal` | unverified | typical values of sapphire (original code) |
@@ -670,6 +679,7 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | KTP | `d` | unverified | Vanherzeele & Bierlein, Opt. Lett. 17, 982 (1992), as cited by the original code; not re-read |
 | KTP | `n2` | unverified | DeSalvo et al., IEEE JQE 32, 1324 (1996), E\|\|z, as cited by the original code; not re-read |
 | KTP | `validity` | approximate | Kato & Takaoka, Appl. Opt. 41, 5040 (2002) |
+| KTP | `ionization` | unverified | band gap = hc / a UV transmission edge (transmission edge 350 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 | N-BK7 | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | N-BK7 | `ionization` | unverified | typical values; the original code did not record a source |
 | Nd:YAG | `doping` | approximate | 1 at.% Nd (Koechner), as in the original code |
@@ -683,10 +693,12 @@ The to-do list for anyone with the papers: every quantity whose status is not `v
 | KDP | `d` | unverified | Eckardt et al., IEEE JQE 26, 922 (1990), as cited by the original code; not re-read |
 | KDP | `n2` | unverified | Adair et al. (via refractiveindex.info), as cited by the original code; not re-read |
 | KDP | `validity` | approximate | Zernike, JOSA 54, 1215 (1964) |
+| KDP | `ionization` | unverified | band gap = hc / a UV transmission edge (transmission edge 176 nm) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 | LiNbO3 | `indexZ` | unverified | Jundt, Opt. Lett. 22, 1553 (1997), congruent LiNbO3 e-ray (temperature dependent, T in degC) |
 | LiNbO3 | `d` | unverified | Shoji et al., JOSA B 14, 2268 (1997), as cited by the original code; not re-read |
 | LiNbO3 | `n2` | unverified | DeSalvo et al., IEEE JQE 32, 1324 (1996), as cited by the original code; not re-read |
 | LiNbO3 | `validity` | approximate | Zelmon, Small & Jundt, JOSA B 14, 3319 (1997) |
+| LiNbO3 | `ionization` | unverified | band gap = hc / a UV transmission edge (transmission edge 320 nm, congruent) recalled from the usual textbook and vendor quotes, NOT checked against a source (to be replaced by a published optical-gap measurement); the other inputs are the generic dielectric defaults (defaults:solidIonization) |
 | Sapphire | `n2` | approximate | typical literature value near 0.8-1 um (the literature spread is 10-30 %: wavelength, method, pulse duration); the original code did not record a source, not re-checked |
 | Sapphire | `ionization` | unverified | typical values; the original code did not record a source |
 | MgO:LiNbO3 | `indexZ` | unverified | Gayer et al., Appl. Phys. B 91, 343 (2008), 5% MgO:CLN e-ray (temperature dependent, T in degC) |

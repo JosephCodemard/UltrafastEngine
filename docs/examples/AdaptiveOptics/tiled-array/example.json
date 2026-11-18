@@ -1,0 +1,14 @@
+{
+  "title": "Coherent tiled-aperture combining",
+  "summary": "Seven and 61 coherent beams combine to N times the peak; piston and delay errors cost what theory says, and SPGD locks the phases.",
+  "group": "AdaptiveOptics",
+  "script": "tiled_array.py",
+  "plugins": [
+    "ao"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

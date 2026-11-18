@@ -33,7 +33,7 @@ Everything can be changed:
             "zeroLineWavelengthM": 975e-9,                       // omit for a four-level medium
             "emission":   { "kind": "gaussians", "bands": [ { "wavelengthM": 1.03e-6, "sigmaM2": 2e-24, "fwhmM": 8e-9 } ] },
             "absorption": { "kind": "table", "wavelengthsM": [ ... ], "values": [ ... ] },   // m^2
-            "thermalConductivity": 10, "dnDT": 7.8e-6 }
+            "thermalConductivity": 10, "dnDTPerK": 7.8e-6 }
 ```
 
 Cross sections can also be an expression in `omega`/`lambda` or a callback (`"@name"`) through the usual model
@@ -123,7 +123,7 @@ What it reports (values of the element; they are *not* in the pulse's energy led
 mode, one spatial mode of area π w²/2, at the state the next pulse sees), the spectra `aseForwardSpectrumWPerHz`, `aseBackwardSpectrumWPerHz` on `aseWavelengthM`,
 `aseStimulatedPowerW` (the power the ASE takes from the inversion), `aseDepletionFraction` (that over the absorbed pump power), `aseSolidAngleSr`, and, with a repetition rate,
 `asePedestalEnergyJ` and `asePedestalEnergyFraction`: the ASE energy in the signal mode per pulse period relative to the output pulse. That fraction is the strength to
-give a `pulse.pedestal` of kind `ase` in the next stage (`energyFraction`).
+give a `pulse.pedestal` of kind `ase` in the next stage (`energyFraction`). In Python, `result.ase_pedestal("amp", duration_s=1/rep_rate)` returns that component (`{"kind": "ase", "energyFraction": f, "durationS": ...}`) ready for the next run's `pulse.pedestal`; it raises `KeyError` if no element reports one. Inside one run the ASE is not carried on: the next stage is a separate run.
 
 Checks (`AseStressTests`): uniform inversion gives n_sp h ν Δν (G − 1) per polarisation at both ends (1e-12; Desurvire, *Erbium-doped fiber amplifiers*, 1994; the factor 2 for both
 polarisations); a non-uniform inversion against a direct RK4 integration (1e-6); the source into 4π equals N2 ⟨hν⟩ / τ_rad by the Füchtbauer-Ladenburg relation (1e-9; fixes the
@@ -136,7 +136,7 @@ ASE photons (0.5 %); no solid angle gives no depletion and more angle gives more
   Ω = λ0² / (n² A) (one mode).
 * **Transversely resolved ("3-D") ASE is not in this package.** On a transverse grid (`transverse`) every cell is its own column with its own inversion, so the depletion is local and follows the
   pump; but the rays do not cross from cell to cell, and there are no reflections at the faces (no parasitic lasing, no transverse ASE in a large-aperture disk). A true 3-D model needs
-  oblique rays through the whole crystal (a Monte Carlo or ray-tiling model, O(cells² × slices)) and a reference for it (see `docs/design/next-steps.md`).
+  oblique rays through the whole crystal (a Monte Carlo or ray-tiling model, O(cells² × slices)) and a reference for it (see the [roadmap](../roadmap.md)).
 * The signal polarisation is not special: the same ASE depletes the inversion for both polarisations. ASE in the *pulse's* polarisation state is the input of the pedestal.
 * Cost: cells × slices × points exponentials per evaluation, once per pumping step. A 1-D element costs milliseconds; a 64 × 64 cell grid costs seconds.
 

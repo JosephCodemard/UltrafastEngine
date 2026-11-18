@@ -35,14 +35,16 @@ namespace UltrafastEngine.Engine
             // ---- dispersion: Taylor coefficients, a D(lambda) / beta2(lambda) curve, or a material
             IRefractiveIndex index; string dispDesc; Func<double, double> beta2At;
             double[] betas = null;
-            if (e.Json.Has("betas") || e.Json.Has("betasPsKm"))
+            if (e.Json.Has("betasSkPerM") || e.Json.Has("betas") || e.Json.Has("betasPsKm"))
             {
-                bool ps = !e.Json.Has("betas");
-                var raw = e.Json.GetDoubleArray(ps ? "betasPsKm" : "betas");
+                // "betas" is the old name of "betasSkPerM"; files are migrated on load (Schema/Migrations.cs), a hand-built element may still carry it
+                string sk = e.Json.Has("betasSkPerM") ? "betasSkPerM" : "betas";
+                bool ps = !e.Json.Has(sk);
+                var raw = e.Json.GetDoubleArray(ps ? "betasPsKm" : sk);
                 betas = new double[raw.Length];
                 for (int k = 0; k < raw.Length; k++) betas[k] = ps ? raw[k] * Math.Pow(1e-12, k + 2) / 1e3 : raw[k];   // ps^n/km -> s^n/m
-                // an override of "betas" replaces the array (fits and studies vary single coefficients through it)
-                var bo = Find(c, e, "betas"); if (bo != null) betas = bo.RawValue.AsDoubleArray();
+                // an override of "betasSkPerM" (or of the old "betas") replaces the array (fits and studies vary single coefficients through it)
+                var bo = Find(c, e, "betasSkPerM") ?? Find(c, e, "betas"); if (bo != null) betas = bo.RawValue.AsDoubleArray();
                 index = new TaylorFiberIndex(wRef, nEff, betas);
                 var bb = betas;
                 beta2At = w => { double d = w - wRef, s = 0, f = 1; for (int k = 0; k < bb.Length; k++) { s += bb[k] * Math.Pow(d, k) / f; f *= k + 1; } return s; };
@@ -66,7 +68,7 @@ namespace UltrafastEngine.Engine
                 beta2At = w => { double h = w * 1e-3; var o = new[] { w - h, w, w + h }; var n = new double[3]; m0.Index.Evaluate(o, n); return (n[2] * o[2] - 2 * n[1] * o[1] + n[0] * o[0]) / (Cl * h * h); };
                 dispDesc = "material " + m0.Name;
             }
-            else throw new JsonException("fiber needs its dispersion: \"betas\" (s^n/m from beta2), \"betasPsKm\" (ps^n/km), \"dispersion\" {wavelengthsM, dPsNmKm} or \"material\".");
+            else throw new JsonException("fiber needs its dispersion: \"betasSkPerM\" (s^n/m from beta2), \"betasPsKm\" (ps^n/km), \"dispersion\" {wavelengthsM, dPsNmKm} or \"material\".");
 
             // ---- nonlinearity: gamma (number or expression in z) or n2 + effective area
             double aeff = e.Json.Has("effectiveAreaM2") ? Num(c, e, "effectiveAreaM2", 1e-11)

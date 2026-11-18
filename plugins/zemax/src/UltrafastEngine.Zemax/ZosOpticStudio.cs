@@ -75,23 +75,25 @@ namespace UltrafastEngine.Zemax
         {
             get
             {
-                try
+                // A wrong lens unit scales every length of the export (up to 1000x), so a failure here is an error, not a default.
+                // TODO(zemax-hw): confirm the ZemaxUnits member names on a real OpticStudio (Millimeters, Centimeters, Meters, Inches).
+                string unit;
+                try { unit = _s.SystemData.Units.LensUnits.ToString(); }
+                catch (Exception ex) { throw new InvalidOperationException("Could not read the lens units from OpticStudio: " + ex.Message, ex); }
+                switch (unit)
                 {
-                    switch (_s.SystemData.Units.LensUnits.ToString())
-                    {
-                        case "Millimeters": return 1e-3;
-                        case "Centimeters": return 1e-2;
-                        case "Meters": return 1.0;
-                        case "Inches": return 0.0254;
-                        default: return 1e-3;
-                    }
+                    case "Millimeters": return 1e-3;
+                    case "Centimeters": return 1e-2;
+                    case "Meters": return 1.0;
+                    case "Inches": return 0.0254;
+                    default: throw new NotSupportedException("Unknown OpticStudio lens unit '" + unit + "' (expected Millimeters, Centimeters, Meters or Inches).");
                 }
-                catch { return 1e-3; }
             }
         }
 
         public double TemperatureC
         {
+            // TODO(zemax-hw): the fallback hides a failed read (it only changes the air index slightly); report it once the interface has a warning channel
             get { try { return _s.SystemData.Environment.Temperature; } catch { return 20.0; } }
         }
 
@@ -157,6 +159,7 @@ namespace UltrafastEngine.Zemax
 
         public ChiefRayHit[] TraceChief(int toSurface, int numberOfWaves)
         {
+            // TODO(zemax-hw): AddRay(wave, Hx, Hy, Px, Py, OPDMode) and the ReadNextResult column order are taken from the ZOS-API documentation, not run.
             var hits = new ChiefRayHit[numberOfWaves];
             var tracer = _s.Tools.OpenBatchRayTrace();
             try
@@ -179,6 +182,7 @@ namespace UltrafastEngine.Zemax
 
         public double[] GlobalMatrix(int surface)
         {
+            // TODO(zemax-hw): GetGlobalMatrix returns the rotation R (row-major r11..r33) and the surface origin (x0, y0, z0) in lens units: confirm on a tilted system.
             _s.LDE.GetGlobalMatrix(surface, out double r11, out double r12, out double r13, out double r21, out double r22, out double r23,
                 out double r31, out double r32, out double r33, out double x0, out double y0, out double z0);
             return new[] { r11, r12, r13, r21, r22, r23, r31, r32, r33, x0, y0, z0 };

@@ -48,6 +48,17 @@ the polarisation components: Δn_eff = Im(Σ A_c* N_c) / (k0 Σ |A_c|²). It con
 polarisation, including the coherent term, so circular light reports 2/3 of the linear value (an earlier version left
 the coherent term out of the report and gave 5/6; the propagation itself was correct).
 
+`bIntegralRad` is therefore the **on-axis peak**: the phase of the most intense time slice at the centre of the beam. Two averages are
+reported beside it for 1-D elements (and in `totals`):
+
+* `bIntegralPulseAveragedRad`: at each step the index change is weighted by the power over the pulse, Σ_t P Δn / Σ_t P. For a Gaussian pulse
+  and an instantaneous Kerr index it is B / √2. The CPU stepper accumulates it step by step; on a GPU it is estimated from the entry and exit
+  pulse shapes (a note says so).
+* `bIntegralBeamAveragedRad`: additionally weighted by intensity over the Gaussian cross-section of the 1-D beam, ∫I² dA / ∫I dA = I₀/2, so half of
+  the pulse-averaged value. It is the energy-weighted mean phase, the number that sets, for example, the average spectral broadening of a beam.
+
+Spatial and crystal elements report only the peak. Tests `ValidityTests.BIntegral_PulseAndBeamAveraged_AreTheAnalyticFractionsOfThePeak`.
+
 ### Raman models
 
 The delayed response h_R(t) is a material property (`"raman"` in a material, or on a `bulk` / `fiber` element), with
@@ -58,7 +69,7 @@ the Raman fraction `fR`:
 | `silica` (`blowWood`) | damped oscillator, tau1 = 12.2 fs, tau2 = 32 fs (Blow & Wood 1989); 25 % anisotropic (`anisotropicFraction`) | 0.18 |
 | `linAgrawal` | damped oscillator + boson peak, h = (fa + fc) ha + fb hb, tau_b = 96 fs (Lin & Agrawal, Opt. Lett. 31, 3086 (2006)); `fa`, `fb`, `fc`, `taub` adjustable | 0.245 |
 | `hollenbeck` | 13 vibrational modes with Lorentzian and Gaussian broadening (Hollenbeck & Cantrell, JOSA B 19, 2886 (2002)); reproduces the measured gain spectrum, peak 13.2 THz | 0.18 |
-| `dampedOscillator` | your `tau1`, `tau2` (`anisotropicFraction`, default 0) | `fR` |
+| `dampedOscillator` | your `tau1S`, `tau2S` (`anisotropicFraction`, default 0) | `fR` |
 | `expression`, `callback` | any h(t) | `fR` |
 
 The tabulated parameters of the `hollenbeck` model are those of Table 1 of the paper as commonly reproduced (the same
@@ -101,6 +112,26 @@ spatial models) uses P_cr = 3.77 lambda^2 / (8 pi n0 n2) (Marburger 1975, Gaussi
 in vacuum, n0 the linear index at the carrier). Other sources quote 3.72 for the collapse threshold (Fibich and Gaeta,
 Opt. Lett. 25, 335 (2000)); the two differ by 1.3 %. The engine uses 3.77 everywhere, so the ratio is comparable between
 elements and with the textbook value. A ratio above 0.3 raises a warning.
+
+### Kerr lens in a 1-D element
+
+A 1-D element has one beam that is a fixed function of z, so it does not feel the Kerr index of the pulse. With `"kerrLens": "peak"` (or
+`"pulseWeighted"`) on a bulk element with a `gaussian` (or tracked) beam, the executor builds the beam from the pulse instead: every step is a thin Kerr lens
+of the power at the element's entry (`CellModeSolver.KerrLensPowerPerM`) and the second-moment radius of each axis follows
+
+w'' = Λ² / w³ − K w, K = c n2 I0 / (n w²), I0 = 2P / (π wx wy), Λ = M² λ / (π n)
+
+(c = 1 for `kerrLensModel: "secondMoment"`, the default; c = 4 for `"paraxial"`, the on-axis curvature, which overestimates the lens). For a round beam at its waist
+this has the exact solution w² = w0² [1 + (1 − P/P_c)(z/z_R)²] with the model's self-trapping power P_c = λ² / (2π c n n2); for c = 1 that is 1.06 × Marburger's P_cr.
+The intensity seen by the nonlinear step, the B-integral and the reported peak intensity use the lensed beam. Reported per element: `kerrLensPowerW`, `kerrLensExitRadiusXM`, `kerrLensExitRadiusYM`.
+
+* `peak` uses the peak power; `pulseWeighted` uses Σ P² / Σ P (the lens of each time slice is proportional to its power, and the slice carries energy proportional to it; peak / √2 for a Gaussian pulse). Neither is exact: a real pulse focuses slice by slice, which only the `transverse` model resolves. `peak` is the upper bound.
+* The lens uses the power at the element's entry. If the power changes by more than 20 % inside the element (dispersion, absorption), the run warns: split the element.
+* Above P_c the model collapses; the run warns with the collapse distance and holds the radius at 1e-3 of its entry value. Use `transverse` there.
+* The beam leaving the element is **not** carried to later elements (their beams are the compile-time tracked ones). For a multipass cell use `cellMode`, which self-consistently includes the same thin lens.
+* Off by default; with `off` every result is unchanged. The `n2` is the element's total (Kerr + delayed fraction at its adiabatic value): for pulses shorter than a delayed response the lens is somewhat weaker.
+
+Tests: `KerrLensTests` (exact solution of the model for c = 1 and 4 at P/P_c = 0, 0.5, 1, 2, collapse distance zR / √(P/P_c − 1), the Marburger ratio 4 / 3.77, the engine's exit radius against the same solution, vanishing at low power).
 
 ## Carrier-resolved field model
 

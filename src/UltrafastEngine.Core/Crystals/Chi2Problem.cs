@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using UltrafastEngine.Models;
 using UltrafastEngine.Numerics;
 using UltrafastEngine.Physics;
 using UltrafastEngine.Pulses;
@@ -10,6 +11,19 @@ using UltrafastEngine.Transverse;
 
 namespace UltrafastEngine.Crystals
 {
+    /// <summary>What a device back-end needs to evaluate a 1-D <see cref="Chi2Problem"/> (arrays in the engine's centred order;
+    /// field j of the state at j N). XpmFactor / XpmArea are K x K row-major; Steepening holds 1 + Omega_offset / Omega_center per field.</summary>
+    public sealed class Chi2DeviceSpec
+    {
+        public int N, K;
+        public bool Shg;
+        public double[] Omega0, XpmFactor, XpmArea, Steepening;
+        public double N2, LengthM;
+        public Complex[] LinearRate;
+        public Func<double, (double G0, Complex EPlus)> CouplingAt;
+        public Func<double, double> NextBreakpoint;
+    }
+
     /// <summary>One field of a coupled-wave problem: its carrier, grid, polarisation role and z-wavevector.</summary>
     public sealed class Chi2Field
     {
@@ -63,6 +77,14 @@ namespace UltrafastEngine.Crystals
         public double MaxStepHint { get; }
         /// <summary>Sorted QPM domain-wall positions (domain-resolved model), or null.</summary>
         public double[] Walls { get; set; }
+        /// <summary>Photo-ionisation and plasma, one <see cref="PlasmaResponse"/> per field (null: none). Field j drives its own rate model (built at its own carrier,
+        /// so the photon order is its own) with its own intensity; the electron densities add. The Drude index and the loss act on every field at its own carrier.
+        /// Multiphoton terms that mix colours are not included.</summary>
+        public PlasmaResponse[] Plasmas { get; set; }
+        private double _peakRho;
+        /// <summary>Peak of the total electron density over all rows and steps (1/m^3).</summary>
+        public double PeakElectronDensityM3 { get { lock (_rhoLock) return _peakRho; } }
+        private readonly object _rhoLock = new object();
 
         public double NextBreakpoint(double z)
         {
@@ -137,6 +159,33 @@ namespace UltrafastEngine.Crystals
 
         public double AreaAt(double z) => 1.0;
 
+        /// <summary>The coupling at z: g0 = gamma sign(d) O crossing(z) and e^{+i phi}, phi = dk0 z - Phi_QPM(z) (shared by the CPU and a device back-end).</summary>
+        public (double G0, Complex EPlus) CouplingAt(double z)
+        {
+            double phi = _dk0 * z - (_qpmPhase?.Invoke(z) ?? 0);
+            double sgn = _domainSign?.Invoke(z) ?? 1.0;
+            return (_gamma * sgn * _overlap * (Crossing?.Invoke(z) ?? 1.0), Complex.FromPolarCoordinates(1, phi));
+        }
+
+        /// <summary>Why <see cref="DeviceSpec"/> is null (null when it is not).</summary>
+        public string DeviceUnsupportedReason => Plasmas != null ? "photo-ionisation and plasma in a chi(2) crystal" : _b != null ? "a spatial chi(2) model (" + _b.Kind + ")" : (_K != 2 && _K != 3 ? "an unusual field count" : null);
+
+        /// <summary>What a device back-end needs to evaluate this problem itself (1-D coupled waves); null for spatial models.</summary>
+        public Chi2DeviceSpec DeviceSpec()
+        {
+            if (DeviceUnsupportedReason != null) return null;
+            var steep = _steep ? new double[_K * _n] : null;
+            if (steep != null)
+                for (int j = 0; j < _K; j++) { var g = _f[j].Grid; for (int i = 0; i < _n; i++) steep[j * _n + i] = 1.0 + g.OmegaOffset[i] / g.OmegaCenter; }
+            var xf = new double[_K * _K]; var xa = new double[_K * _K];
+            for (int a = 0; a < _K; a++) for (int b = 0; b < _K; b++) { xf[a * _K + b] = _xpmFactor[a, b]; xa[a * _K + b] = _xpmArea[a, b]; }
+            return new Chi2DeviceSpec
+            {
+                N = _n, K = _K, Shg = _shg, Omega0 = _f.Select(f => f.Omega0).ToArray(), N2 = _n2, XpmFactor = xf, XpmArea = xa, Steepening = steep,
+                LinearRate = LinearRate, LengthM = LengthM, CouplingAt = CouplingAt, NextBreakpoint = NextBreakpoint
+            };
+        }
+
         public double Nonlinear(Complex[] state, double z, Complex[] rate)
         {
             int n = _n, M = _M, K = _K, blk = M * n;
@@ -147,11 +196,13 @@ namespace UltrafastEngine.Crystals
                 Array.Copy(state, j * blk, data[j], 0, blk);
                 _b?.ToSpace(data[j], n);
             }
-            double phi = _dk0 * z - (_qpmPhase?.Invoke(z) ?? 0);
-            double sgn = _domainSign?.Invoke(z) ?? 1.0;
-            var ePlus = Complex.FromPolarCoordinates(1, phi); var eMinus = Complex.Conjugate(ePlus);
-            double g0 = _gamma * sgn * _overlap * (Crossing?.Invoke(z) ?? 1.0);
+            var (g0, ePlus) = CouplingAt(z);
+            var eMinus = Complex.Conjugate(ePlus);
             double peak = 0; object lk = new object();
+            var plasmas = Plasmas;
+            var plasma = plasmas?[0];   // collision time and absorption switch (the same for all fields)
+            var timeGrid = plasma != null ? _f[0].Grid.Time : null;
+            double cLight = PhysicalConstants.SpeedOfLightMPerS;
             Parallel.For(0, M, () => 0.0, (m, st, localPeak) =>
             {
                 var t = new Complex[K][];
@@ -159,6 +210,23 @@ namespace UltrafastEngine.Crystals
                 var nt = new Complex[K][];
                 for (int j = 0; j < K; j++) nt[j] = new Complex[n];
                 double lp = localPeak;
+                double[] rho = null, ionLoss = null, itot = null;
+                if (plasma != null)
+                {
+                    // each field ionises with its own rate and intensity (W/m^2: P / A_eff in the 1-D model, the local value in a spatial one); the densities add
+                    rho = new double[n]; ionLoss = new double[n]; itot = new double[n];
+                    var rj = new double[n]; var lj = new double[n]; var ij = new double[n];
+                    for (int j = 0; j < K; j++)
+                    {
+                        double area = _b == null ? _xpmArea[j, j] : 1.0; bool any = false;
+                        for (int i = 0; i < n; i++) { ij[i] = (t[j][i].Real * t[j][i].Real + t[j][i].Imaginary * t[j][i].Imaginary) / area; itot[i] += ij[i]; if (ij[i] > 0) any = true; }
+                        if (!any && plasmas[j].InitialDensityM3 == 0) continue;
+                        plasmas[j].History(new ResponseContext { T = timeGrid, Intensity = ij, Omega0 = _f[j].Omega0, N0 = _f[j].N0 }, rj, lj);
+                        for (int i = 0; i < n; i++) { rho[i] += rj[i]; ionLoss[i] += lj[i]; }
+                    }
+                    double pk = 0; for (int i = 0; i < n; i++) pk = Math.Max(pk, rho[i]);
+                    lock (_rhoLock) if (pk > _peakRho) _peakRho = pk;
+                }
                 for (int i = 0; i < n; i++)
                 {
                     if (_shg)
@@ -189,6 +257,19 @@ namespace UltrafastEngine.Crystals
                             double ka = _f[a].Omega0 / PhysicalConstants.SpeedOfLightMPerS;
                             nt[a][i] += Complex.ImaginaryOne * ka * dn * t[a][i];
                             if (ka * dn > lp) lp = ka * dn;
+                        }
+                    }
+
+                    if (plasma != null && (rho[i] > 0 || ionLoss[i] > 0))
+                    {
+                        for (int a = 0; a < K; a++)
+                        {
+                            double wa = _f[a].Omega0, ka = wa / cLight;
+                            var (re, im) = plasma.Drude(rho[i], wa, _f[a].N0);
+                            if (plasma.Absorption && itot[i] > 0) im += ionLoss[i] / itot[i] / (2 * ka);   // the energy of the ionisation, shared by intensity
+                            nt[a][i] += new Complex(-ka * im, ka * re) * t[a][i];
+                            double r = ka * (Math.Abs(re) + im);
+                            if (r > lp) lp = r;
                         }
                     }
                 }

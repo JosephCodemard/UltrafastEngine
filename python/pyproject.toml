@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ultrafast-engine"
-version = "2.2.0"
+version = "1.0.0"
 description = "Nonlinear ultrafast pulse propagation through complete optical systems (Python bindings for UltrafastEngine)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,7 +12,7 @@ license = "Apache-2.0"
 authors = [{ name = "Joseph Codemard", email = "jac318@bath.ac.uk" }]
 keywords = ["ultrafast", "nonlinear optics", "pulse propagation", "NLSE", "Zemax", "OpticStudio", "laser"]
 classifiers = [
-  "Development Status :: 5 - Production/Stable",
+  "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering :: Physics",
   "Operating System :: Microsoft :: Windows",
@@ -25,12 +25,15 @@ dependencies = ["numpy>=1.21"]
 # Development mode: load the engine through the .NET host instead of the NativeAOT library.
 hosted = ["clr_loader>=0.2"]
 plot = ["matplotlib>=3.5"]
+paper = ["matplotlib>=3.5", "SciencePlots>=2.1"]  # plotting style "science" (the look of SciencePlots; without it "paper" is used)
 animate = ["matplotlib>=3.5", "pillow>=9"]            # plotting.animate writes GIFs with Pillow
 examples = ["ultrafast-examples"]                    # a separate wheel built locally: python build/package.py --examples-wheel; install with --find-links
 test = ["pytest>=7"]
 
 [project.scripts]
 ultrafast-plot = "ultrafast.plot:main"
+ultrafast-mcp = "ultrafast.mcp.server:main"
+ultrafast-agent = "ultrafast.agents:main"
 
 [project.urls]
 Homepage = "https://github.com/JosephCodemard/UltrafastEngine"
@@ -43,7 +46,7 @@ Citation = "https://github.com/JosephCodemard/UltrafastEngine/blob/main/CITATION
 where = ["src"]
 
 [tool.setuptools.package-data]
-ultrafast = ["bin/*", "bin/*/*", "py.typed"]
+ultrafast = ["bin/*", "bin/*/*", "py.typed", "agents/pack/*/SKILL.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

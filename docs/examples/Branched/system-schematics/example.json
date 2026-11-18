@@ -1,0 +1,9 @@
+{
+  "title": "Drawing branched systems: schematics and plot styles",
+  "summary": "ultrafast.plotting draws a Mach-Zehnder and a resonator with a loop as deterministic schematics in four plot styles: default, dark, paper and science.",
+  "group": "Branched",
+  "script": "schematics.py",
+  "plugins": [],
+  "figures": ["hero.png"],
+  "wave": 1
+}

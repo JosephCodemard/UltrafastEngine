@@ -265,98 +265,163 @@ def draw_system(res, ax, theme: dict, compact: bool = False):
 
 
 def _graph_layout(summary: dict):
-    """Layers and lanes of a branched system from ``summary["graph"]["links"]``: the layer of a node is its longest path from the
-    input, the lane spreads nodes of one layer over y. Returns (nodes, edges, layer, lane) with nodes in element order."""
-    els = summary.get("elements", [])
-    ids = [e["id"] for e in els]
-    edges = []
-    for lk in summary.get("graph", {}).get("links", []):
-        a, b = lk["from"], lk["to"]
-        a_id, a_port = (a.split(":", 1) + [""])[:2]
-        b_id = b.split(":", 1)[0]
-        edges.append((a_id, a_port, b_id))
-    layer = {i: 0 for i in ids}
-    for _ in range(len(ids)):                      # longest-path layering (loops are cut by the iteration bound)
-        for a, _, b in edges:
-            if a in layer and b in layer and layer[b] < layer[a] + 1:
-                layer[b] = layer[a] + 1
-    lane = {}
-    by_layer = {}
-    for i in ids:
-        by_layer.setdefault(layer[i], []).append(i)
-    for k, members in by_layer.items():
-        for j, i in enumerate(members):
-            lane[i] = j - (len(members) - 1) / 2.0
-    return ids, edges, layer, lane
+    """Layers and lanes of a branched system (see :mod:`ultrafast.plotting.graph_layout`), one node per element.
+    Returns (ids, edges, layer, lane): ``edges`` are ``(from id, port, to id)`` of the links, ``layer`` the longest path from the input,
+    ``lane`` the vertical slot (in units of the lane spacing)."""
+    from .graph_layout import LANE_DY, layout_graph
+    lay = layout_graph(summary, group=False)
+    ids = [n["id"] for n in lay["nodes"]]
+    edges = [(e["from"], e["port"], e["to"]) for e in lay["edges"] if e["kind"] in ("forward", "back", "end")]
+    return ids, edges, {n["id"]: n["layer"] for n in lay["nodes"]}, {n["id"]: -n["y"] / LANE_DY for n in lay["nodes"]}
 
 
-def draw_graph(res, ax, theme: dict, compact: bool = False):
-    """Draw a Branched system as a graph on ``ax``: elements as boxes by layer, arms as lanes, links coloured by the carrier
-    after their source element, virtual inputs and outputs as small open markers, the energy at the end, loops as arcs."""
-    from matplotlib.patches import FancyBboxPatch
+def _param_lines(e: dict) -> str:
+    """The numbers worth showing under a box with ``params=True``: length, and the element's own few key values."""
+    parts = []
+    if e.get("lengthM"):
+        parts.append(_fmt_len(e["lengthM"]))
+    v = e.get("values") or {}
+    for key, fmt_ in (("reflectivity", "R={:.3g}"), ("delayS", None), ("roundTrips", "{:.0f} trips"), ("passes", "{:.0f} passes")):
+        if isinstance(v.get(key), (int, float)):
+            parts.append(_t_txt(v[key]) if fmt_ is None else fmt_.format(v[key]))
+    return " · ".join(parts)
+
+
+def draw_graph(res, ax, theme: dict, compact: bool = False, params: bool = False, group: bool = True):
+    """Draw a Branched system as a graph on ``ax``: elements as boxes by layer (a run of identical elements as one box with xN), links
+    routed orthogonally around the boxes and coloured by the carrier after their source, loop-closing links as arcs below the row
+    inside a shaded loop region, virtual ports as open circles, aux beams in and by-products out as arrows, numbered instrument tags
+    above the boxes. ``params=True`` adds the key numbers of each element under its box. The layout is deterministic
+    (:func:`ultrafast.plotting.graph_layout.layout_graph`). Returns the instrument locations."""
+    from matplotlib.patches import FancyBboxPatch, Rectangle
+    from matplotlib.path import Path as MPath
+    from matplotlib.patches import PathPatch
+    from .graph_layout import BOX_H, BOX_W, layout_graph
 
     s = res.summary
     els = {e["id"]: e for e in s.get("elements", [])}
-    ids, edges, layer, lane = _graph_layout(s)
-    g = s.get("graph", {})
-    nl = max(layer.values()) + 1 if layer else 1
-    width = max(abs(v) for v in lane.values()) * 2 + 1 if lane else 1
-    pos = {i: (layer[i] + 1.0, -lane[i] * 1.25) for i in ids}
-    ax.set_xlim(-0.2, nl + 1.9)
-    ax.set_ylim(-(width / 2 * 1.25) - 1.1, (width / 2 * 1.25) + 1.1)
-    ax.set_axis_off()
+    lay = layout_graph(s, group=group)
+    nodes = {n["id"]: n for n in lay["nodes"]}
     idx = {e["id"]: e["index"] for e in s.get("elements", [])}
+    locs = instrument_locations(s)
+    y_lo, y_hi = lay["y_range"]
+    ax.set_xlim(lay["x_input"] - 0.55, lay["x_end"] + 1.3)
+    tags_top = y_hi + 0.5 + 0.34 * max(1, max([sum(1 for d in locs if _loc_node(d, s, nodes) == n) for n in nodes] + [1]))
+    ax.set_ylim(y_lo - 0.9, tags_top + 0.35)
+    ax.set_axis_off()
 
-    def lam_after(i):
-        return wavelength_color(_carrier(s, idx[i]))
+    def colour_after(i: str) -> str:
+        last = max(idx[m] for m in nodes[i]["members"]) if i in nodes else -1
+        return wavelength_color(_carrier(s, last))
 
-    def box(i, x, y):
-        w, h = 0.78, 0.62
-        e = els[i]
-        ax.add_patch(FancyBboxPatch((x - w / 2, y - h / 2), w, h, boxstyle="round,pad=0.02,rounding_size=0.08",
-                                    fc=theme["panel"] if "panel" in theme else "white", ec=theme["text2"], lw=1.1, zorder=3))
-        ax.text(x, y + 0.11, i, ha="center", va="center", fontsize=8.5, fontweight="bold", color=theme["text"], zorder=4)
-        ax.text(x, y - 0.14, e["type"], ha="center", va="center", fontsize=7, color=theme["text2"], zorder=4)
+    # loop regions first (behind everything)
+    for lp in lay["loops"]:
+        x0, y0, x1, y1 = lp["box"]
+        ax.add_patch(FancyBboxPatch((x0, y0), x1 - x0, y1 - y0, boxstyle="round,pad=0.0,rounding_size=0.15", fc=theme["grid"], ec=theme["ref"],
+                                    lw=0.8, ls="--", alpha=0.45, zorder=0))
+        ax.text(x0 + 0.08, y1 - 0.05, f"loop: {lp['kind']}" if lp["kind"] else "loop", fontsize=6.5, color=theme["text2"], va="top", style="italic")
 
-    xin = 0.0
-    first = ids[0] if ids else None
-    for a, port, b in edges:
-        if a in pos and b in pos:
-            (x0, y0), (x1, y1) = pos[a], pos[b]
-            off = 0.0
-            ax.plot([x0 + 0.4, x1 - 0.4], [y0, y1], color=lam_after(a), lw=2.6, zorder=1, solid_capstyle="round")
-            if port in ("c", "d", "1", "2") and not compact:
-                ax.text((x0 + x1) / 2, (y0 + y1) / 2 + 0.12, port, fontsize=7, color=theme["text2"], ha="center", zorder=5)
+    # links
+    first = lay["nodes"][0] if lay["nodes"] else None
+    for e in lay["edges"]:
+        kind = e["kind"]
+        pts = e["points"]
+        xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+        if kind == "back":
+            path = MPath([pts[0], pts[1], pts[2], pts[3]], [MPath.MOVETO, MPath.CURVE4, MPath.CURVE4, MPath.CURVE4])
+            ax.add_patch(PathPatch(path, fc="none", ec=colour_after(e["from"]), lw=2.0, ls=(0, (4, 2)), zorder=1))
+            ax.annotate("", xy=pts[3], xytext=(pts[3][0], pts[3][1] - 0.25), arrowprops=dict(arrowstyle="-|>", lw=0, color=colour_after(e["from"]), mutation_scale=9), zorder=2)
+            if not compact:
+                ax.text(e["label_at"][0], e["label_at"][1], f"{e['port']} → {e['to']}" if e["port"] else "back", fontsize=6.5, ha="center", va="top", color=theme["text2"])
+            continue
+        if kind in ("virtual_in", "virtual_out"):
+            ax.plot(xs, ys, color=theme["text2"], lw=1, ls=":", zorder=2)
+            far = pts[0] if kind == "virtual_in" else pts[1]
+            ax.plot([far[0]], [far[1]], marker="o", mfc=theme["surface"], mec=theme["text2"], ms=5, zorder=3)
+            if not compact and e["port"]:
+                ax.text(e["label_at"][0], e["label_at"][1], e["port"], fontsize=6, ha="center", color=theme["text2"])
+            continue
+        col = colour_after(e["from"])
+        ax.plot(xs, ys, color=col, lw=2.4, zorder=1, solid_capstyle="round", solid_joinstyle="round")
+        if kind == "forward":
+            ax.plot([xs[-1] - 0.02], [ys[-1]], marker=">", ms=4.5, color=col, zorder=2)
+        if kind == "end":
+            ax.plot([xs[-1]], [ys[-1]], marker=">", ms=5, color=col, zorder=2)
+            n_out = "output" + ("\n%.3g nJ" % (s.get("graph", {}).get("energyOutJ", 0) * 1e9) if e.get("single") else "")
+            ax.text(xs[-1] + 0.1, ys[-1], n_out, fontsize=8, va="center", color=theme["text"])
+        multi = sum(1 for o in lay["edges"] if o["from"] == e["from"] and o["kind"] in ("forward", "end", "back")) > 1
+        if not compact and e["port"] and (multi or e["port"] not in ("out", "in")):
+            ax.text(e["label_at"][0], e["label_at"][1], e["port"], fontsize=6.5, color=theme["text2"], zorder=5)
     if first:
-        ax.plot([xin + 0.25, pos[first][0] - 0.4], [pos[first][1]] * 2, color=wavelength_color(s["input"].get("centroidWavelengthM")), lw=2.6, zorder=1)
-        ax.text(xin, pos[first][1], "input", fontsize=8, ha="center", va="center", color=theme["text"])
-    for i in ids:
-        box(i, *pos[i])
+        y0 = first["y"]
+        ax.plot([lay["x_input"] + 0.25, first["x"] - BOX_W / 2], [y0, y0], color=wavelength_color(s["input"].get("centroidWavelengthM")), lw=2.4, zorder=1)
+        ax.text(lay["x_input"], y0, "input", fontsize=8, ha="center", va="center", color=theme["text"])
+
+    # boxes, group marks, parameters, aux in and by-products out
+    for n in lay["nodes"]:
+        x, y, i = n["x"], n["y"], n["id"]
         e = els[i]
-        if e.get("lengthM") and not compact:
-            ax.text(pos[i][0], pos[i][1] - 0.5, _fmt_len(e["lengthM"]), fontsize=6.5, ha="center", color=theme["text2"])
-    linked_out = {a for a, _, _ in edges}
-    for v in g.get("virtualInputs", []):                       # "bs1#b": an input port with no beamline behind it
-        i = v.split("#")[0]
-        if i in pos:
-            x, y = pos[i]
-            ax.plot([x - 0.55, x - 0.4], [y + 0.3, y + 0.15], color=theme["text2"], lw=1, ls=":")
-            ax.plot([x - 0.55], [y + 0.3], marker="o", mfc="none", mec=theme["text2"], ms=5)
-    for v in g.get("virtualOutputs", []):
-        i = v.split("#")[0]
-        if i in pos:
-            x, y = pos[i]
-            ax.plot([x + 0.4, x + 0.62], [y - 0.15, y - 0.3], color=theme["text2"], lw=1, ls=":")
-            ax.plot([x + 0.62], [y - 0.3], marker="o", mfc="none", mec=theme["text2"], ms=5)
-    ends = [a for a, port, b in edges if b == "end"]
-    for lk in g.get("links", []):
-        if lk["to"] == "end":
-            a = lk["from"].split(":", 1)[0]
-            x, y = pos[a]
-            ax.plot([x + 0.4, nl + 1.25], [y, y], color=lam_after(a), lw=2.6, zorder=1)
-            ax.text(nl + 1.35, y, "output\n%.3g nJ" % (g.get("energyOutJ", 0) * 1e9) if len(ends) == 1 else "output", fontsize=8, va="center", color=theme["text"])
-    for lp in g.get("loops", []):
-        pass
+        ax.add_patch(FancyBboxPatch((x - BOX_W / 2, y - BOX_H / 2), BOX_W, BOX_H, boxstyle="round,pad=0.02,rounding_size=0.08",
+                                    fc=theme.get("panel", "white"), ec=theme["text2"], lw=1.1, zorder=3))
+        label = i if n["repeat"] == 1 else f"{i} … {n['members'][-1]}"
+        ax.text(x, y + 0.11, label, ha="center", va="center", fontsize=8.5 if n["repeat"] == 1 else 7, fontweight="bold", color=theme["text"], zorder=4)
+        ax.text(x, y - 0.14, e["type"] if n["repeat"] == 1 else f"{e['type']} × {n['repeat']}", ha="center", va="center", fontsize=7, color=theme["text2"], zorder=4)
+        if n["repeat"] > 1:
+            ax.text(x, y + BOX_H / 2 + 0.07, f"× {n['repeat']}", ha="center", va="bottom", fontsize=7.5, fontweight="bold", color=theme["text"], zorder=4)
+        if not compact:
+            sub = _param_lines(e) if params else (_fmt_len(sum(els[m].get("lengthM") or 0 for m in n["members"])) if any(els[m].get("lengthM") for m in n["members"]) else "")
+            if sub:
+                ax.text(x, y - BOX_H / 2 - 0.1, sub, fontsize=6.5, ha="center", va="top", color=theme["text2"])
+            if n["repeat"] == 1:
+                for j, (field, desc) in enumerate((e.get("aux") or {}).items()):
+                    m = re.search(r"@\s*([\d.]+)\s*nm", desc)
+                    lam_a = float(m.group(1)) * 1e-9 if m else None
+                    xa = x - 0.2 + 0.4 * j
+                    ax.annotate("", xy=(xa, y + BOX_H / 2), xytext=(xa, y + BOX_H / 2 + 0.38),
+                                arrowprops=dict(arrowstyle="-|>", lw=1.4, color=wavelength_color(lam_a) if lam_a else theme["text2"]), zorder=2)
+                    ax.text(xa, y + BOX_H / 2 + 0.4, field + (f" {lam_a * 1e9:.0f} nm" if lam_a else ""), ha="center", va="bottom", fontsize=6, color=theme["text2"])
+                for j, (field, ps) in enumerate((e.get("byproducts") or {}).items()):
+                    xb = x - 0.2 + 0.4 * j
+                    lam_b = ps.get("centroidWavelengthM")
+                    ax.annotate("", xy=(xb, y - BOX_H / 2 - 0.55), xytext=(xb, y - BOX_H / 2),
+                                arrowprops=dict(arrowstyle="-|>", lw=1.2, ls="--", color=wavelength_color(lam_b) if lam_b else theme["text2"]), zorder=2)
+                    ax.text(xb, y - BOX_H / 2 - 0.58, f"{field} {_e_txt(ps.get('energyJ'))}", ha="center", va="top", fontsize=6, color=theme["text2"])
+
+    # instrument tags above the boxes (input, output and elements)
+    slots: Dict[str, List[dict]] = {}
+    for d in locs:
+        slots.setdefault(_loc_node(d, s, nodes), []).append(d)
+    for key, lst in slots.items():
+        if key == "<input>":
+            xs_, y_top = lay["x_input"] + 0.25, (first["y"] if first else 0.0) + 0.1
+        elif key == "<output>":
+            xs_, y_top = lay["x_end"] - 0.3, (first["y"] if first else 0.0) + 0.1
+        else:
+            xs_, y_top = nodes[key]["x"] + BOX_W / 2 - 0.12, nodes[key]["y"] + BOX_H / 2 + 0.12
+        for j, d in enumerate(lst):
+            yy = y_top + 0.3 + j * 0.34
+            ax.plot([xs_, xs_], [y_top, yy - 0.1], color=theme["text2"], lw=0.6, zorder=2)
+            ax.plot([xs_], [yy], marker="s" if d["virtual"] else "o", ms=11, mfc=theme["surface"], mew=1.4, mec=theme["series"][6 if d["virtual"] else 0], zorder=5)
+            ax.text(xs_, yy, str(d["number"]), ha="center", va="center", fontsize=6.5, fontweight="bold", color=theme["text"], zorder=6)
+            ax.text(xs_ + 0.17, yy, _SHORT.get(d["kind"], d["kind"]), ha="left", va="center", fontsize=6.3, color=theme["text2"],
+                    style="italic" if d["virtual"] else "normal", zorder=6)
+    if locs and not compact:
+        ax.text(lay["x_end"] + 1.3, ax.get_ylim()[1], "○ instrument   □ virtual instrument", ha="right", va="top", fontsize=6.5, color=theme["text2"])
+    return locs
+
+
+def _loc_node(d: dict, summary: dict, nodes: dict) -> str:
+    """The graph node an instrument location belongs to (``<input>`` / ``<output>`` for the ends)."""
+    els = summary.get("elements", [])
+    if d["index"] < 0:
+        return "<input>"
+    if d["index"] >= len(els):
+        return "<output>"
+    eid = els[d["index"]]["id"]
+    for n in nodes.values():
+        if eid in n["members"]:
+            return n["id"]
+    return "<output>"
 
 
 def _pulse_txt(p):
@@ -457,15 +522,16 @@ from .data import load
 from .style import _Style, _figure, _plt, _theme
 
 
-def system_diagram(res, ax=None, compact: bool = False):
+def system_diagram(res, ax=None, compact: bool = False, params: bool = False):
     """Schematic of the system on ``ax``: elements, beam line coloured by carrier wavelength, aux beams in,
-    by-products out, probes and numbered instrument locations (the numbers used in every instrument title)."""
+    by-products out, probes and numbered instrument locations (the numbers used in every instrument title). A branched system is drawn as
+    a graph (``params=True`` adds the key numbers of each element)."""
     _, plt = _plt()
     res = load(res)
     with _Style():
         ax = ax or plt.gca()
         if res.summary.get("graph", {}).get("topology") == "branched" and res.summary.get("graph", {}).get("links"):
-            draw_graph(res, ax, _theme, compact=compact)
+            draw_graph(res, ax, _theme, compact=compact, params=params)
         else:
             draw_system(res, ax, _theme, compact=compact)
         if compact:
@@ -473,16 +539,22 @@ def system_diagram(res, ax=None, compact: bool = False):
     return ax
 
 
-def system(res):
-    """Stand-alone system schematic with a numbered list of the instruments and where they sit."""
+def system(res, params: bool = False):
+    """Stand-alone system schematic with a numbered list of the instruments and where they sit (``params=True``: key numbers of each
+    element under its box in a branched system)."""
     res = load(res)
     locs = instrument_locations(res.summary)
     n = len(locs)
     rows = max(1, (n + 2) // 3)
-    fig = _figure(15, 4.2 + 0.25 * rows)
+    height = 4.2 + 0.25 * rows
+    if res.summary.get("graph", {}).get("topology") == "branched" and res.summary.get("graph", {}).get("links"):
+        from .graph_layout import layout_graph
+        y0, y1 = layout_graph(res.summary)["y_range"]
+        height = max(height, 2.6 + 0.62 * (y1 - y0) + 0.25 * rows)
+    fig = _figure(15, height)
     with _Style():
         gs = fig.add_gridspec(2, 1, height_ratios=[3.4, 0.35 + 0.25 * rows])
-        system_diagram(res, fig.add_subplot(gs[0]))
+        system_diagram(res, fig.add_subplot(gs[0]), params=params)
         ax = fig.add_subplot(gs[1]); ax.set_axis_off()
         cols = 3
         for k, d in enumerate(locs):

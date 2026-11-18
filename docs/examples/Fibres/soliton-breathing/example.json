@@ -1,0 +1,12 @@
+{
+  "title": "Solitons in a fibre: shape-keeping and breathing",
+  "summary": "An N = 1 soliton keeps its shape and an N = 3 soliton breathes and returns after exactly one soliton period z0 = (pi/2) L_D.",
+  "group": "Fibres",
+  "script": "solitons.py",
+  "plugins": [],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}
