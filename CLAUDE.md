@@ -77,6 +77,6 @@ after a code change.
 2. New behaviour has a test (analytic or published reference for physics); the full C# suite passes; Python tests
    pass after `build_engine.py`; pyNLO cross-checks still pass if propagation changed.
 3. Generated files regenerated (`/regen`) if any option, element, instrument or Python builder changed.
-4. Docs: reference page section, `CHANGELOG.md` (Unreleased), `docs/testing.md` row for new tests,
+4. Docs: reference page section, `CHANGELOG.md` (top section, "1.0.0 (unreleased)"), `docs/testing.md` row for new tests,
    `PROJECT_STATUS.md` counts; example READMEs re-checked if their numbers change (`/example-check`).
 5. `mkdocs build --strict` with 0 warnings; examples run with `ULTRAFAST_STRICT_OPTIONS=1`.

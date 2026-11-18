@@ -1,0 +1,12 @@
+{
+  "title": "Nonlinear pulse compression in a fibre",
+  "summary": "Self-phase modulation in a normal-dispersion fibre and a compressor found from the peak power alone shorten a 300 fs pulse to 88 fs.",
+  "group": "Fibres",
+  "script": "spm_compression.py",
+  "plugins": [],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

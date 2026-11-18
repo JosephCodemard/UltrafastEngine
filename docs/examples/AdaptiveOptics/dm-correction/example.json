@@ -1,0 +1,14 @@
+{
+  "title": "Deformable-mirror correction of an aberrated focus",
+  "summary": "A 10 x 10 deformable mirror, calibrated and run in a closed loop, restores the focus of a beam with defocus, astigmatism and coma (Strehl 0.32 to 0.89).",
+  "group": "AdaptiveOptics",
+  "script": "dm_correction.py",
+  "plugins": [
+    "ao"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

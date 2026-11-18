@@ -42,6 +42,8 @@ Internal page ([folder index](README.md)). Decisions still in force, merged from
 | E10 | 11-08 | (delegated) FP32 study first; then mixed precision in CUDA / OpenCL; Metal only if FP32 is enough. Done: mixed precision is refused above 70 dB of instrument dynamic range. | |
 | E11 | 11-08 | Estimators stay in the fitting plugin; design plugins declare `"requires": ["fitting"]`. | one home for optimisers |
 | E12 | 11-16 | Work on `dev/*` branches, one commit per piece, merged to `main` after `/verify` and green CI. | |
+| E13 | 11-17 | The PyPI distribution is named **`ultrafast-engine`** (import name `ultrafast`). `ultrafast` was the owner's first choice: it had no project on PyPI on 2026-11-17 but is taken on TestPyPI by another author, so a release candidate could not be rehearsed there under that name. The name is checked by `build/check_version.py`. | rehearsal on TestPyPI; the name already in all docs |
+| E14 | 11-17 | Version numbers restart at **1.0.0**: the 2.x numbers of the development history were never released. The CHANGELOG keeps them as development history. A release candidate is only a tag (`v1.0.0rc1`), never a number in the files. | one version in every file |
 
 ## Plotting
 

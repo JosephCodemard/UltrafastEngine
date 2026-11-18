@@ -442,6 +442,18 @@ def wheel_platform(rid):
 
 
 def _pyproject():
+    """The metadata of python/pyproject.toml (see :func:`_pyproject_raw`); the environment variable ``UF_WHEEL_VERSION`` (``1.0.0rc1``) replaces the
+    version, which is how the release workflow builds the wheels of a release-candidate tag (the base version must equal the one in pyproject)."""
+    d = dict(_pyproject_raw())
+    v = os.environ.get("UF_WHEEL_VERSION")
+    if v:
+        if not re.match(r"^\d+\.\d+\.\d+(rc\d+)?$", v) or not v.startswith(d["version"]):
+            raise SystemExit("UF_WHEEL_VERSION=%s: expected %s optionally followed by rcN" % (v, d["version"]))
+        d["version"] = v
+    return d
+
+
+def _pyproject_raw():
     """name, version, summary, requires-python, licence, dependencies, extras and scripts from python/pyproject.toml."""
     text = (REPO / "python" / "pyproject.toml").read_text(encoding="utf-8")
     try:

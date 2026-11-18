@@ -113,7 +113,36 @@ the CLI for win-x64, linux-x64, linux-arm64, osx-arm64 and osx-x64; job `native`
 job `publish` merges the manifests, runs the ZOS-API gate, installs a selection into a temporary folder (`cli`, `schemas`, `examples.Branched`), runs the CLI and an example
 in strict mode, uninstalls and checks the folder is empty, installs the wheel in a fresh virtual environment (`ultrafast.devices()`, the quickstart), and attaches the assets
 to a **draft** release. The NativeAOT components for macOS are built on the owner's Mac and added with `gh release upload`. **A tag is created only when the owner asks.**
-The workflow has not run on GitHub yet. Rehearsed by hand on macOS: the asset build, the manifest merge, the ZOS-API gate, and the installer install / run / uninstall steps. Not run: the Windows and Linux NativeAOT builds, the CMake example, the wheel in a fresh environment, the upload (see session-f (development history, `docs/design/history.md`)).
+The workflow has not run on GitHub yet (the tag-to-PyPI jobs are described in the next section). Rehearsed by hand on macOS: the asset build, the manifest merge, the ZOS-API gate, and the installer install / run / uninstall steps. Not run: the Windows and Linux NativeAOT builds, the CMake example, the wheel in a fresh environment, the upload (see session-f (development history, `docs/design/history.md`)).
+
+## Publishing to PyPI (maintainers; decisions E4, E5)
+
+`release.yml` publishes by **trusted publishing** (GitHub OIDC): no token or password exists anywhere. Nothing is uploaded without the owner: tags are created by the
+owner, and the upload jobs run in GitHub environments that need the owner's approval.
+
+* `version` (first job): `python build/check_version.py <tag>`: `python/pyproject.toml`, `ultrafast/__init__.py`, `Directory.Build.props`, `CITATION.cff`, the engine constant and
+  every plugin (`plugin.json`, C# constant) must carry the same `X.Y.Z`, and the tag must be `vX.Y.Z` (final) or `vX.Y.ZrcN` (release candidate; the wheels are then
+  built as `X.Y.ZrcN` through `UF_WHEEL_VERSION`). The package name must be `ultrafast-engine`. Any mismatch stops the workflow before anything is built.
+* `light-tests`: `example_lint.py`, `sync_roadmap.py --check`, and the tests that need no engine (release, MCP, packaging, WP-3).
+* `publish`: after the asset jobs, the wheels are taken from the assets, **checked with `twine check --strict`** and with the ZOS-API gate, and kept as the artifact `pypi-wheels`.
+  Wheels only, **no sdist** (E5). Linux native wheels carry a `manylinux` tag but are built on the runner's glibc, so they are left out of the upload until they are built in a manylinux
+  container; Windows and macOS native wheels and the platform-independent wheel go up.
+* `testpypi`: a tag `vX.Y.ZrcN` uploads to TestPyPI (environment `testpypi`). `pypi`: a tag `vX.Y.Z` uploads to PyPI (environment `pypi`).
+
+**Steps for the owner** (the maintainer's assistant does none of them):
+
+1. **Name:** confirm `ultrafast-engine` is yours on PyPI and TestPyPI (checked free on 2026-11-17; `ultrafast` is taken on TestPyPI, so it cannot be rehearsed there).
+2. **Trusted publishers**, on both [pypi.org](https://pypi.org/manage/account/publishing/) and [test.pypi.org](https://test.pypi.org/manage/account/publishing/) ("Add a new pending publisher"):
+   project `ultrafast-engine`, owner `JosephCodemard`, repository `UltrafastEngine`, workflow `release.yml`, environment `pypi` (PyPI) / `testpypi` (TestPyPI).
+3. **GitHub environments** (repository Settings, Environments): create `testpypi` and `pypi`, add yourself as a required reviewer, and restrict deployment to tags `v*`.
+4. **GitHub Pages** (Settings, Pages, Source: GitHub Actions) if the site should be deployed.
+5. Merge `dev/2026-11` into `main` by pull request (green CI), then tag the release candidate on `main`: `git tag v1.0.0rc1 && git push origin v1.0.0rc1`.
+6. Approve the `testpypi` environment when the run asks. In a fresh virtual environment on Linux, Windows and macOS install the candidate
+   (`pip install --pre --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ "ultrafast-engine[hosted]"`) and run the quickstart,
+   one strict example, `ultrafast devices` (`python -c "import ultrafast as uf; print(uf.devices())"`) and the MCP handshake (`ultrafast-mcp --workspace .` and one `tools/list`).
+7. Build the macOS NativeAOT wheel on your Mac (`./build.sh --components cpp python-native --platform osx-arm64`) and attach it with `gh release upload`.
+8. Set `date-released` in `CITATION.cff`, tag `v1.0.0`, approve the `pypi` environment. Afterwards: `pip install "ultrafast-engine[hosted]"` in a clean environment.
+9. A version cannot be re-uploaded to PyPI. If an upload is wrong, fix forward with the next version (a `rcN+1` on TestPyPI; `1.0.1` on PyPI).
 
 ## Single-folder packages (`--cli --python ...`)
 

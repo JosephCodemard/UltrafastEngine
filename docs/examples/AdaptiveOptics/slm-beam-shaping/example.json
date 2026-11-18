@@ -1,0 +1,14 @@
+{
+  "title": "Beam shaping with a phase-only SLM",
+  "summary": "A phase-only SLM with 256 grey levels turns a Gaussian beam into a smiley, a square, a ring and a spot array (Gerchberg-Saxton holograms), up to a full 1920 x 1080 panel.",
+  "group": "AdaptiveOptics",
+  "script": "slm_shaping.py",
+  "plugins": [
+    "ao"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

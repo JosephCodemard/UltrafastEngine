@@ -6,6 +6,7 @@ table says `./setup.sh`.
 | I want ... | Do this | Needs |
 |---|---|---|
 | to **use** the CLI, Python package or plugins, without compiling | [Install a release](#install-a-release-no-compiling) (`install.py`) | Python 3.9+, internet |
+| the **Python package** from PyPI (from 1.0.0) | [Install from PyPI](#install-from-pypi-from-release-100) (`pip install "ultrafast-engine[hosted]"`) | Python 3.10+, the .NET 10 runtime |
 | to **build from source** and run the CLI | `./setup.sh --cli` | .NET 10 SDK, Python 3.10+ |
 | the **Python package** from source | `./setup.sh --python --venv .venv` | the same |
 | only **some plugins** | `./setup.sh --cli --python --plugins fitting hitran` | the same |
@@ -21,6 +22,25 @@ Check what your machine has with `./setup.sh --doctor`.
     3. Run `.venv/bin/python docs/examples/GettingStarted/quickstart/quickstart.py` (Windows: `.venv\Scripts\python.exe`).
     4. If `import ultrafast` runs an old engine, a stale NativeAOT library shadows the new build: rerun with `--clean-native`.
     5. Never touch `ZOSAPI*.dll`. Do not publish anywhere.
+
+## Install from PyPI (from release 1.0.0)
+
+Not published yet: until the maintainer uploads 1.0.0, use the release assets below or build from source. After the upload:
+
+```bash
+python -m venv .venv && . .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install "ultrafast-engine[hosted]"                # any OS: the managed engine; needs the .NET 10 runtime (https://dotnet.microsoft.com/download)
+pip install "ultrafast-engine[hosted,plot]"           # with matplotlib for figures; more extras: animate, paper, examples
+python -c "import ultrafast as uf; print(uf.version()); print(uf.devices()['devices'])"
+ultrafast-mcp --help                                   # the MCP server for agents (docs/agents.md)
+```
+
+The package name on PyPI is **`ultrafast-engine`**; the module you import is `ultrafast`. The wheel without a platform tag holds the managed engine, which loads
+plugins (fitting, gpu, hitran, ao, twin) and needs the .NET 10 runtime; `[hosted]` adds `clr_loader`, which starts it. Where a platform wheel is published
+(Windows x64 first) pip takes it instead: it carries the NativeAOT engine, needs no .NET, and cannot load plugin folders (gpu, hitran and ao are compiled in).
+There is no source distribution: the package needs the compiled engine. Plugins that need a vendor library (CUDA, OpenCL) load it from your computer.
+The Zemax plugin is never in the wheel. A release candidate is on TestPyPI first (`pip install --pre --index-url https://test.pypi.org/simple/
+--extra-index-url https://pypi.org/simple/ "ultrafast-engine[hosted]"`).
 
 ## Install a release (no compiling)
 

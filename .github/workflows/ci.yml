@@ -168,6 +168,11 @@ jobs:
           python-version: "3.12"
       - name: Install the package and mkdocs
         run: pip install -e "python[hosted,plot,test]" mkdocs
+      - name: Example structure, public roadmap in sync, version places agree
+        run: |
+          python build/example_lint.py
+          python build/sync_roadmap.py --check
+          python build/check_version.py
       - name: Docs, 0 warnings
         run: python -m mkdocs build --strict
       - name: Build the CLI and the engine for Python
