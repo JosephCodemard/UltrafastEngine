@@ -1,7 +1,7 @@
 """The agent pack: skills that teach a coding agent to drive UltrafastEngine, and the command that installs them.
 
 ``pack/<name>/SKILL.md`` holds the skills shipped in the wheel: ``run-simulations``, ``debug-setup``, ``mirror-lab-setup``,
-``optimise-setup`` and ``replicate-paper`` (the same text as ``.claude/skills/`` in the repository; a test keeps the two equal).
+``optimise-setup``, ``replicate-paper`` and ``design-system`` (the same text as ``.claude/skills/`` in the repository; a test keeps the two equal).
 ``install(target, dest)`` writes them where an agent looks for them:
 
 * ``claude``: ``<dest>/.claude/skills/<name>/SKILL.md`` (Claude Code skills);

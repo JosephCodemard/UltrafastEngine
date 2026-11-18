@@ -10,7 +10,7 @@ from ultrafast import agents
 from ultrafast.mcp import policy
 
 REPO = Path(__file__).resolve().parents[2]
-NAMES = {"run-simulations", "debug-setup", "mirror-lab-setup", "optimise-setup", "replicate-paper"}
+NAMES = {"run-simulations", "debug-setup", "mirror-lab-setup", "optimise-setup", "replicate-paper", "design-system"}
 
 
 def test_pack_has_the_skills_with_front_matter():
@@ -84,3 +84,26 @@ def test_skill_json_snippets_parse_and_python_snippets_compile():
             elif lang == "python":
                 compile(code, "<skill>", "exec")
     assert n >= 0          # the skills carry prose and commands; any snippet they gain is checked here
+
+
+@pytest.mark.parametrize("target", agents.TARGETS)
+def test_the_cli_agent_install_writes_the_same_files_as_the_python_command(tmp_path, target):
+    """`ultrafast agent install` (C#, skills embedded from the pack) and `ultrafast-agent install` give byte-identical files."""
+    import shutil
+    import subprocess
+    dll = REPO / "src" / "UltrafastEngine.Cli" / "bin" / "Release" / "net10.0" / "ultrafast.dll"
+    if not dll.is_file() or not shutil.which("dotnet"):
+        pytest.skip("the CLI is not built (dotnet build src/UltrafastEngine.Cli -c Release -f net10.0)")
+    a, b = tmp_path / "cli", tmp_path / "py"
+    a.mkdir(), b.mkdir()
+    r = subprocess.run(["dotnet", str(dll), "agent", "install", "--target", target, "--dest", str(a)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    agents.install(target, b)
+    fa = sorted(p.relative_to(a).as_posix() for p in a.rglob("*") if p.is_file())
+    assert fa == sorted(p.relative_to(b).as_posix() for p in b.rglob("*") if p.is_file()) and len(fa) >= 1
+    for f in fa:
+        assert (a / f).read_bytes() == (b / f).read_bytes(), f
+    again = subprocess.run(["dotnet", str(dll), "agent", "install", "--target", target, "--dest", str(a)], capture_output=True, text=True)
+    assert again.returncode == (0 if target == "codex" else 2)
+    listing = subprocess.run(["dotnet", str(dll), "agent", "list"], capture_output=True, text=True).stdout
+    assert {line.split()[0] for line in listing.splitlines()} == set(agents.skills())

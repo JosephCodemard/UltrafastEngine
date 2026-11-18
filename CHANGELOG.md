@@ -9,6 +9,7 @@ internal development stages and were never released; they are kept as the develo
 - **Renamed keys** with the unit in the name: fibre `betasSkPerM`, Faraday rotator `fieldTesla`, Raman models `tau1S` / `tau2S` / `taubS`, `dnDTPerK`. The old names still load (migration, with a deprecation note).
 - **Circular aperture on a decentred beam** is now computed (it was ignored); `outputs.keepProfiles: "used"` works in branched systems; the CLI banner no longer says "2.0".
 - **New examples** `Branched/system-schematics` (every plot style) and `GettingStarted/calculators`; hero images for every example README; all figures regenerated with `ultrafast.plotting`.
+- **Agents:** the `design-system` skill (six skills in the pack) and `ultrafast agent list | install | mcp-config` in the C# command line (the skills are embedded from the pack; the files are byte-identical to `ultrafast-agent`, tested).
 - **Docs:** `reference/cli.md`, `reference/mcp.md`, a Benchmarks section in `reference/speed.md` (Apple M3 CPU, RTX 3060 Ti), four-row front-page plot table, the design documents brought up to date, roadmap for v1.1.0.
 
 **Added (2026-11-18)**

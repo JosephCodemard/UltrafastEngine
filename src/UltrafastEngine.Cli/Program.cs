@@ -43,6 +43,7 @@ namespace UltrafastEngine.Cli
         Markdown reference of every option (generated from the engine; docs/reference/options.md).
   ultrafast migrate <file.ufs|run.json> [-o out]
         Upgrade an older file to the current format version.
+  ultrafast agent list | install --target claude|codex|cursor [--dest <dir>] [--force] | mcp-config   the agent pack (skills for coding agents)
   ultrafast devices [--selftest] [--benchmark] [--backend <name>] [--device <i>] [--json]
         Compute back-ends and devices (CPU, CUDA, OpenCL), the CPU FFT in use; --selftest compares each device with
         the CPU on standard problems, --benchmark also times both (docs/reference/speed.md).
@@ -78,6 +79,7 @@ Docs: docs/index.md   Examples: docs/examples/";
                     case "schema": return SchemaCommand(args.Skip(1).ToArray());
                     case "migrate": return MigrateCommand(args.Skip(1).ToArray());
                     case "study": ApplyBackend(args); return StudyCommand(args.Skip(1).ToArray());
+                    case "agent": return AgentCommand.Run(args.Skip(1).ToArray(), Console.Out, Console.Error);
                     case "devices": return DevicesCommand(args.Skip(1).ToArray());
                     case "retrieve": return RetrieveCommand(args.Skip(1).ToArray());
                     case "materials": return MaterialsCommand(args.Skip(1).ToArray());

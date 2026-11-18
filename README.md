@@ -19,7 +19,7 @@
 </p>
 <p align="center">
 <img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-664%20passing-brightgreen">
-<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-420%20passing-brightgreen">
+<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-423%20passing-brightgreen">
 <img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1691%2F1694-brightgreen">
 <img alt="Paper replications" src="https://img.shields.io/badge/papers%20replicated-12-blueviolet">
 </p>

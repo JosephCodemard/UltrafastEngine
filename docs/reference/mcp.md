@@ -56,10 +56,11 @@ read only what you want the agent to see.
 
 ## Agent pack and evals
 
-`ultrafast-agent install --target claude|codex|cursor [--dest DIR] [--force]` writes the five skills of the wheel (`run-simulations`, `debug-setup`,
-`mirror-lab-setup`, `optimise-setup`, `replicate-paper`) where the agent looks for them: `.claude/skills/<name>/SKILL.md`, a marked block in `AGENTS.md` (re-install replaces
+`ultrafast-agent install --target claude|codex|cursor [--dest DIR] [--force]` writes the six skills of the wheel (`run-simulations`, `debug-setup`,
+`mirror-lab-setup`, `optimise-setup`, `replicate-paper`, `design-system`) where the agent looks for them: `.claude/skills/<name>/SKILL.md`, a marked block in `AGENTS.md` (re-install replaces
 only that block), or `.cursor/rules/ultrafast-<name>.mdc`. `ultrafast-agent list` shows them; `ultrafast-agent mcp-config [--client codex]` prints the server entry
-for the client's configuration. The `design-system` skill and the split of the development `.claude/` folder from the shipped pack are still open ([roadmap](../roadmap.md)).
+for the client's configuration. The command `ultrafast agent list | install | mcp-config` of the C# command line does the same with the same options and writes byte-identical files
+(the skills are embedded in the `ultrafast` program), so a user who installed only the CLI needs no Python.
 
 `tests/agent-evals/` holds five prompts with the criteria a good answer meets (explore in `quick` then confirm in `full`; refuse user code and offer a built-in
 instrument; read warnings and validity; compare then fit; plot and report) and `run_evals.py`, which replays a reference trajectory for each through the real server.

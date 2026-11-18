@@ -97,7 +97,7 @@ Two plugins, driven from Python (load them with `uf.plugins.load_python_plugins(
 ## MCP server
 
 `ultrafast-mcp` is a local, workspace-sandboxed MCP server (stdio only) with the tools `describe`, `validate`, `run`, `scan`, `explain_warning`,
-`compare_to_measured`, `fit` and `plot`, two prompts and four resources. Install the skills for your agent with `ultrafast-agent install --target claude|codex|cursor`.
+`compare_to_measured`, `fit` and `plot`, two prompts and four resources. Install the skills for your agent with `ultrafast agent install --target claude|codex|cursor` (or `ultrafast-agent install`, the same files).
 Configuration, every tool, what is refused and how the sandbox works: [MCP reference](reference/mcp.md). The workflow it asks for is
 *explore in `quick`, confirm in `full`* ([Fidelity](reference/fidelity.md)).
 

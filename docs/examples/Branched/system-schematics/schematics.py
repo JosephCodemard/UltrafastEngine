@@ -31,7 +31,7 @@ pulse = b.run_spec(b.pulse(LAM, 100e-15, energy=1e-9), grid=b.grid(n=4096, windo
 cw = b.run_spec(b.cw(LAM, 1.0))
 runs = {"mach-zehnder": uf.run(mz, pulse), "etalon": uf.run(etalon, cw)}
 
-out = HERE / "figures"
+out = HERE / "styles"
 out.mkdir(exist_ok=True)
 
 # the same result drawn in each style; the style is chosen with use_style (call, context manager or ULTRAFAST_PLOT_STYLE)
@@ -81,4 +81,4 @@ plt.close(fig)
 from ultrafast.plotting.graph_layout import layout_graph
 a, c = layout_graph(runs["mach-zehnder"].summary), layout_graph(runs["mach-zehnder"].summary)
 print("layout deterministic:", a == c, " nodes:", len(a["nodes"]) if "nodes" in a else "?")
-print("figures:", ", ".join(sorted(p.name for p in out.glob("*.png"))))
+print("styles:", ", ".join(sorted(p.name for p in out.glob("*.png"))))

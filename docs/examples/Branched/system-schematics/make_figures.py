@@ -1,4 +1,4 @@
-"""Run this example and write its figures (the script writes figures/ and hero.png itself)."""
+"""Run this example and write its figures (the script writes styles/ and hero.png itself)."""
 import runpy
 from pathlib import Path
 

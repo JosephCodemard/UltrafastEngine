@@ -40,6 +40,7 @@ The same calculators, and the beam and nonlinear ones that need no engine, are i
 | command | what it does |
 |---|---|
 | `ultrafast devices [--selftest] [--benchmark] [--backend name] [--device i] [--json]` | the back-ends and devices (CPU, CUDA, OpenCL), the CPU FFT in use; `--selftest` compares each device with the CPU, `--benchmark` also times both ([speed](speed.md#benchmarks)) |
+| `ultrafast agent list \| install --target claude\|codex\|cursor [--dest DIR] [--force] \| mcp-config [--workspace DIR] [--client codex]` | installs the agent skills and prints the MCP configuration; same files as `ultrafast-agent` ([MCP](mcp.md#agent-pack-and-evals)) |
 | `ultrafast plugins [list \| install <folder\|zip> \| remove <id> \| paths]` | installed plugins and where they are searched ([plugins](plugins.md)) |
 | `ultrafast twin <init\|fit\|validate\|predict\|design\|track\|check\|serve>` | the digital twin of a lab ([twin](../plugins/twin.md)); `serve <folder>` starts the MCP server on that folder |
 | `ultrafast zemax-build`, `zemax-demo`, `zemax-replay` | the Zemax plugin's commands, experimental ([zemax](../plugins/zemax.md)) |

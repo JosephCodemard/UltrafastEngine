@@ -69,14 +69,12 @@ and the release builder are complete as shipped; section 4 lists extensions.
 ## 4. Agents and MCP (extensions, v1.1.0)
 
 Done 2026-11-18 (this session): MCP tools `compare_to_measured` and `fit` (time budget, memory pre-flight, killed at the budget, next call works), prompts `explore-in-quick` and
-`compare-to-measurement`, the agent pack (`ultrafast-agent install --target claude|codex|cursor`, five skills shipped in the wheel) and five scripted evals (`tests/agent-evals/`).
+`compare-to-measurement`, the agent pack (`ultrafast-agent install --target claude|codex|cursor`, five skills shipped in the wheel); done 2026-11-18 (second session): the `design-system` skill (six skills) and `ultrafast agent list | install | mcp-config` in the C# CLI (skills embedded from the pack, byte-identical output, tested) and five scripted evals (`tests/agent-evals/`).
 
 | item | size | acceptance |
 |---|---|---|
-| The `design-system` skill (the shipped pack has five of the six planned) | S | listed by `ultrafast-agent list`; installs for all three targets |
 | Evals run by a live agent: the prompts and criteria exist, the replays check the tools; no transcript of a live agent has been scored | M | results in `docs/agents.md`: the mandatory quick-then-confirm prompt passes with at least two different agents |
 | Split `.claude/` (development) from the shipped user pack; `AGENTS.md` / `llms.txt` written for users, development rules in a dev-only file (the pack and `.claude/skills` are two copies kept equal by a test) | S | one source for the skills |
-| `ultrafast agent install` inside the C# CLI (today the Python command `ultrafast-agent`) | S | same behaviour from the CLI |
 | MCP: tools for `study` and `backward` sections; tools of the digital twin | M | each with its refusals and a budget test |
 
 ## 5. Documentation (WP9 remainder)

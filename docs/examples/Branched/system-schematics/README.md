@@ -14,7 +14,7 @@ physics) and draws them in every style.
 ring-down etalon (two 80 % mirrors 10 mm apart joined by a loop) run with a cw source. About 5 s.
 
 ```bash
-python schematics.py            # writes figures/*.png and hero.png
+python schematics.py            # writes styles/*.png and hero.png
 ```
 
 ```
@@ -34,12 +34,12 @@ With SciencePlots installed (`pip install ultrafast-engine[paper]`) the fourth l
   `science` without SciencePlots warns and gives `paper`; the script checks `current_style()` and skips the file.
 * **A loop** is a dashed arc under the row, from the element that closes the loop to the one it feeds, inside a shaded region labelled with the loop kind.
 
-  ![the etalon with its loop](figures/etalon-ultrafast.png)
+  ![the etalon with its loop](styles/etalon-ultrafast.png)
 
 * **Compact schematics** (`up.system_diagram(result, ax, compact=True)`) draw into an axes of your own figure, for a corner of a larger plot.
   In the `paper` styles with `column="single"` the figure is 3.4 in wide and saved at 600 dpi:
 
-  ![two systems at single-column width](figures/paper-single-column.png)
+  ![two systems at single-column width](styles/paper-single-column.png)
 
 * **Determinism.** `layout_graph(summary)` returns the same positions every time (the last output line); the tests keep golden layouts.
 
