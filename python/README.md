@@ -4,13 +4,14 @@ Python bindings for **UltrafastEngine** -- nonlinear ultrafast pulse propagation
 systems (stretchers, compressors, multipass cells, plates, gas cells), with optional OpticStudio export.
 
 ```bash
+pip install "ultrafast-engine[hosted]"             # from release 1.0.0 (not uploaded yet): any OS, needs the .NET 10 runtime; the module is `ultrafast`
 ./setup.sh --python --venv .venv --check            # from a repository checkout: builds the engine, installs this package (editable)
 python install.py --preset python                   # or: from a release, without compiling (needs the .NET 10 runtime)
 python install.py --preset python-native            # or: the NativeAOT engine, no .NET needed
 ```
 
 The package is a thin layer over the engine's native library, so `pip install` alone is not enough: the engine is built (or
-installed from a release) first. Details, plugin choice and troubleshooting: [Install and build](../docs/install.md). Nothing is on PyPI yet.
+installed from a release) first; the PyPI wheel carries it. Details, plugin choice and troubleshooting: [Install and build](../docs/install.md). The PyPI upload is the maintainer's step ([Publishing to PyPI](../docs/releasing.md#publishing-to-pypi-maintainers-decisions-e4-e5)).
 
 ```python
 import ultrafast as uf

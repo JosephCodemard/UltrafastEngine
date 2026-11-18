@@ -1,0 +1,12 @@
+{
+  "title": "Raman self-frequency shift of solitons",
+  "summary": "Raman scattering pushes fundamental solitons to the red at a rate proportional to T0^-4 (Gordon 1986); the engine reproduces the scaling.",
+  "group": "Fibres",
+  "script": "raman_shift.py",
+  "plugins": [],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

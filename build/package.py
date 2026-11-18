@@ -316,6 +316,9 @@ class Builder:
         pkg = stage / "ultrafast"
         if not Log.dry:
             shutil.copytree(REPO / "python" / "src" / "ultrafast", pkg, ignore=shutil.ignore_patterns("bin", "__pycache__", "*.pyc"))
+            (pkg / "schemas").mkdir()      # the MCP server serves them as resources (ultrafast.mcp.resources)
+            for f in (REPO / "schemas").glob("*.schema.json"):
+                shutil.copy2(f, pkg / "schemas" / f.name)
         binp = pkg / "bin"
         if engine == "hosted":
             run(["dotnet", "build", NATIVE, "-c", "Release", "-nologo", "-p:UF_NO_AOT=true", "-p:GenerateDocumentationFile=false", "-o", binp / "hosted"] + self._compiled_in_flags())
@@ -439,6 +442,18 @@ def wheel_platform(rid):
 
 
 def _pyproject():
+    """The metadata of python/pyproject.toml (see :func:`_pyproject_raw`); the environment variable ``UF_WHEEL_VERSION`` (``1.0.0rc1``) replaces the
+    version, which is how the release workflow builds the wheels of a release-candidate tag (the base version must equal the one in pyproject)."""
+    d = dict(_pyproject_raw())
+    v = os.environ.get("UF_WHEEL_VERSION")
+    if v:
+        if not re.match(r"^\d+\.\d+\.\d+(rc\d+)?$", v) or not v.startswith(d["version"]):
+            raise SystemExit("UF_WHEEL_VERSION=%s: expected %s optionally followed by rcN" % (v, d["version"]))
+        d["version"] = v
+    return d
+
+
+def _pyproject_raw():
     """name, version, summary, requires-python, licence, dependencies, extras and scripts from python/pyproject.toml."""
     text = (REPO / "python" / "pyproject.toml").read_text(encoding="utf-8")
     try:

@@ -1,0 +1,15 @@
+{
+  "title": "Explore the twin without beam time",
+  "summary": "A fitted twin answers what-if questions with credible bands, ranks the next measurement by information gain and follows a drifting filter with an ensemble Kalman filter.",
+  "group": "DigitalTwin",
+  "script": "explore.py",
+  "plugins": [
+    "twin",
+    "fitting"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

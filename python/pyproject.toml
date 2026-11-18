@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ultrafast-engine"
-version = "2.2.0"
+version = "1.0.0"
 description = "Nonlinear ultrafast pulse propagation through complete optical systems (Python bindings for UltrafastEngine)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,6 +32,7 @@ test = ["pytest>=7"]
 
 [project.scripts]
 ultrafast-plot = "ultrafast.plot:main"
+ultrafast-mcp = "ultrafast.mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/JosephCodemard/UltrafastEngine"

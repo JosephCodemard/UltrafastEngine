@@ -8,6 +8,7 @@ docs_dir: docs
 exclude_docs: |
   CLAUDE.md
   design/
+  examples/_template.md
 theme:
   name: readthedocs
   custom_dir: overrides            # main.html adds the long logo as a footer

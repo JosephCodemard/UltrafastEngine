@@ -17,7 +17,7 @@
 <a href="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/ci.yml/badge.svg"></a>
 <a href="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml"><img alt="Docs" src="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml/badge.svg"></a>
 <a href="https://josephcodemard.github.io/UltrafastEngine/"><img alt="Documentation" src="https://img.shields.io/badge/docs-GitHub%20Pages-blue"></a>
-<img alt="Version" src="https://img.shields.io/badge/version-2.2.0-blue">
+<img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue">
 <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-green">
 </p>
 <p align="center">
@@ -206,7 +206,7 @@ CLAUDE.md, .claude/          Claude Code setup (docs/claude-code.md)
 
 ## Status
 
-UltrafastEngine **2.2.0** is a stable release: file formats are versioned (older files are migrated on load with a
+UltrafastEngine **1.0.0** is a stable release: file formats are versioned (older files are migrated on load with a
 deprecation warning), the core is feature-complete for its scope, and the test suite pins the physics to analytic
 results and reference codes. What is planned next (coating and crystal design plugins, further paper replications,
 waveguides and fibre gain, deeper OpticStudio integration) is on the [roadmap](docs/roadmap.md); changes are in the
@@ -224,7 +224,7 @@ If UltrafastEngine contributes to published work (a paper, thesis, report or tal
   author    = {Codemard, Joseph},
   title     = {{UltrafastEngine}: nonlinear ultrashort-pulse propagation through complete optical systems},
   year      = {2026},
-  version   = {2.2.0},
+  version   = {1.0.0},
   url       = {https://github.com/JosephCodemard/UltrafastEngine},
   license   = {Apache-2.0}
 }

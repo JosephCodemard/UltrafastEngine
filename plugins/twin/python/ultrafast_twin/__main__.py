@@ -1,4 +1,7 @@
-"""``python -m ultrafast_twin`` / ``ultrafast twin``: init, fit, validate, predict, design, track, check, serve."""
+"""``python -m ultrafast_twin`` / ``ultrafast twin``: init, fit, validate, predict, design, track, check, serve.
+
+``serve FOLDER`` starts the core MCP server (``ultrafast-mcp``, :mod:`ultrafast.mcp`) with FOLDER as its workspace: stdio only, no user code,
+results in ``FOLDER/.ultrafast-mcp``. The twin-specific tools (fit, predict, validate) are on the roadmap (docs/design/roadmap-internal.md)."""
 from __future__ import annotations
 
 import argparse
@@ -48,7 +51,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     a = sub.add_parser("track", help="assimilate recorded files with an ensemble Kalman filter"); a.add_argument("folder"); a.add_argument("--data", action="append", required=True)
     a.add_argument("--var", action="append"); a.add_argument("--set", action="append"); a.add_argument("--process", action="append", help="NAME=SIGMA: expected drift per measurement"); a.add_argument("--members", type=int, default=16)
     a = sub.add_parser("check", help="check goals.json, or run the benchmark"); a.add_argument("folder", nargs="?"); a.add_argument("--goals"); a.add_argument("--benchmark", action="store_true")
-    a = sub.add_parser("serve", help="MCP server on stdio for agents (workspace-scoped)"); a.add_argument("folder"); 
+    a = sub.add_parser("serve", help="MCP server on stdio for agents (ultrafast-mcp, workspace = the project folder)"); a.add_argument("folder")
+    a.add_argument("--budget-s", type=float, default=300.0); a.add_argument("--memory-limit-gb", type=float, default=8.0)
     args = ap.parse_args(argv)
     try:
         if args.cmd == "init":
@@ -104,8 +108,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                     print(f"  {'PASS' if c['passed'] else 'FAIL'}  {c['id']}: {c['detail']}")
             return 0 if r["passed"] else 1
         elif args.cmd == "serve":
-            print("ultrafast twin serve: the MCP server is not implemented yet (docs/design/next-steps.md, section 4)", file=sys.stderr)
-            return 2
+            from ultrafast.mcp.server import main as mcp_main
+            return mcp_main(["--workspace", args.folder, "--budget-s", str(args.budget_s), "--memory-limit-gb", str(args.memory_limit_gb)])
     except (ProjectError, KeyError, ValueError) as e:
         print(f"ultrafast twin: {e}", file=sys.stderr)
         return 2

@@ -1,0 +1,13 @@
+{
+  "title": "An aberrated high-power beam: what a deformable mirror does for the nonlinear phase",
+  "summary": "A deformable mirror removes the hot spots of an aberrated 2 GW beam and cuts the peak nonlinear phase in a Kerr plate from 1.55 to 0.60 rad.",
+  "group": "AdaptiveOptics",
+  "script": "high_power.py",
+  "plugins": [
+    "ao"
+  ],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 1
+}

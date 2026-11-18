@@ -17,7 +17,7 @@ namespace UltrafastEngine.Plugins.Twin
 {
     public sealed class TwinPlugin : IPlugin
     {
-        public const string PluginVersion = "2.2.0";
+        public const string PluginVersion = "1.0.0";
         public string Id => "twin";
         public string Name => "Digital twin: projects, validation, experiment design, drift tracking, agent server";
         public string Version => PluginVersion;

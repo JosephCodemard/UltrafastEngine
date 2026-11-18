@@ -390,6 +390,6 @@ namespace UltrafastEngine.Results
 
     public static class EngineInfo
     {
-        public const string Version = "2.2.0";
+        public const string Version = "1.0.0";
     }
 }

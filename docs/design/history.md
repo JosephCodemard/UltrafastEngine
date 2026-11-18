@@ -264,6 +264,32 @@ brief) was split off as WP-2b.
 * **Not done:** `mypy` on the new modules (not installed in the venv); `PROJECT_STATUS.md` counts not updated (test counts changed: +about 50 Python, +3 C#);
   the paper `run.py` scripts still use the old keyword names (they work, with a `DeprecationWarning`).
 
+## Stage 14 -- WP-2b and WP-3: MCP server, release groundwork  (2026-11-17 / 18, `dev/2026-11-wp2b` merged into `dev/2026-11`, Windows + RTX 3060 Ti)
+
+Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnight simulations used the main checkout's `python/src/ultrafast/bin`; only light tests were run.
+
+* **WP-2b, the MCP server (`ultrafast-mcp`, `python/src/ultrafast/mcp/`, decision E8).** The current MCP revision (2026-07-28) is *stateless* (`server/discover`, protocol version and capabilities in
+  every request's `_meta`, `resultType`, error -32022); most clients still speak the handshake revisions (`initialize`, 2025-11-25 and earlier). The server serves both: `initialize` selects the legacy
+  behaviour, a request with the modern `_meta` the new one. Layout: `server.py` (JSON-RPC, dispatch), `policy.py` (every refusal, no engine), `tools.py` (six definitions, `prepare`), `worker.py` +
+  `_worker_main.py` + `ops.py` (a persistent child with a private empty `ULTRAFAST_HOME`, killed on timeout, size and memory pre-flight), `explain.py`, `resources.py`. Design points worth keeping: refusals are
+  tool results with `isError` (the agent can correct the call), not protocol errors; `fidelity` for a run *file* is applied through a temporary copy next to the original (relative data paths keep working);
+  `fit` / `study` / `backward` sections are refused in `run` (a fit has no time budget yet; it is the next tool); the sandbox is policy plus a separate process, not an OS jail (documented). A junction
+  (Windows) counts as a link: tested with `mklink /J` because symlinks need a privilege. `ultrafast twin serve <folder>` starts it; its docstring, `plugin.json`, README and `docs/plugins/twin.md` were wrong
+  (said "not implemented") and are fixed. Schemas are shipped in the wheel by `build/package.py` (`ultrafast/schemas`).
+* **WP-3, release groundwork (nothing uploaded, no tag).** Version **1.0.0** in every place (`build/check_version.py` lists them: pyproject, `__init__`, `Directory.Build.props`, CITATION, the engine constant, six
+  plugin.json and C# constants); the 2.x numbers were internal and never released. `release.yml`: `version` job (tag = files; `vX.Y.ZrcN` builds `X.Y.ZrcN` wheels through `UF_WHEEL_VERSION` in
+  `package.py`), `light-tests`, `twine check --strict` and the ZOS-API gate on the extracted wheels, `testpypi` / `pypi` jobs with `id-token: write` behind the environments of the same names (E4), no sdist (E5),
+  Linux native wheels left out of the upload (built on the runner's glibc, not in a manylinux container). **PyPI name: `ultrafast-engine`.** The owner preferred `ultrafast`; on 2026-11-17 it had no project on PyPI
+  but is taken on TestPyPI by another author, which would make the rc rehearsal impossible (E13). Install docs (`docs/install.md`, `python/README.md`) and the owner's steps (`docs/releasing.md`).
+* **WP9 slice 1:** `docs/examples/_template.md` (excluded from the site), `example.json` in the 12 S5 examples, `build/example_lint.py` (structure and metadata, never runs an example; in CI and in `release.yml`);
+  `temporal-shaping` got the missing Layout label. `component-gallery`, `dependence-models` and `transforms` do not follow the structure yet (wave 2).
+* **Public roadmap** in three blocks (`docs/roadmap.md`); `ROADMAP.md` is generated from it (`build/sync_roadmap.py`, checked in CI and by `test_wp3.py`). The old page had two diverging copies.
+* **Review before the merge found four things, all fixed:** file arguments were not checked (only inline objects), so a `run.json` with `"@cb"` or an outside path passed (the document check now parses the file and resolves relative paths from the file's folder); `plot` offered `spectrogram`, which returns data (now `spectrogram_3d`); the `light-tests` job would have needed .NET and PyYAML (narrowed to `test_wp3`, `test_mcp`, the ZOS-API tests); and `twine check` had not run. **`twine check` still has not run here** (no package index reachable from this machine); the wheel was built (`UF_WHEEL_VERSION=1.0.0rc1`, 1 MB), its contents (mcp package, schemas, `ultrafast-mcp` entry point, metadata) were inspected and the installed copy answered `initialize`, `tools/list` and `resources/read`. `twine check --strict` runs in the `publish` job before any upload.
+* **Tests run:** `test_mcp.py` (52), `test_wp3.py` (22), `test_release.py`, `test_packaging.py`, `test_examples_package.py`, `test_structure.py`, `test_setup_and_calc.py`: 124 passed, 1 skipped before the review fixes, 74 in `test_mcp` + `test_wp3` after them; `mkdocs build --strict`.
+* **Not run (owner's overnight simulations were using the machine):** the full C# suite (`--slow`), the rest of the Python suite, the pyNLO and LightPipes cross-checks, the examples (`/example-check`),
+  net48, any NativeAOT build (the solution did build: 0 errors), the release workflow itself (it has never run on GitHub), `PROJECT_STATUS.md` counts (not updated). The engine in the worktree was rebuilt (hosted, plugins fitting and twin only).
+* **Not done:** the LaTeX report (not committed by design); MCP tools `compare_to_measured` and `fit`, prompts, agent pack, evals (roadmap section 4); the owner's PyPI steps; the macOS NativeAOT wheel.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

@@ -1,4 +1,4 @@
-# Project status -- 2.2.0
+# Project status -- 1.0.0
 
 What is verified, where, and what is not checked yet. Capabilities and limits: [docs/capabilities.md](docs/capabilities.md).
 What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md).

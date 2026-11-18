@@ -28,7 +28,7 @@ from . import measured
 from . import types
 from . import algorithms, components, instruments, results, sources, system
 
-__version__ = "2.2.0"
+__version__ = "1.0.0"
 __all__ = ["System", "Run", "Result", "ResponseContext", "ElementContext", "UltrafastError", "UnverifiedInput", "run", "version", "capabilities",
            "command", "study", "scan", "Scan", "estimate_memory", "MemoryWarning", "coherence", "retrieve", "retrieve_multi", "devices", "benchmark", "set_default_backend", "build", "crystal", "calc", "cells", "laser", "plugins", "materials", "measured", "types", "plot", "load",
            "algorithms", "components", "instruments", "results", "sources", "system"]

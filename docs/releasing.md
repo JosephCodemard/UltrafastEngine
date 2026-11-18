@@ -24,7 +24,7 @@ first build for a platform other than this machine's downloads that platform's .
 ## A release is the whole repository, in pieces you can take separately
 
 A release on GitHub has three kinds of file: the **source archive** (the full repository), one **asset per component and platform**
-(`cli-2.2.0-osx-arm64.tar.gz`, `python-2.2.0.tar.gz`, `examples.Branched-2.2.0.tar.gz` ...), and `manifest.json` (every asset with its size,
+(`cli-1.0.0-osx-arm64.tar.gz`, `python-1.0.0.tar.gz`, `examples.Branched-1.0.0.tar.gz` ...), and `manifest.json` (every asset with its size,
 SHA-256, the platform and what it needs) with **`install.py`**. GitHub cannot serve part of an asset, so the pieces are separate assets;
 for source folders `install.py` can instead use git's partial clone (below). Maintainers build the assets; users run `install.py`.
 
@@ -61,7 +61,7 @@ Standard library only; it is in the repository and attached to every release.
 python install.py --list                                                  # components, sizes for this platform, what is installed
 python install.py --include python tests examples.Branched --dest ~/uf    # only these (and what they need)
 python install.py --include examples.Branched.pump-probe --dest ~/uf      # adds to the same folder
-python install.py --include all --exclude media --version 2.2.0
+python install.py --include all --exclude media --version 1.0.0
 python install.py --preset cli-plugins                                    # ready-made selections: cli, cli-plugins, python, python-native, cpp, full
 python install.py --include docs examples.Fibres --source git             # source folders by git partial clone (see below)
 python install.py --uninstall --include tests --dest ~/uf                 # remove part ...
@@ -97,8 +97,8 @@ and writes `<dest>/.ultrafast-install.json` with every file, its hash, the compo
 ./build.sh --components cli python plugins schemas docs examples tests papers --platform linux-x64 osx-arm64 win-x64
 ./build.sh --components cpp python-native --platform osx-arm64      # NativeAOT: on the target OS (the owner's Mac for macOS)
 ./build.sh --components all media source --exclude papers --dry-run # the plan only
-python build/release_components.py merge dist/release-2.2.0/manifest.json dist/a/manifest.json dist/b/manifest.json   # manifests of several jobs
-python build/release_components.py check-zosapi dist/release-2.2.0   # fails if any archive or wheel holds a ZOSAPI file
+python build/release_components.py merge dist/release-1.0.0/manifest.json dist/a/manifest.json dist/b/manifest.json   # manifests of several jobs
+python build/release_components.py check-zosapi dist/release-1.0.0   # fails if any archive or wheel holds a ZOSAPI file
 ```
 
 Output: `dist/release-<version>/` with `<component>-<version>[-<platform>].tar.gz` (reproducible: sorted, fixed timestamps), `manifest.json`, `install.py`.
@@ -113,7 +113,36 @@ the CLI for win-x64, linux-x64, linux-arm64, osx-arm64 and osx-x64; job `native`
 job `publish` merges the manifests, runs the ZOS-API gate, installs a selection into a temporary folder (`cli`, `schemas`, `examples.Branched`), runs the CLI and an example
 in strict mode, uninstalls and checks the folder is empty, installs the wheel in a fresh virtual environment (`ultrafast.devices()`, the quickstart), and attaches the assets
 to a **draft** release. The NativeAOT components for macOS are built on the owner's Mac and added with `gh release upload`. **A tag is created only when the owner asks.**
-The workflow has not run on GitHub yet. Rehearsed by hand on macOS: the asset build, the manifest merge, the ZOS-API gate, and the installer install / run / uninstall steps. Not run: the Windows and Linux NativeAOT builds, the CMake example, the wheel in a fresh environment, the upload (see session-f (development history, `docs/design/history.md`)).
+The workflow has not run on GitHub yet (the tag-to-PyPI jobs are described in the next section). Rehearsed by hand on macOS: the asset build, the manifest merge, the ZOS-API gate, and the installer install / run / uninstall steps. Not run: the Windows and Linux NativeAOT builds, the CMake example, the wheel in a fresh environment, the upload (see session-f (development history, `docs/design/history.md`)).
+
+## Publishing to PyPI (maintainers; decisions E4, E5)
+
+`release.yml` publishes by **trusted publishing** (GitHub OIDC): no token or password exists anywhere. Nothing is uploaded without the owner: tags are created by the
+owner, and the upload jobs run in GitHub environments that need the owner's approval.
+
+* `version` (first job): `python build/check_version.py <tag>`: `python/pyproject.toml`, `ultrafast/__init__.py`, `Directory.Build.props`, `CITATION.cff`, the engine constant and
+  every plugin (`plugin.json`, C# constant) must carry the same `X.Y.Z`, and the tag must be `vX.Y.Z` (final) or `vX.Y.ZrcN` (release candidate; the wheels are then
+  built as `X.Y.ZrcN` through `UF_WHEEL_VERSION`). The package name must be `ultrafast-engine`. Any mismatch stops the workflow before anything is built.
+* `light-tests`: `example_lint.py`, `sync_roadmap.py --check`, and the tests that need no engine (release, MCP, packaging, WP-3).
+* `publish`: after the asset jobs, the wheels are taken from the assets, **checked with `twine check --strict`** and with the ZOS-API gate, and kept as the artifact `pypi-wheels`.
+  Wheels only, **no sdist** (E5). Linux native wheels carry a `manylinux` tag but are built on the runner's glibc, so they are left out of the upload until they are built in a manylinux
+  container; Windows and macOS native wheels and the platform-independent wheel go up.
+* `testpypi`: a tag `vX.Y.ZrcN` uploads to TestPyPI (environment `testpypi`). `pypi`: a tag `vX.Y.Z` uploads to PyPI (environment `pypi`).
+
+**Steps for the owner** (the maintainer's assistant does none of them):
+
+1. **Name:** confirm `ultrafast-engine` is yours on PyPI and TestPyPI (checked free on 2026-11-17; `ultrafast` is taken on TestPyPI, so it cannot be rehearsed there).
+2. **Trusted publishers**, on both [pypi.org](https://pypi.org/manage/account/publishing/) and [test.pypi.org](https://test.pypi.org/manage/account/publishing/) ("Add a new pending publisher"):
+   project `ultrafast-engine`, owner `JosephCodemard`, repository `UltrafastEngine`, workflow `release.yml`, environment `pypi` (PyPI) / `testpypi` (TestPyPI).
+3. **GitHub environments** (repository Settings, Environments): create `testpypi` and `pypi`, add yourself as a required reviewer, and restrict deployment to tags `v*`.
+4. **GitHub Pages** (Settings, Pages, Source: GitHub Actions) if the site should be deployed.
+5. Merge `dev/2026-11` into `main` by pull request (green CI), then tag the release candidate on `main`: `git tag v1.0.0rc1 && git push origin v1.0.0rc1`.
+6. Approve the `testpypi` environment when the run asks. In a fresh virtual environment on Linux, Windows and macOS install the candidate
+   (`pip install --pre --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ "ultrafast-engine[hosted]"`) and run the quickstart,
+   one strict example, `ultrafast devices` (`python -c "import ultrafast as uf; print(uf.devices())"`) and the MCP handshake (`ultrafast-mcp --workspace .` and one `tools/list`).
+7. Build the macOS NativeAOT wheel on your Mac (`./build.sh --components cpp python-native --platform osx-arm64`) and attach it with `gh release upload`.
+8. Set `date-released` in `CITATION.cff`, tag `v1.0.0`, approve the `pypi` environment. Afterwards: `pip install "ultrafast-engine[hosted]"` in a clean environment.
+9. A version cannot be re-uploaded to PyPI. If an upload is wrong, fix forward with the next version (a `rcN+1` on TestPyPI; `1.0.1` on PyPI).
 
 ## Single-folder packages (`--cli --python ...`)
 

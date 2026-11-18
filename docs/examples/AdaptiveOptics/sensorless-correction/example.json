@@ -1,0 +1,14 @@
+{
+  "title": "Sensorless adaptive optics",
+  "summary": "With only the focal peak as a metric, modal search (36 camera exposures) and SPGD (240) improve a six-mode aberration from Strehl 0.39 to 0.94.",
+  "group": "AdaptiveOptics",
+  "script": "sensorless.py",
+  "plugins": [
+    "ao"
+  ],
+  "figures": [
+    "hero.png",
+    "animation.gif"
+  ],
+  "wave": 1
+}

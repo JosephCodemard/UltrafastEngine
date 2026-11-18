@@ -12,4 +12,4 @@ Add: $ARGUMENTS
 4. `/regen`. If Python users will set it often, add a keyword to the builder in `python/src/ultrafast/build.py`
    (typed return), then `gen_api_docs.py`, and a Python test.
 5. Document it on the matching `docs/reference/*.md` page (and in an example if it changes how people work).
-6. CHANGELOG (Unreleased → Added). Renamed key? Add a migration in `Schema/Migrations.cs`, keep the old name.
+6. CHANGELOG (top section → Added). Renamed key? Add a migration in `Schema/Migrations.cs`, keep the old name.
