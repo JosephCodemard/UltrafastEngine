@@ -6,7 +6,7 @@ table says `./setup.sh`.
 | I want ... | Do this | Needs |
 |---|---|---|
 | to **use** the CLI, Python package or plugins, without compiling | [Install a release](#install-a-release-no-compiling) (`install.py`) | Python 3.9+, internet |
-| the **Python package** from PyPI (1.0.0 alpha) | [Install from PyPI](#install-from-pypi-100-alpha) (`pip install --pre "ultrafast-engine[hosted]"`) | Python 3.10+, the .NET 10 runtime |
+| the **Python package** from PyPI (1.0.0 alpha) | [Install from PyPI](#install-from-pypi-100-alpha) (`pip install --pre ultrafast-engine`) | Python 3.10+, the .NET 10 runtime |
 | to **build from source** and run the CLI | `./setup.sh --cli` | .NET 10 SDK, Python 3.10+ |
 | the **Python package** from source | `./setup.sh --python --venv .venv` | the same |
 | only **some plugins** | `./setup.sh --cli --python --plugins fitting hitran` | the same |
@@ -25,18 +25,18 @@ Check what your machine has with `./setup.sh --doctor`.
 
 ## Install from PyPI (1.0.0 alpha)
 
-The first public release is the **alpha** `1.0.0a1`: it is complete and tested, but it has not been used outside the maintainer's lab, so expect fixes in `1.0.0a2`, `a3`, ... before `1.0.0`. `pip` installs pre-releases only with `--pre`. Not published yet: until the maintainer uploads it, use the release assets below or build from source. After the upload:
+The first public release is the **alpha** `1.0.0a1`: it is complete and tested, but it has not been used outside the maintainer's lab, so expect fixes in `1.0.0a2`, `a3`, ... before `1.0.0`. `pip` installs pre-releases only with `--pre`. From `1.0.0a2` on, the plain install brings everything needed to simulate and plot (`1.0.0a1` needs the extra `[hosted]`: `pip install --pre "ultrafast-engine[hosted]"`):
 
 ```bash
 python -m venv .venv && . .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install --pre "ultrafast-engine[hosted]"          # any OS: the managed engine; needs the .NET 10 runtime (https://dotnet.microsoft.com/download)
-pip install --pre "ultrafast-engine[hosted,plot]"     # with matplotlib for figures; more extras: animate, paper, examples
+pip install --pre ultrafast-engine                    # any OS: the managed engine (needs the .NET 10 runtime, https://dotnet.microsoft.com/download), NumPy, Matplotlib
+pip install --pre "ultrafast-engine[paper,animate]"   # extras: paper (SciencePlots), animate (Pillow), all (both), test (pytest); [hosted] and [plot] are in the default install
 python -c "import ultrafast as uf; print(uf.version()); print(uf.devices()['devices'])"
 ultrafast-mcp --help                                   # the MCP server for agents (docs/agents.md)
 ```
 
 The package name on PyPI is **`ultrafast-engine`**; the module you import is `ultrafast`. The wheel without a platform tag holds the managed engine, which loads
-plugins (fitting, gpu, hitran, ao, twin) and needs the .NET 10 runtime; `[hosted]` adds `clr_loader`, which starts it. Where a platform wheel is published
+plugins (fitting, gpu, hitran, ao, twin) and needs the .NET 10 runtime; `clr_loader`, which starts it, is a default dependency (the extra `[hosted]` is kept for older instructions). Where a platform wheel is published
 (Windows x64 first) pip takes it instead: it carries the NativeAOT engine, needs no .NET, and cannot load plugin folders (gpu, hitran and ao are compiled in).
 There is no source distribution: the package needs the compiled engine. Plugins that need a vendor library (CUDA, OpenCL) load it from your computer.
 The Zemax plugin is never in the wheel. A release candidate is on TestPyPI first (`pip install --pre --index-url https://test.pypi.org/simple/

@@ -19,15 +19,16 @@ classifiers = [
   "Operating System :: MacOS",
   "Operating System :: POSIX :: Linux",
 ]
-dependencies = ["numpy>=1.21"]
+# what `pip install ultrafast-engine` brings: numpy; clr_loader, which starts the managed (.NET) engine; matplotlib for figures and the `ultrafast-plot` command
+dependencies = ["numpy>=1.21", "clr_loader>=0.2", "matplotlib>=3.5"]
 
 [project.optional-dependencies]
-# Development mode: load the engine through the .NET host instead of the NativeAOT library.
+# These two are in the default install since 1.0.0a2; the names stay so that `pip install "ultrafast-engine[hosted,plot]"` keeps working.
 hosted = ["clr_loader>=0.2"]
 plot = ["matplotlib>=3.5"]
-paper = ["matplotlib>=3.5", "SciencePlots>=2.1"]  # plotting style "science" (the look of SciencePlots; without it "paper" is used)
+paper = ["matplotlib>=3.5", "SciencePlots>=2.1"]      # plotting style "science" (the look of SciencePlots; without it "paper" is used)
 animate = ["matplotlib>=3.5", "pillow>=9"]            # plotting.animate writes GIFs with Pillow
-examples = ["ultrafast-examples"]                    # a separate wheel built locally: python build/package.py --examples-wheel; install with --find-links
+all = ["matplotlib>=3.5", "SciencePlots>=2.1", "pillow>=9"]
 test = ["pytest>=7"]
 
 [project.scripts]

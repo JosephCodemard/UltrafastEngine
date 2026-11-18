@@ -31,7 +31,7 @@
 <img alt="Dependencies" src="https://img.shields.io/badge/NuGet%20dependencies-none-success">
 </p>
 
-> **Status: 1.0.0 alpha.** Everything described here is built and tested (see [PROJECT_STATUS](PROJECT_STATUS.md)); the alpha is the first public release, meant for use in real labs so that what that shows is fixed before 1.0.0. Install with `pip install --pre "ultrafast-engine[hosted]"`.
+> **Status: 1.0.0 alpha.** Everything described here is built and tested (see [PROJECT_STATUS](PROJECT_STATUS.md)); the alpha is the first public release, meant for use in real labs so that what that shows is fixed before 1.0.0. Install with `pip install --pre ultrafast-engine`.
 
 
 UltrafastEngine propagates an ultrashort pulse through a **complete optical system**: stretchers and compressors,

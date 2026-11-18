@@ -8,15 +8,13 @@ installed separately, loaded through public interfaces, never required by the co
 
 ## In 1.0.0
 
-The first public release is the **alpha 1.0.0a1**: everything described in [capabilities](docs/capabilities.md) is built and tested, and use in real labs will show what still needs fixing before 1.0.0.
-Alphas (`1.0.0a2`, ...) carry those fixes. What remains are steps that only the maintainer can take (accounts, tags, a Mac build):
+**The alpha `1.0.0a1` is published on PyPI** (`pip install --pre ultrafast-engine`; from `1.0.0a2` the plain install brings everything needed to simulate and plot). Everything described in
+[capabilities](docs/capabilities.md) is built and tested; use in real labs will show what still needs fixing before 1.0.0, and alphas (`1.0.0a2`, ...) carry those fixes. Still to do:
 
-1. **Publishers and environments:** create the pending trusted publishers for `ultrafast-engine` on PyPI and TestPyPI, and the protected environments `testpypi` and `pypi` in the
-   repository settings; switch GitHub Pages to "GitHub Actions".
-2. **Alpha:** tag `v1.0.0a1`; approve the `pypi` environment. Check the install in a fresh environment on Linux, Windows and macOS: `pip install --pre "ultrafast-engine[hosted]"`, the quick start,
-   one strict example, `ultrafast-mcp` and `ultrafast agent list`. (A rehearsal on TestPyPI is a tag `v1.0.0rc1`.)
-3. **Settle:** fix what the alpha shows in further alphas, then tag `v1.0.0`. Install is then `pip install "ultrafast-engine[hosted]"` (the import name is `ultrafast`).
-4. **macOS NativeAOT wheel:** built on the maintainer's Mac with `./build.sh --python --python-engine native` and attached to the release (there is no macOS runner for this repository).
+1. **`1.0.0a2`:** the default install with `clr_loader` and Matplotlib, the new package page on PyPI (a package page can only change with a new version), the extras `all` and `paper` documented.
+2. **macOS NativeAOT wheel:** built on the maintainer's Mac with `./build.sh --python --python-engine native` and attached to the release (there is no macOS runner for this repository). Linux wheels follow when they are built in a manylinux container.
+3. **Release safety:** required reviewers on the `pypi` and `testpypi` environments, so that an upload waits for a maintainer's click.
+4. **Settle:** fix what the alphas show, then tag `v1.0.0`. Install is then `pip install ultrafast-engine` (the import name is `ultrafast`).
 
 ## Next
 

@@ -1,7 +1,7 @@
 # UltrafastEngine
 
 !!! note "1.0.0 alpha"
-    The first public release is an alpha: complete and tested, not yet used outside the maintainer's lab. Install with `pip install --pre "ultrafast-engine[hosted]"`; fixes follow in later alphas, then 1.0.0 ([roadmap](roadmap.md)).
+    The first public release is an alpha: complete and tested, not yet used outside the maintainer's lab. Install with `pip install --pre ultrafast-engine`; fixes follow in later alphas, then 1.0.0 ([roadmap](roadmap.md)).
 
 **Nonlinear ultrafast pulse propagation through complete optical systems** — stretchers and compressors,
 amplifiers, multipass cells, interferometers, crystals, plates, gas cells, mirrors and coatings, with some support for
