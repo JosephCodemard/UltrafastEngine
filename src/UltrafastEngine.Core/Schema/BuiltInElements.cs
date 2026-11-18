@@ -157,7 +157,7 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("element", "fiber", "A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material; gamma or n2 + effective area; loss; gain; Raman; soliton and dispersive-wave diagnostics.")
                 .Alias("fibre", "waveguide").DocAt("reference/fibers.md")
                 .Num("lengthM", "m", "Fibre length", required: true)
-                .Arr("betas", "s^k/m", "Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI)")
+                .Arr("betasSkPerM", "s^k/m", "Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI)").Arr("betas", "s^k/m", "Deprecated name of betasSkPerM (still accepted)")
                 .Arr("betasPsKm", "ps^k/km", "Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units)")
                 .Num("referenceWavelengthM", "m", "Wavelength of the Taylor expansion", "the carrier")
                 .Obj("dispersion", "Dispersion curve {wavelengthsM, dPsNmKm | beta2S2PerM} (alternative to betas)", "fiberDispersion")
@@ -223,7 +223,7 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("element", "faradayRotator", "Faraday rotator: non-reciprocal rotation with Verdet dispersion, optional crystal (dispersion, B-integral).").Alias("faraday")
                 .DocAt("reference/components.md#faraday-rotators").Include("nonlinearMedium")
                 .Num("rotationDeg", "deg", "Rotation at the design wavelength", "45").Num("designWavelengthM", "m", "Design wavelength", "the carrier")
-                .Num("verdetRadPerTM", "rad/(T m)", "Verdet constant (with fieldT and lengthM)").Num("fieldT", "T", "Magnetic field")
+                .Num("verdetRadPerTM", "rad/(T m)", "Verdet constant (with fieldTesla and lengthM)").Num("fieldTesla", "T", "Magnetic field").Num("fieldT", "T", "Deprecated name of fieldTesla")
                 .Num("lengthM", "m", "Crystal length").Str("material", "Crystal (e.g. TGG)")
                 .Enum("verdetDispersion", new[] { "inverseSquare", "none" }, "V ~ 1/(lambda^2 - lambda0^2)", "inverseSquare").Num("verdetPoleWavelengthM", "m", "lambda0", "258e-9")
                 .Num("direction", "", "+1 forward, -1 backward (non-reciprocal)", "1").Num("transmission", "", "Power transmission", "1"));

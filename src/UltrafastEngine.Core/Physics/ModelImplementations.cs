@@ -407,9 +407,10 @@ namespace UltrafastEngine.Physics
 
     // ===================================================================================== apertures
 
-    /// <summary>Circular hard aperture of radius a on a centred Gaussian beam: T = 1 - exp(-2 a^2 / (wx wy))
-    /// (exact for round beams; geometric-mean approximation for elliptical ones; decentre via the Marcum-Q
-    /// approximation is ignored at L0 and reported).</summary>
+    /// <summary>Circular hard aperture of radius a on a Gaussian beam: T = 1 - exp(-2 a^2 / (wx wy)) for a round, centred beam; the two-dimensional
+    /// integral for an elliptical one; for a decentred beam (dx, dy: beam centre relative to the aperture centre) the radial integral is done in closed
+    /// form (Gaussian and error function) and the angular one by the trapezoid rule, which is exact to rounding for a smooth periodic integrand.
+    /// For a round beam the decentred result is 1 - Q1(2 d / w, 2 a / w), the Marcum Q function.</summary>
     public sealed class CircularAperture : IAperture
     {
         public double Radius { get; }
@@ -419,6 +420,7 @@ namespace UltrafastEngine.Physics
         {
             if (Radius <= 0 || double.IsInfinity(Radius)) return Radius <= 0 ? 0 : 1;
             if (wx <= 0 || wy <= 0) return 1;
+            if (dx != 0 || dy != 0) return Decentred(wx, wy, dx, dy);
             // Elliptical Gaussian I ~ exp(-2 x^2/wx^2 - 2 y^2/wy^2) through a disk of radius a, in polar coordinates:
             // T = (1 / (pi wx wy)) integral_0^2pi (1 - exp(-a^2 q)) / q dphi,  q = 2 (cos^2 phi / wx^2 + sin^2 phi / wy^2).
             // Round beam: 1 - exp(-2 a^2 / w^2). The integrand is smooth and periodic: the trapezoid rule converges exponentially.
@@ -432,6 +434,28 @@ namespace UltrafastEngine.Physics
                 sum += x < 1e-4 ? a2 * (1 - x / 2 + x * x / 6) : (1 - Math.Exp(-x)) / q;
             }
             return Math.Min(1.0, sum * 2 * Math.PI / N / (Math.PI * wx * wy));
+        }
+
+        /// <summary>T = 2 / (pi wx wy) integral over the disk of exp(-2 (x - dx)^2 / wx^2 - 2 (y - dy)^2 / wy^2). In polar coordinates about the aperture
+        /// centre the exponent along a ray is -(A r^2 - 2 B r + C) with A = 2 (c^2 / wx^2 + s^2 / wy^2), B = 2 (c dx / wx^2 + s dy / wy^2),
+        /// C = 2 (dx^2 / wx^2 + dy^2 / wy^2); with m = B / A the integral of r exp(...) from 0 to a is
+        /// exp(B^2 / A - C) [ (exp(-A m^2) - exp(-A (a - m)^2)) / (2 A) + (m / 2) sqrt(pi / A) (erf(sqrt(A) (a - m)) + erf(sqrt(A) m)) ].</summary>
+        private double Decentred(double wx, double wy, double dx, double dy)
+        {
+            const int N = 4096; double a = Radius, sum = 0;
+            for (int k = 0; k < N; k++)
+            {
+                double phi = 2 * Math.PI * (k + 0.5) / N, c = Math.Cos(phi), sn = Math.Sin(phi);
+                double A = 2 * (c * c / (wx * wx) + sn * sn / (wy * wy));
+                double B = 2 * (c * dx / (wx * wx) + sn * dy / (wy * wy));
+                double C = 2 * (dx * dx / (wx * wx) + dy * dy / (wy * wy));
+                double m = B / A, sa = Math.Sqrt(A);
+                double pref = Math.Exp(B * B / A - C);                         // at most 1: the exponent is minus the smallest value of the Gaussian's exponent along the ray
+                double gauss = (Math.Exp(-A * m * m) - Math.Exp(-A * (a - m) * (a - m))) / (2 * A);
+                double erfTerm = 0.5 * m * Math.Sqrt(Math.PI / A) * (SpecialFunctions.Erf(sa * (a - m)) + SpecialFunctions.Erf(sa * m));
+                sum += pref * (gauss + erfTerm);
+            }
+            return Math.Max(0.0, Math.Min(1.0, 2.0 / (Math.PI * wx * wy) * sum * 2 * Math.PI / N));
         }
     }
 

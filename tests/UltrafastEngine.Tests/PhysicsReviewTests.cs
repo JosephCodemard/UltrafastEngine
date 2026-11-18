@@ -120,5 +120,16 @@ namespace UltrafastEngine.Tests
             double Tilt(RunResult r) => r.Records.Last().Values.First(kv => kv.Key.StartsWith("trackedPulseFrontTilt") && kv.Key.EndsWith("SPerM") && kv.Value != 0).Value;
             Assert.Less(Math.Abs(Tilt(far)), 0.2 * Math.Abs(Tilt(near)), "the far-field tilt falls, near " + Tilt(near) + ", far " + Tilt(far));
         }
+
+        [Test(Reference = "a cw source's single line sits on the requested frequency, 2 pi c / lambda, to rounding, wherever it falls between the bins of a snapped lattice; snapCarrier: true moves it to the nearest bin", Tolerance = "1e-14 relative")]
+        public void CwSource_OffTheLattice_SitsOnTheRequestedFrequency()
+        {
+            double lam = 1030.37e-9, w = 2 * Math.PI * PhysicalConstants.SpeedOfLightMPerS / lam;
+            var sys = Sys(O("id", "g", "type", "gap", "material", "Vacuum", "lengthM", 0.01));
+            var free = Go(sys, Spec(O("shape", "cw", "centerWavelengthM", lam, "powerW", 1.0)));
+            Assert.Close(w, free.Output.Grid.OmegaCenter, 1e-14, 0, "default: the line is where it was asked");
+            var snapped = Go(sys, Spec(O("shape", "cw", "centerWavelengthM", lam, "powerW", 1.0), O("grid", O("snapCarrier", true))));
+            Assert.True(Math.Abs(snapped.Output.Grid.OmegaCenter - w) / w > 1e-9, "snapCarrier: true moves the carrier to a bin (" + (snapped.Output.Grid.OmegaCenter - w) / w + ")");
+        }
     }
 }

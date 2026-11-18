@@ -65,6 +65,8 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Option reference (generated)](docs/reference/options.md)
 - [Schemas, validation & migrations](docs/reference/schema.md)
 - [Plugin system](docs/reference/plugins.md)
+- [Command line: every command and option](docs/reference/cli.md)
+- [MCP server and agent pack: tools, prompts, resources, what is refused](docs/reference/mcp.md)
 
 ## Interfaces
 - [Python](docs/reference/python.md)

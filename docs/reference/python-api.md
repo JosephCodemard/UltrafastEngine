@@ -222,7 +222,7 @@ A system file. ``substrates`` defines mirror substrates by name (see :func:`subs
 
 ### `fiber(id: str, length_m: float, betas: Optional[Sequence[float]] = None, gamma: Any = None, *, betas_ps_km: Optional[Sequence[float]] = None, loss_db_per_km: Optional[float] = None, gain_db_per_m: Optional[float] = None, raman: Any = None, **extra) -> 'T.FiberElement'`
 
-Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (or ``betas_ps_km`` in ps^k/km), ``gamma`` in 1/(W m) (or an expression in z), loss, gain, ``raman`` = "silica" | "linAgrawal" | "hollenbeck" | "none". ``extra``: ``dispersion``, ``material``, ``n2``, ``effectiveAreaM2``, ``gain`` (spectrum), ...
+Single-mode fibre (docs/reference/fibers.md): Taylor ``betas`` [beta2, beta3, ...] in s^k/m (key ``betasSkPerM``; or ``betas_ps_km`` in ps^k/km), ``gamma`` in 1/(W m) (or an expression in z), loss, gain, ``raman`` = "silica" | "linAgrawal" | "hollenbeck" | "none". ``extra``: ``dispersion``, ``material``, ``n2``, ``effectiveAreaM2``, ``gain`` (spectrum), ...
 
 ### `gap(id: str, length_m: float, medium: str = 'Air', air: Optional[Mapping[str, Any]] = None, **extra) -> 'T.GapElement'`
 

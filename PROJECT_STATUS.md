@@ -8,7 +8,7 @@ What comes next: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md)
 | check | result |
 |---|---|
 | `dotnet build UltrafastEngine.sln -c Release` (net10.0 and net48) | 0 errors; the only warning is the expected missing ZOS-API (the Zemax binding then builds against stubs) |
-| C# tests, `--slow` | **680 tests: 660 pass, 0 fail, 20 skipped** (hardware and opt-in tests: GPU, HAPI), run 2026-11-18 on macOS arm64 (the two failures of the first run were the generated schema and matrix, regenerated and re-run green); earlier: run 2026-11-17 on Windows with an RTX 3060 Ti: all 17 `GpuTests` ran on CUDA **and** OpenCL. net48 build-checked only (no Mono) |
+| C# tests, `--slow` | **684 tests: 664 pass, 0 fail, 20 skipped** (hardware and opt-in tests: GPU, HAPI), run 2026-11-18 on macOS arm64 (the two failures of the first run were the generated schema and matrix, regenerated and re-run green); earlier: run 2026-11-17 on Windows with an RTX 3060 Ti: all 17 `GpuTests` ran on CUDA **and** OpenCL. net48 build-checked only (no Mono) |
 | Python tests (hosted engine, `ULTRAFAST_SLOW=1`, with pyNLO and LightPipes) | **420 pass, 2 skipped** (run 2026-11-18 on macOS arm64, pyNLO included) (no NativeAOT library; run 2026-11-17 (before that 268, and 267 on 2026-11-16) on Windows with the RTX 3060 Ti, the hosted engine, pyNLO and LightPipes; before that 266 pass, 2 skipped on the Mac (no FP64 GPU); earlier run 2026-11-11 with `ULTRAFAST_LIBRARY` set to the hosted engine, otherwise a stale `bin/native` shadows it and the plugin tests fail; includes the 23 release tests and 8 for `setup.py`, `install.py --preset` and the pulse calculator) |
 | Component tests (`tests/components/run_all.py`: 10 families covering linear optics, splitters, polarisation, crystals, nonlinear media, spatial components, instruments) | **1691 / 1694 checks** pass against analytic answers; **3 are marked KNOWN** (a 1.5-cycle pulse broadened to zero frequency at 2 µm / 10 fs, reported by a warning), 0 fail |
 | Paper replications (`build/paper_check.py`) | 12 folders, 0 hard failures (fast tier); each README ends with *How well the science matched*; the soft checks mark what does not reproduce ([index](docs/papers/README.md)) |
@@ -29,10 +29,10 @@ example check.
 | | |
 |---|---|
 | GPU back-ends (CUDA, OpenCL) | checked on one machine (RTX 3060 Ti, driver 610.88, CUDA 13.3; WP-C(B), 2026-11-16): `GpuTests` pass on CUDA and OpenCL. Elsewhere the tests skip without an FP64 device; AMD / Intel OpenCL and data-centre cards are not checked |
-| MCP server for agents (twin plugin, T6) | designed, **not built**; `ultrafast twin serve` exits with 2 |
+| MCP server (`ultrafast-mcp`) with a live language-model agent | built and tested through replayed reference trajectories (`tests/agent-evals/`); no live agent has been scored ([MCP reference](docs/reference/mcp.md)) |
 | NativeAOT library with the `ao` plugin | compiled in (`UF_WITH_AO`); the check that it lists the four elements (`test_native_library_lists_the_four_ao_elements`) runs only when `ULTRAFAST_NATIVE_LIB` points at a built library |
 | OpticStudio / Zemax | needs a Windows machine with OpticStudio; the binding is built against stubs in CI |
-| Release packages | built and smoke-tested per platform with `build.sh` on request; no release workflow yet |
+| Release workflow (`release.yml`) | written and checked by `build/check_version.py`, `build/example_lint.py` and the light tests; **has never run on GitHub** (the first run is the release-candidate tag; owner's steps in `docs/releasing.md`) |
 | macOS in CI | not run on GitHub (the `macos-14` runner configuration is not available to this repository); the macOS arm64 build and tests are run by hand on the development machine, and the Linux arm64 job covers the arm64 code paths |
 | Mono / net48 test run | Mono is not installed on the development machine; CI runs it on Linux |
 | `docs.yml` (GitHub Pages) | written, not yet run on GitHub; needs Settings → Pages → Source: GitHub Actions |

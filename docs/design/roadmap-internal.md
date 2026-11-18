@@ -5,6 +5,10 @@ criteria and what blocks them. The public summary is [docs/roadmap.md](../roadma
 [future-plugins.md](future-plugins.md); limitations that are not planned work are in [limitations.md](limitations.md).
 Classification: **core** (core public roadmap), **plugin** (separate plugin), **internal** (stays here: engineering with no user-visible promise).
 
+**Status for 1.0.0 (2026-11-18):** nothing in this file blocks the release except the owner's steps in section 1. Every engineering item
+below (sections 2 to 7) is planned for **v1.1.0 or later**; nothing in them is half-built in 1.0.0. The MCP server, the agent pack (five skills)
+and the release builder are complete as shipped; section 4 lists extensions.
+
 ## 0. Current plan: three work packages (from 2026-11-17, one session each)
 
 | WP | contents | status |
@@ -28,7 +32,6 @@ Classification: **core** (core public roadmap), **plugin** (separate plugin), **
 
 | item | class | size | acceptance / notes |
 |---|---|---|---|
-| `outputs.keepProfiles: used` in branched systems (today `Executor.Execute` applies it to sequential systems only) and the instruments' two-dimensional outputs in the memory estimate | core | S | a branched Mach-Zehnder with spatial elements keeps only the profiles an instrument reads; estimate within 2x of the retained memory (`MemoryEstimateTests`) |
 | Kerr-lensed beam carried to later elements (today `kerrLens` acts inside one element; the beam leaving it is not carried on) | core | M | run-time beam override after a `kerrLens` element; Herriott cell with a Kerr plate per pass against `cellMode` (same lens per pass) to 1 %; P = 0 bit-identical. Physics change: `/physics-change` |
 | Field snapshots along z inside an element (for evolution maps and videos within one fibre or crystal) | core | M | `outputs.zSnapshots: N` stores N fields per element; memory accounted by the memory estimate; snapshot at z = L equals the element output to 1e-12 |
 | Carrier frame: move the window frame to the pulse carrier (a dispersive pulse off the lattice drifts by GDD × offset × L); `snapCarrier` still changes the Schulte cell by 1.4 % in bandwidth | core | M | Schulte result independent of `snapCarrier` to 1e-3; 10 fs soliton exact on the default grid |
@@ -36,14 +39,11 @@ Classification: **core** (core public roadmap), **plugin** (separate plugin), **
 | Crystal band gaps from a published optical-gap measurement (BBO, LBO, KDP, KTP, LiNbO₃ are estimated from the UV edge, `unverified`); the plasma term of `Chi2Problem` on the GPU | core | S | the owner supplies the sources; catalogue status `verified`; device parity 1e-9 |
 | Built-in metal mirrors (Ag, Au, Al n,k) | core | S | data read from a published table (Rakić et al., Appl. Opt. 37, 5271 (1998), or Johnson & Christy 1972), not from memory; 45° silver: ellipticity of circular light against the Fresnel value |
 | Frequency-dependent effective area and a user-set shock time (see [future-plugins](future-plugins.md) C1) | core | M | Lægsgaard form; constant table equals today to 1e-12 |
-| Unit-in-key renames with migrations. Proposed: `betas` → `betasSkPerM` (alias `betasPsKm` stays), `dnDT` → `dnDTPerK`, `fieldT` → `fieldTesla`, `tau1` / `tau2` / `taub` → `tau1S` / `tau2S` / `taubS`; instrument axis keys stay (their unit is the axis'). `n2` stays (the physics symbol) | core | M | migrations with deprecation warnings; every example strict; owner approves the names |
 | `multiFrog` two-trace case ends in the time-reversed twin in most starts | core | M | initial guess / step order fixed or documented as a limitation (`docs/papers/kida-2014-double-frog/repro_2.py`) |
-| CW sources sit on the nearest bin (relative error 2.8e-7) | internal | S | off-bin cw with `snapCarrier: false` |
 | A schema for study specs (`schemas/study.schema.json`; the keys `mode`, `sampling`, `parameters`, `outputs`, `cache`, `freezeGrid`, `prefixCache`, `ensemble`, ... are documented in `docs/reference/studies.md` only), generated and checked like the other schemas | internal | M | schema generated from a `ComponentSpec("study")`; the Python `study` / `scan` arguments typed from it |
 | Glass in beam splitters (`beamSplitter`, `polarizingSplitter`: the cube's glass on the transmitted and reflected paths) | core | S | per-port glass; today: a `plate` in the arm |
 | GPU plasma term in spatial elements and carrier-resolved propagation; exact (series) PPT / Keldysh rates on the device instead of the table | gpu | M | parity 1e-12 for PPT |
 | Delayed-response window planning for generic `timeResponse` and gas rotational revivals | core | S | planner window covers the response memory; test with a 10 ps revival |
-| Round-aperture decentre | core | S | decentred aperture transmission against the offset-Gaussian integral |
 | Non-collinear OPA crossed-beam overlap test | internal | S | gain loss against the analytic Gaussian-overlap average |
 | `cellMode`: an element option or run mode, astigmatic injection, pulse (not only peak-power) Kerr lens, stability check | core | M | |
 | Birth phase of tunnelling electrons (drift energy assumes a uniform birth phase) | core | M | needs a reference calculation (Corkum 1993) |
@@ -58,11 +58,15 @@ Classification: **core** (core public roadmap), **plugin** (separate plugin), **
 | Spatial χ(2) and spatial mixed precision on the device | L | parity 1e-9 (double) / energy 1e-6 (mixed) on CUDA and OpenCL |
 | Single-precision cuFFT plan for mixed precision (the mixed path uses the built-in FFT) | S | mixed-precision tolerances kept; speed measured |
 | Carrier-resolved propagation and spatial gain on the device | L | parity 1e-9 |
+| **Plasma term of `Chi2Problem` on the device** (ionisation in χ(2) crystals, Stage 15): the per-field multiphoton rate table, the density integral and the Drude index and loss in the coupled-wave kernel (1-D first, then spatial) | M | device equals the CPU to 1e-9 for the five `Chi2IonizationTests` cases; speed measured against the CPU on a 4096-point SHG with 8 photon-order rates |
+| **Rate-equation gain on the device** (amplifier chains and ASE: the inversion and the gain-saturation update, with the spectrally resolved ASE) | L | a regenerative amplifier scan equals the CPU to 1e-9; the speed-up is measured on an ensemble of pump energies |
+| **Instrument read-outs on the device** (FROG / d-scan / cross-correlator traces: batched 2-D transforms; today the CPU forms them from the pulse the device returns) | M | trace equals the CPU to 1e-9; retrieval and fits that call them run faster |
+| **Multi-GPU ensembles** (one study point set split over devices) and **Apple Metal FP32** for quick-fidelity scans (decision P3: only after the FP32 study; the study says energy and spectrum pass, contrast does not) | M / L | two devices give the one-device result bit for bit; Metal results meet the mixed-precision tolerances |
 | Ensembles with user-response kernels and fixed steps | M | ensemble equals stream-per-point to 1e-12 |
 | PoCL in CI (a CPU OpenCL device with FP64) so `GpuTests` run there | S | `GpuTests` run in CI on Linux |
 | AMD / Intel OpenCL and data-centre NVIDIA cards | — | needs the hardware |
 
-## 4. Agents and MCP (WP-A remainder)
+## 4. Agents and MCP (extensions, v1.1.0)
 
 Done 2026-11-18 (this session): MCP tools `compare_to_measured` and `fit` (time budget, memory pre-flight, killed at the budget, next call works), prompts `explore-in-quick` and
 `compare-to-measurement`, the agent pack (`ultrafast-agent install --target claude|codex|cursor`, five skills shipped in the wheel) and five scripted evals (`tests/agent-evals/`).

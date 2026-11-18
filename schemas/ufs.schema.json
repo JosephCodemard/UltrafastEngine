@@ -4026,11 +4026,15 @@
         },
         "verdetRadPerTM": {
           "type": "number",
-          "description": "Verdet constant (with fieldT and lengthM) [rad/(T m)]"
+          "description": "Verdet constant (with fieldTesla and lengthM) [rad/(T m)]"
+        },
+        "fieldTesla": {
+          "type": "number",
+          "description": "Magnetic field [T]"
         },
         "fieldT": {
           "type": "number",
-          "description": "Magnetic field [T]"
+          "description": "Deprecated name of fieldTesla [T]"
         },
         "lengthM": {
           "type": "number",
@@ -4528,7 +4532,7 @@
           "type": "number",
           "description": "Fibre length [m]"
         },
-        "betas": {
+        "betasSkPerM": {
           "anyOf": [
             {
               "type": "number"
@@ -4541,6 +4545,20 @@
             }
           ],
           "description": "Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) [s^k/m]"
+        },
+        "betas": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          ],
+          "description": "Deprecated name of betasSkPerM (still accepted) [s^k/m]"
         },
         "betasPsKm": {
           "anyOf": [

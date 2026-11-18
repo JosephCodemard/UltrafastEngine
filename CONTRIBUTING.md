@@ -14,6 +14,12 @@ Thank you for helping! Contributions are accepted under the project's [Apache Li
    note in CHANGELOG.md and docs updates. New optional fields are fine.
 6. **Document as you go.** Public types and members get XML doc comments; user-visible features get a docs
    page entry and, ideally, an example.
+7. **Figures use the plotting backend.** An example has a `hero.png` made with `ultrafast.plotting` (the default `ultrafast` style, or `up.use_style(...)`),
+   written by its `make_figures.py` (`python docs/examples/make_all.py --only <name>`); a branched system is drawn with `up.system(result)`.
+   Then `python build/gallery.py` rebuilds the gallery. See [plotting](docs/reference/plotting.md) and the
+   [schematics example](docs/examples/Branched/system-schematics/README.md):
+
+<p align="center"><img src="docs/examples/Branched/system-schematics/hero.png" alt="The same Mach-Zehnder drawn in each plot style" width="640"></p>
 
 Code style: 4 spaces, braces on new lines for types/methods (see `.editorconfig`), `var` where the type is obvious.
 

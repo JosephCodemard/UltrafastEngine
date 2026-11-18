@@ -14,7 +14,7 @@ checked against an analytic or published value ([test matrix](docs/reference/val
 
 * **Done:** the core engine and plugins; calculators (`ultrafast.calc`); plot styles and system schematics; memory estimate and limit; fidelity levels
   (quick / standard / full); adaptive optics, temporal shaping and the digital twin; MCP tools for agents (`ultrafast-mcp`: describe, validate, run, scan,
-  explain_warning, plot, compare_to_measured, fit; prompts; `ultrafast-agent install`; see [For AI agents](docs/agents.md#mcp-server)).
+  explain_warning, plot, compare_to_measured, fit; prompts; `ultrafast-agent install`; see [MCP reference](docs/reference/mcp.md)).
 * **Still to do before the first upload:** the first run of the release workflow on a release-candidate tag, and a check of the wheel in a fresh environment on
   Linux, Windows and macOS (the macOS NativeAOT wheel is built on the maintainer's Mac). Install is `pip install ultrafast-engine` (the import name is `ultrafast`).
 * **Examples:** one structure for every example README (template, a metadata file and a lint check); the twelve adaptive-optics, digital-twin and fibre examples
@@ -32,7 +32,7 @@ Most useful first.
 3. **Engine accuracy:** carrier frame (a dispersive pulse off the lattice drifts), pulses near one optical cycle (a carrier-resolved path), the Kerr-lensed beam carried
    to later elements, field snapshots along z inside an element, built-in metal mirrors from a published table.
 4. **More paper replications** (`docs/papers/`): polarisation, diffraction, supercontinuum, hollow-fibre compression, OPCPA design, SPIDER, d-scan.
-5. **Speed and GPU:** spatial χ(2) and mixed precision on the device, carrier-resolved propagation on the device, a CPU OpenCL device in CI so the GPU tests run there.
+5. **Speed and GPU (v1.1.0):** for rapid calculations on the device: the plasma term of χ(2) crystals (ionisation in BBO, LBO, KTP), spatial χ(2) and mixed precision, rate-equation gain with ASE, carrier-resolved propagation, instrument traces (FROG, d-scan), several GPUs for studies, and a CPU OpenCL device in CI so the GPU tests run there. Apple GPUs (Metal, single precision) only for quick-fidelity scans.
 
 ## Later
 

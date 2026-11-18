@@ -15,7 +15,7 @@ Every physical ingredient is a **model** created from a small JSON spec. The sam
 |---|---|
 | `index` (material `index`) | `constant`, `sellmeier` (B, C, A), `cauchy`, `table`, `expression`, `callback`, `ciddor` (air), `gas` (Borzsonyi 2008), `library` (a built-in by name), `refractiveindex` (a refractiveindex.info page: [Materials](materials.md#refractiveindexinfo-pages)) |
 | `attenuation` (material, 1/m power) | `constant`, `table` (`alphaPerM` or `internalTransmission` + `thicknessM`), `expression`, `callback`, `refractiveindex` (from a page's k), `none` |
-| `delayedResponse` (material `raman`) | `silica` (fR 0.18), `dampedOscillator` (tau1, tau2, fR), `expression` in t, `callback`, `none` |
+| `delayedResponse` (material `raman`) | `silica` (fR 0.18), `dampedOscillator` (tau1S, tau2S, fR), `expression` in t, `callback`, `none` |
 | `timeResponse` (element / override) | `expression`, `callback`, `kerr` (extra n2), `twoPhotonAbsorption` (beta, m/W) |
 | `filter` (filter elements, override `filter`) | `table`, `expression` (`transmission`, `phase`), `gaussian`, `superGaussian`, `constant`, `callback` |
 | `beam` (bulk `beam`, `inputBeam`) | `gaussian` (w0M, zWaistM, m2, wavelengthM, n or zRayleighM; x/y variants), `sampled` (zM, radiusM / radiusXM, radiusYM), `constant` (radiusM or areaM2), `expression` in z, `callback` |

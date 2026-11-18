@@ -160,7 +160,7 @@ namespace UltrafastEngine.Engine
             }
             var st = new ExecutionState { Cr = cr, Res = res, Tail = tail, TailKeys = tailKeys, SnapPoints = snapPoints, AxisOf = AxisOf, Progress = progress, Cancel = cancel, Count = count };
             bool branched = cr.Graph?.IsBranched == true;
-            if (measure && !branched && cr.Run.Outputs?.KeepProfiles == "used") st.KeepProfiles = ProfilesInUse(cr);
+            if (measure && cr.Run.Outputs?.KeepProfiles == "used") st.KeepProfiles = ProfilesInUse(cr);
             if (branched) RunGraph(st);
             for (int ei = first; ei < count && !branched; ei++)
             {
@@ -219,6 +219,12 @@ namespace UltrafastEngine.Engine
             foreach (var i in cr.Run.Instruments) { string a = i.GetString("at", "end").Replace(':', '#'); at.Add(a); at.Add(a.Split('#')[0]); }   // a port location id#port reads its element too
             var keep = new HashSet<string>(at, StringComparer.OrdinalIgnoreCase);
             var on = cr.Elements.Where(x => x.Enabled).ToList();
+            if (cr.Graph?.IsBranched == true)
+            {
+                // a branched system: the elements that feed an instrument's element, and every element that ends on the output
+                foreach (var edge in cr.Graph.Edges) if (at.Contains(edge.To) || edge.ToEnd) keep.Add(edge.From);
+                return keep;
+            }
             for (int i = 1; i < on.Count; i++) if (at.Contains(on[i].Id)) keep.Add(on[i - 1].Id);
             if (on.Count > 0) keep.Add(on[on.Count - 1].Id);
             return keep;

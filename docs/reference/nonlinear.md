@@ -69,7 +69,7 @@ the Raman fraction `fR`:
 | `silica` (`blowWood`) | damped oscillator, tau1 = 12.2 fs, tau2 = 32 fs (Blow & Wood 1989); 25 % anisotropic (`anisotropicFraction`) | 0.18 |
 | `linAgrawal` | damped oscillator + boson peak, h = (fa + fc) ha + fb hb, tau_b = 96 fs (Lin & Agrawal, Opt. Lett. 31, 3086 (2006)); `fa`, `fb`, `fc`, `taub` adjustable | 0.245 |
 | `hollenbeck` | 13 vibrational modes with Lorentzian and Gaussian broadening (Hollenbeck & Cantrell, JOSA B 19, 2886 (2002)); reproduces the measured gain spectrum, peak 13.2 THz | 0.18 |
-| `dampedOscillator` | your `tau1`, `tau2` (`anisotropicFraction`, default 0) | `fR` |
+| `dampedOscillator` | your `tau1S`, `tau2S` (`anisotropicFraction`, default 0) | `fR` |
 | `expression`, `callback` | any h(t) | `fR` |
 
 The tabulated parameters of the `hollenbeck` model are those of Table 1 of the paper as commonly reproduced (the same

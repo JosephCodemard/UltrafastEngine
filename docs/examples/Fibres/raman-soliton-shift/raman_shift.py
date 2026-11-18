@@ -42,7 +42,7 @@ def centroid_frequency(r):
 
 
 def propagate(t0, length, raman=True):
-    fib = {"id": "fibre", "type": "fiber", "lengthM": float(length), "betas": [B2], "gamma": GAMMA, "raman": "silica" if raman else "none", "referenceWavelengthM": LAM}
+    fib = {"id": "fibre", "type": "fiber", "lengthM": float(length), "betasSkPerM": [B2], "gamma": GAMMA, "raman": "silica" if raman else "none", "referenceWavelengthM": LAM}
     p0 = abs(B2) / (GAMMA * t0 ** 2)
     pulse = b.pulse(LAM, 1.763 * t0, peak_power_w=p0, shape="sech2")
     return uf.run(b.system("raman", [fib]), b.run_spec(pulse, physics={"selfSteepening": False, "raman": raman}, grid=GRID))

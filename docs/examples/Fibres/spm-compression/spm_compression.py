@@ -13,7 +13,7 @@ PHYS = {"selfSteepening": False, "raman": False}
 
 
 def fibre(length, b2=B2):
-    return {"id": "fibre", "type": "fiber", "lengthM": float(length), "betas": [b2], "gamma": GAMMA, "raman": "none", "referenceWavelengthM": LAM}
+    return {"id": "fibre", "type": "fiber", "lengthM": float(length), "betasSkPerM": [b2], "gamma": GAMMA, "raman": "none", "referenceWavelengthM": LAM}
 
 
 def go(elements):

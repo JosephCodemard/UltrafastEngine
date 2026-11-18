@@ -136,7 +136,7 @@ namespace UltrafastEngine.Gain
         /// cross-section models ({"kind": "gaussians", "bands": [{"wavelengthM", "sigmaM2", "fwhmM"}]}, {"kind": "table",
         /// "wavelengthsM": [...], "values": [...]}, an expression in omega / lambda, or "@callback"), "lifetimeS",
         /// "dopingDensityM3" (or "dopingAtPercent" with "sitesPerM3"), "host", "zeroLineWavelengthM" (quasi-three-level),
-        /// "temperatureK", "thermalConductivity", "dnDT".
+        /// "temperatureK", "thermalConductivity", "dnDTPerK".
         /// </summary>
         public static GainMedium FromJson(JsonValue v, ModelRegistry reg, string origin)
         {
@@ -152,8 +152,9 @@ namespace UltrafastEngine.Gain
             if (o.Has("temperatureK")) g.TemperatureK = o.GetDouble("temperatureK", g.TemperatureK);
             if (o.Has("zeroLineWavelengthM")) { g.ZeroLineM = o.GetDouble("zeroLineWavelengthM", double.NaN); g.Used.Remove("zeroLine"); }
             if (o.Has("thermalConductivity")) g.ThermalConductivity = o.GetDouble("thermalConductivity", g.ThermalConductivity);
-            if (o.Has("dnDT")) g.DnDT = o.GetDouble("dnDT", g.DnDT);
-            if (o.Has("thermalConductivity") && o.Has("dnDT")) g.Used.Remove("thermal");   // a partial override still uses one default
+            string dn = o.Has("dnDTPerK") ? "dnDTPerK" : "dnDT";   // "dnDT" is the old name (files are migrated on load)
+            if (o.Has(dn)) g.DnDT = o.GetDouble(dn, g.DnDT);
+            if (o.Has("thermalConductivity") && o.Has(dn)) g.Used.Remove("thermal");   // a partial override still uses one default
             if (o.Has("thermalExpansionPerK") || o.Has("stressCr") || o.Has("stressCphi")) g.Used.Remove("stress");
             g.ThermalExpansionPerK = o.GetDouble("thermalExpansionPerK", g.ThermalExpansionPerK);
             g.StressCr = o.GetDouble("stressCr", g.StressCr); g.StressCphi = o.GetDouble("stressCphi", g.StressCphi);

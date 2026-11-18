@@ -16,7 +16,7 @@ def peak_power(n):
 
 
 def propagate(n, length_m):
-    fib = {"id": "fibre", "type": "fiber", "lengthM": float(length_m), "betas": [B2], "gamma": GAMMA, "raman": "none", "referenceWavelengthM": LAM}
+    fib = {"id": "fibre", "type": "fiber", "lengthM": float(length_m), "betasSkPerM": [B2], "gamma": GAMMA, "raman": "none", "referenceWavelengthM": LAM}
     pulse = b.pulse(LAM, 1.763 * T0, peak_power_w=peak_power(n), shape="sech2")
     return uf.run(b.system("soliton", [fib]), b.run_spec(pulse, physics={"selfSteepening": False, "raman": False}, grid=GRID))
 

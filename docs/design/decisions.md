@@ -45,6 +45,8 @@ Internal page ([folder index](README.md)). Decisions still in force, merged from
 | E12 | 11-16 | Work on `dev/*` branches, one commit per piece, merged to `main` after `/verify` and green CI. | |
 | E13 | 11-17 | The PyPI distribution is named **`ultrafast-engine`** (import name `ultrafast`). `ultrafast` was the owner's first choice: it had no project on PyPI on 2026-11-17 but is taken on TestPyPI by another author, so a release candidate could not be rehearsed there under that name. The name is checked by `build/check_version.py`. | rehearsal on TestPyPI; the name already in all docs |
 | E14 | 11-17 | Version numbers restart at **1.0.0**: the 2.x numbers of the development history were never released. The CHANGELOG keeps them as development history. A release candidate is only a tag (`v1.0.0rc1`), never a number in the files. | one version in every file |
+| E15 | 11-18 | The unit-in-key renames (`betasSkPerM`, `fieldTesla`, `tau1S` / `tau2S` / `taubS`, `dnDTPerK`) are made before 1.0.0, by load-time migration; old names keep working with a deprecation note. | no key changes after the first public release |
+| E16 | 11-18 | 1.0.0 has no open items: design-heavy work is on the v1.1.0 roadmap. Release stops at a merged PR; the owner creates the pending publishers and environments and tags `v1.0.0rc1` and `v1.0.0`. WP9 for 1.0.0 is images and the new plotting backend only. | owner's go-ahead for every tag |
 
 ## Plotting
 

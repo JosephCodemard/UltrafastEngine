@@ -16,7 +16,7 @@ namespace UltrafastEngine.Cli
 {
     public static class Program
     {
-        private const string Usage = @"UltrafastEngine 2.0 command line
+        private const string Usage = @"UltrafastEngine command line
 
   ultrafast run <system.ufs> <run.json> [-o <dir>] [--quiet] [--threads <n>] [--backend cpu|auto|cuda|opencl] [--device <i>] [--fidelity full|standard|quick]
         Propagate the pulse through the system; writes summary.json, result.npz, provenance.json and CSVs.

@@ -33,7 +33,7 @@ Everything can be changed:
             "zeroLineWavelengthM": 975e-9,                       // omit for a four-level medium
             "emission":   { "kind": "gaussians", "bands": [ { "wavelengthM": 1.03e-6, "sigmaM2": 2e-24, "fwhmM": 8e-9 } ] },
             "absorption": { "kind": "table", "wavelengthsM": [ ... ], "values": [ ... ] },   // m^2
-            "thermalConductivity": 10, "dnDT": 7.8e-6 }
+            "thermalConductivity": 10, "dnDTPerK": 7.8e-6 }
 ```
 
 Cross sections can also be an expression in `omega`/`lambda` or a callback (`"@name"`) through the usual model

@@ -9,6 +9,7 @@ First runs: build a system, run it, read the results, bring your own index, elem
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
 | [quickstart](GettingStarted/quickstart/README.md) | 00 | Python | build a system in code, run it, read results, scan a parameter | `python quickstart.py` |
+| [calculators](GettingStarted/calculators/README.md) | new | Python | `ultrafast.calc`: transform limit, lens mode matching, critical power and B-integral, BBO phase matching, checked against an engine run | `python calculators.py` |
 | [spm-plate](GettingStarted/spm-plate/README.md) | 01 | CLI | SPM in an AR-coated plate, instruments, provenance, overrides | `ultrafast run plate.ufs run.json` |
 | [custom-index-python](GettingStarted/custom-index-python/README.md) | 04 | Python | your own n(t, I) as a NumPy callback (plasma + MPA) | `python custom_response.py` |
 | [user-element](GettingStarted/user-element/README.md) | 12 | Python | a pulse shaper written in Python as a user element | `python dazzler.py` |
@@ -74,6 +75,7 @@ Interferometers, cavities, f-2f and pump-probe built as systems with ports, link
 | [cavity-and-coherence](Branched/cavity-and-coherence/README.md) | 31 | CLI + Python | a ring resonator's eigenmode against its Fox-Li mode; a Gaussian-Schell beam of M² = 2.5 against the M² law; cw sources | `ultrafast run lens-guide.ufs run-cavity.json`, `python report.py` |
 | [interferometers](Branched/interferometers/README.md) | 32 | Python | a Mach-Zehnder and an etalon as branched systems, with their budgets; the Airy function from a loop | `python interferometers.py` |
 | [f2f-cep](Branched/f2f-cep/README.md) | 37 | Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
+| [system-schematics](Branched/system-schematics/README.md) | new | Python | `ultrafast.plotting` schematics of a Mach-Zehnder and a loop in every plot style (default, dark, paper, science) | `python schematics.py` |
 | [pump-probe](Branched/pump-probe/README.md) | 41 | Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
 
 ## Diagnostics

@@ -183,7 +183,7 @@ namespace UltrafastEngine.Schema
             add(new ComponentSpec("model:index", "refractiveindex", "A refractiveindex.info page (bundled, imported, a file, or ULTRAFAST_RII_PATH).").DocAt("reference/materials.md#refractiveindexinfo-pages")
                 .Str("page", "Page name (\"main/SiO2/Malitson\") or file").Str("file", "YAML file (alternative)")
                 .Num("pressureBar", "bar", "Gas pressure (density scaling from the page's SPECS)").Num("temperatureK", "K", "Temperature")
-                .Num("dnDT", "1/K", "Thermo-optic coefficient (solids)", "0").Bool("relativeToAir", "The page's n are relative to air", "false"));
+                .Num("dnDTPerK", "1/K", "Thermo-optic coefficient (solids)", "0").Num("dnDT", "1/K", "Deprecated name of dnDTPerK").Bool("relativeToAir", "The page's n are relative to air", "false"));
             add(new ComponentSpec("model:attenuation", "refractiveindex", "Absorption from the k data of a refractiveindex.info page.")
                 .Str("page", "Page name or file").Str("file", "YAML file (alternative)").Num("pressureBar", "bar", "Gas pressure").Num("temperatureK", "K", "Temperature"));
             add(new ComponentSpec("model:filter", "constant", "Constant transmission.").Num("value", "", "Power transmission").Num("transmission", "", "Power transmission").Num("phaseRad", "rad", "Phase"));
@@ -195,11 +195,11 @@ namespace UltrafastEngine.Schema
             const string R = "reference/nonlinear.md#raman-models";
             add(new ComponentSpec("model:delayedResponse", "silica", "Fused-silica Raman response: Blow-Wood damped oscillator (12.2 / 32 fs), fR = 0.18.").Alias("blowWood").DocAt(R).Num("fR", "", "Raman fraction", "0.18").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0.25"));
             add(new ComponentSpec("model:delayedResponse", "linAgrawal", "Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full model), fR = 0.245.").DocAt(R)
-                .Num("fR", "", "Raman fraction", "0.245").Num("tau1", "s", "Oscillator period parameter", "12.2e-15").Num("tau2", "s", "Oscillator damping time", "32e-15")
-                .Num("taub", "s", "Boson-peak time", "96e-15").Num("fa", "", "Weight a", "0.75").Num("fb", "", "Weight b (boson peak)", "0.21").Num("fc", "", "Weight c", "0.04").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "(fb + fc): h_b = fc h_a + fb h_b"));
+                .Num("fR", "", "Raman fraction", "0.245").Num("tau1S", "s", "Oscillator period parameter", "12.2e-15").Num("tau2S", "s", "Oscillator damping time", "32e-15")
+                .Num("taubS", "s", "Boson-peak time", "96e-15").Num("fa", "", "Weight a", "0.75").Num("fb", "", "Weight b (boson peak)", "0.21").Num("fc", "", "Weight c", "0.04").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "(fb + fc): h_b = fc h_a + fb h_b"));
             add(new ComponentSpec("model:delayedResponse", "hollenbeck", "Hollenbeck & Cantrell 2002 silica Raman: 13 vibrational modes with intermediate broadening, fR = 0.18.").DocAt(R).Num("fR", "", "Raman fraction", "0.18").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0.25"));
             add(new ComponentSpec("model:delayedResponse", "dampedOscillator", "Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1).").DocAt(R)
-                .Num("tau1", "s", "Period parameter").Num("tau2", "s", "Damping time").Num("fR", "", "Raman fraction").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0"));
+                .Num("tau1S", "s", "Period parameter").Num("tau2S", "s", "Damping time").Num("fR", "", "Raman fraction").Num("anisotropicFraction", "", "Anisotropic share of the response (vector Raman: ellipse rotation, circular light)", "0"));
             const string AF = "Anisotropic share b of the response, h_b = b h and h_a = (1 - b) h (vector Raman: ellipse rotation, circular light). 0 isotropic, 1 purely anisotropic (h_a = 0), 1.5 purely orientational (h_a = -h_b/3, e.g. liquid CS2). Allowed 0 to 1.5";
             add(new ComponentSpec("model:delayedResponse", "orientational", "Molecular reorientation of a liquid (CS2): h(t) = (exp(-t/decayS) - exp(-t/riseS)) / (decayS - riseS), purely anisotropic Kerr tensor (h_a = -h_b/3).").DocAt(R)
                 .Num("riseS", "s", "Rise time (molecular inertia)", "0.2e-12").Num("decayS", "s", "Decay time (diffusive reorientation)", "1.6e-12").Num("fR", "", "Delayed fraction of n2")

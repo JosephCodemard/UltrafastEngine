@@ -178,6 +178,33 @@ double-precision device run (scalar N = 65536: 0.75 s to 0.52 s; vector N = 3276
 1 to 8 % more steps (the rounding noise enters the error estimate). The double-precision path uses cuFFT, the mixed path the built-in single-precision
 FFT; a single-precision cuFFT plan is an open item.
 
+## Benchmarks
+
+Wall times of complete runs, with the hardware and date of each measurement. They show the order of magnitude, not a promise: they
+depend on the machine, the load and the problem. `ultrafast devices --benchmark` times your own devices (it times only back-ends
+that pass the self-test, so on a Mac it prints none: Apple GPUs have no double precision).
+
+**Apple silicon CPU** (Apple M3, 8 cores, 16 GB, macOS, .NET 10, FFT: Accelerate vDSP; measured 2026-11-18). A scalar fibre of 0.5 m with
+Kerr, self-steepening and Raman (200 fs, 5 nJ); median of 5 runs, the first run excluded:
+
+| grid N | one run |
+|---|---|
+| 1024 | 42 ms |
+| 4096 | 109 ms |
+| 16384 | 0.48 s |
+| 65536 | 2.3 s |
+
+A 200-point scan of the fibre length over the same fibre (whole study, compile and nominal run included):
+
+| grid N | `parallel` 1 | `parallel` 4 | `parallel` 8 |
+|---|---|---|---|
+| 4096 | 19.8 s | 7.2 s | 5.3 s |
+| 16384 | 96 s | 36 s | 30 s |
+
+**GPU** (RTX 3060 Ti, FP64 at 1/64 of FP32, 20-core CPU, .NET 10): the 200-point scan and the CPU comparison are in
+[Device ensembles for studies](#device-ensembles-for-studies); the mixed-precision figures are in
+[Mixed precision on the GPU](#mixed-precision-on-the-gpu). Not measured: a data-centre GPU (full-rate FP64) and Apple Metal.
+
 ## Practical advice
 
 * Let the grid planner size the grid; a 4096-point 1-D run with a few nonlinear elements takes milliseconds to a

@@ -26,6 +26,13 @@ namespace UltrafastEngine.Models
             new Dictionary<string, Dictionary<string, Func<ModelSpec, ModelRegistry, object>>>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Delegate> _callbacks = new Dictionary<string, Delegate>(StringComparer.Ordinal);
 
+        /// <summary>A time constant of a Raman model: the key with the unit in its name ("tau1S") or, for a model built by hand, the old one ("tau1").</summary>
+        internal static double TauOf(ModelSpec s, string old, double fallback, bool required = false)
+        {
+            string key = s.Json.Has(old + "S") || !s.Json.Has(old) ? old + "S" : old;
+            return required ? s.GetRequired(key) : s.GetDouble(key, fallback);
+        }
+
         public static readonly string[] Categories = { "index", "attenuation", "timeResponse", "filter", "beam", "delayedResponse", "aperture" };
 
         public void Register<T>(string category, string kind, Func<ModelSpec, ModelRegistry, T> factory) where T : class
@@ -153,7 +160,7 @@ namespace UltrafastEngine.Models
             r.Register<IRefractiveIndex>("index", "ciddor", (s, _) => new CiddorAirIndex(s.GetDouble("temperatureC", 20), s.GetDouble("pressurePa", 101325), s.GetDouble("humidity", 0), s.GetDouble("co2ppm", 450)));
             r.Register<IRefractiveIndex>("index", "gas", (s, _) => new GasIndex(s.Json.GetRequiredString("species", s.Origin), s.GetDouble("pressureBar", 1.0), s.GetDouble("temperatureK", 293.15)));
             r.Register<IRefractiveIndex>("index", "refractiveindex", (s, _) => new RefractiveIndexInfoIndex(RefractiveIndexInfoPage.Load(s.Json.GetString("page") ?? s.Json.GetRequiredString("file", s.Origin)),
-                s.GetDouble("pressureBar", double.NaN), s.GetDouble("temperatureK", double.NaN), s.GetDouble("dnDT", 0), s.Json.GetBool("relativeToAir", false)));
+                s.GetDouble("pressureBar", double.NaN), s.GetDouble("temperatureK", double.NaN), s.GetDouble(s.Json.Has("dnDT") && !s.Json.Has("dnDTPerK") ? "dnDT" : "dnDTPerK", 0), s.Json.GetBool("relativeToAir", false)));
             r.Register<IAttenuation>("attenuation", "refractiveindex", (s, _) => new RefractiveIndexInfoIndex(RefractiveIndexInfoPage.Load(s.Json.GetString("page") ?? s.Json.GetRequiredString("file", s.Origin)),
                 s.GetDouble("pressureBar", double.NaN), s.GetDouble("temperatureK", double.NaN)));
             r.Register<IRefractiveIndex>("index", "library", (s, _) => MaterialLibrary.BuiltIn(s.Json.GetRequiredString("name", s.Origin)).Index);
@@ -190,12 +197,12 @@ namespace UltrafastEngine.Models
             r.Register<IDelayedResponse>("delayedResponse", "blowWood", (s, _) => Split(new DampedOscillatorResponse(CatalogueModels.RamanDefaults.BlowWoodTau1S, CatalogueModels.RamanDefaults.BlowWoodTau2S), s, CatalogueModels.RamanDefaults.BlowWoodAnisotropicFraction));
             r.Register<IDelayedResponse>("delayedResponse", "linAgrawal", (s, _) =>
             {
-                var la = new LinAgrawalRamanResponse(s.GetDouble("tau1", double.NaN), s.GetDouble("tau2", double.NaN), s.GetDouble("taub", double.NaN), s.GetDouble("fa", double.NaN), s.GetDouble("fb", double.NaN), s.GetDouble("fc", double.NaN));   // not given: the catalogue entry linAgrawal
+                var la = new LinAgrawalRamanResponse(ModelRegistry.TauOf(s, "tau1", double.NaN), ModelRegistry.TauOf(s, "tau2", double.NaN), ModelRegistry.TauOf(s, "taub", double.NaN), s.GetDouble("fa", double.NaN), s.GetDouble("fb", double.NaN), s.GetDouble("fc", double.NaN));   // not given: the catalogue entry linAgrawal
                 // an explicit anisotropicFraction (even 0 = isotropic) replaces the model's own fa / fb / fc split
                 return s.Json.Has("anisotropicFraction") ? (IDelayedResponse)new AnisotropicSplitResponse(la, s.GetDouble("anisotropicFraction", 0.25)) : la;
             });
             r.Register<IDelayedResponse>("delayedResponse", "hollenbeck", (s, _) => Split(new HollenbeckCantrellRamanResponse(), s, CatalogueModels.RamanDefaults.HollenbeckAnisotropicFraction));
-            r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => Split(new DampedOscillatorResponse(s.GetRequired("tau1"), s.GetRequired("tau2")), s, 0));
+            r.Register<IDelayedResponse>("delayedResponse", "dampedOscillator", (s, _) => Split(new DampedOscillatorResponse(ModelRegistry.TauOf(s, "tau1", double.NaN, true), ModelRegistry.TauOf(s, "tau2", double.NaN, true)), s, 0));
             r.Register<IDelayedResponse>("delayedResponse", "orientational", (s, _) =>
                 new OrientationalResponse(s.GetDouble("riseS", CatalogueModels.RamanDefaults.OrientationalRiseS), s.GetDouble("decayS", CatalogueModels.RamanDefaults.OrientationalDecayS), s.GetDouble("anisotropicFraction", CatalogueModels.RamanDefaults.OrientationalAnisotropicFraction)));
             r.Register<IDelayedResponse>("delayedResponse", "expression", (s, _) =>

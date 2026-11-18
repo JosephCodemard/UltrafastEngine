@@ -29,7 +29,7 @@ the evidence (test, repro or code location) and whether the limitation is planne
 
 | limitation | cause / evidence | status |
 |---|---|---|
-| The memory estimate is a planning figure (the retained memory lies between 0.1 x and 1 x of it in the tests): instruments' two-dimensional outputs (spectrograms), the other runs of a parallel study and the .NET runtime are not counted; branched systems keep every profile whatever `keepProfiles` says | `Engine/MemoryEstimate.cs`, `Executor.cs` (`measure && !branched`) | accepted; branched `used` open (roadmap §2) |
+| The memory estimate is a planning figure (the retained memory lies between 0.1 x and 1 x of it in the tests): instruments' two-dimensional outputs (spectrograms), the other runs of a parallel study and the .NET runtime are not counted; a branched system with `keepProfiles: used` keeps the profiles of the elements that feed an instrument or the output, which the estimate counts as at most instruments + 1 | `Engine/MemoryEstimate.cs`, `Executor.cs` (`ProfilesInUse`) | accepted |
 | OpenCL has no free-memory query: the figure is the device total minus this process's buffers (other processes are not seen); a CUDA free figure is the driver's | `GpuContext.FreeMemoryBytes` | accepted |
 | An evicted GPU user-response program is recompiled on its next use; more than 32 different ones in flight at once on one device could release one that a launch is about to use | `GpuContext.EnsureProgram` | accepted |
 | GPU coverage: no spatial χ(2), spatial mixed precision, carrier-resolved propagation or spatial gain on the device; callbacks always run on the CPU | `GpuBackend.WhyNot` | planned (roadmap §3) |

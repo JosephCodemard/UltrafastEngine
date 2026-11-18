@@ -112,7 +112,7 @@ Python: `same_as("optic2", "optic")` (`ultrafast.build` / `ultrafast.system`). F
 | `planeOfIncidenceDeg` | s-direction angle from local x when no vectors are given (default 90 = fold in x-z) |
 | `semiDiameterM` / `clearApertureM`, `aperture` | hard aperture (circular, or an aperture model) |
 | `beamRadiusM` (per wavelength) / `beamRadiusXM`, `beamRadiusYM`, `beam` | beam size at the surface (clipping, fluence) |
-| `decenterXM`, `decenterYM` | beam decentre on a rectangular aperture |
+| `decenterXM`, `decenterYM` | beam decentre on a circular or rectangular aperture (circular: radial integral in closed form, 1 - Marcum Q1 for a round beam) |
 | `roughnessRmsM` | rms roughness -> total integrated scatter loss |
 | `lidt` | damage threshold (else the coating's, else the material's) |
 | `radiusOfCurvatureM` / `focalLengthM` (mirror) | curved mirror: acts as a thin lens on a carried transverse profile |
@@ -161,7 +161,7 @@ beam-averaged in 1-D ([Position-dependent properties](spatial-properties.md)).
 ```jsonc
 "materials": {
   "MyGlass":  { "index": { "kind": "sellmeier", "B": [..], "C": [..] }, "indexReference": "air",
-                "n2": 3e-20, "raman": { "kind": "dampedOscillator", "tau1": 12.2e-15, "tau2": 32e-15, "fR": 0.18 },
+                "n2": 3e-20, "raman": { "kind": "dampedOscillator", "tau1S": 12.2e-15, "tau2S": 32e-15, "fR": 0.18 },
                 "attenuation": { "kind": "table", "wavelengthsM": [..], "internalTransmission": [..], "thicknessM": 0.01 },
                 "lidt": { "fluenceJPerCm2": 5, "pulseDurationS": 10e-9, "scalingExponent": 0.5 } },
   "Ar@2bar":  { "gas": { "species": "Ar", "pressureBar": 2, "temperatureK": 293 } },

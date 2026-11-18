@@ -99,8 +99,8 @@ def test_workflow_runs_only_on_tags_and_by_hand():
 # ----------------------------------------------------------------- example lint
 def test_wave_one_examples_pass_the_lint():
     folders = example_lint.find_folders([])
-    assert len(folders) == 12
-    assert {f.parent.name for f in folders} == {"AdaptiveOptics", "DigitalTwin", "Fibres"}
+    assert len(folders) == 14
+    assert {f.parent.name for f in folders} == {"AdaptiveOptics", "Branched", "DigitalTwin", "Fibres", "GettingStarted"}
     for f in folders:
         assert example_lint.lint_folder(f) == []
 

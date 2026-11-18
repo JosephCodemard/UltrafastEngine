@@ -381,8 +381,9 @@ namespace UltrafastEngine.Engine
             if (e.Json.Has("rotationDeg") || Find(c, e, "rotationDeg") != null) angle = Num(c, e, "rotationDeg", 45) * Math.PI / 180;
             else if (e.Json.Has("verdetRadPerTM") || Find(c, e, "verdetRadPerTM") != null)
             {
-                double V = Num(c, e, "verdetRadPerTM", double.NaN), B = Num(c, e, "fieldT", double.NaN);
-                if (double.IsNaN(B) || !(L > 0)) throw new JsonException("faradayRotator with verdetRadPerTM needs fieldT and lengthM (rotation = V B L).");
+                double V = Num(c, e, "verdetRadPerTM", double.NaN), B = Num(c, e, "fieldTesla", double.NaN);
+                if (double.IsNaN(B)) B = Num(c, e, "fieldT", double.NaN);   // the old name
+                if (double.IsNaN(B) || !(L > 0)) throw new JsonException("faradayRotator with verdetRadPerTM needs fieldTesla and lengthM (rotation = V B L).");
                 angle = V * B * L;
             }
             else angle = 45 * Math.PI / 180;

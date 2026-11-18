@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **680 tests** in 75 classes. **434** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **684 tests** in 75 classes. **438** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **26** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -37,7 +37,7 @@ Every C# test of the engine: **680 tests** in 75 classes. **434** of them check 
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
 | [Memory safety: GPU](#gpumemorytests) | `GpuMemoryTests` | 5 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 17 | 12 |
-| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 9 | 9 |
+| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 10 | 10 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
@@ -59,7 +59,7 @@ Every C# test of the engine: **680 tests** in 75 classes. **434** of them check 
 | [Nonlinear ellipse rotation and the vector Kerr / Raman tensor](#nertests) | `NerTests` | 10 | 10 |
 | [Non-collinear OPA and DFG: angle from the arms, output tilts, parametric gain](#noncollinearopatests) | `NoncollinearOpaTests` | 6 | 6 |
 | [Regressions from the open-bug sweep](#openbugregressiontests) | `OpenBugRegressionTests` | 8 | 5 |
-| [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 8 | 4 |
+| [Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stress depolarisation, mode truncation](#physicsreviewtests) | `PhysicsReviewTests` | 9 | 5 |
 | [Plugins: registration, installation, versions, cameras](#plugintests) | `PluginTests` | 8 | 2 |
 | [Polarisation: waveplates, Brewster windows, basis transport](#polarizationtests) | `PolarizationTests` | 4 | 3 |
 | [Nonlinear envelope propagation](#propagationtests) | `PropagationTests` | 11 | 7 |
@@ -68,11 +68,11 @@ Every C# test of the engine: **680 tests** in 75 classes. **434** of them check 
 | [Pulse retrieval (FROG, d-scan)](#retrievaltests) | `RetrievalTests` | 2 | 2 |
 | [Regressions from the review: M^2, second moments, packets at ports, steady-state loops](#reviewregressiontests) | `ReviewRegressionTests` | 8 | 8 |
 | [Identical elements (sameAs) with transverse models](#sameastests) | `SameAsTests` | 1 | 1 |
-| [Schemas, validation and migrations](#schematests) | `SchemaTests` | 5 | 0 |
+| [Schemas, validation and migrations](#schematests) | `SchemaTests` | 6 | 1 |
 | [Single-shot time-to-space cross-correlator (window, resolution, position to delay)](#singleshotcorrelatortests) | `SingleShotCorrelatorTests` | 8 | 8 |
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
-| [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 6 | 6 |
+| [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 7 | 7 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
 | [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 3 | 0 |
@@ -648,6 +648,7 @@ Grid, carrier and solver accuracy.
 
 | test | reference | tolerance |
 |---|---|---|
+| `CircularAperture_OnADecentredBeam_IsTheOffsetGaussianIntegral` | decentred Gaussian through a circular aperture: round beam = noncentral chi-square probability (Poisson mixture of regularised incomplete gamma functions, i.e. 1 - Marcum Q1(2d/w, 2a/w)); elliptical beam = 2-D quadrature; small aperture T = 2 a^2/(wx wy) exp(-2 d^2/w^2) | 1e-6 (round), 2e-4 (quadrature), 1e-3 (limit) |
 | `CircularAperture_OnAnEllipticalBeam_IsTheTwoDimensionalIntegral` | elliptical Gaussian through a circular aperture: 2-D quadrature; small aperture T = 2 a^2 / (wx wy); round beam 1 - exp(-2 a^2 / w^2) | 1e-6 (quadrature), 1e-5 (small-aperture limit) |
 | `DelayedResponseLongerThanTheWindow_IsWarnedAbout_AndTheAutoGridHoldsIt` | periodic time grid: the response to a pulse must fit the window (convergence against a window four times larger) | total variation of the spectra 0.02 |
 | `FiberDispersionTable_Coarse_ReproducesBeta2_BetweenThePoints` | definition D = -2 pi c beta2 / lambda^2 (Agrawal, Nonlinear Fiber Optics); beta2(w) = b3 (w - wz) + b4 (w - wz)^2 / 2 | 2e-4 relative to beta2 (a linear interpolation of the 53-point table gave ~1e-3) |
@@ -995,6 +996,7 @@ Physics review 2026-10-30: dispersed rays in glass, reversed cavity passes, stre
 |---|---|---|
 | `Coherence_TooFewModes_Warns_AndKeepsTheEnergy` | -- | -- |
 | `CurvedBeam_ActsOnTheTrackedSpatialChirp_WithTheProfilesSign` | -- | -- |
+| `CwSource_OffTheLattice_SitsOnTheRequestedFrequency` | a cw source's single line sits on the requested frequency, 2 pi c / lambda, to rounding, wherever it falls between the bins of a snapped lattice; snapCarrier: true moves it to the nearest bin | 1e-14 relative |
 | `DispersedBeamInGlass_ActsAsTheReducedDistance` | paraxial reduced distance: a glass path L acts as L / n for angular dispersion | 1 % |
 | `FoxLi_WithNoAperture_DoesNotClaimAMode` | -- | -- |
 | `LinearCavity_ReturnPass_ReversesAnAnamorphicElement` | Linear-cavity round trip with element matrices reversed on the return (A, B, C, D) -> (D, B, C, A) | 0.3 % |
@@ -1116,6 +1118,7 @@ Schemas, validation and migrations.
 | `ExamplesUseOnlyDeclaredOptions` | -- | -- |
 | `Migration_V1Cameras_BecomeTheUnifiedCamera` | -- | -- |
 | `Schemas_AreGeneratedForEveryElementAndInstrument` | -- | -- |
+| `UnitInKeyRenames_OldNamesStillWork_AndNewOnesAreDeclared` | 1.0.0 renames (the unit goes into the key): the old names are rewritten on load with a note, give an identical run, and the new names pass the strict key check | exact |
 | `UnknownKey_IsReportedWithSuggestion` | -- | -- |
 
 ## SingleShotCorrelatorTests
@@ -1164,6 +1167,7 @@ Large spatial runs: frequency streaming, profile retention, cylindrical lens, fu
 | `CylindricalLens_FocusesOneAxisOnly` | cylindrical lens (focalLengthXM = f, focalLengthYM = 1e30 m): x focuses to lambda f / (pi w), y diffracts freely to w sqrt(1 + (z / z_R)^2) with z_R = pi w^2 / lambda (Siegman, Lasers, ch. 17) | 2 % |
 | `FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget` (slow) | S2 scale spike (docs/design/history.md): a 1920 x 1080 single-frequency run (modulator + 0.2 m gap + beam profile) took 3.3 s and 1.05 GB peak on the owner's laptop; a Gaussian overfilling the panel passes the Gaussian power on the panel (erf in x and y) | budget 4x the spike time (13 s; 45 s when the CI variable is set); keepProfiles used holds at least one profile less than all; transmission 1e-3 |
 | `KeepProfilesUsed_DropsUnreadProfiles_AndChangesNoResult` | outputs.keepProfiles = "used" drops the profiles no instrument reads; the instruments and the output are unchanged | exact |
+| `KeepProfilesUsed_InABranchedMachZehnder_DropsTheArms_AndChangesNoResult` | outputs.keepProfiles = "used" in a branched system: the profiles of the arms are dropped, the element that feeds the output is kept, and the camera at the end is unchanged | exact |
 | `OneStoredFrequency_IsTheCentroid_OrTheNearestLitBin` | one stored frequency: the bin nearest the energy centroid; for a two-colour spectrum with no light at the centroid, the nearest bin that carries light (review finding M1) | exact |
 | `PrefixCachedStudy_WithKeepProfilesUsed_EqualsTheUncachedStudy` | a prefix-cached study resumes from the nominal run's pulses, so with keepProfiles "used" the nominal run still keeps every profile: the cached sweep equals the uncached one (review finding H2, 2026-11-10) | 1e-12 |
 | `Streaming_InFrequencyBlocks_EqualsAllAtOnce` | linear propagation is independent per stored frequency, so propagating them in blocks (streaming) gives the all-at-once result | 1e-12 of the peak |

@@ -72,6 +72,8 @@ nav:
       - Option reference (generated): reference/options.md
       - Schemas, validation & migrations: reference/schema.md
       - Plugin system: reference/plugins.md
+      - Command line (every command): reference/cli.md
+      - MCP server and agent pack: reference/mcp.md
   - Interfaces:
       - Python: reference/python.md
       - Python API (generated): reference/python-api.md

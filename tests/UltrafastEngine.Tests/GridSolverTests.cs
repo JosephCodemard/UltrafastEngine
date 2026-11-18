@@ -106,6 +106,39 @@ namespace UltrafastEngine.Tests
             Assert.Close(2 * small.Radius * small.Radius / (wx * wy), small.PowerTransmission(wx, wy, 0, 0), 1e-5, 0, "small-aperture limit: pi a^2 x peak intensity");
         }
 
+        [Test(Reference = "decentred Gaussian through a circular aperture: round beam = noncentral chi-square probability (Poisson mixture of regularised incomplete gamma functions, i.e. 1 - Marcum Q1(2d/w, 2a/w)); elliptical beam = 2-D quadrature; small aperture T = 2 a^2/(wx wy) exp(-2 d^2/w^2)", Tolerance = "1e-6 (round), 2e-4 (quadrature), 1e-3 (limit)")]
+        public void CircularAperture_OnADecentredBeam_IsTheOffsetGaussianIntegral()
+        {
+            // round beam: |X - c| < a for X ~ N(0, (w/2)^2 I) is a noncentral chi-square with 2 degrees of freedom
+            double w = 1e-3, a = 1e-3, d = 0.7e-3, lam = 2 * d * d / (w * w), t = 2 * a * a / (w * w), cdf = 0, pois = Math.Exp(-lam);
+            for (int j = 0; j < 80; j++)
+            {
+                double tail = 0, term = 1;                                  // sum_{i<=j} t^i / i!
+                for (int i = 0; i <= j; i++) { if (i > 0) term *= t / i; tail += term; }
+                cdf += pois * (1 - Math.Exp(-t) * tail);
+                pois *= lam / (j + 1);
+            }
+            var ap = new UltrafastEngine.Physics.CircularAperture(a);
+            Assert.Close(cdf, ap.PowerTransmission(w, w, d, 0), 1e-6, 0, "round beam, d = 0.7 w");
+            Assert.Close(cdf, ap.PowerTransmission(w, w, d * 0.6, d * 0.8), 1e-6, 0, "the direction of the decentre does not matter for a round beam");
+            Assert.Close(ap.PowerTransmission(w, w, 0, 0), ap.PowerTransmission(w, w, 1e-9 * w, 0), 1e-6, 0, "continuous at zero decentre");
+            // elliptical beam, decentred in both directions: 2-D midpoint quadrature over the disk
+            double wx = 0.6e-3, wy = 1.2e-3, dx = 0.5e-3, dy = -0.3e-3, a2 = 0.8e-3;
+            var ap2 = new UltrafastEngine.Physics.CircularAperture(a2);
+            int n = 3000; double h = 2 * a2 / n, sum = 0;
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                {
+                    double x = -a2 + (i + 0.5) * h, y = -a2 + (j + 0.5) * h;
+                    if (x * x + y * y <= a2 * a2) sum += Math.Exp(-2 * (x - dx) * (x - dx) / (wx * wx) - 2 * (y - dy) * (y - dy) / (wy * wy));
+                }
+            Assert.Close(sum * h * h * 2 / (Math.PI * wx * wy), ap2.PowerTransmission(wx, wy, dx, dy), 2e-4, 0, "ellipse 0.6 x 1.2 mm, decentre (0.5, -0.3) mm");
+            // a small aperture far out in the wing: pi a^2 times the intensity there
+            var small = new UltrafastEngine.Physics.CircularAperture(0.01 * w);
+            Assert.Close(2 * small.Radius * small.Radius / (w * w) * Math.Exp(-2 * 1.2 * 1.2), small.PowerTransmission(w, w, 1.2 * w, 0), 1e-3, 0, "small-aperture limit at 1.2 w");
+            Assert.True(ap.PowerTransmission(w, w, 5 * w, 0) < 1e-6, "an aperture five radii away passes almost nothing");
+        }
+
         private static JsonObject Quartz() => O("name", "quartz (Ghosh 1999)",
             "no", O("kind", "sellmeier", "A", 1.28604141, "B", new[] { 1.07044083, 1.10202242 }, "C", new[] { 1.00585997e-2, 100.0 }),
             "ne", O("kind", "sellmeier", "A", 1.28851804, "B", new[] { 1.09509924, 1.15662475 }, "C", new[] { 1.02101864e-2, 100.0 }),

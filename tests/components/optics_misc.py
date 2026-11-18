@@ -766,7 +766,7 @@ def faraday(fam: Family):
     r = run([{"id": "f", "type": "faradayRotator", "rotationDeg": 30.0, "direction": -1, "verdetDispersion": "none"}], pulse=pol_pulse(1030e-9, 0.0, 1e-12))
     Ex, Ey, X = stokes_sums(r)
     fam.check("Faraday direction -1: rotation -30 deg", math.degrees(0.5 * math.atan2(2 * X, Ex - Ey)), -30.0, abs=1e-6, unit="deg")
-    r = run([{"id": "f", "type": "faradayRotator", "verdetRadPerTM": 40.0, "fieldT": 1.1, "lengthM": 0.018, "verdetDispersion": "none"}], pulse=pol_pulse(1030e-9, 0.0, 1e-12))
+    r = run([{"id": "f", "type": "faradayRotator", "verdetRadPerTM": 40.0, "fieldTesla": 1.1, "lengthM": 0.018, "verdetDispersion": "none"}], pulse=pol_pulse(1030e-9, 0.0, 1e-12))
     Ex, Ey, X = stokes_sums(r)
     fam.check("Faraday V B L = 40 rad/(T m) x 1.1 T x 0.018 m", math.radians(math.degrees(0.5 * math.atan2(2 * X, Ex - Ey))), 40.0 * 1.1 * 0.018, abs=1e-6, unit="rad")
 

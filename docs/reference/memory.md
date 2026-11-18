@@ -16,7 +16,7 @@ and what to change when a run, a scan or a fit is too large for the machine.
 `outputs.keepProfiles` decides how many profiles stay in the result: `"all"` (default) keeps the profile after every spatial element,
 `"used"` keeps it only where an instrument reads it, and before such an element, and at the end. With a 1920 x 1080 panel and 48
 spectral samples a single profile is 1.6 GB, so `"all"` over ten spatial elements is the difference between a run and no run.
-A branched system (`topology: branched`) keeps all profiles whatever you ask.
+In a branched system (`topology: branched`) `"used"` keeps the profile of every element that feeds an instrument's element or the output (the links of the graph decide, not the order of the file).
 
 ## The estimate
 

@@ -278,7 +278,7 @@ port. `axisDeg` is the transmitted (p) axis in the lab. `model: "ideal"` uses `t
 
 ```jsonc
 { "id": "fr", "type": "faradayRotator", "rotationDeg": 45, "material": "TGG", "lengthM": 0.02, "beam": {...} }
-{ "id": "fr2", "type": "faradayRotator", "verdetRadPerTM": -40, "fieldT": 1.1, "lengthM": 0.018 }
+{ "id": "fr2", "type": "faradayRotator", "verdetRadPerTM": -40, "fieldTesla": 1.1, "lengthM": 0.018 }
 ```
 
 The rotation follows θ(λ) = θ_d (λ_d² - λ0²) / (λ² - λ0²) (`verdetPoleWavelengthM`, 258 nm for TGG; `"none"`

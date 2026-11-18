@@ -20,6 +20,8 @@ shaper (GDD + TOD)    : FWHM    25.0 fs (TL  25.0 fs), energy 1.000 nJ
 shaper + 40 nm window : FWHM    46.2 fs (TL  46.2 fs), energy 0.775 nJ
 ```
 
+![the shaper's effect on the pulse](hero.png)
+
 The energy the window removes is booked as "user" in the element's energy budget. The same callback works from
 C# (`registry.RegisterCallback("dazzler", (ElementCallback)(ctx => ...))`) and from C/C++
 (`uf_run_set_element_callback`); see docs/active-elements.md.

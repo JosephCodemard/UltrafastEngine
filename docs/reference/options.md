@@ -390,8 +390,9 @@ Also accepts: `nonlinearMedium` (see *Common key groups*).
 |---|---|---|---|---|
 | `rotationDeg` | number | deg | 45 | Rotation at the design wavelength |
 | `designWavelengthM` | number | m | the carrier | Design wavelength |
-| `verdetRadPerTM` | number | rad/(T m) |  | Verdet constant (with fieldT and lengthM) |
-| `fieldT` | number | T |  | Magnetic field |
+| `verdetRadPerTM` | number | rad/(T m) |  | Verdet constant (with fieldTesla and lengthM) |
+| `fieldTesla` | number | T |  | Magnetic field |
+| `fieldT` | number | T |  | Deprecated name of fieldTesla |
 | `lengthM` | number | m |  | Crystal length |
 | `material` | string |  |  | Crystal (e.g. TGG) |
 | `verdetDispersion` | `"inverseSquare"` \| `"none"` |  | inverseSquare | V ~ 1/(lambda^2 - lambda0^2) |
@@ -406,7 +407,8 @@ A single-mode fibre or waveguide: Taylor betas, a dispersion curve or a material
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `lengthM` | number | m |  | Fibre length **Required.** |
-| `betas` | number or array | s^k/m |  | Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) |
+| `betasSkPerM` | number or array | s^k/m |  | Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) |
+| `betas` | number or array | s^k/m |  | Deprecated name of betasSkPerM (still accepted) |
 | `betasPsKm` | number or array | ps^k/km |  | Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units) |
 | `referenceWavelengthM` | number | m | the carrier | Wavelength of the Taylor expansion |
 | `dispersion` | object (`fiberDispersion`) |  |  | Dispersion curve {wavelengthsM, dPsNmKm \| beta2S2PerM} (alternative to betas) |
@@ -2224,8 +2226,8 @@ Single damped oscillator h(t) ~ exp(-t/tau2) sin(t/tau1). More: [nonlinear.md#ra
 
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
-| `tau1` | number | s |  | Period parameter |
-| `tau2` | number | s |  | Damping time |
+| `tau1S` | number | s |  | Period parameter |
+| `tau2S` | number | s |  | Damping time |
 | `fR` | number |  |  | Raman fraction |
 | `anisotropicFraction` | number |  | 0 | Anisotropic share of the response (vector Raman: ellipse rotation, circular light) |
 
@@ -2255,9 +2257,9 @@ Lin & Agrawal 2006 silica Raman: damped oscillator + boson peak (pyNLO's full mo
 | key | type | unit | default | meaning |
 |---|---|---|---|---|
 | `fR` | number |  | 0.245 | Raman fraction |
-| `tau1` | number | s | 12.2e-15 | Oscillator period parameter |
-| `tau2` | number | s | 32e-15 | Oscillator damping time |
-| `taub` | number | s | 96e-15 | Boson-peak time |
+| `tau1S` | number | s | 12.2e-15 | Oscillator period parameter |
+| `tau2S` | number | s | 32e-15 | Oscillator damping time |
+| `taubS` | number | s | 96e-15 | Boson-peak time |
 | `fa` | number |  | 0.75 | Weight a |
 | `fb` | number |  | 0.21 | Weight b (boson peak) |
 | `fc` | number |  | 0.04 | Weight c |
@@ -2345,7 +2347,8 @@ A refractiveindex.info page (bundled, imported, a file, or ULTRAFAST_RII_PATH). 
 | `file` | string |  |  | YAML file (alternative) |
 | `pressureBar` | number | bar |  | Gas pressure (density scaling from the page's SPECS) |
 | `temperatureK` | number | K |  | Temperature |
-| `dnDT` | number | 1/K | 0 | Thermo-optic coefficient (solids) |
+| `dnDTPerK` | number | 1/K | 0 | Thermo-optic coefficient (solids) |
+| `dnDT` | number | 1/K |  | Deprecated name of dnDTPerK |
 | `relativeToAir` | boolean |  | false | The page's n are relative to air |
 
 ### index / `sellmeier`

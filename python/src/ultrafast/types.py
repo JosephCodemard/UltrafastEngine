@@ -788,9 +788,11 @@ class FaradayRotatorElement(TypedDict, total=False):
     designWavelengthM: float
     """Design wavelength [m] Default: the carrier."""
     verdetRadPerTM: float
-    """Verdet constant (with fieldT and lengthM) [rad/(T m)]"""
-    fieldT: float
+    """Verdet constant (with fieldTesla and lengthM) [rad/(T m)]"""
+    fieldTesla: float
     """Magnetic field [T]"""
+    fieldT: float
+    """Deprecated name of fieldTesla [T]"""
     lengthM: float
     """Crystal length [m]"""
     material: str
@@ -872,8 +874,10 @@ class FiberElement(TypedDict, total=False):
     type: str
     lengthM: float
     """Fibre length [m]"""
-    betas: Union[float, List[float]]
+    betasSkPerM: Union[float, List[float]]
     """Taylor coefficients [beta2, beta3, ...] at referenceWavelengthM (SI) [s^k/m]"""
+    betas: Union[float, List[float]]
+    """Deprecated name of betasSkPerM (still accepted) [s^k/m]"""
     betasPsKm: Union[float, List[float]]
     """Taylor coefficients [beta2, beta3, ...] in ps^k/km (pyNLO / fibre-datasheet units) [ps^k/km]"""
     referenceWavelengthM: float
