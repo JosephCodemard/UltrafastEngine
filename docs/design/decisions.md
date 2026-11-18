@@ -47,6 +47,7 @@ Internal page ([folder index](README.md)). Decisions still in force, merged from
 | E14 | 11-17 | Version numbers restart at **1.0.0**: the 2.x numbers of the development history were never released. The CHANGELOG keeps them as development history. A release candidate is only a tag (`v1.0.0rc1`), never a number in the files. | one version in every file |
 | E15 | 11-18 | The unit-in-key renames (`betasSkPerM`, `fieldTesla`, `tau1S` / `tau2S` / `taubS`, `dnDTPerK`) are made before 1.0.0, by load-time migration; old names keep working with a deprecation note. | no key changes after the first public release |
 | E16 | 11-18 | 1.0.0 has no open items: design-heavy work is on the v1.1.0 roadmap. Release stops at a merged PR; the owner creates the pending publishers and environments and tags `v1.0.0rc1` and `v1.0.0`. WP9 for 1.0.0 is images and the new plotting backend only. | owner's go-ahead for every tag |
+| E17 | 11-18 | The first public release is an **alpha**, `1.0.0a1` (owner decision), so that use in real labs can fix what is found before 1.0.0. The files keep `1.0.0` (the pre-release is only in the tag, as for E14); tags: `v1.0.0aN` -> PyPI as a pre-release (`pip install --pre`), `v1.0.0rcN` -> TestPyPI, `v1.0.0` -> PyPI. Classifier `Development Status :: 3 - Alpha`. | the same files build every alpha, candidate and the final release |
 
 ## Plotting
 

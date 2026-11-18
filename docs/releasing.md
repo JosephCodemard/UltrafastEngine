@@ -121,13 +121,14 @@ The workflow has not run on GitHub yet (the tag-to-PyPI jobs are described in th
 owner, and the upload jobs run in GitHub environments that need the owner's approval.
 
 * `version` (first job): `python build/check_version.py <tag>`: `python/pyproject.toml`, `ultrafast/__init__.py`, `Directory.Build.props`, `CITATION.cff`, the engine constant and
-  every plugin (`plugin.json`, C# constant) must carry the same `X.Y.Z`, and the tag must be `vX.Y.Z` (final) or `vX.Y.ZrcN` (release candidate; the wheels are then
-  built as `X.Y.ZrcN` through `UF_WHEEL_VERSION`). The package name must be `ultrafast-engine`. Any mismatch stops the workflow before anything is built.
+  every plugin (`plugin.json`, C# constant) must carry the same `X.Y.Z`, and the tag must be `vX.Y.Z` (final), `vX.Y.ZaN` (alpha: the wheels are built as `X.Y.ZaN`, a pre-release that `pip` installs only with `--pre`) or `vX.Y.ZrcN` (release candidate;
+  the wheels are built as `X.Y.ZrcN`), through `UF_WHEEL_VERSION`, which also sets `ultrafast.__version__` in the wheel. The package name must be `ultrafast-engine`. Any mismatch stops the workflow before anything is built.
 * `light-tests`: `example_lint.py`, `sync_roadmap.py --check`, and the tests that need no engine (release, MCP, packaging, WP-3).
 * `publish`: after the asset jobs, the wheels are taken from the assets, **checked with `twine check --strict`** and with the ZOS-API gate, and kept as the artifact `pypi-wheels`.
   Wheels only, **no sdist** (E5). Linux native wheels carry a `manylinux` tag but are built on the runner's glibc, so they are left out of the upload until they are built in a manylinux
   container; Windows and macOS native wheels and the platform-independent wheel go up.
-* `testpypi`: a tag `vX.Y.ZrcN` uploads to TestPyPI (environment `testpypi`). `pypi`: a tag `vX.Y.Z` uploads to PyPI (environment `pypi`).
+* `testpypi`: a tag `vX.Y.ZrcN` uploads to TestPyPI (environment `testpypi`). `pypi`: a tag `vX.Y.Z` or `vX.Y.ZaN` uploads to PyPI (environment `pypi`).
+  **The first public release is the alpha `v1.0.0a1`** (`pip install --pre ultrafast-engine`); the files keep `1.0.0`, so the same files build the later alphas, the candidates and the final release.
 
 **Steps for the owner** (the maintainer's assistant does none of them):
 
@@ -136,13 +137,14 @@ owner, and the upload jobs run in GitHub environments that need the owner's appr
    project `ultrafast-engine`, owner `JosephCodemard`, repository `UltrafastEngine`, workflow `release.yml`, environment `pypi` (PyPI) / `testpypi` (TestPyPI).
 3. **GitHub environments** (repository Settings, Environments): create `testpypi` and `pypi`, add yourself as a required reviewer, and restrict deployment to tags `v*`.
 4. **GitHub Pages** (Settings, Pages, Source: GitHub Actions) if the site should be deployed.
-5. Merge `dev/2026-11` into `main` by pull request (green CI), then tag the release candidate on `main`: `git tag v1.0.0rc1 && git push origin v1.0.0rc1`.
+5. Merge `dev/2026-11` into `main` by pull request (green CI). Optionally rehearse on TestPyPI first: `git tag v1.0.0rc1 && git push origin v1.0.0rc1`.
 6. Approve the `testpypi` environment when the run asks. In a fresh virtual environment on Linux, Windows and macOS install the candidate
    (`pip install --pre --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ "ultrafast-engine[hosted]"`) and run the quickstart,
    one strict example, `ultrafast devices` (`python -c "import ultrafast as uf; print(uf.devices())"`) and the MCP handshake (`ultrafast-mcp --workspace .` and one `tools/list`).
 7. Build the macOS NativeAOT wheel on your Mac (`./build.sh --components cpp python-native --platform osx-arm64`) and attach it with `gh release upload`.
-8. Set `date-released` in `CITATION.cff`, tag `v1.0.0`, approve the `pypi` environment. Afterwards: `pip install "ultrafast-engine[hosted]"` in a clean environment.
-9. A version cannot be re-uploaded to PyPI. If an upload is wrong, fix forward with the next version (a `rcN+1` on TestPyPI; `1.0.1` on PyPI).
+8. **Alpha:** tag `v1.0.0a1` on `main` (`git tag v1.0.0a1 && git push origin v1.0.0a1`) and approve the `pypi` environment. Afterwards `pip install --pre "ultrafast-engine[hosted]"` in a clean environment. Problems found in use are fixed in `v1.0.0a2`, `a3`, ... (alphas are never re-uploaded).
+   **Final:** when the alphas have settled, set `date-released` in `CITATION.cff`, tag `v1.0.0`, approve the `pypi` environment; then `pip install "ultrafast-engine[hosted]"` works without `--pre`.
+9. A version cannot be re-uploaded to PyPI. If an upload is wrong, fix forward with the next version (a `rcN+1` on TestPyPI; the next alpha or `1.0.1` on PyPI).
 
 ## Single-folder packages (`--cli --python ...`)
 

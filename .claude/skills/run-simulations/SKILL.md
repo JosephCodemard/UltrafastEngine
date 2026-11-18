@@ -39,3 +39,9 @@ edgeEnergyFraction), `elements[]` (bIntegralRad, energyOutJ, criticalPowerRatio,
 (values, settings, arrays in result.npz as `<name>_<array>`), `comparisons[]`, `lossBudget`, `totals`, `warnings`.
 Sanity: energy balance (`totals.energyTransmission`), `edgeEnergyFraction` < 1e-6, B-integral vs your estimate
 k0·n2·I·L, TL vs the input spectrum width.
+
+## Fidelity: explore in `quick`, confirm in `full` (a rule, not a tip)
+
+The tools' default fidelity is `full`, which is slow. Every exploratory scan, study, run, comparison or fit passes `"fidelity": "quick"` (Raman, self-steepening and
+polarisation dropped; seconds instead of minutes). Run only the point or points you will report again with `"fidelity": "full"`, and say in the answer which numbers came from
+`quick` and which from `full`. Never quote a `quick` number as a result; never explore in `full`. A failed point in `quick` is a reason to look, not to switch to `full` for the whole scan.

@@ -17,3 +17,9 @@ late parameter is cheap), instruments (`docs/reference/instruments.md`), the fit
    resolution of a waveplate mount). A sharp optimum is a warning, not a result.
 5. **Report**: the setting, the figure of merit, the sensitivity, what limits it, and the runner-up settings.
    Do not report an optimum found at the boundary of the scanned range without saying so.
+
+## Fidelity: explore in `quick`, confirm in `full` (a rule, not a tip)
+
+The tools' default fidelity is `full`, which is slow. Every exploratory scan, study, run, comparison or fit passes `"fidelity": "quick"` (Raman, self-steepening and
+polarisation dropped; seconds instead of minutes). Run only the point or points you will report again with `"fidelity": "full"`, and say in the answer which numbers came from
+`quick` and which from `full`. Never quote a `quick` number as a result; never explore in `full`. A failed point in `quick` is a reason to look, not to switch to `full` for the whole scan.

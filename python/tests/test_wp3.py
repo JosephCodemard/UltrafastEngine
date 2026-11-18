@@ -22,12 +22,12 @@ def test_every_place_carries_the_same_version():
     assert len(versions) >= 20 and set(versions.values()) == {"1.0.0"}, versions
 
 
-@pytest.mark.parametrize("tag,wheel,rc", [(None, "1.0.0", False), ("v1.0.0", "1.0.0", False), ("v1.0.0rc1", "1.0.0rc1", True), ("v1.0.0rc12", "1.0.0rc12", True)])
+@pytest.mark.parametrize("tag,wheel,rc", [(None, "1.0.0", False), ("v1.0.0", "1.0.0", False), ("v1.0.0rc1", "1.0.0rc1", True), ("v1.0.0rc12", "1.0.0rc12", True), ("v1.0.0a1", "1.0.0a1", False), ("v1.0.0a12", "1.0.0a12", False)])
 def test_tags_accepted(tag, wheel, rc):
     assert check_version.check(tag) == ("1.0.0", wheel, rc)
 
 
-@pytest.mark.parametrize("tag", ["v1.0.1", "v2.2.0", "1.0.0", "v1.0.0-beta", "v1.0", "v1.0.0.post1", "v1.0.0rc"])
+@pytest.mark.parametrize("tag", ["v1.0.1", "v2.2.0", "1.0.0", "v1.0.0-beta", "v1.0", "v1.0.0.post1", "v1.0.0rc", "v1.0.0a", "v1.0.0b1", "v1.0.0-alpha"])
 def test_tags_refused(tag):
     with pytest.raises(SystemExit):
         check_version.check(tag)
@@ -55,7 +55,9 @@ def test_wheel_version_override(monkeypatch):
     assert package._pyproject()["version"] == "1.0.0"
     monkeypatch.setenv("UF_WHEEL_VERSION", "1.0.0rc2")
     assert package._pyproject()["version"] == "1.0.0rc2"
-    for bad in ("1.0.1", "2.0.0rc1", "1.0.0-rc1", "1.0.0.dev1"):
+    monkeypatch.setenv("UF_WHEEL_VERSION", "1.0.0a1")
+    assert package._pyproject()["version"] == "1.0.0a1"
+    for bad in ("1.0.1", "2.0.0rc1", "1.0.0-rc1", "1.0.0.dev1", "1.0.0b1"):
         monkeypatch.setenv("UF_WHEEL_VERSION", bad)
         with pytest.raises(SystemExit):
             package._pyproject()

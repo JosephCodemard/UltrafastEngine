@@ -13,16 +13,18 @@
 <a href="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/ci.yml/badge.svg"></a>
 <a href="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml"><img alt="Docs" src="https://github.com/JosephCodemard/UltrafastEngine/actions/workflows/docs.yml/badge.svg"></a>
 <a href="https://josephcodemard.github.io/UltrafastEngine/"><img alt="Documentation" src="https://img.shields.io/badge/docs-GitHub%20Pages-blue"></a>
-<img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue">
+<img alt="Version 1.0.0-alpha" src="https://img.shields.io/badge/version-1.0.0--alpha-orange">
 <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-green">
 <a href="mailto:jac318@bath.ac.uk"><img alt="Email" src="https://img.shields.io/badge/email-jac318%40bath.ac.uk-c85a28?logo=gmail&logoColor=white"></a>
 </p>
 <p align="center">
 <img alt="C# tests" src="https://img.shields.io/badge/C%23%20tests-664%20passing-brightgreen">
-<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-423%20passing-brightgreen">
+<img alt="Python tests" src="https://img.shields.io/badge/Python%20tests-435%20passing-brightgreen">
 <img alt="Component checks" src="https://img.shields.io/badge/component%20checks-1691%2F1694-brightgreen">
 <img alt="Paper replications" src="https://img.shields.io/badge/papers%20replicated-12-blueviolet">
 </p>
+**Status: 1.0.0 alpha.** Everything described here is built and tested (see [PROJECT_STATUS](PROJECT_STATUS.md)); the alpha is the first public release, meant for use in real labs so that what that shows is fixed before 1.0.0. Install with `pip install --pre "ultrafast-engine[hosted]"`.
+
 <p align="center">
 <img alt=".NET" src="https://img.shields.io/badge/.NET-10%20%7C%20Framework%204.8-512bd4">
 <img alt="Python" src="https://img.shields.io/badge/Python-%E2%89%A53.10-3776ab">

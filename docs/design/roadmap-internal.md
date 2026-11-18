@@ -68,14 +68,14 @@ and the release builder are complete as shipped; section 4 lists extensions.
 
 ## 4. Agents and MCP (extensions, v1.1.0)
 
-Done 2026-11-18 (this session): MCP tools `compare_to_measured` and `fit` (time budget, memory pre-flight, killed at the budget, next call works), prompts `explore-in-quick` and
-`compare-to-measurement`, the agent pack (`ultrafast-agent install --target claude|codex|cursor`, five skills shipped in the wheel); done 2026-11-18 (second session): the `design-system` skill (six skills) and `ultrafast agent list | install | mcp-config` in the C# CLI (skills embedded from the pack, byte-identical output, tested) and five scripted evals (`tests/agent-evals/`).
+Done by 1.0.0-alpha: 13 MCP tools (`study`, `backward` and the twin tools included), prompts, the agent pack (six skills, `ultrafast-agent` and `ultrafast agent`), seven evals with replays and a live scorer (`tests/agent-evals/run_live.py`), one source for the skills (`build/sync_skills.py`).
 
 | item | size | acceptance |
 |---|---|---|
-| Evals run by a live agent: the prompts and criteria exist, the replays check the tools; no transcript of a live agent has been scored | M | results in `docs/agents.md`: the mandatory quick-then-confirm prompt passes with at least two different agents |
-| Split `.claude/` (development) from the shipped user pack; `AGENTS.md` / `llms.txt` written for users, development rules in a dev-only file (the pack and `.claude/skills` are two copies kept equal by a test) | S | one source for the skills |
-| MCP: tools for `study` and `backward` sections; tools of the digital twin | M | each with its refusals and a budget test |
+| Live scores of all seven evals (only the mandatory one has been run live: Sonnet and Haiku) with a third agent family (Codex, Cursor) | M | table in `docs/reference/mcp.md`; every mandatory eval passes for three agents |
+| An adapter in `run_live.py` for agents other than `claude -p` (a transcript reader for Codex and Cursor sessions) | S | the same scorers on their transcripts |
+| MCP: twin tools `twin_design` (next measurement) and `twin_track` (drift), `ultrafast twin` init through the server | S | each with its refusals and a budget test |
+| Split the user pack from the development `.claude/` folder (`AGENTS.md` and `llms.txt` written for users; development rules in a dev-only file) | S | a user's `AGENTS.md` mentions nothing of the repository's internals |
 
 ## 5. Documentation (WP9 remainder)
 

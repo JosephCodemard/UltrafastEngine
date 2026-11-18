@@ -1,14 +1,16 @@
 # Changelog
 
-## 1.0.0 (unreleased) -- first public release
+## 1.0.0 (unreleased) -- first public release, as the alpha 1.0.0a1
 
-The first version published on PyPI (`pip install "ultrafast-engine[hosted]"`; the import name is `ultrafast`). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
+The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
 **Added / changed (2026-11-18, release completion)**
 - **Renamed keys** with the unit in the name: fibre `betasSkPerM`, Faraday rotator `fieldTesla`, Raman models `tau1S` / `tau2S` / `taubS`, `dnDTPerK`. The old names still load (migration, with a deprecation note).
 - **Circular aperture on a decentred beam** is now computed (it was ignored); `outputs.keepProfiles: "used"` works in branched systems; the CLI banner no longer says "2.0".
 - **New examples** `Branched/system-schematics` (every plot style) and `GettingStarted/calculators`; hero images for every example README; all figures regenerated with `ultrafast.plotting`.
+- **MCP server complete:** five new tools, `study` (scan, optimize, sensitivity; at most 400 evaluations), `backward` (backward propagation) and the digital-twin tools `twin_fit`, `twin_validate`, `twin_predict` (13 tools); `tests/agent-evals/run_live.py` scores live agents against the evals (mandatory prompt passed by Sonnet and Haiku); the rule "explore in quick, confirm in full" is stated in the server instructions and the skills; one source for the skills (`python/src/ultrafast/agents/pack`, `build/sync_skills.py`).
+- **Release as an alpha:** the first public release is `1.0.0a1` (`pip install --pre ultrafast-engine`); `check_version.py` and `release.yml` accept the tags `v1.0.0aN`; classifier "Alpha". `ultrafast-agent install` writes LF line ends on Windows too.
 - **Agents:** the `design-system` skill (six skills in the pack) and `ultrafast agent list | install | mcp-config` in the C# command line (the skills are embedded from the pack; the files are byte-identical to `ultrafast-agent`, tested).
 - **Docs:** `reference/cli.md`, `reference/mcp.md`, a Benchmarks section in `reference/speed.md` (Apple M3 CPU, RTX 3060 Ti), four-row front-page plot table, the design documents brought up to date, roadmap for v1.1.0.
 

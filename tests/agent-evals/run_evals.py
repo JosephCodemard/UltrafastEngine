@@ -41,7 +41,7 @@ def make_workspace(root: Path) -> Path:
 
 class Session:
     def __init__(self, ws: Path):
-        self.srv = McpServer(ws, worker=Worker(ws, env={"PYTHONPATH": str(REPO / "python" / "src")}), budget_s=300)
+        self.srv = McpServer(ws, worker=Worker(ws, env={"PYTHONPATH": str(REPO / "python" / "src") + __import__("os").pathsep + str(REPO / "plugins" / "twin" / "python")}), budget_s=300)
         self.calls: list = []
 
     def call(self, tool: str, **args):
@@ -100,7 +100,33 @@ def plot_and_report(s: Session):
     assert not p["isError"] and any(c["type"] == "image" for c in p["content"])
 
 
-REPLAYS = {"quick-then-confirm": quick_then_confirm, "refuses-user-code": refuses_user_code, "reads-warnings": reads_warnings,
+def optimise_with_study(s: Session):
+    st = _ok(s.call("study", system="plate.ufs", run="run.json", parameters=[{"path": "element:plate/thicknessM", "min": 0.5e-3, "max": 4e-3}], outputs=["record:plate/BIntegralRad"],
+                    mode="optimize", objective={"output": "record:plate/BIntegralRad", "goal": "target", "target": 1.0, "maxEvaluations": 30}, fidelity="quick"))
+    assert st["rowCount"] >= 2 and "advice" in st and "quick" in st["advice"]
+    best = min(st["rows"], key=lambda r: abs(r["record:plate/BIntegralRad"] - 1.0))
+    spec = json.loads(policy.strip_jsonc((s.srv.ws.root / "run.json").read_text(encoding="utf-8")))
+    system = json.loads(policy.strip_jsonc((s.srv.ws.root / "plate.ufs").read_text(encoding="utf-8")))
+    for e in system["elements"]:
+        if e.get("id") == "plate":
+            e["thicknessM"] = best["element:plate/thicknessM"]
+    full = _ok(s.call("run", system=system, run=spec, name="best", fidelity="full"))
+    assert full["elements"] and "bIntegralRad" in full["elements"][0]
+
+
+def twin_predict(s: Session):
+    sys.path.insert(0, str(REPO / "plugins" / "twin" / "python"))
+    import ultrafast_twin as tw
+    tw.init(s.srv.ws.root / "lab", "synthetic-lab")
+    f = _ok(s.call("twin_fit", folder="lab", name="f1"))
+    assert f["parameters"]
+    v = _ok(s.call("twin_validate", folder="lab", samples=4))
+    assert v["verdict"] and v["conditions"] and "flags" in v
+    p = _ok(s.call("twin_predict", folder="lab", variables={"energyJ": 2e-6}, set={"pulse/energyJ": 2e-6}, samples=3))
+    assert p["scalars"]["energyJ"]["sigma"] >= 0 and p["pointsReturned"] <= 200
+
+
+REPLAYS = {"optimise-with-study": optimise_with_study, "twin-predict": twin_predict, "quick-then-confirm": quick_then_confirm, "refuses-user-code": refuses_user_code, "reads-warnings": reads_warnings,
            "compare-and-fit": compare_and_fit, "plot-and-report": plot_and_report}
 
 

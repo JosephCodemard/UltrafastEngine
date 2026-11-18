@@ -2,8 +2,9 @@
 
     python build/check_version.py                 # the files agree with each other and the package name is ultrafast-engine
     python build/check_version.py v1.0.0          # ... and the tag is v<version>
+    python build/check_version.py v1.0.0a1       # ... or an alpha of that version (wheel version 1.0.0a1, PyPI as a pre-release)
     python build/check_version.py v1.0.0rc1      # ... or a release candidate of that version (wheel version 1.0.0rc1, TestPyPI)
-    python build/check_version.py v1.0.0rc1 --github-output "$GITHUB_OUTPUT"   # also writes version, wheel_version, is_rc
+    python build/check_version.py v1.0.0a1 --github-output "$GITHUB_OUTPUT"   # also writes version, wheel_version, is_rc, is_prerelease
 
 The places: ``python/pyproject.toml``, ``python/src/ultrafast/__init__.py``, ``Directory.Build.props``, ``CITATION.cff``, the engine constant in
 ``RunResult.cs``, the ``version`` and ``engine`` of every ``plugins/*/plugin.json`` and the ``PluginVersion`` of each plugin's C# file.
@@ -20,7 +21,7 @@ from typing import Dict, Optional, Tuple
 
 REPO = Path(__file__).resolve().parents[1]
 PACKAGE_NAME = "ultrafast-engine"
-TAG = re.compile(r"^v(\d+\.\d+\.\d+)(rc\d+)?$")
+TAG = re.compile(r"^v(\d+\.\d+\.\d+)((?:a|rc)\d+)?$")
 
 
 def _grep(path: Path, pattern: str) -> Optional[str]:
@@ -57,15 +58,15 @@ def check(tag: Optional[str], repo: Path = REPO) -> Tuple[str, str, bool]:
     if bad:
         raise SystemExit("version mismatch (pyproject.toml says %s): %s" % (base, "; ".join("%s = %s" % kv for kv in sorted(bad.items()))))
     if not re.match(r"^\d+\.\d+\.\d+$", base or ""):
-        raise SystemExit("the version %r in the files must be X.Y.Z (a release candidate is only in the tag: v%s" % (base, "X.Y.Zrc1)"))
+        raise SystemExit("the version %r in the files must be X.Y.Z (an alpha or a release candidate is only in the tag: v%s" % (base, "X.Y.Za1 or v" + "X.Y.Zrc1)"))
     if tag is None:
         return base, base, False
     m = TAG.match(tag)
     if not m:
-        raise SystemExit("tag %r is not v<X.Y.Z> or v<X.Y.Z>rc<N>" % tag)
+        raise SystemExit("tag %r is not v<X.Y.Z>, v<X.Y.Z>a<N> or v<X.Y.Z>rc<N>" % tag)
     if m.group(1) != base:
         raise SystemExit("tag %s does not match the version %s of the files" % (tag, base))
-    return base, base + (m.group(2) or ""), bool(m.group(2))
+    return base, base + (m.group(2) or ""), (m.group(2) or "").startswith("rc")
 
 
 def main(argv=None) -> int:
@@ -86,7 +87,7 @@ def main(argv=None) -> int:
     print("version %s, wheel version %s, release candidate: %s%s" % (base, wheel, rc, "" if tag else " (no tag given)"))
     if out:
         with open(out, "a", encoding="utf-8") as f:
-            f.write("version=%s\nwheel_version=%s\nis_rc=%s\n" % (base, wheel, str(rc).lower()))
+            f.write("version=%s\nwheel_version=%s\nis_rc=%s\nis_prerelease=%s\n" % (base, wheel, str(rc).lower(), str(wheel != base).lower()))
     return 0
 
 

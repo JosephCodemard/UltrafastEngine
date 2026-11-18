@@ -171,6 +171,7 @@ jobs:
       - name: Example structure, public roadmap in sync, version places agree
         run: |
           python build/example_lint.py
+          python build/sync_skills.py --check
           python build/sync_roadmap.py --check
           python build/check_version.py
       - name: Docs, 0 warnings

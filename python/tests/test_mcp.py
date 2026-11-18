@@ -1,4 +1,4 @@
-"""MCP server (ultrafast.mcp): handshake, the eight tools, prompts, every refusal, a call over budget (killed, next call works), packaging.
+"""MCP server (ultrafast.mcp): handshake, the thirteen tools, prompts, every refusal, a call over budget (killed, next call works), packaging.
 
 Light: the server is driven with a fake worker (no engine) except one small end-to-end run marked ``requires_engine``.
 """
@@ -27,7 +27,7 @@ for line in sys.stdin:
     sys.stdout.write(json.dumps({"id": r["id"], "ok": True, "result": {"op": r["op"], "pid": os.getpid(), "home": os.environ.get("ULTRAFAST_HOME")}}) + "\\n")
     sys.stdout.flush()
 '''
-TOOL_NAMES = {"describe", "validate", "run", "scan", "explain_warning", "plot", "compare_to_measured", "fit"}
+TOOL_NAMES = {"describe", "validate", "run", "scan", "explain_warning", "plot", "compare_to_measured", "fit", "study", "backward", "twin_fit", "twin_validate", "twin_predict"}
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ def test_discover_and_modern_requests(server):
     assert r["resultType"] == "complete" and "2026-07-28" in r["supportedVersions"] and "2025-11-25" in r["supportedVersions"]
     assert r["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "ultrafast-mcp"
     r = rpc(server, "tools/list", {"_meta": meta})["result"]
-    assert r["resultType"] == "complete" and len(r["tools"]) == 8
+    assert r["resultType"] == "complete" and len(r["tools"]) == 13
     bad = rpc(server, "tools/list", {"_meta": {"io.modelcontextprotocol/protocolVersion": "1900-01-01", "io.modelcontextprotocol/clientCapabilities": {}}})
     assert bad["error"]["code"] == -32022 and "2026-07-28" in bad["error"]["data"]["supported"]
     assert rpc(server, "tools/list", {"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28"}})["error"]["code"] == -32602
@@ -92,9 +92,9 @@ def test_ping_unknown_method_notifications_and_bad_messages(server):
     assert rpc(server, "tools/call", {"name": "nope", "arguments": {}})["error"]["code"] == -32602
 
 
-def test_tools_list_has_eight_tools_with_schemas(server):
+def test_tools_list_has_thirteen_tools_with_schemas(server):
     ts = rpc(server, "tools/list")["result"]["tools"]
-    assert {t["name"] for t in ts} == TOOL_NAMES and len(ts) == 8
+    assert {t["name"] for t in ts} == TOOL_NAMES and len(ts) == 13
     for t in ts:
         assert t["description"] and t["inputSchema"]["type"] == "object"
     run = next(t for t in ts if t["name"] == "run")
@@ -314,7 +314,7 @@ def test_stdio_process_handshake(tmp_path):
     out, err = p.communicate("".join(json.dumps(m) + "\n" for m in msgs).encode() + b"not json\n", timeout=60)
     lines = [json.loads(l) for l in out.decode().splitlines()]
     assert [l.get("id") for l in lines] == [1, 2, 3, None]                        # the notification got no reply; stdout holds JSON only
-    assert len(lines[1]["result"]["tools"]) == 8 and lines[2]["error"]["code"] == -32601 and lines[3]["error"]["code"] == -32700
+    assert len(lines[1]["result"]["tools"]) == 13 and lines[2]["error"]["code"] == -32601 and lines[3]["error"]["code"] == -32700
     assert b"workspace" in err
 
 
@@ -391,4 +391,110 @@ def test_twin_serve_starts_the_mcp_server(tmp_path):
     p = subprocess.run([sys.executable, "-m", "ultrafast_twin", "serve", str(tmp_path)], input=b'{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n',
                        capture_output=True, env=env, timeout=60)
     assert p.returncode == 0, p.stderr.decode()
-    assert len(json.loads(p.stdout.decode().splitlines()[0])["result"]["tools"]) == 8
+    assert len(json.loads(p.stdout.decode().splitlines()[0])["result"]["tools"]) == 13
+
+
+# ------------------------------------------------ study, backward and the twin tools: refusals (fake worker)
+PLATE = {"format": "ultrafast-system", "version": 2, "name": "p", "elements": [{"id": "plate", "type": "plate", "material": "FusedSilica", "thicknessM": 3e-3}]}
+PAR = {"path": "element:plate/thicknessM", "min": 1e-3, "max": 5e-3, "points": 3}
+
+
+def test_study_is_checked_before_the_worker(server):
+    ok = call(server, "study", {"system": "plate.ufs", "run": "run.json", "parameters": [PAR], "outputs": ["pulse:end/fwhmS"]})
+    assert not ok["isError"] and ok["structuredContent"]["op"] == "study"
+    base = {"system": "plate.ufs", "run": "run.json", "outputs": ["pulse:end/fwhmS"]}
+    for args, word in [
+        ({"parameters": [dict(PAR, points=900)]}, "above the limit"),
+        ({"parameters": [{"path": "system/name", "min": 0, "max": 1}]}, "is not allowed"),
+        ({"parameters": [dict(PAR, python="x")]}, "unknown key"),
+        ({"parameters": [dict(PAR, min=float("nan"))]}, "finite"),
+        ({"parameters": [PAR], "mode": "optimize"}, "objective"),
+        ({"parameters": [PAR], "mode": "optimize", "objective": {"output": "pulse:end/fwhmS", "goal": "best"}}, "objective"),
+        ({"parameters": [PAR], "mode": "sensitivity", "sensitivity": {"method": "x"}}, "method"),
+        ({"parameters": [PAR] * 5}, "1 to 4"),
+        ({"parameters": [PAR], "sampling": "random", "samples": 401}, None),
+    ]:
+        r = call(server, "study", dict(base, **args))
+        assert r["isError"], args
+        if word:
+            assert word in text(r), (args, text(r))
+    # an optimiser is capped at 400 evaluations
+    r = call(server, "study", dict(base, parameters=[PAR], mode="optimize", objective={"output": "pulse:end/fwhmS", "goal": "min", "maxEvaluations": 10 ** 6}))
+    assert not r["isError"]
+    # a study section inside the run spec is not run through another tool
+    r = call(server, "run", {"system": "plate.ufs", "run": {"study": {}}, "name": "x"})
+    assert r["isError"] and "study tool" in text(r)
+
+
+def test_backward_needs_its_section_and_other_tools_refuse_it(server):
+    r = call(server, "backward", {"system": "plate.ufs", "run": {"pulse": {}}, "name": "b"})
+    assert r["isError"] and "no 'backward' section" in text(r)
+    r = call(server, "backward", {"system": "plate.ufs", "run": {"backward": {"from": "end", "to": "input"}}, "name": "b"})
+    assert not r["isError"] and r["structuredContent"]["op"] == "backward"
+    r = call(server, "run", {"system": "plate.ufs", "run": {"backward": {}}, "name": "x"})
+    assert r["isError"] and "backward tool" in text(r)
+    r = call(server, "backward", {"system": "plate.ufs", "run": {"backward": {}, "fit": {}}, "name": "b"})
+    assert r["isError"] and "fit tool" in text(r)
+
+
+def test_twin_tools_stay_in_the_workspace_and_read_a_project(server, tmp_path):
+    ws = server.ws.root
+    r = call(server, "twin_validate", {"folder": "nope"})
+    assert r["isError"]
+    r = call(server, "twin_validate", {"folder": "../x"})
+    assert r["isError"] and "outside the workspace" in text(r)
+    (ws / "lab").mkdir()
+    r = call(server, "twin_validate", {"folder": "lab"})
+    assert r["isError"] and "twin.json" in text(r)
+    (ws / "lab" / "twin.json").write_text(json.dumps({"format": "ultrafast-twin", "system": "system.ufs", "run": {"pulse": {"kind": "callback"}}}), encoding="utf-8")
+    (ws / "lab" / "system.ufs").write_text("{}", encoding="utf-8")
+    r = call(server, "twin_predict", {"folder": "lab"})
+    assert r["isError"] and "callback" in text(r)
+    (ws / "lab" / "twin.json").write_text(json.dumps({"format": "ultrafast-twin", "system": "system.ufs", "run": {}}), encoding="utf-8")
+    for tool, args, op in [("twin_fit", {"name": "f1"}, "twin_fit"), ("twin_validate", {"samples": 6}, "twin_validate"),
+                           ("twin_predict", {"variables": {"energyJ": 1e-6}, "set": {"pulse/energyJ": 1e-6}}, "twin_predict")]:
+        r = call(server, tool, dict(args, folder="lab"))
+        assert not r["isError"] and r["structuredContent"]["op"] == op, (tool, text(r))
+    for args in ({"set": {"system/name": 1}}, {"set": {"pulse/energyJ": "x"}}, {"variables": {"e": True}}):
+        assert call(server, "twin_predict", dict(args, folder="lab"))["isError"]
+    assert call(server, "twin_fit", {"folder": "lab", "name": "../evil"})["isError"]
+    assert call(server, "twin_validate", {"folder": "lab", "samples": 100})["isError"]       # the schema's maximum
+
+
+# ------------------------------------------------ the same tools against the real engine
+@requires_engine
+def test_real_study_backward_and_twin(tmp_path):
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    sys.path.insert(0, str(REPO / "plugins" / "twin" / "python"))
+    import ultrafast_twin as tw
+    tw.init(ws / "lab", "synthetic-lab")
+    run = {"format": "ultrafast-run", "version": 2, "pulse": {"shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 1e-13, "energyJ": 1e-6},
+           "grid": {"auto": False, "n": 2048, "windowS": 4e-12}}
+    env = {"PYTHONPATH": os.pathsep.join([str(SRC), str(REPO / "plugins" / "twin" / "python")])}
+    srv = McpServer(ws, worker=Worker(ws, env=env), budget_s=240)
+    try:
+        s = call(srv, "study", {"system": PLATE, "run": run, "parameters": [PAR], "outputs": ["pulse:end/fwhmS"], "fidelity": "quick"})
+        assert not s["isError"], text(s)
+        rows = s["structuredContent"]["rows"]
+        assert len(rows) == 3 and rows[0]["pulse:end/fwhmS"] > 0 and "advice" in s["structuredContent"]
+        o = call(srv, "study", {"system": PLATE, "run": run, "parameters": [{"path": "element:plate/thicknessM", "min": 1e-3, "max": 5e-3}], "outputs": ["pulse:end/fwhmS"],
+                                "mode": "optimize", "objective": {"output": "pulse:end/fwhmS", "goal": "min", "maxEvaluations": 8}})
+        assert not o["isError"], text(o)
+        assert 1 <= o["structuredContent"]["rowCount"] <= 9      # maxEvaluations 8 plus the starting point
+        back = dict(run, backward={"from": "end", "to": "input", "regularization": 1e-3}, instruments=[{"kind": "pulseSummary", "name": "seed", "at": "input"}])
+        b = call(srv, "backward", {"system": PLATE, "run": back, "name": "back1"})
+        assert not b["isError"], text(b)
+        assert b["structuredContent"]["backward"]["steps"][0]["element"] == "plate" and (ws / ".ultrafast-mcp" / "back1" / "summary.json").is_file()
+        f = call(srv, "twin_fit", {"folder": "lab", "name": "f1"})
+        assert not f["isError"], text(f)
+        assert (ws / "lab" / "fits" / "f1").is_dir() and f["structuredContent"]["parameters"]
+        v = call(srv, "twin_validate", {"folder": "lab", "samples": 4})
+        assert not v["isError"], text(v)
+        assert v["structuredContent"]["verdict"] and v["structuredContent"]["conditions"]
+        p = call(srv, "twin_predict", {"folder": "lab", "variables": {"energyJ": 2e-6}, "set": {"pulse/energyJ": 2e-6}, "samples": 3})
+        assert not p["isError"], text(p)
+        pc = p["structuredContent"]
+        assert pc["pointsReturned"] <= 200 and len(pc["x"]) == len(pc["y"]) == len(pc["ySigma"]) and pc["scalars"]["energyJ"]["mean"] > 0
+    finally:
+        srv.worker.close()

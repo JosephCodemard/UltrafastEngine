@@ -316,6 +316,9 @@ class Builder:
         pkg = stage / "ultrafast"
         if not Log.dry:
             shutil.copytree(REPO / "python" / "src" / "ultrafast", pkg, ignore=shutil.ignore_patterns("bin", "__pycache__", "*.pyc"))
+            if os.environ.get("UF_WHEEL_VERSION"):      # an alpha or release-candidate wheel says so in ultrafast.__version__ too
+                init = pkg / "__init__.py"
+                init.write_text(re.sub(r'^__version__ = "[^"]*"', '__version__ = "%s"' % _pyproject()["version"], init.read_text(encoding="utf-8"), count=1, flags=re.M), encoding="utf-8")
             (pkg / "schemas").mkdir()      # the MCP server serves them as resources (ultrafast.mcp.resources)
             for f in (REPO / "schemas").glob("*.schema.json"):
                 shutil.copy2(f, pkg / "schemas" / f.name)
@@ -442,13 +445,13 @@ def wheel_platform(rid):
 
 
 def _pyproject():
-    """The metadata of python/pyproject.toml (see :func:`_pyproject_raw`); the environment variable ``UF_WHEEL_VERSION`` (``1.0.0rc1``) replaces the
-    version, which is how the release workflow builds the wheels of a release-candidate tag (the base version must equal the one in pyproject)."""
+    """The metadata of python/pyproject.toml (see :func:`_pyproject_raw`); the environment variable ``UF_WHEEL_VERSION`` (``1.0.0a1``, ``1.0.0rc1``) replaces the
+    version, which is how the release workflow builds the wheels of an alpha or release-candidate tag (the base version must equal the one in pyproject)."""
     d = dict(_pyproject_raw())
     v = os.environ.get("UF_WHEEL_VERSION")
     if v:
-        if not re.match(r"^\d+\.\d+\.\d+(rc\d+)?$", v) or not v.startswith(d["version"]):
-            raise SystemExit("UF_WHEEL_VERSION=%s: expected %s optionally followed by rcN" % (v, d["version"]))
+        if not re.match(r"^\d+\.\d+\.\d+((?:a|rc)\d+)?$", v) or not v.startswith(d["version"]):
+            raise SystemExit("UF_WHEEL_VERSION=%s: expected %s optionally followed by aN or rcN" % (v, d["version"]))
         d["version"] = v
     return d
 

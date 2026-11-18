@@ -1,6 +1,7 @@
 """The operations the MCP worker runs (inside the child process; they import the engine).
 
-``describe``, ``validate``, ``run``, ``scan``, ``compare``, ``fit`` and ``plot`` take the arguments the server has already checked
+``describe``, ``validate``, ``run``, ``scan``, ``study``, ``backward``, ``compare``, ``fit``, ``plot`` and the twin operations (``twin_fit``,
+``twin_validate``, ``twin_predict``) take the arguments the server has already checked
 (:mod:`ultrafast.mcp.policy`) and return plain JSON-able dicts. ``system`` / ``run`` arrive as an absolute path string or a dict;
 ``outDir`` is an absolute folder inside the workspace. ``preflight`` raises :class:`~ultrafast.mcp.policy.Refused` when the memory
 estimate is above the limit.
@@ -259,4 +260,113 @@ def plot(a: Dict[str, Any]) -> dict:
     return r
 
 
-OPS = {"validate": validate, "describe": describe, "run": run, "scan": scan, "compare": compare, "fit": fit, "plot": plot}
+MAX_STUDY_ROWS = 400
+MAX_TWIN_POINTS = 200
+
+
+def study(a: Dict[str, Any]) -> dict:
+    """A parameter study (scan / optimize / sensitivity) through ``uf.study``; the arguments were limited by the policy (at most 400 evaluations)."""
+    uf = _uf()
+    spec, tmp = _with_fidelity(a["run"], a.get("fidelity"))
+    try:
+        n_par = int(a.get("parallel", 1))
+        preflight(a["system"], spec, n_par)
+        opts: Dict[str, Any] = {k: a[k] for k in ("sampling", "samples", "objective", "sensitivity", "seed") if k in a}
+        if n_par > 1:
+            opts["parallel"] = n_par
+        t0 = time.time()
+        res = uf.study(a["system"], spec, parameters=a["parameters"], outputs=a["outputs"], mode=a["mode"], **opts)
+        rows = list(res.get("rows") or [])
+        r: Dict[str, Any] = {"mode": a["mode"], "rowCount": len(rows), "rows": rows[:MAX_STUDY_ROWS], "analysis": res.get("analysis"), "notes": list(res.get("notes") or [])[:MAX_LIST],
+                             "errors": list(res.get("errors") or [])[:5], "elapsedS": round(time.time() - t0, 3)}
+        if len(rows) > MAX_STUDY_ROWS:
+            r["truncated"] = "%d of %d rows returned; narrow the study or read the analysis" % (MAX_STUDY_ROWS, len(rows))
+        if (a.get("fidelity") or "full") != "full":
+            r["advice"] = "Studied in '%s'. Re-run the best point with the run tool in fidelity 'full' and say which numbers came from which level." % a["fidelity"]
+        return _clean(r)
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
+def backward(a: Dict[str, Any]) -> dict:
+    """Backward propagation (the run spec's ``backward`` section): write the results and return the instrument values and the reconstruction."""
+    uf = _uf()
+    spec, tmp = _with_fidelity(a["run"], a.get("fidelity"))
+    try:
+        preflight(a["system"], spec)
+        t0 = time.time()
+        res = uf.run(a["system"], spec, memory="off")
+        out = Path(a["outDir"]); out.mkdir(parents=True, exist_ok=True)
+        res.write(out)
+        s = res.summary
+        r = {"resultFolder": a["outDirRel"], "elapsedS": round(time.time() - t0, 3), "backward": s.get("backward"), "warnings": list(s.get("warnings", []))[:MAX_LIST],
+             "notes": list(s.get("notes", []))[:MAX_LIST]}
+        r.update(_brief(s))
+        if (out / "reconstructed-pulse.json").is_file():
+            r["reconstructedPulseFile"] = a["outDirRel"] + "/reconstructed-pulse.json"
+        else:
+            r["warnings"].append("no reconstructed-pulse.json was written: is the fitting plugin loaded (ultrafast plugins) and does the 'backward' section end at the input?")
+        r["advice"] = "Backward propagation amplifies noise wherever the system attenuated the light: compare the reconstruction at two 'regularization' values before quoting it."
+        return _clean(r)
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
+# ---------------------------------------------------------------- digital twin
+def _project(a: Dict[str, Any]):
+    uf = _uf()
+    uf.plugins.load_python_plugins()
+    try:
+        import ultrafast_twin as tw
+    except ImportError:
+        raise ValueError("the twin plugin is not available (ultrafast plugins list; install it with `ultrafast plugins install`)")
+    return tw.TwinProject(a["folder"])
+
+
+def twin_fit(a: Dict[str, Any]) -> dict:
+    t0 = time.time()
+    proj = _project(a)
+    twin = proj.fit(a.get("name"))
+    folder = Path(a["folder"])
+    latest = (folder / "fits" / "latest.txt").read_text(encoding="utf-8").strip() if (folder / "fits" / "latest.txt").is_file() else None
+    return _clean({"fit": latest, "parameters": list(twin.names()), "elapsedS": round(time.time() - t0, 3),
+                   "advice": "Run twin_validate next: a fit is only a model until it predicts held-out conditions."})
+
+
+def twin_validate(a: Dict[str, Any]) -> dict:
+    t0 = time.time()
+    rep = _project(a).twin().validate(n_samples=int(a.get("samples", 12)))
+    keep = ("project", "fit", "verdict", "trainingReducedChi2", "conditions", "flags", "parameters", "fitWarnings", "samples")
+    r = {k: rep[k] for k in keep if k in rep}
+    r["elapsedS"] = round(time.time() - t0, 3)
+    r["advice"] = "Do not quote a prediction outside the conditions the verdict covers; every flag says where the twin fails."
+    return _clean(r)
+
+
+def _thin(x, n: int = MAX_TWIN_POINTS):
+    import numpy as np
+    x = np.asarray(x, dtype=float)
+    if x.size <= n:
+        return x
+    return x[np.linspace(0, x.size - 1, n).astype(int)]
+
+
+def twin_predict(a: Dict[str, Any]) -> dict:
+    t0 = time.time()
+    p = _project(a).twin().predict(variables=a.get("variables") or None, set=a.get("set") or None, n_samples=int(a.get("samples", 12)))
+    r = {"x": _thin(p["x"]), "y": _thin(p["y"]), "ySigma": _thin(p["y_sigma"]), "pointsReturned": min(len(p["x"]), MAX_TWIN_POINTS), "pointsTotal": len(p["x"]),
+         "scalars": {k: {"mean": v[0], "sigma": v[1]} for k, v in p["scalars"].items()}, "samples": p["n_samples"], "elapsedS": round(time.time() - t0, 3),
+         "advice": "y is peak-normalised; the band is 1 sigma over parameter draws. A prediction outside the fitted conditions is an extrapolation: say so."}
+    return _clean(r)
+
+
+OPS = {"validate": validate, "describe": describe, "run": run, "scan": scan, "compare": compare, "fit": fit, "plot": plot, "study": study, "backward": backward,
+       "twin_fit": twin_fit, "twin_validate": twin_validate, "twin_predict": twin_predict}

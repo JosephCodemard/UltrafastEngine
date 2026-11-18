@@ -28,3 +28,9 @@ backend (`docs/reference/plotting.md`).
    goal, the margins, the assumptions (every value that is a guess, with its source), and what was not modelled.
 
 Do not present a design whose limits were not checked, or one found at the boundary of a scan without saying so.
+
+## Fidelity: explore in `quick`, confirm in `full` (a rule, not a tip)
+
+The tools' default fidelity is `full`, which is slow. Every exploratory scan, study, run, comparison or fit passes `"fidelity": "quick"` (Raman, self-steepening and
+polarisation dropped; seconds instead of minutes). Run only the point or points you will report again with `"fidelity": "full"`, and say in the answer which numbers came from
+`quick` and which from `full`. Never quote a `quick` number as a result; never explore in `full`. A failed point in `quick` is a reason to look, not to switch to `full` for the whole scan.

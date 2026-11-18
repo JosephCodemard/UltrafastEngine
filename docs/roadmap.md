@@ -8,23 +8,23 @@ installed separately, loaded through public interfaces, never required by the co
 
 ## In 1.0.0
 
-Everything of 1.0.0 is built and tested; what remains are steps that only the maintainer can take (accounts, tags, a Mac build):
+The first public release is the **alpha 1.0.0a1**: everything described in [capabilities](capabilities.md) is built and tested, and use in real labs will show what still needs fixing before 1.0.0.
+Alphas (`1.0.0a2`, ...) carry those fixes. What remains are steps that only the maintainer can take (accounts, tags, a Mac build):
 
 1. **Publishers and environments:** create the pending trusted publishers for `ultrafast-engine` on PyPI and TestPyPI, and the protected environments `testpypi` and `pypi` in the
    repository settings; switch GitHub Pages to "GitHub Actions".
-2. **Release candidate:** tag `v1.0.0rc1`; the workflow uploads to TestPyPI. Then check the install in a fresh environment on Linux, Windows and macOS: `pip install` from TestPyPI, the quick start,
-   one strict example, `ultrafast-mcp` and `ultrafast agent list`.
-3. **Release:** tag `v1.0.0`; approve the `pypi` environment. Install is `pip install "ultrafast-engine[hosted]"` (the import name is `ultrafast`).
+2. **Alpha:** tag `v1.0.0a1`; approve the `pypi` environment. Check the install in a fresh environment on Linux, Windows and macOS: `pip install --pre "ultrafast-engine[hosted]"`, the quick start,
+   one strict example, `ultrafast-mcp` and `ultrafast agent list`. (A rehearsal on TestPyPI is a tag `v1.0.0rc1`.)
+3. **Settle:** fix what the alpha shows in further alphas, then tag `v1.0.0`. Install is then `pip install "ultrafast-engine[hosted]"` (the import name is `ultrafast`).
 4. **macOS NativeAOT wheel:** built on the maintainer's Mac with `./build.sh --python --python-engine native` and attached to the release (there is no macOS runner for this repository).
 
 ## Next
 
 Version 1.1.0 and after, most useful first. Each item says what is done when it is done.
 
-1. **Agents (extensions of the shipped pack and server):**
-   * *Live evaluation:* score the five evaluation prompts (`tests/agent-evals/`) with at least two different agents; the criteria and the replays of reference trajectories exist, no live transcript has been scored yet. The quick-then-confirm prompt must pass for both.
-   * *MCP tools for studies and for the digital twin:* the `study` and `backward` sections of a run spec, and the `ultrafast twin` commands, each with its refusals, a time budget and a test that the budget kills the call.
-   * *One source for the skills:* the development `.claude/skills` and the shipped pack are two copies kept equal by a test; make the pack the only copy and generate the other.
+1. **Agents (extensions of the shipped pack and server):** the 13 MCP tools, six skills and seven evals are in the alpha. To do: score all seven evals with a live agent (only the mandatory one has been scored:
+   Sonnet and Haiku passed) and with a third agent family (Codex, Cursor), with an adapter that reads their transcripts; MCP tools `twin_design` (the next measurement to take) and `twin_track` (drift);
+   a user pack that mentions nothing of the repository's development rules.
 2. **Speed and GPU:** for rapid calculations on the device. In this order: (a) the plasma term of χ(2) crystals (ionisation in BBO, LBO, KTP) in the coupled-wave kernel, 1-D first and then spatial, parity 1e-9 with the CPU;
    (b) rate-equation gain with spectrally resolved ASE for amplifier chains, so that a regenerative-amplifier scan runs on the device; (c) FROG, d-scan and cross-correlator traces as batched 2-D transforms on the device;
    (d) spatial χ(2) and spatial mixed precision; (e) multi-GPU studies and Apple Metal single precision for quick-fidelity scans. Benchmarks on a data-centre GPU (full-rate FP64) are missing; the current ones are an RTX 3060 Ti and an Apple M3 CPU ([speed](reference/speed.md#benchmarks)).

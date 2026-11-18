@@ -34,7 +34,9 @@ _META = "io.modelcontextprotocol/"
 
 INSTRUCTIONS = (
     "UltrafastEngine: nonlinear ultrafast pulse propagation through optical systems. Files live in the workspace; results are written to .ultrafast-mcp/<name>/. "
-    "Workflow: describe or validate the system, explore with scan or run in fidelity 'quick', confirm the points you report in fidelity 'full', "
+    "RULE: the default fidelity is 'full' (slow). Every exploratory call (scan, study, run, compare_to_measured, fit) must pass fidelity 'quick'; run only the points you will report "
+    "again in fidelity 'full', and say in the answer which numbers came from which level. "
+    "Workflow: describe or validate the system, explore in fidelity 'quick', confirm the reported points in 'full', "
     "read the warnings and 'validity' of every result (explain_warning), then plot. SI units everywhere, the unit is in the key name (lengthM, energyJ). "
     "Read the schema resources before writing a file. This server runs no user code: no callbacks ('@name'), no python or expression kinds.")
 
@@ -164,9 +166,9 @@ class McpServer:
                 res = _explain.explain(args.get("warning"), args.get("code"))
             else:
                 wargs = _tools.prepare(name, args, self.ws)
-                if tool.op == "fit":
+                if tool.op in ("fit", "twin_fit"):
                     timeout = min(float(wargs.pop("timeBudgetS", self.budget_s)), self.budget_s)
-                elif tool.op in ("run", "scan", "compare"):
+                elif tool.op in ("run", "scan", "compare", "study", "backward", "twin_validate", "twin_predict"):
                     timeout = self.budget_s
                 else:
                     timeout = min(tool.timeout_s, self.budget_s)

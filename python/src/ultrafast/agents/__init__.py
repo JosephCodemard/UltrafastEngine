@@ -42,6 +42,11 @@ def _split(text: str):
     return meta, m.group(2).lstrip("\n")
 
 
+def _write(p: Path, text: str) -> None:
+    """Write UTF-8 with LF line ends on every OS (write_text gives CRLF on Windows; ``ultrafast agent install`` writes LF)."""
+    p.write_bytes(text.encode("utf-8"))
+
+
 def install(target: str, dest: Path, force: bool = False) -> List[Path]:
     """Write the pack for ``target`` under ``dest``; returns the files written. Raises ``FileExistsError`` for an existing skill file unless ``force``."""
     if target not in TARGETS:
@@ -55,7 +60,7 @@ def install(target: str, dest: Path, force: bool = False) -> List[Path]:
             if p.exists() and not force:
                 raise FileExistsError("%s exists (use --force to overwrite)" % p)
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(text.rstrip("\n") + FOOTER, encoding="utf-8")
+            _write(p, text.rstrip("\n") + FOOTER)
             written.append(p)
     elif target == "cursor":
         for name, text in sk.items():
@@ -64,7 +69,7 @@ def install(target: str, dest: Path, force: bool = False) -> List[Path]:
             if p.exists() and not force:
                 raise FileExistsError("%s exists (use --force to overwrite)" % p)
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text("---\ndescription: %s\nalwaysApply: false\n---\n%s" % (meta.get("description", name), body.rstrip("\n") + FOOTER), encoding="utf-8")
+            _write(p, "---\ndescription: %s\nalwaysApply: false\n---\n%s" % (meta.get("description", name), body.rstrip("\n") + FOOTER))
             written.append(p)
     else:
         block = [BEGIN, "# UltrafastEngine skills (installed by `ultrafast-agent install --target codex`)", ""]
@@ -80,7 +85,7 @@ def install(target: str, dest: Path, force: bool = False) -> List[Path]:
         else:
             new = (old.rstrip("\n") + "\n\n" if old.strip() else "") + "\n".join(block)
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(new, encoding="utf-8")
+        _write(p, new)
         written.append(p)
     return written
 
