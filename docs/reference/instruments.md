@@ -30,8 +30,8 @@ warning when a name you gave is used twice.
 | `dscan` | `material` + `insertionM` [min, max], or `gddRangeS2` [min, max]; `steps`, `spectralResolutionM`, `shgAcceptanceFwhmM` | SHG trace vs insertion/GDD, integrated SHG, FWHM vs scan, optimum |
 | `contrast` | `resolutionS`, `windowS`, `dynamicRangeDb` | intensity in dB; pre/post-pulse contrast; pedestal energy fraction |
 | `polarimeter` | `points`, `extinctionRatio` | Stokes s1, s2, s3 (integrated and vs wavelength), degree of polarisation, azimuth, ellipticity |
-| `pulseSummary` | | every scalar pulse metric (see results.md) |
-| `compressor` | `optimizeTod` (true), `maxN` | ideal compressor: the GDD/TOD that maximises peak power, compressed FWHM, Strehl |
+| `pulseSummary` | | every scalar pulse metric of [results.md](results.md#pulse-metrics-input-output-and-per-element-pulse), including `peakCount`, `fwhmEnergyFraction`, `mainLobeFwhmS`, `mainLobeEnergyFraction` and `satellitePeakCount` ([main lobe](results.md#main-lobe-of-a-multi-peaked-pulse)) |
+| `compressor` | `optimizeTod` (true), `maxN` | ideal compressor: the GDD/TOD that maximises peak power, compressed FWHM, `compressedMainLobeFwhmS` and `compressedMainLobeEnergyFraction` ([main lobe](results.md#main-lobe-of-a-multi-peaked-pulse)), Strehl |
 | `conversion` | `at`: an active element (crystal) | energy and photon number of the main output and every by-product, aux energy in, efficiencies (vs input, vs all energy in), by-product centroids |
 | `phaseMatchingCurve` | `at`: a crystal; `scan`: `angle` (`rangeDeg`), `wavelength` (`rangeM`), `temperature` (`rangeK`), `period` (`rangeM`); `points` | low-conversion sinc²(ΔkL/2) and Δk vs the scan variable, peak, FWHM ([Crystals](crystals.md)) |
 | `delayScan` | `at`: a crystal with aux beams; `fromS`, `toS`, `points` | re-runs the crystal on the pulse that entered it for each aux delay: output energy vs delay, optimum |

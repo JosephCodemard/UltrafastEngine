@@ -93,6 +93,20 @@ namespace UltrafastEngine.Tests
                 }
         }
 
+        [Test(Category = "gpu", Reference = "cross-check: the CPU stepper's power-weighted B (sum P dn / sum P per step, uf_pmean on the device)", Tolerance = "1e-8 (same scheme and steps; reductions in a different order)")]
+        public void BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu()
+        {
+            // regression E1: on CUDA / OpenCL bIntegralPulseAveragedRad and bIntegralBeamAveragedRad were 0 per element and in the totals;
+            // the 1-D device stepper now accumulates the power-weighted mean itself, so the device equals the CPU (with the air gaps' Raman)
+            foreach (var b in AllDevices())
+            {
+                var cpu = Go(ValidityTests.PlatesAndGaps(), ValidityTests.PlatesAndGapsRun(O("backend", "cpu")));
+                var dev = Go(ValidityTests.PlatesAndGaps(), ValidityTests.PlatesAndGapsRun(On(b)));
+                Assert.True(OnDevice(dev), b.Name + ": ran on the device: " + Notes(dev));
+                ValidityTests.CompareAveragedB(cpu, dev, 1e-8);   // the device accumulates sum P dn / sum P per step as the CPU does
+            }
+        }
+
         /// <summary>A 1-D gas cell with the rotational (orientational) Raman response of a molecular gas.</summary>
         private static RunResult GasCell(string backend, GpuBackend b, JsonObject gas, JsonValue polarization, string method, int n = 2048)
         {

@@ -17,6 +17,15 @@ namespace UltrafastEngine.Results
         public int PeakCount;
         /// <summary>Fraction of the energy between the outermost half-maximum crossings (erf(sqrt(ln 2)) = 0.761 for a Gaussian, 1/sqrt 2 for sech^2).</summary>
         public double FwhmEnergyFraction = double.NaN;
+        /// <summary>FWHM of the main lobe only: the contiguous region with power at least half the maximum that contains the global peak, between its
+        /// linearly interpolated half-maximum crossings (<see cref="PulseMetrics.MainLobe"/>). Equals <see cref="FwhmS"/> for a single pulse; smaller
+        /// when a satellite or pedestal also crosses half maximum.</summary>
+        public double MainLobeFwhmS = double.NaN;
+        /// <summary>Fraction of the energy in the main lobe, bounded on each side by the first local minimum or the first 5 %-of-peak crossing
+        /// outside its half-maximum crossings, whichever is nearer (erf(sqrt(ln 20)) = 0.98562 for a Gaussian).</summary>
+        public double MainLobeEnergyFraction = double.NaN;
+        /// <summary>Separate half-maximum intervals other than the main lobe: <see cref="PeakCount"/> - 1 (0 for a single pulse).</summary>
+        public int SatellitePeakCount;
     }
 
     public static class PulseMetrics
@@ -54,16 +63,64 @@ namespace UltrafastEngine.Results
             // integrate the piecewise-linear y between the interpolated outermost crossings (index units; the same crossings as Fwhm)
             double a = first > 0 ? first - 1 + (half - y[first - 1]) / (y[first] - y[first - 1]) : 0;
             double b = last < n - 1 ? last + (half - y[last]) / (y[last + 1] - y[last]) : n - 1;
-            double Y(double x) { int i = Math.Min(n - 2, Math.Max(0, (int)Math.Floor(x))); double f = x - i; return y[i] + f * (y[i + 1] - y[i]); }
-            int ia = (int)Math.Ceiling(a), ib = (int)Math.Floor(b);
-            if (ia > ib) inside = 0.5 * (Y(a) + Y(b)) * (b - a);
-            else
-            {
-                inside = 0.5 * (Y(a) + y[ia]) * (ia - a) + 0.5 * (y[ib] + Y(b)) * (b - ib);
-                for (int i = ia; i < ib; i++) inside += 0.5 * (y[i] + y[i + 1]);
-            }
-            tot = 0; for (int i = 0; i < n - 1; i++) tot += 0.5 * (y[i] + y[i + 1]);
+            inside = IntegrateLinear(y, a, b);
+            tot = IntegrateLinear(y, 0, n - 1);
             return (count, tot > 0 ? inside / tot : double.NaN);
+        }
+
+        /// <summary>Level, as a fraction of the peak, at which the main lobe's energy window ends when no minimum comes first (5 %).</summary>
+        public const double MainLobeFloor = 0.05;
+
+        /// <summary>
+        /// The main lobe of y(x): the contiguous run of samples with y &gt;= max / 2 that contains the global maximum (the first sample of the
+        /// maximum if it repeats). Width = distance between its half-maximum crossings, linearly interpolated as in <see cref="Fwhm"/>
+        /// (NaN when the run reaches the window edge). Energy fraction = integral of the piecewise-linear y between two bounds, over its integral
+        /// across the window; each bound is found walking outward from the half-maximum crossing: the first sample that is a local minimum
+        /// (the next sample outward is larger), or the linearly interpolated crossing of <see cref="MainLobeFloor"/> x max, whichever comes first
+        /// (the window edge if neither does). For a Gaussian the bounds are the 5 % points and the fraction is erf(sqrt(ln 20)) = 0.98562.
+        /// </summary>
+        public static (double Fwhm, double EnergyFraction) MainLobe(double[] x, double[] y)
+        {
+            int n = y.Length; if (n < 3) return (double.NaN, double.NaN);
+            int im = 0; for (int i = 1; i < n; i++) if (y[i] > y[im]) im = i;
+            double mx = y[im]; if (!(mx > 0)) return (double.NaN, double.NaN);
+            double half = 0.5 * mx, floor = MainLobeFloor * mx;
+            int l = im; while (l > 0 && y[l - 1] >= half) l--;
+            int r = im; while (r < n - 1 && y[r + 1] >= half) r++;
+            double fw = double.NaN;
+            if (l > 0 && r < n - 1)
+            {
+                double xl = x[l - 1] + (half - y[l - 1]) / (y[l] - y[l - 1]) * (x[l] - x[l - 1]);
+                double xr = x[r] + (half - y[r]) / (y[r + 1] - y[r]) * (x[r + 1] - x[r]);
+                fw = Math.Abs(xr - xl);
+            }
+            // energy bounds (index units): outward from the half-maximum crossing to the first minimum or 5 % crossing
+            double a = 0;
+            for (int i = l - 1; i >= 0; i--)
+            {
+                if (y[i] <= floor) { a = i + (floor - y[i]) / (y[i + 1] - y[i]); break; }
+                if (i > 0 && y[i - 1] > y[i]) { a = i; break; }
+            }
+            double b = n - 1;
+            for (int i = r + 1; i <= n - 1; i++)
+            {
+                if (y[i] <= floor) { b = i - (floor - y[i]) / (y[i - 1] - y[i]); break; }
+                if (i < n - 1 && y[i + 1] > y[i]) { b = i; break; }
+            }
+            double tot = IntegrateLinear(y, 0, n - 1);
+            return (fw, tot > 0 ? IntegrateLinear(y, a, b) / tot : double.NaN);
+        }
+
+        /// <summary>Integral of the piecewise-linear interpolant of y over the fractional index range [a, b] (unit spacing).</summary>
+        private static double IntegrateLinear(double[] y, double a, double b)
+        {
+            int n = y.Length; if (n < 2 || !(b > a)) return 0;
+            double Y(double t) { int i = Math.Min(n - 2, Math.Max(0, (int)Math.Floor(t))); double f = t - i; return y[i] + f * (y[i + 1] - y[i]); }
+            int ia = (int)Math.Ceiling(a), ib = (int)Math.Floor(b);
+            if (ia > ib) return 0.5 * (Y(a) + Y(b)) * (b - a);
+            double s = 0.5 * (Y(a) + y[ia]) * (ia - a) + 0.5 * (y[ib] + Y(b)) * (b - ib);
+            for (int i = ia; i < ib; i++) s += 0.5 * (y[i] + y[i + 1]);
+            return s;
         }
 
         public static (double Mean, double Rms) Moments(double[] x, double[] w)
@@ -177,6 +234,8 @@ namespace UltrafastEngine.Results
             s.PeakPowerW = pt.Max();
             s.FwhmS = Fwhm(g.Time, pt);
             (s.PeakCount, s.FwhmEnergyFraction) = HalfMaximumStructure(pt);
+            (s.MainLobeFwhmS, s.MainLobeEnergyFraction) = MainLobe(g.Time, pt);
+            s.SatellitePeakCount = Math.Max(0, s.PeakCount - 1);
             var (tm, trms) = Moments(g.Time, pt);
             s.CentroidTimeS = tm; s.RmsWidthS = trms;
             var tl = TransformLimitedPower(p);

@@ -316,6 +316,17 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
 * **Moved to v1.1.0** (design-heavy, no release blocker, each listed in `roadmap-internal.md`): glass in beam splitters, delayed-response window planning, non-collinear OPA overlap test, study schema, carrier frame, one-cycle pulses, Kerr-lensed beam carried on, spatial XPW, cross-correlator, `multiFrog`, birth phase, frequency-dependent A_eff, GPU Chi2 plasma / gain with ASE / instrument read-outs, multi-GPU and Apple Metal FP32, full conversion of every example README to the template, coverage and mypy in CI.
 * **Not done:** tags and PyPI uploads (owner); net48 on Mono not available here.
 
+## Stage 17 -- GPU pulse-averaged B (E1) and the main-lobe FWHM  (2026-11-24, `mpc-session6`, Windows, RTX 3060 Ti)
+
+* **E1, GPU pulse- and beam-averaged B were 0.** `StepStatistics.BIntegralPulseAveragedRad` had no initialiser (0); the executor estimates the
+  average only when it is NaN, so on CUDA / OpenCL (whose steppers never touched it) every element and `totals` reported 0. Fixed twice over: the
+  default is NaN (the CPU steppers set 0 when they start), and the 1-D device stepper computes the exact average (`uf_pmean`: Σ P, Σ P Δn
+  beside `uf_peak`, one read-back) so CPU and GPU agree to 1e-8 on plates and nonlinear air gaps. The shape-based estimate that remains for the
+  ensemble stepper is about 8 % high in air gaps, whose rotational Raman response is delayed (160 fs pulses).
+* **Main-lobe width:** `mainLobeFwhmS`, `mainLobeEnergyFraction` (bounds: first local minimum or 5 % of peak outside the half-maximum crossings;
+  erf(√ln 20) = 0.9856 for a Gaussian), `satellitePeakCount` (= `peakCount` − 1) in every pulse summary, `pulseSummary` and `compressor`;
+  the plots use it. Prompted by multipass-cell soliton compression, where a satellite above 50 % made `fwhmS` jump from ~10 fs to > 100 fs.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

@@ -13,8 +13,26 @@ from .style import _Style, _auto_floor, _cmap, _db, _figure, _note, _plt, _sanit
 from .time_domain import _time_axis, temporal
 
 
+def _num(v):
+    return np.nan if v is None else float(v)
+
+
+def _pulse_widths(pulses):
+    """The duration to plot for each pulse summary (a list of ``summary["elements"][i]["pulse"]``-like dicts): ``mainLobeFwhmS`` when
+    the engine reports it, else ``fwhmS``. Returns ``(main, outer, has_main)``. ``fwhmS`` spans the outermost half-maximum crossings, so a
+    satellite or pedestal that crosses 50 % makes it jump (a 10 fs main peak can read > 100 fs); ``mainLobeFwhmS`` is the width of the
+    region around the highest peak only (docs/reference/results.md). Summaries written before 2026-11 have no ``mainLobeFwhmS``."""
+    outer = np.array([_num(p.get("fwhmS")) for p in pulses], float)
+    has_main = any(p.get("mainLobeFwhmS") is not None for p in pulses)
+    main = np.array([_num(p.get("mainLobeFwhmS")) for p in pulses], float) if has_main else outer
+    return main, outer, has_main
+
+
 def evolution(res, axs=None):
-    """Energy, FWHM and cumulative B-integral after each element (three stacked panels, shared x)."""
+    """Energy, FWHM and cumulative B-integral after each element (three stacked panels, shared x).
+
+    The FWHM panel plots the main-lobe FWHM (``mainLobeFwhmS``) when the summary has it, and the outer-crossing ``fwhmS`` as a dashed
+    line where the two differ (a satellite above half maximum), so a pulse whose main peak stays short does not look as if it exploded."""
     _, plt = _plt()
     res = load(res)
     els = res.summary["elements"]
@@ -24,13 +42,17 @@ def evolution(res, axs=None):
             axs = fig.subplots(3, 1, sharex=True)
         x = np.arange(len(els))
         e = np.array([el["energyOutJ"] for el in els])
-        f = np.array([el["pulse"]["fwhmS"] for el in els])
+        f, f_outer, has_main = _pulse_widths([el["pulse"] for el in els])
         b = np.array([el["cumulativeBIntegralRad"] for el in els])
         es, ep = _si(e.max()); fs, fp = _si(np.nanmax(f))
-        rows = [(axs[0], e / es, f"energy ({ep}J)"), (axs[1], f / fs, f"FWHM ({fp}s)"), (axs[2], b, "cum. B (rad)")]
+        rows = [(axs[0], e / es, f"energy ({ep}J)"), (axs[1], f / fs, f"{'main-lobe ' if has_main else ''}FWHM ({fp}s)"), (axs[2], b, "cum. B (rad)")]
         for ax, y, lab in rows:
             ax.plot(x, y, "-", color=_theme["series"][0], marker="o" if len(x) <= 40 else None, ms=3.5)
             ax.set_ylabel(lab)
+        if has_main and np.any(np.abs(f_outer - f) > 1e-3 * np.abs(f)):
+            axs[1].plot(x, f_outer / fs, "--", color=_theme["ref"], lw=1.0, label="fwhmS (outer crossings)")
+            axs[1].plot([], [], "-", color=_theme["series"][0], label="main lobe")
+            axs[1].legend(loc="best", fontsize=7)
         axs[0].set_title("Through the system")
         _element_ticks(axs[-1], els)
     return axs
@@ -171,7 +193,9 @@ def elements(res):
         return np.array([np.nan if (v := f(e)) is None else v for e in els], float)
     panels = [
         ("energy out", col(lambda e: e["energyOutJ"]), "J"),
-        ("pulse FWHM", col(lambda e: e["pulse"]["fwhmS"]), "s"),
+        ("pulse FWHM (main lobe)" if any("mainLobeFwhmS" in e["pulse"] for e in els) else "pulse FWHM",
+         col(lambda e: e["pulse"].get("mainLobeFwhmS", e["pulse"]["fwhmS"])), "s"),
+        ("pulse FWHM (outer crossings, spans satellites)", col(lambda e: e["pulse"]["fwhmS"] if e["pulse"].get("satellitePeakCount", 0) else None), "s"),
         ("peak power", col(lambda e: e["pulse"]["peakPowerW"]), "W"),
         ("cumulative B-integral", col(lambda e: e["cumulativeBIntegralRad"]), "rad"),
         ("system GDD", col(lambda e: e["system"]["gddS2"]), "s^2"),
