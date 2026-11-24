@@ -57,6 +57,12 @@ namespace UltrafastEngine.Plugins.Gpu
 
         /// <summary>rate = N(state) at z; k0 x peak index change when <paramref name="wantPeak"/> (else NaN).</summary>
         protected abstract double Nonlinear(GpuBuffer state, double z, GpuBuffer rate, bool wantPeak);
+        /// <summary>Power-weighted mean over peak of the index change at the last <see cref="Nonlinear"/> call with wantPeak
+        /// (as <see cref="IMeanIndexChange.LastMeanToPeak"/>); NaN when the subclass does not compute it.</summary>
+        protected double LastMeanToPeak = double.NaN;
+        /// <summary>True when <see cref="LastMeanToPeak"/> is set: the stepper then accumulates the pulse-averaged B-integral as the CPU
+        /// steppers do; otherwise StepStatistics.BIntegralPulseAveragedRad stays NaN and the executor estimates it.</summary>
+        protected virtual bool ReportsMean => false;
         protected virtual double AreaAt(double z) => 1.0;
         /// <summary>The first breakpoint strictly after z (QPM domain walls; <see cref="IBreakpoints"/>), or +infinity.</summary>
         protected virtual double NextBreakpoint(double z) => double.PositiveInfinity;
@@ -94,7 +100,8 @@ namespace UltrafastEngine.Plugins.Gpu
             GpuBuffer a = Buf(bytes), kN = Buf(bytes), half = Buf(bytes), aI = Buf(bytes), k1 = Buf(bytes), k2 = Buf(bytes), k3 = Buf(bytes),
                       k4 = Buf(bytes), k5 = Buf(bytes), tmp = Buf(bytes), beta = Buf(bytes), a4 = Buf(bytes);
             S.Write(a, Natural(a0In, Rows));
-            double pk = Nonlinear(a, 0, kN, true);
+            double pk = Nonlinear(a, 0, kN, true), rk = LastMeanToPeak;
+            if (ReportsMean) stats.BIntegralPulseAveragedRad = 0;   // accumulated as in Steppers.AdaptiveErk43Ip
             double h = pk > 0 ? Math.Min(Lm, st.MaxNonlinearPhasePerStepRad / pk) : Lm;
             h = Math.Min(h, st.MaxStepM);
             double z = 0, lastReport = 0;
@@ -122,7 +129,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 Nonlinear(tmp, zEnd, k4, false);
                 S.Launch("uf_rk_beta", GLen, half, aI, k1, k2, k3, h, beta, Len);
                 S.Launch("uf_rk_final", GLen, beta, k4, h, a4, Len);
-                double pk5 = Nonlinear(a4, zEnd, k5, true);
+                double pk5 = Nonlinear(a4, zEnd, k5, true), rk5 = LastMeanToPeak;
                 S.Launch("uf_rk_err", GLen, beta, a4, k4, k5, h, Len, Part, 0);
                 S.Read(Part, PartHost, 0, 2 * GLen);
                 double num = 0, den = 0;
@@ -133,10 +140,11 @@ namespace UltrafastEngine.Plugins.Gpu
                 {
                     stats.Accepted++;
                     stats.BIntegralRad += 0.5 * (pk + pk5) * h;
+                    if (ReportsMean) stats.BIntegralPulseAveragedRad += 0.5 * (pk * rk + pk5 * rk5) * h;
                     stats.MinStepM = Math.Min(stats.MinStepM, h); stats.MaxStepM = Math.Max(stats.MaxStepM, h);
-                    z += h; pk = pk5;
+                    z += h; pk = pk5; rk = rk5;
                     { var t = a; a = a4; a4 = t; t = kN; kN = k5; k5 = t; }
-                    if (onWall && z < Lm * (1 - 1e-12)) pk = Nonlinear(a, z + 1e-9 * h, kN, true);   // the other side of the wall
+                    if (onWall && z < Lm * (1 - 1e-12)) { pk = Nonlinear(a, z + 1e-9 * h, kN, true); rk = LastMeanToPeak; }   // the other side of the wall
                     if (forced && err > st.Tolerance && !stats.Notes.Contains("tolerance not met at minimum step")) stats.Notes.Add("tolerance not met at minimum step");
                     if (progress != null && (z / Lm - lastReport >= 0.005 || z >= Lm * (1 - 1e-12))) { lastReport = z / Lm; progress(Math.Min(1.0, z / Lm)); }
                 }
@@ -172,12 +180,13 @@ namespace UltrafastEngine.Plugins.Gpu
             Exp(0.5 * h, half);
             int every = Math.Max(1, steps / 200);
             stats.Method = "rk4ip (fixed)";
+            if (ReportsMean) stats.BIntegralPulseAveragedRad = 0;   // accumulated as in Steppers.FixedRk4Ip
             if (NextBreakpoint(0) < LengthM) stats.Notes.Add(Steppers.FixedStepsIgnoreBreakpoints);
             for (int s = 0; s < steps; s++)
             {
                 double z = s * h;
                 Mul(half, a, aI);
-                double pk = Nonlinear(a, z, k, true);
+                double pk = Nonlinear(a, z, k, true), rk = LastMeanToPeak;
                 Mul(half, k, k1);
                 Axpy(aI, 0.5 * h, k1, tmp); Nonlinear(tmp, z + 0.5 * h, k2, false);
                 Axpy(aI, 0.5 * h, k2, tmp); Nonlinear(tmp, z + 0.5 * h, k3, false);
@@ -186,6 +195,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 S.Launch("uf_rk_beta", GLen, half, aI, k1, k2, k3, h, beta, Len);
                 S.Launch("uf_rk_final", GLen, beta, k, h, a, Len);
                 stats.Accepted++; stats.BIntegralRad += pk * h;
+                if (ReportsMean) stats.BIntegralPulseAveragedRad += pk * rk * h;
                 stats.MinStepM = Math.Min(stats.MinStepM, h); stats.MaxStepM = Math.Max(stats.MaxStepM, h);
                 if (progress != null && ((s + 1) % every == 0 || s == steps - 1)) progress((s + 1.0) / steps);
             }
@@ -228,7 +238,7 @@ namespace UltrafastEngine.Plugins.Gpu
         public static bool SupportsMixed(EnvelopeDeviceSpec p) => p.RotationalKernelFreq == null && p.Responses == null && p.Plasma == null && GpuFft.BuiltInSupports(p.N);
 
         public EnvelopeStepper(GpuStream s, EnvelopeDeviceSpec p, bool allowVendorFft = true, bool mixed = false)
-            : base(s, p.Scalar ? 1 : 2, p.N, p.LinearRate, p.LengthM, 4 * s.Context.Groups(p.N * (p.Scalar ? 1 : 2)) + 4)
+            : base(s, p.Scalar ? 1 : 2, p.N, p.LinearRate, p.LengthM, 6 * s.Context.Groups(p.N * (p.Scalar ? 1 : 2)) + 4)
         {
             _p = p;
             _n = p.N; _comp = Rows;
@@ -358,14 +368,12 @@ namespace UltrafastEngine.Plugins.Gpu
             }
             S.Launch("uf_env_kerr_f", _gN, _Tf, _Cf, _n, _p.Scalar ? 1 : 0, _raman, invA, _p.K0, _p.N2, _p.RamanFraction, _p.DTime, _cc0 / aeff, _Rf, _P, _D, Part, po);
             if (wantPeak) S.Launch("uf_peak", _gN, _P, _D, _n, Part, po, _gN, po + _gN);
+            if (wantPeak) S.Launch("uf_pmean", _gN, _P, _D, _n, Part, po, _gN, po + 2 * _gN);   // sum P and sum P D: the pulse-averaged B
             _fftStateF.Transform(_Rf, +1, false);
             S.Launch("uf_f2d", GLen, _Rf, rate, Len);
             if (_F != null) S.Launch("uf_scale_real", GLen, rate, _F, _n, Len);
             if (!wantPeak) return double.NaN;
-            S.Read(Part, PartHost, po + _gN, _gN);
-            double pk = 0;
-            for (int g = 0; g < _gN; g++) pk = Math.Max(pk, PartHost[g]);
-            return _p.K0 * pk;
+            return PeakAndMean(po);
         }
 
         protected override double Nonlinear(GpuBuffer state, double z, GpuBuffer rate, bool wantPeak)
@@ -415,6 +423,7 @@ namespace UltrafastEngine.Plugins.Gpu
             S.Launch("uf_env_kerr", _gN, _T, _C, _n, _p.Scalar ? 1 : 0, _raman, invA, _p.K0, _p.N2, _p.RamanFraction, _p.DTime,
                 _cc0 / aeff, rate, _P, _D, Part, po, _Q, _rot, _m, _U, anyU ? 1 : 0, disp ? _plD : _U, disp ? 1 : 0);
             if (wantPeak) S.Launch("uf_peak", _gN, _P, _D, _n, Part, po, _gN, po + _gN);
+            if (wantPeak) S.Launch("uf_pmean", _gN, _P, _D, _n, Part, po, _gN, po + 2 * _gN);   // sum P and sum P D: the pulse-averaged B
             _fftState.Transform(rate, +1, false);
             if (_F != null) S.Launch("uf_scale_real", GLen, rate, _F, _n, Len);
             if (disp)
@@ -425,12 +434,22 @@ namespace UltrafastEngine.Plugins.Gpu
                 S.Launch("uf_plasma_dadd", GLen, rate, _plP, _plS, _n, Len);
             }
             if (!wantPeak) return double.NaN;
-            S.Read(Part, PartHost, po + _gN, _gN);
-            double pk = 0;
-            for (int g = 0; g < _gN; g++) pk = Math.Max(pk, PartHost[g]);
-            return _p.K0 * pk;
+            return PeakAndMean(po);
         }
 
+
+        protected override bool ReportsMean => true;
+
+        /// <summary>Reads the per-group peaks (uf_peak) and sums (uf_pmean) in one transfer: returns k0 x the peak index change and sets
+        /// <see cref="DeviceStepper.LastMeanToPeak"/> = (sum P D / sum P) / peak, as EnvelopeProblem.PeakIndexChange does on the CPU.</summary>
+        private double PeakAndMean(int po)
+        {
+            S.Read(Part, PartHost, po + _gN, 3 * _gN);
+            double pk = 0, sp = 0, spd = 0;
+            for (int g = 0; g < _gN; g++) { pk = Math.Max(pk, PartHost[g]); sp += PartHost[_gN + g]; spd += PartHost[2 * _gN + g]; }
+            LastMeanToPeak = pk > 0 && sp > 0 ? spd / sp / pk : 0;
+            return _p.K0 * pk;
+        }
 
         public override void Dispose()
         {

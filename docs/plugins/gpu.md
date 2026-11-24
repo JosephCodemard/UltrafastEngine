@@ -177,6 +177,13 @@ the engine's centred spectral transforms become plain FFTs; the time→frequency
 unnormalised, frequency→time exponent -1 with 1/N, as `SpectralTransform`. A new physics term must be added to the
 CPU operator, to `DeviceSpec()` (or make it return null), to the kernel and to `GpuTests`.
 
+B-integral accounting: with the peak of the index change (`uf_peak`), the 1-D envelope stepper reduces Σ P and Σ P Δn over the same samples
+(`uf_pmean`, read back in the same transfer) and accumulates `bIntegralPulseAveragedRad` exactly as the CPU steppers do
+(`DeviceStepper.ReportsMean`). A device stepper that does not (ensemble, spatial, χ(2)) leaves `StepStatistics.BIntegralPulseAveragedRad` at
+NaN, and the executor estimates it from the entry and exit pulse shapes ([nonlinear](../reference/nonlinear.md)). Until 2026-11-24 the
+default was 0, which the executor took as a measured value: GPU runs reported 0 pulse- and beam-averaged B
+(`GpuTests.BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu`).
+
 Tests: `tests/UltrafastEngine.Tests/GpuTests.cs` compares every path with the CPU (1e-9 required). Machines without
 a GPU can run them on the CPU through PoCL:
 

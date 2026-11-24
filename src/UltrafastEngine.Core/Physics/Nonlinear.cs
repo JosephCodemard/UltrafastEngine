@@ -140,8 +140,10 @@ namespace UltrafastEngine.Physics
         public double BIntegralRad { get; set; }
         /// <summary>B-integral with the index change weighted by the power over the pulse at each step (sum_t P dn / sum_t P), on axis;
         /// NaN when the problem does not report it (then the executor estimates it). For an unchanged Gaussian pulse with an instantaneous
-        /// Kerr response it is BIntegralRad / sqrt(2).</summary>
-        public double BIntegralPulseAveragedRad { get; set; }
+        /// Kerr response it is BIntegralRad / sqrt(2). The default is NaN ("not reported"): the managed CPU steppers set it to 0 when they
+        /// start and accumulate it; a stepper that does not (the GPU device steppers) leaves NaN, and the executor then estimates it from the
+        /// entry and exit pulse shapes. (A default of 0 made the GPU path report 0, which the executor took as a measured value.)</summary>
+        public double BIntegralPulseAveragedRad { get; set; } = double.NaN;
         public string Representation { get; set; } = "envelope";
         public List<string> Notes { get; } = new List<string>();
     }
@@ -935,6 +937,7 @@ namespace UltrafastEngine.Physics
             var k = new Complex[n];
             int every = Math.Max(1, steps / 200);
             stats.Method = "rk4ip (fixed)";
+            stats.BIntegralPulseAveragedRad = 0;   // accumulated below (NaN when the problem does not report its mean-to-peak ratio)
             if (p is IBreakpoints bpf && bpf.NextBreakpoint(0) < p.LengthM) stats.Notes.Add(FixedStepsIgnoreBreakpoints);
             for (int s = 0; s < steps; s++)
             {
@@ -987,6 +990,7 @@ namespace UltrafastEngine.Physics
             Complex[] half = new Complex[n], aI = new Complex[n], k1 = new Complex[n], k2 = new Complex[n], k3 = new Complex[n], k4 = new Complex[n],
                       k5 = new Complex[n], tmp = new Complex[n], beta = new Complex[n], a4 = new Complex[n];
             stats.Method = "erk4(3)-ip (adaptive, tol " + st.Tolerance.ToString("G2", System.Globalization.CultureInfo.InvariantCulture) + ")";
+            stats.BIntegralPulseAveragedRad = 0;   // accumulated below (NaN when the problem does not report its mean-to-peak ratio)
             int guard = 0;
             double lastReport = 0;
             while (z < L * (1 - 1e-12))

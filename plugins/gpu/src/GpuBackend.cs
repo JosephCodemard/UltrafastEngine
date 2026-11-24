@@ -279,7 +279,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 var ctx = Context(dev);
                 var s = StreamFor(ctx);
                 string note = "device: " + Name + " #" + dev + " " + ctx.Info.Name + (ctx.VendorFftName != null ? " (" + ctx.VendorFftName + ")" : " (built-in FFT)") + "; ensemble of " + jobs.Count + " study points in one launch";
-                foreach (var j in jobs) j.Stats.Notes.Add(note);
+                foreach (var j in jobs) { j.Stats.Notes.Add(note); j.Stats.BIntegralPulseAveragedRad = double.NaN; }   // not accumulated on the device: estimated by the executor
                 using (var stp = new EnsembleStepper(s, specs))
                 {
                     var outs = stp.Propagate(jobs.Select(j => j.Initial).ToList(), jobs.Select(j => j.Settings).ToList(), jobs.Select(j => j.Stats).ToList());
@@ -311,6 +311,7 @@ namespace UltrafastEngine.Plugins.Gpu
                 var ctx = Context(dev);
                 var s = StreamFor(ctx);
                 stats.Notes.Add("device: " + Name + " #" + dev + " " + ctx.Info.Name + (ctx.VendorFftName != null ? " (" + ctx.VendorFftName + ")" : " (built-in FFT)"));
+                stats.BIntegralPulseAveragedRad = double.NaN;   // the device steppers do not accumulate it: NaN makes the executor estimate it (0 was reported as measured)
                 bool mixed = ComputeBackends.Settings.Mixed;
                 if (p is EnvelopeProblem ep)
                     using (var stp = new EnvelopeStepper(s, ep.DeviceSpec(), true, mixed))
