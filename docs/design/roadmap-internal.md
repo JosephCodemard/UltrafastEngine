@@ -83,6 +83,7 @@ Hand-copied key tables are replaced by links to the generated `options.md`; numb
 | C2e | Sonnet | M | C1e, B1 | group e pages | as C2a | open |
 | C2f | Sonnet | S | C1f, B1 | group f pages, `concepts.md`, `capabilities.md` | as C2a | open |
 | C3 | Sonnet | S | all C2 | consistency pass: cross-links, `llms.txt` descriptions, `docs/agents.md` and the skills' quick references agree with the new pages; no two pages state the same number differently | `mkdocs build --strict`; a grep list of the main numbers shows one value each | open |
+| C4 | Opus | S-M | C2a-f | code-side findings of the audits (each audit file's section "Code findings for WP C4"): documented keys the schema does not declare (crystal `chi3`, `n2`), declaration texts pointing to missing pages (`reference/elements.md` in `Schema/Options.cs`, `BuiltInElements.cs`), registry defaults that disagree with the code (`crystal.seedNoise`, `bulk.dispersionSource`), CLI exit codes as documented; each fixed in the code (with a test) or the docs say why not; `/regen` | every listed finding closed; regen tests green | open |
 
 Pages written by later WPs (E, P, W, X, S, Z) follow the B1 template from the start.
 
