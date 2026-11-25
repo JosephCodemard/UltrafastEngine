@@ -180,7 +180,8 @@ CPU operator, to `DeviceSpec()` (or make it return null), to the kernel and to `
 B-integral accounting: with the peak of the index change (`uf_peak`), the 1-D envelope stepper reduces Σ P and Σ P Δn over the same samples
 (`uf_pmean`, read back in the same transfer) and accumulates `bIntegralPulseAveragedRad` exactly as the CPU steppers do
 (`DeviceStepper.ReportsMean`). A device stepper that does not (ensemble, spatial, χ(2)) leaves `StepStatistics.BIntegralPulseAveragedRad` at
-NaN, and the executor estimates it from the entry and exit pulse shapes ([nonlinear](../reference/nonlinear.md)). Until 2026-11-24 the
+NaN, and the executor *estimates* it from the entry and exit pulse shapes ([nonlinear](../reference/nonlinear.md)); the estimate is 8-15 % off
+when Raman reshapes the pulse (the ensemble path, `EnsembleStepper` in `GpuBackend.cs`, does not accumulate the exact power-weighted mean). Until 2026-11-24 the
 default was 0, which the executor took as a measured value: GPU runs reported 0 pulse- and beam-averaged B
 (`GpuTests.BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu`).
 

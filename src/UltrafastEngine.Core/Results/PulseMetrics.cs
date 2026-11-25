@@ -26,6 +26,9 @@ namespace UltrafastEngine.Results
         public double MainLobeEnergyFraction = double.NaN;
         /// <summary>Separate half-maximum intervals other than the main lobe: <see cref="PeakCount"/> - 1 (0 for a single pulse).</summary>
         public int SatellitePeakCount;
+        /// <summary>True when the main lobe reaches the edge of the time window: <see cref="MainLobeFwhmS"/> is then a lower bound (the width
+        /// to the window edge on that side). Not written to summary.json; the output warning mentions it.</summary>
+        public bool MainLobeAtWindowEdge;
     }
 
     public static class PulseMetrics
@@ -74,26 +77,31 @@ namespace UltrafastEngine.Results
         /// <summary>
         /// The main lobe of y(x): the contiguous run of samples with y &gt;= max / 2 that contains the global maximum (the first sample of the
         /// maximum if it repeats). Width = distance between its half-maximum crossings, linearly interpolated as in <see cref="Fwhm"/>
-        /// (NaN when the run reaches the window edge). Energy fraction = integral of the piecewise-linear y between two bounds, over its integral
+        /// (a run that reaches the window edge is cut there: the width is then a lower bound, see <see cref="MainLobeTouchesEdge"/>). Energy fraction = integral of the piecewise-linear y between two bounds, over its integral
         /// across the window; each bound is found walking outward from the half-maximum crossing: the first sample that is a local minimum
         /// (the next sample outward is larger), or the linearly interpolated crossing of <see cref="MainLobeFloor"/> x max, whichever comes first
         /// (the window edge if neither does). For a Gaussian the bounds are the 5 % points and the fraction is erf(sqrt(ln 20)) = 0.98562.
         /// </summary>
         public static (double Fwhm, double EnergyFraction) MainLobe(double[] x, double[] y)
         {
+            return MainLobe(x, y, out _);
+        }
+
+        /// <summary>As <see cref="MainLobe(double[], double[])"/>; <paramref name="atEdge"/> is true when the lobe touches the first or last sample.</summary>
+        public static (double Fwhm, double EnergyFraction) MainLobe(double[] x, double[] y, out bool atEdge)
+        {
+            atEdge = false;
             int n = y.Length; if (n < 3) return (double.NaN, double.NaN);
             int im = 0; for (int i = 1; i < n; i++) if (y[i] > y[im]) im = i;
             double mx = y[im]; if (!(mx > 0)) return (double.NaN, double.NaN);
             double half = 0.5 * mx, floor = MainLobeFloor * mx;
             int l = im; while (l > 0 && y[l - 1] >= half) l--;
             int r = im; while (r < n - 1 && y[r + 1] >= half) r++;
-            double fw = double.NaN;
-            if (l > 0 && r < n - 1)
-            {
-                double xl = x[l - 1] + (half - y[l - 1]) / (y[l] - y[l - 1]) * (x[l] - x[l - 1]);
-                double xr = x[r] + (half - y[r]) / (y[r + 1] - y[r]) * (x[r + 1] - x[r]);
-                fw = Math.Abs(xr - xl);
-            }
+            atEdge = l == 0 || r == n - 1;
+            // a side that reaches the window edge is cut at the edge sample (width = lower bound, finite)
+            double xl = l > 0 ? x[l - 1] + (half - y[l - 1]) / (y[l] - y[l - 1]) * (x[l] - x[l - 1]) : x[0];
+            double xr = r < n - 1 ? x[r] + (half - y[r]) / (y[r + 1] - y[r]) * (x[r + 1] - x[r]) : x[n - 1];
+            double fw = Math.Abs(xr - xl);
             // energy bounds (index units): outward from the half-maximum crossing to the first minimum or 5 % crossing
             double a = 0;
             for (int i = l - 1; i >= 0; i--)
@@ -234,7 +242,7 @@ namespace UltrafastEngine.Results
             s.PeakPowerW = pt.Max();
             s.FwhmS = Fwhm(g.Time, pt);
             (s.PeakCount, s.FwhmEnergyFraction) = HalfMaximumStructure(pt);
-            (s.MainLobeFwhmS, s.MainLobeEnergyFraction) = MainLobe(g.Time, pt);
+            (s.MainLobeFwhmS, s.MainLobeEnergyFraction) = MainLobe(g.Time, pt, out s.MainLobeAtWindowEdge);
             s.SatellitePeakCount = Math.Max(0, s.PeakCount - 1);
             var (tm, trms) = Moments(g.Time, pt);
             s.CentroidTimeS = tm; s.RmsWidthS = trms;

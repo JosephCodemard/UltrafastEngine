@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **690 tests** in 75 classes. **442** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **691 tests** in 75 classes. **443** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -79,7 +79,7 @@ Every C# test of the engine: **690 tests** in 75 classes. **442** of them check 
 | [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
-| [Run validity and pulse metrics](#validitytests) | `ValidityTests` | 10 | 6 |
+| [Run validity and pulse metrics](#validitytests) | `ValidityTests` | 11 | 7 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
 
 ## AoDeviceTests
@@ -624,7 +624,7 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 
 | test | reference | tolerance |
 |---|---|---|
-| `BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu` | cross-check: the CPU stepper's power-weighted B (sum P dn / sum P per step, uf_pmean on the device) | 1e-8 (same scheme and steps; reductions in a different order) |
+| `BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu` | cross-check: the CPU stepper's power-weighted B (sum P dn / sum P per step, uf_pmean on the device) | 1e-5 (same scheme; the adaptive step sequence may differ by a step or two between device and host reductions, which moves the sums at the 1e-6 level) |
 | `CallbackResponses_StayOnTheCpu_WithTheReason` | -- | -- |
 | `Chi2CoupledWaves_ShgQpmAndOpa_MatchTheCpu` | cross-check: the CPU solver (Crystals.Chi2Problem.Nonlinear, Steppers.AdaptiveErk43Ip with domain walls) | 1e-09 |
 | `ConcurrentRuns_ShareTheDevice_AndMatchTheCpu` | -- | -- |
@@ -1282,6 +1282,7 @@ Run validity and pulse metrics.
 | `MainLobe_IsReportedForEveryPulse_InTheSummary_AndByPulseSummary` | -- | -- |
 | `MainLobe_OfADoublePulse_IsTheSinglePulseWidth_WhileTheFwhmSpansBoth` | two Gaussians of FWHM T, 5 T apart, the second at 0.6: main lobe = T and holds erf(sqrt(ln 20)) / 1.6 of the energy; fwhmS spans both: 5 T + T/2 + (T/2) sqrt(log2(0.6/0.5)) | 1e-4 ... 2e-3 (sampling) |
 | `MainLobe_OfAGaussian_IsTheFwhm_AndHoldsErfOfSqrtLn20` | Gaussian P = exp(-4 ln2 t^2 / T^2): main lobe = FWHM T; 5 % points at t = T sqrt(ln 20 / (4 ln 2)), energy between them erf(sqrt(ln 20)) = 0.985625 | 1e-4 (sampling) |
+| `MainLobe_TouchingTheWindowEdge_IsFiniteAndFlagged` | Gaussian FWHM 1 centred on the last sample: the half of the lobe inside the window is 0.5 wide (lower bound), flagged; a centred one is not flagged | 1e-3 (sampling) |
 | `StrictValidity_RaisesAfterTheRun_WithTheResultAttached` | -- | -- |
 | `ZeroFrequency_IsReportedOnlyWhenTheSpectrumReachesIt` | -- | -- |
 

@@ -217,6 +217,23 @@ namespace UltrafastEngine.Tests
             Assert.Close(0.985625, frac, 1e-4, 0, "energy between the 5 % points = erf(sqrt(ln 20))");
         }
 
+        [Test(Reference = "Gaussian FWHM 1 centred on the last sample: the half of the lobe inside the window is 0.5 wide (lower bound), flagged; a centred one is not flagged", Tolerance = "1e-3 (sampling)")]
+        public void MainLobe_TouchingTheWindowEdge_IsFiniteAndFlagged()
+        {
+            var t = Enumerable.Range(0, 2048).Select(i => (i - 1024) * 0.01).ToArray();
+            var g = t.Select(x => Math.Exp(-4 * Math.Log(2) * x * x)).ToArray();
+            PulseMetrics.MainLobe(t, g, out bool centred);
+            Assert.True(!centred, "centred pulse is not at the edge");
+            var edge = t.Select(x => Math.Exp(-4 * Math.Log(2) * (x - t[t.Length - 1]) * (x - t[t.Length - 1]))).ToArray();
+            var (fw, frac) = PulseMetrics.MainLobe(t, edge, out bool at);
+            Assert.True(at, "lobe at the window edge is flagged");
+            Assert.True(!double.IsNaN(fw) && !double.IsNaN(frac), "finite width and fraction");
+            Assert.Close(0.5, fw, 2e-3, 0, "width to the window edge = half the FWHM");
+            var left = t.Select(x => Math.Exp(-4 * Math.Log(2) * (x - t[0]) * (x - t[0]))).ToArray();
+            Assert.Close(0.5, PulseMetrics.MainLobe(t, left, out bool atL).Fwhm, 2e-3, 0, "left edge");
+            Assert.True(atL, "left edge flagged");
+        }
+
         [Test(Reference = "two Gaussians of FWHM T, 5 T apart, the second at 0.6: main lobe = T and holds erf(sqrt(ln 20)) / 1.6 of the energy; fwhmS spans both: 5 T + T/2 + (T/2) sqrt(log2(0.6/0.5))", Tolerance = "1e-4 ... 2e-3 (sampling)")]
         public void MainLobe_OfADoublePulse_IsTheSinglePulseWidth_WhileTheFwhmSpansBoth()
         {

@@ -187,7 +187,7 @@ namespace UltrafastEngine.Engine
             {
                 var so = PulseMetrics.Summarize(res.Output);
                 if (so.PeakCount > 1)
-                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "The output pulse has {0} separate peaks above half maximum: its FWHM ({1:G4} fs) spans them all and holds {2:P1} of the energy; the main lobe around the highest peak is {3:G4} fs wide and holds {4:P1} (mainLobeFwhmS, mainLobeEnergyFraction); see also rmsWidthS, temporalStrehl or the temporal trace.", so.PeakCount, so.FwhmS * 1e15, so.FwhmEnergyFraction, so.MainLobeFwhmS * 1e15, so.MainLobeEnergyFraction));
+                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "The output pulse has {0} separate peaks above half maximum: its FWHM ({1}) spans them all and holds {2:P1} of the energy; the main lobe around the highest peak is {3}{4:G4} fs wide and holds {5:P1} (mainLobeFwhmS, mainLobeEnergyFraction){6}; see also rmsWidthS, temporalStrehl or the temporal trace.", so.PeakCount, double.IsNaN(so.FwhmS) ? "undefined: the pulse reaches the edge of the time window" : (so.FwhmS * 1e15).ToString("G4", CultureInfo.InvariantCulture) + " fs", so.FwhmEnergyFraction, so.MainLobeAtWindowEdge ? "at least " : "", so.MainLobeFwhmS * 1e15, so.MainLobeEnergyFraction, so.MainLobeAtWindowEdge ? "; the main lobe reaches the edge of the time window, so its width is only a lower bound: enlarge the window" : ""));
             }
 
             if (measure) MeasureInstruments(cr, res, cancel);
