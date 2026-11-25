@@ -335,6 +335,15 @@ handles an undefined `fwhmS`. Test `MainLobe_TouchingTheWindowEdge_IsFiniteAndFl
 (an adaptive step sequence changed by one step moves the sums at 1e-6). `docs/plugins/gpu.md` says the ensemble path estimates the pulse-averaged
 B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy window stops at the first local minimum.
 
+## Stage 19 -- WP B1: the style guide  (2026-11-25, `dev/wp-b1`, macOS arm64)
+
+* `docs/style.md` codifies the best of the existing pages (`concepts.md`, `reference/nonlinear.md`, tutorial 1, the Raman-shift example)
+  rather than a new voice. The word list comes from counting docs prose with code removed: British -ise forms already win every pair
+  (polarisation 91 : 2, fibre 136 : 1, centre 79 : 0 once HTML `align="center"` is discounted); "focused", "program" and "meter" (instrument)
+  stay. Engine messages are ASCII today (0 of 427 contain a non-ASCII character), so messages and comments stay ASCII while docs prose uses
+  Unicode symbols. Spaced percent ("3 %", 690 : 1), `1e-9` exponents and ` -- ` dashes are the existing majority and were kept. B2 lints
+  against the two tables; C2 and D apply the templates.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

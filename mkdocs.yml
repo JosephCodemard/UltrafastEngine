@@ -96,6 +96,7 @@ nav:
   - Roadmap: roadmap.md
   - For AI agents: agents.md
   - Claude Code: claude-code.md
+  - Style guide: style.md
   - Releasing (build.sh): releasing.md
 markdown_extensions:
   - admonition
