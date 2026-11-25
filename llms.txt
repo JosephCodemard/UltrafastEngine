@@ -92,6 +92,7 @@ Start with docs/agents.md (how to drive the engine) and AGENTS.md (how to change
 - [Roadmap](docs/roadmap.md)
 - [For AI agents](docs/agents.md): includes the MCP server `ultrafast-mcp` (tools describe, validate, run, scan, explain_warning, plot)
 - [Claude Code setup](docs/claude-code.md): CLAUDE.md files, commands, subagents, skills, hooks
+- [Style guide](docs/style.md): voice, British spelling word list, term list, units and numbers, warning / error messages, templates for reference pages, examples and tutorials
 - [Releasing](docs/releasing.md): build.sh / build.bat release packages, release components, `install.py` (selective install / uninstall)
 
 ## Architecture

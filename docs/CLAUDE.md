@@ -1,6 +1,7 @@
 # docs/ -- MkDocs site (also read by AI agents: llms.txt indexes it)
 
-* Plain, precise English; short sentences; SI units; say what the engine does, not how hard it was.
+* Follow `style.md` (the rule book: voice, British spelling, term list, units, messages, and the reference / example /
+  tutorial templates). In short: plain, precise English; short sentences; SI units; say what the engine does.
 * Every new page goes into `mkdocs.yml` nav and `llms.txt`. `python3 -m mkdocs build --strict` must give 0 warnings
   (broken links and anchors fail).
 * `reference/options.md` and `reference/python-api.md` are generated (`/regen`); never edit them.

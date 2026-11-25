@@ -32,6 +32,8 @@ skills, hooks) -- see [docs/claude-code.md](docs/claude-code.md).
   `ultrafast reference -o docs/reference/options.md`, `python3 python/tools/gen_types.py`,
   `python3 python/tools/gen_api_docs.py`.
 * SI units, with the unit in the key name (`lengthM`, `energyJ`, `gddFs2`).
+* Docs, messages, docstrings and comments follow [docs/style.md](docs/style.md): British spelling, the term list, units in
+  prose, warnings that say what happened, where and the fix.
 * Renamed keys keep working through migrations (`src/UltrafastEngine.Core/Schema/Migrations.cs`) with a deprecation
   warning; do not remove old names.
 * New physics comes with a test against an analytic result or a published value, and a docs page section.
