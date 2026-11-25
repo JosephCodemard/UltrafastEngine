@@ -327,6 +327,14 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
   erf(√ln 20) = 0.9856 for a Gaussian), `satellitePeakCount` (= `peakCount` − 1) in every pulse summary, `pulseSummary` and `compressor`;
   the plots use it. Prompted by multipass-cell soliton compression, where a satellite above 50 % made `fwhmS` jump from ~10 fs to > 100 fs.
 
+## Stage 18 -- WP A2: findings of the A1 physics review  (2026-11-25, `dev/wp-a2`)
+
+`PulseMetrics.MainLobe` no longer returns NaN for a lobe that touches the window edge: the width runs to the edge sample (a lower bound) and
+`PulseSummary.MainLobeAtWindowEdge` (not serialised) makes the multi-peak warning say "at least ... enlarge the window"; the warning also
+handles an undefined `fwhmS`. Test `MainLobe_TouchingTheWindowEdge_IsFiniteAndFlagged`. The device B test tolerance went from 1e-8 to 1e-5
+(an adaptive step sequence changed by one step moves the sums at 1e-6). `docs/plugins/gpu.md` says the ensemble path estimates the pulse-averaged
+B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy window stops at the first local minimum.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
