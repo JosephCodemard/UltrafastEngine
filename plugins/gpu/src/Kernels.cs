@@ -477,6 +477,22 @@ KERNEL void uf_peak(G const double* P, G const double* D, int n, G double* part,
     if (LID == 0) part[ko + GRP] = sm[0];
 }
 
+/* power-weighted mean of D over the same samples (EnvelopeProblem.PeakIndexChange, out mean): per group sum P and sum P D over
+   P >= 1e-6 max P -> part[ko + g] and part[ko + npg + g]; the host divides (the pulse-averaged B-integral) */
+KERNEL void uf_pmean(G const double* P, G const double* D, int n, G double* part, int po, int npg, int ko)
+{
+    LOC double sa[256];
+    LOC double sb[256];
+    double pmax = 0.0;
+    for (int g = 0; g < npg; g++) pmax = fmax(pmax, part[po + g]);
+    double thr = 1e-6 * pmax, a = 0.0, b = 0.0;
+    if (pmax > 0.0) for (int i = GID; i < n; i += GSZ) if (P[i] >= thr) { a += P[i]; b += P[i] * D[i]; }
+    sa[LID] = a; sb[LID] = b;
+    SYNC();
+    for (int s = LSZ / 2; s > 0; s >>= 1) { if (LID < s) { sa[LID] += sa[LID + s]; sb[LID] += sb[LID + s]; } SYNC(); }
+    if (LID == 0) { part[ko + GRP] = sa[0]; part[ko + npg + GRP] = sb[0]; }
+}
+
 /* ---------------------------------------------------------------- chi(2) coupled waves (Crystals.Chi2Problem, 1-D) */
 
 /* T: the K fields in time (field j at j n). Three-wave: dA1 = i w1 g0 A3 A2* e-, dA2 = i w2 g0 A3 A1* e-, dA3 = i w3 g0 A1 A2 e+;

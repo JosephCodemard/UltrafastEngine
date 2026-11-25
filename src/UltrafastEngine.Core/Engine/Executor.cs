@@ -187,7 +187,7 @@ namespace UltrafastEngine.Engine
             {
                 var so = PulseMetrics.Summarize(res.Output);
                 if (so.PeakCount > 1)
-                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "The output pulse has {0} separate peaks above half maximum: its FWHM ({1:G4} fs) spans them all and holds {2:P1} of the energy; use rmsWidthS, temporalStrehl or the temporal trace instead.", so.PeakCount, so.FwhmS * 1e15, so.FwhmEnergyFraction));
+                    res.Warnings.Add(string.Format(CultureInfo.InvariantCulture, "The output pulse has {0} separate peaks above half maximum: its FWHM ({1:G4} fs) spans them all and holds {2:P1} of the energy; the main lobe around the highest peak is {3:G4} fs wide and holds {4:P1} (mainLobeFwhmS, mainLobeEnergyFraction); see also rmsWidthS, temporalStrehl or the temporal trace.", so.PeakCount, so.FwhmS * 1e15, so.FwhmEnergyFraction, so.MainLobeFwhmS * 1e15, so.MainLobeEnergyFraction));
             }
 
             if (measure) MeasureInstruments(cr, res, cancel);

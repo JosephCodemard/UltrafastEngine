@@ -19,7 +19,33 @@ spectralRmsWidthM, centroidWavelengthM, peakWavelengthM, timeBandwidthProduct, p
 fit of the spectral phase above -10 dB), centroidTimeS, edgeEnergyFraction (energy in the outer 5 % of the
 window: wrap-around check), peakCount (separate intervals above half maximum: 1 for a single pulse; above 1 the FWHM spans several
 pulses and the run warns for the output), fwhmEnergyFraction (energy between the outermost half-maximum crossings: 0.761 for a Gaussian,
-1/√2 for sech²), stokes [s1, s2, s3], degreeOfPolarization. For a multi-peaked pulse use rmsWidthS, temporalStrehl or the trace, not fwhmS.
+1/√2 for sech²), mainLobeFwhmS, mainLobeEnergyFraction and satellitePeakCount ([below](#main-lobe-of-a-multi-peaked-pulse)),
+stokes [s1, s2, s3], degreeOfPolarization. For a multi-peaked pulse use mainLobeFwhmS, rmsWidthS, temporalStrehl or the trace, not fwhmS.
+
+### Main lobe of a multi-peaked pulse
+
+`fwhmS` is the span between the **outermost** half-maximum crossings. Once a satellite, a pre-pulse or a pedestal rises above 50 % of the
+peak, `fwhmS` jumps to include it: in a multipass-cell soliton compressor a pulse whose main peak stays about 10 fs long can read more than
+100 fs. Three fields describe the main peak alone. They are reported wherever `fwhmS` is reported for a pulse: `input`, `output`, every
+element's `pulse`, and the `pulseSummary` instrument (the `compressor` instrument reports `compressedMainLobeFwhmS` and
+`compressedMainLobeEnergyFraction` for its compressed pulse).
+
+* `mainLobeFwhmS`: the main lobe is the contiguous run of time samples with power at least half the maximum that contains the global
+  maximum (its first sample if the maximum repeats). `mainLobeFwhmS` is the distance between its two half-maximum crossings, each linearly
+  interpolated between the samples on either side, as for `fwhmS`. It equals `fwhmS` for a single pulse and is smaller when another peak also
+  crosses half maximum. It is null when the main lobe reaches the edge of the time window.
+* `mainLobeEnergyFraction`: the energy of the main lobe over the energy of the whole window. Starting at each half-maximum crossing and walking
+  outward, the lobe ends at the first sample that is a local minimum of the power (the next sample outward is higher), or at the point where
+  the power falls to 5 % of the peak (linearly interpolated), whichever comes first; at the window edge if neither occurs. The energy is the
+  integral of the linearly interpolated power between those two bounds. For a Gaussian the bounds are the 5 % points,
+  t = ±(FWHM/2) √(ln 20 / ln 2), and the fraction is erf(√ln 20) = 0.9856. For a satellite well separated from the main pulse the fraction is
+  the main pulse's share of the energy times 0.9856; for overlapping lobes the bound is the minimum between them.
+* `satellitePeakCount`: `peakCount` − 1, the number of separate half-maximum intervals other than the main lobe (0 for a single pulse).
+
+When the output has more than one peak above half maximum the run warns and quotes both widths. Tests:
+`ValidityTests.MainLobe_OfAGaussian_IsTheFwhm_AndHoldsErfOfSqrtLn20`, `ValidityTests.MainLobe_OfADoublePulse_IsTheSinglePulseWidth_WhileTheFwhmSpansBoth`.
+The figures `ultrafast.plotting.evolution`, `elements` and `animate_evolution` plot or quote `mainLobeFwhmS` when the summary has it
+(older summaries without it fall back to `fwhmS`).
 
 ## Validity (`validity`)
 

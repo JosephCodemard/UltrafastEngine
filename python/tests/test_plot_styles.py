@@ -264,3 +264,43 @@ def test_animate_evolution_writes_a_gif_with_one_frame_per_location(chirped, tmp
     assert two["locations"] == ["input", "plate2", "output"]
     with pytest.raises(ValueError, match="no probe data"):
         up.animate_evolution(chirped, tmp_path / "x.gif", probes=["nope"])
+
+
+# ---- main-lobe FWHM in the evolution plots ---------------------------------------------------------------------------------------------
+
+class _Stub:
+    """A result with only a summary: what evolution() reads."""
+    def __init__(self, summary):
+        self.summary = summary
+
+
+def _pulse(fwhm, main=None, sat=0):
+    p = {"fwhmS": fwhm}
+    if main is not None:
+        p.update(mainLobeFwhmS=main, satellitePeakCount=sat)
+    return p
+
+
+def test_evolution_plots_the_main_lobe_fwhm_and_the_outer_fwhm_dashed():
+    from ultrafast.plotting.run_figures import _pulse_widths
+    # a 10 fs main peak whose satellite crosses half maximum after the third pass: fwhmS jumps to 120 fs
+    pulses = [_pulse(10e-15, 10e-15), _pulse(10e-15, 10e-15), _pulse(120e-15, 10.5e-15, 1)]
+    main, outer, has = _pulse_widths(pulses)
+    assert has and np.allclose(main, [10e-15, 10e-15, 10.5e-15]) and np.allclose(outer, [10e-15, 10e-15, 120e-15])
+    old = [_pulse(10e-15), _pulse(120e-15)]                                  # summaries without the new keys: fwhmS
+    m2, o2, has2 = _pulse_widths(old)
+    assert not has2 and np.allclose(m2, o2)
+    els = [{"id": f"p{i}", "energyOutJ": 1e-6, "cumulativeBIntegralRad": i, "pulse": p} for i, p in enumerate(pulses)]
+    axs = up.evolution(_Stub({"elements": els}))
+    line = axs[1].get_lines()[0].get_ydata()
+    assert np.allclose(line, [10, 10, 10.5]) and "main-lobe" in axs[1].get_ylabel()   # in fs, the main lobe
+    assert np.allclose(axs[1].get_lines()[1].get_ydata(), [10, 10, 120])               # fwhmS dashed beside it
+    axs_old = up.evolution(_Stub({"elements": [{"id": "a", "energyOutJ": 1e-6, "cumulativeBIntegralRad": 0, "pulse": p} for p in old]}))
+    assert len(axs_old[1].get_lines()) == 1 and "main-lobe" not in axs_old[1].get_ylabel()
+
+
+@requires_engine
+def test_summaries_carry_the_main_lobe_fields(chirped):
+    for p in [chirped.summary["output"]] + [e["pulse"] for e in chirped.summary["elements"]]:
+        assert p["mainLobeFwhmS"] == pytest.approx(p["fwhmS"], rel=1e-9) and p["satellitePeakCount"] == 0
+        assert 0.9 < p["mainLobeEnergyFraction"] <= 1

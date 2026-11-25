@@ -24,7 +24,7 @@ from typing import Dict, List, Optional, Sequence, Union
 import numpy as np
 
 from .data import _has, load
-from .style import C, _Style, _cmap, _db, _figure, _plt, _si, _theme
+from .style import C, _Style, _cmap, _db, _figure, _note, _plt, _si, _theme, fmt
 
 
 def _prefix(at: str) -> str:
@@ -159,7 +159,10 @@ def animate_evolution(res, path: Union[str, Path] = "evolution.gif", probes: Uni
                       dpi: int = 80, mp4: bool = False, floor_db: float = -40.0, **kw) -> Dict[str, object]:
     """Animation of the spectrum and the pulse through the system, one frame per location: the input, every probe (``probes="all"`` or a list
     of element ids, in element order), the output. Axes are fixed over all frames. ``path`` is a ``.gif`` (``mp4=True`` adds an MP4 when ffmpeg
-    is on the path). Extra keywords go to :func:`ultrafast.plotting.animate.animate`; returns its result dict with ``locations``."""
+    is on the path). Extra keywords go to :func:`ultrafast.plotting.animate.animate`; returns its result dict with ``locations``.
+
+    Each frame notes the pulse FWHM: the main-lobe FWHM (``mainLobeFwhmS``) when the summary has it, with the outer-crossing ``fwhmS`` beside
+    it when a satellite crosses half maximum (``fwhmS`` alone then reads far longer than the main peak)."""
     from .animate import animate
     from .spectral import _sorted_spectrum
 
@@ -185,6 +188,16 @@ def animate_evolution(res, path: Union[str, Path] = "evolution.gif", probes: Uni
     ps, pp = _si(p_max)
     span_l, span_t = lam_hi - lam_lo, t_hi - t_lo
     id_of = {e["id"]: e for e in res.summary.get("elements", [])}
+    pulse_of = {k: (res.summary.get("input") if k == "input" else res.summary.get("output") if k == "output" else id_of.get(k, {}).get("pulse")) or {}
+                for k in locs}
+
+    def width_note(p):
+        main, outer = p.get("mainLobeFwhmS"), p.get("fwhmS")
+        if main is None:
+            return f"FWHM {fmt(outer, 's')}" if outer is not None else ""
+        if p.get("satellitePeakCount", 0) and outer is not None:
+            return f"main lobe {fmt(main, 's')}\nfwhmS {fmt(outer, 's')} (with satellites)"
+        return f"FWHM {fmt(main, 's')}"
 
     def frame(k):
         fig = _figure(6.4, 3.0)
@@ -204,6 +217,9 @@ def animate_evolution(res, path: Union[str, Path] = "evolution.gif", probes: Uni
             a2.set_ylim(0, 1.05 * p_max / ps)
             a2.set_xlabel(f"time ({tp}s)")
             a2.set_ylabel(f"power ({pp}W)")
+            note = width_note(pulse_of[k])
+            if note:
+                _note(a2, note)
             what = "input" if k == "input" else "output" if k == "output" else f"after {k} ({id_of.get(k, {}).get('type', '')})"
             fig.suptitle(f"{res.summary.get('system', '')} · {what}", x=0.01, ha="left", fontsize=9, fontweight="bold", color=_theme["text"])
             a1.legend(loc="upper right", fontsize=6.5)

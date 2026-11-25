@@ -778,6 +778,9 @@ namespace UltrafastEngine.Instruments
             Tools.Put(o, "pulseGddS2", s.PulseGddS2); Tools.Put(o, "pulseTodS3", s.PulseTodS3); Tools.Put(o, "centroidTimeS", s.CentroidTimeS);
             Tools.Put(o, "edgeEnergyFraction", s.EdgeEnergyFraction); Tools.Put(o, "degreeOfPolarization", s.PolarizationDegree);
             Tools.Put(o, "s1", s.S1); Tools.Put(o, "s2", s.S2); Tools.Put(o, "s3", s.S3);
+            // half-maximum structure: fwhmS spans every peak above half maximum; the main lobe is the one around the global peak
+            Tools.Put(o, "peakCount", s.PeakCount); Tools.Put(o, "fwhmEnergyFraction", s.FwhmEnergyFraction);
+            Tools.Put(o, "mainLobeFwhmS", s.MainLobeFwhmS); Tools.Put(o, "mainLobeEnergyFraction", s.MainLobeEnergyFraction); Tools.Put(o, "satellitePeakCount", s.SatellitePeakCount);
         }
     }
 
@@ -863,6 +866,7 @@ namespace UltrafastEngine.Instruments
             var sm = PulseMetrics.Summarize(comp);
             Tools.Put(o, "compressorGddS2", -gddBest); Tools.Put(o, "compressorTodS3", -todBest);
             Tools.Put(o, "compressedFwhmS", sm.FwhmS); Tools.Put(o, "compressedPeakPowerW", sm.PeakPowerW);
+            Tools.Put(o, "compressedMainLobeFwhmS", sm.MainLobeFwhmS); Tools.Put(o, "compressedMainLobeEnergyFraction", sm.MainLobeEnergyFraction);
             Tools.Put(o, "transformLimitFwhmS", sm.TransformLimitFwhmS); Tools.Put(o, "temporalStrehl", sm.TemporalStrehl);
             var pt = PulseMetrics.TemporalPower(comp);
             var (lo2, hi2) = PulseMetrics.SupportRange(pt, 1e-6, 8);

@@ -5,6 +5,10 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Fixed / added (2026-11-24, multipass-cell follow-up)**
+- **GPU: pulse- and beam-averaged B-integral were 0** (`bIntegralPulseAveragedRad`, `bIntegralBeamAveragedRad`, per element and in `totals`) on the CUDA / OpenCL path. `StepStatistics.BIntegralPulseAveragedRad` defaulted to 0, which the executor took as a value reported by the stepper, so its shape-based estimate never ran. The default is now NaN ("not reported"), and the 1-D device stepper accumulates Σ P Δn / Σ P per step itself (kernel `uf_pmean`), so GPU equals CPU to 1e-8 (`GpuTests.BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu`, `ValidityTests.BIntegral_PulseAveraged_*`).
+- **Main-lobe pulse width:** `mainLobeFwhmS`, `mainLobeEnergyFraction` and `satellitePeakCount` beside `fwhmS` in `input`, `output`, every element's `pulse` and the `pulseSummary` instrument (`compressedMainLobeFwhmS`, `compressedMainLobeEnergyFraction` in `compressor`). `fwhmS` spans the outermost half-maximum crossings and jumps when a satellite crosses 50 %; the main-lobe width follows the highest peak only (`docs/reference/results.md`). `ultrafast.plotting.evolution`, `elements` and `animate_evolution` show it when present; the multi-peak warning quotes it.
+
 **Added / changed (2026-11-18, release completion)**
 - **Renamed keys** with the unit in the name: fibre `betasSkPerM`, Faraday rotator `fieldTesla`, Raman models `tau1S` / `tau2S` / `taubS`, `dnDTPerK`. The old names still load (migration, with a deprecation note).
 - **Circular aperture on a decentred beam** is now computed (it was ignored); `outputs.keepProfiles: "used"` works in branched systems; the CLI banner no longer says "2.0".

@@ -111,6 +111,7 @@ namespace UltrafastEngine.Results
             .Set("timeBandwidthProduct", R(s.TimeBandwidthProduct)).Set("pulseGddS2", R(s.PulseGddS2)).Set("pulseTodS3", R(s.PulseTodS3))
             .Set("centroidTimeS", R(s.CentroidTimeS)).Set("edgeEnergyFraction", R(s.EdgeEnergyFraction))
             .Set("peakCount", s.PeakCount).Set("fwhmEnergyFraction", R(s.FwhmEnergyFraction))
+            .Set("mainLobeFwhmS", R(s.MainLobeFwhmS)).Set("mainLobeEnergyFraction", R(s.MainLobeEnergyFraction)).Set("satellitePeakCount", s.SatellitePeakCount)
             .Set("stokes", JsonValue.FromArray(new[] { R(s.S1), R(s.S2), R(s.S3) })).Set("degreeOfPolarization", R(s.PolarizationDegree));
 
         public JsonObject SummaryJson()

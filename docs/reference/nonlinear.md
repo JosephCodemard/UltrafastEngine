@@ -52,8 +52,12 @@ the coherent term out of the report and gave 5/6; the propagation itself was cor
 reported beside it for 1-D elements (and in `totals`):
 
 * `bIntegralPulseAveragedRad`: at each step the index change is weighted by the power over the pulse, Σ_t P Δn / Σ_t P. For a Gaussian pulse
-  and an instantaneous Kerr index it is B / √2. The CPU stepper accumulates it step by step; on a GPU it is estimated from the entry and exit
-  pulse shapes (a note says so).
+  and an instantaneous Kerr index it is B / √2 (2/3 B for sech²: ∫sech⁴ / ∫sech² = (4/3) / 2). The CPU stepper and the 1-D envelope stepper
+  of the GPU back-ends accumulate it step by step (the same sums, so CPU and GPU agree to 1e-8). Where a stepper does not report it (the
+  ensemble stepper of GPU study batches, the `cpu-fp32` emulation) it is estimated from the entry and exit pulse shapes, Σ P² / (Σ P max P),
+  averaged over entry and exit, and a note says so. The estimate assumes an instantaneous response and a shape that changes little: it is
+  exact then, and about 8 % high in an air gap whose delayed rotational Raman response matters (160 fs). Before 2026-11-24 the GPU path
+  reported 0 for both averages, per element and in `totals`.
 * `bIntegralBeamAveragedRad`: additionally weighted by intensity over the Gaussian cross-section of the 1-D beam, ∫I² dA / ∫I dA = I₀/2, so half of
   the pulse-averaged value. It is the energy-weighted mean phase, the number that sets, for example, the average spectral broadening of a beam.
 
