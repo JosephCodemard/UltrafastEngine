@@ -7,8 +7,9 @@ using UltrafastEngine.Numerics;
 namespace UltrafastEngine.Plugins.Gpu
 {
     /// <summary>
-    /// The OpenCL 1.2 C API, loaded at run time from the ICD loader (OpenCL.dll, libOpenCL.so.1, or the macOS
-    /// framework). Only the calls the back-end needs. 64-bit processes only (the x86 Windows API uses stdcall).
+    /// The OpenCL 1.2 C API, loaded at run time from the ICD loader (OpenCL.dll, libOpenCL.so.1) or, on macOS, from
+    /// Apple's framework and from each vendor library named by an .icd file (Homebrew PoCL), all enumerated
+    /// (<see cref="LoadAll"/>). Only the calls the back-end needs. 64-bit processes only (the x86 Windows API uses stdcall).
     /// </summary>
     public sealed unsafe class OpenClApi
     {
@@ -66,19 +67,87 @@ namespace UltrafastEngine.Plugins.Gpu
             ReleaseContext = (delegate* unmanaged[Cdecl]<IntPtr, int>)lib.Get("clReleaseContext");
         }
 
-        /// <summary>Loads the OpenCL ICD loader (ULTRAFAST_OPENCL_LIBRARY overrides the search), or null with the reason.</summary>
+        /// <summary>Loads the OpenCL ICD loader (ULTRAFAST_OPENCL_LIBRARY overrides the search), or null with the reason.
+        /// The first library of <see cref="LoadAll"/>.</summary>
         public static OpenClApi TryLoad(out string why)
         {
+            var all = LoadAll(out why);
+            return all.Count > 0 ? all[0] : null;
+        }
+
+        /// <summary>
+        /// Every OpenCL library to enumerate, in order, or an empty list with the reason.
+        /// <list type="bullet">
+        /// <item>ULTRAFAST_OPENCL_LIBRARY: one or more libraries (separated by the path separator, ':' or ';'); when any of
+        /// them loads, only those are used.</item>
+        /// <item>Windows / Linux: the first ICD loader that loads (OpenCL.dll, libOpenCL.so.1); it lists every installed vendor.</item>
+        /// <item>macOS: Apple's OpenCL.framework (the Apple GPU, no FP64) <b>and</b> every vendor library named by an
+        /// <c>.icd</c> file in OCL_ICD_VENDORS, /opt/homebrew/etc/OpenCL/vendors, /usr/local/etc/OpenCL/vendors or
+        /// /etc/OpenCL/vendors (for example Homebrew PoCL, a CPU device with FP64), loaded directly; an ICD loader
+        /// (libOpenCL.dylib) is tried only when no .icd file names a library that loads.</item>
+        /// </list>
+        /// </summary>
+        public static List<OpenClApi> LoadAll(out string why)
+        {
             why = null;
-            if (IntPtr.Size != 8) { why = "the GPU back-ends need a 64-bit process"; return null; }
-            var names = new List<string> { Environment.GetEnvironmentVariable("ULTRAFAST_OPENCL_LIBRARY") };
-            if (NativeLib.IsWindows) names.AddRange(new[] { "OpenCL.dll" });
-            else if (NativeLib.IsMac) names.AddRange(new[] { "/System/Library/Frameworks/OpenCL.framework/OpenCL", "libOpenCL.dylib" });
-            else names.AddRange(new[] { "libOpenCL.so.1", "libOpenCL.so" });
-            var lib = NativeLib.TryLoad(names, out var tried);
-            if (lib == null) { why = "OpenCL runtime not found (tried " + tried + "); install your GPU driver or an OpenCL ICD loader"; return null; }
-            try { return new OpenClApi(lib); }
-            catch (Exception ex) { why = ex.Message; return null; }
+            var apis = new List<OpenClApi>();
+            if (IntPtr.Size != 8) { why = "the GPU back-ends need a 64-bit process"; return apis; }
+            var tried = new List<string>();
+            var errors = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            bool Add(string name)
+            {
+                if (string.IsNullOrEmpty(name) || !seen.Add(name)) return false;
+                var lib = NativeLib.TryLoad(new[] { name }, out var t);
+                tried.Add(t);
+                if (lib == null) return false;
+                try { apis.Add(new OpenClApi(lib)); return true; }
+                catch (Exception ex) { errors.Add(name + ": " + ex.Message); return false; }
+            }
+
+            var env = Environment.GetEnvironmentVariable("ULTRAFAST_OPENCL_LIBRARY");
+            if (!string.IsNullOrEmpty(env))
+            {
+                foreach (var e in env.Split(new[] { System.IO.Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries)) Add(e.Trim());
+                if (apis.Count > 0) return apis;
+            }
+            if (NativeLib.IsWindows) Add("OpenCL.dll");
+            else if (NativeLib.IsMac)
+            {
+                Add("/System/Library/Frameworks/OpenCL.framework/OpenCL");
+                bool vendor = false;
+                foreach (var v in IcdVendorLibraries()) vendor |= Add(v);
+                if (!vendor)
+                    foreach (var l in new[] { "/opt/homebrew/opt/opencl-icd-loader/lib/libOpenCL.1.dylib", "/opt/homebrew/opt/ocl-icd/lib/libOpenCL.1.dylib",
+                                              "/usr/local/opt/opencl-icd-loader/lib/libOpenCL.1.dylib", "/usr/local/opt/ocl-icd/lib/libOpenCL.1.dylib", "libOpenCL.dylib" })
+                        if (Add(l)) break;
+            }
+            else { if (!Add("libOpenCL.so.1")) Add("libOpenCL.so"); }
+            if (apis.Count == 0)
+                why = "OpenCL runtime not found (tried " + string.Join(", ", tried) + ")" + (errors.Count > 0 ? " (" + string.Join("; ", errors) + ")" : "")
+                    + "; install your GPU driver or an OpenCL ICD loader";
+            return apis;
+        }
+
+        /// <summary>The vendor libraries named by the OpenCL <c>.icd</c> files (macOS search folders; OCL_ICD_VENDORS first).</summary>
+        public static IEnumerable<string> IcdVendorLibraries()
+        {
+            var dirs = new List<string>();
+            var env = Environment.GetEnvironmentVariable("OCL_ICD_VENDORS");
+            if (!string.IsNullOrEmpty(env)) dirs.Add(env);
+            dirs.AddRange(new[] { "/opt/homebrew/etc/OpenCL/vendors", "/usr/local/etc/OpenCL/vendors", "/etc/OpenCL/vendors" });
+            return IcdVendorLibraries(dirs);
+        }
+
+        /// <summary>The library named by each <c>.icd</c> file in <paramref name="dirs"/> (first non-empty, non-comment line).</summary>
+        public static IEnumerable<string> IcdVendorLibraries(IEnumerable<string> dirs)
+        {
+            foreach (var f in NativeLib.Glob(dirs, "*.icd"))
+            {
+                string line = null;
+                try { line = System.IO.File.ReadAllLines(f).Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0 && !x.StartsWith("#")); } catch { }
+                if (!string.IsNullOrEmpty(line)) yield return line;
+            }
         }
 
         public static void Check(int err, string call)
@@ -108,6 +177,7 @@ namespace UltrafastEngine.Plugins.Gpu
     /// <summary>An OpenCL device as the back-end lists it.</summary>
     public sealed class OpenClDeviceRef
     {
+        public OpenClApi Api;
         public IntPtr Platform, Device;
         public ComputeDeviceInfo Info;
         public bool IsCpu;
@@ -276,13 +346,27 @@ namespace UltrafastEngine.Plugins.Gpu
     /// <summary>Enumerates OpenCL devices (all platforms).</summary>
     public static unsafe class OpenClDevices
     {
-        public static List<OpenClDeviceRef> List(OpenClApi api, out string why)
+        public static List<OpenClDeviceRef> List(OpenClApi api, out string why) => List(new[] { api }, out why);
+
+        /// <summary>The devices of every library in order; a platform already listed through an earlier library (same
+        /// platform name, vendor and version) is skipped.</summary>
+        public static List<OpenClDeviceRef> List(IEnumerable<OpenClApi> apis, out string why)
         {
             why = null;
             var l = new List<OpenClDeviceRef>();
+            var platforms = new HashSet<string>(StringComparer.Ordinal);
+            var empty = new List<string>();
+            foreach (var api in apis) ListOne(api, l, platforms, empty);
+            if (l.Count == 0) why = empty.Count > 0 ? "no OpenCL platform installed (" + string.Join("; ", empty) + ")" : "no OpenCL device found";
+            return l;
+        }
+
+        private static void ListOne(OpenClApi api, List<OpenClDeviceRef> l, HashSet<string> platforms, List<string> empty)
+        {
+            string lib = System.IO.Path.GetFileName(api.Lib.Path);
             uint np = 0;
             int e = api.GetPlatformIDs(0, null, &np);
-            if (e != 0 || np == 0) { why = "no OpenCL platform installed (clGetPlatformIDs: " + (e != 0 ? "error " + e : "0 platforms") + ")"; return l; }
+            if (e != 0 || np == 0) { empty.Add(lib + " clGetPlatformIDs: " + (e != 0 ? "error " + e : "0 platforms")); return; }
             var plats = new IntPtr[np];
             fixed (IntPtr* pp = plats) api.GetPlatformIDs(np, pp, null);
             foreach (var p in plats)
@@ -292,23 +376,25 @@ namespace UltrafastEngine.Plugins.Gpu
                 var devs = new IntPtr[nd];
                 fixed (IntPtr* dp = devs) api.GetDeviceIDs(p, OpenClApi.DEVICE_TYPE_ALL, nd, dp, null);
                 string pname = api.PlatformString(p, OpenClApi.PLATFORM_NAME);
+                if (!platforms.Add(pname + "|" + api.PlatformString(p, OpenClApi.PLATFORM_VENDOR) + "|" + api.PlatformString(p, OpenClApi.PLATFORM_VERSION))) continue;
                 foreach (var d in devs)
                 {
                     ulong type = api.DeviceULong(d, OpenClApi.DEVICE_TYPE);
                     bool fp64 = api.DeviceULong(d, OpenClApi.DEVICE_DOUBLE_FP_CONFIG) != 0;
                     bool cpu = (type & OpenClApi.DEVICE_TYPE_CPU) != 0 && (type & (OpenClApi.DEVICE_TYPE_GPU | OpenClApi.DEVICE_TYPE_ACCELERATOR)) == 0;
+                    string name = api.DeviceString(d, OpenClApi.DEVICE_NAME);
+                    if (cpu && pname.Length > 0 && name.IndexOf(pname, StringComparison.OrdinalIgnoreCase) < 0) name = pname + " " + name;   // PoCL calls its device "cpu"
                     var info = new ComputeDeviceInfo
                     {
-                        Backend = "opencl", Index = l.Count, Name = api.DeviceString(d, OpenClApi.DEVICE_NAME), Vendor = api.DeviceString(d, OpenClApi.DEVICE_VENDOR),
-                        Driver = pname + " " + api.DeviceString(d, OpenClApi.DRIVER_VERSION), ComputeUnits = (int)api.DeviceUInt(d, OpenClApi.DEVICE_MAX_COMPUTE_UNITS),
+                        Backend = "opencl", Index = l.Count, Name = name, Vendor = api.DeviceString(d, OpenClApi.DEVICE_VENDOR),
+                        Driver = pname + " " + api.DeviceString(d, OpenClApi.DRIVER_VERSION) + " (" + lib + ")", ComputeUnits = (int)api.DeviceUInt(d, OpenClApi.DEVICE_MAX_COMPUTE_UNITS),
                         MemoryBytes = (long)api.DeviceULong(d, OpenClApi.DEVICE_GLOBAL_MEM_SIZE), DoublePrecision = fp64, Usable = fp64,
-                        Notes = (cpu ? "CPU device (used only with backend \"opencl\", never by \"auto\")" : "GPU") + (fp64 ? "" : "; no double precision: not usable")
+                        Notes = (cpu ? "CPU device (used only with backend \"opencl\", never by \"auto\")" : "GPU")
+                            + (fp64 ? "; double precision" : "; single precision only (no FP64): not usable, the back-ends need double precision")
                     };
-                    l.Add(new OpenClDeviceRef { Platform = p, Device = d, Info = info, IsCpu = cpu });
+                    l.Add(new OpenClDeviceRef { Api = api, Platform = p, Device = d, Info = info, IsCpu = cpu });
                 }
             }
-            if (l.Count == 0) why = "no OpenCL device found";
-            return l;
         }
     }
 }

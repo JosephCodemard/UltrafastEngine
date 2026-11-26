@@ -4,9 +4,12 @@
 ``optimise-setup``, ``replicate-paper`` and ``design-system`` (the same text as ``.claude/skills/`` in the repository; a test keeps the two equal).
 ``install(target, dest)`` writes them where an agent looks for them:
 
-* ``claude``: ``<dest>/.claude/skills/<name>/SKILL.md`` (Claude Code skills);
-* ``codex``: one block between ``<!-- ultrafast-agent-pack -->`` markers in ``<dest>/AGENTS.md`` (replaced on re-install, the rest of the file kept);
-* ``cursor``: ``<dest>/.cursor/rules/ultrafast-<name>.mdc`` (rules that apply when the agent decides they are relevant).
+* ``claude``: ``<dest>/.claude/skills/<name>/SKILL.md`` (Claude Code skills) and the user guide ``<dest>/.claude/ultrafast/AGENTS.md``;
+* ``codex``: one block between ``<!-- ultrafast-agent-pack -->`` markers in ``<dest>/AGENTS.md`` (user guide first, then the skills; replaced on re-install, the rest of the file kept);
+* ``cursor``: ``<dest>/.cursor/rules/ultrafast-<name>.mdc`` (rules that apply when the agent decides they are relevant) and the always-on rule ``ultrafast-guide.mdc``.
+
+Every target also writes the documentation index ``<dest>/.ultrafast/llms.txt``. ``pack/AGENTS.md`` (the user guide) and ``pack/llms.txt`` are the
+only sources of those files; they describe how to drive the engine and say nothing of the repository (a test greps the pack for repository terms).
 
 Command line: ``ultrafast-agent list`` and ``ultrafast-agent install --target claude|codex|cursor [--dest DIR] [--force]``; ``ultrafast-agent mcp-config``
 prints the MCP server configuration. Nothing outside ``dest`` is touched, and an existing skill file is overwritten only with ``--force``.
@@ -20,7 +23,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
-__all__ = ["skills", "install", "mcp_config", "main", "TARGETS"]
+__all__ = ["skills", "guide", "llms", "install", "mcp_config", "main", "TARGETS"]
 
 TARGETS = ("claude", "codex", "cursor")
 PACK = Path(__file__).with_name("pack")
@@ -32,6 +35,16 @@ BEGIN, END = "<!-- ultrafast-agent-pack -->", "<!-- /ultrafast-agent-pack -->"
 def skills() -> Dict[str, str]:
     """``{name: SKILL.md text}`` of the shipped skills."""
     return {d.name: (d / "SKILL.md").read_text(encoding="utf-8") for d in sorted(PACK.iterdir()) if (d / "SKILL.md").is_file()}
+
+
+def guide() -> str:
+    """The user guide ``pack/AGENTS.md`` (how to drive the engine; no repository internals)."""
+    return (PACK / "AGENTS.md").read_text(encoding="utf-8")
+
+
+def llms() -> str:
+    """The documentation index ``pack/llms.txt`` for agents."""
+    return (PACK / "llms.txt").read_text(encoding="utf-8")
 
 
 def _split(text: str):
@@ -54,7 +67,16 @@ def install(target: str, dest: Path, force: bool = False) -> List[Path]:
     dest = Path(dest)
     written: List[Path] = []
     sk = skills()
+
+    def put(p: Path, text: str, always: bool = False) -> None:
+        if p.exists() and not (force or always):
+            raise FileExistsError("%s exists (use --force to overwrite)" % p)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        _write(p, text)
+        written.append(p)
+
     if target == "claude":
+        put(dest / ".claude" / "ultrafast" / "AGENTS.md", guide())
         for name, text in sk.items():
             p = dest / ".claude" / "skills" / name / "SKILL.md"
             if p.exists() and not force:
@@ -63,6 +85,8 @@ def install(target: str, dest: Path, force: bool = False) -> List[Path]:
             _write(p, text.rstrip("\n") + FOOTER)
             written.append(p)
     elif target == "cursor":
+        put(dest / ".cursor" / "rules" / "ultrafast-guide.mdc",
+            "---\ndescription: How to drive UltrafastEngine (system files, run specs, results, MCP)\nalwaysApply: true\n---\n" + guide())
         for name, text in sk.items():
             meta, body = _split(text)
             p = dest / ".cursor" / "rules" / ("ultrafast-%s.mdc" % name)
@@ -72,7 +96,7 @@ def install(target: str, dest: Path, force: bool = False) -> List[Path]:
             _write(p, "---\ndescription: %s\nalwaysApply: false\n---\n%s" % (meta.get("description", name), body.rstrip("\n") + FOOTER))
             written.append(p)
     else:
-        block = [BEGIN, "# UltrafastEngine skills (installed by `ultrafast-agent install --target codex`)", ""]
+        block = [BEGIN, guide().rstrip("\n"), "", "# UltrafastEngine skills (installed by `ultrafast-agent install --target codex`)", ""]
         for name, text in sk.items():
             meta, body = _split(text)
             block += ["## Skill: %s" % name, "", "_When: %s_" % meta.get("description", ""), "", body.rstrip("\n"), ""]
@@ -87,6 +111,7 @@ def install(target: str, dest: Path, force: bool = False) -> List[Path]:
         p.parent.mkdir(parents=True, exist_ok=True)
         _write(p, new)
         written.append(p)
+    put(dest / ".ultrafast" / "llms.txt", llms(), always=(target == "codex"))
     return written
 
 

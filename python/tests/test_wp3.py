@@ -102,8 +102,8 @@ def test_workflow_runs_only_on_tags_and_by_hand():
 # ----------------------------------------------------------------- example lint
 def test_wave_one_examples_pass_the_lint():
     folders = example_lint.find_folders([])
-    assert len(folders) == 14
-    assert {f.parent.name for f in folders} == {"AdaptiveOptics", "Branched", "DigitalTwin", "Fibres", "GettingStarted"}
+    assert len(folders) >= 16                      # 14 of wave 1, quickstart and spm-plate (WP D1); the D2 WPs add the rest
+    assert {"AdaptiveOptics", "Branched", "DigitalTwin", "Fibres", "GettingStarted"} <= {f.parent.name for f in folders}
     for f in folders:
         assert example_lint.lint_folder(f) == []
 
@@ -153,6 +153,34 @@ def test_lint_finds_each_kind_of_problem(tmp_path):
     assert any("group is" in p for p in broken(meta_edit=lambda m: m.update(group="Other")))
     assert any("unknown keys" in p for p in broken(meta_edit=lambda m: m.update(extra=1)))
     assert any("must be int" in p for p in broken(meta_edit=lambda m: m.update(wave="1")))
+
+
+def test_lint_requires_the_python_tab_when_example_json_says_python(tmp_path):
+    src = REPO / "docs" / "examples" / "GettingStarted" / "spm-plate"
+    ok = tmp_path / "GettingStarted" / "spm-plate"
+    shutil.copytree(src, ok)
+    other = tmp_path / "Nonlinear" / "spatial-kerr"
+    other.mkdir(parents=True)
+    shutil.copy(REPO / "docs" / "examples" / "Nonlinear" / "spatial-kerr" / "README.md", other / "README.md")
+    (tmp_path.parent / "reference").mkdir(exist_ok=True)
+    (tmp_path.parent / "reference" / "transverse.md").write_text("x", encoding="utf-8")
+    assert json.loads((ok / "example.json").read_text(encoding="utf-8"))["python"] is True
+    assert example_lint.lint_folder(ok) == []
+    readme = (ok / "README.md").read_text(encoding="utf-8")
+
+    def problems(text):
+        (ok / "README.md").write_text(text, encoding="utf-8")
+        return example_lint.lint_folder(ok)
+
+    assert any("no snippet" in p for p in problems(readme.replace("<!-- snippet -->", "")))
+    assert any('=== "Python"' in p for p in problems(readme.replace('=== "Python"', '=== "Py"')))
+    assert any("**Run it**" in p for p in problems(readme.replace("**Run it**", "Run it")))
+    assert any("must be followed" in p for p in problems(readme.replace("<!-- snippet -->", "<!-- snippet -->\n    text")))
+    (ok / "README.md").write_text(readme, encoding="utf-8")
+    meta = json.loads((ok / "example.json").read_text(encoding="utf-8"))
+    meta["python"] = "yes"
+    (ok / "example.json").write_text(json.dumps(meta), encoding="utf-8")
+    assert any("'python' must be bool" in p for p in example_lint.lint_folder(ok))
 
 
 def test_template_exists_and_is_excluded_from_the_site():

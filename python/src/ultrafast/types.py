@@ -236,6 +236,12 @@ class BeamSplitterElement(TypedDict, total=False):
     """Port that continues in a Sequential system (c, d; also transmitted, reflected) Default: c."""
     side: int
     """Side the light meets: 2 reverses the sign of r (Michelson return) Default: 1."""
+    material: str
+    """Glass of the splitter (plate substrate or cube); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path"""
+    transmittedThicknessM: float
+    """Glass path length of the transmitted beam (a -> c, b -> d) [m] Default: 0."""
+    reflectedThicknessM: float
+    """Glass path length of the reflected beam (a -> d, b -> c) [m] Default: 0."""
     sameAs: str
     """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str
@@ -2132,6 +2138,12 @@ class PolarizingSplitterElement(TypedDict, total=False):
     """Port that continues in a Sequential system (c, d) Default: c."""
     side: int
     """2 reverses the sign of r Default: 1."""
+    material: str
+    """Glass of the splitter (a cube's prisms, a plate's substrate); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path"""
+    transmittedThicknessM: float
+    """Glass path length of the transmitted beam (a -> c, b -> d) [m] Default: 0."""
+    reflectedThicknessM: float
+    """Glass path length of the reflected beam (a -> d, b -> c) [m] Default: 0."""
     sameAs: str
     """Id of an element this one is a copy of: the same type and physical numbers (e.g. a transform used on several passes); it may set only id, label, enabled, wiring (next, inputs, loop, output) and geometry (aoiDeg, aoiRad, tiltXRad, side). Its input pulse and beam are its own (docs/reference/system-file.md#identical-elements)"""
     label: str

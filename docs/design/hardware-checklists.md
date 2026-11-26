@@ -60,6 +60,6 @@ for more than about 70 dB, and its parity test compares energy (1e-6) and spectr
 | item | why |
 |---|---|
 | CUDA kernels of any kind | no NVIDIA device; the Mac has OpenCL only with a double-precision-less Apple GPU |
-| OpenCL parity (`GpuTests`) | skipped without a double-precision device; PoCL (`brew install pocl`) could provide a CPU OpenCL device with FP64 here but is not installed and not verified on arm64 |
+| OpenCL parity (`GpuTests`) | run on Homebrew PoCL 7.2 (CPU OpenCL device with FP64, arm64): 20 passed, 0 failed, 0 skipped (2026-11-25, WP G0); `devices --selftest` passes on it |
 | .NET Framework 4.8 runs | needs Mono or Windows |
 | NativeAOT-library Python test | needs the AOT toolchain |
