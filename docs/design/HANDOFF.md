@@ -27,7 +27,8 @@ coordinator session; WP-level state lives in each worktree's own `HANDOFF.md`.
 | Q1 | mypy gate on `build.py`, `types.py`, `calc/` in CI |
 | AG1, AG2, AG3 | user agent pack separate from the development rules; MCP tools `twin_design`, `twin_track`, `twin_init` (16 tools); Codex / Cursor transcript adapters (offline; no live scoring) |
 | G0 | Apple OpenCL and PoCL found together on macOS: all 20 `GpuTests` run on PoCL (FP64) on the Mac; the Apple GPU is listed as single precision only |
-| P1 | glass in `beamSplitter` / `polarizingSplitter` (per port, 1e-12 against splitter plus plates) |
+| P1, P2 | glass in `beamSplitter` / `polarizingSplitter` (per port, 1e-12 against splitter plus plates); delayed-response window planning (a 10 ps revival was cut by the old plan) |
+| fix-2 | the spatial-kerr number change explained (commit `8dfff5d`, unit-sum Raman kernel, right); analytic Kerr-lens and Raman-kernel tests |
 | Z1, Z2 | own ZOS-API connection core (net48; ZOSPy read as a guide only); Zernike Standard coefficients from OpticStudio into a `wavefront` element (fake path tested only) |
 | tooling | `build/wp/` (start, merge, regen, cleanup, roadmap dedupe), `docs/design/coordinator.md`, decisions E18-E20 |
 
@@ -36,19 +37,16 @@ Python 518 passed with pyNLO; mkdocs strict, style, example and skill-sync check
 
 ## In progress at the end of the session
 
-| WP | state |
-|---|---|
-| fix-2 | finished and reviewed except two tests the physics review asked for (carrier-resolved Raman-on SPM against the envelope; causal phase of the Raman kernel); the agent was finishing them. If `dev/wp-fix-2` still lacks them, a Sonnet agent adds them, then merge |
-| P2 | finished (narrow Raman revivals and `memoryS` held by the planner, warning when the window is short; physics review: no bugs); its merge conflicted in `docs/reference/models.md` and the agent was merging `dev/2026-11` into its branch. Then `build/wp/merge.sh p2` and `build/wp/regen.sh` |
-| X1 | worktree with `HANDOFF.md`, not started; merge `dev/2026-11` first (fix-2 changes the spatial Kerr tests) |
-
-(The coordinator updates this table when these land; see `git worktree list`.)
+Only **X1**: worktree `../uf-wp-x1` with a committed `HANDOFF.md`, not started; merge `dev/2026-11` into it first. fix-2 and P2 were
+finished and merged at the end of the session (fix-2: spatial-kerr drift explained by the unit-sum Raman kernel of `8dfff5d`, analytic
+Kerr-lens tests, the carrier-resolved path on the same Raman kernel; P2: narrow Raman revivals and `memoryS` held by the grid planner).
 
 ## Next (in this order; at most three at once; models as in the rows)
 
 1. `test-runner` (Haiku) checkpoint on `dev/2026-11`.
 2. **C4** (Sonnet): the 41 code-side findings of the audits (each file's "Code findings for WP C4"); includes the registry default of `system.version` (2 against 3), undeclared `topology`, `seedNoise` default, biaxial crystal class inference, oscillator keys read at the wrong level, `detuneDeg` in the XY plane, the memory estimate missing the state of nonlinear spatial elements (10x too low).
-3. **fix-1** (Opus): a fed beam on another carrier gives different spectra in Sequential and Branched systems.
+3. **fix-1** (Opus): a fed beam on another carrier gives different spectra in Sequential and Branched systems. **fix-3** (Opus):
+   carrier-resolved SPM 33 % high when the envelope grid reaches zero frequency (decide with P11: fix or refuse).
 4. **D2** groups left (Sonnet, one at a time): Diagnostics, Components, GettingStarted (rest), DigitalTwin, Fibres, Computing, Interop, AdaptiveOptics; then D6 (landing pages; PROJECT_STATUS says 60 example folders, there are 64), D3, D4, D5.
 5. **X1** (Opus), then X2; **G1** then G2 (single precision on OpenCL, Apple GPU), G4, G6, G8; **P3-P7**, P12 (Sonnet), P8-P11, P13 (Opus); **W3**, W1, W2; **S1**, S2; **Z3-Z6** (Sonnet); Q2, Q3, Q4 (Sonnet).
 6. V1 last: full `/verify`, CI green, pull request `dev/2026-11` to `main` (open, do not merge).
