@@ -170,7 +170,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install the package and mkdocs
-        run: pip install -e "python[hosted,plot,test]" mkdocs
+        run: pip install -e "python[hosted,plot,test]" mkdocs pymdown-extensions
       - name: Example structure, style lint, public roadmap in sync, version places agree
         run: |
           python build/example_lint.py

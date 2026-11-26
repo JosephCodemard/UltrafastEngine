@@ -15,3 +15,24 @@ a:hover { color: var(--uf-orange); }
 /* long logo at the top of every page */
 .uf-banner { display: flex; align-items: center; margin: -1.2em -1.6em 1.4em; padding: 0.7em 1.6em; background: #fcfcfb; border-bottom: 3px solid var(--uf-orange); }
 .uf-banner img { height: 44px; width: auto; }
+/* content tabs (pymdownx.tabbed, alternate_style): the readthedocs theme has no CSS for them. Up to six tabs per set. */
+.tabbed-set { position: relative; display: flex; flex-wrap: wrap; margin: 1em 0 1.4em; }
+.tabbed-set > input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tabbed-labels { display: flex; width: 100%; border-bottom: 1px solid #d0d4da; }
+.tabbed-labels > label { padding: 0.35em 1.1em; cursor: pointer; font-weight: 600; color: #5a6270; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tabbed-labels > label:hover { color: var(--uf-orange); }
+.tabbed-content { width: 100%; padding-top: 0.6em; }
+.tabbed-block { display: none; }
+.tabbed-set > input:nth-child(1):checked ~ .tabbed-content > :nth-child(1),
+.tabbed-set > input:nth-child(2):checked ~ .tabbed-content > :nth-child(2),
+.tabbed-set > input:nth-child(3):checked ~ .tabbed-content > :nth-child(3),
+.tabbed-set > input:nth-child(4):checked ~ .tabbed-content > :nth-child(4),
+.tabbed-set > input:nth-child(5):checked ~ .tabbed-content > :nth-child(5),
+.tabbed-set > input:nth-child(6):checked ~ .tabbed-content > :nth-child(6) { display: block; }
+.tabbed-set > input:nth-child(1):checked ~ .tabbed-labels > :nth-child(1),
+.tabbed-set > input:nth-child(2):checked ~ .tabbed-labels > :nth-child(2),
+.tabbed-set > input:nth-child(3):checked ~ .tabbed-labels > :nth-child(3),
+.tabbed-set > input:nth-child(4):checked ~ .tabbed-labels > :nth-child(4),
+.tabbed-set > input:nth-child(5):checked ~ .tabbed-labels > :nth-child(5),
+.tabbed-set > input:nth-child(6):checked ~ .tabbed-labels > :nth-child(6) { color: var(--uf-navy); border-bottom-color: var(--uf-orange); }
+.tabbed-set > input:focus-visible ~ .tabbed-labels { outline: 1px dotted var(--uf-blue); }

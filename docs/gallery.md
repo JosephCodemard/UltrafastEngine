@@ -22,11 +22,11 @@ A 10 mm "doped glass" rod on a radial grid.
 
 ![18 -- A nonlinear medium you define: n(x, y, z, t, I, F): figure](examples/GettingStarted/custom-nonlinear-medium/hero.png)
 
-### [00 -- Python quick start](examples/GettingStarted/quickstart/README.md)
+### [Python quick start](examples/GettingStarted/quickstart/README.md)
 
-Build a system in Python, run it, read the results and scan a parameter.
+Build a system in Python, run it, read the results and scan a parameter: two 3 mm fused-silica plates take a 180 fs, 8 µJ pulse at 1030 nm to a B-integral of 1.14 rad, and its broadened spectrum compresses to 114 fs.
 
-![00 -- Python quick start: figure](examples/GettingStarted/quickstart/hero.png)
+![Python quick start: figure](examples/GettingStarted/quickstart/hero.png)
 
 ### [12 -- A user element in Python: a programmable pulse shaper](examples/GettingStarted/user-element/README.md)
 

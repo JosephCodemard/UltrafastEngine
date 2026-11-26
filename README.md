@@ -176,7 +176,7 @@ The badges above are updated when the counts change (see [PROJECT_STATUS.md](PRO
 ## Documentation
 
 The full documentation is at **<https://josephcodemard.github.io/UltrafastEngine/>**, built from `docs/` with
-[MkDocs](https://www.mkdocs.org) (`pip install mkdocs && mkdocs serve`).
+[MkDocs](https://www.mkdocs.org) (`pip install mkdocs pymdown-extensions && mkdocs serve`).
 
 | | |
 |---|---|

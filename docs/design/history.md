@@ -381,6 +381,27 @@ precision only (not usable) and Homebrew PoCL 7.2 as `Portable Computing Languag
 `backend: "opencl"` and the first usable device, so no switch was needed: `GpuTests` 20 passed, 0 failed, 0 skipped on PoCL (no kernel
 failures), `devices --selftest` passes. `auto` still never picks a CPU OpenCL device. No `ocl-icd` install was needed.
 
+## Stage 24 -- WP D1: Python next to the CLI in the example READMEs  (2026-11-26, `dev/wp-d1`, macOS arm64)
+
+* **Tabs:** `pymdownx.superfences` + `pymdownx.tabbed` (`alternate_style`) in `mkdocs.yml`, with `pymdownx.highlight: use_pygments: false`
+  so code blocks keep `<code class="language-x">` for the readthedocs theme's highlight.js (every page's HTML compared before / after: same
+  blocks, only a `highlight` class and a trailing newline differ). The theme has no tab CSS: it is in `docs/css/brand.css`. CI and
+  `docs.yml` now install `pymdown-extensions`.
+* **Convention** (`docs/style.md` "Run it", `_template.md`): a `**Run it**` paragraph between Layout and What it shows, tabs `=== "CLI"`
+  and `=== "Python"`; the Python tab is a complete program with the builders (typed dicts) and `uf.System.load` of the example's `.ufs`,
+  printing the CLI's line in the CLI's format (.NET `G4` = Python `.4G`). Marker: an HTML comment line `<!-- snippet -->` (or
+  `<!-- snippet slow -->`) before the fence -- chosen over a fence attribute because Python-Markdown passes the comment through invisibly
+  and no extension is needed; `build/readme_snippets.py` parses it and rejects a marker without its block.
+* **Checks:** `python/tests/test_readme_snippets.py` runs each snippet in a temporary copy of its folder at quick fidelity (added as text
+  to every run-spec JSON of the copy, and to dict specs by patching `ultrafast.core.Run.__init__` in a prelude) with
+  `ULTRAFAST_STRICT_OPTIONS=1`; `build/example_check.py` also runs the snippets (full fidelity) so the Python tab's quoted output is
+  checked; `build/example_lint.py` requires the tabs and a snippet when `example.json` has the new optional `"python": true` (chosen over
+  a `wave` threshold: explicit per example, independent of the conversion wave).
+* **Converted:** `GettingStarted/quickstart` (new `two-plates.ufs` + `run.json` equal to the builders, so it has a CLI tab) and
+  `GettingStarted/spm-plate` (`script` = `run.json`; hand check of B: 0.669 rad from the waist intensity against 0.667 from the run).
+  Both tabs print identical numbers to the CLI; `example_check` reproduces every quoted line. The per-example D2 instructions are in the
+  D2 row of `roadmap-internal.md`.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
@@ -391,7 +412,7 @@ failures), `devices --selftest` passes. `auto` still never picks a CPU OpenCL de
 * **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
 * **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.
 
-## Stage 24 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
+## Stage 25 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
 
 * `build/style_lint.py` parses the banned-filler, British-spelling and term tables of `docs/style.md` (nothing is duplicated in code), strips
   code, inline code, HTML, link targets and URLs, and reports `file:line: rule`. Entries with a qualifier it cannot judge ("(as a noun)",
@@ -401,27 +422,27 @@ failures), `devices --selftest` passes. `auto` still never picks a CPU OpenCL de
   hash of the line, so moving a line keeps it allowed and editing it does not. CI runs the linter in `docs-and-examples`; `--update-baseline`
   shrinks the file once the prose is fixed (C2 and D do that). `docs/style.md` and `docs/design/notes/` are not scanned.
 
-## Stage 25 -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
+## Stage 26 -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
 
 Rewrote `calculators.md`, `pulse-calculator.md`, `plotting.md` and `mcp.md` to the reference template (Keys, Model, Validation, Limits) and corrected `concepts.md` and `capabilities.md`. Each of the 40 rows of `notes/reference-audit-f.md` was re-checked against the source and closed with a resolution column (40 fixed, none kept, none found wrong); seven code-side findings are listed in the audit's section "Code findings for WP C4" (no code edited). Plotting history text (work-package names, "before" images) was removed. `mkdocs build --strict` gives 0 warnings.
 
-## Stage 26 -- WP C2e: reference pages of group e  (2026-11-25, `dev/wp-c2e`)
+## Stage 27 -- WP C2e: reference pages of group e  (2026-11-25, `dev/wp-c2e`)
 
 Rewrote `instruments.md`, `retrieval.md`, `measured-data.md`, `results.md` and `studies.md` to the B1 reference template (Keys, Model or behaviour, Validation with test names, Limits) and closed all rows of `reference-audit-e.md` (column "resolution"). Each audit row was re-checked against the source: the page claim on the main lobe at the window edge was stale (A2 made it a finite lower bound, not null), the audit's own row on it was wrong, as were its rows on the study `element:ID*` wildcard (only the prefix-cache lookup uses it) and on imaging instruments not ignoring `sampling` (the executor skips it and adds a note). The 18-row instrument key table became a table of reported values with links to `options.md`; the `240 fs to 26 fs` floor example was replaced by what `MeasuredSpectrumTests` asserts. Anchors other pages and `options.md` link to were kept. `mkdocs build --strict`: 0 warnings.
 
-## Stage 27 -- WP AG1: user agent pack split from the development rules  (2026-11-26, `dev/wp-ag1`, macOS arm64)
+## Stage 28 -- WP AG1: user agent pack split from the development rules  (2026-11-26, `dev/wp-ag1`, macOS arm64)
 
 * The pack (`python/src/ultrafast/agents/pack/`) gained `AGENTS.md` (how to drive the engine: files, discovery commands, running, results, habits, MCP) and `llms.txt` (index with documentation-site URLs only). One source each: the Python wheel ships them (`package-data`) and the CLI embeds the same files, so `ultrafast agent install` and `ultrafast-agent install` stay byte-identical. The repository `AGENTS.md` / `CLAUDE.md` / `llms.txt` are untouched and are not copies.
 * Install layout (decision): claude `.claude/ultrafast/AGENTS.md`; cursor an `alwaysApply` rule `ultrafast-guide.mdc`; codex the guide as the first part of the marked block; all `.ultrafast/llms.txt`. Claude Code does not read a nested AGENTS.md, so the docs tell the user to import it from `CLAUDE.md`; the installer never edits the user's files.
 * `test_agents.py`: `REPO_TERMS` (BuiltIn, CHANGELOG, /regen, worktree, Experiments, ZOSAPI, dotnet build, ...) is searched in every pack file and every installed file; the installed pack must hold the guide. `sync_skills.py --check` fails when the two files are missing.
 
-## Stage 28 -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
+## Stage 29 -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
 
 * Rewrote `system-file`, `run-spec`, `schema`, `cli`, `c-api`, `python`, `plugins` and `extending` to the reference template (Keys, Validation, Limits) and added a resolution column to every row of the group-a audit: 125 rows: 83 fixed on the page (of them 3 also with a code finding), 4 code findings only, 38 kept (page already right, or the audit was wrong). Each finding was re-checked against the source and the built CLI.
 * The audit was wrong twice: `crystal` does declare `chi3` and `n2` (the long `ionization` line in `BuiltInElements.cs:268` hides them; strict validation accepts both), and `ultrafast.System` and `ultrafast.system.System` are one class. Its exit-code row was incomplete: `ultrafast validate` returns 3 for an invalid file.
 * Code findings (nine, C4-1 to C4-9, in the audit file; no code was changed): the registry disagrees with the compiler on `system.version`, `bulk.dispersionSource` and `crystal.seedNoise`; `topology` is undeclared and top-level keys are unchecked; `DocAt` links point at three pages that do not exist (`elements.md`, `solvers.md`, `spatial-models.md`); `substrates` is missing from the known-key set.
 
 
-## Stage 29 -- WP AG3: transcript adapters for Codex and Cursor in the agent-eval runner  (2026-11-26, `dev/wp-ag3`)
+## Stage 30 -- WP AG3: transcript adapters for Codex and Cursor in the agent-eval runner  (2026-11-26, `dev/wp-ag3`)
 
 `tests/agent-evals/run_live.py` now has an adapter layer: `parse_claude` (the old reader), `parse_codex` (`codex exec --json`) and `parse_cursor` (`cursor-agent -p --output-format stream-json`) return the same trace, final answer and files written; `--agent claude|codex|cursor` runs the agent, `--transcript FILE` scores a saved transcript without running anything (format detected). The vendors document the event names and the message types but not the MCP tool-call item (Codex) or the MCP tool-call object (Cursor); those fields follow the open-source event definitions and observed output, are marked as such in the docstrings and the evals section of `docs/reference/mcp.md`, and are the place to fix if a CLI version differs. Owner decision kept: no model was called; `run_codex` and `run_cursor` are untested until the owner runs them. Twelve hand-made replays (two evals, pass and fail variants, three formats) and `python/tests/test_agent_eval_adapters.py` check identical traces and verdicts in all formats.
