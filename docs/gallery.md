@@ -90,17 +90,17 @@ A Michelson interferometer on the command line, in a Branched `.ufs` file.
 
 ## Wavefronts
 
-### [16 -- Position-dependent material properties](examples/Wavefronts/position-dependent-index/README.md)
+### [Position-dependent material properties](examples/Wavefronts/position-dependent-index/README.md)
 
-`indexProfile`, `absorptionProfile` and `n2Scale` make any material property a function of position (x, y, z, r, θ).
+A 5 mm fused-silica rod with a parabolic index profile is a thin lens of f = 0.2 m, and the engine focuses a 0.5 mm beam to 132 µm, within 1 % of the thin-lens 131 µm, whether the profile is an expression, a table or a Python function.
 
-![16 -- Position-dependent material properties: figure](examples/Wavefronts/position-dependent-index/hero.png)
+![Position-dependent material properties: figure](examples/Wavefronts/position-dependent-index/hero.png)
 
-### [15 -- Spatially resolved gain and the thermal lens](examples/Wavefronts/spatial-gain-thermal-lens/README.md)
+### [Spatially resolved gain and the thermal lens](examples/Wavefronts/spatial-gain-thermal-lens/README.md)
 
-A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod once, end-pumped by 60 W at 940 nm (super-Gaussian, 0.6 mm, double pass).
+A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod end-pumped by 60 W: the heat load writes a thermal lens of f = 0.54 m into the wavefront, and the beam 0.4 m behind the rod has shrunk from 471 µm to 319 µm.
 
-![15 -- Spatially resolved gain and the thermal lens: figure](examples/Wavefronts/spatial-gain-thermal-lens/hero.png)
+![Spatially resolved gain and the thermal lens: figure](examples/Wavefronts/spatial-gain-thermal-lens/hero.png)
 
 ## Branched
 
