@@ -61,6 +61,11 @@ Kerr-lens tests, the carrier-resolved path on the same Raman kernel; P2: narrow 
 * **Zemax:** Z1 and Z2 are tested only against the fake OpticStudio. `HARDWARE-CHECKLIST.md` steps 3b and 4b settle the real ZOS-API
   member names, the ZERN operand layout, ENPD / EXPD and the OPD sign (`opdSign` defaults to -1 without a confirming source).
 * **Memory estimate** leaves out the state of nonlinear spatial elements (can be 10x low): now stated in `memory.md`; fix in C4.
+* **CI "Docs and example check"** failed on the D2 merges for two lines (fixed in `41aa926`): `build/example_check.py` split numbers
+  with thousands separators, and `Nonlinear/supercontinuum`'s peak power differs by 0.2 % between Linux (CI) and macOS. The examples are
+  checked on macOS by the WP agents but on Linux in CI: chaotic cases (large B) should not quote four digits. Also for C4: the CLI line of
+  `LaserSystems/yb-laser-system` prints `T = 19,847,939,989.03 %` (output over the seed energy of an oscillator-seeded chain): print a
+  gain or omit T when the input is a seed.
 * Known limitation recorded: Raman on the cycle-averaged intensity in the carrier-resolved path drops the 2ω0 term (about 3 % of the
   delayed part for an 8 µm carrier in silica).
 
