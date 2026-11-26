@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **710 tests** in 77 classes. **454** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **711 tests** in 77 classes. **455** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -25,7 +25,7 @@ Every C# test of the engine: **710 tests** in 77 classes. **454** of them check 
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
-| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 10 | 10 |
+| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 11 | 11 |
 | [Fidelity switch](#fidelitytests) | `FidelityTests` | 6 | 0 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
@@ -480,6 +480,7 @@ Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence.
 | `QuantumNoise_OnePhotonPerMode_AndCoherentSoliton` | one photon per mode: N ħω of energy | 5 % |
 | `RamanKernel_OnACoarseGrid_HasTheResponseSpectrum` | Blow & Wood, IEEE JQE 25, 2665 (1989): damped-oscillator Raman response, analytic H(w) | 0.5 % |
 | `RamanModels_NormalisedAndHollenbeckPeaksAt13THz` | Hollenbeck & Cantrell, JOSA B 19, 2886 (2002): gain peak 13.2 THz | 1 %, 3 % |
+| `RamanOn_LongPulse_CarrierResolvedAndEnvelopeGiveTheFullKerrPhase` | SPM phase k0 n2 I0 L with a delayed share fR of unit-integral response (long-pulse limit) | 0.1 % |
 | `SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon` | Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain) | 2 % |
 | `TaperedGamma_BIntegralFollowsTheIntegral` | B = ∫ γ(z) P dz | 1 % |
 

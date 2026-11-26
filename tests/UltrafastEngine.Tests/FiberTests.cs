@@ -74,8 +74,10 @@ namespace UltrafastEngine.Tests
         /// oscillator h = A exp(-t/tau2) sin(t/tau1), A = (tau1^2 + tau2^2)/(tau1 tau2^2) (Blow and Wood: 12.2 / 32 fs):
         /// H(w) = A (1/tau1) / ((1/tau2 - i w)^2 + 1/tau1^2), H(0) = 1. At dt = 10 fs (a field grid for an 8 um carrier) the
         /// directly sampled kernel sums to 0.935 and, normalised, its spectrum is 77 % high at 40 THz (aliasing); the band-limited
-        /// kernel matches H within 0.5 % up to 0.8 of the Nyquist frequency (the spectrum is compared in magnitude, which does
-        /// not depend on the transform's sign convention, and normalised to its value at w = 0).</summary>
+        /// kernel matches H within 0.5 % up to 0.8 of the Nyquist frequency, in magnitude and as a complex number (normalised to
+        /// its value at w = 0). The engine's convention is E ~ exp(-i w t) (docs/concepts.md), so a spectrum is int f(t) exp(+i w t) dt
+        /// and a causal response has Im H > 0 at positive offsets near the Raman peak: a time-reversed (anti-causal) or
+        /// sign-flipped kernel gives conj(H) or -H and fails the complex check.</summary>
         [Test(Reference = "Blow & Wood, IEEE JQE 25, 2665 (1989): damped-oscillator Raman response, analytic H(w)", Tolerance = "0.5 %")]
         public void RamanKernel_OnACoarseGrid_HasTheResponseSpectrum()
         {
@@ -92,8 +94,50 @@ namespace UltrafastEngine.Tests
                 double w = grid.OmegaOffset[i];
                 if (Math.Abs(w) > 0.8 * nyq || i % 8 != 0) continue;
                 var den = new System.Numerics.Complex(1 / t2, -w) * new System.Numerics.Complex(1 / t2, -w) + 1 / (t1 * t1);
-                double analytic = (a / t1 / den).Magnitude;
-                Assert.Close(analytic, (hf[i] / hf[i0]).Magnitude, 0.005, 0, "|H| at " + (w / (2 * Math.PI) * 1e-12).ToString("F1") + " THz");
+                var hAnalytic = a / t1 / den; var hNum = hf[i] / hf[i0];
+                string at = (w / (2 * Math.PI) * 1e-12).ToString("F1") + " THz";
+                Assert.Close(hAnalytic.Magnitude, hNum.Magnitude, 0.005, 0, "|H| at " + at);
+                Assert.True((hNum - hAnalytic).Magnitude <= 0.005 * hAnalytic.Magnitude, "complex H (causal phase) at " + at + ": " + hNum + " against " + hAnalytic);
+            }
+            // the Raman gain side: near the 13 THz peak Im H > 0 on the positive side, < 0 on the negative side (causal response)
+            int ip = Array.IndexOf(grid.OmegaOffset, grid.OmegaOffset.OrderBy(x => Math.Abs(x - 1 / t1)).First());
+            int im = Array.IndexOf(grid.OmegaOffset, grid.OmegaOffset.OrderBy(x => Math.Abs(x + 1 / t1)).First());
+            Assert.Greater((hf[ip] / hf[i0]).Imaginary, 0.5, "Im H at +13 THz (Raman peak, causal)");
+            Assert.Less((hf[im] / hf[i0]).Imaginary, -0.5, "Im H at -13 THz");
+            // the same kernel reversed in time (anti-causal) has conj(H): the complex check rejects it
+            var rev = new System.Numerics.Complex[n];
+            for (int i = 1; i < n; i++) rev[i] = h[n - i];
+            rev[0] = h[0];
+            var rf = UltrafastEngine.Numerics.SpectralTransform.TimeToFreq(rev);
+            Assert.Less((rf[ip] / rf[i0]).Imaginary, 0, "a time-reversed kernel has the opposite Im H (the check above would fail)");
+        }
+
+        /// <summary>The Raman kernel of the carrier-resolved solver, end to end: a 2 ps Gaussian at 20 um on a 512-point, 16 ps
+        /// envelope grid (field grid dt = 7.8 fs, coarse against the 12 fs Raman oscillation) through 1 mm of a dispersionless medium
+        /// (n = 1.4) with n2 and the silica Raman response (fR = 0.18), constant area. For a pulse much longer than the response the
+        /// delayed part acts as instantaneous, so the nonlinear phase at the peak is the full k0 n2 I0 L ((h * I)(t_peak) = I0 to
+        /// O((T_R / T)^2)). Measured as arg(A(t_peak)) against a 1e6 times weaker run, in the carrier-resolved and the envelope
+        /// solver (observed within 2e-4). Checked to fail: with fR dropped from the field path 0.82 of it, with the directly
+        /// sampled, unnormalised kernel (sum 0.961) 0.7 % low. The envelope grid must not reach zero frequency: with 4096 points
+        /// over the same 16 ps the carrier-resolved SPM phase came out 33 % high (docs/design/limitations.md).</summary>
+        [Test(Reference = "SPM phase k0 n2 I0 L with a delayed share fR of unit-integral response (long-pulse limit)", Tolerance = "0.1 %")]
+        public void RamanOn_LongPulse_CarrierResolvedAndEnvelopeGiveTheFullKerrPhase()
+        {
+            double lam = 20e-6, T = 2e-12, L = 1e-3, n2 = 2.6e-20, ae = 1e-8, phiTarget = 0.1;
+            double k0 = W(lam) / C, i0 = phiTarget / (k0 * n2 * L), p0 = i0 * ae, e = p0 * T * Math.Sqrt(Math.PI / (4 * Math.Log(2)));
+            var mat = FlatMaterial(n2, 1.4); mat.Set("raman", O("kind", "silica"));
+            var so = O("format", "ultrafast-system", "name", "raman-field", "materials", O("flat", mat));
+            so.Set("elements", A(O("id", "x", "type", "bulk", "material", "flat", "lengthM", L, "beam", O("kind", "constant", "areaM2", ae))));
+            var sys = SystemDescription.FromJson(so);
+            foreach (var mode in new[] { "carrier", "envelope" })
+            {
+                RunResult Run(double energy) => Go(sys, Spec(Gauss(lam, T, energy), O("physics", O("fieldMode", mode, "raman", true, "selfSteepening", false), "grid", O("n", 512, "windowS", 16e-12))));
+                var hi = Run(e); var lo = Run(e * 1e-6);
+                var ah = hi.Output.TemporalAx();
+                var al = lo.Output.TemporalAx();
+                int pk = 0; for (int i = 1; i < al.Length; i++) if (al[i].Magnitude > al[pk].Magnitude) pk = i;
+                double phi = (ah[pk] / al[pk]).Phase;
+                Assert.Close(k0 * n2 * i0 * L, phi, 0.001, 0, mode + ": nonlinear phase at the peak (Kerr + Raman)");
             }
         }
 

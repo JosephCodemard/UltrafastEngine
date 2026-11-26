@@ -24,6 +24,8 @@ the evidence (test, repro or code location) and whether the limitation is planne
 | Kerr lens `cellMode`: round beams, peak power, a command (not an element) | | planned |
 | `multiFrog` with two traces finds the time-reversed twin in most starts | `docs/papers/kida-2014-double-frog/repro_2.py` | planned (investigate) |
 | Single-shot cross-correlator: no crystal propagation, scatter, stripe filter, face reflections, fibre array | | planned |
+| Carrier-resolved solver: the delayed (Raman) index follows the cycle-averaged intensity I_env, so the 2 omega0 part of e^2 never drives it; for an 8 um carrier in silica that part is about 3 % of the delayed response (it falls off as the response's H(2 omega0)) | `FieldProblem.Nonlinear` (`ienv`); physics review of WP fix-2 | accepted |
+| Carrier-resolved solver with an envelope grid that reaches non-positive absolute frequency: the bins are dropped with only a note, and the SPM phase can be far off (33 % high for a 2 ps pulse at 8 um on 4096 points over 16 ps; exact on 1024 points) | WP fix-2, `FiberTests.RamanOn_LongPulse_*` | open: should be a warning or an error |
 
 ## Numerics and resources
 
@@ -34,6 +36,7 @@ the evidence (test, repro or code location) and whether the limitation is planne
 | An evicted GPU user-response program is recompiled on its next use; more than 32 different ones in flight at once on one device could release one that a launch is about to use | `GpuContext.EnsureProgram` | accepted |
 | GPU coverage: no spatial χ(2), spatial mixed precision, carrier-resolved propagation or spatial gain on the device; callbacks always run on the CPU | `GpuBackend.WhyNot` | planned (roadmap §3) |
 | Mixed precision is refused above 70 dB of instrument dynamic range (FP32 fills the contrast floor below about -85 dB) | FP32 study, `docs/reference/speed.md` | accepted |
+| `SampledResponse` (the band-limited delayed-response kernel) falls back to direct sampling when the grid has more than 2^22 points (the sub-sampled grid would exceed 2^23); a coarse dt on so large a grid is unusual, and the kernel is still normalised to unit sum | `EnvelopeProblem.SampledResponse`; physics review of WP fix-2 | accepted |
 
 ## Process and verification
 
