@@ -73,6 +73,7 @@ The same calculators, and the beam and nonlinear ones that need no engine, are i
 | `ULTRAFAST_PLUGIN_PATH`, `ULTRAFAST_NO_PLUGINS=1` | extra plugin folders; run the bare core ([plugins](plugins.md)) |
 | `ULTRAFAST_MATERIALS`, `ULTRAFAST_RII_PATH`, `ULTRAFAST_HITRAN_DIR` | user catalogue folder (default `~/.ultrafast/materials`), a local refractiveindex.info `data` folder, the HITRAN line files (default `~/.ultrafast/hitran`) |
 | `ULTRAFAST_PLOT_STYLE` | default plot style |
+| `ULTRAFAST_PYTHON` | the Python interpreter that `ultrafast twin` starts (default `python3`, `python` on Windows; [twin plugin](../plugins/twin.md)) |
 | `ULTRAFAST_LIBRARY` | path of the native library the Python package loads (a source build) |
 | `ULTRAFAST_MCP_MEMORY_LIMIT_BYTES` | memory limit of the MCP server's worker (set by `ultrafast-mcp --memory-limit-gb`) |
 
