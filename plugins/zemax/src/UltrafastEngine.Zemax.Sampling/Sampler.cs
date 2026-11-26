@@ -37,6 +37,8 @@ namespace UltrafastEngine.Zemax
         public bool SampleAoi { get; set; } = true;
         public bool SampleNormals { get; set; } = true;
         public CoatingOperandSpec CoatingOperand { get; set; }
+        /// <summary>Read the Zernike Standard Coefficients at the carrier (null: not read).</summary>
+        public ZernikeExport Zernike { get; set; }
         public Action<string> Log { get; set; } = Console.WriteLine;
     }
 
@@ -82,6 +84,7 @@ namespace UltrafastEngine.Zemax
                     os.SetWavelengths(new[] { opt.CarrierUm });
                     ReadBeam(os, last, opt, res);
                 }
+                if (opt.Zernike != null) ReadZernike(os, opt, res, log);
                 var queue = new Queue<double>(opt.KeepCurrentWavelengths ? original.Select(w => w.Um) : opt.WavelengthsUm ?? throw new ArgumentException("no wavelengths to sample"));
                 int batchSize = Math.Max(1, opt.BatchSize), batchNo = 0;
                 while (queue.Count > 0)
@@ -270,6 +273,25 @@ namespace UltrafastEngine.Zemax
                 for (int s = 1; s <= last; s++) { res.BeamRadius[s] = v[2 * (s - 1)]; res.BeamWaist[s] = v[2 * (s - 1) + 1]; }
             }
             catch (Exception ex) { res.Warnings.Add("Gaussian beam operands failed (" + ex.Message + "): give nonlinear elements a beam in the export config."); }
+        }
+
+        /// <summary>Zernike Standard Coefficients at the carrier (WDE set to the carrier alone, wave 1). A failure is a warning, not
+        /// an error: the export goes on without the wavefront element.</summary>
+        private static void ReadZernike(IOpticStudio os, SamplerOptions opt, ZemaxSample res, Action<string> log)
+        {
+            var z = opt.Zernike;
+            try
+            {
+                os.SetWavelengths(new[] { opt.CarrierUm });
+                var d = os.ReadZernikeStandard(z.Field, 1, z.MaxTerm, z.Sampling);
+                if (d?.NollWaves == null || d.NollWaves.Length == 0) throw new InvalidOperationException("no coefficients returned");
+                if (d.NollWaves.Any(v => double.IsNaN(v) || double.IsInfinity(v))) throw new InvalidOperationException("non-finite coefficients returned");
+                d.WavelengthUm = opt.CarrierUm; d.Field = z.Field; d.Sampling = z.Sampling;
+                res.Zernike = d;
+                log(string.Format(CultureInfo.InvariantCulture, "  Zernike Standard Z1..Z{0} of field {1} at {2:F2} nm ({3}x{3} pupil): rms of Z4..Z{0} {4:G4} waves",
+                    d.NollWaves.Length, z.Field, opt.CarrierUm * 1e3, z.Sampling, Math.Sqrt(d.NollWaves.Skip(3).Sum(v => v * v))));
+            }
+            catch (Exception ex) { res.Warnings.Add("Zernike Standard Coefficients failed (" + ex.Message + "): no wavefront element exported."); }
         }
 
         /// <summary>Sample wavelengths (um), evenly spaced in frequency between the limits (nm).</summary>

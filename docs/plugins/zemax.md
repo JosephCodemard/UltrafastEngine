@@ -85,6 +85,7 @@ different export settings (no OpticStudio); `zemax-replay` re-runs the sampler o
 | surface normals | **RENA/RENB/RENC** (rotated to global coordinates) |
 | index of each medium | `ILensDataEditor.GetIndex` (relative to air) |
 | Gaussian beam | **GBPS** (radius) and **GBPW** (waist) at every surface via temporary merit-function rows (removed again) |
+| wavefront (optional) | **ZERN** (Zernike Standard, one temporary row per term) at the carrier, **ENPD** / **EXPD** pupil diameters (`zernike`, see [Zernike aberrations](#zernike-aberrations)) |
 | coatings (optional) | merit operand (`coatingSource: "zemaxOperand"`, see below) or rules |
 | environment | System > Environment temperature and pressure |
 
@@ -124,7 +125,53 @@ See `plugins/zemax/src/UltrafastEngine.Zemax/examples/export.json` (fully commen
 | `coatings[]` | `matchComment` / `matchCoating` / `matchMaterial` / `matchType`, `coating` (coating JSON), `lidt`, `roughnessRmsM` |
 | `coatingSource` | `rules` (default) or `zemaxOperand` |
 | `coatingOperand` | `type` (default `CODA`), `codes` {Rs, Rp, Ts, Tp, PhaseRs...}, `dataArgument`, `phaseInDegrees` -- **verify the data codes against your OpticStudio's operand help before use**; a sanity check (R + T <= 1) disables it if the values look wrong |
+| `zernike` | optional: `field` (1), `maxTerm` (37), `sampling` (64), `position` (`end` / `start`), `radiusM`, `opdSign` (-1), `removePiston` (true), `removeTilt` (false); see [Zernike aberrations](#zernike-aberrations) |
 | `apertures`, `vectors`, `mergeLinear`, `vignetting` | switches (all true by default) |
+
+## Zernike aberrations
+
+With a `zernike` block in `export.json`, the export reads OpticStudio's Zernike Standard Coefficients of one field at
+the carrier wavelength and writes them as one [`wavefront`](../reference/components.md#aberrations) element:
+
+```jsonc
+"zernike": { "field": 1, "maxTerm": 37, "sampling": 64, "position": "end" }
+```
+
+The exported element looks like this (the numbers are an example):
+
+```jsonc
+{ "id": "zemax_wavefront", "type": "wavefront",
+  "zernikeNollWaves": [0, 0, 0, -0.25, 0, 0.1],   // Noll order from Z1, waves at referenceWavelengthM
+  "radiusM": 5.0e-3,                              // entrance pupil radius (ENPD / 2)
+  "referenceWavelengthM": 1.03e-6 }
+```
+
+How the coefficients are read: the Wavelength Data Editor is set to the carrier alone (and restored afterwards), and
+one temporary `ZERN` merit-function row per term (Type 1 = Standard, referenced to the chief ray) is evaluated, then
+removed. `ZERN` gives the same fit as the Zernike Standard Coefficients analysis with typed numbers; the analysis
+window only returns a text file to parse. A failed read is a warning, and the export continues without the element.
+
+Conversion from OpticStudio to the engine:
+
+| | OpticStudio Zernike Standard | engine `zernikeNollWaves` | conversion |
+|---|---|---|---|
+| ordering, normalisation | Noll: Z4 = √3 (2ρ² − 1), Z5 = √6 ρ² sin 2θ, Z6 = √6 ρ² cos 2θ, rms 1 over the unit disc | the same (`Optics/ComponentTerms.cs`, `Zernike`) | none |
+| units | waves at the analysis wavelength | waves at `referenceWavelengthM` | `referenceWavelengthM` = the carrier |
+| radius | ρ = 1 at the pupil edge | ρ = r / `radiusM` | `radiusM` = entrance pupil radius (ENPD / 2), because the engine's beam is the input beam; `zernike.radiusM` overrides it |
+| sign | positive OPD taken as a wavefront ahead of the reference sphere | W > 0 is extra optical path (phase exp(+iωW/c)) | coefficient × `opdSign` (default −1) |
+| piston, tilt | relative to the chief ray | Z1 would act as a group delay | Z1 dropped (`removePiston`); Z2, Z3 kept unless `removeTilt` |
+
+Limits:
+
+* **The sign is not yet confirmed on OpticStudio.** `HARDWARE-CHECKLIST.md` step 4b checks it with a defocused
+  paraxial lens. If the check fails, set `"opdSign": 1`.
+* The wavefront is OpticStudio's at the carrier only. The engine applies it as a non-dispersive optical path at every
+  frequency, so chromatic aberration across the pulse spectrum is not exported.
+* The pupil axes are assumed to be the engine's beam axes. A fold that mirrors or rotates the image changes the sign
+  of the sine (or cosine) terms.
+* A radial transverse grid keeps only the rotationally symmetric terms (defocus, spherical). Use a cartesian
+  transverse model for astigmatism and coma. A 1-D run only reports the Maréchal Strehl estimate (`beamRadiusM` is set
+  from GBPS at surface 1 when the export has a `beam`).
 
 ## Debugging without OpticStudio
 
@@ -153,6 +200,8 @@ time against OpticStudio 2025 R1). What remains to confirm is run-time behaviour
 * RENA/RENB/RENC return the local surface normal; RAID returns degrees. If an operand is missing the export
   continues without that quantity and says so.
 * The coating operand codes (only with `coatingSource: "zemaxOperand"`).
+* The `ZERN` parameter layout [Term, Wave, Samp, Field, Type, Epsilon, Vertex], ENPD / EXPD as diameters, and the OPD sign
+  (only with `zernike`).
 
 ## Thermal lens back to OpticStudio
 

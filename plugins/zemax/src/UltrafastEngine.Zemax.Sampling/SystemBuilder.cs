@@ -22,6 +22,8 @@ namespace UltrafastEngine.Zemax
     /// (GBPS/GBPW); every surface that does something (index step, mirror, grating, coating, aperture) becomes
     /// an "interface" element with per-wavelength angle of incidence, ray vectors and aperture data.
     /// Coordinate breaks and MIRROR rows inherit the medium before them (Zemax semantics).
+    /// With an export "zernike" block, OpticStudio's Zernike Standard Coefficients become one "wavefront" element
+    /// (<see cref="BuildWavefront"/>), at the end of the list (default) or at the start.
     /// </summary>
     public static class SystemBuilder
     {
@@ -152,6 +154,17 @@ namespace UltrafastEngine.Zemax
             }
             FlushLinear(); FlushPass();
 
+            // OpticStudio's wavefront (Zernike Standard Coefficients) as one "wavefront" element
+            if (cfg.Zernike != null)
+            {
+                var we = BuildWavefront(d, cfg.Zernike, notes);
+                if (we != null)
+                {
+                    var el = new SystemElement { Id = we.GetString("id"), Type = "wavefront", Label = we.GetString("label"), Json = we };
+                    if (cfg.Zernike.Position == "start") sys.Elements.Insert(0, el); else sys.Elements.Add(el);
+                }
+            }
+
             // materials
             foreach (var med in usedMedia.Values)
             {
@@ -277,6 +290,49 @@ namespace UltrafastEngine.Zemax
         }
 
         private static string Sanitize(string s) => new string(s.Trim().Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray());
+
+        // ---------------------------------------------------------------------------------- wavefront
+
+        /// <summary>
+        /// The "wavefront" element for the sampled Zernike Standard Coefficients (null when the sample has none).
+        ///
+        /// Conversion, OpticStudio -> engine (Optics/ComponentTerms.cs Zernike and Aberration):
+        ///   * ordering and normalisation: none. Zernike Standard is Noll's ordering and normalisation (rms of Z_j over the unit
+        ///     disc = 1; Z5 = sqrt(6) rho^2 sin 2 theta, Z6 = sqrt(6) rho^2 cos 2 theta, theta from +x towards +y), which is the
+        ///     engine's zernikeNollWaves convention term by term.
+        ///   * units: both in waves; referenceWavelengthM = the wavelength OpticStudio fitted at (the carrier).
+        ///   * sign: the engine's W(x, y) is extra optical path (applied as exp(+i omega W / c): W > 0 lags); OpticStudio's OPD is
+        ///     taken as positive where the wavefront is ahead of the reference sphere, so coefficient_engine = opdSign x
+        ///     coefficient_OpticStudio with opdSign = -1 by default (to confirm: HARDWARE-CHECKLIST.md step 4b).
+        ///   * radius: rho = 1 is the pupil edge. The engine's beam is the input beam, so radiusM = the entrance pupil radius
+        ///     (ENPD / 2) unless the export gives radiusM.
+        ///   * piston Z1 is dropped by default (relative to the chief ray it would act as a group delay); tilt Z2, Z3 only on request.
+        /// The wavefront is OpticStudio's at the carrier, applied as a non-dispersive optical path at every frequency.
+        /// </summary>
+        public static JsonObject BuildWavefront(ZemaxSample d, ZernikeExport z, List<string> notes = null)
+        {
+            var zd = d.Zernike;
+            if (zd?.NollWaves == null || zd.NollWaves.Length == 0) return null;
+            double lu = d.LensUnitToMeters;
+            double radius = z.RadiusM ?? zd.EntrancePupilRadius * lu;
+            if (!(radius > 0))
+            {
+                notes?.Add("Zernike coefficients read but no pupil radius (ENPD) and no zernike.radiusM: no wavefront element exported");
+                return null;
+            }
+            var c = zd.NollWaves.Select(v => z.OpdSign * v).ToArray();
+            if (z.RemovePiston && c.Length >= 1) c[0] = 0;
+            if (z.RemoveTilt) for (int j = 1; j < 3 && j < c.Length; j++) c[j] = 0;
+            double lambdaM = (double.IsNaN(zd.WavelengthUm) || zd.WavelengthUm <= 0 ? d.CarrierUm : zd.WavelengthUm) * 1e-6;
+            var e = new JsonObject().Set("id", "zemax_wavefront").Set("type", "wavefront")
+                .Set("label", string.Format(CultureInfo.InvariantCulture, "OpticStudio wavefront, field {0} at {1:F2} nm (Zernike Standard Z1..Z{2})", zd.Field, lambdaM * 1e9, c.Length))
+                .Set("zernikeNollWaves", JsonValue.FromArray(c)).Set("radiusM", radius).Set("referenceWavelengthM", lambdaM);
+            double beamR = d.BeamRadius != null && d.BeamRadius.Length > 1 ? d.BeamRadius[1] * lu : double.NaN;
+            if (beamR > 0) e.Set("beamRadiusM", beamR);
+            notes?.Add(string.Format(CultureInfo.InvariantCulture, "wavefront element: Zernike Z1..Z{0} at {1:F2} nm over r = {2:G4} mm ({3}), sign x{4}{5}",
+                c.Length, lambdaM * 1e9, radius * 1e3, z.RadiusM.HasValue ? "zernike.radiusM" : "entrance pupil", z.OpdSign, z.RemovePiston ? ", piston removed" : ""));
+            return e;
+        }
 
         // ---------------------------------------------------------------------------------- beams
 

@@ -104,19 +104,7 @@ Docs: docs/plugins/zemax.md";
 
         internal static (SystemDescription System, ZemaxSample Sample) ExportFrom(IOpticStudio os, ExportConfig cfg, Action<string> log)
         {
-            var opt = new SamplerOptions
-            {
-                WavelengthsUm = cfg.SampleWavelengthsUm(),
-                KeepCurrentWavelengths = string.Equals(cfg.SamplingMode, "zemax", StringComparison.OrdinalIgnoreCase),
-                BatchSize = cfg.BatchSize,
-                GeometryFromOperands = !string.Equals(cfg.Geometry, "batchRayTrace", StringComparison.OrdinalIgnoreCase),
-                CarrierUm = cfg.CarrierUm(),
-                BeamWaist = cfg.BeamWaistM.HasValue ? cfg.BeamWaistM.Value / os.LensUnitToMeters : (double?)null,
-                BeamWaistToSurface1 = cfg.BeamWaistToSurface1M / os.LensUnitToMeters,
-                BeamM2 = cfg.BeamM2,
-                CoatingOperand = cfg.CoatingOperand,
-                Log = log
-            };
+            var opt = cfg.ToSamplerOptions(os, log);
             if (opt.WavelengthsUm != null)
                 log(string.Format(CultureInfo.InvariantCulture, "Sampling {0} wavelengths {1:F1}-{2:F1} nm (carrier {3:F2} nm)", opt.WavelengthsUm.Count, opt.WavelengthsUm.Min() * 1e3, opt.WavelengthsUm.Max() * 1e3, opt.CarrierUm * 1e3));
             var sample = Sampler.Sample(os, opt);

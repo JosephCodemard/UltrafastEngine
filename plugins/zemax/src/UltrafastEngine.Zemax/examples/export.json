@@ -30,6 +30,10 @@
     { "matchType": "Grating", "coating": { "kind": "efficiency", "s": 0.95, "p": 0.30 } }
   ],
 
+  // Optional: OpticStudio's wavefront (Zernike Standard Coefficients at the carrier) as one "wavefront" element.
+  // Delete the block to export no aberrations. See docs/plugins/zemax.md, "Zernike aberrations".
+  "zernike": { "field": 1, "maxTerm": 37, "sampling": 64, "position": "end" },
+
   "apertures": true,     // export semi-diameters (the engine clips the Gaussian beam)
   "vectors": true,       // export ray directions and surface normals (exact s/p basis tracking)
   "mergeLinear": true,   // merge consecutive linear gaps into one dispersion element

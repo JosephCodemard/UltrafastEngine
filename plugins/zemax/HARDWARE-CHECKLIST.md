@@ -79,6 +79,28 @@ Compare with an independent value and write the numbers down:
 Differences above 1 % in any of these are findings: attach `session.json` (the record of every call) so the session can replay it on any OS
 (`ultrafast zemax-replay session.json`).
 
+## 4b. Zernike aberrations (Z2)
+
+Build a test system: a paraxial lens (focal length f = 100 mm, entrance pupil diameter 10 mm, wavelength 1.03 um, one on-axis field).
+Set the thickness of the surface before the image to **f + 1 mm**, so the image plane is 1 mm behind the focus. Add this to
+`export.json`:
+
+```
+"zernike": { "field": 1, "maxTerm": 15, "sampling": 64 }
+```
+
+Run `export export.json -o system.ufs --save-sample sample.ufsample.json`, then check:
+
+| check | expect |
+|---|---|
+| OpticStudio: Analyze > Wavefront > Zernike Standard Coefficients (64x64, wave 1, field 1) | Z4 equals `zernike.nollWaves[3]` in `sample.ufsample.json` to 1e-4 waves (confirms the ZERN layout: Term, Wave, Samp, Field, Type 1 = Standard) |
+| the size of Z4 | about \|Z4\| = dz NA² / (4 √3 λ) = 1 mm × 0.05² / (4 √3 × 1.03 µm) ≈ 0.35 waves |
+| the sign of Z4 | the code assumes **Z4 > 0** here (positive OPD = wavefront ahead of the reference sphere, so the engine gets −Z4). If OpticStudio reports Z4 < 0, set `"opdSign": 1` and report it: the default must change |
+| `radiusM` of `zemax_wavefront` in `system.ufs` | 5e-3 (ENPD / 2 in metres) |
+| the log line `Zernike Standard Z1..Z15 ...` | present; no "Zernike Standard Coefficients failed" warning |
+
+Then tilt the lens by 2 deg about x (coordinate breaks): Z5 / Z6 (astigmatism) appear; check them against the analysis window the same way.
+
 ## 5. Run
 
 ```
@@ -107,4 +129,5 @@ shows the expected focal length. Close the file without saving.
 * `GetGlobalMatrix`: rotation row-major, origin in lens units.
 * Environment temperature in deg C and pressure in atm; the fallback to 20 C / 1 atm when the read fails.
 * RENA/RENB/RENC return the local surface normal; RAID returns degrees; GBPW has GBPS's parameter layout; coating operand codes (only with `coatingSource: "zemaxOperand"`).
+* ZERN parameters [Term, Wave, Samp (1 = 32x32, 2 = 64x64...), Field, Type (1 = Standard), Epsilon, Vertex]; ENPD / EXPD return diameters in lens units; positive OPD = wavefront ahead of the reference sphere (`opdSign` -1) (step 4b).
 * Gradient 1: n0 is taken at the primary wavelength, the glass dispersion from the catalogue.

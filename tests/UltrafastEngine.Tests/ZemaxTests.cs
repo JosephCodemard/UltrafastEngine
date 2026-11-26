@@ -120,5 +120,80 @@ namespace UltrafastEngine.Tests
             Assert.Close(zw, p.WaistPositionM, 1e-6, 0, "waist position");
             Assert.Close(w(0.37), p.RadiusAt(0.37), 1e-6, 0, "radius inside the gap");
         }
+
+        // ------------------------------------------------------------------------------------------ Zernike (WP Z2)
+
+        private const string ZernikeCfg = @"{ ""sampling"": {""minWavelengthM"": 0.98e-6, ""maxWavelengthM"": 1.08e-6, ""count"": 16, ""carrierWavelengthM"": 1.03e-6}, ""zernike"": {""maxTerm"": 15 ZEXTRA} }";
+
+        private static (SystemDescription Sys, ZemaxSample Sample, FakeOpticStudio Os) ZernikeExportOf(double[] nollWaves, string extra = "")
+        {
+            var os = new FakeOpticStudio("slab") { ZernikeNollWaves = nollWaves, EntrancePupilRadius = 5.0 };
+            var cfg = Cfg(ZernikeCfg.Replace("ZEXTRA", extra));
+            var sample = Sampler.Sample(os, cfg.ToSamplerOptions(os, _ => { }));
+            return (SystemBuilder.Build(sample, cfg), sample, os);
+        }
+
+        [Test(Reference = "Noll, J. Opt. Soc. Am. 66, 207 (1976): Z4 = sqrt(3) (2 rho^2 - 1), Z6 = sqrt(6) rho^2 cos 2 theta", Tolerance = "1e-12")]
+        public void Zernike_DefocusAndAstigmatismGiveTheAnalyticPhaseAtPupilPoints()
+        {
+            // OpticStudio (fake): piston 0.3, defocus Z4 = 0.25, astigmatism Z6 = -0.1 waves at the carrier over a 5 mm entrance pupil
+            var (sys, sample, os) = ZernikeExportOf(new[] { 0.3, 0, 0, 0.25, 0, -0.1 });
+            Assert.Equal(1, os.ZernikeCalls, "one Zernike read");
+            Assert.Close(1.03, sample.Zernike.WavelengthUm, 0, 1e-15, "read at the carrier");
+            Assert.Equal(15, sample.Zernike.NollWaves.Length, "Z1..maxTerm");
+            var el = sys.Elements.Last();
+            Assert.Equal("wavefront", el.Type, "the wavefront element is last (position end)");
+            Assert.Close(5e-3, el.Json.GetDouble("radiusM", 0), 1e-15, 0, "radiusM = entrance pupil radius in metres");
+            Assert.Close(1.03e-6, el.Json.GetDouble("referenceWavelengthM", 0), 1e-15, 0, "coefficients in waves at the carrier");
+            Assert.Close(0, el.Json.GetDoubleArray("zernikeNollWaves")[0], 0, 0, "piston removed");
+            // through the engine: the compiled element's optical path at pupil points against the analytic Zernike polynomials
+            var r = Go(sys, Spec(Gauss(1.03e-6, 300e-15, 1e-9)));
+            var ab = r.Compiled.Elements.Select(e => e.Active).OfType<Optics.SurfaceOpticsElement>().Single().Aberration;
+            double lam = 1.03e-6, R = 5e-3;
+            foreach (var (x, y) in new[] { (0.0, 0.0), (R, 0.0), (0.0, R), (3e-3, -2e-3), (-1.2e-3, 4.1e-3), (2.5e-3, 2.5e-3) })
+            {
+                double rho = Math.Sqrt(x * x + y * y) / R, th = Math.Atan2(y, x);
+                double opticStudioWaves = 0.25 * Math.Sqrt(3) * (2 * rho * rho - 1) - 0.1 * Math.Sqrt(6) * rho * rho * Math.Cos(2 * th);
+                double expected = -opticStudioWaves * lam; // engine W = opdSign (-1) x OpticStudio OPD
+                Assert.Close(expected, ab.Opd(x, y, false), 1e-12, 1e-12 * lam, "W at (" + x + ", " + y + ")");
+            }
+        }
+
+        [Test]
+        public void Zernike_ExportOptionsSignPositionTiltAndRadius()
+        {
+            var (sys, _, _) = ZernikeExportOf(new[] { 0.3, 0.05, -0.02, 0.25 }, @", ""position"": ""start"", ""opdSign"": 1, ""removeTilt"": true, ""radiusM"": 2e-3");
+            var el = sys.Elements[0];
+            Assert.Equal("wavefront", el.Type, "position start");
+            var z = el.Json.GetDoubleArray("zernikeNollWaves");
+            Assert.Close(0.25, z[3], 0, 0, "opdSign +1 keeps the sign");
+            Assert.Close(0, z[1] * z[1] + z[2] * z[2], 0, 0, "tilt removed");
+            Assert.Close(2e-3, el.Json.GetDouble("radiusM", 0), 0, 0, "explicit radiusM");
+            Assert.Throws<JsonException>(() => Cfg(@"{ ""zernike"": {""sampling"": 100} }"), "sampling must be a power of two from 32");
+            Assert.Throws<JsonException>(() => Cfg(@"{ ""zernike"": {""opdSign"": 2} }"), "opdSign must be +1 or -1");
+            // a failed read is a warning, not an error, and nothing is exported
+            var os = new FakeOpticStudio("slab");
+            var cfg = Cfg(ZernikeCfg.Replace("ZEXTRA", ""));
+            var sample = Sampler.Sample(os, cfg.ToSamplerOptions(os, _ => { }));
+            Assert.True(sample.Zernike == null && sample.Warnings.Any(w => w.Contains("Zernike")), "failed read warns");
+            Assert.True(SystemBuilder.Build(sample, cfg).Elements.All(e => e.Type != "wavefront"), "no wavefront element");
+        }
+
+        [Test]
+        public void Zernike_RecordReplayAndSavedSampleKeepTheCoefficients()
+        {
+            var cfg = Cfg(ZernikeCfg.Replace("ZEXTRA", ""));
+            var rec = new RecordingOpticStudio(new FakeOpticStudio("slab") { ZernikeNollWaves = new[] { 0, 0, 0, 0.1, 0.02, 0, 0, 0.03 } });
+            var a = Sampler.Sample(rec, cfg.ToSamplerOptions(rec, _ => { }));
+            string path = Path.Combine(Path.GetTempPath(), "uf_session_" + Guid.NewGuid().ToString("N") + ".json");
+            rec.Save(path);
+            var b = Sampler.Sample(new ReplayOpticStudio(path), cfg.ToSamplerOptions(rec, _ => { }));
+            File.Delete(path);
+            a.Created = b.Created = "x";
+            Assert.Equal(a.ToJson().ToJson(false), b.ToJson().ToJson(false), "replayed sample with Zernike");
+            var c = ZemaxSample.FromJson(JsonValue.Parse(a.ToJson().ToJson(false)).AsObject());
+            Assert.Close(0.03, c.Zernike.NollWaves[7], 0, 0, "Z8 survives the sample file");
+            Assert.Close(5.0, c.Zernike.EntrancePupilRadius, 0, 0, "pupil radius survives the sample file");
+        }
     }
 }

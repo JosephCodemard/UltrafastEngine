@@ -32,7 +32,7 @@ namespace ZOSAPI.Editors.LDE
 namespace ZOSAPI.Editors.MFE
 {
     public enum MeritColumn { Comment, Param1, Param2, Param3, Param4, Param5, Param6, Param7, Param8 }
-    public enum MeritOperandType { BLNK, CODA, GBPD, GBPR, GBPS, GBPW, PLEN, RAGA, RAGB, RAGC, RAGX, RAGY, RAGZ, RAID, RAED, RENA, RENB, RENC, REAX, REAY, REAZ }
+    public enum MeritOperandType { BLNK, CODA, GBPD, GBPR, GBPS, GBPW, PLEN, RAGA, RAGB, RAGC, RAGX, RAGY, RAGZ, RAID, RAED, RENA, RENB, RENC, REAX, REAY, REAZ, ZERN, ENPD, EXPD }
     public interface IMFERow { void ChangeType(MeritOperandType t); ZOSAPI.Editors.IEditorCell GetOperandCell(MeritColumn c); double Value { get; } }
     public interface IMeritFunctionEditor
     {

@@ -42,13 +42,7 @@ namespace UltrafastEngine.Zemax
             else
             {
                 IOpticStudio os = Name == "zemax-replay" ? (IOpticStudio)new ReplayOpticStudio(p[0]) : new FakeOpticStudio(p[0]);
-                sample = Sampler.Sample(os, new SamplerOptions
-                {
-                    WavelengthsUm = cfg.SampleWavelengthsUm(), KeepCurrentWavelengths = string.Equals(cfg.SamplingMode, "zemax", StringComparison.OrdinalIgnoreCase),
-                    BatchSize = cfg.BatchSize, GeometryFromOperands = !string.Equals(cfg.Geometry, "batchRayTrace", StringComparison.OrdinalIgnoreCase),
-                    CarrierUm = cfg.CarrierUm(), BeamWaist = cfg.BeamWaistM.HasValue ? cfg.BeamWaistM.Value / os.LensUnitToMeters : (double?)null,
-                    BeamWaistToSurface1 = cfg.BeamWaistToSurface1M / os.LensUnitToMeters, BeamM2 = cfg.BeamM2, CoatingOperand = cfg.CoatingOperand, Log = output.WriteLine
-                });
+                sample = Sampler.Sample(os, cfg.ToSamplerOptions(os, output.WriteLine));
             }
             var notes = new List<string>();
             var sys = SystemBuilder.Build(sample, cfg, notes);

@@ -56,6 +56,53 @@ namespace UltrafastEngine.Zemax
     }
 
     /// <summary>
+    /// The export's "zernike" block: read OpticStudio's Zernike Standard Coefficients at the carrier and emit a "wavefront"
+    /// element (docs/plugins/zemax.md#zernike-aberrations).
+    /// <code>
+    /// "zernike": { "field": 1, "maxTerm": 37, "sampling": 64, "position": "end", "radiusM": null, "opdSign": -1,
+    ///              "removePiston": true, "removeTilt": false }
+    /// </code>
+    /// </summary>
+    public sealed class ZernikeExport
+    {
+        /// <summary>Field number (1-based) whose wavefront is read.</summary>
+        public int Field { get; set; } = 1;
+        /// <summary>Highest Zernike Standard term read (Noll index).</summary>
+        public int MaxTerm { get; set; } = 37;
+        /// <summary>Pupil sampling of the fit: 32, 64, 128, 256, 512, 1024, 2048 points across.</summary>
+        public int Sampling { get; set; } = 64;
+        /// <summary>"end" (after every other element, default) or "start" (before them).</summary>
+        public string Position { get; set; } = "end";
+        /// <summary>Normalisation radius in the engine (m); default: OpticStudio's entrance pupil radius (ENPD / 2).</summary>
+        public double? RadiusM { get; set; }
+        /// <summary>Engine wavefront W (extra optical path, m) = OpdSign x OpticStudio OPD. -1 (default): OpticStudio's positive OPD is a
+        /// wavefront ahead of the reference sphere (less optical path); confirmed by HARDWARE-CHECKLIST.md step 4b.</summary>
+        public double OpdSign { get; set; } = -1;
+        /// <summary>Drop Z1: piston relative to the chief ray would act as a pure group delay in the engine.</summary>
+        public bool RemovePiston { get; set; } = true;
+        /// <summary>Drop Z2 and Z3 (tilt relative to the chief ray: a pointing error).</summary>
+        public bool RemoveTilt { get; set; }
+
+        public static readonly int[] Samplings = { 32, 64, 128, 256, 512, 1024, 2048 };
+
+        public static ZernikeExport FromJson(JsonObject o)
+        {
+            var z = new ZernikeExport
+            {
+                Field = o.GetInt("field", 1), MaxTerm = o.GetInt("maxTerm", 37), Sampling = o.GetInt("sampling", 64), Position = o.GetString("position", "end"),
+                RadiusM = o.GetDoubleOrNull("radiusM"), OpdSign = o.GetDouble("opdSign", -1), RemovePiston = o.GetBool("removePiston", true), RemoveTilt = o.GetBool("removeTilt", false)
+            };
+            if (z.Field < 1) throw new JsonException("export zernike.field starts at 1.");
+            if (z.MaxTerm < 1 || z.MaxTerm > 231) throw new JsonException("export zernike.maxTerm must be 1..231 (OpticStudio's Zernike Standard limit).");
+            if (Array.IndexOf(Samplings, z.Sampling) < 0) throw new JsonException("export zernike.sampling must be one of " + string.Join(", ", Samplings) + ".");
+            if (z.Position != "end" && z.Position != "start") throw new JsonException("export zernike.position must be \"end\" or \"start\".");
+            if (z.OpdSign != 1 && z.OpdSign != -1) throw new JsonException("export zernike.opdSign must be +1 or -1.");
+            if (z.RadiusM.HasValue && !(z.RadiusM.Value > 0)) throw new JsonException("export zernike.radiusM must be positive.");
+            return z;
+        }
+    }
+
+    /// <summary>
     /// Settings for exporting an OpticStudio system to a system file (<c>export.json</c>, docs/plugins/zemax.md):
     /// <code>
     /// { "format": "ultrafast-zemax-export", "name": "stretcher",
@@ -67,6 +114,7 @@ namespace UltrafastEngine.Zemax
     ///                   "definition": { "gas": { "species": "Ar", "pressureBar": 1.5 } } } ],
     ///   "coatings": [ { "matchComment": "MPC_MIRROR", "coating": { "kind": "gdd", "R": 0.999, "gddS2": -150e-30 } } ],
     ///   "coatingSource": "rules" | "zemaxOperand",  "coatingOperand": { ... },
+    ///   "zernike": { "field": 1, "maxTerm": 37 },              // optional: OpticStudio's wavefront -> a "wavefront" element
     ///   "apertures": true, "vectors": true, "mergeLinear": true }
     /// </code>
     /// </summary>
@@ -96,6 +144,8 @@ namespace UltrafastEngine.Zemax
         public bool Vectors { get; set; } = true;
         public bool MergeLinear { get; set; } = true;
         public bool Vignetting { get; set; } = true;
+        /// <summary>Null: no Zernike read.</summary>
+        public ZernikeExport Zernike { get; set; }
         public JsonObject Raw { get; set; } = new JsonObject();
 
         public static ExportConfig Load(string path) => FromJson(JsonValue.ParseFile(path).AsObject(), Path.GetDirectoryName(Path.GetFullPath(path)));
@@ -133,8 +183,26 @@ namespace UltrafastEngine.Zemax
             }
             c.Apertures = o.GetBool("apertures", true); c.Vectors = o.GetBool("vectors", true);
             c.MergeLinear = o.GetBool("mergeLinear", true); c.Vignetting = o.GetBool("vignetting", true);
+            var zk = o.Has("zernike") ? o["zernike"] : null;
+            if (zk != null && !zk.IsNull && !(zk is JsonBool b0 && !b0.Value)) c.Zernike = zk is JsonBool ? new ZernikeExport() : ZernikeExport.FromJson(zk.AsObject());
             return c;
         }
+
+        /// <summary>The sampler options this export asks for (lengths converted to the lens units of <paramref name="os"/>).</summary>
+        public SamplerOptions ToSamplerOptions(IOpticStudio os, Action<string> log) => new SamplerOptions
+        {
+            WavelengthsUm = SampleWavelengthsUm(),
+            KeepCurrentWavelengths = string.Equals(SamplingMode, "zemax", StringComparison.OrdinalIgnoreCase),
+            BatchSize = BatchSize,
+            GeometryFromOperands = !string.Equals(Geometry, "batchRayTrace", StringComparison.OrdinalIgnoreCase),
+            CarrierUm = CarrierUm(),
+            BeamWaist = BeamWaistM.HasValue ? BeamWaistM.Value / os.LensUnitToMeters : (double?)null,
+            BeamWaistToSurface1 = BeamWaistToSurface1M / os.LensUnitToMeters,
+            BeamM2 = BeamM2,
+            CoatingOperand = CoatingOperand,
+            Zernike = Zernike,
+            Log = log
+        };
 
         public double CarrierUm()
         {

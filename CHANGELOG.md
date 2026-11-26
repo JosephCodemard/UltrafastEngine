@@ -5,6 +5,9 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Zemax plugin (2026-11-26, WP Z2)**
+- **Zernike aberrations from OpticStudio**: an export `zernike` block reads the Zernike Standard Coefficients of one field at the carrier (temporary `ZERN` rows, `ENPD` / `EXPD`) and writes one `wavefront` element (Noll order unchanged, waves at the carrier, `radiusM` = entrance pupil radius, sign `opdSign` default -1, piston dropped); `IOpticStudio.ReadZernikeStandard`, the fake, record / replay and the sample file carry the coefficients. Tested on the fake path only (`ZemaxTests.Zernike_*`); the ZOS-API side and the sign wait for `HARDWARE-CHECKLIST.md` step 4b.
+
 **Docs (2026-11-26, WP D2-Nonlinear)**
 - The eight Nonlinear examples (`carrier-resolved`, `filament`, `mpc-argon`, `ner-measured-input`, `ppln-dfg`, `small-scale-self-focusing`, `spatial-kerr`, `supercontinuum`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (spectral FWHM of `mpc-argon` 61.0 nm, was 61.9 nm; Kerr-lens wavefront radius of `spatial-kerr` -70 mm, was -81 mm, with its beam radii, B-integral 1.55 rad (was 1.4) and sampling tables; input transform limit of `ner-measured-input` 249 fs, was 240 fs; pump depletion of `ppln-dfg` 68 %, was about 70 %; mean coherence of `supercontinuum` 0.98, was 0.97). No engine code changed.
 **Docs (2026-11-26, WP C2c)**
