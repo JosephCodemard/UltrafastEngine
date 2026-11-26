@@ -82,7 +82,7 @@ Hand-copied key tables are replaced by links to the generated `options.md`; numb
 | C2a | Sonnet | M | C1a, B1 | group a pages | every audit row closed; `mkdocs build --strict` 0 warnings | done 2026-11-25 |
 | C2b ⚛ | Opus | M | C1b, B1 | group b pages | as C2a, and a `physics-reviewer` pass on the pages | done 2026-11-26 |
 | C2c ⚛ | Opus | M | C1c, B1 | group c pages | as C2b | open |
-| C2d ⚛ | Opus | M | C1d, B1 | group d pages | as C2b | open |
+| C2d ⚛ | Opus | M | C1d, B1 | group d pages | as C2b | done 2026-11-26 |
 | C2e | Sonnet | M | C1e, B1 | group e pages | as C2a | open |
 | C2f | Sonnet | S | C1f, B1 | group f pages, `concepts.md`, `capabilities.md` | as C2a | done 2026-11-25 |
 | C2e | Sonnet | M | C1e, B1 | group e pages | as C2a | done 2026-11-25 |

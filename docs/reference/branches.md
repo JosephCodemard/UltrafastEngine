@@ -103,7 +103,7 @@ d = r a + t b, with r² = `reflectivity` (default 0.5) and t² = 1 − r². `tra
 | element | what it does (keys) |
 |---|---|
 | `polarizingSplitter` | x to `c` with `transmissionP`, y to `d` with `reflectivityS` (both default 1) |
-| `leakMirror` | the reflection continues at `out`, the leak leaves at `leak`: `transmission` (default 0.01), or `wavelengthsM` with `transmissionSpectrum`; `gddFs2` of the reflection, `leakGddFs2` of the leak |
+| `leakMirror` | the reflection continues at `out`, the leak leaves at `leak`: `transmission` (default 0.01), or `wavelengthsM` with `transmissionSpectrum`; `gddFs2` of the reflection (in → out), `leakGddFs2` of the leak (in → leak); light entering at `back` gets `leakGddFs2` to `out` and `gddFs2` to `leak`. Both are in the dispersion each output port reports |
 | `dichroic` | R = 1/2 at `edgeWavelengthM`; `edgeWidthM` (10-90 %, default 10 nm); `reflectLong` (default true: reflects the long wavelengths) |
 
 **Glass in a splitter.** A plate splitter's substrate and a cube's prisms add dispersion. `beamSplitter` and
@@ -235,8 +235,9 @@ ultrafast validate system.ufs --graph --mermaid    # a Mermaid diagram: element 
   (`BranchingTests.MachZehnder_SpectralFringes_PinTheSignOfPhaseAgainstDelay`); arms further apart than the window stay
   separate packets (`BranchingTests.ArmsFurtherApartThanTheWindow_StaySeparatePackets_AndDoNotInterfere`).
 * Loops: a cw Fabry-Perot in a `ringDown` loop gives the Airy transmission (1 − R)² / (1 + R² − 2R cos δ) to 1e-5, with the
-  budget closed to 1e-7 (`BranchingTests.FabryPerot_LoopGivesTheAiryFunction`); a ring longer than the window gives a pulse
-  train with pass n carrying R^(n−1) T², 1e-9 (`BranchingTests.Ring_RoundTripLongerThanTheWindow_GivesAPulseTrain`); an
+  budget closed to 1e-7 (`BranchingTests.FabryPerot_LoopGivesTheAiryFunction`); a lossless ring longer than the window returns the
+  first reflection R at the output to 1e-9 and closes the budget (`BranchingTests.Ring_RoundTripLongerThanTheWindow_GivesAPulseTrain`;
+  the later passes R^(n−1) T² are not asserted); an
   all-pass ring keeps |r + t² q / (1 + r q)|² = 1 to 1e-6 (`ReviewRegressionTests.RingDownRing_IsAllPassAtEveryLength`); a
   steady-state loop settles only when shape and energy repeat, and a passive one does not claim convergence
   (`BranchingTests.SteadyStateLoop_SettlesOnlyWhenShapeAndEnergyRepeat`,
@@ -258,7 +259,6 @@ ultrafast validate system.ufs --graph --mermaid    # a Mermaid diagram: element 
 * Mode overlap assumes simple Gaussian beams at one plane and ignores M².
 * A linked crystal port takes the strongest packet only, and only the strongest main packet meets it. Other packets are
   booked as `packets not overlapping in crystal`, with a warning.
-* `gddFs2` of a `leakMirror` acts on the field, but is not in the `system` dispersion the element reports.
 * The x tilts of the arms into a crystal set the crossing angle: `sfg` ([Crystals](crystals.md#non-collinear-sum-frequency)),
   and `opa` and `dfg` when the signal and the pump are the two inputs ([Crystals](crystals.md#non-collinear-opa-and-dfg)).
   A carried profile entering with its own tilt phase would count the tilt twice, so use tracked beams for crossing arms.

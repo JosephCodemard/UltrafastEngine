@@ -25,7 +25,7 @@ Defaults and types: [options](options.md#compute), [outputs](options.md#outputs)
 |---|---|---|
 | pulses | (enabled elements + 1) × 2 polarisations × N × 16 B | the pulse after every element, and the input. N is the grid size (`grid.n`, or the planned one) |
 | transverse profiles | (kept profiles + 1) × M × `spectralSamples` × 16 B, × 2 for `polarization: "vector"` | only with a spatial model. M is `points` (radial) or `nx` × `ny` (cartesian) of the largest spatial element; the + 1 is the profile in flight. Kept profiles: every spatial element with `"all"`; with `"used"` the bound min(spatial elements, max(1, instruments) + 1) |
-| solver workspace | the larger of 24 arrays of N complex samples (1-D) and 8 arrays of M × (frequency block) complex samples (spatial) | `transverse.frequencyBlock` cuts the spatial part |
+| solver workspace | the larger of 24 arrays of N complex samples (1-D) and 8 arrays of M × (frequency block) complex samples, × 2 for vector fields (linear spatial) | `transverse.frequencyBlock` cuts the spatial part. The state of a nonlinear spatial element is not counted (Limits) |
 | delayed-light tail | (6 + places) × 2 × N_long × 16 B | only with `grid.tail`, and not counted in a branched system. Places: the end, every instrument and every probe. N_long is the long grid, capped by `grid.maxN` |
 | instrument read-outs | 16 arrays of N doubles per instrument | a lower bound; spectrograms and traces with two axes need more |
 
@@ -104,6 +104,11 @@ least 1, when that many propagations of this size would not fit together. Detail
 
 ## Limits
 
+* **The time-domain state of a nonlinear spatial element is not counted.** Such an element integrates M × N complex
+  samples (× 2 for vector fields) and the stepper holds several such arrays: 134 MB per array at 128 × 128 × 512, 8.6 GB
+  at 256 × 256 × 2^13. For these runs the estimate is low by an order of magnitude or more, and `compute.memoryLimitBytes`
+  and the 80 % warning do not protect them (code finding C4-d6). Size them by hand ([Transverse](transverse.md#small-scale-self-focusing)).
+* The estimate reads the spatial model from the element or `physics.transverse`; a `transverse` override is not seen.
 * The estimate counts profiles of the largest spatial element only, and with `"used"` a bound, not the exact set.
 * `polarization: "auto"` that becomes vector at run time is counted as scalar (half the profile size).
 * The delayed-light tail of a branched system and the two-dimensional instrument outputs are not counted.

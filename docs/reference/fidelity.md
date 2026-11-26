@@ -22,14 +22,15 @@ uf.scan(system, spec, {"element:plate/lengthM": lengths}, ["pulse:end/fwhmS"], f
 |---|---|---|
 | `full` (default) | nothing: bit-identical to a run without the key | results you will report |
 | `standard` | `stepper.tolerance` 1e-5 (default 1e-6) | most work |
-| `quick` | `physics.raman` off, `physics.selfSteepening` off, `physics.polarization` scalar, `stepper.tolerance` 1e-4, spatial (`transverse`) models replaced by the 1-D beam model, `frog` / `xfrog` / `sfgFrog` / `dscan` instruments skipped (unless the instrument has `"keepInQuick": true`) | exploring: scans, first looks |
+| `quick` | `physics.raman` off, `physics.selfSteepening` off, `physics.polarization` scalar, `stepper.tolerance` 1e-4, spatial (`transverse`) models of bulk and gap elements replaced by the 1-D beam model, `frog` / `xfrog` / `sfgFrog` / `dscan` instruments skipped (unless the instrument has `"keepInQuick": true`) | exploring: scans, first looks |
 
 Rules of the bundle (`Specs/Fidelity.cs`):
 
 * A switch written in the run spec's `physics` or `stepper` is kept as written and listed in `keptAsWritten`.
 * The tolerance is only ever loosened: a tolerance already looser than the level's value is kept.
-* Spatial models are replaced only when the run has an input beam (`inputBeam`), or when every element with a spatial
-  model also has a `beam` of its own; otherwise none is replaced. A run with a `coherence` section keeps them.
+* Spatial models of bulk and gap elements are replaced only when beam tracking is on or there is an input beam (run or
+  system `inputBeam`), or when every element with a spatial model also has a `beam` of its own; otherwise none is replaced.
+  χ(2) crystals and gain elements keep their spatial models. A run with a `coherence` section keeps them all.
 
 The levels do **not** touch carrier-resolved propagation and the third harmonic, ionisation and plasma, gain (with ASE
 and its pedestal), satellites, ghosts and pedestals, or the grid size. Switch those yourself (`physics.fieldMode`,
@@ -51,7 +52,7 @@ and its pedestal), satellites, ghosts and pedestals, or the grid size. Switch th
 | strongly nonlinear | quick, and the total B-integral above 3 rad: every dropped term can matter |
 | self-steepening dropped | quick, and B / (ω0 T0) above 0.01 (T0 = FWHM / 1.665) |
 | Raman dropped | quick, B above 1 rad and a pulse shorter than 2 ps (spectral shift, NER) |
-| spatial model collapsed | peak power above 0.3 of the critical power for self-focusing in a collapsed element |
+| spatial model collapsed | some element was collapsed, and the peak power in an element is above 0.3 of the critical power for self-focusing |
 | polarisation made scalar | the bundle made the polarisation scalar and the input is not linearly polarised along x or y (the smaller Jones component above 1e-3 of the larger) |
 
 ### The workflow for agents and scripts: explore in quick, confirm in full
@@ -95,4 +96,5 @@ optimisations of heavy systems, together with the warning that says when it cann
   result right when they stay quiet.
 * `standard` changes only the tolerance, so its gain depends on how many steps the tolerance sets; on the multipass
   cell above it gains nothing.
-* Quick never replaces some spatial models and keeps others: one element without a beam keeps them all.
+* Among bulk and gap elements quick replaces all spatial models or none: one element without a beam keeps them all.
+  Crystals and gain elements always keep theirs, so a quick run of a spatial SHG or amplifier is not much faster.

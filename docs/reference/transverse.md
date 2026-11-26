@@ -34,8 +34,8 @@ Options (all optional):
 |---|---|---|
 | `points` | radial samples (radial); also `nx` for cartesian if `nx` is omitted | 64 |
 | `nx`, `ny` | cartesian samples | `nx`: `points`; `ny`: `nx` |
-| `radiusM` | radial grid extent | `extentFactor` × the beam radius at the element |
-| `halfWidthXM` (alias `halfWidthM`), `halfWidthYM` | cartesian half-widths | `halfWidthXM`: `extentFactor` × the beam radius; `halfWidthYM`: `halfWidthXM` |
+| `radiusM` | radial grid extent | `extentFactor` × the largest expected radius (the beam radius sampled along the element, the carried profile's radius; crystals: also the aux beams) |
+| `halfWidthXM` (alias `halfWidthM`), `halfWidthYM` | cartesian half-widths | `halfWidthXM`: `extentFactor` × the largest expected radius; `halfWidthYM`: `halfWidthXM` |
 | `extentFactor` | grid extent / expected beam radius | 3.5 |
 | `paraxial` | use the paraxial diffraction operator −k⊥²/2k instead of the exact √(k² − k⊥²) − k | false |
 | `transport` | how a profile is brought in from before (below): `auto`, `exact`, `rescale`, `beam` | `auto` |
@@ -171,7 +171,9 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
   energy is booked as `grid boundary` and reported as `absorbedAtBoundaryJ` / `absorbedAtBoundaryFraction`; the edge warning is
   not given. In nonlinear elements the layer is an intensity absorption α = α_max u⁴ in the same region, with α_max set so
   that a wave at a third of the grid's steepest angle loses 10 nepers of power crossing the layer; it is stepped with the
-  propagation and booked the same way. Such an element stays on the CPU (it is a position-dependent property).
+  propagation and booked as `grid boundary` when nothing else absorbs in the element (with material absorption, a
+  `timeResponse` or ionisation it is part of `absorption`); `absorbedAtBoundaryJ` is reported by linear elements only.
+  Such an element stays on the CPU (it is a position-dependent property).
 * **Narrowband pulses:** `spectralSamples` (default 48) sets how many frequencies the profile holds. A ps pulse needs a few;
   a 2-D grid's memory scales with them.
 
@@ -264,8 +266,8 @@ and mode radius w₀ / √M² (Starikov & Wolf, J. Opt. Soc. Am. 72, 923 (1982))
 "coherence": { "m2": 2.5, "modes": 40 }      // also "dimensions": 1 | 2, "element": the element whose initialProfile they replace
 ```
 
-* `modes` (default 12) is the highest mode order per axis. `dimensions` defaults to 1 when the grid has `ny` = 1 (or `nx`
-  = 1), else 2; in 2-D the modes (m, n) with m + n < `modes` are used, `modes` (`modes` + 1) / 2 of them.
+* `modes` (default 12) is the number of mode orders per axis (orders 0 to `modes` − 1). `dimensions` defaults to 1 when
+  the grid has `ny` = 1 (or `nx` = 1 with no `ny`), else 2; in 2-D the modes (m, n) with m + n < `modes` are used, `modes` (`modes` + 1) / 2 of them.
 * w₀ comes from `initialProfile.radiusM` (or the element's `beam`); the grid must be cartesian and wide enough for the highest mode (radius ~ w₀ √(2 n / M²)).
 * Each mode is one complete run with its share of the energy, so the run takes as many times longer as there are modes (modes below 10⁻⁴ of the energy are skipped). Element
   energies and beam radii, and `beamProfile` fluences and radii, are the sums. The `coherence` entry among the instruments reports the modes and `capturedWeight`.

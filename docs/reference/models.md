@@ -47,7 +47,7 @@ and defaults in the generated [options reference](options.md#model-kinds). One o
 |---|---|
 | index, attenuation | `omega` (rad/s), `lambda` (m), `lambda_um`, `lambda_nm`, `nu` (Hz) |
 | filter | `omega`, `lambda`, `lambda_um`, `lambda_nm`, `domega` (= omega − omega0), `omega0` (the spec's `omega0` or `centerWavelengthM`, else the run's carrier) |
-| timeResponse | `t` (co-moving time, s), `t_lab` (lab time, s), `t_arrival` (s), `z` (m from the element start), `L` (element length, m), `I`, `Ix`, `Iy` (cycle-averaged intensity, W/m²), `I_inst` (instantaneous intensity; equal to `I` in the envelope model), `E` (real field, √W/m; 0 in the envelope model), `omega0`, `lambda0`, `Aeff` (m²), `x`, `y`, `r`, `theta` (position of the grid point on spatial models, 0 in 1-D), `spatial` (1 on spatial grids), `F` (running fluence ∫I dt, J/m²) |
+| timeResponse | `t` (co-moving time, s), `t_lab` (lab time, s), `t_arrival` (s), `z` (m from the element start), `L` (element length, m), `I`, `Ix`, `Iy` (cycle-averaged intensity, W/m²), `I_inst` (instantaneous intensity; equal to `I` in the envelope model), `E` (real field in √W units, so that `I_inst` = E²/Aeff; 0 in the envelope model, undefined on spatial grids), `omega0`, `lambda0`, `Aeff` (m²), `x`, `y`, `r`, `theta` (position of the grid point on spatial models, 0 in 1-D), `spatial` (1 on spatial grids), `F` (running fluence ∫I dt, J/m²) |
 | beam | `z` (m) |
 | delayedResponse | `t` (s) |
 | field | `x`, `y`, `z`, `r`, `theta` |

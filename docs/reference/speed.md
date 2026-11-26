@@ -48,7 +48,7 @@ ultrafast run system.ufs run.json --backend auto --device 0
 |---|---|---|
 | `accelerate` | macOS (Intel and Apple silicon), .NET 10 build | Apple's vDSP, part of the OS; lengths f·2^k (f = 1, 3, 5, 15), other lengths go to the managed FFT |
 | `fftw` | Windows, Linux, macOS when installed, .NET 10 build | FFTW 3 (`apt install libfftw3-3`, `brew install fftw`, `libfftw3-3.dll` on the PATH); any length. Intel MKL works through its FFTW interface: `ULTRAFAST_FFTW_LIBRARY=mkl_rt` |
-| `managed` | everywhere; the only provider of the .NET Framework 4.8 build | radix-4 Stockham for powers of two (no bit reversal, exact twiddle table), mixed radix (factors up to 13) and Bluestein for other lengths |
+| `managed` | everywhere; the only provider of the .NET Framework 4.8 build | radix-4 Stockham for powers of two from 256 (no bit reversal, exact twiddle table), mixed radix (factors up to 13) and Bluestein for other lengths |
 | `auto` (default) | | Accelerate on macOS, else FFTW when found, else managed |
 
 A native provider is used only after it reproduced the managed FFT on test vectors (relative error below 1e-12);
@@ -103,7 +103,7 @@ is 2 to 4 batched FFTs plus 3 to 5 element-wise kernels, so a step costs about 5
 
 | problem | samples per state | expect |
 |---|---|---|
-| 1-D, N ≤ 4096 | ≤ 8192 | CPU faster: launch latency (a few µs per kernel) dominates; `auto` keeps these on the CPU |
+| 1-D, N ≤ 4096 | ≤ 8192 | CPU faster: launch latency (a few µs per kernel) dominates; `auto` keeps those below 8192 samples on the CPU (a vector run at N = 4096 has exactly 8192 and goes to the device) |
 | 1-D, N = 2^14 ... 2^17 (long fibres, wide windows), vector + Raman | 16k-260k | GPU gains grow with N: the CPU cost grows as N log N per FFT, the GPU stays near its launch floor |
 | spatial radial (64-160 points × 1024-8192 samples) | 10^5-10^6 | GPU: the Hankel transform is one dense matrix product over all frequencies (cuBLAS DGEMM on CUDA) and the per-point FFTs are one batched transform |
 | spatial cartesian (64² ... 256² × 512-4096) | 10^6-10^8 | GPU: the largest gains, every transform is a batched FFT; device memory sets the limit (`ultrafast devices` shows it) |
@@ -150,7 +150,7 @@ CUDA 13.3), .NET 10 and a 20-core CPU; no script in the repository repeats these
 | vector, N = 4096 | 5.9 s | 2.4 s | 8.0 s | 2.3 s / 2.5 s |
 | scalar, N = 16384 | 18.1 s | 11.3 s | 13.8 s | 7.2 s / 9.2 s |
 
-The ensemble is 3.5 to 6 times faster than separate streams. On this consumer card it matches a fully loaded 20-core CPU
+The ensemble is 3 to 7 times faster than separate streams at N = 4096 and 1.5 to 1.9 times at N = 16384. On this consumer card it matches a fully loaded 20-core CPU
 at N = 4096 and is 1.6 times faster at N = 16384. A card with full-rate FP64 (A100, H100) was not measured.
 
 ### FP32 study (mixed precision)
@@ -166,8 +166,9 @@ run 2026-11-26 on the Apple M3 above:
 | `mpc-argon` | 6e-10 | 1e-9 | 1e-8 | 7e-10 |
 | `spatial-kerr` | 1e-10 | 4e-10 | 2e-9 | 4e-17 |
 
-The operator in FP32 meets the energy and spectrum criteria by three to four orders of magnitude. The **floor criterion
-fails** wherever the intensity floor is below about 1e-8 of the peak (the SPM plate and spatial cases): the rounding noise
+The operator in FP32 meets the energy criterion by three to four orders of magnitude and the spectrum criterion by about
+five. The **floor criterion fails** wherever the intensity floor (of the double-precision run) is below about 1e-8 of the
+peak, which is all three cases: the rounding noise
 (about −85 dB) fills it. So mixed precision is acceptable for energy, spectrum and pulse shape, and is **refused when a
 contrast or pedestal instrument asks for more than about 70 dB of dynamic range**.
 
