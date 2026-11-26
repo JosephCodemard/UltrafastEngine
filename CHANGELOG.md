@@ -5,6 +5,9 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Docs (2026-11-26, WP D1)**
+- **Python next to the CLI in the example READMEs:** a "Run it" section with **CLI** and **Python** content tabs (`pymdownx.tabbed`; `pip install mkdocs pymdown-extensions` for the docs). The Python tab uses the `ultrafast` builders and prints the CLI's key numbers; a line `<!-- snippet -->` before its code marks it, and `python/tests/test_readme_snippets.py` runs every marked block at quick fidelity (`build/example_check.py` checks its quoted output at full fidelity). `example.json` `"python": true` makes `build/example_lint.py` require the tabs. `GettingStarted/quickstart` (now also with `two-plates.ufs` and `run.json`) and `GettingStarted/spm-plate` are converted.
+
 **Docs (2026-11-25, WP B1)**
 - **Style guide** `docs/style.md`: voice, banned filler words, the British spelling word list and the term list (tables a linter can read), units and numbers, warning / error messages, docstrings, and templates for reference pages, examples and tutorials; `AGENTS.md` and `docs/CLAUDE.md` point to it.
 

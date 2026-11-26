@@ -12,7 +12,9 @@ For every docs/examples/<Group>/<name>/README.md and docs/tutorials/NN-*.md:
    when the line names a path under docs/examples/ or python/), with ULTRAFAST_STRICT_OPTIONS=1. ``ultrafast`` is the CLI built in
    src/UltrafastEngine.Cli/bin/Release/net10.0 (build it first), ``python`` is this interpreter. ``ultrafast-plot`` lines, lines
    marked "optional" or "once", and ``cd docs/examples/...`` lines are skipped, as are PYNLO_SRC lines until
-   python/tools/get_pynlo.py has fetched pyNLO; the examples listed in MANUAL are not run.
+   python/tools/get_pynlo.py has fetched pyNLO; the examples listed in MANUAL are not run. The README's snippets (```python blocks
+   after a line ``<!-- snippet -->``, the Python tab; build/readme_snippets.py) run after them, as programs in the example's folder
+   at the page's own fidelity, so the output quoted in the Python tab is checked too.
 2. **Quoted output.** Every line with numbers in the README's plain ``` blocks (the "expected output"; use ```text for
    other plain text) must reappear in the commands' output: the same text with each number equal to the quoted one within
    the precision it is quoted to (half a unit in the last digit, at least --rtol relative; a value quoted as "x +- s" may
@@ -46,6 +48,20 @@ MANUAL = {"Interop/zemax-workflow": "needs an OpticStudio export", "Interop/cpp"
 NUM = re.compile(r"(?<![\w.])[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?(?![\w])")
 TIMING = re.compile(r"done in|elapsed|took |\bms\b|seconds|laptop|minutes?\b|~\d", re.I)
 SKIP_LINE = re.compile(r"^\s*(ultrafast-plot\b|cd\s+docs/examples)|#.*\b(optional|once)\b", re.I)
+
+
+def snippet_commands(readme, name, scratch):
+    """One ``python <file>`` line per snippet of the page (the snippet saved under scratch/snippets/)."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import readme_snippets
+    out = []
+    for i, s in enumerate(readme_snippets.find_snippets(readme), 1):
+        f = os.path.join(scratch, "snippets", name.replace("/", "__") + "-%d.py" % i)
+        os.makedirs(os.path.dirname(f), exist_ok=True)
+        with open(f, "w", encoding="utf-8") as fh:
+            fh.write(s.code)
+        out.append('python "%s"' % f)
+    return out
 
 
 def old_number_table():
@@ -307,9 +323,10 @@ def main():
             continue
         readme = open(page, encoding="utf-8").read()
         cmds = commands(readme)
+        snips = snippet_commands(readme, name, scratch)
         entry = {"example": name, "commands": [], "quoted": [], "diffs": []}
         output, ok, t0 = [], True, time.time()
-        for line in cmds:
+        for line in cmds + snips:
             rc, out, dt = run_line(line, d, CLI, env, args.timeout)
             entry["commands"].append({"line": line, "rc": rc, "seconds": round(dt, 1)})
             output += out.splitlines()
@@ -356,7 +373,7 @@ def main():
                 run_line(line, d, CLI, env, args.timeout)
         status = "ok" if ok and not bad else "FAIL" if not ok else "DIFF"
         failures += status != "ok"
-        print("%-4s %-30s %d commands, %d quoted values, %d not reproduced%s (%.0f s)" % (status, name, len(cmds),
+        print("%-4s %-30s %d commands, %d quoted values, %d not reproduced%s (%.0f s)" % (status, name, len(cmds) + len(snips),
               len(entry["quoted"]), len(bad), ", %d table keys not in summary.json" % len(unchecked) if unchecked else "", time.time() - t0))
         for q, got in bad:
             print("       README: %s\n       output: %s" % (q, got or "(no line with this text)"))

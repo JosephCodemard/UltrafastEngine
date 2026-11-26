@@ -185,6 +185,53 @@ optionally `animation.gif`), **Layout** (the parameters that matter, in SI with 
 the script's output as printed (it must match a fresh run: `/example-check`), **What it shows.** (each number against its
 reference), **Limits.** (what is left out; links). Model: [Raman self-frequency shift](examples/Fibres/raman-soliton-shift/README.md).
 
+**Run it** (examples with `"python": true` in `example.json`; all examples once the D2 work packages are done) sits between **Layout**
+and **What it shows.**: two content tabs that run the same simulation and print the same key numbers. Model:
+[SPM in a fused-silica plate](examples/GettingStarted/spm-plate/README.md).
+
+````markdown
+=== "CLI"
+
+    ```bash
+    ultrafast run plate.ufs run.json -o results     # about 1 s
+    ```
+
+    ```
+    energy 3.984E-06 J (T = 99.60 %), FWHM 251.5 fs (TL 183.6 fs), peak 1.491E+07 W, B = 0.667 rad
+    ```
+
+=== "Python"
+
+    <!-- snippet -->
+    ```python
+    import ultrafast as uf
+    from ultrafast import build as b
+
+    system = uf.System.load("plate.ufs")           # the example's own system file
+    spec = b.run_spec(b.pulse(1.03e-6, 250e-15, energy=4e-6), ...)   # run.json with the builders
+    res = uf.run(system, spec)
+    print(f"  energy {res.summary['output']['energyJ']:.4G} J ...")  # the CLI's line, in its format
+    ```
+
+    ```
+    the same line, as printed
+    ```
+````
+
+* **CLI tab:** `ultrafast run <system>.ufs <run>.json -o results` when the example has (or can be given) a system file and a run spec;
+  an example that is a Python analysis runs its script there (`python script.py`). Its output block quotes the lines of the CLI with the
+  key numbers.
+* **Python tab:** a complete program that runs in the example folder. The builders of `ultrafast.build` for everything written in
+  Python (they return the typed dicts of `ultrafast.types`, so an editor completes every argument and key; no raw dicts where a builder
+  exists), `uf.System.load` for the example's own `.ufs`. It prints the same key numbers in the CLI's format (`.4G`; B-integral `.3G`;
+  transmission `.2f} %`) and its output block quotes them.
+* **The snippet marker:** the line `<!-- snippet -->` directly before the ```` ```python ```` fence, at the same indentation (four spaces
+  inside a tab); `<!-- snippet slow -->` for a snippet that takes more than about a minute at quick fidelity. The comment does not show on
+  the site. `python/tests/test_readme_snippets.py` runs every marked block at quick fidelity with `ULTRAFAST_STRICT_OPTIONS=1` (slow ones
+  with `ULTRAFAST_SLOW=1`); `build/example_check.py` runs them at full fidelity and checks the quoted output; `build/example_lint.py`
+  requires the tabs and a snippet when `example.json` has `"python": true`. A ```` ```python ```` block without the marker is not run (a
+  fragment).
+
 ### Tutorial (`docs/tutorials/NN-<name>.md`)
 
 ```markdown

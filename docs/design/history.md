@@ -344,6 +344,27 @@ B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy wind
   Unicode symbols. Spaced percent ("3 %", 690 : 1), `1e-9` exponents and ` -- ` dashes are the existing majority and were kept. B2 lints
   against the two tables; C2 and D apply the templates.
 
+## Stage XX -- WP D1: Python next to the CLI in the example READMEs  (2026-11-26, `dev/wp-d1`, macOS arm64)
+
+* **Tabs:** `pymdownx.superfences` + `pymdownx.tabbed` (`alternate_style`) in `mkdocs.yml`, with `pymdownx.highlight: use_pygments: false`
+  so code blocks keep `<code class="language-x">` for the readthedocs theme's highlight.js (every page's HTML compared before / after: same
+  blocks, only a `highlight` class and a trailing newline differ). The theme has no tab CSS: it is in `docs/css/brand.css`. CI and
+  `docs.yml` now install `pymdown-extensions`.
+* **Convention** (`docs/style.md` "Run it", `_template.md`): a `**Run it**` paragraph between Layout and What it shows, tabs `=== "CLI"`
+  and `=== "Python"`; the Python tab is a complete program with the builders (typed dicts) and `uf.System.load` of the example's `.ufs`,
+  printing the CLI's line in the CLI's format (.NET `G4` = Python `.4G`). Marker: an HTML comment line `<!-- snippet -->` (or
+  `<!-- snippet slow -->`) before the fence -- chosen over a fence attribute because Python-Markdown passes the comment through invisibly
+  and no extension is needed; `build/readme_snippets.py` parses it and rejects a marker without its block.
+* **Checks:** `python/tests/test_readme_snippets.py` runs each snippet in a temporary copy of its folder at quick fidelity (added as text
+  to every run-spec JSON of the copy, and to dict specs by patching `ultrafast.core.Run.__init__` in a prelude) with
+  `ULTRAFAST_STRICT_OPTIONS=1`; `build/example_check.py` also runs the snippets (full fidelity) so the Python tab's quoted output is
+  checked; `build/example_lint.py` requires the tabs and a snippet when `example.json` has the new optional `"python": true` (chosen over
+  a `wave` threshold: explicit per example, independent of the conversion wave).
+* **Converted:** `GettingStarted/quickstart` (new `two-plates.ufs` + `run.json` equal to the builders, so it has a CLI tab) and
+  `GettingStarted/spm-plate` (`script` = `run.json`; hand check of B: 0.669 rad from the waist intensity against 0.667 from the run).
+  Both tabs print identical numbers to the CLI; `example_check` reproduces every quoted line. The per-example D2 instructions are in the
+  D2 row of `roadmap-internal.md`.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
