@@ -7,6 +7,8 @@ internal development stages and were never released; they are kept as the develo
 
 **Docs (2026-11-25, WP C2f)**
 - Calculators, pulse calculator, plotting and MCP reference pages rewritten to the reference template with complete signatures, result keys and limits; `concepts.md` and `capabilities.md` corrected (cw carrier, GPU ionisation and precision, plugin list, `modulator`, grid margin, strict switches). All 40 rows of audit F closed; code findings listed for WP C4.
+**Docs (2026-11-25, WP C2e)**
+- **Reference pages `instruments`, `retrieval`, `measured-data`, `results`, `studies`** rewritten to the style-guide template; every row of the group-e audit closed (`docs/design/notes/reference-audit-e.md`). New on the pages: the `coherence` study mode and the study output files, the `summary.json` key inventory (`totals`, `tail`, `graph`, `fidelityReport`, ...), validity thresholds, the main lobe at the window edge (finite lower bound, not null), retrieval option defaults, all 24 instrument kinds.
 
 **Docs (2026-11-25, WP B1)**
 - **Style guide** `docs/style.md`: voice, banned filler words, the British spelling word list and the term list (tables a linter can read), units and numbers, warning / error messages, docstrings, and templates for reference pages, examples and tutorials; `AGENTS.md` and `docs/CLAUDE.md` point to it.
