@@ -14,6 +14,8 @@
   <ItemGroup>
     <!-- the agent pack: one source, the skills of the Python wheel (python/src/ultrafast/agents/pack); `ultrafast agent install` writes them -->
     <EmbeddedResource Include="..\..\python\src\ultrafast\agents\pack\**\SKILL.md" LogicalName="agentpack/%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\python\src\ultrafast\agents\pack\AGENTS.md" LogicalName="agentpack/AGENTS.md" />
+    <EmbeddedResource Include="..\..\python\src\ultrafast\agents\pack\llms.txt" LogicalName="agentpack/llms.txt" />
   </ItemGroup>
   <Import Project="$(RepoRoot)build/CopyPlugins.targets" />
 </Project>

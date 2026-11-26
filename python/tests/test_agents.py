@@ -31,19 +31,22 @@ def test_pack_equals_the_repository_skills():
 
 def test_install_claude_and_force(tmp_path):
     files = agents.install("claude", tmp_path)
-    assert {f.parent.name for f in files} == NAMES and all(f.is_file() for f in files)
-    assert "documentation site" in files[0].read_text(encoding="utf-8")
+    sk = [f for f in files if f.name == "SKILL.md"]
+    assert {f.parent.name for f in sk} == NAMES and all(f.is_file() for f in files)
+    assert "documentation site" in sk[0].read_text(encoding="utf-8")
+    assert (tmp_path / ".claude" / "ultrafast" / "AGENTS.md").read_text(encoding="utf-8") == agents.guide()
+    assert (tmp_path / ".ultrafast" / "llms.txt").read_text(encoding="utf-8") == agents.llms()
     with pytest.raises(FileExistsError):
         agents.install("claude", tmp_path)
-    files[0].write_text("changed", encoding="utf-8")
+    sk[0].write_text("changed", encoding="utf-8")
     agents.install("claude", tmp_path, force=True)
-    assert files[0].read_text(encoding="utf-8") != "changed"
+    assert sk[0].read_text(encoding="utf-8") != "changed"
 
 
 def test_install_cursor_rules(tmp_path):
     files = agents.install("cursor", tmp_path)
-    assert {f.name for f in files} == {"ultrafast-%s.mdc" % n for n in NAMES}
-    t = files[0].read_text(encoding="utf-8")
+    assert {f.name for f in files if f.suffix == ".mdc"} == {"ultrafast-%s.mdc" % n for n in NAMES} | {"ultrafast-guide.mdc"}
+    t = next(f for f in files if f.name == "ultrafast-run-simulations.mdc").read_text(encoding="utf-8")
     assert t.startswith("---\ndescription: ") and "alwaysApply: false" in t
 
 
@@ -52,7 +55,7 @@ def test_install_codex_keeps_the_rest_of_agents_md_and_replaces_its_own_block(tm
     p.write_text("# My project\n\nRules of mine.\n", encoding="utf-8")
     agents.install("codex", tmp_path)
     once = p.read_text(encoding="utf-8")
-    assert once.startswith("# My project") and "Rules of mine." in once and "## Skill: debug-setup" in once and once.count(agents.BEGIN) == 1
+    assert once.startswith("# My project") and "Rules of mine." in once and "## Skill: debug-setup" in once and "UltrafastEngine: how to drive it" in once and once.count(agents.BEGIN) == 1
     p.write_text(once + "\nAfter.\n", encoding="utf-8")
     agents.install("codex", tmp_path)
     twice = p.read_text(encoding="utf-8")
@@ -107,3 +110,33 @@ def test_the_cli_agent_install_writes_the_same_files_as_the_python_command(tmp_p
     assert again.returncode == (0 if target == "codex" else 2)
     listing = subprocess.run(["dotnet", str(dll), "agent", "list"], capture_output=True, text=True).stdout
     assert {line.split()[0] for line in listing.splitlines()} == set(agents.skills())
+
+
+# Terms of the repository's own development (generated files, regeneration, worktrees, licensed DLLs, the owner's private folder, internal docs).
+REPO_TERMS = ["BuiltIn", "CHANGELOG", "/regen", "worktree", "Experiments", "ZOSAPI", "ZOS-API", "dotnet build", "dotnet test", "roadmap-internal",
+              "docs/design", "PROJECT_STATUS", "CLAUDE.md", ".claude/skills", "physics-change", "new-option", "/verify", "hook", "subagent",
+              "build_engine", "gen_types", "gen_api_docs", "sync_skills", "style_lint", "Schema/", "Compiler.cs", "mkdocs", "pytest", "test-runner"]
+
+
+def test_no_shipped_pack_file_mentions_the_repository():
+    files = sorted(p for p in agents.PACK.rglob("*") if p.is_file())
+    assert {p.name for p in files} >= {"AGENTS.md", "llms.txt", "SKILL.md"}
+    bad = []
+    for p in files:
+        low = p.read_text(encoding="utf-8").lower()
+        bad += ["%s: %s" % (p.relative_to(agents.PACK), t) for t in REPO_TERMS if t.lower() in low]
+    assert not bad, "repository terms in the shipped pack: " + "; ".join(bad)
+
+
+@pytest.mark.parametrize("target", agents.TARGETS)
+def test_installed_pack_has_the_user_guide_and_index_and_nothing_of_the_repository(tmp_path, target):
+    agents.install(target, tmp_path)
+    guide = agents.guide()
+    assert guide.startswith("# UltrafastEngine: how to drive it") and "run.json" in guide and "ultrafast-mcp" in guide
+    where = {"claude": tmp_path / ".claude" / "ultrafast" / "AGENTS.md", "cursor": tmp_path / ".cursor" / "rules" / "ultrafast-guide.mdc",
+             "codex": tmp_path / "AGENTS.md"}[target]
+    assert guide.strip() in where.read_text(encoding="utf-8")
+    assert (tmp_path / ".ultrafast" / "llms.txt").read_text(encoding="utf-8").startswith("# UltrafastEngine")
+    for p in (q for q in tmp_path.rglob("*") if q.is_file()):
+        low = p.read_text(encoding="utf-8").lower()
+        assert not [t for t in REPO_TERMS if t.lower() in low], p
