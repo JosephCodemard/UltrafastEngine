@@ -219,7 +219,7 @@ namespace UltrafastEngine.Models
             // ---- time-domain response Delta n(t)
             r.Register<ITimeDomainResponse>("timeResponse", "expression", (s, _) => new ExpressionTimeResponse(s));
             r.Register<ITimeDomainResponse>("timeResponse", "callback", (s, reg) =>
-                new CallbackTimeResponse(s.Json.GetString("name"), reg.GetCallback<TimeResponseCallback>(s.Json.GetString("name"), s.Origin), s.Json.GetBool("carrierResolved", reg.IsCarrierResolved(s.Json.GetString("name")))));
+                new CallbackTimeResponse(s.Json.GetString("name"), reg.GetCallback<TimeResponseCallback>(s.Json.GetString("name"), s.Origin), s.Json.GetBool("carrierResolved", reg.IsCarrierResolved(s.Json.GetString("name"))), s.GetDouble("memoryS", double.NaN)));
             r.Register<ITimeDomainResponse>("timeResponse", "twoPhotonAbsorption", (s, _) => new TwoPhotonAbsorptionResponse(s.GetRequired("beta")));
             r.Register<ITimeDomainResponse>("timeResponse", "chi2", (s, _) => new Chi2Response(s.GetRequired("deffPmPerV") * 1e-12, s.GetDouble("periodM", 0), s.GetDouble("n0", double.NaN)));
             r.Register<ITimeDomainResponse>("timeResponse", "kerr", (s, _) => new ExtraKerrResponse(s.GetRequired("n2")));

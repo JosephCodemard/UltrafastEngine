@@ -94,6 +94,17 @@ namespace UltrafastEngine.Models
     }
 
     /// <summary>
+    /// A time-domain response that states its memory: how long (s) the index change it makes lasts after the light that drives it. The
+    /// grid planner makes the window hold it (docs/concepts.md#grids). A response computed point by point from I(t) and F(t) needs none;
+    /// one that convolves the intensity with a kernel on the periodic window (a callback using an FFT) wraps around unless the window
+    /// holds the kernel. 0 or NaN: nothing declared.
+    /// </summary>
+    public interface IResponseMemory
+    {
+        double MemoryS { get; }
+    }
+
+    /// <summary>
     /// A time-domain response with a part whose index change has a frequency dependence of its own, such as the free-electron (Drude)
     /// term Δn(ω) ∝ 1/(ω (ω + iν)). <see cref="EvaluateSplit"/> writes that part, evaluated at <see cref="ResponseContext.Omega0"/>, to
     /// <c>dispRe</c> / <c>dispIm</c> and the rest to <c>dnRe</c> / <c>dnIm</c>; the propagator multiplies the spectrum of

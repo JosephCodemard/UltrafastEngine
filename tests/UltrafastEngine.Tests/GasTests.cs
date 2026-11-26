@@ -48,6 +48,61 @@ namespace UltrafastEngine.Tests
             Assert.Less(Math.Abs(y[50]), 1e-9 * Math.Abs(y[110]), "causal (FFT round-off only)");
         }
 
+        [Test(Reference = "first-order alignment: the index change at the revival dn(t) = (R * I)(t), R the rigid-rotor kernel (quadrature of KernelAt); linear (zero-padded) convolution: the window does not need to hold the revival", Tolerance = "probe phase 2 % of its swing; window independence 1e-6 relative")]
+        public void RotationalRaman_RevivalActsOnAProbeAtTheRevival_AndTheWindowNeedsNoRoomForIt()
+        {
+            // N2, 1 bar, 1 m, 100 fs pump at 800 nm (1e16 W/m^2) and a weak replica (1e-3) at the full revival 1/(2Bc) = 8.38 ps. The rotational
+            // kernel is applied as a zero-padded linear convolution (Gases.cs, IPaddedKernelResponse), so light anywhere in the window sees the
+            // whole history of the index change and nothing wraps; the planner therefore adds no room for the 8.4 ps revival (or for the
+            // dephasing time T2, hundreds of ps) and short-pulse runs in air and N2 keep their grids. The probe only has to be in the window,
+            // which the planner already holds (satellites).
+            double trev = 1 / (2 * 1.98957 * 2.99792458e10), area = 1e-8, lam = 800e-9, L = 1.0;
+            SystemDescription S(bool rot)
+            {
+                var gas = O("gas", O("species", "N2", "pressureBar", 1.0));
+                if (!rot) gas.Set("rotationalRaman", false);
+                var o = O("format", "ultrafast-system", "version", 2, "name", "n2", "materials", O("gas", gas));
+                o.Set("elements", A(O("id", "cell", "type", "bulk", "material", "gas", "lengthM", L, "beam", O("kind", "constant", "areaM2", area))));
+                return SystemDescription.FromJson(o);
+            }
+            var pump = O("shape", "gaussian", "centerWavelengthM", lam, "durationFwhmS", 100e-15, "peakPowerW", 1e8, "polarization", "x",
+                         "pedestal", O("kind", "postPulse", "delayS", trev, "relativeIntensity", 1e-3));
+            var phys = O("selfSteepening", false);
+            var on = Simulation.Run(S(true), Specs.RunSpec.FromJson(O("format", "ultrafast-run", "version", 2, "pulse", pump, "physics", phys)));
+            var g = on.Output.Grid;
+            Assert.Greater(g.N * g.DTime / 2, 1.1 * trev, "the planned window holds the probe at the revival");
+            var off = Simulation.Run(S(false), Specs.RunSpec.FromJson(O("format", "ultrafast-run", "version", 2, "pulse", pump, "physics", phys, "grid", O("n", g.N, "windowS", g.N * g.DTime, "auto", false))));
+            // the probe peak, and its phase change by the pump's revival (on - off; the probe's own response is 1e-3 of it)
+            var ain = on.Input.TemporalAx(); var aon = on.Output.TemporalAx(); var aoffIn = off.Input.TemporalAx(); var aoff = off.Output.TemporalAx();
+            int ip = -1; double best = 0;
+            for (int i = 0; i < g.N; i++) if (g.Time[i] > 0.5 * trev && ain[i].Magnitude > best) { best = ain[i].Magnitude; ip = i; }
+            double Arg(System.Numerics.Complex z) => Math.Atan2(z.Imaginary, z.Real);
+            double Dphi(int j) => Math.IEEERemainder(Arg(aon[j] / ain[j]) - Arg(aoff[j] / aoffIn[j]), 2 * Math.PI);
+            // reference: dn(tp) = integral R(tp - t') I(t') dt' for the Gaussian pump (I0 = P / A), on a 0.25 fs quadrature
+            var r = MaterialLibrary.BuiltIn("N2").Rotational as RotationalRamanResponse;
+            double tau = 100e-15 / (2 * Math.Sqrt(Math.Log(2))), i0 = 1e8 / area, h = 0.25e-15;
+            Func<double, double> Ref = tq => { double d = 0; for (double t = -6 * tau; t <= 6 * tau; t += h) d += r.KernelAt(tq - t) * i0 * Math.Exp(-t * t / (tau * tau)) * h; return 2 * Math.PI / lam * L * d; };
+            // across the probe (+-100 fs, 25 fs steps): the revival swings the phase through about 3 rad
+            double worst = 0, swing = 0;
+            for (int k = -12; k <= 12; k += 3) { double e = Ref(g.Time[ip + k]); swing = Math.Max(swing, Math.Abs(e)); worst = Math.Max(worst, Math.Abs(Dphi(ip + k) - e)); }
+            Assert.Greater(swing, 1.0, "a clear phase at the revival");
+            Assert.Less(worst, 0.02 * swing, "probe phase across the revival = k0 L (R * I)(t)");
+            // window independence: a window that ends before the revival (4 ps) and one four times larger, same time step, single pulse
+            var single = O("shape", "gaussian", "centerWavelengthM", lam, "durationFwhmS", 100e-15, "peakPowerW", 3e8, "polarization", "x");
+            double dt = g.DTime;
+            RunResult W(int n) => Simulation.Run(S(true), Specs.RunSpec.FromJson(O("format", "ultrafast-run", "version", 2, "pulse", single, "physics", phys, "grid", O("n", n, "windowS", n * dt, "auto", false))));
+            int n4 = GridPlannerNext(4e-12 / dt);
+            var shortW = W(n4); var longW = W(4 * n4);
+            Assert.Less(shortW.Output.Grid.N * dt, trev, "the short window ends before the revival");
+            double sS = SpectralCentroid(shortW.Output) - SpectralCentroid(shortW.Input), sL = SpectralCentroid(longW.Output) - SpectralCentroid(longW.Input);
+            double bS = RmsSpectralWidth(shortW.Output) - RmsSpectralWidth(shortW.Input), bL = RmsSpectralWidth(longW.Output) - RmsSpectralWidth(longW.Input);
+            Assert.Greater(Math.Abs(bL), 0.05 * RmsSpectralWidth(longW.Input), "noticeable broadening");
+            Assert.Close(sL, sS, 1e-6, 0, "centroid shift: the same with a window shorter than the revival");
+            Assert.Close(bL, bS, 1e-6, 0, "rms broadening: the same with a window shorter than the revival");
+        }
+
+        private static int GridPlannerNext(double v) => UltrafastEngine.Engine.GridPlanner.NextPow2((long)Math.Ceiling(v));
+
         [Test(Reference = "rotational n2 of circular light = 1/4 of linear (tensor Raman, Hellwarth)", Tolerance = "3 %, 5 %")]
         public void RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter()
         {

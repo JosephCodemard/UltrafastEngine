@@ -208,6 +208,16 @@ namespace UltrafastEngine.Schema
                 .Str("expr", "Expression in t (s) and the entries of params", null, true).Num("fR", "", "Raman (delayed) fraction of n2").Num("anisotropicFraction", "", AF, "0"));
             add(new ComponentSpec("model:delayedResponse", "callback", "Delayed response h(t) from a registered callback, normalised to unit integral on the grid and forced causal.").DocAt(R).Open()
                 .Str("name", "Registered callback name", null, true).Num("fR", "", "Raman (delayed) fraction of n2").Num("anisotropicFraction", "", AF, "0"));
+            const string TR = "reference/models.md#the-time-domain-response-nt-i";
+            const string MEM = "How long (s) the index change lasts after the light that drives it; the auto grid makes the window hold it (needed when the response convolves the intensity on the periodic window)";
+            add(new ComponentSpec("model:timeResponse", "expression", "Delta n(t) = expr + i exprIm from expressions in t, I, F (running fluence), ... and the entries of params, added to the Kerr response or replacing it.").DocAt(TR).Open()
+                .Str("expr", "Real part of Delta n (expression)", "0").Str("exprRe", "Alternative name of expr").Str("exprIm", "Imaginary part of Delta n (positive = absorption)")
+                .Bool("carrierResolved", "The response varies on the optical-cycle scale: propagate the element with the real field", "false")
+                .Num("memoryS", "s", MEM));
+            add(new ComponentSpec("model:timeResponse", "callback", "Delta n(t) from a registered callback (C#, Python, C API).").DocAt(TR).Open()
+                .Str("name", "Registered callback name", null, true)
+                .Bool("carrierResolved", "The response varies on the optical-cycle scale", "as registered")
+                .Num("memoryS", "s", MEM));
         }
     }
 }
