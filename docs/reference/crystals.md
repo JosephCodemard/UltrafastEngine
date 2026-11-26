@@ -21,6 +21,32 @@ in, picks one field to continue as the main beam out, and keeps the other fields
 Worked examples: [08 SHG in LBO](../examples/LaserSystems/shg-lbo/README.md), [09 NOPCPA in BBO](../examples/LaserSystems/nopcpa-bbo/README.md),
 [10 DFG in MgO:PPLN](../examples/Nonlinear/ppln-dfg/README.md).
 
+## Keys
+
+The keys that matter; every key with its default is in the generated reference: [`crystal`](options.md#crystal),
+[`interaction`](options.md#interaction), [`auxBeam`](options.md#auxbeam).
+
+| key | unit | what it does |
+|---|---|---|
+| `crystal` | | a built-in name, a `materials` entry or an inline object ([User crystals](#user-crystals)); required |
+| `lengthM` | m | crystal length; required |
+| `interaction` | | `process` (`shg`, `sfg`, `opa`, `dfg`), `type`, `plane`, `polarizations`, `noncollinearDeg`, `externalAngleDeg`, `qpm`; `process` defaults to `shg` |
+| `cut`, `detuneDeg` | deg | `"auto"` or `{thetaDeg, phiDeg, detuneDeg}` ([Geometry](#geometry-cut-type-planes-non-collinear)) |
+| `beam`, `aux`, `inputs` | | the main beam's size, the aux beams ([Active elements](active-elements.md#auxiliary-beams)), virtual beams on fed ports ([below](#non-collinear-opa-and-dfg)) |
+| `mainRole`, `output`, `record` | | the main beam's role, the field that continues, the by-products kept |
+| `overlap`, `transverse` | | 1-D coupling model or a spatial model ([Beams and coupling](#beams-and-coupling)) |
+| `temperatureC` | °C | crystal temperature: used by the temperature-dependent e-ray indices of `LiNbO3` and `MgO:LiNbO3` (20 °C when not given); for the other crystals a value more than 5 °C from 20 °C is ignored with a note (a user crystal without `base` ignores it without a note) |
+| `deffPmPerV` | pm/V | effective nonlinearity; replaces the tensor contraction |
+| `chi3`, `n2` | m²/W (`n2`) | χ(3) of the crystal on (default) or off; `n2` replaces the catalogue value |
+| `seedNoise`, `noiseSeed` | | vacuum-noise seeding of the generated fields (off by default; seed 12345) |
+| `ionization` | | photo-ionisation and plasma per field: `true` or an [ionisation](ionization.md) object; needs a band gap in the catalogue or `ionization.bandGapEv`; off by default |
+| `spectralMargin` | | internal spectral span factor (2.5; at least 1.2) ([Internal grid](#internal-grid-and-spectral-margin)) |
+| `polarizationAxisDeg` | deg | angle of the crystal's slow axis in the lab x-y plane |
+| `ghosts` | | double reflections at the end faces ([Ghost reflections](components.md#ghost-reflections)) |
+
+`seedNoise` is off unless set: the generated reference lists its default as `true`, which is a declaration error; the engine
+reads `false`.
+
 ## Processes and roles
 
 | `process` | main beam | aux beam(s) | generated | fields (`output`, `record` names) |
@@ -34,8 +60,9 @@ Worked examples: [08 SHG in LBO](../examples/LaserSystems/shg-lbo/README.md), [0
 main beam the signal; an aux pump and signal make it the idler; otherwise it is the pump). Default `output`: `sh`,
 `sum`, the main role (`opa`) or `idler` (`dfg`).
 
-Signal and idler are named by frequency: in `opa`/`dfg`, `signal` is the field you name as signal (main beam or aux)
-and the idler is ω_p − ω_s, whichever is higher in frequency.
+Signal and idler are named by role, not by frequency: in `opa`/`dfg` the `signal` is the field given that role (main beam or
+aux), and the idler is always at ω_i = ω_p − ω_s, whether it lies above or below the signal in frequency. Inside the
+element the waves are ordered by frequency (lowest first); the order does not change the names.
 
 ## Built-in crystals
 
@@ -53,8 +80,10 @@ The indices, d tensors and n2 of the built-in crystals are catalogue files (`Dat
 | `AgGaSe2` | uniaxial (negative), −42m | Kato & Shirahata 1996 | d36 = 33 |
 
 `ultrafast info` lists them; `provenance.json` of every run records the index source, the d tensor and the angle the
-cut was solved for. Each crystal carries its Sellmeier validity range: using it outside adds a note. Exact values and
-references are embedded in `src/UltrafastEngine.Core/Crystals/Crystal.cs`.
+cut was solved for. Each crystal carries its Sellmeier validity range: using it outside adds a note. The values and their
+references are in the catalogue files `src/UltrafastEngine.Core/Data/materials/crystals/*.json`; `Crystals/Crystal.cs` holds
+only the loader and the point-group tensors. Names are case-insensitive. Aliases: `PPLN`, `LN`, `CLN` (congruent LiNbO3); `MgLN`, `MgO:LN`, `MgO:PPLN`,
+`PPMgLN`, `MgO:CLN`; `PPKTP`; `BaB2O4`, `b-BaB2O4`, `beta-BBO`; `LiB3O5`; `KTiOPO4`; `KH2PO4`; `BiB3O6`.
 
 !!! note "Data choices"
     LBO uses Kato (1994), which reproduces the handbook XY-plane SHG angles (11.6° at 1064 nm, 13.8° at 1030 nm,
@@ -78,9 +107,20 @@ Anywhere a crystal name is accepted you can give an object, or define one under 
 }
 ```
 
-Biaxial crystals give `nx`, `ny`, `nz` (nx < ny < nz). Point groups: `3m`, `mm2` (polar axis Z), `mm2:y` (polar
-axis Y, LBO convention), `-42m`, `general` (give any `dij`, Voigt notation). `deffPmPerV` on the element (or the
-crystal) overrides the tensor contraction.
+A user crystal is uniaxial unless it says otherwise: `no` and `ne` give the ordinary and extraordinary index. A biaxial
+crystal needs **`"class": "biaxial"`** and `nx`, `ny`, `nz` (nx < ny < nz). Without `"class"` the engine reads `nx`, `ny`,
+`nz` but treats the crystal as uniaxial (o and e waves from `nx` and `nz`; `ny` is not used), with no warning. A crystal
+built on a `base` keeps the base's class.
+
+```jsonc
+"myLBO": { "crystal": { "class": "biaxial", "nx": {...}, "ny": {...}, "nz": {...}, "pointGroup": "mm2:y",
+                        "d": { "d31": -0.67, "d32": 0.85, "d33": 0.04 } } }
+```
+
+Point groups: `3m`, `mm2` (polar axis Z), `mm2:y` (polar axis Y, LBO convention), `-42m`, `general` (give any `dij`,
+Voigt notation; the default when `d` is given without `pointGroup`). `deffPmPerV` on the element (or the crystal)
+overrides the tensor contraction. Other keys of a user crystal: `name`, `n2` (m²/W), `absorption` (an attenuation model),
+`references`.
 
 ## Geometry: cut, type, planes, non-collinear
 
@@ -91,9 +131,11 @@ crystal) overrides the tensor contraction.
   `0` (all the same: QPM). Waves are ordered by frequency (lowest first). Default: `I`, or `0` if `qpm` is set.
   `interaction.polarizations` (`{"signal": "o", "idler": "o", "pump": "e"}`) sets them explicitly.
 * **`cut`**: `"auto"` solves the phase-matching angle for the **nominal** wavelengths (the run pulse carrier and the
-  aux carriers), in the best plane (`interaction.plane`: `XY`, `XZ`, `YZ` for biaxial crystals; found automatically
-  by largest |deff| otherwise). `{"thetaDeg": .., "phiDeg": ..}` fixes it; `"detuneDeg"` (in `cut` or on the element)
-  tilts it away -- useful for scans.
+  aux carriers). In a biaxial crystal it tries the planes `XY`, `XZ` and `YZ` (or only `interaction.plane`); in a uniaxial
+  crystal it solves θ at φ = 0°, 15°, ..., 90°. Of the solutions it keeps the one with the largest |deff|.
+  `{"thetaDeg": .., "phiDeg": ..}` fixes the angles; `"detuneDeg"` (in `cut` or on the element) adds to **θ** in every geometry (also in the `XY` plane, where the tuning angle is φ: there it is a non-critical tilt; set `phiDeg` instead), tilting the cut away from
+  phase matching, for scans. A fixed cut that phase-matches nothing is kept as given (mismatched), in `interaction.plane`
+  or, without it, in the uniaxial geometry or the `XZ` plane.
 * **Non-collinear** (`opa`, `dfg` and `sfg`: see [OPA and DFG](#non-collinear-opa-and-dfg) and [sum frequency](#non-collinear-sum-frequency); `shg` refuses it, since one beam cannot cross itself): `noncollinearDeg` is the angle between pump and signal inside the crystal, `externalAngleDeg` the angle outside, or the arms' tilts give it;
   `"magic"` solves for the angle at which the idler's group velocity projected on the signal equals the signal's
   (broadest gain bandwidth). The cut is then the pump's angle to the optic axis (reported as `pumpThetaDeg`).
@@ -114,11 +156,13 @@ crystal) overrides the tensor contraction.
 
 * `averaged`: first-order QPM, d → (2/π) d with the grating phase K_G z subtracted from the mismatch. Fast.
 * `domains`: the sign of d flips domain by domain (d ∝ sign cos(K_G z − phase)); the integrator lands exactly on
-  every domain wall, so each step sees a smooth right-hand side. A step that would end within 10 % of a step before a wall is stretched onto it, so no
-  sliver step is left (before 2026-11-17 steps down to 2 nm made the result depend on the last bits of the step size: 3e-5 between tolerances 1e-7
-  apart, now 3e-8). At the default tolerance (1e-6) a 1 mm PPLN crystal (about 100 walls) is still 4e-4 from the converged field: use
-  `stepper.tolerance` 1e-8 (4e-6) for quantitative domain-resolved work. Captures higher QPM orders and end effects of
-  the last domain; ~3-5x slower. `phaseDeg: 90` starts with a full positive domain (pyNLO's convention).
+  every domain wall, so each step sees a smooth right-hand side. A step that would end within 10 % of a step before a wall is
+  stretched onto it, so no sliver step is left: runs at tolerances 1e-7 relative apart give the same field to 2.8e-8. At the default
+  tolerance (1e-6) the field of 1 mm of MgO:PPLN (SHG at 1550 nm, about 100 walls) is 4.1e-4 from the converged one; at
+  `stepper.tolerance` 1e-8 it is 3.6e-6, so use 1e-8 for quantitative domain-resolved work
+  (`Chi2Tests.Qpm_DomainResolved_NoSliverSteps_ResultDoesNotDependOnTheLastBitsOfTheStep`, which asserts 1e-7 and 1e-5).
+  The model captures higher QPM orders and end effects of the last domain and is 3-5 × slower. `phaseDeg: 90` starts with
+  a full positive domain (pyNLO's convention).
 
 `qpm: true` with `cut: "auto"` uses θ = 90°, φ = 0 (propagation along X, polarisations along Z: d33 for LN/KTP).
 
@@ -141,7 +185,8 @@ than its wings; use a transverse model for that.
 **Transverse models** (`"transverse": {"model": "radial"}` or `"cartesian"`, see [Spatial models](transverse.md)):
 every field is resolved across the beam and coupled locally (O = 1), with diffraction of each field at its own
 index, walk-off and non-collinear drift (cartesian), beam-quality changes and spatial depletion. Low-conversion
-results agree with the 1-D Gaussian overlap to <0.5 %; at 60-70 % conversion they differ by 10-15 %.
+results agree with the 1-D Gaussian overlap to 1 % (`Chi2Tests.Shg_RadialModelAgreesWithGaussianOverlapAtLowConversion`);
+at 60-70 % conversion the two differ by 10-15 % (a one-off comparison, not a test).
 
 ## Equations
 
@@ -159,11 +204,12 @@ L_j(ω) = i [kz_j(ω) − kz_j(ω_j) − (ω − ω_j)/v_ref] − α_j(ω)/2   (
 * Exact dispersion of every field (no Taylor expansion): group-velocity mismatch, GVD and higher orders, the
   frequency dependence of the phase mismatch (acceptance bandwidths) all follow from kz(ω).
 * The ω factors are applied per frequency (self-steepening of the χ(2) terms) when `physics.selfSteepening` is on.
-* χ(3): SPM and XPM of all fields (n2 of the crystal; `"chi3": false` switches it off; `"n2"` overrides).
+* χ(3): SPM and XPM of all fields with the crystal's n2 (`"n2"` overrides it). `"chi3": false` switches it off, and so
+  does `physics.nonlinear: false` in the run spec.
 * These equations conserve photon numbers exactly; `values.manleyRoweResidual` reports the spectrally resolved
-  photon bookkeeping (typically 1e-8 or better).
-* **Noise seeding**: `"seedNoise": true` adds one photon per mode (random phase, `noiseSeed`) to the generated
-  field -- parametric superfluorescence / OPG from noise.
+  photon bookkeeping (below 1e-9 in the collinear OPA test).
+* **Noise seeding**: `"seedNoise": true` adds one photon per mode (random phase, `noiseSeed`, default 12345) to the
+  generated field: parametric superfluorescence, OPG from noise. Off by default.
 
 ### Internal grid and spectral margin
 
@@ -181,8 +227,8 @@ engine warns ("raise spectralMargin"). Strong back-conversion with group-velocit
   `conversionEfficiency` (main out / all energy in), `energy_<field>_J`, `manleyRoweResidual`.
 * By-products: `res.At["<id>#<field>"]`, snapshots `probe_<id>_<field>_*` in `result.npz`, summaries in
   `elements[i].byproducts`.
-* Energy budget: `from <role> (aux)` (negative: energy brought in), `to <field>` (energy leaving as by-products),
-  `numerical` or `absorption`.
+* Energy budget: `from <role> (aux)` (negative: energy brought in), `to <field>` (energy leaving as by-products), and the
+  rest as `absorption` (with a crystal absorption model), `ionisation and plasma absorption` (with `ionization`) or `numerical`.
 * `carrierWavelengthM` changes when the output is a different field; a note says so, and the system dispersion
   starts afresh for the new field.
 
@@ -191,7 +237,7 @@ engine warns ("raise spectralMargin"). Strong back-conversion with group-velocit
 | kind | what it does |
 |---|---|
 | `conversion` | energies and photon numbers of every field leaving the crystal, aux energy in, efficiencies |
-| `phaseMatchingCurve` | low-conversion sinc²(ΔkL/2) of the crystal's own geometry vs `scan`: `angle` (`rangeDeg`), `wavelength` (`rangeM`), `temperature` (`rangeK`, LN/MgO:LN), `period` (`rangeM`, QPM); reports peak and FWHM |
+| `phaseMatchingCurve` | low-conversion sinc²(ΔkL/2) of the crystal's own geometry vs `scan` (`points`, default 201): `angle` (`rangeDeg`, default 1°; moves φ in the `XY` plane, θ otherwise), `wavelength` of the main beam (`rangeM`, 20 nm), `temperature` (`rangeK`, 20 K; `LiNbO3` and `MgO:LiNbO3` only), `period` (`rangeM`, 0.2 µm; QPM); reports peak and FWHM |
 | `delayScan` | re-runs the crystal on the pulse that entered it for aux delays `fromS`..`toS` (`points`): the OPCPA timing curve |
 | `beamProfile` | fluence vs radius (radial) or x/y cuts (cartesian), radius, M² -- after a transverse crystal |
 
@@ -218,26 +264,13 @@ the best one: angles, deff, indices, group indices and walk-off of every wave, G
 angular, thermal; FWHM for the given length), the small-signal OPA gain spectrum (if `pumpIntensityWPerM2` is
 given), the magic angle, and the QPM period.
 
-## Validation
-
-| check | result | test |
-|---|---|---|
-| SHG vs Armstrong tanh² (dispersion-free crystal, plane wave) | < 2e-4 from 0.02 % to 85 % conversion | `Chi2Tests.Shg_PlaneWave_MatchesArmstrongTanhSquared` |
-| OPA vs cosh² small-signal gain | < 1e-3 at gain 34 | `Chi2Tests.Opa_SmallSignalGain_*` |
-| angle detuning vs sinc² | < 1 % | `Chi2Tests.Shg_AngleDetuning_FollowsSincSquared` |
-| cascaded χ(2) phase vs κ²P/Δk (L − sin ΔkL/Δk) | < 2 % | `Chi2Tests.CascadedChi2_*` |
-| QPM averaged vs domain-resolved | < 2 % | `Chi2Tests.Qpm_AveragedAndDomainResolvedModelsAgree` |
-| calculator vs handbook angles (BBO, LBO, KDP, KTP, NC magic angle, PPLN periods) | < 0.15-0.8° | `Chi2Tests.PhaseMatchCalculator_*` |
-| radial vs 1-D Gaussian overlap, low conversion | < 1 % | `Chi2Tests.Shg_RadialModelAgrees*` |
-| DFG in MgO:PPLN vs pyNLO | 0.1-0.7 % (small signal), 0.5 % at gain 50 | `python/tests/test_pynlo_dfg.py` |
-
 ## Phase matching and bandwidth
 
-Each wave has its own k(ω) from the Sellmeier equations at the crystal's angle, so the limits below follow from the solver rather than from a formula. They are tested in `Chi2Tests` and `CrystalChainTests`.
+Each wave has its own k(ω) from the Sellmeier equations at the crystal's angle, so the limits below follow from the solver rather than from a formula. They are tested in `Chi2Tests.Shg_AngleDetuning_FollowsSincSquared`, `CrystalChainTests.Conversion_GrowsAsLengthSquared_ThenLinearlyOnceWalkOffLimitsIt` (Weiner, *Ultrafast Optics*) and `CrystalChainTests.SecondHarmonicBandwidth_IsSetByTheCrystal`.
 
 | quantity | behaviour | checked against |
 |---|---|---|
-| angle | efficiency follows sinc²(Δk L / 2); `detuneDeg` tilts the cut | sinc², and Δk from independent Sellmeier arithmetic |
+| angle | efficiency follows sinc²(Δk L / 2); `detuneDeg` tilts θ (use `phiDeg` in the `XY` plane) | sinc², and Δk from independent Sellmeier arithmetic |
 | narrowband, L much less than τ / GVM | efficiency grows as L² | L² to 2 % |
 | broadband, L much more than τ / GVM | efficiency grows as L: extra length only adds walk-off | L to 2 % |
 | acceptance | SH bandwidth 0.886 / (GVM L) | to 3 % |
@@ -319,10 +352,25 @@ Checked against the mismatched parametric gain G = 1 + (Γ/g)² sinh²(gL), g² 
 
 **Virtual beams on fed ports.** In a Branched system, a fed port (`aux` with `fromPort: true`) with no link can hold a beam: `"inputs": {"<role>": {"pulse": ..., "delayS": ...}}`, the keys of a [virtual input](branches.md#virtual-inputs). The beam keeps its own carrier, on a grid with the run's spacing. `delayS` is measured from the run's source, or `"auto"` centres it on the main beam in the crystal.
 
-## What a crystal does not model
+## Validation
+
+| check | result | test |
+|---|---|---|
+| SHG vs Armstrong tanh² (dispersion-free crystal, plane wave) | < 2e-4 from 0.02 % to 85 % conversion | `Chi2Tests.Shg_PlaneWave_MatchesArmstrongTanhSquared` |
+| OPA vs cosh² small-signal gain | < 1e-3 at gain 34 | `Chi2Tests.Opa_SmallSignalGain_*` |
+| angle detuning vs sinc² | < 1 % | `Chi2Tests.Shg_AngleDetuning_FollowsSincSquared` |
+| cascaded χ(2) phase vs κ²P/Δk (L − sin ΔkL/Δk) | < 2 % | `Chi2Tests.CascadedChi2_*` |
+| QPM averaged vs domain-resolved | < 2 % | `Chi2Tests.Qpm_AveragedAndDomainResolvedModelsAgree` |
+| calculator vs literature angles: BBO type-I SHG 29.2° / 23.4° (800 / 1030 nm, SNLO), KDP 41.2° (1064 nm), LBO φ 11.6° / 13.8° / 31.7° (1064 / 1030 / 800 nm), KTP type-II φ 24.0°, BBO NOPA magic angle 2.55° and pump angle 24.6°, MgO:PPLN periods 19.4 / 6.95 µm | 0.15° (BBO, LBO at 1064 / 1030 nm, magic angle), 0.2° (KDP, LBO at 800 nm), 0.3° (pump angle), 0.8° (KTP); 1 % (periods); LBO and KTP deff 5 % and 10 % | `Chi2Tests.PhaseMatchCalculator_ReproducesLiteratureAngles` |
+| radial vs 1-D Gaussian overlap, low conversion | < 1 % | `Chi2Tests.Shg_RadialModelAgrees*` |
+| DFG in MgO:PPLN vs pyNLO | 0.1-0.7 % (small signal), 0.5 % at gain 50 | `python/tests/test_pynlo_dfg.py` |
+| non-collinear OPA vs the mismatched parametric gain (Cerullo & De Silvestri 2003), transverse momentum, Manley-Rowe | see [Non-collinear OPA and DFG](#non-collinear-opa-and-dfg) | `NoncollinearOpaTests` |
+| photon bookkeeping `manleyRoweResidual` | < 1e-9 (OPA) | `Chi2Tests.Opa_SmallSignalGain_MatchesCoshSquared_AndConservesPhotons` |
+
+## Limits
 
 * **An input's own second harmonic in non-collinear SHG.** Each beam also makes a collinear second harmonic in a real crystal, if the cut suits. The model has only the cross term, which is the background-free signal.
-* **Angular spread of the sum at each frequency.** In 1-D the sum wave stays on the axis for every frequency. This matters for very broad spectra at large angles.
+* **Angular spread of the sum at each frequency.** In 1-D the sum wave stays on the axis for every frequency. This matters for spectra a large fraction of the carrier wide at large angles.
 * **Depletion across the beam in 1-D.** Conversion is uniform across it. Use a spatial model near depletion.
 * **A tilt out of the tuning plane.** The angle is taken from the x tilts; a y tilt raises a warning. The x axis is taken to lie in the tuning plane.
 * **A radial grid.** Crossing beams need `cartesian`.

@@ -3,8 +3,15 @@
 The engine has models of what common optical components do to the beam, without ray tracing. Each one is made from the
 same parts as the rest of the engine: interface terms (Fresnel or coatings, s/p in the Jones basis), a bulk element
 (dispersion, absorption, and nonlinearity or a spatial model when there is a beam), and Jones terms. So overrides,
-provenance, the loss budget and the transverse models all work for them too. Every key is listed in the
-[option reference](options.md).
+provenance, the loss budget and the transverse models all work for them too.
+
+## Keys
+
+Every key with its default is in the generated [option reference](options.md#elements): [`plate`](options.md#plate-also-window),
+[`ndFilter`](options.md#ndfilter), [`waveplate`](options.md#waveplate), [`thinFilmPolarizer`](options.md#thinfilmpolarizer-also-tfp),
+[`faradayRotator`](options.md#faradayrotator-also-faraday), [`wavefront`](options.md#wavefront-also-aberration),
+[`chirpedMirror`](options.md#chirpedmirror), [`mirror`](options.md#mirror), the [`aberration`](options.md#aberration) and
+[`ghosts`](options.md#ghosts) objects. The sections below name the keys that change the model.
 
 | element | what it models |
 |---|---|
@@ -28,6 +35,9 @@ through every element:
 "inputBeam": { "kind": "gaussian", "w0M": 1.0e-3, "zWaistM": 0.0, "m2": 1.1 },   // waist measured from the system input
 "physics": { "beamTracking": "auto" }                                            // "auto" (default) | "on" | "off"
 ```
+
+An astigmatic or elliptical input beam gives the axes separately: `w0xM` / `w0yM` (lower-case x, y), `zWaistXM` / `zWaistYM`, `m2x` / `m2y`
+(the single keys set both axes).
 
 The q parameters are kept in reduced form q/n (vacuum-equivalent distances), so the ABCD law needs no index
 bookkeeping: a length L in a medium of index n adds L/n, a thin lens subtracts 1/f, a mirror in a medium of index n
@@ -155,6 +165,9 @@ Mirrors, surfaces and lenses accept an `aberration`; the `wavefront` element is 
 }
 ```
 
+Instead of the Noll list, `terms` names the coefficients: `{"Z4": 0.1, "Z11": -0.05}` (waves rms). `correlationLengthM`
+defaults to 0.1 of the grid width and `seed` to 1.
+
 The wavefront is an optical path difference W(x, y), applied as a phase ω W / c at every frequency (non-dispersive:
 exact for mirrors). On spatial grids it changes the carried profile: radial grids keep only the axisymmetric terms
 (Z1, Z4, Z11, Z22, ...), cartesian grids keep all of them and the random figure. On a 1-D beam nothing changes: the
@@ -175,9 +188,11 @@ spatial model) → back surface. `coatingFront` / `coatingBack` override `coatin
 **Tilted plates and their phase.** At an angle every colour refracts at its own internal angle, so the phase through the
 plate is the plane-wave phase k_z(ω) d = (ω/c) d √(n² − n_o² sin²θ) (n_o: the surrounding medium), plus the air path each
 colour crosses between its own exit point and the plane normal to the carrier ray through the carrier's exit point,
-(ω/c) n_o sin θ d tan θ_t. The engine applies exactly this, with or without an `inputBeam`; with a tracked beam the
-ray bundle supplies the same phase. Its GDD at 40° and 70° for 5 mm of fused silica at 1030 nm is 0.3 and 1.0 fs² above
-what the path d / cos θ_t at the carrier would give. The same holds for the thin-film polariser's substrate.
+(ω/c) n_o sin θ d tan θ_t0, with θ_t0 the carrier's internal angle (the same for every colour; only the sum of the two terms is the phase). The engine applies exactly this, with or without an `inputBeam`; with a tracked beam the
+ray bundle supplies the same phase. For 5 mm of fused silica at 1030 nm in vacuum its GDD is 105.55 fs² at 40° and
+123.60 fs² at 70°: 0.28 and 0.96 fs² **below** the 105.83 and 124.56 fs² of the fixed path d / cos θ_t of the carrier
+(recomputed with the Malitson index; the test `OpenBugRegressionTests.TiltedPlate_WithoutBeam_HasTheRefractedColoursGdd_AndMatchesTheTrackedBeam`
+checks the phase formula to 1e-4, with and without a tracked beam). The same holds for the thin-film polariser's substrate.
 
 ### Ghost reflections
 
@@ -215,9 +230,9 @@ post-pulse that overlaps a stretched pulse into a pre-pulse after compression (i
 { "id": "nd2", "type": "ndFilter", "od": [0.3, 0.5], "wavelengthsM": [1000e-9, 1060e-9], "kind": "reflective" }
 ```
 
-* `absorptive`: the OD is distributed over the glass (power transmission 10^-OD over the internal path), so a
-  nonlinear filter sees the decaying intensity. The default substrate N-BK7 stands in for the dispersion of absorbing
-  ND glass: give your glass (or its index table) as `material`.
+* `absorptive` (default): the OD is distributed over the glass (power transmission 10^−OD over the internal path), so a
+  nonlinear filter sees the decaying intensity. The default substrate is 2 mm of N-BK7, which stands in for the dispersion
+  of absorbing ND glass: give your glass (or its index table) as `material`.
 * `reflective`: a metallic coating on the front surface transmits 10^-OD; the rest is booked as
   "ndFilter (reflected)". Default substrate fused silica, 1 mm.
 * OD per wavelength: the absorbance is interpolated (not the transmission).
@@ -281,11 +296,12 @@ port. `axisDeg` is the transmitted (p) axis in the lab. `model: "ideal"` uses `t
 { "id": "fr2", "type": "faradayRotator", "verdetRadPerTM": -40, "fieldTesla": 1.1, "lengthM": 0.018 }
 ```
 
-The rotation follows θ(λ) = θ_d (λ_d² - λ0²) / (λ² - λ0²) (`verdetPoleWavelengthM`, 258 nm for TGG; `"none"`
-for a constant angle). It is non-reciprocal: in the engine's transported basis two passes add (an isolator's
+The rotation follows θ(λ) = θ_d (λ_d² − λ0²) / (λ² − λ0²) (`verdetDispersion: "inverseSquare"`, the default, with the pole
+`verdetPoleWavelengthM`, default 258 nm for TGG); `verdetDispersion: "none"` gives a constant angle. It is non-reciprocal: in the engine's transported basis two passes add (an isolator's
 double pass gives 90°); `"direction": -1` is a beam travelling against the field. With a `material` and `lengthM`
 the crystal's dispersion and, with a beam, its B-integral are included -- often the limiting nonlinearity of an
-isolator. The built-in TGG index is an approximate two-point fit and has no n2: give your crystal's data.
+isolator. The built-in TGG index is a one-pole fit to the measured table of Schlarb & Sugg 1994 (0.40-1.18 µm, status
+approximate) and has no n2 (0): give your crystal's data.
 
 ## GDD ripple
 
@@ -298,7 +314,7 @@ GDD_r(ω) = A sin(2π (ω - ω0) / Ω + φ) per bounce, i.e. the phase -A (Ω / 
 alternate φ and φ + π, so an even number of bounces cancels the ripple. The coating kind `"gddRipple"` gives the
 same for a `mirror` coating (with an optional reflectance ripple).
 
-## Multi-pass cell mode (`cellMode`)
+## Multipass cell mode (`cellMode`)
 
 A Herriott or quasi-concentric cell is stable only for a beam whose complex parameter q reproduces itself after one round trip. In the empty cell
 this is the Kogelnik-Li eigenmode; at high peak power the Kerr lens of the gas or the glass plates changes it, and the matched mode depends on the
@@ -307,8 +323,8 @@ power. `cellMode` finds it, so no trial runs in the radial model are needed. It 
 
 ```python
 from ultrafast import cells
-r = cells.cell_mode(1030e-9, mirror_radius=0.35, separation=0.54)                      # empty cell: waist 220 um, 459 um on the mirrors
-r = cells.cell_mode(800e-9, mirror_radius=1.5, separation=2.9, peak_power=2e9, gas={"species": "Ar", "pressureBar": 0.4})
+r = cells.cell_mode(1030e-9, mirror_radius_m=0.35, separation_m=0.54)                  # empty cell: waist 220 µm, 459 µm on the mirrors
+r = cells.cell_mode(800e-9, mirror_radius_m=1.5, separation_m=2.9, peak_power_w=2e9, gas={"species": "Ar", "pressureBar": 0.4})
 r["matched"], r["mode"]["waistRadiusM"], r["bIntegralTotalRad"]
 ```
 
@@ -316,7 +332,7 @@ Keys (SI): `wavelengthM`, `mirrorRadiusM` or `mirrorRadiiM [R1, R2]` (concave, p
 d = R (1 - cos(pi k / N)), the Herriott closing condition N theta = 2 pi k with theta = 2 arccos(g)), `passes` (traversals; the total B-integral
 is `passes / 2` round trips), `peakPowerW`, `gas {species, pressureBar, temperatureK, n2M2PerW}` (index and n2 from the gas library), `plates`
 (`thicknessM`, `positionM` of the centre from mirror 1, `material` or `index`, `n2M2PerW`), `lensModel`, `slices` (Kerr lenses per medium segment, 12).
-The launch plane is just after mirror 1. The reply has `emptyCell` and `mode` (`waistRadiusM`, `waistDistanceFromLaunchM`, `radiusAtLaunchM`,
+The launch plane is at mirror 1, just after the reflection there (the Python docstring's "the launch plane is mirror 1" means the same plane). The reply has `emptyCell` and `mode` (`waistRadiusM`, `waistDistanceFromLaunchM`, `radiusAtLaunchM`,
 `radiusAtMirror1M`, `radiusAtMirror2M`, reduced q), `matched`, `stability` ((A + D) / 2), `residual`, `bIntegralPerRoundTripRad`,
 `overlapEmptyModeWithMatchedMode` (power coupling of the empty-cell mode into the matched one), `shiftOfWaistRadius`. If the Kerr lens drives the round
 trip out of its stability range, `matched` is false with a message instead of a mode.
@@ -329,3 +345,32 @@ The self-consistent mode is found by a damped fixed point over the lens powers w
 
 **Limits.** Round beams (astigmatism at the injection angle is not included); the peak power only (the wings of a pulse see a weaker lens, so the match
 holds at the peak); instantaneous Kerr effect, no dispersion, ionisation or loss; mirrors at normal incidence.
+
+## Validation
+
+| component | reference | test |
+|---|---|---|
+| beam tracking, spatio-temporal couplings | grating equation, Hebling, Treacy, Snell, 4f stretcher (tolerances above) | `BeamTrackingTests` |
+| off-axis mirror | f_t = R cos θ / 2, f_s = R / (2 cos θ) | `ComponentTests.BeamTracking_OffAxisMirrorIsAstigmatic` |
+| tilted plate | plane-wave phase k_z d plus the air path, 1e-4 | `OpenBugRegressionTests.TiltedPlate_WithoutBeam_HasTheRefractedColoursGdd_AndMatchesTheTrackedBeam` |
+| plate ghosts | delay 2 n_g d cos θ_t / c and level \|g\|²; wedge tilt | `ComponentTests.Plate_GhostReplicaDelayAndIntensity`, `ComponentTests.Plate_GhostTiltedOutOfTheBeamByAWedge`, `ComponentTests.Ghosts_OfBulkCrystalAndLensEndFaces` |
+| ghost turned into a pre-pulse by a Kerr medium | intensity ∝ B² | `ComponentTests.Ghost_KerrMediumCreatesPrePulsePartner` |
+| ND filter | 10^−OD, OD(λ) | `ComponentTests.NdFilter_AbsorptiveAndReflectiveOd`, `ComponentTests.NdFilter_OdPerWavelengthShapesTheSpectrum` |
+| thick waveplates | retardance from Δn(λ); group-delay split \|Δn_g\| d / c | `ComponentTests.ThickWaveplate_RetardanceFromMaterialDispersion`, `ComponentTests.ThickWaveplate_SplitsPulseByGroupDelayDifference` |
+| glass in polarisers and lenses | GDD = β₂ L | `ComponentTests.ThickPolarizerAndLens_AddTheirGlassDispersion` |
+| thin-film polariser | transmits p, reflects s | `ComponentTests.ThinFilmPolarizer_TransmitsPReflectsS` |
+| Faraday rotator | non-reciprocal, θ(λ) law | `ComponentTests.FaradayRotator_RotatesNonReciprocallyWithVerdetDispersion` |
+| GDD ripple | ripple law; complementary pairs cancel | `ComponentTests.ChirpedMirror_GddRippleAndComplementaryPairs` |
+| aberrations | Noll ordering and orthonormality; Maréchal Strehl on a 1-D beam | `ComponentTests.Zernike_NollOrderingAndOrthonormality`, `ComponentTests.Aberration_StrehlOnOneDBeamAndPhaseOnSpatialBeam` |
+| `cellMode` Kerr lens | rms radius of the radial model, 0.3 % | `CellModeTests.KerrLensOfTheHelper_ReproducesTheRadialModelsRmsRadius` |
+
+## Limits
+
+* Beam tracking is simple astigmatism: the principal axes are x and y; a fold plane at another angle is snapped to the nearer
+  axis with a note.
+* Spatio-temporal couplings need beam tracking (a Gaussian `inputBeam`); the ray-bundle phase stops at fourth order
+  (`gratingPair` keeps the exact phase).
+* Aberrations on a 1-D beam only report the rms and the Strehl estimate; the field changes only on a spatial grid (radial
+  grids keep the axisymmetric terms).
+* Beam splitters have no glass: put a `plate` in the arm that crosses it.
+* `cellMode`: round beams, the peak power only, instantaneous Kerr effect, mirrors at normal incidence ([above](#multipass-cell-mode-cellmode)).
