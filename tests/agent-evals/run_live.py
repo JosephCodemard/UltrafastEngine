@@ -1,25 +1,30 @@
 #!/usr/bin/env python3
 """Score a LIVE agent on the evals of evals.json: give it each prompt with a workspace and the ultrafast-mcp server, record the tool calls, check the criteria.
 
-    python3 tests/agent-evals/run_live.py --agent claude --model sonnet [--only ID] [--max-turns 30] [--out results.json]
+    python3 tests/agent-evals/run_live.py --agent claude|codex|cursor --model NAME [--only ID] [--max-turns 30] [--out results.json]
+    python3 tests/agent-evals/run_live.py --transcript FILE [--agent claude|codex|cursor] [--only ID]     (scores a saved transcript; runs nothing)
 
-Agents: ``claude`` (Claude Code in print mode, ``claude -p``; ``--model`` is an alias or a model name). Other agents: write the transcript as JSON lines
-of ``{"tool": ..., "args": ..., "result": ...}`` plus ``{"final": "..."}`` and score it with ``score(eval_id, trace, final)``.
-The agent gets only the ultrafast MCP tools (no shell, no file access) in a fresh workspace with the agent pack installed (``.claude/skills``).
-Criteria that a program can check from the tool calls and the final answer are scored; the others are listed as 'manual' for a human to read in the transcript.
-Exit code 0 when every mandatory eval passes every checked criterion. It uses your Claude Code login and spends tokens; run it deliberately.
+Agents: ``claude`` (Claude Code, ``claude -p --output-format stream-json``), ``codex`` (OpenAI Codex CLI, ``codex exec --json``), ``cursor`` (Cursor agent CLI,
+``cursor-agent -p --output-format stream-json``). Each has an adapter (``parse_claude``, ``parse_codex``, ``parse_cursor``) that turns the agent's transcript into the
+common structure the scorers use: ``trace`` (a list of ``{"tool", "args", "result", "isError"}`` for the ultrafast MCP tools), the final answer text and the files written.
+``--transcript`` reads a saved stdout of any of the three (the format is detected when ``--agent`` is not given); one transcript is one eval (``--only ID``, or the id
+from the file name ``<eval-id>.<anything>.jsonl``). Other agents: write JSON lines of ``{"tool": ..., "args": ..., "result": ...}`` plus ``{"final": "..."}`` (format ``plain``).
+The agent gets only the ultrafast MCP tools in a fresh workspace with the agent pack installed. Criteria that a program can check from the tool calls and the final answer are
+scored; the others are listed as 'manual' for a human to read in the transcript. Exit code 0 when every mandatory eval passes every checked criterion.
+A live run uses the agent's login and spends tokens; run it deliberately (docs/reference/mcp.md, "Agent pack and evals").
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -29,41 +34,258 @@ PREFIX = "mcp__ultrafast__"
 BUILTIN = ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch", "Task", "NotebookEdit"]
 
 
-# ----------------------------------------------------------------------------- the agent
-def run_claude(prompt: str, ws: Path, model: str, max_turns: int, timeout_s: int) -> Tuple[List[dict], str, dict]:
-    """Run ``claude -p``; returns (trace of tool calls, final answer, usage)."""
-    cfg = ws.parent / "mcp.json"
-    cfg.write_text(json.dumps({"mcpServers": {"ultrafast": {"command": sys.executable, "args": ["-m", "ultrafast.mcp", "--workspace", str(ws), "--budget-s", "240"],
-                                                              "env": {"PYTHONPATH": str(REPO / "python" / "src")}}}}), encoding="utf-8")
-    subprocess.run([sys.executable, "-m", "ultrafast.agents", "install", "--target", "claude", "--dest", str(ws)], check=True, capture_output=True,
-                   env={"PYTHONPATH": str(REPO / "python" / "src"), "PATH": __import__("os").environ.get("PATH", "")})
-    cmd = ["claude", "-p", prompt, "--model", model, "--mcp-config", str(cfg), "--strict-mcp-config", "--output-format", "stream-json", "--verbose",
-           "--max-turns", str(max_turns), "--allowedTools", PREFIX + "*", "--no-session-persistence", "--max-budget-usd", "3", "--disallowedTools", *BUILTIN]
-    p = subprocess.run(cmd, cwd=ws, capture_output=True, text=True, timeout=timeout_s)
-    calls: Dict[str, dict] = {}
-    trace: List[dict] = []
-    final, usage = "", {}
-    for line in p.stdout.splitlines():
+# ----------------------------------------------------------------------------- transcript adapters
+# Each adapter takes the text of a transcript and returns (trace, final, usage); usage["filesWritten"] lists the files the agent wrote.
+SERVER = "ultrafast"
+
+
+def _jsonl(text: str) -> List[dict]:
+    out = []
+    for line in text.splitlines():
         try:
             ev = json.loads(line)
         except ValueError:
             continue
+        if isinstance(ev, dict):
+            out.append(ev)
+    return out
+
+
+def _as_text(body: Any) -> str:
+    """A tool result body (a string, or a list of content blocks, or a dict) as text."""
+    if body is None:
+        return ""
+    if isinstance(body, str):
+        return body
+    if isinstance(body, list):
+        parts = []
+        for b in body:
+            t = b.get("text") if isinstance(b, dict) else None
+            parts.append(t["text"] if isinstance(t, dict) and "text" in t else t if isinstance(t, str) else json.dumps(b))
+        return "\n".join(parts)
+    return json.dumps(body)
+
+
+def parse_claude(text: str) -> Tuple[List[dict], str, dict]:
+    """Claude Code ``claude -p --output-format stream-json --verbose``: one JSON event per line.
+
+    Format: https://code.claude.com/docs/en/headless (stream-json), message blocks as in the Messages API (``tool_use`` in an ``assistant`` event, ``tool_result``
+    in the following ``user`` event, ``result`` last). MCP tools are named ``mcp__<server>__<tool>``.
+    """
+    calls: Dict[str, dict] = {}
+    trace: List[dict] = []
+    files: List[str] = []
+    final, usage = "", {}
+    for ev in _jsonl(text):
         if ev.get("type") == "assistant":
             for c in ev.get("message", {}).get("content", []):
-                if c.get("type") == "tool_use" and str(c.get("name", "")).startswith(PREFIX):
-                    calls[c["id"]] = {"tool": c["name"][len(PREFIX):], "args": c.get("input", {}), "result": None}
+                if c.get("type") != "tool_use":
+                    continue
+                name = str(c.get("name", ""))
+                if name.startswith(PREFIX):
+                    calls[c["id"]] = {"tool": name[len(PREFIX):], "args": c.get("input", {}), "result": None}
                     trace.append(calls[c["id"]])
+                elif name in ("Write", "Edit", "NotebookEdit") and "file_path" in (c.get("input") or {}):
+                    files.append(c["input"]["file_path"])
         elif ev.get("type") == "user":
             for c in (ev.get("message", {}).get("content") or []):
                 if isinstance(c, dict) and c.get("type") == "tool_result" and c.get("tool_use_id") in calls:
-                    body = c.get("content")
-                    calls[c["tool_use_id"]]["result"] = body if isinstance(body, str) else json.dumps(body)
+                    calls[c["tool_use_id"]]["result"] = _as_text(c.get("content"))
                     calls[c["tool_use_id"]]["isError"] = bool(c.get("is_error"))
         elif ev.get("type") == "result":
             final, usage = ev.get("result", ""), {k: ev.get(k) for k in ("num_turns", "total_cost_usd", "duration_ms")}
-    if not trace and not final:
-        raise RuntimeError("the agent produced no transcript (is `claude` logged in?): %s" % p.stderr[-400:])
+    usage["filesWritten"] = files
     return trace, final, usage
+
+
+def parse_codex(text: str) -> Tuple[List[dict], str, dict]:
+    """OpenAI Codex CLI ``codex exec --json``: JSON Lines with ``thread.started``, ``turn.started``, ``item.started`` / ``item.completed``, ``turn.completed``, ``turn.failed``, ``error``.
+
+    Documented (https://developers.openai.com/codex/noninteractive, now https://learn.chatgpt.com/docs/non-interactive-mode): the event names, and the item types
+    ``agent_message`` (``text``) and ``command_execution``. The page names but does not show ``mcp_tool_call`` and ``file_change`` items; their fields here follow the
+    open-source CLI's event definitions (https://github.com/openai/codex, ``codex-rs/exec/src/exec_events.rs``): ``mcp_tool_call`` has ``server``, ``tool``, ``arguments``,
+    ``result`` (``content`` blocks, ``structured_content``), ``error`` (``message``) and ``status``; ``file_change`` has ``changes`` (``path``, ``kind``). The last
+    ``agent_message`` is the final answer. If a field name differs in your Codex version, this is the function to adjust.
+    """
+    trace: List[dict] = []
+    files: List[str] = []
+    final, usage = "", {}
+    for ev in _jsonl(text):
+        kind = ev.get("type")
+        item = ev.get("item") or {}
+        if kind == "item.completed":
+            t = item.get("type")
+            if t == "agent_message":
+                final = item.get("text", "")
+            elif t == "mcp_tool_call" and item.get("server", SERVER) == SERVER:
+                args = item.get("arguments")
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except ValueError:
+                        args = {}
+                res = item.get("result") or {}
+                err = item.get("error")
+                body = (res.get("content") if isinstance(res, dict) else res) or (res.get("structured_content") if isinstance(res, dict) else None)
+                trace.append({"tool": item.get("tool", ""), "args": args or {}, "result": _as_text(err.get("message") if isinstance(err, dict) else err) if err else _as_text(body),
+                              "isError": bool(err) or item.get("status") == "failed"})
+            elif t == "file_change":
+                files += [c.get("path", "") for c in item.get("changes", [])]
+        elif kind == "turn.completed":
+            u = ev.get("usage") or {}
+            usage = {"input_tokens": u.get("input_tokens"), "output_tokens": u.get("output_tokens")}
+    usage["filesWritten"] = files
+    return trace, final, usage
+
+
+def parse_cursor(text: str) -> Tuple[List[dict], str, dict]:
+    """Cursor agent CLI ``cursor-agent -p --output-format stream-json``: NDJSON with ``system`` (``init``), ``user``, ``assistant``, ``tool_call`` (``started`` / ``completed``), ``result``.
+
+    Documented (https://cursor.com/docs/cli/reference/output-format): all of those events; the ``tool_call`` event has ``call_id`` and ``tool_call``, an object keyed by the tool
+    (``readToolCall``, ``writeToolCall`` with ``args.path`` and ``result.success``); the ``result`` event carries the whole answer in ``result``. NOT documented: the shape of an
+    MCP tool call (the page says other tools "may use ``tool_call.function``" with ``name`` and ``arguments``). Implemented here: ``mcpToolCall`` with ``args`` (``providerIdentifier``,
+    ``toolName`` or ``name``, ``args``) and ``result.success`` / ``result.error`` (as written by cursor-agent builds seen in the field), and the documented ``function`` form.
+    Where the transcript has no ``result`` event the ``assistant`` text blocks are joined. If your cursor-agent version differs, adjust ``_cursor_call``.
+    """
+    started: Dict[str, dict] = {}
+    trace: List[dict] = []
+    files: List[str] = []
+    said: List[str] = []
+    final, usage = None, {}
+    for ev in _jsonl(text):
+        kind = ev.get("type")
+        if kind == "assistant":
+            for c in ev.get("message", {}).get("content", []):
+                if c.get("type") == "text" and "timestamp_ms" not in ev:      # skip streaming partials (--stream-partial-output)
+                    said.append(c.get("text", ""))
+        elif kind == "tool_call":
+            cid = ev.get("call_id", "")
+            call = _cursor_call(ev.get("tool_call") or {}, ev.get("subtype") == "completed")
+            if call is None:
+                for k, v in (ev.get("tool_call") or {}).items():
+                    if k == "writeToolCall" and ev.get("subtype") == "completed" and isinstance(v, dict):
+                        files.append((v.get("args") or {}).get("path", ""))
+                continue
+            if ev.get("subtype") == "started":
+                started[cid] = call
+                trace.append(call)
+            elif cid in started:
+                started[cid].update({k: v for k, v in call.items() if k in ("result", "isError")})
+            else:
+                trace.append(call)
+        elif kind == "result":
+            final = ev.get("result", "")
+            usage = {"duration_ms": ev.get("duration_ms"), "is_error": ev.get("is_error")}
+    usage["filesWritten"] = files
+    return trace, (final if final is not None else "".join(said)), usage
+
+
+def _cursor_call(tc: dict, completed: bool) -> Optional[dict]:
+    """The ultrafast MCP call in a cursor ``tool_call`` object, or None for any other tool."""
+    mcp = tc.get("mcpToolCall")
+    if isinstance(mcp, dict):
+        a = mcp.get("args") or {}
+        if a.get("providerIdentifier", SERVER) != SERVER:
+            return None
+        name = a.get("toolName") or a.get("name", "")
+        name = name[len(SERVER) + 1:] if name.startswith(SERVER + "-") else name
+        out = {"tool": name, "args": a.get("args") or {}, "result": None}
+        res = mcp.get("result") or {}
+        if "success" in res:
+            out["result"] = _as_text((res["success"] or {}).get("content"))
+            out["isError"] = bool((res["success"] or {}).get("isError"))
+        elif "error" in res:
+            out["result"], out["isError"] = _as_text(res["error"]), True
+        return out
+    fn = tc.get("function")
+    if isinstance(fn, dict):
+        name = str(fn.get("name", ""))
+        for pre in (PREFIX, SERVER + "-", SERVER + "_"):
+            if name.startswith(pre):
+                args = fn.get("arguments")
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except ValueError:
+                        args = {}
+                return {"tool": name[len(pre):], "args": args or {}, "result": None}
+    return None
+
+
+def parse_plain(text: str) -> Tuple[List[dict], str, dict]:
+    """JSON lines of ``{"tool", "args", "result"}`` plus ``{"final": "..."}`` (a transcript written by hand or by another agent)."""
+    trace, final = [], ""
+    for ev in _jsonl(text):
+        if "tool" in ev:
+            trace.append({"tool": ev["tool"], "args": ev.get("args", {}), "result": _as_text(ev.get("result")), "isError": bool(ev.get("isError"))})
+        elif "final" in ev:
+            final = ev["final"]
+    return trace, final, {"filesWritten": []}
+
+
+ADAPTERS = {"claude": parse_claude, "codex": parse_codex, "cursor": parse_cursor, "plain": parse_plain}
+
+
+def detect_format(text: str) -> str:
+    """Which adapter reads this transcript: Codex lines have ``thread.started`` / ``item.*``, Cursor has ``tool_call`` or a system init without ``tools``... see the rules below."""
+    evs = _jsonl(text)
+    types = [str(e.get("type", "")) for e in evs]
+    if any(t.startswith(("thread.", "turn.", "item.")) for t in types):
+        return "codex"
+    if "tool_call" in types or any(e.get("type") == "system" and "apiKeySource" in e for e in evs):
+        return "cursor"
+    if any(t in ("assistant", "user", "result", "system") for t in types):
+        return "claude"
+    return "plain"
+
+
+# ----------------------------------------------------------------------------- the agents (live)
+def _install_pack(ws: Path, target: str) -> None:
+    subprocess.run([sys.executable, "-m", "ultrafast.agents", "install", "--target", target, "--dest", str(ws)], check=True, capture_output=True,
+                   env={"PYTHONPATH": str(REPO / "python" / "src"), "PATH": os.environ.get("PATH", "")})
+
+
+def _server_args(ws: Path) -> List[str]:
+    return ["-m", "ultrafast.mcp", "--workspace", str(ws), "--budget-s", "240"]
+
+
+def run_claude(prompt: str, ws: Path, model: str, max_turns: int, timeout_s: int) -> Tuple[List[dict], str, dict]:
+    """Run ``claude -p``; returns (trace of tool calls, final answer, usage)."""
+    cfg = ws.parent / "mcp.json"
+    cfg.write_text(json.dumps({"mcpServers": {SERVER: {"command": sys.executable, "args": _server_args(ws), "env": {"PYTHONPATH": str(REPO / "python" / "src")}}}}), encoding="utf-8")
+    _install_pack(ws, "claude")
+    cmd = ["claude", "-p", prompt, "--model", model, "--mcp-config", str(cfg), "--strict-mcp-config", "--output-format", "stream-json", "--verbose",
+           "--max-turns", str(max_turns), "--allowedTools", PREFIX + "*", "--no-session-persistence", "--max-budget-usd", "3", "--disallowedTools", *BUILTIN]
+    return _finish(subprocess.run(cmd, cwd=ws, capture_output=True, text=True, timeout=timeout_s), parse_claude, "claude")
+
+
+def run_codex(prompt: str, ws: Path, model: str, max_turns: int, timeout_s: int) -> Tuple[List[dict], str, dict]:
+    """Run ``codex exec --json`` with the ultrafast server added through ``-c`` overrides (TOML values). Not exercised by the tests (no live runs); the owner runs it."""
+    _install_pack(ws, "codex")
+    cmd = ["codex", "exec", "--json", "--skip-git-repo-check", "--sandbox", "read-only", "-C", str(ws), "-m", model,
+           "-c", 'mcp_servers.%s.command="%s"' % (SERVER, sys.executable),
+           "-c", "mcp_servers.%s.args=%s" % (SERVER, json.dumps(_server_args(ws))),
+           "-c", 'mcp_servers.%s.env={PYTHONPATH="%s"}' % (SERVER, REPO / "python" / "src"), prompt]
+    return _finish(subprocess.run(cmd, cwd=ws, capture_output=True, text=True, timeout=timeout_s), parse_codex, "codex")
+
+
+def run_cursor(prompt: str, ws: Path, model: str, max_turns: int, timeout_s: int) -> Tuple[List[dict], str, dict]:
+    """Run ``cursor-agent -p --output-format stream-json`` with the server in ``.cursor/mcp.json``. Not exercised by the tests (no live runs); the owner runs it."""
+    _install_pack(ws, "cursor")
+    (ws / ".cursor").mkdir(exist_ok=True)
+    (ws / ".cursor" / "mcp.json").write_text(json.dumps({"mcpServers": {SERVER: {"command": sys.executable, "args": _server_args(ws), "env": {"PYTHONPATH": str(REPO / "python" / "src")}}}}), encoding="utf-8")
+    cmd = ["cursor-agent", "-p", prompt, "--model", model, "--output-format", "stream-json", "--approve-mcps", "--workspace", str(ws)]
+    return _finish(subprocess.run(cmd, cwd=ws, capture_output=True, text=True, timeout=timeout_s), parse_cursor, "cursor")
+
+
+def _finish(p, parse, name):
+    trace, final, usage = parse(p.stdout)
+    if not trace and not final:
+        raise RuntimeError("the agent produced no transcript (is `%s` installed and logged in?): %s" % (name, p.stderr[-400:]))
+    return trace, final, usage
+
+
+RUNNERS = {"claude": run_claude, "codex": run_codex, "cursor": run_cursor}
 
 
 # ----------------------------------------------------------------------------- scoring
@@ -167,15 +389,51 @@ def score(eval_id: str, trace: list, final: str) -> List[Check]:
     return CHECKS[eval_id](trace, final)
 
 
+def _report_one(e: dict, trace, final, usage, checks, model: str, secs: float) -> Tuple[dict, bool]:
+    failed = [c[0] for c in checks if not c[1] and len(c) == 2]
+    advisory = [c[0] for c in checks if not c[1] and len(c) == 3]
+    manual = [c for c in e["criteria"] if c not in {k[0] for k in checks}]
+    print("%s  %-20s %s model=%s %.0fs tools=%s" % ("PASS" if not failed else "FAIL", e["id"], "(mandatory)" if e["mandatory"] else "", model, secs, ",".join(c["tool"] for c in trace)))
+    if failed:
+        print("      calls:", " ".join("%s:%s" % (c["tool"], c["args"].get("fidelity", "-")) for c in trace))
+    for c in failed:
+        print("      not met:", c)
+    for c in advisory:
+        print("      advisory (a number not found in a tool result; derived numbers are fine, check by eye):", c)
+    for c in manual:
+        print("      manual :", c)
+    return ({"id": e["id"], "model": model, "passed": not failed, "failed": failed, "advisory": advisory, "manual": manual, "usage": usage, "tools": [c["tool"] for c in trace],
+             "calls": ["%s:%s" % (c["tool"], c["args"].get("fidelity", "-")) for c in trace], "final": final}, bool(failed and e["mandatory"]))
+
+
+def score_transcript(path: Path, agent: Optional[str], only: Optional[str]) -> Tuple[dict, bool]:
+    """Score a saved transcript; the eval is ``only`` or the first dotted part of the file name."""
+    evals = {e["id"]: e for e in json.loads((HERE / "evals.json").read_text(encoding="utf-8"))["evals"]}
+    eid = only or path.name.split(".")[0]
+    if eid not in evals:
+        raise SystemExit("cannot tell which eval %s answers: pass --only ID (one of %s)" % (path.name, ", ".join(evals)))
+    text = path.read_text(encoding="utf-8")
+    fmt = agent or detect_format(text)
+    trace, final, usage = ADAPTERS[fmt](text)
+    return _report_one(evals[eid], trace, final, usage, score(eid, trace, final), fmt, 0.0)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--agent", default="claude", choices=["claude"])
+    ap.add_argument("--agent", choices=["claude", "codex", "cursor"], help="agent to run (default claude); with --transcript the format of the file (default: detected)")
     ap.add_argument("--model", default="sonnet")
     ap.add_argument("--only")
+    ap.add_argument("--transcript", type=Path, help="score this saved transcript (the stdout of the agent's JSON mode) and run nothing")
     ap.add_argument("--max-turns", type=int, default=30)
     ap.add_argument("--timeout-s", type=int, default=900)
     ap.add_argument("--out", help="write the transcripts and scores here (JSON)")
     a = ap.parse_args(argv)
+    if a.transcript:
+        rep, bad = score_transcript(a.transcript, a.agent, a.only)
+        if a.out:
+            Path(a.out).write_text(json.dumps([rep], indent=1), encoding="utf-8")
+        return 1 if bad else 0
+    agent = a.agent or "claude"
     evals = json.loads((HERE / "evals.json").read_text(encoding="utf-8"))["evals"]
     report, bad = [], 0
     for e in evals:
@@ -185,27 +443,14 @@ def main(argv=None) -> int:
             ws = make_workspace(Path(td))
             t0 = time.time()
             try:
-                trace, final, usage = run_claude(e["prompt"], ws, a.model, a.max_turns, a.timeout_s)
+                trace, final, usage = RUNNERS[agent](e["prompt"], ws, a.model, a.max_turns, a.timeout_s)
                 checks = score(e["id"], trace, final)
             except Exception as ex:      # noqa: BLE001
                 trace, final, usage, checks = [], "", {}, [("the agent ran", False)]
                 print("ERROR %s: %s" % (e["id"], ex))
-        failed = [c[0] for c in checks if not c[1] and len(c) == 2]
-        advisory = [c[0] for c in checks if not c[1] and len(c) == 3]
-        manual = [c for c in e["criteria"] if c not in {k[0] for k in checks}]
-        bad += bool(failed and e["mandatory"])
-        print("%s  %-20s %s model=%s %.0fs tools=%s" % ("PASS" if not failed else "FAIL", e["id"], "(mandatory)" if e["mandatory"] else "", a.model, time.time() - t0,
-                                                         ",".join(c["tool"] for c in trace)))
-        if failed:
-            print("      calls:", " ".join("%s:%s" % (c["tool"], c["args"].get("fidelity", "-")) for c in trace))
-        for c in failed:
-            print("      not met:", c)
-        for c in advisory:
-            print("      advisory (a number not found in a tool result; derived numbers are fine, check by eye):", c)
-        for c in manual:
-            print("      manual :", c)
-        report.append({"id": e["id"], "model": a.model, "passed": not failed, "failed": failed, "advisory": advisory, "manual": manual, "usage": usage, "tools": [c["tool"] for c in trace],
-                       "calls": ["%s:%s" % (c["tool"], c["args"].get("fidelity", "-")) for c in trace], "final": final})
+        rep, b = _report_one(e, trace, final, usage, checks, "%s:%s" % (agent, a.model), time.time() - t0)
+        report.append(rep)
+        bad += b
     if a.out:
         Path(a.out).write_text(json.dumps(report, indent=1), encoding="utf-8")
     return 1 if bad else 0
