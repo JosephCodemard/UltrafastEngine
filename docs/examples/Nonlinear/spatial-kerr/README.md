@@ -6,7 +6,11 @@ A 4 µJ, 300 fs pulse at 1030 nm (about 3 times the critical power) crosses 10 m
 space and time are all resolved. The Kerr effect acts as a weak positive lens, because the centre of the beam has the highest intensity
 and so the highest index. The transverse profile travels with the beam: the free-space steps (also radial) carry it exactly and show the
 Kerr focus and the divergence after it. The check is the linear run at 1 nJ: its beam radii (102.5 µm after the plate and 183.4 µm after
-40 mm) are those of Gaussian optics (102.5 and 183).
+40 mm) are those of Gaussian optics (102.5 and 183). The Kerr run has an exact check too: the second moment of a Gaussian beam in a
+Kerr medium follows w² = w0² [1 + (1 − P/P_G)(z/zR)²] with P_G = λ²/(2π n0 n2) = 4.48 MW (the virial law), slice by slice in time, so
+with the energy-weighted power P0/√2 = 8.86 MW it predicts 97.5 µm after the plate (engine: 97.4 µm) and a converging beam whose second
+moment has R = −131 mm in air (the free-space radii below give −130 mm). The wavefront sensor's −70 mm is the curvature of the centre of
+the beam, which the Kerr phase B exp(−2r²/w²) bends more than the beam as a whole ([transverse reference](../../../reference/transverse.md#the-kerr-lens-in-numbers)).
 
 ![Space-time intensity after the plate and beam profiles with and without the Kerr effect](spatial-kerr.png)
 

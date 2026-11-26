@@ -298,6 +298,18 @@ power meter or a spectrometer with a large integrating aperture would see it; sp
 spectra show up as a reduced temporal Strehl, not in the 1-D phase. The true peak fluence is
 `elements[i].peakFluenceOutJPerM2` / the `beamProfile` instrument.
 
+### The Kerr lens in numbers
+
+For a collimated Gaussian beam of power P in a Kerr medium the second-moment radius obeys the virial law
+w²(z) = w0² [1 + (1 − P/P_G)(z/zR)²] exactly (paraxial cubic NLS), with P_G = λ²/(2π n0 n2) (1.06 times Marburger's
+P_cr). A pulse obeys it slice by slice, so the energy-weighted radius uses sum(P²)/sum(P) = P0/√2 for a Gaussian pulse.
+For a thin plate the moment-based Kerr focal length is f = k0 w² / B_E = π w⁴ / (√2 n2 P0 L) (B_E = B/√2, the
+energy-weighted B); the on-axis (paraxial) curvature of the same phase B exp(−2r²/w²) is 4√2 times stronger, which is
+why a wavefront sensor fitted over the beam reports a shorter radius of curvature than the beam size implies. The
+per-element `beam.radiusXM` is computed from the profile stored at 48 sampled frequencies, whose shapes differ across an
+SPM-broadened spectrum: for the [spatial-kerr](../examples/Nonlinear/spatial-kerr/README.md) plate it puts the Kerr part of
+w² 1 % above the law (0.05 % of w), while the solver itself follows it to 1e-5.
+
 ## Validation
 
 | check | result | test |
@@ -306,6 +318,9 @@ spectra show up as a reduced temporal Strehl, not in the 1-D phase. The true pea
 | Gaussian beam w(z), radial and cartesian | < 0.5-1 %, M² = 1.00 | `SpatialTests.Diffraction_*` |
 | lens + gap focus vs Gaussian optics | < 2 % | `SpatialTests.LensAndGap_*` |
 | thin Kerr lens phase vs n2 I(r) k L | < 2 % | `SpatialTests.ThinKerrLens_*` |
+| Kerr self-focusing, second moment vs the virial law w² = w0² [1 + (1 − P/P_G)(z/zR)²], P_G = λ²/(2π n0 n2) (Vlasov, Petrishchev & Talanov 1971), per time slice: radial solver, 300 fs, 2.8 P_G | 1e-4 (observed 1e-5) | `SpatialTests.SpatialKerr_Solver_*` |
+| the same through the compiler (FusedSilica, Raman and self-steepening on, dt = 25 fs): Kerr part of w² after 10 mm, from the reported radius | 2 % (observed 1.0 %, see below) | `SpatialTests.SpatialKerr_SilicaPlate_*` |
+| thin silica plate: on-axis B = k0 n2 I0 zR atan(L/zR); Kerr-lens moment focal length f = π w⁴ / (√2 n2 P0 L) | 0.3 %, 0.5 % (observed 0.01 %, 0.07 %) | `SpatialTests.SpatialKerr_ThinSilicaPlate_*` |
 | Bespalov-Talanov ripple growth (cosh(g z)), q = Delta and q = 3 Delta; Talbot ripple without Kerr | 6 % (observed < 1 %) | `SmallScaleTests.SmallScale_RippleGrowth_*`, `..._TheRippleDiffractsAsTheTalbotEffect` |
 | seeded noise reproducible and linear in its amplitude; P / P_cr | 2 % | `SmallScaleTests.SmallScale_Seeded*`, `..._ReportsPeakPowerOverCritical` |
 | beamProfile instrument vs w(z) | < 1 % | `Chi2Tests.BeamProfileInstrument_*` |
