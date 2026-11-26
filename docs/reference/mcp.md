@@ -102,9 +102,26 @@ Besides the skills, every target writes the user guide (how to write system file
 instrument; read warnings and validity; compare then fit; plot and report; optimise with the study tool; fit, validate and predict with a twin).
 
 * `run_evals.py` replays a reference trajectory for each through the real server. This checks that the tools give an agent what each criterion needs; it runs no language model.
-* `run_live.py` gives each prompt to a **live agent** (`claude -p`, with only the ultrafast MCP tools, the agent pack installed in a fresh workspace), records the tool calls and
-  scores every criterion that a program can check (fidelity levels, order of the calls, the refusal, the figure); the rest are listed for a person to read. It uses your login and spends tokens
-  (`python3 tests/agent-evals/run_live.py --model sonnet --only quick-then-confirm`).
+* `run_live.py` gives each prompt to a **live agent** (with only the ultrafast MCP tools and the agent pack installed in a fresh workspace), records the tool calls and
+  scores every criterion that a program can check (fidelity levels, order of the calls, the refusal, the figure); the rest are listed for a person to read. It uses the agent's
+  login and spends tokens. `--agent claude|codex|cursor` chooses the agent; `--model` is passed to it; `--only ID` runs one prompt; `--out FILE` saves the scores.
+* `run_live.py --transcript FILE` runs nothing: it scores a saved transcript (the standard output of the agent's JSON mode). The format is detected, or given with `--agent`; the eval is
+  the first dotted part of the file name (`quick-then-confirm.run1.jsonl`) or `--only ID`. Exit code 1 when a mandatory eval fails a checked criterion.
+
+How the owner runs a live score (each writes the transcripts it scored with `--out`):
+
+| agent | command | transcript format read |
+|---|---|---|
+| Claude Code | `python3 tests/agent-evals/run_live.py --agent claude --model sonnet --only quick-then-confirm` (`claude -p --output-format stream-json`; tools `mcp__ultrafast__*` only) | [stream-json](https://code.claude.com/docs/en/headless) |
+| OpenAI Codex CLI | `python3 tests/agent-evals/run_live.py --agent codex --model MODEL` (`codex exec --json`, read-only sandbox, server added with `-c mcp_servers.ultrafast...`) | [JSONL events](https://developers.openai.com/codex/noninteractive) |
+| Cursor | `python3 tests/agent-evals/run_live.py --agent cursor --model MODEL` (`cursor-agent -p --output-format stream-json --approve-mcps`, server in `.cursor/mcp.json`) | [stream-json](https://cursor.com/docs/cli/reference/output-format) |
+
+Each adapter (`parse_claude`, `parse_codex`, `parse_cursor` in `run_live.py`) turns its format into the structure the scorers use: the ultrafast tool calls with name, arguments, result
+and error flag, the final answer, and the files the agent wrote. Two points are not documented by the vendors and are implemented from their open-source event definitions or from
+observed output: the fields of a Codex `mcp_tool_call` item (the page names the type and shows only `agent_message` and `command_execution`), and the shape of a Cursor MCP tool call (the
+page documents `readToolCall` and `writeToolCall` only). If a CLI version changes them, fix the adapter and the hand-made replays in `tests/agent-evals/replays/`
+(`<eval>.<pass|fail>.<agent>.jsonl`); `python/tests/test_agent_eval_adapters.py` checks that the same behaviour in the three formats gives the same trace and the same verdict. The live
+runs of Codex and Cursor have not been done (no model was called when the adapters were written); the replays check the readers, not the agents.
 
 Live results of the mandatory prompt (2026-11-18, Claude Code, a fresh workspace; the transcripts vary from run to run):
 
