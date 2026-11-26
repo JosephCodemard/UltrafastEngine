@@ -274,6 +274,12 @@ namespace UltrafastEngine.Engine
                 if (!(el.Active is IReportsCarrierPhase) || actx.PhaseLost) path.PhaseKnown = false;
                 path.PhaseRad *= actx.PathPhaseFactor;
                 if (tail != null && el.Active is Transverse.SpatialBulkElement sbTail) tail.PropagateTail(splitNarrow ? smoothBackground : sbTail.Background, (m, dE) => AddLoss(rec, m, dE));
+                else if (tail != null && el.Active is BeamSplitterElement bsTail && bsTail.HasGlass && !actx.InGraph)
+                {
+                    // a Sequential splitter's glass moves the main field's frame: the tail must cross the same glass (Branched: GraphExecutor.ScaleTail)
+                    tail.PropagateTail(bsTail.GlassOn(st.InputPort ?? bsTail.MainInput, bsTail.ContinuingPort), (m, dE) => AddLoss(rec, m, dE));
+                    rec.Notes.Add("delayed-light tail: it crosses the splitter's glass of the continuing port; the splitting ratio acts on the main field only");
+                }
                 else if (tail != null) rec.Notes.Add("delayed-light tail: this active element acts on the main field only; the tail passes through its Pre/Post linear terms");
                 own += actx.Own;
                 rec.Terms.Add(el.Active.Description);

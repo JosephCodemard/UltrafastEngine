@@ -327,6 +327,19 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
   erf(√ln 20) = 0.9856 for a Gaussian), `satellitePeakCount` (= `peakCount` − 1) in every pulse summary, `pulseSummary` and `compressor`;
   the plots use it. Prompted by multipass-cell soliton compression, where a satellite above 50 % made `fwhmS` jump from ~10 fs to > 100 fs.
 
+## WP P1 -- glass in beam splitters  (2026-11-25, `dev/wp-p1`, macOS arm64)
+
+* `beamSplitter` and `polarizingSplitter` take `material`, `transmittedThicknessM` and `reflectedThicknessM` (closing the "beam splitters
+  have no glass" gap of Stage 11). The glass terms (`BulkTerm`, plus `AttenuationTerm` when the material absorbs) sit on
+  `BeamSplitterElement.TransmittedGlass` / `ReflectedGlass` and run after the 2x2 split through `Executor.ApplyTerm`, the same arithmetic as a
+  plate. Sequential systems put the continuing port's frame into `ctx.Own`; Branched systems add each output's glass to its own path
+  ledger in `GraphExecutor.AddGlass` (the side ports start from the unglassed ledger: an early version let them inherit the kept port's
+  glass, which the Mach-Zehnder test caught once the window held the 9.7 ps arm delay). A fed beam on port b in a Sequential system is
+  put in the main beam's frame (`Reframe`). Tail ledgers go through the glass with the splitter coefficient. Splitter + glass equals
+  splitter + ideal-AR plate per arm to 1e-12; no glass runs no new code. Sequential tails cross the continuing port's glass too
+  (`Executor.RunElement`; found by the physics review). Open, not P1: a fed beam on another carrier (1035 nm against 1030 nm) gives a
+  different spectrum in a Sequential and a Branched system even without glass; the fed-beam glass test therefore uses one carrier.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

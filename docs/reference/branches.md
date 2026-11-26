@@ -84,6 +84,18 @@ An input port with no beamline can hold a beam, in Sequential and Branched syste
 | `leakMirror` | `transmission`, or `wavelengthsM` with `transmissionSpectrum`; `gddFs2` of the reflection, `leakGddFs2` of the leak |
 | `dichroic` | `edgeWavelengthM`, `edgeWidthM` (10-90 %), `reflectLong` |
 
+### Glass in a splitter
+
+A plate splitter's substrate and a cube's prisms add dispersion. `beamSplitter` and `polarizingSplitter` take it per path:
+
+| key | meaning |
+|---|---|
+| `material` | the glass (any catalogue material or one from `materials`) |
+| `transmittedThicknessM` | glass path length of the transmitted beam, a → c and b → d (m, default 0) |
+| `reflectedThicknessM` | glass path length of the reflected beam, a → d and b → c (m, default 0) |
+
+Each path gets the glass after the split, exactly as a `plate` with ideal anti-reflection faces at normal incidence would add it in that arm: n(ω) ω L / c, and the material's absorption if it has one. The phase and delay go into each output's ledger, so arms that meet again interfere as with plates in them. The splitter equals the splitter followed by such a plate in each arm to 1e-12 (`SplitterGlassTests`). Give the path length, not the plate thickness: a plate of thickness d at 45° has a transmitted path d / cos θ_t inside, and the reflected beam crosses no glass if the coating faces the source. Surfaces (Fresnel losses, coatings), tilt and the Kerr effect of the glass are not modelled; use a `plate` in the arm for those. A `sameAs` copy has the same glass, so a Michelson return passes it again. Delayed light (`grid.tail`) crosses the same glass. Without these keys nothing changes; a `material` with no path length adds nothing and says so in the notes.
+
 **Michelson and Sagnac interferometers** pass one plate twice. Write the return as a second element, `{"type": "beamSplitter", "sameAs": "bs", "side": 2}`: `sameAs` takes the first's settings (it works for every element: [identical elements](system-file.md#identical-elements)), and `side: 2` reverses the sign of r, because the light meets the other face. With equal arms all the light then goes back towards the source.
 
 ## Delays

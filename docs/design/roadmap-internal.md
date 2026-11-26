@@ -137,7 +137,7 @@ here; Apple's `OpenCL.framework` (Apple GPU, FP32 only) checks the single-precis
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| P1 ⚛ | Opus | S | — | glass in `beamSplitter` and `polarizingSplitter` (per-port glass on the transmitted and reflected paths) | equals the splitter plus a `plate` in each arm to 1e-12 | open |
+| P1 ⚛ | Opus | S | — | glass in `beamSplitter` and `polarizingSplitter` (per-port glass on the transmitted and reflected paths) | equals the splitter plus a `plate` in each arm to 1e-12 | done 2026-11-25 |
 | P2 ⚛ | Opus | S | — | delayed-response window planning (`Engine/GridPlanner.cs`) for generic `timeResponse` and gas rotational revivals | the planned window covers the response memory; test with a 10 ps revival | open |
 | P3 | Opus | S | — | non-collinear OPA crossed-beam overlap test | gain loss against the analytic Gaussian-overlap average | open |
 | P4 ⚛ | Opus | S | — | built-in metal mirrors Ag, Au, Al: n,k **fetched** from a published table (Rakić et al., Appl. Opt. 37, 5271 (1998), or Johnson & Christy 1972; source and URL in the catalogue entry), never typed from memory | 45° silver: ellipticity of circular light against the Fresnel value; catalogue status `verified` | open |
