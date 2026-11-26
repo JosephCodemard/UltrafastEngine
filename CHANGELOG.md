@@ -5,6 +5,9 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Added (2026-11-26, WP AG2: twin MCP tools)**
+- **MCP: `twin_design`, `twin_track`, `twin_init`** (16 tools): the next measurement to take (candidates ranked by expected information gain: a variable's values, the instrument placement or a list), drift tracking of new recordings (ensemble Kalman filter from the fit) and `ultrafast twin init` through the server; each with its refusals (at most 12 candidates / 240 engine runs, 12 recordings / 192 runs, recordings inside the workspace), its own `timeBudgetS` capped by the server budget, and tests ([MCP reference](docs/reference/mcp.md#digital-twin-tools)).
+
 **Docs (2026-11-25, WP B1)**
 - **Style guide** `docs/style.md`: voice, banned filler words, the British spelling word list and the term list (tables a linter can read), units and numbers, warning / error messages, docstrings, and templates for reference pages, examples and tutorials; `AGENTS.md` and `docs/CLAUDE.md` point to it.
 

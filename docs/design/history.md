@@ -377,3 +377,19 @@ with Mono reference assemblies on macOS; nothing ran on OpticStudio: `HARDWARE-C
 * Baseline `build/style_lint_baseline.txt`: 59 hits (31 term, 17 filler, 11 spelling, 0 units after the exceptions), keyed by path, rule, match and a
   hash of the line, so moving a line keeps it allowed and editing it does not. CI runs the linter in `docs-and-examples`; `--update-baseline`
   shrinks the file once the prose is fixed (C2 and D do that). `docs/style.md` and `docs/design/notes/` are not scanned.
+
+## Stage XX -- WP AG2: twin_design, twin_track and twin_init on the MCP server  (2026-11-26, `dev/wp-ag2`, macOS arm64)
+
+* Three tools in `python/src/ultrafast/mcp/tools.py` (schemas and policy), `ops.py` (worker) and the server: `twin_design` calls
+  `ultrafast_twin.design` (`energy_candidates`, `placement_candidates`, `rank_candidates`), `twin_track` calls `DriftTracker`, `twin_init` calls
+  `ultrafast_twin.init`; no physics was reimplemented. Reports go to the project's `reports/design.json` / `track.json`, as with the CLI.
+* Decisions: (1) the server lists **16** tools, not the 15 of the roadmap row: `twin_init` is a tool of its own (no existing tool could carry it), and the row's count did not include it.
+  (2) Limits: 12 candidates and 240 engine runs (candidates x (parameters + 1), checked in the worker where the parameter count is known) per `twin_design`; 12 recordings and
+  192 runs (members x recordings), members 4 to 32 per `twin_track`; placement candidates are counted from the project's system in the policy. (3) `twin_design` and
+  `twin_track` take `timeBudgetS` like `fit`; the server now caps any `timeBudgetS` by its budget in one place (`_LONG_OPS`). (4) A `set` value is a number, or an element id
+  for `instrument:NAME/at` only. (5) Recording paths are relative to the project folder (like `twin.json`'s `data`), not to the workspace. (6) The tracker keeps no state
+  between calls: one call takes every recording since the fit. (7) `twin_init` refuses an existing `twin.json` without `force`, a file, and `.ultrafast-mcp/`.
+* Tests (`test_mcp.py`, 70 -> 112 with the parametrised cases): 37 refusals, the budget test for both tools (killed, next call works, capped by the server budget), and the
+  synthetic lab end to end through the real server (1.5 s). The agent-pack skills do not list MCP tools, so they were not changed. mypy's gate does not cover `mcp/`
+  (three old errors in `server.py` `_meta` handling stay outside it).
+

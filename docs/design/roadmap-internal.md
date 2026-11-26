@@ -112,7 +112,7 @@ Pages written by later WPs (E, P, W, X, S, Z) follow the B1 template from the st
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
 | AG1 | Sonnet | S | — | split the user pack from the development rules: the shipped pack (`python/src/ultrafast/agents/pack/`, `build/sync_skills.py`) gets a user `AGENTS.md` and `llms.txt` with nothing of the repository's internals; the repository's `AGENTS.md` stays for developers | a test greps the shipped files for repository terms (`BuiltIn`, `CHANGELOG`, `/regen`, ...) and finds none | open |
-| AG2 | Opus | M | — | MCP tools `twin_design` (the next measurement to take) and `twin_track` (drift), `ultrafast twin init` through the server (`python/src/ultrafast/mcp/tools.py`, `policy.py`); each with its refusals and a budget test; `docs/reference/mcp.md` | MCP tests green (handshake lists 15 tools) | open |
+| AG2 | Opus | M | — | MCP tools `twin_design` (the next measurement to take) and `twin_track` (drift), `ultrafast twin init` through the server (`python/src/ultrafast/mcp/tools.py`, `policy.py`); each with its refusals and a budget test; `docs/reference/mcp.md` | MCP tests green (handshake lists 15 tools) | done 2026-11-26 (16 tools: `twin_init` is its own tool, see history) |
 | AG3 | Sonnet | S | — | transcript adapters in `tests/agent-evals/run_live.py` for Codex and Cursor sessions (read their documented transcript formats), the same scorers; tested on hand-made replay transcripts; the owner runs the live scores (Sonnet, Haiku, a third family) later | scorers give the same verdict on a replay in each format | open |
 
 #### E. FP32 devices and GPU speed (public roadmap item 2; decision E18)
