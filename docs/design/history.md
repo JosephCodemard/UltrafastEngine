@@ -327,7 +327,7 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
   erf(√ln 20) = 0.9856 for a Gaussian), `satellitePeakCount` (= `peakCount` − 1) in every pulse summary, `pulseSummary` and `compressor`;
   the plots use it. Prompted by multipass-cell soliton compression, where a satellite above 50 % made `fwhmS` jump from ~10 fs to > 100 fs.
 
-## Stage 18 -- WP G0: PoCL reachable on macOS  (2026-11-25, `dev/wp-g0`, macOS arm64, Apple M3)
+## Stage XX -- WP G0: PoCL reachable on macOS  (2026-11-25, `dev/wp-g0`, macOS arm64, Apple M3)
 
 The `opencl` back-end loaded only the first library it found, which on a Mac is Apple's `OpenCL.framework` (Apple GPU, no FP64), so
 `GpuTests` skipped. `OpenClApi.LoadAll` now loads the framework and, directly, every vendor library named by an `.icd` file
