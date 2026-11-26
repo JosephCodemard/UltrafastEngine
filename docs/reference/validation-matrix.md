@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **709 tests** in 77 classes. **451** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **713 tests** in 77 classes. **455** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -34,10 +34,10 @@ Every C# test of the engine: **709 tests** in 77 classes. **451** of them check 
 | [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
 | [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
-| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
+| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 8 | 7 |
 | [Memory safety: GPU](#gpumemorytests) | `GpuMemoryTests` | 5 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 20 | 15 |
-| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 10 | 10 |
+| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 13 | 13 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
@@ -606,6 +606,7 @@ Gases: rotational Raman, indices, the refractiveindex.info database.
 | `RefractiveIndexInfo_FormulasAndTablesMatchTheLibrary` | refractiveindex.info formulas and tables | 1e-12, 1e-09, 2 % |
 | `RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory` | isolated-molecule alignment, high-T limit: n2 = N Δα² / (4 c ε0² 15 kT) | 3 % |
 | `RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter` | rotational n2 of circular light = 1/4 of linear (tensor Raman, Hellwarth) | 3 %, 5 % |
+| `RotationalRaman_RevivalActsOnAProbeAtTheRevival_AndTheWindowNeedsNoRoomForIt` | first-order alignment: the index change at the revival dn(t) = (R * I)(t), R the rigid-rotor kernel (quadrature of KernelAt); linear (zero-padded) convolution: the window does not need to hold the revival | probe phase 2 % of its swing; window independence 1e-6 relative |
 | `RotationalRaman_RevivalsAtTheRotationalPeriod` | rotational revival period 1 / (2 B c) | 5 % |
 
 ## GpuMemoryTests
@@ -656,13 +657,16 @@ Grid, carrier and solver accuracy.
 | `CircularAperture_OnADecentredBeam_IsTheOffsetGaussianIntegral` | decentred Gaussian through a circular aperture: round beam = noncentral chi-square probability (Poisson mixture of regularised incomplete gamma functions, i.e. 1 - Marcum Q1(2d/w, 2a/w)); elliptical beam = 2-D quadrature; small aperture T = 2 a^2/(wx wy) exp(-2 d^2/w^2) | 1e-6 (round), 2e-4 (quadrature), 1e-3 (limit) |
 | `CircularAperture_OnAnEllipticalBeam_IsTheTwoDimensionalIntegral` | elliptical Gaussian through a circular aperture: 2-D quadrature; small aperture T = 2 a^2 / (wx wy); round beam 1 - exp(-2 a^2 / w^2) | 1e-6 (quadrature), 1e-5 (small-aperture limit) |
 | `DelayedResponseLongerThanTheWindow_IsWarnedAbout_AndTheAutoGridHoldsIt` | periodic time grid: the response to a pulse must fit the window (convergence against a window four times larger) | total variation of the spectra 0.02 |
+| `DelayedResponseWithANarrowRevival_TheWindowHoldsTheRevival` | periodic time grid: a delayed response with a revival at 10.1 ps must fit the window (convergence against a window four times larger at the same time step) | memory within 2 % of the revival; centroid shift and rms broadening 1e-6 relative |
 | `FiberDispersionTable_Coarse_ReproducesBeta2_BetweenThePoints` | definition D = -2 pi c beta2 / lambda^2 (Agrawal, Nonlinear Fiber Optics); beta2(w) = b3 (w - wz) + b4 (w - wz)^2 / 2 | 2e-4 relative to beta2 (a linear interpolation of the 53-point table gave ~1e-3) |
 | `Fiber_ElementLevelSelfSteepeningFalse_SwitchesItOff_AndBulkToo` | self-steepening switch: with it off the pulse stays symmetric in time (centroid shift 0); with it on the centroid moves (Agrawal, Nonlinear Fiber Optics, sec. 4.4) | off: centroid shift < 1 % of the on value |
 | `Grating_TrackedAngularDispersion_IsTheGratingEquation_OnAnyGrid` | grating equation: d theta / d lambda = m / (period cos beta) (Treacy, IEEE JQE 5, 454 (1969), eq. 2) | 1e-6 relative |
 | `PulseBroadenedToZeroFrequency_IsReportedAndBooked` | energy conservation of the envelope model: a pulse broadened to zero frequency loses energy there, and says so | exact booking |
 | `Pulse_IsCentredOnTheRequestedCarrier_NotTheSnappedOne` | definition of the carrier: the input spectrum is centred on the requested wavelength | 1e-6 relative |
 | `PureSpm_PhaseIsGammaPL_OnEveryGrid_At515_1030_And2000nm` | pure SPM in a dispersion-free fibre: A_out = A_in exp(i gamma \|A_in\|^2 L) | 2e-5 relative |
+| `ResponseMemory_OfSmoothResponses_IsTheOriginalValue` | no change for smooth responses: the memory of every built-in delayed response and of every catalogue material is the value of the original scan, so their grids are unchanged | exact (bit-identical) |
 | `Shg_StronglyPhaseMismatchedThickCrystal_FollowsTheSincLaw_AtTheDefaultStepper` | plane-wave SHG at low conversion: eta(L) ~ sin^2(dk L / 2) (Armstrong et al., Phys. Rev. 127, 1918 (1962), eq. 2.14 limit) | 4 % (dispersion of the 5 ps pulse and finite bandwidth) |
+| `TimeResponseCallback_DeclaredMemory_IsHeldByTheWindow` | periodic time grid: a user time response that declares its memory (memoryS) gets a window that holds it (convergence against a window four times larger at the same time step) | centroid shift and rms broadening 1e-6 relative |
 
 ## HitranTests
 

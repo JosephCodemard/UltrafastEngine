@@ -2367,3 +2367,25 @@ Sellmeier: n^2 = A + sum B lambda^2 / (lambda^2 - C) (lambda in um, C in um^2). 
 | `C` | number or array | um^2 |  | C coefficients |
 | `A` | number |  | 1 | Constant term |
 
+### timeResponse / `callback`
+
+Delta n(t) from a registered callback (C#, Python, C API). More: [models.md#the-time-domain-response-nt-i](models.md#the-time-domain-response-nt-i)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `name` | string |  |  | Registered callback name **Required.** |
+| `carrierResolved` | boolean |  | as registered | The response varies on the optical-cycle scale |
+| `memoryS` | number | s |  | How long (s) the index change lasts after the light that drives it; the auto grid makes the window hold it (needed when the response convolves the intensity on the periodic window) |
+
+### timeResponse / `expression`
+
+Delta n(t) = expr + i exprIm from expressions in t, I, F (running fluence), ... and the entries of params, added to the Kerr response or replacing it. More: [models.md#the-time-domain-response-nt-i](models.md#the-time-domain-response-nt-i)
+
+| key | type | unit | default | meaning |
+|---|---|---|---|---|
+| `expr` | string |  | 0 | Real part of Delta n (expression) |
+| `exprRe` | string |  |  | Alternative name of expr |
+| `exprIm` | string |  |  | Imaginary part of Delta n (positive = absorption) |
+| `carrierResolved` | boolean |  | false | The response varies on the optical-cycle scale: propagate the element with the real field |
+| `memoryS` | number | s |  | How long (s) the index change lasts after the light that drives it; the auto grid makes the window hold it (needed when the response convolves the intensity on the periodic window) |
+
