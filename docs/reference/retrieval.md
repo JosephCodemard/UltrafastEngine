@@ -2,17 +2,21 @@
 
 The engine can turn a FROG or d-scan trace back into a pulse, and use the retrieved pulse as the input of a run --
 so a measured pulse can be propagated through a system, or a simulated measurement checked against what an
-instrument would let you recover.
+instrument would let you recover. The methods belong to the `frog`, `xfrog` and `dscan` [instruments](instruments.md) and to near / far-field pairs.
+
+## Keys
+
+The methods and their options (the retrieval is a command, `ultrafast retrieve`, and `uf.retrieve`, not a system or run-spec key):
+
 
 | method | trace | algorithm |
 |---|---|---|
 | `pcgpa` | SHG-, PG-, SD-FROG, XFROG | principal-component generalised projections (Kane 1999): project on the measured magnitudes, rebuild the outer product, one power iteration per step |
-| `epie` | SHG-, PG-, SD-FROG, XFROG | ptychographic iterative engine adapted to FROG (Sidorenko et al. 2016): delays in random order, object and gate updated. Stochastic: it stops at a trace error of about 1e-3 and the retrieved duration scatters by about 2 % rms (rare tails to 15 % in tests over 20 seeds), so use PCGPA when the trace is clean and ePIE for noisy traces, and compare several `seed`s |
+| `epie` | SHG-, PG-, SD-FROG, XFROG | ptychographic iterative engine adapted to FROG (Sidorenko et al. 2016): delays in random order, object and gate updated. Stochastic: in the tests it ends at a trace error of about 1e-3 (the stop rule is `tolerance`, default 1e-5, or `maxIterations`) and the retrieved duration scatters by about 2 % rms (rare tails to 15 % over 20 seeds), so use PCGPA when the trace is clean and ePIE for noisy traces, and compare several `seed`s |
 | `dscan` | SHG d-scan (glass insertion or GDD) | the measured fundamental spectrum is kept; the spectral phase (a spline through `nodes` points) is fitted by Levenberg-Marquardt, with a per-column calibration of the SHG detection eliminated |
-
 | `multiFrog` (`doubleFrog`) | several FROG traces sharing unknown pulses | all traces together ([below](#multi-trace-retrieval)) |
 
-All use exactly the forward models of the engine's `frog`, `xfrog` and `dscan` instruments.
+`gerchbergSaxton` (alias `gs`) retrieves a wavefront ([below](#wavefront-from-two-intensities-gerchberg-saxton)). All FROG and d-scan methods use exactly the forward models of the engine's `frog`, `xfrog` and `dscan` instruments.
 
 ## Trace kinds
 
@@ -37,14 +41,18 @@ ultrafast retrieve pcgpa trace.npz -o retrieved            # FROG: delay_s, omeg
 ultrafast retrieve dscan dscan.npz --fundamental spectrum.csv --material FusedSilica -o retrieved
 ```
 
+The command line takes `pcgpa`, `epie`, `dscan` and `gerchbergSaxton`, with `--kind` and `--fundamental` (a CSV read with `wavelengthUnit`, default `nm`). `multiFrog` (alias `doubleFrog`) goes through the JSON command ([below](#multi-trace-retrieval)).
+
 The trace file is an NPZ or JSON with the row axis (`delay_s`, `insertion_m` or `gdd_s2`), the column axis
-(`omega_rad_s` or `wavelength_m`, signal frequencies) and `trace` (2-D, rows x columns). A results folder's
+(`omega_rad_s`, or `wavelength_m` / `shg_wavelength_m`, signal frequencies) and `trace` (2-D, rows x columns). A d-scan file can also carry `fundamental_wavelength_m` and `fundamental_intensity`. A results folder's
 `result.npz` works directly (the instrument's arrays are found by suffix). The output folder gets:
 
 * `retrieved_spectrum.csv` -- wavelength (nm), intensity, phase: use it as a run-spec pulse
   (`"pulse": {"shape": "spectrum", "spectrum": {"csv": "retrieved/retrieved_spectrum.csv"}, "energyJ": ...}`);
 * `retrieval.json` (error, iterations, FWHM, notes, and a ready-to-paste `pulse` object);
 * `retrieval.npz` (field, spectrum, measured and retrieved traces, error history).
+
+`multiFrog` writes `retrieved_spectrum_<pulse>.csv` for each pulse and `retrieval.json`, but no `retrieval.npz`; `gerchbergSaxton` writes `phase.npz`.
 
 ## Python
 
@@ -99,8 +107,18 @@ var r = Retrievals.Run("epie", trace, new JsonObject().Set("maxIterations", 200)
 var pulse = r.ToPulseJson(energyJ: 1e-6);
 ```
 
-Options: `points` (FROG grid, default the next power of two ≥ the delay count, ≤ 512), `maxIterations`,
-`tolerance`, `seed`; ePIE `stepSize`; d-scan `nodes` (16), `points` (2048).
+Options and defaults:
+
+| option | default | applies to |
+|---|---|---|
+| `points` | next power of two ≥ the delay count, ≤ 512 (d-scan: 2048) | FROG, multiFrog, d-scan |
+| `dtS` | from the delay axis | FROG, multiFrog |
+| `maxIterations` | 300 (pcgpa, ePIE), 60 (d-scan), 600 (multiFrog) | all but Gerchberg-Saxton |
+| `tolerance` | 1e-5 (stop when the trace error falls below it) | pcgpa, ePIE, multiFrog |
+| `seed` | 1 | ePIE, multiFrog, Gerchberg-Saxton |
+| `stepSize` | 0.5 | ePIE |
+| `nodes` | 16 | d-scan |
+| `iterations`, `restarts` | 500, 12 | Gerchberg-Saxton |
 
 ## What to expect
 
@@ -114,5 +132,16 @@ Options: `points` (FROG grid, default the next power of two ≥ the delay count,
 Implement `UltrafastEngine.Retrieval.IRetrieval` and register it (`Retrievals.Register`, or a plugin's
 `ctx.RegisterRetrieval(...)`); it is then available by name in the CLI, the C API and Python.
 
-Tests: `FrogKindsTests` (PG / SD / XFROG trace tilt against the analytic slopes, retrieval of a chirped pulse with the sign, kind inference), `MultiTraceRetrievalTests`, `RetrievalTests` (PCGPA and ePIE on a chirped pulse: error, duration, |GDD|; d-scan: GDD with its sign,
-duration, and the retrieved field reused as a run input).
+## Validation
+
+* `FrogKindsTests.Frog_PgAndSd_TraceCentroid_TiltsWithTheChirpRate`: PG and SD trace tilt against the analytic slopes 2b/3 and 4b/3 (Kane and Trebino 1993), 2 %; `Xfrog_TraceCentroid_TiltsWithTheChirpRate_AtTheSumFrequency`, 2 %.
+* `FrogKindsTests.Frog_PcgpaAndEpie_RecoverAChirpedPulse_FromSdAndPgTraces_WithTheSign` and `Xfrog_PcgpaAndEpie_RecoverAChirpedPulse_WithTheSign`: duration within 3 % and GDD within 6 % for PCGPA, ePIE within 5 % and 8 % (median of 3 seeds); `Retrieve_WithoutAKind_DoesNotAssumeShg_ForAPolarisationGateTrace`: kind inference.
+* `RetrievalTests.Frog_PcgpaAndEpieRecoverAChirpedPulse` (3 %, 5 %) and `DScan_RecoversPhaseAndFeedsARun` (5 %, 6 %; the retrieved field reused as a run input).
+* `MultiTraceRetrievalTests.DoubleFrog_SixStarts_AllGiveTheRightTimeDirectionForBothPulses`: 6 % GDD, 5 % duration, sign exact (Kida et al. 2014).
+* `FieldToolsTests`: Gerchberg-Saxton on a known phase, far field within 1 %, phase rms within 0.1 rad.
+
+## Limits
+
+* SHG-FROG leaves the time direction open; use PG, SD, XFROG, d-scan or `multiFrog`.
+* ePIE is stochastic: compare several `seed`s.
+* Gerchberg-Saxton leaves the piston undetermined and cannot separate φ(x, y) from −φ(−x, −y) for a symmetric near field.
