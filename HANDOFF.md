@@ -5,19 +5,20 @@ Written 2026-11-26 by the coordinator after the agents stopped at a usage limit.
 
 ## Status
 
-Not started (an earlier attempt read code but wrote nothing).
-
-Nothing (an earlier attempt checked models.md functions against the code and found them matching; expression variables were next).
-
-Files changed against the branch point when this was written:
-
-```
-(no changes)
-```
+All six pages rewritten to the template (models, fidelity, memory, speed, branches, transverse); mkdocs strict and
+style_lint green. Bench re-run 2026-11-26 on the Apple M3 (numbers in speed.md / fidelity.md); slow test FullPanel printed
+2.21 s, 260 / 491 MB.
 
 ## Next steps
 
-1. Audit `models.md` line by line first (rows into the audit file). 2. Follow the C2d row. 3. Finish.
+1. Add the resolution column to every row of docs/design/notes/reference-audit-d.md, the models.md rows (M1 replaced by
+   line-by-line rows) and a "Code findings for WP C4" table (C4-d*): `ultrafast info` omits the `field` category
+   (ModelRegistry.Categories); schema `transverse` links spatial-models.md; MemoryEstimate.cs header and Python
+   estimate_memory docstring say "factor of about 2" vs the test's 0.1..1; TransverseSpec.AbsorbingBoundary comment "linear
+   elements only" is stale; estimate counts auto-vector as scalar.
+2. Audit rows found wrong: B6 (regen amp sets PhaseLost, GainElements.cs:605), T12/S15 (history.md:137,149 has the numbers),
+   S8 (tools/bench prints MB allocated), S2 (only net10/net48 builds, so ".NET 10" is right).
+3. physics-reviewer on the six pages, CHANGELOG, history `## Stage XX -- WP C2d: ...`, roadmap row done 2026-11-26, delete HANDOFF.
 
 ## Notes from the original brief
 
