@@ -402,6 +402,17 @@ failures), `devices --selftest` passes. `auto` still never picks a CPU OpenCL de
   Both tabs print identical numbers to the CLI; `example_check` reproduces every quoted line. The per-example D2 instructions are in the
   D2 row of `roadmap-internal.md`.
 
+## Stage 42 -- coordinator session: work packages A to D, G0, P1-P2, Z1-Z2, AG, Q1  (2026-11-25/26, `dev/2026-11`, macOS arm64)
+
+One coordinator session ran the work packages of `roadmap-internal.md` section 0 through sub-agents in git worktrees and merged about
+thirty into `dev/2026-11` (the stages above). The process that worked: one WP per agent with a short brief; `build/wp/merge.sh` for the
+append-only files and the validation matrix; a WP whose pages changed under it merges `dev/2026-11` into its own branch; a `HANDOFF.md`
+per interrupted WP; a checkpoint test run every five merges. What did not: twelve agents at once, most on Opus, hit the 5-hour usage limit
+four times; resuming a long agent reloads its whole context. The owner then set three agents at most, and the model policy of section 0.1
+(Sonnet default, Opus for select physics and kernel WPs, Haiku for test runs). Findings carried forward: C4 (41 code-side audit findings),
+fix-1 (fed beam on another carrier), the README number changes and their causes (`HANDOFF.md`). State for the next coordinator:
+`docs/design/HANDOFF.md`.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

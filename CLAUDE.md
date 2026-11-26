@@ -67,7 +67,7 @@ after a code change.
 | speed: CPU FFT providers, compute back-ends, GPU | `docs/reference/speed.md`, `docs/plugins/gpu.md`; tests `ComputeTests`, `GpuTests` |
 | tests | `tests/UltrafastEngine.Tests/CLAUDE.md` |
 | status / what is verified | `PROJECT_STATUS.md`; history in `CHANGELOG.md` (top section only) |
-| current plan, owner decisions | `docs/design/README.md` (internal; index): `roadmap-internal.md` (open items), `decisions.md`, `limitations.md`, `future-plugins.md` (parked designs), `history.md` (what was built; end every session there, no HANDOFF file) (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
+| current plan, owner decisions | `docs/design/README.md` (internal; index): `roadmap-internal.md` (open items), `decisions.md`, `limitations.md`, `future-plugins.md` (parked designs), `history.md` (what was built; end every session there), `HANDOFF.md` and `coordinator.md` (the coordinator session that runs the work packages) (work on `dev/*` branches; merge to `main` after `/verify` + green CI) |
 | paper replications | `docs/papers/` (`docs/papers/CLAUDE.md`): published headline results reproduced, plots + commentary |
 | component checks with plots | `tests/components/` (`tests/components/CLAUDE.md`): one script per component family, HTML gallery |
 
