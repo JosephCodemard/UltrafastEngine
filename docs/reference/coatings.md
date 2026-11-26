@@ -100,7 +100,7 @@ fraction of the input) and per element in `lossJ`. The main names:
 | `coating` | a coated surface in reflection or refraction, chirped mirrors |
 | `grating` | a coated surface in `diffract` mode: the diffraction efficiency |
 | `clip` | a hard aperture. Gaussian beam on a circular aperture of radius a: T = 1 − exp(−2a²/w²); an elliptical beam wx × wy gives the exact integral over the disk, (1/(π wx wy)) ∫ (1 − exp(−a² q)) / q dφ with q = 2 (cos²φ / wx² + sin²φ / wy²); an erf product for a rectangular aperture; per wavelength when the beam size is; chief-ray vignetting from OpticStudio. Also the cell-edge loss of a [modulator](modulator.md#how-a-cell-reaches-the-grid) |
-| `scatter` | total integrated scatter of rough surfaces: reflection (4π σ n cos θ / λ)², transmission (2π σ \|n₁ cos θ₁ − n₂ cos θ₂\| / λ)² |
+| `scatter` | total integrated scatter of rough surfaces: reflection (4π σ n cos θ / λ)², transmission (2π σ \|n cos θ − n′ cos θ′\| / λ)², with n, θ before and n′, θ′ after the surface |
 | `absorption` | material attenuation, internal transmission, absorbing time responses, `absorptionProfile` |
 | `dispersion` | the default name of a linear term (normally no energy change) |
 | `filter`, `transmission`, `custom` | filters and tabulated transmissions (the element's `mechanism` / `lossMechanism` key renames them) |

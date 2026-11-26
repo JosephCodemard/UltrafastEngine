@@ -1,8 +1,15 @@
 # Position-dependent material properties
 
-Any element can carry quantities that vary with position: x, y measured from the beam axis (r, θ in polar form),
+Three keys give an element quantities that vary with position: x, y measured from the beam axis (r, θ in polar form),
 and z from the element entrance. Combined with an intensity- and time-dependent response ([models](models.md)),
 this gives n(t, r, θ, z, I).
+
+**Which elements use them.** The keys are declared for every element ([`elementCommon`](options.md#elementcommon)), but only
+these read them: `bulk` / `gap` (also `medium`), the glass of `plate` / `window` and `ndFilter`, the substrate of
+`thinFilmPolarizer`, the crystal of `faradayRotator`, and `gain` / `amplifier` (with a transverse model only). Other elements,
+`crystal` and `fiber` among them, ignore them without a warning.
+
+## Keys
 
 | key | meaning | applied as |
 |---|---|---|
@@ -24,12 +31,14 @@ this gives n(t, r, θ, z, I).
 |---|---|
 | number | `"n2Scale": 0.8` |
 | expression (x, y, z, r, theta, params) | `"-2e-4*(r/1e-3)^2"`, `{"kind": "expression", "expr": "...", "params": {...}}` |
-| Gaussian / super-Gaussian | `{"kind": "gaussian", "amplitude": 1e-4, "radiusM": 1e-3, "order": 1, "centerXM": 0, "background": 0}` — amplitude·exp(−2(ρ/R)^(2·order)) |
-| table (linear interpolation) | `{"kind": "table", "axes": "r", "r": [...], "values": [...]}`; axes `r`, `z`, `rz`/`zr`, `xy`, `xyz`; `"outside": 0` sets the value beyond the table (default: clamp) |
+| constant | `{"kind": "constant", "value": 0.8}` |
+| Gaussian / super-Gaussian | `{"kind": "gaussian", "amplitude": 1e-4, "radiusM": 1e-3, "order": 1, "centerXM": 0, "centerYM": 0, "background": 0}`: amplitude · exp(−2 (ρ/R)^(2·order)) + background, ρ measured from (`centerXM`, `centerYM`). `amplitude` defaults to 1, `order` to 1 for `gaussian` and to 4 for `"kind": "superGaussian"` |
+| table (multilinear interpolation) | `{"kind": "table", "axes": "r", "r": [...], "values": [...]}`. `axes` is a string of the letters `r`, `x`, `y`, `z` (for example `r`, `z`, `rz`, `xy`, `xyz`); each letter names an array of that axis in m, strictly ascending; `values` is flattened in the order of `axes` with the **last axis fastest** (length = product of the axis lengths). `"outside": <number>` sets the value beyond the table; otherwise the edge value is held |
 | callback | `"@name"`, registered from Python (`uf.run(..., fields={"name": f})` or `Run.field(name, f)`, f(x, y, z) → array), C# (`registry.RegisterCallback("name", (FieldCallback)...)`) or C (`uf_run_set_field_callback`) |
 
-A callback receives whole arrays of points (one z per call) and must return one value per point. Fields are
-evaluated once per element if they do not depend on z; otherwise they are evaluated at every step.
+A callback receives whole arrays of points (one z per call) and must return one value per point. Fields are evaluated
+once per element if they do not depend on z, otherwise at every step. An expression depends on z when the token `z` appears
+in it; a table when its axes contain `z`; a callback always counts as z-dependent, so it is called at every step.
 
 ## Transverse model or not
 
@@ -38,22 +47,31 @@ profile focuses, a soft absorber apodises, and a Δn(x) gradient steers the beam
 has no transverse structure:
 
 * absorption is averaged over the Gaussian beam model (intensity-weighted) and applied as a flat loss;
-* `n2Scale` is averaged with intensity² weighting and then scales n2 and the rotational Raman response alike (before 1.0 only n2 was scaled, so air kept its full orientational response);
+* `n2Scale` is averaged with intensity² weighting and then scales n2 and the rotational Raman response alike;
 * `indexProfile` has no effect (a note says so).
 
-Absorption shows up in the energy budget as `absorption`. The terms also limit the step size (≈ 0.2 rad of
-phase per step where the beam is), so strong profiles are integrated accurately.
+Absorption shows up in the energy budget as `absorption`. On a spatial grid the terms also limit the step size to 0.2 rad of
+k₀|Δn| + α/2 per step, taken over the grid points that hold more than 1e-4 of the peak energy, so strong profiles are
+integrated accurately (RK4 is accurate to about 1e-5 at that step).
 
 The gain elements use the same machinery for their thermal lens and accept the same three keys
-([gain media](gain.md)). Time responses can also read position: `ResponseContext` has `X`, `Y`, `R`, `Theta` and
+([gain media](gain.md)), but only with a transverse model: a 1-D gain element ignores all three with a note. Time responses can also read position: `ResponseContext` has `X`, `Y`, `R`, `Theta` and
 `Spatial` (true on spatial grids), so a custom n(t, I) can also depend on where it is evaluated.
 
-## Examples and checks
+## Validation
 
 Example 16 writes the same GRIN lens as an expression, a table and a Python function, plus a z-tapered version
-that focuses twice as far. The tests (`SpatialPropertyTests`, `python/tests/test_gain.py`) check:
+that focuses twice as far. The tests (`SpatialPropertyTests` in `tests/UltrafastEngine.Tests/GainTests.cs`,
+`python/tests/test_gain.py`) check:
 
 * the GRIN focus against thin-lens optics (3 %);
 * Gaussian absorption T = (1 − e^{−α0L})/(α0L) (0.3 %);
 * agreement between the expression, table and callback forms;
 * n2 scaling.
+
+## Limits
+
+* In 1-D, `indexProfile` has no effect and the other two are averaged over the Gaussian beam model.
+* The index change is real and frequency-independent (added to the material index at every frequency).
+* User-defined `responses` are not scaled by `n2Scale`.
+* Elements outside the list above ignore the three keys without a warning.

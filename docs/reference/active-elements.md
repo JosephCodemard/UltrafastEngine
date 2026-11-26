@@ -18,7 +18,12 @@ Most elements are *passive*: dispersion, loss and the Kerr effect act on the one
 | `lens`, `mirror` with `radiusOfCurvatureM` | thin lens on a carried transverse profile | [Spatial models](transverse.md) |
 | `user` | your own function of the main beam's spectrum | below |
 | `gain`, `amplifier` | pumped gain media, multipass and regenerative amplifiers | [Gain media](gain.md) |
-| `oscillator`, `saturableAbsorber` | mode-locked lasers | [Oscillators](oscillators.md) |
+| `oscillator`, `saturableAbsorber`, `resonator` | mode-locked lasers, cavities | [Oscillators](oscillators.md) |
+| `modulator`, `mask`, `aperture` | pixelated phase / amplitude devices and masks on a carried profile | [Modulator](modulator.md), [Spatial models](transverse.md) |
+| `grating`, `prism`, tilted `interface` | dispersive surfaces that tilt the colours of a carried profile (`spatioTemporal: "profile"`) | [Optical components](components.md#spatio-temporal-couplings) |
+
+The keys of the aux beams are in the generated reference: [`auxBeam`](options.md#auxbeam), [`auxBeamShape`](options.md#auxbeamshape);
+the `user` element's in [`user`](options.md#user).
 
 ## Why one main beam
 
@@ -29,7 +34,7 @@ and meet again (beam splitters, interferometers, pump arms, loops), write the sy
 [Branched](branches.md): an aux beam can then come from another element's output port (`fromPort`), and each
 by-product of a crystal is an output port that can be routed on.
 
-## Aux beams
+## Auxiliary beams
 
 ```jsonc
 "aux": [
@@ -38,9 +43,9 @@ by-product of a crystal is an output port that can be routed on.
     "pulse": { "shape": "gaussian", "centerWavelengthM": 515e-9, "durationFwhmS": 0.8e-12, "energyJ": 200e-6 },
     // "from": "../shg-lbo/results",      // the output field of a saved run (summary.json + result.npz)
     // "energyJ": 150e-6,                    //   ... optionally rescaled to this energy
-    "beam": { "kind": "gaussian", "radiusM": 0.6e-3 },   // also superGaussian (+ "order"), flatTop;
-                                                          // radiusXM/radiusYM; radiusOfCurvatureM
-    "delayS": "auto" }                       // or a delay in s relative to the main beam (positive = later)
+    "beam": { "kind": "gaussian", "radiusM": 0.6e-3 },   // also superGaussian ("order", default 6), flatTop (edge radius);
+                                                          // radiusXM/radiusYM, w0M; radiusOfCurvatureM; decenterXM/YM
+    "delayS": "auto" }                       // or a delay in s relative to the main beam (positive = later; default 0)
 ]
 ```
 
@@ -50,7 +55,9 @@ by-product of a crystal is an output port that can be routed on.
   simulating both in one system.
 * `delayS: "auto"` puts the aux beam's energy centroid on the main beam's. The `delayScan` instrument re-runs the
   element for a range of delays.
-* Roles depend on the element (`pump`, `signal`, `idler` for OPA/DFG; `b` for SFG).
+* Roles depend on the element (`pump`, `signal`, `idler` for OPA/DFG; `b` for SFG); the default role is `pump`.
+* `fromPort: true` takes the beam from the link into the port named by the role, in a [Branched](branches.md) system,
+  instead of `pulse` or `from`.
 * An `aux` override in the run spec (`{"target": "element:nopa", "property": "aux", "value": [...]}`) replaces the
   list without touching the system file.
 
@@ -82,8 +89,13 @@ grid bins, so the resampling between them is exact.
 A user element hands the main beam's spectrum to your function and continues with what it returns:
 
 ```jsonc
-{ "id": "shaper", "type": "user", "callback": "@dazzler", "params": { "gddFs2": -4700, "todFs3": -3100 } }
+{ "id": "shaper", "type": "user", "callback": "@dazzler", "params": { "gddFs2": 4700, "todFs3": 3100 } }
 ```
+
+**Phase convention.** The spectra are in the engine's convention, A(t) = (1/N) Σ A(ω) exp(−iΔω t): multiplying A(ω) by
+exp(+iφ(ω)) with φ = ½ GDD Δω² adds that GDD, as glass does. The function below multiplies by exp(−i(½ GDD Δω² + ⅙ TOD Δω³)),
+so its `params` are the dispersion it **removes**: with the GDD and TOD that the glass after it adds (4711 fs², 3111 fs³ in
+example 12), the pulse leaves the glass transform-limited.
 
 **Python** (example [12](../examples/GettingStarted/user-element/README.md)):
 
@@ -96,8 +108,8 @@ def dazzler(ctx: uf.ElementContext):
 res = uf.run(system, spec, elements={"dazzler": dazzler})   # or uf.Run(...).element("dazzler", dazzler)
 ```
 
-`ElementContext`: `omega`, `t`, `omega0`, `dt`, `arrival`, `element_id`, `params`, `ax`, `ay` (complex spectra,
-√W per bin), `time_x()`.
+`ElementContext`: `n` (number of bins), `omega`, `t`, `omega0`, `dt`, `arrival`, `element_id`, `params`, `ax`, `ay` (complex
+spectra, √W per bin), `set(ax, ay)`, `time_x()`.
 
 **C#**:
 
@@ -136,5 +148,21 @@ public sealed class MyElement : IActiveElement
 }
 ```
 
-and compile it from JSON in `Compiler.CompileElement` (or through `CompilerServices` from your own namespace, as
-`CrystalCompiler` does). [Extending](extending.md) covers registries and models.
+and register its compiler from a plugin: `ctx.RegisterElement("myElement", (services, element, compiled) => ..., spec)`, where
+the `ElementCompiler` gets the public `CompilerServices` (as `CrystalCompiler` uses them) and sets the active element on the
+compiled element ([Plugin system](plugins.md#writing-a-plugin-c)). The built-in elements are dispatched in
+`Compiler.CompileElement`, which is private: a new built-in type is a change to the core. [Extending](extending.md) covers
+registries and models.
+
+## Validation
+
+| check | test |
+|---|---|
+| aux beams, by-products and carrier changes in crystals | `Chi2Tests`, `CrystalChainTests` ([Crystals](crystals.md#validation)) |
+| a user element pre-compensates the glass after it to the transform limit (25.0 fs) | example [12](../examples/GettingStarted/user-element/README.md) |
+
+## Limits
+
+* `from` reads only a run's main output; a by-product must be made the `output` of its own run to be reused.
+* A user element sees the 1-D spectra only (no transverse profile).
+* An aux beam's `delayS: "auto"` matches energy centroids, not peaks.

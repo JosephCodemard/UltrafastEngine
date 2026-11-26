@@ -4,7 +4,10 @@
 modulator (SLM), the surface of a deformable mirror, a tile mask. It is the core primitive; device catalogues (actuator
 influence functions, liquid-crystal curves) belong in plugins that compute the map and hand it to this element.
 
-It needs a cartesian transverse grid (`"model": "cartesian"`), like the `mask` file kind, and acts at every stored frequency.
+It acts at every stored frequency of a carried profile on a cartesian transverse grid (`"model": "cartesian"`), like the
+`mask` file kind. Without a carried profile the element is skipped with a warning (give the element before it a
+`transverse` model); on a radial grid the run stops with an error. Every key with its default is in the generated
+reference: [`modulator`](options.md#modulator).
 
 ```jsonc
 { "id": "slm", "type": "modulator",
@@ -16,7 +19,7 @@ It needs a cartesian transverse grid (`"model": "cartesian"`), like the `mask` f
   "chromatic": "index", "deltaIndexCauchy": [0.15, 2e-14] }   // liquid crystal: dn = A + B / lambda^2
 ```
 
-## Parameters
+## Keys
 
 | key | unit | default | meaning |
 |---|---|---|---|
@@ -26,13 +29,13 @@ It needs a cartesian transverse grid (`"model": "cartesian"`), like the `mask` f
 | `phaseRad` | rad | 0 | commanded phase at `designWavelengthM`: `[cellsX][cellsY]`, `"@name"`, or in the NPZ as `phase_rad` |
 | `opdM` | m | | the commanded **optical path** instead (NPZ `opd_m`); not both |
 | `amplitude` | | 1 | amplitude transmission per cell (NPZ `amplitude`) |
-| `file` | | | NPZ with `phase_rad` or `opd_m`, and `amplitude`, shaped `[cellsX][cellsY]`; relative to the system file |
+| `file` | | | NPZ with `phase_rad` or `opd_m`, and `amplitude` (names case-insensitive), each a 2-D array of shape `(cellsX, cellsY)` (numpy `[x, y]`, x the first index); its shape fixes `cellsX`, `cellsY` when they are not given; relative to the system file |
 | `designWavelengthM` | m | the carrier | wavelength at which `phaseRad` holds |
 | `chromatic` | | `opd` | `opd` (also `phaseAtDesign`), `fixedPhase` or `index` ([below](#chromatic-rules)) |
 | `deltaIndexCauchy` | `[1, m², m⁴]` | | `index` rule: Δn = A + B/λ² + C/λ⁴ as `[A, B, C]` (one to three terms) |
 | `deltaIndex`, `deltaIndexWavelengthsM` | `1`, m | | `index` rule: a table of Δn over wavelength (linear in λ between points, held constant outside) |
 | `phaseWrapRad` | rad | 0 (off) | wrap the commanded phase to `[0, phaseWrapRad)` |
-| `quantisationLevels` | | 0 (continuous) | levels over `phaseWrapRad` (2π if that is 0); the phase is rounded to the nearest level |
+| `quantisationLevels` | | 0 (continuous) | levels over `phaseWrapRad`; the phase is rounded to the nearest level. With `phaseWrapRad` 0 the phase is first wrapped to [0, 2π) and quantised over 2π |
 | `fillFactor` | | 1 | active fraction of the pitch in x and y; the rest is a gap |
 | `gapTransmission`, `outsideTransmission` | | 0 | amplitude transmission of the gaps and of the plane outside the array |
 | `zeroOrderLeak` | | 0 | amplitude fraction η that passes unmodulated (phase 0) in the active cells: `t = a[(1 − η) e^{iφ} + η]`; a flat map stays lossless, and the zero order of a blaze has power `|η + (1 − η) c₀|²` |
@@ -51,7 +54,8 @@ fringing fields do and why the efficiency of a real SLM falls near the jumps.
 * **An array** in the system file (`"phaseRad": [[...], ...]`; the Python builder converts numpy arrays). Fine for small maps.
 * **A callback** `"phaseRad": "@name"`: `f(x, y, z) → values` evaluated at the cell centres when the run compiles (z = 0, device frame), registered like
   a position-dependent field: `uf.run(system, spec, fields={"name": f})` in Python, `registry.RegisterCallback("name", (FieldCallback)...)` in C#.
-  No file and no JSON, so a 1920 × 1080 map costs one array. A trial of a 128 × 128 loop costs 10 ms with a callback or array against 46 ms with a new file each time (spikes recorded in the development history (`docs/design/history.md`, internal)).
+  No file and no JSON, so a 1920 × 1080 map costs one array. A callback or array also saves the file write and read of each
+  trial of a control loop (a 128 × 128 trial took 10 ms against 46 ms with a new file each time, in a one-off measurement).
   **Loops:** every run compiles once and reads the callback then, so a control loop that changes what the callback returns gets the new map at
   each trial (tested: N trials equal N runs from N map files to 1e-12). The C API registers the same callback with `uf_run_set_field_callback`.
 * **A file**: `"file": "map.npz"` with `phase_rad` (or `opd_m`) and `amplitude`.
@@ -77,8 +81,8 @@ pixel-integration effect of the real device. Consequences, measured in the tests
 | `index` | `φ_design · ω Δn(ω) / (ω_design Δn(ω_design))` | a **liquid-crystal cell**: the retardance is 2π Δn(λ) d / λ, so the phase follows the dispersion of the index modulation Δn (extended Cauchy `deltaIndexCauchy`, or a `deltaIndex` table). Only the ratio Δn(λ)/Δn(λ_design) matters; a constant Δn is the `opd` rule. Assumes the voltage scales Δn without changing its dispersion shape (Δn_eff(V, λ) = g(V) Δn(λ)); the cell's bias retardance, common to all pixels, is left out (a piston with its own group delay); a table is held constant outside its range, which puts a kink in the group delay at its ends |
 
 Reference behaviour (tests): a smooth ramp `k θ x` under `opd` deflects every colour by the same angle θ; the same ramp *wrapped* at 2π
-(a blazed grating of period `p`) leaves at `λ/p`, so the first order moves in proportion to λ (measured 760/800/840 nm in the
-spike (the development history (`docs/design/history.md`, internal)), both as a `mask file` and as a thin `bulk` with an index profile); under `fixedPhase` the same ramp
+(a blazed grating of period `p`) leaves at `λ/p`, so the first order moves in proportion to λ
+(`WrappedRamp_DispersesLikeAGrating_UnwrappedRampDoesNot`, 1.5 %); under `fixedPhase` the same ramp
 deflects by `θ λ/λ_design`. Under `index` a wrapped blaze has the depth `2π α` with `α = ω Δn(ω) / (ω_design Δn(ω_design))` at each
 frequency, so its first-order efficiency off the design wavelength follows the staircase of that depth (tested at 1.2 µm, α = 0.833 against
 0.858 for `opd`). Device data (a measured Δn(λ), voltage curves) stays in plugins, which hand the core the map and the Δn table.
@@ -88,10 +92,11 @@ frequency, so its first-order efficiency off the design wavelength follows the s
 The profile is stored at `transverse.spectralSamples` frequencies and interpolated between them, so a strongly chromatic device needs
 enough samples. The element reports **`spectralSamplingError`** (the largest distance of a stored sample from the line through its
 two neighbours, in units of the field norm; it falls about 1/K² with the number K of samples) and warns above 0.05. It cannot see a phase step near a multiple of 2π per stored frequency, so the element also warns when the phase changes by more than π/2 between stored frequencies. Compare K and 2K
-for the quantity you care about. Measured (30 fs, 800 nm, a smooth random screen, error of the focal-plane map against K = 96): 8 to 16
-samples give 1e-3 or better up to 30 rad of phase, K ≥ 32 for 100 rad (spikes recorded in the development history (`docs/design/history.md`, internal)).
+for the quantity you care about. In a one-off measurement (30 fs, 800 nm, a smooth random screen, error of the focal-plane map
+against K = 96), 8 to 16 samples gave 1e-3 or better up to 30 rad of phase, and K ≥ 32 was needed for 100 rad; the test
+`SpectralSamplingError_BoundsTheTrueErrorOfTheFocalMap` checks that the reported error bounds the true one.
 
-**Size and time** (CPU, Apple silicon): a 1920 × 1080 panel with a 30 fs pulse takes 32 s and 3.6 GB at K = 16, 3.3 s and 1.05 GB for one
+**Size and time** (one-off measurements on an Apple-silicon CPU; they scale with the grid and the machine): a 1920 × 1080 panel with a 30 fs pulse takes 32 s and 3.6 GB at K = 16, 3.3 s and 1.05 GB for one
 frequency (cw). A 4096 × 4096 grid takes 20 s and 3.4 GB for one frequency. For long chains on large grids see
 [large grids](transverse.md#large-grids-streaming-and-memory) (`transverse.frequencyBlock`, `outputs.keepProfiles`).
 
@@ -105,8 +110,8 @@ frequency (cw). A 4096 × 4096 grid takes 20 s and 3.4 GB for one frequency. For
 | `WrappedRamp_DispersesLikeAGrating_UnwrappedRampDoesNot` | `x₁ ∝ λ` wrapped; constant angle unwrapped | 1.5 % |
 | `FixedPhase_RampDeflectionScalesWithWavelength` | `θ λ/λ₀` | 1 % |
 | `Maps_InlineFileAndCallback_AreIdentical` | the same device three ways | 1e-12 |
-| `CwRun_EqualsThePulse_AtTheCarrier` | cw equals a 1 ns pulse (4 stored frequencies) | 2e-5 |
-| `OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches` | one stored frequency sits at the carrier; the cw pattern matches up to the cw line's grid offset (1.2e-6) | 1e-7; 3e-6 |
+| `CwRun_EqualsThePulse_AtTheCarrier` | the cw focal pattern equals that of a 1 ns pulse (measured 1.3e-8) | 1e-7 of the peak |
+| `OneStoredFrequency_IsAtTheCarrier_AndTheCwPatternMatches` | one stored frequency sits at the energy centroid (the carrier of a 1 ns Gaussian); the cw line sits on the requested carrier; the two patterns match | 1e-9; 1e-9 of the peak |
 | `SpectralSamplingError_FallsWith*` | 1/K² law; warning when under-sampled | ratio 2.5-6 |
 | `SpectralSamplingError_BoundsTheTrueErrorOfTheFocalMap` | the reported error ≥ the true focal-map error against K = 64, at K = 8, 16, 32 | bound |
 | `QuadraticPhase_FocusesLikeAThinLens` | a phase −k x²/2f focuses to λ f/(π w) at f, as the `lens` element | 2 %; 1 % |
@@ -119,3 +124,12 @@ frequency (cw). A 4096 × 4096 grid takes 20 s and 3.4 GB for one frequency. For
 | `ZeroOrderLeak_IsPassive_AndSetsTheZeroOrder`, `Quantisation_WrapsTheTopHalfLevel_ToLevelZero` | lossless flat map, η² zero order; top half-level → level 0 | 1e-9; 1 % |
 | `WavefrontSensor_SlopeMaps_*` | tilt θ everywhere; defocus slopes x/R, y/R | 1 %; 2 % |
 | `GpuTests.TilesAndModulator_IntoANonlinearPlate_MatchTheCpu` | tiles + modulator + a Kerr plate on the device = CPU (skipped without a double-precision OpenCL / CUDA device) | 1e-9 |
+
+## Limits
+
+* A grid cell holds one complex number: device structure finer than the grid is averaged, and the lost power is booked as
+  `clip` ([above](#how-a-cell-reaches-the-grid)).
+* The profile is interpolated between stored frequencies: a strongly chromatic device needs enough `spectralSamples`
+  ([Spectral sampling](#spectral-sampling)).
+* The `index` rule assumes the voltage scales Δn without changing its dispersion shape, and leaves out the bias retardance.
+* Device models (actuator influence functions, liquid-crystal voltage curves) are not in the core: a plugin computes the map.

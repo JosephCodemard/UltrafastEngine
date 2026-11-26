@@ -39,7 +39,7 @@ The keys that matter; every key with its default is in the generated reference: 
 | `deffPmPerV` | pm/V | effective nonlinearity; replaces the tensor contraction |
 | `chi3`, `n2` | m²/W (`n2`) | χ(3) of the crystal on (default) or off; `n2` replaces the catalogue value |
 | `seedNoise`, `noiseSeed` | | vacuum-noise seeding of the generated fields (off by default; seed 12345) |
-| `ionization` | | photo-ionisation and plasma per field: `true` or an [ionization](ionization.md) object; needs a band gap in the catalogue or `ionization.bandGapEv`; off by default |
+| `ionization` | | photo-ionisation and plasma per field: `true` or an [ionisation](ionization.md) object; needs a band gap in the catalogue or `ionization.bandGapEv`; off by default |
 | `spectralMargin` | | internal spectral span factor (2.5; at least 1.2) ([Internal grid](#internal-grid-and-spectral-margin)) |
 | `polarizationAxisDeg` | deg | angle of the crystal's slow axis in the lab x-y plane |
 | `ghosts` | | double reflections at the end faces ([Ghost reflections](components.md#ghost-reflections)) |
