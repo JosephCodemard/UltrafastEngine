@@ -12,5 +12,7 @@
 * Tests: `tests/` with `conftest.requires_engine`; slow ones need `ULTRAFAST_SLOW=1`; pyNLO cross-checks need
   `PYNLO_SRC=$PWD/third_party/pynlo/src` (`python3 tools/get_pynlo.py` fetches the pinned commit; also `pip install scipy jsonpickle`).
   LightPipes cross-checks (`test_lightpipes.py`) need `pip install LightPipes` in a private venv; it is never a dependency.
-* Type check: `mypy --follow-imports=silent src/ultrafast/build.py src/ultrafast/types.py`.
+* Type check (CI gate, `python` job): `cd python && python -m mypy` (config `[tool.mypy]` in `pyproject.toml`: `build.py`, `types.py`, `calc/`;
+  other modules are followed silently, not yet gated). `tests/test_typecheck.py` runs it and seeds a bad snippet (skipped without mypy).
+  Fix errors in the code or, for `types.py`, in `tools/gen_types.py`; a `# type: ignore[code]` needs a reason (unused ones fail).
 * Python ≥ 3.10, NumPy only (matplotlib optional for figures). Must work on arm64 macOS.

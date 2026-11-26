@@ -428,7 +428,7 @@ def polarizer(id: str, axis_deg: float = 0.0, extinction_ratio: float = 1e5, mat
     if material is not None:
         el["material"] = material
         el["thicknessM"] = thickness_m
-    return el  # type: ignore[return-value]
+    return el
 
 
 def filter_element(id: str, model: Mapping[str, Any]) -> dict:
@@ -748,7 +748,7 @@ def physics(*, beam_tracking: Any = None, spatio_temporal: Any = None, transvers
     the tracked beam, their dispersion applied to the pulse ("track": reported only; "profile": gratings and tilted surfaces tilt each frequency of
     a carried cartesian profile instead); ``transverse``: the default spatial model.
     Other keys (``nonlinear``, ``raman``, ...) go through ``extra``."""
-    return _clean({"beamTracking": beam_tracking, "spatioTemporal": spatio_temporal, "transverse": transverse, **extra})  # type: ignore[return-value]
+    return _clean({"beamTracking": beam_tracking, "spatioTemporal": spatio_temporal, "transverse": transverse, **extra})
 
 
 def run_spec(pulse: Mapping[str, Any], name: str = "run", grid: Optional[Mapping[str, Any]] = None, physics: Optional[Mapping[str, Any]] = None,
@@ -772,7 +772,7 @@ def compute(backend: Optional[str] = None, *, threads: Optional[int] = None, fft
     FFT provider "auto" (Accelerate on macOS, FFTW when installed, else managed), "managed", "fftw", "accelerate".
     ``device``: GPU index from :func:`ultrafast.devices`. ``gpu_min_points``: smallest problem (complex samples per
     state) "auto" sends to a GPU (default 8192 for 1-D, 32768 for spatial). Results agree with the CPU to rounding."""
-    return _clean({"backend": backend, "threads": threads, "fft": fft, "device": device, "gpuMinPoints": gpu_min_points})  # type: ignore[return-value]
+    return _clean({"backend": backend, "threads": threads, "fft": fft, "device": device, "gpuMinPoints": gpu_min_points})
 
 
 def sampling(plane: str = "near", aperture: str = "pinhole", radius_m: Optional[float] = None,
