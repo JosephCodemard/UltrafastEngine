@@ -327,7 +327,7 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
   erf(√ln 20) = 0.9856 for a Gaussian), `satellitePeakCount` (= `peakCount` − 1) in every pulse summary, `pulseSummary` and `compressor`;
   the plots use it. Prompted by multipass-cell soliton compression, where a satellite above 50 % made `fwhmS` jump from ~10 fs to > 100 fs.
 
-## WP P1 -- glass in beam splitters  (2026-11-25, `dev/wp-p1`, macOS arm64)
+## Stage XX -- WP P1: glass in beam splitters  (2026-11-25, `dev/wp-p1`, macOS arm64)
 
 * `beamSplitter` and `polarizingSplitter` take `material`, `transmittedThicknessM` and `reflectedThicknessM` (closing the "beam splitters
   have no glass" gap of Stage 11). The glass terms (`BulkTerm`, plus `AttenuationTerm` when the material absorbs) sit on
