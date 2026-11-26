@@ -54,7 +54,7 @@ Apertures, tilted beams and structured modes on a carried transverse profile.
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
 | [iris-diffraction](Diffraction/iris-diffraction/README.md) | 30 | CLI + Python | Gaussian, round flat-top, uniform and square beams through a 1 mm iris, imaged at Fresnel numbers 3, 2, 1 and in the far zone; absorbing boundary; every pattern checked against the Fresnel integral; an iris scan from Python | `ultrafast run gaussian.ufs run.json -o results-gaussian` (x4), `python compare.py`, `python iris.py` |
-| [tilt-fringes](Diffraction/tilt-fringes/README.md) | 35 | CLI | a Michelson with a tilted mirror in a Branched `.ufs`: fringes at lambda / angle from carried profiles | `ultrafast run michelson.ufs run.json -o results`, `python report.py` |
+| [tilt-fringes](Diffraction/tilt-fringes/README.md) | 35 | CLI + Python | a Michelson with a tilted mirror in a Branched `.ufs`: fringes at lambda / angle from carried profiles | `ultrafast run michelson.ufs run.json -o results`, `python report.py` |
 | [structured-beams](Diffraction/structured-beams/README.md) | 36 | Python | Hermite-Gauss and Laguerre-Gauss M², a Bessel core from an axicon, a zone-plate focus | `python structured.py` |
 
 ## Wavefronts
