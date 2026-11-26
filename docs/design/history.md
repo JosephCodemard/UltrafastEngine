@@ -353,3 +353,10 @@ B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy wind
 * **Windows machine (owner's):** `python3` is the Microsoft Store stub, use `python` from `../.venv`; HTTPS certificate checks fail for git and pip because the antivirus inspects TLS: the repository has `http.sslBackend schannel` (local config), and pip takes `--cert` with a bundle of the Windows roots exported from `Cert:\LocalMachine\Root`.
 * **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
 * **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.
+
+## Stage XX -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
+
+* Rewrote `system-file`, `run-spec`, `schema`, `cli`, `c-api`, `python`, `plugins` and `extending` to the reference template (Keys, Validation, Limits) and added a resolution column to every row of the group-a audit: 125 rows: 83 fixed on the page (of them 3 also with a code finding), 4 code findings only, 38 kept (page already right, or the audit was wrong). Each finding was re-checked against the source and the built CLI.
+* The audit was wrong twice: `crystal` does declare `chi3` and `n2` (the long `ionization` line in `BuiltInElements.cs:268` hides them; strict validation accepts both), and `ultrafast.System` and `ultrafast.system.System` are one class. Its exit-code row was incomplete: `ultrafast validate` returns 3 for an invalid file.
+* Code findings (nine, C4-1 to C4-9, in the audit file; no code was changed): the registry disagrees with the compiler on `system.version`, `bulk.dispersionSource` and `crystal.seedNoise`; `topology` is undeclared and top-level keys are unchecked; `DocAt` links point at three pages that do not exist (`elements.md`, `solvers.md`, `spatial-models.md`); `substrates` is missing from the known-key set.
+
