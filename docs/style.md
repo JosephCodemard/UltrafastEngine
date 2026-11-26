@@ -209,10 +209,30 @@ Two or three changes to make, each with the effect to expect ("energyJ 400e-9: t
 Next: [Tutorial N+1 -- <title>](NN-<name>.md).
 ```
 
+## Running the linter
+
+```bash
+python3 build/style_lint.py                    # scans docs/**/*.md; exit 1 on a hit that is not in the baseline
+python3 build/style_lint.py docs/concepts.md   # one file or folder
+python3 build/style_lint.py --update-baseline  # after fixing old hits: shrink build/style_lint_baseline.txt
+```
+
+It reads the three tables above (banned filler, British spelling, term list) -- change a table and the linter changes with it.
+Output lines are `file:line: rule: "match" (what to write)` with the rules `filler`, `spelling`, `term` and `units`. Only prose is
+checked (code blocks, inline code, HTML tags, link targets and URLs are removed first). Table entries with a qualifier the linter
+cannot judge ("(as a noun)", "(the unit)") are skipped. The `units` rule flags a number under a JSON-block key that has no unit
+suffix (`"wavelength": 1030e-9` instead of `"wavelengthM"`); counts, ratios and flags are listed in `UNIT_EXCEPTIONS` in the script.
+
+Hits that existed when the linter was added are in `build/style_lint_baseline.txt` (moving a line does not matter; changing it does).
+A new hit fails the `docs-and-examples` CI job. Fix the prose; if a line must keep its wording (a quoted title), end it with
+`<!-- style: ignore -->`. `docs/style.md` itself, the generated reference files and `docs/design/notes/` are not scanned.
+A test in `python/tests/test_style_lint.py` checks that a seeded violation fails.
+
 ## Checklist before a commit
 
 1. Spelling and terms follow the two tables above (prose only; code keeps its declared names).
 2. Every number has a unit and, if it is a result, its reference and agreement.
 3. No banned filler; no "we"; present tense.
 4. Messages: what, where, fix; ASCII.
-5. Page in `mkdocs.yml` and `llms.txt`; `python3 -m mkdocs build --strict` with 0 warnings.
+5. `python3 build/style_lint.py` is green.
+6. Page in `mkdocs.yml` and `llms.txt`; `python3 -m mkdocs build --strict` with 0 warnings.
