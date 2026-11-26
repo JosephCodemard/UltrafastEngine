@@ -1,0 +1,61 @@
+# Hits of build/style_lint.py that exist today (docs/style.md, WP B2): path, rule, match, hash of the line.
+# Do not add to this file by hand: fix the prose, then run `python build/style_lint.py --update-baseline`.
+architecture/code-map.md	term	multi-pass cell	8214e51d
+capabilities.md	term	multi-pass cell	0d8473f6
+capabilities.md	term	n₂	3ffe00ed
+design/history.md	spelling	toward	ad5c5e83
+design/history.md	term	3D	efa6effa
+design/roadmap-internal.md	term	run file	e3bb105f
+examples/AdaptiveOptics/aberrated-high-power/README.md	term	n₂	81220b15
+examples/Branched/pump-probe/README.md	spelling	polarizer	dac4bbc4
+examples/Diagnostics/instrument-tour/README.md	filler	clearly	1c69443a
+examples/Diagnostics/measured-data/README.md	filler	clearly	5ed3a238
+examples/LaserSystems/nopcpa-bbo/README.md	filler	very	5ca587c7
+examples/LaserSystems/yb-laser-system/README.md	term	transform limited	ba463f21
+examples/LaserSystems/yb-multipass-cpa/README.md	term	transform limited	ab320905
+install.md	spelling	artifact	f6e831dc
+papers/README.md	term	multi-pass cell	4ee5ba89
+papers/README.md	term	multi-pass cell	a9bfff62
+papers/kane-1993-frog/README.md	term	B integral	2df92be1
+papers/kane-1993-frog/README.md	term	B integral	c8860541
+papers/kaur-2024-mpc-ner-xpw/README.md	spelling	maximizes	963b7354
+papers/kaur-2024-mpc-ner-xpw/README.md	term	multi-pass cell	bcac545e
+papers/liu-2013-ner-cs2-pulse-cleaner/README.md	spelling	polarizer	76a9195d
+papers/michelson-1887-ether-null/README.md	term	2D	16f5c9fa
+papers/michelson-1887-ether-null/README.md	term	2D	fdb0f846
+papers/michelson-1887-ether-null/README.md	term	moving frame	3c83ce1e
+papers/michelson-1887-ether-null/README.md	term	moving frame	f5b79eff
+papers/perot-1899-multiple-beam-interference/README.md	filler	clearly	ce0c983a
+papers/perot-1899-multiple-beam-interference/README.md	filler	clearly	ea612ed6
+papers/perot-1899-multiple-beam-interference/README.md	filler	note that	08aed131
+papers/schulte-2016-mpc-fused-silica/README.md	filler	robust	63b91839
+papers/schulte-2016-mpc-fused-silica/README.md	term	multi-pass cell	e674c991
+reference/branches.md	filler	simply	bd968f0f
+reference/calculators.md	term	multi-pass cell	12cf53ec
+reference/coatings.md	term	3D	93edc157
+reference/components.md	term	n₂	d56298de
+reference/crystals.md	filler	very	5102fc5f
+reference/gain.md	spelling	fiber	af751cf0
+reference/instruments.md	filler	clearly	6fab2c27
+reference/ionization.md	spelling	ionization	70f15b75
+reference/mcp.md	term	chi2	b86e8fb5
+reference/mcp.md	term	chi2	ec229738
+reference/mcp.md	term	chi2	ec229738
+reference/mcp.md	term	chi2	f58dd24a
+reference/measured-data.md	filler	robust	910b154b
+reference/measured-data.md	term	run file	b046ccb1
+reference/python.md	filler	simply	2b31e60f
+reference/python.md	spelling	polarizer	e380ece0
+reference/results.md	term	2D	a2a4a427
+reference/speed.md	filler	very	63aeed34
+reference/studies.md	spelling	optimize	c9c35325
+reference/transverse.md	filler	very	a16ea616
+reference/transverse.md	term	n₂	914ffba2
+releasing.md	spelling	artifact	4ca857e2
+roadmap.md	filler	very	85bbbe54
+testing.md	term	multi-pass cell	e702399f
+tutorials/03-larger-systems.md	filler	note that	5e49e711
+tutorials/04-measured-data.md	filler	very	bb951cba
+tutorials/04-measured-data.md	term	run file	610e417e
+tutorials/04-measured-data.md	term	run file	98ac6b75
+tutorials/05-contrast.md	spelling	optimize	f3218fa0
