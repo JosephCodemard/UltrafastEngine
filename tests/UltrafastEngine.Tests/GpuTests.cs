@@ -15,7 +15,8 @@ namespace UltrafastEngine.Tests
     /// The gpu plugin (plugins/gpu) against the CPU path. Reference: the CPU result of the same run -- the device runs
     /// the same interaction-picture schemes with the same arithmetic, so outputs must agree to rounding (1e-9 relative
     /// is required; ~1e-15 is typical). Needs an OpenCL device with double precision: on machines without a GPU, PoCL
-    /// (pip install pocl-binary-distribution; docs/testing.md) provides one on the CPU. Skipped when none is found.
+    /// (pip install pocl-binary-distribution; on macOS brew install pocl; docs/testing.md) provides one on the CPU; the
+    /// tests ask for backend "opencl" explicitly, so the CPU device is used (auto never picks it). Skipped when none is found.
     /// The CUDA back-end shares the kernels and the steppers; it is exercised by `ultrafast devices --selftest` on
     /// NVIDIA machines.
     /// </summary>
@@ -546,6 +547,40 @@ namespace UltrafastEngine.Tests
                 Assert.Less(Diff(r, cpu), 1e-9, "concurrent run matches the CPU");
             }
             Assert.Equal(0, b.RunningOn(b.Devices.First(d => d.Usable).Index), "all device slots released");
+        }
+
+        [Test(Reference = "the OpenCL ICD convention: a vendors/*.icd file holds the path of the vendor library", Tolerance = "exact")]
+        public void IcdFiles_NameTheVendorLibraries()
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "uf-icd-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                File.WriteAllText(Path.Combine(dir, "pocl.icd"), "/opt/homebrew/lib/libpocl.2.dylib\n");
+                File.WriteAllText(Path.Combine(dir, "other.icd"), "# comment\n\n  libOther.so  \n");
+                File.WriteAllText(Path.Combine(dir, "readme.txt"), "not an icd file");
+                var libs = OpenClApi.IcdVendorLibraries(new[] { dir, Path.Combine(dir, "missing") }).ToList();
+                Assert.Equal(2, libs.Count, "two .icd files");
+                Assert.True(libs.Contains("/opt/homebrew/lib/libpocl.2.dylib") && libs.Contains("libOther.so"), string.Join(", ", libs));
+            }
+            finally { Directory.Delete(dir, true); }
+        }
+
+        [Test(Category = "gpu", Reference = "G0: on macOS both Apple's OpenCL.framework and the .icd vendor libraries (Homebrew PoCL) are enumerated")]
+        public void MacOs_ListsTheAppleGpuAsSinglePrecision_AndPoclAsUsable()
+        {
+            if (!NativeLib.IsMac) Assert.Skip("macOS only");
+            var vendors = OpenClApi.IcdVendorLibraries().ToList();
+            if (vendors.Count == 0) Assert.Skip("no OpenCL .icd vendor file (brew install pocl)");
+            var devs = GpuPlugin.OpenCl.Devices;
+            var apple = devs.FirstOrDefault(d => d.Vendor == "Apple" && !d.DoublePrecision);
+            if (apple != null)
+            {
+                Assert.False(apple.Usable, "Apple GPU not usable");
+                Assert.True(apple.Notes.Contains("single precision only"), apple.Notes);
+            }
+            Assert.True(devs.Any(d => d.Usable && d.DoublePrecision), "a vendor library from " + string.Join(", ", vendors) + " gives an FP64 device: "
+                + string.Join("; ", devs.Select(d => d.Name + " (" + d.Driver + ")")) + " " + GpuPlugin.OpenCl.Unavailable);
         }
 
         [Test(Category = "gpu")]

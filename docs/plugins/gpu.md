@@ -110,8 +110,23 @@ not, and are listed as not usable).
 
 ### macOS
 
-Apple GPUs have no double-precision arithmetic and CUDA does not exist on macOS, so the GPU back-ends are not
-used there. The CPU uses Apple's Accelerate FFT automatically (`"fft": "auto"`), which is the fast path on a Mac.
+Apple GPUs have no double-precision arithmetic and CUDA does not exist on macOS, so the GPU back-ends do not run on
+the Apple GPU: `ultrafast devices` lists it as `single precision only (no FP64): not usable`. The CPU uses Apple's
+Accelerate FFT automatically (`"fft": "auto"`), which is the fast path on a Mac.
+
+The `opencl` back-end on macOS loads Apple's `OpenCL.framework` **and** every vendor library named by an `.icd` file
+in `$OCL_ICD_VENDORS`, `/opt/homebrew/etc/OpenCL/vendors`, `/usr/local/etc/OpenCL/vendors` or `/etc/OpenCL/vendors`,
+directly (no ICD loader needed), and lists the devices of all of them. With Homebrew PoCL (`brew install pocl`) this
+adds a CPU OpenCL device with double precision:
+
+```text
+opencl #0 Apple M3, 11.8 GB [not usable]  (GPU; single precision only (no FP64): not usable, ...)
+opencl #1 Portable Computing Language cpu, 12.0 GB  (CPU device (used only with backend "opencl", never by "auto"); double precision)
+```
+
+It is not faster than the CPU back-end; it exists so that the device kernels can be checked in double precision on a
+Mac (`GpuTests`, `ultrafast devices --selftest`). An ICD loader (`libOpenCL.dylib`, Homebrew `opencl-icd-loader` or
+`ocl-icd`) is used only when no `.icd` file names a library that loads.
 
 ### Environment variables
 
@@ -121,7 +136,8 @@ used there. The CPU uses Apple's Accelerate FFT automatically (`"fft": "auto"`),
 | `ULTRAFAST_DEVICE` | default device index |
 | `ULTRAFAST_CUDA_LIB_DIR` | folders searched first for NVRTC, cuFFT, cuBLAS (`;` / `:` separated) |
 | `ULTRAFAST_CUDA_NO_VENDOR=1` | ignore cuFFT and cuBLAS (use the built-in kernels; for comparisons) |
-| `ULTRAFAST_OPENCL_LIBRARY` | the OpenCL ICD loader to load |
+| `ULTRAFAST_OPENCL_LIBRARY` | the OpenCL library (or libraries, separated by `:` / `;`) to load instead of the search; their devices are listed in that order |
+| `OCL_ICD_VENDORS` | macOS: a further folder of `.icd` files whose vendor libraries are loaded (searched first) |
 | `ULTRAFAST_OPENCL_ALLOW_CPU=1` | let `auto` use OpenCL CPU devices |
 
 ### Troubleshooting
@@ -184,8 +200,17 @@ NaN, and the executor estimates it from the entry and exit pulse shapes ([nonlin
 default was 0, which the executor took as a measured value: GPU runs reported 0 pulse- and beam-averaged B
 (`GpuTests.BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu`).
 
-Tests: `tests/UltrafastEngine.Tests/GpuTests.cs` compares every path with the CPU (1e-9 required). Machines without
-a GPU can run them on the CPU through PoCL:
+Tests: `tests/UltrafastEngine.Tests/GpuTests.cs` compares every path with the CPU (1e-9 required). The tests ask for
+`"backend": "opencl"` (or `cuda`) explicitly and take the first usable device, so a CPU OpenCL device is used by them
+although `auto` never picks one. On a Mac, `brew install pocl` is all that is needed (the Apple GPU is skipped as not
+usable, PoCL is device #1):
+
+```bash
+brew install pocl
+dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll GpuTests
+```
+
+On Linux without a GPU:
 
 ```bash
 pip install pocl-binary-distribution

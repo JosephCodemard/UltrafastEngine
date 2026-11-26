@@ -28,7 +28,7 @@ example check.
 
 | | |
 |---|---|
-| GPU back-ends (CUDA, OpenCL) | checked on one machine (RTX 3060 Ti, driver 610.88, CUDA 13.3; WP-C(B), 2026-11-16): `GpuTests` pass on CUDA and OpenCL. Elsewhere the tests skip without an FP64 device; AMD / Intel OpenCL and data-centre cards are not checked |
+| GPU back-ends (CUDA, OpenCL) | checked on one machine (RTX 3060 Ti, driver 610.88, CUDA 13.3; WP-C(B), 2026-11-16): `GpuTests` pass on CUDA and OpenCL. On macOS arm64 they run on Homebrew PoCL 7.2 (CPU OpenCL, FP64; 20 pass, 0 fail, 2026-11-25, WP G0). Elsewhere the tests skip without an FP64 device; AMD / Intel OpenCL and data-centre cards are not checked |
 | MCP server (`ultrafast-mcp`) with a live language-model agent | built and tested through replayed reference trajectories (`tests/agent-evals/`); no live agent has been scored ([MCP reference](docs/reference/mcp.md)) |
 | NativeAOT library with the `ao` plugin | compiled in (`UF_WITH_AO`); the check that it lists the four elements (`test_native_library_lists_the_four_ao_elements`) runs only when `ULTRAFAST_NATIVE_LIB` points at a built library |
 | OpticStudio / Zemax | needs a Windows machine with OpticStudio; the binding is built against stubs in CI |

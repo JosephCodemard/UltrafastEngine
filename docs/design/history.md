@@ -327,6 +327,16 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
   erf(√ln 20) = 0.9856 for a Gaussian), `satellitePeakCount` (= `peakCount` − 1) in every pulse summary, `pulseSummary` and `compressor`;
   the plots use it. Prompted by multipass-cell soliton compression, where a satellite above 50 % made `fwhmS` jump from ~10 fs to > 100 fs.
 
+## Stage 18 -- WP G0: PoCL reachable on macOS  (2026-11-25, `dev/wp-g0`, macOS arm64, Apple M3)
+
+The `opencl` back-end loaded only the first library it found, which on a Mac is Apple's `OpenCL.framework` (Apple GPU, no FP64), so
+`GpuTests` skipped. `OpenClApi.LoadAll` now loads the framework and, directly, every vendor library named by an `.icd` file
+(`/opt/homebrew/etc/OpenCL/vendors`, `OCL_ICD_VENDORS`, ...; an ICD loader only when none loads), each device keeps its own API table,
+and platforms seen twice are skipped. `ULTRAFAST_OPENCL_LIBRARY` accepts a list. `ultrafast devices` shows the Apple GPU as single
+precision only (not usable) and Homebrew PoCL 7.2 as `Portable Computing Language cpu` with FP64. The tests already ask for
+`backend: "opencl"` and the first usable device, so no switch was needed: `GpuTests` 20 passed, 0 failed, 0 skipped on PoCL (no kernel
+failures), `devices --selftest` passes. `auto` still never picks a CPU OpenCL device. No `ocl-icd` install was needed.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
