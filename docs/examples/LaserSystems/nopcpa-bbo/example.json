@@ -1,0 +1,12 @@
+{
+  "title": "Non-collinear OPCPA in BBO",
+  "summary": "A 15 fs, 50 nJ seed at 800 nm, stretched to about 0.6 ps, is amplified in 2 mm of BBO at the magic non-collinear angle (2.56°) pumped by the 515 nm second harmonic of the SHG example: it leaves with 43.7 µJ (gain 874, a 224 nm phase-matching bandwidth) and compresses to 24.0 fs, at its transform limit.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "nopcpa-bbo.png"
+  ],
+  "wave": 2,
+  "python": true
+}

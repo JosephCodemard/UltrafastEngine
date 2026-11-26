@@ -1,0 +1,12 @@
+{
+  "title": "Second-harmonic generation in LBO",
+  "summary": "A 1 ps, 400 µJ pulse at 1030 nm is frequency doubled in 2 mm of LBO (type I, XY plane) with 52.5 % energy conversion (210.1 µJ at 515 nm in 808.5 fs) and a 0.985° angular acceptance; the radial model across the beam gives 47.4 %.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "shg-lbo.png"
+  ],
+  "wave": 2,
+  "python": true
+}

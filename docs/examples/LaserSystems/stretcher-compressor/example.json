@@ -1,0 +1,10 @@
+{
+  "title": "Stretcher, amplifier stand-in and compressor (analytic)",
+  "summary": "A 150 fs, 1 nJ sech² pulse at 1030 nm is stretched to 233.6 ps by a grating pair, trimmed by a gain-narrowing filter and recompressed to 268.8 fs, within 0.2 % of the 268.4 fs transform limit of the narrowed spectrum, with 45.38 % of the energy left.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": ["cpa-line.png"],
+  "wave": 2,
+  "python": true
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Ti:sapphire regenerative amplifier",
+  "summary": "A 30 fs, 2 nJ oscillator pulse at 800 nm is stretched, amplified in an auto-ejected 11-round-trip Ti:sapphire regen pumped by 10 mJ at 532 nm to 1.81 mJ (gain 9 × 10⁵) and recompressed to 41.1 fs, against a 34.3 fs transform limit.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": ["regen-gain.png"],
+  "wave": 2,
+  "python": true
+}

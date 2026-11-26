@@ -1,0 +1,10 @@
+{
+  "title": "Yb:YAG multipass CPA amplifier",
+  "summary": "A 250 fs, 1 µJ seed at 10 kHz is stretched to 431 ps, amplified in 8 passes through a 6 mm Yb:YAG rod pumped with 150 W of cw diode light to 1.46 mJ (gain 2000) and recompressed to 535 fs, at the transform limit (Strehl 0.999) after 1.04 mJ of grating throughput.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": ["yb-amplifier-gain.png"],
+  "wave": 2,
+  "python": true
+}

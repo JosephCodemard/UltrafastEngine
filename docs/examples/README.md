@@ -21,16 +21,16 @@ Stretcher, amplifier, compressor and parametric chains, oscillators, and the con
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [stretcher-compressor](LaserSystems/stretcher-compressor/README.md) | 02 | CLI | CPA line from analytic elements; grid sizing for ns stretching; photodiode, residual chirp | `ultrafast run cpa.ufs run.json` |
-| [yb-multipass-cpa](LaserSystems/yb-multipass-cpa/README.md) | 13 | CLI | Yb:YAG CPA: cw-pumped 8-pass amplifier, steady state at 10 kHz, gain narrowing, thermal lens | `ultrafast run amp.ufs run.json` |
-| [ti-sapphire-regen](LaserSystems/ti-sapphire-regen/README.md) | 14 | CLI | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 41 fs | `ultrafast run regen.ufs run.json` |
-| [ti-sapphire-klm-haus](LaserSystems/ti-sapphire-klm-haus/README.md) | 19 | CLI | KLM Ti:sapphire oscillator (Haus model) from noise; soliton area theorem | `ultrafast run laser.ufs run.json` |
-| [yb-laser-system](LaserSystems/yb-laser-system/README.md) | 20 | CLI | SESAM Yb:YAG oscillator → stretcher → amplifier → compressor | `ultrafast run system.ufs run.json` |
-| [four-grating-compressor](LaserSystems/four-grating-compressor/README.md) | 38 | CLI | a compressor grating by grating: spatial chirp opens and closes, GDD against Treacy | `ultrafast run compressor.ufs run.json -o results`, `python report.py` |
-| [shg-lbo](LaserSystems/shg-lbo/README.md) | 08 | CLI | SHG in LBO: carrier change, by-products, phase-matching instruments, radial variant | `ultrafast run shg.ufs run.json` |
-| [nopcpa-bbo](LaserSystems/nopcpa-bbo/README.md) | 09 | CLI | non-collinear OPCPA (magic angle), pump from example 08's results, delay scan, compressor | `ultrafast run nopcpa.ufs run.json` |
-| [noncollinear-opa](LaserSystems/noncollinear-opa/README.md) | 42 | CLI | a NOPA in a Branched `.ufs`: the pump arm's tilt sets the angle, a virtual seed, the idler's direction from transverse momentum | `ultrafast run nopa.ufs run.json -o results`, `python report.py` |
-| [contrast-chain](LaserSystems/contrast-chain/README.md) | 22 | CLI | a window's ghost becomes a pre-pulse through the Kerr effect; pedestal, third-order cross-correlator, energy scan with a parameter study | `ultrafast run chain.ufs run.json`, `ultrafast study study.json` |
+| [stretcher-compressor](LaserSystems/stretcher-compressor/README.md) | 02 | CLI + Python | CPA line from analytic elements; grid sizing for ns stretching; photodiode, residual chirp | `ultrafast run cpa.ufs run.json -o results` |
+| [yb-multipass-cpa](LaserSystems/yb-multipass-cpa/README.md) | 13 | CLI + Python | Yb:YAG CPA: cw-pumped 8-pass amplifier, steady state at 10 kHz, gain narrowing, thermal lens | `ultrafast run amp.ufs run.json` |
+| [ti-sapphire-regen](LaserSystems/ti-sapphire-regen/README.md) | 14 | CLI + Python | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 41 fs | `ultrafast run regen.ufs run.json` |
+| [ti-sapphire-klm-haus](LaserSystems/ti-sapphire-klm-haus/README.md) | 19 | CLI + Python | KLM Ti:sapphire oscillator (Haus model) from noise; soliton area theorem | `ultrafast run laser.ufs run.json` |
+| [yb-laser-system](LaserSystems/yb-laser-system/README.md) | 20 | CLI + Python | SESAM Yb:YAG oscillator → stretcher → amplifier → compressor | `ultrafast run system.ufs run.json` |
+| [four-grating-compressor](LaserSystems/four-grating-compressor/README.md) | 38 | CLI + Python | a compressor grating by grating: spatial chirp opens and closes, GDD against Treacy | `ultrafast run compressor.ufs run.json -o results`, `python report.py` |
+| [shg-lbo](LaserSystems/shg-lbo/README.md) | 08 | CLI + Python | SHG in LBO: carrier change, by-products, phase-matching instruments, radial variant | `ultrafast run shg.ufs run.json` |
+| [nopcpa-bbo](LaserSystems/nopcpa-bbo/README.md) | 09 | CLI + Python | non-collinear OPCPA (magic angle), pump from example 08's results, delay scan, compressor | `ultrafast run nopcpa.ufs run.json` |
+| [noncollinear-opa](LaserSystems/noncollinear-opa/README.md) | 42 | CLI + Python | a NOPA in a Branched `.ufs`: the pump arm's tilt sets the angle, a virtual seed, the idler's direction from transverse momentum | `ultrafast run nopa.ufs run.json -o results`, `python report.py` |
+| [contrast-chain](LaserSystems/contrast-chain/README.md) | 22 | CLI + Python | a window's ghost becomes a pre-pulse through the Kerr effect; pedestal, third-order cross-correlator, energy scan with a parameter study | `ultrafast run chain.ufs run.json`, `ultrafast study study.json` |
 
 ## Nonlinear
 

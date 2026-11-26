@@ -2,8 +2,8 @@
 
 Every ``docs/examples/<Group>/<name>/README.md`` is searched for snippets: a ```python fence directly after a line ``<!-- snippet -->``
 (``<!-- snippet slow -->``: only with ``ULTRAFAST_SLOW=1``); the parser and the convention are in ``build/readme_snippets.py``.
-Each snippet runs as a program in a temporary copy of its example folder (only that folder: a snippet uses the files of its own
-example), with
+Each snippet runs as a program in a temporary copy of its example folder (that folder and the folders it depends on in
+``build/examples_cli.py``: a snippet uses the files of its own example), with
 
 * ``ULTRAFAST_STRICT_OPTIONS=1`` (an unknown key is an error) and ``MPLBACKEND=Agg``;
 * **quick fidelity** (docs/reference/fidelity.md): ``"fidelity": "quick"`` is added to every run spec of the copy (``*.json`` with
@@ -27,6 +27,7 @@ from conftest import requires_engine
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "build"))
 readme_snippets = importlib.import_module("readme_snippets")
+examples_cli = importlib.import_module("examples_cli")
 EXAMPLES = REPO / "docs" / "examples"
 SLOW = os.environ.get("ULTRAFAST_SLOW") == "1"
 
@@ -71,6 +72,11 @@ def test_readme_snippet_runs(readme, snippet, tmp_path):
     dst = tmp_path / src.relative_to(REPO)
     shutil.copytree(src, dst, ignore=shutil.ignore_patterns("results", "results-*", "__pycache__", "*.npz"))
     _make_quick(dst)
+    # an example that reads the files of another one (build/examples_cli.py DEPENDS) gets that folder next to it
+    for dep in examples_cli.DEPENDS.get(src.relative_to(EXAMPLES).as_posix(), []):
+        dep_dst = tmp_path / "docs" / "examples" / dep
+        shutil.copytree(EXAMPLES / dep, dep_dst, ignore=shutil.ignore_patterns("results", "results-*", "__pycache__", "*.npz"))
+        _make_quick(dep_dst)
     script = dst / "_readme_snippet.py"
     script.write_text(snippet.code, encoding="utf-8")
     env = dict(os.environ, ULTRAFAST_STRICT_OPTIONS="1", MPLBACKEND="Agg")
