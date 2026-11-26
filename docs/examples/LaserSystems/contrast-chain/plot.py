@@ -18,7 +18,7 @@ ax[0].annotate("pre-pulse\n-30.6 dB", (-29.4, -30.6), (-52, -12), arrowprops=dic
 ax[0].annotate("post-pulse\n-26.6 dB", (29.1, -26.6), (35, -12), arrowprops=dict(arrowstyle="->"))
 ax[0].set(xlabel="delay (ps)", ylabel="cross-correlation signal (dB, rel. to peak)", ylim=(-100, 5), title="Contrast after the compressor")
 ax[1].semilogx(e * 1e3, pre, "o-", label="pre-pulse contrast (simulated)")
-ax[1].axhline(-58, color="0.5", ls=":", label="correlator artefact floor")
+ax[1].axhline(-56.5, color="0.5", ls=":", label="correlator artefact floor")
 ax[1].set(xlabel="pulse energy (mJ)", ylabel="pre-pulse contrast (dB)", title="Pre-pulse versus energy")
 ax[1].legend(fontsize=8)
 fig.tight_layout()

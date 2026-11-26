@@ -1,0 +1,12 @@
+{
+  "title": "A four-grating compressor, grating by grating",
+  "summary": "A compressor written grating by grating (1200 lines/mm, 45°): the spatial chirp opens to 28.3 mm per 100 nm after the first pair and closes to zero after the second, and the total GDD of -1.547 ps² equals Treacy's formula for two pairs.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}

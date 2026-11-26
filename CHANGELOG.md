@@ -8,9 +8,14 @@ internal development stages and were never released; they are kept as the develo
 **Docs (2026-11-26, WP C2c)**
 - **Reference pages `crystals`, `materials`, `coatings`, `components`, `active-elements`, `modulator`, `spatial-properties`** rewritten to the reference template; all 60 rows of `docs/design/notes/reference-audit-c.md` closed. Corrections users may rely on: a tilted plate's GDD is 0.28 / 0.96 fs² *below* the fixed-path value (40° / 70°, 5 mm fused silica), not above; Air's n2 is 8.5e-24 m²/W per bar; Calcite, YVO4, aBBO, TGG and the thin films have n2 = 0 (no value entered); a user biaxial crystal needs `"class": "biaxial"`; `seedNoise` is off by default; the user-element example's `params` had the wrong sign; the coating kinds (`gddRipple` included), their defaults and the `lidt` keys are documented. Ten code findings listed for WP C4.
 
+**Docs (2026-11-26, WP D2-LaserSystems)**
+- The ten LaserSystems examples follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (stretched pulse of `stretcher-compressor` 233.6 ps, was 232.6 ps; GDD of `four-grating-compressor` -1547449 fs2, was -1547462 fs2; compressed pulse of `nopcpa-bbo` 24.0 fs, was 23.8 fs; `yb-laser-system` stretched pulse 131 ps, was 130 ps). The snippet test copies the folders an example depends on (`nopcpa-bbo` needs `shg-lbo`).
+
 **Docs (2026-11-26, WP D2-Wavefronts)**
 - The two Wavefronts examples (`position-dependent-index`, `spatial-gain-thermal-lens`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (absorbed pump at 5 W is now quoted as 4.1 W, was 4.05 W).
 
+**Docs (2026-11-26, WP C2b)**
+- **Reference pages `nonlinear`, `ionization`, `delayed-light`, `gases`, `fibers`, `gain`, `oscillators`** rewritten to the reference template (Keys, Model, Validation, Limits) and every row of `docs/design/notes/reference-audit-b.md` closed: one B-integral definition, `taubS`, the `orientational` Raman kind, `absorption: false` also removes the ionisation loss, echo amplitude T r_b (intensity T² R_b), ripple and scatter referenced to the carrier, the new `gain.md#the-amplifier-element` section, `smallSignalGain` is the linear power gain, test tolerances quoted as asserted; seven code findings (C4-b1 to C4-b7) listed for WP C4.
 **Docs (2026-11-25, WP C2f)**
 - Calculators, pulse calculator, plotting and MCP reference pages rewritten to the reference template with complete signatures, result keys and limits; `concepts.md` and `capabilities.md` corrected (cw carrier, GPU ionisation and precision, plugin list, `modulator`, grid margin, strict switches). All 40 rows of audit F closed; code findings listed for WP C4.
 **Docs (2026-11-25, WP C2e)**

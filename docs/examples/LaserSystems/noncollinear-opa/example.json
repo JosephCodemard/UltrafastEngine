@@ -1,0 +1,12 @@
+{
+  "title": "A non-collinear OPA with the angle from the pump arm",
+  "summary": "A 1030 nm pulse is doubled in BBO, the 515 nm pump reaches a second BBO crystal through an arm tilted by 4° (2.42° inside the crystal, BBO's magic angle) and amplifies an 800 nm, 10 nJ seed to 14.1 µJ, with an idler of 7.8 µJ leaving at 11.3° and a Manley-Rowe residual of -2e-8.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}

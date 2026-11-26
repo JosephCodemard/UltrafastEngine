@@ -14,7 +14,30 @@ window). With `"start": "pulse"` it also seeds the laser.
   "start": "noise", "roundTrips": { "max": 8000, "tolerance": 1e-5 } }
 ```
 
-## Models
+## Keys
+
+The keys that matter; every key is in [options: `oscillator`](options.md#oscillator),
+[`saturableAbsorber`](options.md#saturableabsorber-also-sesam) and [`resonator`](options.md#resonator).
+
+| key | meaning |
+|---|---|
+| `model` (required) | `parametric`, `haus` or `cavity` |
+| `repRateHz`, or `cavityLengthM` with `ring` | repetition rate; c / 2L for a linear cavity, c / L with `"ring": true` |
+| `outputCoupler` | output-coupler power transmission, 0 to 1 exclusive (default 0.05) |
+| `gain` | `haus`: the lumped gain (below); `cavity`: a gain medium with the keys of the gain element, plus `passesPerRoundTrip` (2) and `relaxation` (0.2) |
+| `lossPerRoundTrip`, `gddFs2` / `gddS2`, `todFs3` / `todS3`, `spmRadPerW`, `absorber` | `haus`: the lumped round trip |
+| `elements` | `cavity`: the elements run every round trip |
+| `start`, `seed`, `seedEnergyJ` | start-up from noise or from the run's pulse |
+| `roundTrips` | a number (the maximum, default 5000) or `{max (5000), tolerance (1e-5), checkEvery (25), snapshots (120)}` |
+| `gridPoints` | samples the oscillator iterates on (default 4096; a power of two, at least 64) |
+| `output` | `parametric`: the output pulse (run-spec pulse keys) |
+
+`checkEvery`, `tolerance` and `snapshots` take effect only inside the `roundTrips` object, and `relaxation` and
+`passesPerRoundTrip` only inside the `gain` object, although the option reference also lists them on the element.
+
+## Model
+
+### Models
 
 | model | what it is | use it for |
 |---|---|---|
@@ -22,8 +45,10 @@ window). With `"start": "pulse"` it also seeds the laser.
 | `haus` | lumped master equation iterated round trip by round trip: saturated gain with a spectral shape, loss, GDD/TOD, SPM δ·P(t), saturable absorber, output coupler | soliton and fast-absorber mode-locking, parameter studies (fast: thousands of round trips per second) |
 | `cavity` | a real gain medium (`"gain": {"medium": ...}` with a cw pump) plus any engine elements in `"elements"`, run in order every round trip | a specific laser design: crystals, chirped mirrors, prisms, SESAMs, Kerr media, filters |
 
-**Gain (lumped).** The gain is a ln power gain per round trip, g(E) = g0 / (1 + E/E_sat) (or with P_sat on the
-average power). It has a `lorentzian` (default), `gaussian` or `parabolic` spectral shape of FWHM `bandwidthM`
+**Gain (lumped).** `smallSignalGain` is the linear small-signal power gain G per round trip (it must be above 1);
+the engine works with the ln power gain g0 = ln G (or give `smallSignalLnGain` = g0 directly), saturated as
+g(E) = g0 / (1 + E/E_sat) with `saturationEnergyJ` (or with `saturationPowerW` on the average power). In the example
+above G = 1.5, g0 = 0.405. It has a `lorentzian` (default), `gaussian` or `parabolic` spectral shape of FWHM `bandwidthM`
 around `centerWavelengthM`. Give `fluenceSaturationEnergyJ` to get the Q-switching diagnostic.
 
 **Gain (medium, cavity model).** The gain medium is described like the gain elements ([gain.md](gain.md)):
@@ -40,7 +65,7 @@ works except another oscillator:
 
 The output coupler sits at the end of the list.
 
-**Window.** The oscillator iterates on at most `gridPoints` (4096) samples of the run's grid, with the same time
+**Window.** The oscillator iterates on at most `gridPoints` (4096, a power of two of at least 64) samples of the run's grid, with the same time
 step and carrier. The result is embedded back into the full window, so a long stretcher downstream does not
 slow the oscillator down.
 
@@ -48,12 +73,13 @@ slow the oscillator down.
 default for `haus` and shows the real build-up. `"start": "pulse"` starts from the run's pulse (scaled to
 `seedEnergyJ`); it is the default for `cavity` and is faster.
 
-**Convergence.** Convergence is checked every `checkEvery` (25) round trips. Steady state means that the output
-energy and FWHM change by less than `tolerance` per round trip and the spectral centroid stays put, three
-checks in a row. The pulse is re-centred every round trip; the drift is reported as `roundTripTimingOffsetS`,
+**Convergence.** Convergence is checked every `checkEvery` (25) round trips, up to `max` (5000). Steady state means
+that, over the check interval of `checkEvery` round trips, three checks in a row find the output energy changed by at
+most `tolerance` × E × `checkEvery`, the intensity FWHM by at most 10 × `tolerance` × FWHM × `checkEvery` plus one time
+step, and the spectral centroid by less than 0.05 of a frequency step. The pulse is re-centred every round trip; the drift is reported as `roundTripTimingOffsetS`,
 the correction to the round-trip time.
 
-## Saturable absorbers
+### Saturable absorbers
 
 `"type": "saturableAbsorber"` (alias `sesam`) works anywhere in a system. In the Haus model it is the oscillator's
 `absorber`.
@@ -66,7 +92,7 @@ the correction to the round-trip time.
 
 The field is multiplied by exp(−(q(t) + q_ns)/2). The element reports `pulseLoss`, `saturationParameter`
 (E/E_sat) and the arrays `timeS` and `loss` (q(t)). For short pulses on a slow absorber the absorbed fraction is
-q0(1 − e^−S)/S (tested).
+q0(1 − e^−S)/S.
 
 **Spatial cavities and Kerr-lens mode-locking.** Cavity elements may carry a transverse profile (a Kerr medium
 on a radial grid, gaps, lenses or curved mirrors, a soft or hard aperture). The profile goes round the cavity and
@@ -76,7 +102,7 @@ focuses tightly into the crystal and runs near its stability edge, as real KLM l
 thousands of spatial round trips (≈ 0.1 s each on a 32-point radial grid), so treat it as **experimental**. The
 lumped `kerrLens` absorber is the practical model.
 
-## Diagnostics
+### Diagnostics
 
 Values (`summary.json → elements[i].values`):
 
@@ -104,9 +130,10 @@ Arrays (`el_<id>_*`):
 
 `ultrafast-plot` draws them in `oscillator.png`.
 
-## Resonators
+### Resonators
 
-A `resonator` is a passive cavity around nested elements, for its modes rather than for a laser pulse:
+A `resonator` is a passive cavity around nested elements, for its modes rather than for a laser pulse. Its `geometry`
+is `ring` (the default: the elements once per round trip) or `linear` (forward and back, the end elements once):
 
 ```jsonc
 { "id": "cavity", "type": "resonator", "geometry": "ring",                     // "ring": once per round trip; "linear": forward and back, end elements once
@@ -124,12 +151,9 @@ A `resonator` is a passive cavity around nested elements, for its modes rather t
 * The output beam takes the mode: the tracked beam becomes the eigenmode, and the pulse carries the Fox-Li profile. Its energy is unchanged: this is a mode calculation, not a cavity ring-down.
   The `oscillator` element is the one for pulses building up in a cavity.
 
-Checks (`CavityAndCoherenceTests`): a lens guide's eigenmode (Kogelnik & Li), a two-mirror cavity, Fox-Li against the ABCD mode (3 %), and the diffraction loss of plane circular mirrors, near 20 %
-at N = 1 and falling as N^(−3/2).
-
 It is a nested sequence, not a graph: elements inside cannot be reached by a second beam. A graph loop is the alternative: see [Branched systems](branches.md#loops).
 
-## Python
+### Python
 
 ```python
 from ultrafast.laser import Oscillator
@@ -145,14 +169,30 @@ A cavity model in Python uses `.gain_medium(...)` and `.add(b.chirped_mirror(...
 
 ## Validation
 
-`LaserTests` checks:
+`LaserTests`:
 
-* the soliton area theorem in the Haus model and in a real Yb:YAG + SESAM cavity (both within 10–15 %);
-* cw gain clamping, E = E_sat(g0/L − 1);
-* slow-absorber saturation q0(1 − e^−S)/S;
-* fast-absorber saturation;
-* the multi-pulse and background detectors;
-* the QML criterion is reported.
+* the soliton area theorem in the Haus model (10 %, `Haus_SolitonModeLocking_ObeysTheAreaTheorem`) and in a Yb:YAG +
+  SESAM cavity (15 %, `Cavity_YbSesamOscillator_SolitonAndQmlDiagnostics`, which also checks a single pulse, the
+  round-trip GDD to 5 % and QML stability);
+* cw gain clamping, E = E_sat(g0/L − 1) (0.2 %, `Haus_CwLaser_GainClampsAtTheLoss`);
+* slow-absorber saturation q0(1 − e^−S)/S (2 %, `Sesam_SlowAbsorber_SaturatesAsTheEnergyIntegral`);
+* fast-absorber saturation, unsaturated loss 1 − exp(−q0) (1 %, `FastAbsorbers_LoseLessAtHighPower`);
+* the multi-pulse and background detectors (`Diagnostics_CountPulsesAndBackground`);
+* a lens-guide cavity whose carried profile settles on the Gaussian eigenmode (8 %).
 
-Examples: 19 (Ti:sapphire KLM, Haus, from noise), 20 (Yb:YAG SESAM oscillator → stretcher → amplifier →
+`CavityAndCoherenceTests` (resonator): a lens guide's eigenmode (Kogelnik & Li), a two-mirror cavity, Fox-Li against the
+ABCD mode (3 %), and the diffraction loss of plane circular mirrors, near 20 % at N = 1 and falling as N^(−3/2) (slow).
+
+Examples: [Ti:sapphire KLM](../examples/LaserSystems/ti-sapphire-klm-haus/README.md) (Haus model, from noise) and a
+[Yb:YAG laser system](../examples/LaserSystems/yb-laser-system/README.md) (SESAM oscillator, stretcher, amplifier,
 compressor).
+
+## Limits
+
+* The gain dynamics are relaxed, not resolved: the simulation does not show Q-switching; `qmlParameter` says whether a
+  real laser would.
+* Kerr-lens mode-locking from first principles (spatial cavity) is experimental; the lumped `kerrLens` absorber is the
+  practical model.
+* A `resonator` is a mode calculation, not a ring-down: its output energy is unchanged. Its elements cannot be reached by
+  a second beam; use a graph loop ([Branched systems](branches.md#loops)) for that.
+* The oscillator works on at most `gridPoints` samples of the run's grid.

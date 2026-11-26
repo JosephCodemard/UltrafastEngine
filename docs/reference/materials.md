@@ -69,7 +69,7 @@ Use `"raman": {"kind": "orientational", "riseS": ..., "decayS": ..., "fR": ...}`
 
 **BaF2**: cubic (m3m) fluoride. Index: Li, J. Phys. Chem. Ref. Data 9, 161 (1980), 293 K, 0.15-15 µm (refractiveindex.info, CC0). n2 = 2.0e-20 m²/W
 (for light along [100]) and the Kerr anisotropy `kerrAnisotropy` σ = −1.2 are typical literature values, **UNVERIFIED** (σ quoted from memory of
-Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005)). See [cubic anisotropy](nonlinear.md#cubic-kerr-anisotropy-xpw).
+Minkovski et al., Opt. Lett. 29, 2237 (2004) and Jullien et al., J. Opt. Soc. Am. B 22, 2635 (2005)). See [cubic anisotropy](nonlinear.md#cubic-anisotropy-xpw).
 
 ## The material catalogue
 
