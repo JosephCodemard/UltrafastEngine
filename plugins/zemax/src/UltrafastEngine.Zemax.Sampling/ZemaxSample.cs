@@ -47,6 +47,9 @@ namespace UltrafastEngine.Zemax
         public double InputWaistToSurface1 { get; set; }
         public double InputM2 { get; set; } = 1;
 
+        /// <summary>Zernike Standard Coefficients at the carrier (null unless the export asked for "zernike").</summary>
+        public ZernikeStandardData Zernike { get; set; }
+
         public List<string> Warnings { get; } = new List<string>();
 
         public int SampleCount => WavelengthsUm?.Length ?? 0;
@@ -94,6 +97,7 @@ namespace UltrafastEngine.Zemax
             }
             o.Set("beamRadius", BeamRadius == null ? null : JsonValue.FromArray(BeamRadius)).Set("beamWaist", BeamWaist == null ? null : JsonValue.FromArray(BeamWaist));
             o.Set("inputBeam", new JsonObject().Set("waist", InputWaist).Set("waistToSurface1", InputWaistToSurface1).Set("m2", InputM2));
+            if (Zernike != null) o.Set("zernike", ZernikeToJson(Zernike));
             o.Set("warnings", JsonValue.FromArray(Warnings));
             return o;
         }
@@ -129,9 +133,20 @@ namespace UltrafastEngine.Zemax
                 }).ToArray()).ToArray();
             var ib = o.GetObject("inputBeam");
             if (ib != null) { s.InputWaist = ib.GetDouble("waist", 0); s.InputWaistToSurface1 = ib.GetDouble("waistToSurface1", 0); s.InputM2 = ib.GetDouble("m2", 1); }
+            if (o.Has("zernike") && !o["zernike"].IsNull) s.Zernike = ZernikeFromJson(o.GetObject("zernike"));
             foreach (var w in o.GetArray("warnings") ?? new JsonArray()) s.Warnings.Add(w.AsString());
             return s;
         }
+
+        internal static JsonObject ZernikeToJson(ZernikeStandardData z) => new JsonObject()
+            .Set("nollWaves", JsonValue.FromArray(z.NollWaves ?? new double[0])).Set("wavelengthUm", z.WavelengthUm).Set("field", z.Field)
+            .Set("sampling", z.Sampling).Set("entrancePupilRadius", z.EntrancePupilRadius).Set("exitPupilRadius", z.ExitPupilRadius);
+
+        internal static ZernikeStandardData ZernikeFromJson(JsonObject z) => new ZernikeStandardData
+        {
+            NollWaves = z.GetDoubleArray("nollWaves") ?? new double[0], WavelengthUm = z.GetDouble("wavelengthUm", double.NaN), Field = z.GetInt("field", 1),
+            Sampling = z.GetInt("sampling", 64), EntrancePupilRadius = z.GetDouble("entrancePupilRadius", double.NaN), ExitPupilRadius = z.GetDouble("exitPupilRadius", double.NaN)
+        };
 
         public void Save(string path) => File.WriteAllText(path, ToJson().ToJson(true));
         public static ZemaxSample Load(string path) => FromJson(JsonValue.ParseFile(path).AsObject());

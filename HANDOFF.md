@@ -5,19 +5,17 @@ Written 2026-11-26 by the coordinator after the agents stopped at a usage limit.
 
 ## Status
 
-Not started (an earlier attempt read code but wrote nothing).
-
-Nothing (an earlier attempt was reading `ExportConfig.cs` and the engine Zernike element).
-
-Files changed against the branch point when this was written:
-
-```
-(no changes)
-```
+Code done and building (WIP commit): `IOpticStudio.ReadZernikeStandard` + `ZernikeStandardData`; real impl in `ZosAnalyses.cs`
+(temporary ZERN rows, ENPD/EXPD; stubs gained ZERN/ENPD/EXPD); fake (`FakeOpticStudio.ZernikeNollWaves`), record/replay; sample JSON
+`zernike`; export block `zernike` (`ZernikeExport`, `ExportConfig.ToSamplerOptions` replaces two duplicate option builders);
+`Sampler.ReadZernike` at the carrier; `SystemBuilder.BuildWavefront` (conversion comment there; opdSign default -1, piston dropped,
+radiusM = ENPD/2).
 
 ## Next steps
 
-1. Follow the Z2 row and the notes. 2. Finish.
+1. Tests in `ZemaxTests` (defocus + astigmatism at pupil points to 1e-12 through the compiled engine element; replay; config errors).
+2. Docs: `docs/plugins/zemax.md` section "Zernike aberrations", HARDWARE-CHECKLIST step 4b + assumptions, example export.json, docs/testing.md rows.
+3. CHANGELOG, history, roadmap row, delete this file, final commit.
 
 ## Notes from the original brief
 

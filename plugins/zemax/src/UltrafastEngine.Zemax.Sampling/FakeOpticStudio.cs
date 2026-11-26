@@ -220,6 +220,24 @@ namespace UltrafastEngine.Zemax
             throw new NotSupportedException("fake OpticStudio does not implement operand " + type);
         }
 
+        /// <summary>Zernike Standard Coefficients the fake returns (index 0 = Z1, waves); null: the fake has none (the read throws).
+        /// Terms above maxTerm are cut, missing ones are zero, as OpticStudio would fit them.</summary>
+        public double[] ZernikeNollWaves { get; set; }
+        /// <summary>Entrance / exit pupil radius (lens units) returned with the coefficients.</summary>
+        public double EntrancePupilRadius { get; set; } = 5.0;
+        public double ExitPupilRadius { get; set; } = 5.0;
+        public int ZernikeCalls { get; private set; }
+
+        public ZernikeStandardData ReadZernikeStandard(int field, int wave, int maxTerm, int sampling)
+        {
+            ZernikeCalls++;
+            if (ZernikeNollWaves == null) throw new NotSupportedException("fake OpticStudio '" + Kind + "' has no Zernike data");
+            if (wave < 1 || wave > _waves.Count) throw new ArgumentOutOfRangeException(nameof(wave));
+            var c = new double[maxTerm];
+            for (int j = 0; j < maxTerm && j < ZernikeNollWaves.Length; j++) c[j] = ZernikeNollWaves[j];
+            return new ZernikeStandardData { NollWaves = c, WavelengthUm = _waves[wave - 1].Um, Field = field, Sampling = sampling, EntrancePupilRadius = EntrancePupilRadius, ExitPupilRadius = ExitPupilRadius };
+        }
+
         public double[] EvaluateRows(IReadOnlyList<OperandRow> rows) =>
             rows.Select(r => r.Type == "GBPS" ? _gbRadius((int)r.Params[0]) : r.Type == "GBPW" ? _gbWaist((int)r.Params[0]) : throw new NotSupportedException(r.Type)).ToArray();
     }

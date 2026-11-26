@@ -39,6 +39,28 @@ namespace UltrafastEngine.Zemax
     }
 
     /// <summary>
+    /// OpticStudio's Zernike Standard Coefficients of one field and wavelength (what <see cref="IOpticStudio.ReadZernikeStandard"/>
+    /// returns). Zernike Standard = Noll ordering and normalisation (Z1 piston, Z2 = 2 rho cos theta, Z3 = 2 rho sin theta,
+    /// Z4 = sqrt(3) (2 rho^2 - 1), Z5 = sqrt(6) rho^2 sin 2 theta, Z6 = sqrt(6) rho^2 cos 2 theta, ...), coefficients in waves at the
+    /// analysis wavelength, over the unit circle of normalised pupil coordinates (rho = 1 at the pupil edge), OPD referenced to the
+    /// chief ray's reference sphere in the exit pupil. Lengths in lens units.
+    /// </summary>
+    public sealed class ZernikeStandardData
+    {
+        /// <summary>Coefficients Z1..ZmaxTerm (index 0 = Z1), waves at <see cref="WavelengthUm"/>.</summary>
+        public double[] NollWaves { get; set; }
+        public double WavelengthUm { get; set; }
+        /// <summary>Field number (1-based, Field Data Editor).</summary>
+        public int Field { get; set; } = 1;
+        /// <summary>Pupil sampling of the fit (32, 64, 128, ... points across).</summary>
+        public int Sampling { get; set; } = 64;
+        /// <summary>Entrance pupil radius (ENPD / 2), lens units: the physical radius of rho = 1 on the input beam.</summary>
+        public double EntrancePupilRadius { get; set; } = double.NaN;
+        /// <summary>Exit pupil radius (EXPD / 2), lens units (informational).</summary>
+        public double ExitPupilRadius { get; set; } = double.NaN;
+    }
+
+    /// <summary>
     /// The small slice of OpticStudio the sampler uses. Implemented over ZOS-API by the Windows binding
     /// (ZosOpticStudio), by <see cref="FakeOpticStudio"/> for tests, and by <see cref="RecordingOpticStudio"/> /
     /// <see cref="ReplayOpticStudio"/> for capturing a session on the Zemax PC and replaying it anywhere.
@@ -70,6 +92,10 @@ namespace UltrafastEngine.Zemax
         double Operand(string type, int surface, int wave, double hx = 0, double hy = 0, double px = 0, double py = 0, double ex = 0, double ey = 0);
         /// <summary>Append temporary rows to the merit function, calculate it, read their values, remove them.</summary>
         double[] EvaluateRows(IReadOnlyList<OperandRow> rows);
+        /// <summary>Zernike Standard Coefficients Z1..<paramref name="maxTerm"/> of field <paramref name="field"/> at wavelength
+        /// <paramref name="wave"/> (both 1-based), fitted on a <paramref name="sampling"/> x <paramref name="sampling"/> pupil grid, with
+        /// the entrance and exit pupil radii (normalisation radius of rho = 1).</summary>
+        ZernikeStandardData ReadZernikeStandard(int field, int wave, int maxTerm, int sampling);
     }
 
     /// <summary>Writing back to OpticStudio (optional capability of an <see cref="IOpticStudio"/>).</summary>

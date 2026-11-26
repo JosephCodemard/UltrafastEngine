@@ -78,6 +78,9 @@ namespace UltrafastEngine.Zemax
         public double[] EvaluateRows(IReadOnlyList<OperandRow> rows) =>
             Rec("EvaluateRows", new JsonArray(rows.Select(r => (JsonValue)new JsonObject().Set("type", r.Type).Set("params", JsonValue.FromArray(r.Params)))), () => _inner.EvaluateRows(rows), r => JsonValue.FromArray(r));
 
+        public ZernikeStandardData ReadZernikeStandard(int field, int wave, int maxTerm, int sampling) =>
+            Rec("ReadZernikeStandard", JsonValue.FromArray(new double[] { field, wave, maxTerm, sampling }), () => _inner.ReadZernikeStandard(field, wave, maxTerm, sampling), r => ZemaxSample.ZernikeToJson(r));
+
         public void Save(string path) => File.WriteAllText(path, new JsonObject().Set("format", "ultrafast-zemax-session").Set("header", _header).Set("calls", _log).ToJson(true));
     }
 
@@ -136,5 +139,6 @@ namespace UltrafastEngine.Zemax
         public void GetIndex(int surface, int n, double[] dest) { var a = Next("GetIndex")["r"].AsDoubleArray(); Array.Copy(a, dest, Math.Min(n, a.Length)); }
         public double Operand(string type, int surface, int wave, double hx = 0, double hy = 0, double px = 0, double py = 0, double ex = 0, double ey = 0) => Next("Operand")["r"].AsDouble();
         public double[] EvaluateRows(IReadOnlyList<OperandRow> rows) => Next("EvaluateRows")["r"].AsDoubleArray();
+        public ZernikeStandardData ReadZernikeStandard(int field, int wave, int maxTerm, int sampling) => ZemaxSample.ZernikeFromJson(Next("ReadZernikeStandard").GetObject("r"));
     }
 }

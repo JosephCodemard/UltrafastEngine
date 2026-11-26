@@ -1,7 +1,9 @@
 // ZosAnalyses.cs -- ZosOpticStudio, part 3 of 3 (see ZosOpticStudio.cs): computations OpticStudio runs for the sampler --
-// the batch ray trace of chief rays and merit-function operands (single values and temporary rows).
+// the batch ray trace of chief rays, merit-function operands (single values and temporary rows) and the Zernike Standard
+// Coefficients (ZERN rows, ENPD / EXPD).
 //   ChiefRayHit[] TraceChief(int toSurface, int numberOfWaves)
 //   double Operand(string type, int surface, int wave, ...); double[] EvaluateRows(IReadOnlyList<OperandRow> rows)
+//   ZernikeStandardData ReadZernikeStandard(int field, int wave, int maxTerm, int sampling)
 using System;
 using System.Collections.Generic;
 using ZOSAPI.Editors.MFE;
@@ -50,6 +52,30 @@ namespace UltrafastEngine.Zemax
 
         public double Operand(string type, int surface, int wave, double hx = 0, double hy = 0, double px = 0, double py = 0, double ex = 0, double ey = 0)
             => _s.MFE.GetOperandValue(Type(type), surface, wave, hx, hy, px, py, ex, ey);
+
+        /// <summary>
+        /// Zernike Standard Coefficients through temporary ZERN merit-function rows (one per term, appended and removed in one go,
+        /// like GBPS / GBPW) rather than the Zernike Standard Coefficients analysis window, whose results come only as a text file to
+        /// parse (that is how ZOSPy reads them; ZOSPy, MIT, was read as a guide only, decision E19). ZERN gives the same fit as the
+        /// analysis (OpticStudio's operand help) with typed numbers.
+        /// TODO(zemax-hw): the ZERN parameter layout [Term, Wave, Samp (1 = 32x32, 2 = 64x64, ...), Field, Type (1 = Standard),
+        /// Epsilon, Vertex (0 = reference to the chief ray)] and ENPD / EXPD as diameters in lens units (HARDWARE-CHECKLIST.md step 4b).
+        /// </summary>
+        public ZernikeStandardData ReadZernikeStandard(int field, int wave, int maxTerm, int sampling)
+        {
+            int samp = 1;
+            for (int n = 32; n < sampling; n *= 2) samp++;
+            var ints = new[] { true, true, true, true, true, false, true };
+            var rows = new List<OperandRow>();
+            for (int j = 1; j <= maxTerm; j++)
+                rows.Add(new OperandRow { Type = "ZERN", Params = new double[] { j, wave, samp, field, 1, 0, 0 }, IntegerParams = ints });
+            var c = EvaluateRows(rows);
+            return new ZernikeStandardData
+            {
+                NollWaves = c, Field = field, Sampling = sampling,
+                EntrancePupilRadius = 0.5 * Operand("ENPD", 0, 0), ExitPupilRadius = 0.5 * Operand("EXPD", 0, 0)
+            };
+        }
 
         public double[] EvaluateRows(IReadOnlyList<OperandRow> rows)
         {
