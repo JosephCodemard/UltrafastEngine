@@ -1,2 +1,2 @@
-WP D2-Nonlinear in progress. Done: carrier-resolved, filament, small-scale-self-focusing, mpc-argon, ner-measured-input. Todo: ppln-dfg, spatial-kerr, supercontinuum; then CHANGELOG, history Stage XX, D2 row note, delete this file, example_check/snippet tests/mkdocs/style_lint/gallery/examples README.
-Number changes: mpc-argon spectral FWHM 61.9->61.0 nm; ner input TL 240->249 fs.
+WP D2-Nonlinear in progress. Done: all but supercontinuum. Todo: supercontinuum; then CHANGELOG, history Stage XX, D2 row note, delete this file, example_check/snippet tests/mkdocs/style_lint/gallery/examples README interface column.
+Number changes: mpc-argon spectral FWHM 61.9->61.0 nm; ner input TL 240->249 fs; spatial-kerr many (R -81->-70 mm, 97.8->97.4 um, B 1.4->1.55, TL 207->199 fs, ...); ppln pump depletion ~70->68 %.
