@@ -1,7 +1,7 @@
 """The operations the MCP worker runs (inside the child process; they import the engine).
 
 ``describe``, ``validate``, ``run``, ``scan``, ``study``, ``backward``, ``compare``, ``fit``, ``plot`` and the twin operations (``twin_fit``,
-``twin_validate``, ``twin_predict``) take the arguments the server has already checked
+``twin_validate``, ``twin_predict``, ``twin_design``, ``twin_track``, ``twin_init``; they call the twin plugin's own functions) take the arguments the server has already checked
 (:mod:`ultrafast.mcp.policy`) and return plain JSON-able dicts. ``system`` / ``run`` arrive as an absolute path string or a dict;
 ``outDir`` is an absolute folder inside the workspace. ``preflight`` raises :class:`~ultrafast.mcp.policy.Refused` when the memory
 estimate is above the limit.
@@ -321,14 +321,21 @@ def backward(a: Dict[str, Any]) -> dict:
 
 
 # ---------------------------------------------------------------- digital twin
-def _project(a: Dict[str, Any]):
+MAX_DESIGN_RUNS = 240     # twin_design: candidates x (fitted parameters + 1) engine runs
+
+
+def _twin_module():
     uf = _uf()
     uf.plugins.load_python_plugins()
     try:
         import ultrafast_twin as tw
     except ImportError:
         raise ValueError("the twin plugin is not available (ultrafast plugins list; install it with `ultrafast plugins install`)")
-    return tw.TwinProject(a["folder"])
+    return tw
+
+
+def _project(a: Dict[str, Any]):
+    return _twin_module().TwinProject(a["folder"])
 
 
 def twin_fit(a: Dict[str, Any]) -> dict:
@@ -368,5 +375,77 @@ def twin_predict(a: Dict[str, Any]) -> dict:
     return _clean(r)
 
 
+def twin_design(a: Dict[str, Any]) -> dict:
+    """Rank candidate measurements with ``ultrafast_twin.design`` (expected information gain at the fitted point); writes reports/design.json."""
+    t0 = time.time()
+    from ultrafast_twin import design as D
+    proj = _project(a)
+    twin = proj.twin()
+    if a.get("placement"):
+        cands = D.placement_candidates(twin)
+    elif a.get("variable"):
+        cands = D.energy_candidates(twin, a["variable"], a["values"], a.get("setKey"))
+    else:
+        cands = a["candidates"]
+    if a.get("variable"):
+        missing = [d.variable for d in twin.deps if d.variable != a["variable"]]
+        if missing:
+            raise Refused("twin_design: the fit's dependences also need the condition variable(s) %s; give 'candidates' with every variable" % ", ".join(sorted(set(missing))))
+    runs = len(cands) * (len(twin.values) + 1)
+    if runs > MAX_DESIGN_RUNS:
+        raise Refused("twin_design: %d candidates x %d runs each = %d engine runs is above the limit of %d; rank fewer candidates"
+                      % (len(cands), len(twin.values) + 1, runs, MAX_DESIGN_RUNS))
+    if a.get("weights") is not None and len(a["weights"]) != len(twin.values):
+        raise Refused("twin_design: 'weights' has %d entries; the fit has %d parameters (%s)" % (len(a["weights"]), len(twin.values), ", ".join(twin.names())))
+    r = twin.design(cands, picks=int(a.get("picks", 1)), weights=a.get("weights"), sigma=a.get("noiseSigma"))
+    out = Path(a["folder"]) / "reports"
+    out.mkdir(exist_ok=True)
+    (out / "design.json").write_text(json.dumps(_clean(r), indent=2), encoding="utf-8")
+    r = dict(r, candidates=len(cands), engineRuns=runs, fit=twin.dir.name, report="reports/design.json", elapsedS=round(time.time() - t0, 3),
+             advice="The gain is a linearised expectation at the fitted point: it says where the twin is blind, not what the data will show. Take the chosen "
+                    "measurement, add it as a condition to twin.json, run twin_fit and twin_validate again.")
+    return _clean(r)
+
+
+def twin_track(a: Dict[str, Any]) -> dict:
+    """Assimilate recordings with ``ultrafast_twin.track.DriftTracker`` (ensemble Kalman filter); writes reports/track.json."""
+    t0 = time.time()
+    twin = _project(a).twin()
+    kw: Dict[str, Any] = {"members": int(a.get("members", 16)), "process_sigma": a.get("process") or None}
+    for k, key in (("parameters", "parameters"), ("alarmSigmas", "alarm"), ("seed", "seed")):
+        if a.get(k) is not None:
+            kw[key] = a[k]
+    try:
+        trk = twin.tracker(**kw)
+    except KeyError as e:
+        raise Refused("twin_track: %s" % (e.args[0] if e.args else e))
+    unknown = sorted(set(a.get("process") or {}) - set(trk.names))
+    if unknown:
+        raise Refused("twin_track: 'process' names %s, which are not tracked (%s)" % (", ".join(unknown), ", ".join(trk.names)))
+    for m in a["measurements"]:
+        trk.update(m["data"], m.get("variables") or None, m.get("set") or None, label=m.get("label"))
+    out = Path(a["folder"]) / "reports"
+    out.mkdir(exist_ok=True)
+    trk.write(out / "track.json")
+    last = trk.history[-1]
+    r = {"parameters": trk.names, "alarmSigmas": trk.alarm, "members": trk.members, "history": trk.history, "drifted": last["drifted"], "fit": twin.dir.name,
+         "report": "reports/track.json", "elapsedS": round(time.time() - t0, 3),
+         "advice": "zFromFit is the distance of the tracked mean from the fit in fitted sigmas; a parameter in 'drifted' moved more than alarmSigmas. "
+                   "Without 'process' the filter assumes the fitted sigma as the drift per measurement, which is usually far too small to follow a real drift."}
+    return _clean(r)
+
+
+def twin_init(a: Dict[str, Any]) -> dict:
+    """``ultrafast twin init``: a synthetic-lab project folder (``ultrafast_twin.init``)."""
+    t0 = time.time()
+    proj = _twin_module().init(a["folder"], a.get("template", "synthetic-lab"), bool(a.get("force")))
+    conds = [{"name": c["name"], "heldOut": bool(c.get("heldOut")), "variables": c.get("variables", {})} for c in proj.conditions()]
+    names = [p.get("name") or p.get("path") for p in proj.spec.get("parameters", [])]
+    return _clean({"project": a["folderRel"], "name": proj.name, "template": a.get("template", "synthetic-lab"), "instrument": proj.instrument, "conditions": conds,
+                   "parameters": names, "files": ["twin.json", proj.spec.get("system"), "data/"], "elapsedS": round(time.time() - t0, 3),
+                   "advice": "Next: twin_fit, then twin_validate. The data were generated from a hidden truth (ultrafast_twin.synthetic): compare the fitted values with it."})
+
+
 OPS = {"validate": validate, "describe": describe, "run": run, "scan": scan, "compare": compare, "fit": fit, "plot": plot, "study": study, "backward": backward,
-       "twin_fit": twin_fit, "twin_validate": twin_validate, "twin_predict": twin_predict}
+       "twin_fit": twin_fit, "twin_validate": twin_validate, "twin_predict": twin_predict, "twin_design": twin_design, "twin_track": twin_track,
+       "twin_init": twin_init}

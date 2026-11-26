@@ -38,6 +38,7 @@ INSTRUCTIONS = (
     "again in fidelity 'full', and say in the answer which numbers came from which level. "
     "Workflow: describe or validate the system, explore in fidelity 'quick', confirm the reported points in 'full', "
     "read the warnings and 'validity' of every result (explain_warning), then plot. SI units everywhere, the unit is in the key name (lengthM, energyJ). "
+    "Digital twin: twin_init (or a hand-written twin.json), twin_fit, twin_validate, then twin_predict, twin_design (the next measurement) and twin_track (drift). "
     "Read the schema resources before writing a file. This server runs no user code: no callbacks ('@name'), no python or expression kinds.")
 
 
@@ -166,9 +167,9 @@ class McpServer:
                 res = _explain.explain(args.get("warning"), args.get("code"))
             else:
                 wargs = _tools.prepare(name, args, self.ws)
-                if tool.op in ("fit", "twin_fit"):
-                    timeout = min(float(wargs.pop("timeBudgetS", self.budget_s)), self.budget_s)
-                elif tool.op in ("run", "scan", "compare", "study", "backward", "twin_validate", "twin_predict"):
+                if "timeBudgetS" in wargs:            # fit, twin_design, twin_track: a budget of their own, at most the server's
+                    timeout = min(float(wargs.pop("timeBudgetS")), self.budget_s)
+                elif tool.op in _LONG_OPS:
                     timeout = self.budget_s
                 else:
                     timeout = min(tool.timeout_s, self.budget_s)
@@ -205,6 +206,9 @@ class McpServer:
         finally:
             self.worker.close()
         return 0
+
+
+_LONG_OPS = frozenset({"run", "scan", "compare", "fit", "study", "backward", "twin_fit", "twin_validate", "twin_predict", "twin_design", "twin_track", "twin_init"})
 
 
 class _Invalid(Exception):

@@ -21,6 +21,9 @@ internal development stages and were never released; they are kept as the develo
 **Docs (2026-11-26, WP D1)**
 - **Python next to the CLI in the example READMEs:** a "Run it" section with **CLI** and **Python** content tabs (`pymdownx.tabbed`; `pip install mkdocs pymdown-extensions` for the docs). The Python tab uses the `ultrafast` builders and prints the CLI's key numbers; a line `<!-- snippet -->` before its code marks it, and `python/tests/test_readme_snippets.py` runs every marked block at quick fidelity (`build/example_check.py` checks its quoted output at full fidelity). `example.json` `"python": true` makes `build/example_lint.py` require the tabs. `GettingStarted/quickstart` (now also with `two-plates.ufs` and `run.json`) and `GettingStarted/spm-plate` are converted.
 
+**Added (2026-11-26, WP AG2: twin MCP tools)**
+- **MCP: `twin_design`, `twin_track`, `twin_init`** (16 tools): the next measurement to take (candidates ranked by expected information gain: a variable's values, the instrument placement or a list), drift tracking of new recordings (ensemble Kalman filter from the fit) and `ultrafast twin init` through the server; each with its refusals (at most 12 candidates / 240 engine runs, 12 recordings / 192 runs, recordings inside the workspace), its own `timeBudgetS` capped by the server budget, and tests ([MCP reference](docs/reference/mcp.md#digital-twin-tools)).
+
 **Docs (2026-11-25, WP B1)**
 - **Style guide** `docs/style.md`: voice, banned filler words, the British spelling word list and the term list (tables a linter can read), units and numbers, warning / error messages, docstrings, and templates for reference pages, examples and tutorials; `AGENTS.md` and `docs/CLAUDE.md` point to it.
 

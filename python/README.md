@@ -116,7 +116,7 @@ Also in the package:
 * **Plotting** (`ultrafast.plotting`, command `ultrafast-plot`): publication figures and system schematics in four styles.
 * **Calculators** (`ultrafast.calc`): pulse limits, beam and cavity matching, B-integral and critical power, phase matching.
 * **Compare with your lab**: attach recordings to an instrument and the engine returns χ² per instrument; fit parameters to the data ([measured data](https://josephcodemard.github.io/UltrafastEngine/reference/measured-data/)).
-* **For AI agents**: `ultrafast-mcp` is a local [MCP](https://modelcontextprotocol.io) server with 13 tools, and `ultrafast-agent install --target claude` adds skills for Claude Code, Codex or Cursor
+* **For AI agents**: `ultrafast-mcp` is a local [MCP](https://modelcontextprotocol.io) server with 16 tools, and `ultrafast-agent install --target claude` adds skills for Claude Code, Codex or Cursor
   ([guide](https://josephcodemard.github.io/UltrafastEngine/reference/mcp/)).
 
 ## Help, source and citation

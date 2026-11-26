@@ -452,3 +452,19 @@ Rewrote `instruments.md`, `retrieval.md`, `measured-data.md`, `results.md` and `
 * Both examples of the group (`position-dependent-index`, `spatial-gain-thermal-lens`) now have the template README (`**Run it**` with `=== "CLI"` and `=== "Python"`, snippet marker), `example.json` (`wave` 2, `python` true) and an updated row in `docs/examples/README.md`; the old "16 --" / "15 --" prefixes left the titles. No engine code changed.
 * The Python tab of the rod example runs both pump powers in one loop (the 5 W run is an `overrides` entry built with `b.override` and `b.pump`). All quoted numbers reproduce; the only change is the absorbed pump at 5 W (4.05 W printed as 4.1 W).
 * Checks: `example_lint`, `example_check` (0 not reproduced), the snippet tests, `style_lint` and `mkdocs build --strict` (0 warnings) are green.
+
+## Stage 32 -- WP AG2: twin_design, twin_track and twin_init on the MCP server  (2026-11-26, `dev/wp-ag2`, macOS arm64)
+
+* Three tools in `python/src/ultrafast/mcp/tools.py` (schemas and policy), `ops.py` (worker) and the server: `twin_design` calls
+  `ultrafast_twin.design` (`energy_candidates`, `placement_candidates`, `rank_candidates`), `twin_track` calls `DriftTracker`, `twin_init` calls
+  `ultrafast_twin.init`; no physics was reimplemented. Reports go to the project's `reports/design.json` / `track.json`, as with the CLI.
+* Decisions: (1) the server lists **16** tools, not the 15 of the roadmap row: `twin_init` is a tool of its own (no existing tool could carry it), and the row's count did not include it.
+  (2) Limits: 12 candidates and 240 engine runs (candidates x (parameters + 1), checked in the worker where the parameter count is known) per `twin_design`; 12 recordings and
+  192 runs (members x recordings), members 4 to 32 per `twin_track`; placement candidates are counted from the project's system in the policy. (3) `twin_design` and
+  `twin_track` take `timeBudgetS` like `fit`; the server now caps any `timeBudgetS` by its budget in one place (`_LONG_OPS`). (4) A `set` value is a number, or an element id
+  for `instrument:NAME/at` only. (5) Recording paths are relative to the project folder (like `twin.json`'s `data`), not to the workspace. (6) The tracker keeps no state
+  between calls: one call takes every recording since the fit. (7) `twin_init` refuses an existing `twin.json` without `force`, a file, and `.ultrafast-mcp/`.
+* Tests (`test_mcp.py`, 70 -> 112 with the parametrised cases): 37 refusals, the budget test for both tools (killed, next call works, capped by the server budget), and the
+  synthetic lab end to end through the real server (1.5 s). The agent-pack skills do not list MCP tools, so they were not changed. mypy's gate does not cover `mcp/`
+  (three old errors in `server.py` `_meta` handling stay outside it).
+

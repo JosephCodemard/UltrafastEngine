@@ -92,12 +92,12 @@ Two plugins, driven from Python (load them with `uf.plugins.load_python_plugins(
 * **`twin`**: `ultrafast twin init|fit|validate|predict|design|track|check` (set `ULTRAFAST_PYTHON`) or `ultrafast_twin` from Python. A twin is the fit across
   conditions (the fitting plugin) plus a validation report: **always mark at least one condition `heldOut`**, read the verdict (`ok`, `marginal`,
   `fits-training-only`, `unvalidated`) before trusting a prediction, and give the drift tracker the expected drift in physical units. `ultrafast twin serve <folder>` starts
-  the [MCP server](reference/mcp.md) on the project folder (the twin tools `twin_fit`, `twin_validate` and `twin_predict` are in it). Examples: [DigitalTwin](examples/DigitalTwin/README.md); reference page: [twin](plugins/twin.md).
+  the [MCP server](reference/mcp.md) on the project folder (the twin tools `twin_init`, `twin_fit`, `twin_validate`, `twin_predict`, `twin_design` and `twin_track` are in it). Examples: [DigitalTwin](examples/DigitalTwin/README.md); reference page: [twin](plugins/twin.md).
 
 ## MCP server
 
 `ultrafast-mcp` is a local, workspace-sandboxed MCP server (stdio only) with the tools `describe`, `validate`, `run`, `scan`, `explain_warning`,
-`compare_to_measured`, `fit`, `study`, `backward`, `twin_fit`, `twin_validate`, `twin_predict` and `plot`, two prompts and four resources. Install the skills for your agent with `ultrafast agent install --target claude|codex|cursor` (or `ultrafast-agent install`, the same files).
+`compare_to_measured`, `fit`, `study`, `backward`, `twin_init`, `twin_fit`, `twin_validate`, `twin_predict`, `twin_design`, `twin_track` and `plot`, two prompts and four resources. Install the skills for your agent with `ultrafast agent install --target claude|codex|cursor` (or `ultrafast-agent install`, the same files).
 Configuration, every tool, what is refused and how the sandbox works: [MCP reference](reference/mcp.md). The workflow it asks for is
 *explore in `quick`, confirm in `full`* ([Fidelity](reference/fidelity.md)).
 
