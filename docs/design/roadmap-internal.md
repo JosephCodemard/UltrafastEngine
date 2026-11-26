@@ -199,6 +199,7 @@ as a guide only, never shipped or required; closely ported logic carries attribu
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
+| fix-1 ⚛ | Opus | S-M | — | found by P1: a beam fed into a system on a different carrier (1035 nm into a 1030 nm system) gives different spectra in a Sequential and the equivalent Branched system, without any glass (see history, the P1 stage); bug-hunter method: minimal failing test, cause, fix | Sequential equals Branched for a fed beam on another carrier to 1e-12 | open |
 | V1 | Sonnet | S | all above | `/verify` on `dev/2026-11`; `/regen`; `CHANGELOG.md`, `PROJECT_STATUS.md` counts, `docs/testing.md`; `ROADMAP.md` = `docs/roadmap.md` moved to "done"; sections 2-7 of this file pruned; merge to `main` after green CI | `/verify` green; CI green | open |
 
 ### 0.3 Lanes and order
