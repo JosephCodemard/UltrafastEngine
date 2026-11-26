@@ -42,6 +42,23 @@ Paste the output. Check against OpticStudio's own lens data editor:
 | surfaces | thickness, semi-diameter, material, comment, coating of five surfaces you choose |
 | wavelengths | all wavelengths and weights, the primary wavelength |
 
+## 3b. Connection modes, licence and version checks, shutdown (Z1)
+
+Each mode prints `OpticStudio found at ...` and `Connected to OpticStudio <version>, <mode>`; paste both lines.
+
+| step | command | expect |
+|---|---|---|
+| version | `info` (interactive) | the printed version matches Help > About (e.g. 2025 R1 -> `25.1.x`); if it does not, paste both |
+| interactive, wrong instance | `info --instance 5` with one OpticStudio | the "Could not attach ... check --instance" message, exit code 4, no crash |
+| interactive, not waiting | `info` without clicking Interactive Extension | the "Programming > Interactive Extension" message (confirms `ConnectAsExtension` returns null rather than throwing) |
+| interactive, shutdown | `info`, then look at OpticStudio | OpticStudio stays open with your system; Interactive Extension can be started again and `info` works a second time |
+| standalone | `info --standalone --file <lens.zos>` | the surfaces of that file; afterwards **no** `OpticStudio.exe` left in the Task Manager |
+| standalone, Ctrl+C | `export export.json --standalone --file <lens.zos>`, press Ctrl+C during sampling | "interrupted: closing the standalone OpticStudio instance"; no `OpticStudio.exe` left |
+| standalone, bad file | `info --standalone --file nothere.zos` | the "could not load" message; no `OpticStudio.exe` left |
+| user extension | copy `artifacts\plugins\zemax\tools\net48\` to `Documents\Zemax\ZOS-API\Extensions\UltrafastEngine\`, start `UltrafastEngine.Zemax.exe` from Programming > User Extensions with the arguments `info --extension` if your version allows arguments | the system's surfaces; OpticStudio stays open (if arguments cannot be passed, say so: Z6 adds the menu integration) |
+| wrong folder | `info --opticstudio C:\nothere` | the "found no OpticStudio in 'C:\nothere'" message |
+| licence | only if you have a Standard licence or a ZOS-API-less seat | the licence message naming the `LicenseStatus` value |
+
 ## 4. Export a system with a known answer
 
 Use a system you can check by hand: a single plate (e.g. 5 mm N-BK7 at 10 deg) and, if you have one, a grating pair (Treacy: group delay 2 L / c ...).
@@ -80,7 +97,10 @@ UltrafastEngine.Zemax.exe thermal-lens results --element rod --surface 5 --dry-r
 then without `--dry-run`. Check that surface 5 becomes **Gradient 1** with n0 = host index + on-axis dn and Nr2 in lens units, and that a ray trace
 shows the expected focal length. Close the file without saving.
 
-## Unverified assumptions (the `TODO(zemax-hw)` comments in `ZosOpticStudio.cs`)
+## Unverified assumptions (the `TODO(zemax-hw)` comments in `ZosConnection.cs`, `ZosSystemAccess.cs`, `ZosAnalyses.cs` and `ZosConnectionCore.cs`)
+
+* `ZOSAPI_Initializer.GetZemaxDirectory()`, `ZOSAPI_Connection.ConnectToApplication()`, `IZOSAPI_Application.LicenseStatus`, `ZOSMajorVersion` / `ZOSMinorVersion` / `ZOSSPVersion` exist with these names (step 1 fails to compile otherwise: paste the errors).
+* `ConnectAsExtension` returns null when no OpticStudio waits; the minimum version 20.1 is right; not calling `CloseApplication` in interactive mode leaves no stale connection (ZOSPy calls it there).
 
 * ZemaxUnits member names (`Millimeters`, `Centimeters`, `Meters`, `Inches`).
 * `AddRay(wave, Hx, Hy, Px, Py, OPDMode)` and the column order of `ReadNextResult`.

@@ -271,10 +271,20 @@ namespace UltrafastEngine.Engine
                     }
                     string keep = (el.Active as IMultiPortElement)?.ContinuingPort ?? outputs[0];
                     var outs = st.LastOutputs;
+                    var splitter = el.Active as BeamSplitterElement;
+                    if (splitter != null && splitter.HasGlass)
+                    {
+                        // the record reports the continuing port's glass, as the path ledger below carries it
+                        var glassRec = st.Res.Records[st.Res.Records.Count - 1];
+                        var g = splitter.GlassDispersion(port, keep, outPulse.Grid);
+                        glassRec.Own += g; glassRec.System += g; glassRec.ArrivalS += g.GroupDelayS;
+                    }
                     MergeRecord(st.Res, run, id);
                     var original = path.Tail?.Clone();
-                    if (el.Active is BeamSplitterElement kept && path.Tail != null) ScaleTail(path.Tail, kept, port, keep);
-                    Deliver(run, st, id, keep, outPulse, path);
+                    if (splitter != null && path.Tail != null) ScaleTail(path.Tail, splitter, port, keep, run.Records[id]);
+                    var kept = path;
+                    if (splitter != null && splitter.HasGlass) { kept = path.Clone(); AddGlass(kept, splitter, port, keep, outPulse.Grid); }   // the other ports start from the unglassed ledger
+                    Deliver(run, st, id, keep, outPulse, kept);
                     path = path.Clone(); path.Tail = original;
                     if (outs != null)
                         foreach (var kv in outs)
@@ -283,7 +293,8 @@ namespace UltrafastEngine.Engine
                             var side = path.Clone();
                             if (el.Active is BeamSplitterElement bs)
                             {
-                                if (side.Tail != null) ScaleTail(side.Tail, bs, port, kv.Key);
+                                if (side.Tail != null) ScaleTail(side.Tail, bs, port, kv.Key, run.Records[id]);
+                                AddGlass(side, bs, port, kv.Key, kv.Value.Grid);
                                 // the path ran with the kept port's dispersion: swap it for this port's (leakMirror gddFs2 / leakGddFs2)
                                 double wc = kv.Value.Grid.OmegaCenter;
                                 var dKeep = bs.PortDispersion(port, keep, wc); var dSide = bs.PortDispersion(port, kv.Key, wc);
@@ -302,9 +313,22 @@ namespace UltrafastEngine.Engine
             }
         }
 
-        private static void ScaleTail(TailLedger tail, BeamSplitterElement bs, string inPort, string outPort)
+        private static void ScaleTail(TailLedger tail, BeamSplitterElement bs, string inPort, string outPort, ElementRecord rec)
         {
             tail.MultiplyPolarized(w => bs.Coefficient(inPort, outPort, w, tail.Long.OmegaCenter));
+            var glass = bs.GlassOn(inPort, outPort);
+            if (glass.Count > 0) tail.PropagateTail(glass, (m, dE) => AddLoss(rec, m, dE));
+        }
+
+        /// <summary>A splitter's glass on one output: its phase, delay and dispersion join that output's path ledger, as a plate's would
+        /// (Executor.RunElement); the field itself went through the glass in <see cref="BeamSplitterElement.Execute"/>.</summary>
+        private static void AddGlass(PathLedger path, BeamSplitterElement bs, string inPort, string outPort, FrequencyGrid g)
+        {
+            if (!bs.HasGlass) return;
+            var d = bs.GlassDispersion(inPort, outPort, g);
+            path.ArrivalS += d.GroupDelayS;
+            path.Add(d);
+            path.System += d;
         }
 
         /// <summary>An element that ran more than once has one record: its energies and losses are the sums.</summary>

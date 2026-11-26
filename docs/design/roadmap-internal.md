@@ -17,6 +17,9 @@ Each work package (WP) is sized for **one fresh Claude instance** (Opus or Sonne
 
 ### 0.1 How to run a WP
 
+* **Coordinator.** The procedure, the agent brief and the scripts are in [coordinator.md](coordinator.md) and `build/wp/` (`start.sh`,
+  `merge.sh`, `regen.sh`, `cleanup.sh`). At most three WP agents at once. A WP that stops early leaves a committed `HANDOFF.md` in its
+  worktree; its final commit deletes it.
 * **Branch.** Start from the current `dev/2026-11`: `git worktree add ../uf-wp-<id> -b dev/wp-<id> dev/2026-11`. One WP, one branch. The
   coordinator (the owner or the coordinating session) merges finished WPs into `dev/2026-11`; `main` gets `dev/2026-11` after `/verify` and
   green CI. No tags, no releases, no PyPI (owner only).
@@ -76,11 +79,13 @@ Hand-copied key tables are replaced by links to the generated `options.md`; numb
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| C2a | Sonnet | M | C1a, B1 | group a pages | every audit row closed; `mkdocs build --strict` 0 warnings | open |
+| C2a | Sonnet | M | C1a, B1 | group a pages | every audit row closed; `mkdocs build --strict` 0 warnings | done 2026-11-25 |
 | C2b ⚛ | Opus | M | C1b, B1 | group b pages | as C2a, and a `physics-reviewer` pass on the pages | open |
 | C2c ⚛ | Opus | M | C1c, B1 | group c pages | as C2b | open |
 | C2d ⚛ | Opus | M | C1d, B1 | group d pages | as C2b | open |
 | C2e | Sonnet | M | C1e, B1 | group e pages | as C2a | open |
+| C2f | Sonnet | S | C1f, B1 | group f pages, `concepts.md`, `capabilities.md` | as C2a | done 2026-11-25 |
+| C2e | Sonnet | M | C1e, B1 | group e pages | as C2a | done 2026-11-25 |
 | C2f | Sonnet | S | C1f, B1 | group f pages, `concepts.md`, `capabilities.md` | as C2a | open |
 | C3 | Sonnet | S | all C2 | consistency pass: cross-links, `llms.txt` descriptions, `docs/agents.md` and the skills' quick references agree with the new pages; no two pages state the same number differently | `mkdocs build --strict`; a grep list of the main numbers shows one value each | open |
 | C4 | Opus | S-M | C2a-f | code-side findings of the audits (each audit file's section "Code findings for WP C4"): documented keys the schema does not declare (crystal `chi3`, `n2`), declaration texts pointing to missing pages (`reference/elements.md` in `Schema/Options.cs`, `BuiltInElements.cs`), registry defaults that disagree with the code (`crystal.seedNoise`, `bulk.dispersionSource`), CLI exit codes as documented; each fixed in the code (with a test) or the docs say why not; `/regen` | every listed finding closed; regen tests green | open |
@@ -111,9 +116,9 @@ Pages written by later WPs (E, P, W, X, S, Z) follow the B1 template from the st
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| AG1 | Sonnet | S | — | split the user pack from the development rules: the shipped pack (`python/src/ultrafast/agents/pack/`, `build/sync_skills.py`) gets a user `AGENTS.md` and `llms.txt` with nothing of the repository's internals; the repository's `AGENTS.md` stays for developers | a test greps the shipped files for repository terms (`BuiltIn`, `CHANGELOG`, `/regen`, ...) and finds none | open |
+| AG1 | Sonnet | S | — | split the user pack from the development rules: the shipped pack (`python/src/ultrafast/agents/pack/`, `build/sync_skills.py`) gets a user `AGENTS.md` and `llms.txt` with nothing of the repository's internals; the repository's `AGENTS.md` stays for developers | a test greps the shipped files for repository terms (`BuiltIn`, `CHANGELOG`, `/regen`, ...) and finds none | done 2026-11-26 |
 | AG2 | Opus | M | — | MCP tools `twin_design` (the next measurement to take) and `twin_track` (drift), `ultrafast twin init` through the server (`python/src/ultrafast/mcp/tools.py`, `policy.py`); each with its refusals and a budget test; `docs/reference/mcp.md` | MCP tests green (handshake lists 15 tools) | open |
-| AG3 | Sonnet | S | — | transcript adapters in `tests/agent-evals/run_live.py` for Codex and Cursor sessions (read their documented transcript formats), the same scorers; tested on hand-made replay transcripts; the owner runs the live scores (Sonnet, Haiku, a third family) later | scorers give the same verdict on a replay in each format | open |
+| AG3 | Sonnet | S | — | transcript adapters in `tests/agent-evals/run_live.py` for Codex and Cursor sessions (read their documented transcript formats), the same scorers; tested on hand-made replay transcripts; the owner runs the live scores (Sonnet, Haiku, a third family) later | scorers give the same verdict on a replay in each format | done 2026-11-26 |
 
 #### E. FP32 devices and GPU speed (public roadmap item 2; decision E18)
 
@@ -122,7 +127,7 @@ here; Apple's `OpenCL.framework` (Apple GPU, FP32 only) checks the single-precis
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| G0 | Opus | S | — | make the PoCL device reachable on macOS (`OpenClDevice.cs:69-76` tries `OpenCL.framework` first; use `ULTRAFAST_OPENCL_LIBRARY` or an ICD loader such as Homebrew `ocl-icd`, and/or list both); `ultrafast devices` shows the Apple GPU (single precision only) and PoCL (FP64); `GpuTests` run on PoCL; document in `docs/plugins/gpu.md` and `docs/testing.md` | `GpuTests` pass on PoCL on the Mac (list any that fail as new WPs) | open |
+| G0 | Opus | S | — | make the PoCL device reachable on macOS (`OpenClDevice.cs:69-76` tries `OpenCL.framework` first; use `ULTRAFAST_OPENCL_LIBRARY` or an ICD loader such as Homebrew `ocl-icd`, and/or list both); `ultrafast devices` shows the Apple GPU (single precision only) and PoCL (FP64); `GpuTests` run on PoCL; document in `docs/plugins/gpu.md` and `docs/testing.md` | `GpuTests` pass on PoCL on the Mac (list any that fail as new WPs) | done 2026-11-25 |
 | G1 ⚛ | Opus | L | G0, A2 | `compute.precision: "single"`: the state, the linear step and the nonlinear operator in FP32 with compensated (Kahan / pairwise) sums for energy and B; kernels built from one source with a `real` type; every single (and mixed) run warns with the expected error from the FP32 study; runs needing more than 70 dB of dynamic range refused as for `mixed`; `docs/reference/speed.md` table for the Apple GPU | energy 1e-6, spectrum L1 1e-4 against double on the `speed.md` cases; warning tested; refusal tested | open |
 | G2 | Opus | S | G1 | FP32-only OpenCL devices usable (`OpenClDevice.cs:298-305`: `Usable` when FP64 or single precision is asked); `auto` never downgrades silently: it picks an FP32-only device only with `precision: "single"`, and says so; integrated GPUs and Apple silicon named in `docs/plugins/gpu.md` and `docs/install.md` | test with a fake FP32-only device; Apple GPU runs a single-precision case | open |
 | G3 | Opus | S | — | single-precision cuFFT plan for `mixed` (today the mixed path uses the built-in FFT); compile here, test on the 3060 Ti in G10 | builds; CPU fallback unchanged | open (needs CUDA to check) |
@@ -138,7 +143,7 @@ here; Apple's `OpenCL.framework` (Apple GPU, FP32 only) checks the single-precis
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| P1 ⚛ | Opus | S | — | glass in `beamSplitter` and `polarizingSplitter` (per-port glass on the transmitted and reflected paths) | equals the splitter plus a `plate` in each arm to 1e-12 | open |
+| P1 ⚛ | Opus | S | — | glass in `beamSplitter` and `polarizingSplitter` (per-port glass on the transmitted and reflected paths) | equals the splitter plus a `plate` in each arm to 1e-12 | done 2026-11-25 |
 | P2 ⚛ | Opus | S | — | delayed-response window planning (`Engine/GridPlanner.cs`) for generic `timeResponse` and gas rotational revivals | the planned window covers the response memory; test with a 10 ps revival | open |
 | P3 | Opus | S | — | non-collinear OPA crossed-beam overlap test | gain loss against the analytic Gaussian-overlap average | open |
 | P4 ⚛ | Opus | S | — | built-in metal mirrors Ag, Au, Al: n,k **fetched** from a published table (Rakić et al., Appl. Opt. 37, 5271 (1998), or Johnson & Christy 1972; source and URL in the catalogue entry), never typed from memory | 45° silver: ellipticity of circular light against the Fresnel value; catalogue status `verified` | open |
@@ -182,7 +187,7 @@ as a guide only, never shipped or required; closely ported logic carries attribu
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| Z1 | Opus | M | — | our own ZOS-API connection core (net48): standalone application, extension and interactive modes, `ZOSAPI_NetHelper` initialisation, licence and version checks, clean shutdown; `ZosOpticStudio.cs` split into connection, system access and analyses | builds against the stubs; fake-path tests unchanged; checklist steps written | open |
+| Z1 | Opus | M | — | our own ZOS-API connection core (net48): standalone application, extension and interactive modes, `ZOSAPI_NetHelper` initialisation, licence and version checks, clean shutdown; `ZosOpticStudio.cs` split into connection, system access and analyses | builds against the stubs; fake-path tests unchanged; checklist steps written | done 2026-11-25 |
 | Z2 | Opus | M | Z1 | Zernike aberrations (Zernike standard coefficients) → engine wavefront element | fake-path test against known coefficients | open |
 | Z3 | Opus | S | Z1 | paraxial ABCD matrices from operands | fake-path test against a thick lens | open |
 | Z4 | Opus | M | Z1 | prism pairs and Martinez stretchers → dispersive engine elements (GDD and TOD from the ray-traced optical path against wavelength) | against the analytic prism-pair and grating-stretcher GDD | open |
@@ -194,6 +199,7 @@ as a guide only, never shipped or required; closely ported logic carries attribu
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
+| fix-1 ⚛ | Opus | S-M | — | found by P1: a beam fed into a system on a different carrier (1035 nm into a 1030 nm system) gives different spectra in a Sequential and the equivalent Branched system, without any glass (see history, the P1 stage); bug-hunter method: minimal failing test, cause, fix | Sequential equals Branched for a fed beam on another carrier to 1e-12 | open |
 | V1 | Sonnet | S | all above | `/verify` on `dev/2026-11`; `/regen`; `CHANGELOG.md`, `PROJECT_STATUS.md` counts, `docs/testing.md`; `ROADMAP.md` = `docs/roadmap.md` moved to "done"; sections 2-7 of this file pruned; merge to `main` after green CI | `/verify` green; CI green | open |
 
 ### 0.3 Lanes and order

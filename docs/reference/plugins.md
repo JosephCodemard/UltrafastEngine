@@ -3,8 +3,11 @@
 A **plugin** adds capabilities to the engine without the core depending on it: element types, instrument kinds,
 models, run modes, hooks that post-process instrument readings, summary sections and result files, CLI commands,
 console reports, and (optionally) a Python module with builders and figures. The first-party plugins are
-[fitting](../plugins/fitting.md), [ao](../plugins/ao.md), [twin](../plugins/twin.md), [zemax](../plugins/zemax.md), [gpu](../plugins/gpu.md) and [hitran](../plugins/hitran.md); the live-data plugin and ML plugins follow
-after the stable release.
+[fitting](../plugins/fitting.md), [ao](../plugins/ao.md), [twin](../plugins/twin.md), [zemax](../plugins/zemax.md), [gpu](../plugins/gpu.md) and [hitran](../plugins/hitran.md); a live-data plugin and ML plugins are planned (`docs/design/future-plugins.md`).
+
+## Keys
+
+A plugin is a folder with a `plugin.json` ([below](#plugin-folder-layout)); the engine adds no keys for it except the ones the plugin declares through the option registry.
 
 ## Using plugins
 
@@ -19,24 +22,24 @@ ultrafast plugins remove my-plugin
 
 ```python
 import ultrafast as uf
-[p.id for p in uf.plugins.installed()]       # ['fitting', 'gpu', 'hitran', 'zemax']
+[p.id for p in uf.plugins.installed()]       # ['ao', 'fitting', 'gpu', 'hitran', 'twin', 'zemax'] (those installed)
 fitting = uf.plugins.module("fitting")       # the plugin's Python module, or None
 ```
 
-**Search order** (the first folder that has a plugin id wins):
+**Search order** of the engine (`ultrafast plugins paths`; the first folder that has a plugin id wins):
 
 | | folder |
 |---|---|
 | 1 | `ULTRAFAST_PLUGIN_PATH` (folders separated by `:` on macOS/Linux, `;` on Windows) |
 | 2 | `plugins/` next to the engine assembly (the CLI's folder; `ultrafast/bin/hosted/plugins` in the Python package) |
-| 3 | `artifacts/plugins` of a source checkout (Python package used from the checkout) |
-| 4 | the user folder: `$ULTRAFAST_HOME/plugins`, default `~/.ultrafast/plugins` (where `install` copies to) |
+| 3 | the user folder: `$ULTRAFAST_HOME/plugins`, default `~/.ultrafast/plugins` (where `install` copies to) |
 
-`ULTRAFAST_NO_PLUGINS=1` runs the bare core. Plugins are loaded once, on first use of the engine. A plugin that
+A source build places plugins in `plugins/` beside the engine assembly (`build/Plugin.targets` copies them there and into `artifacts/plugins/<id>/`). The Python helper
+`uf.plugins.search_paths()` also lists `artifacts/plugins` of a source checkout. `ULTRAFAST_NO_PLUGINS=1` runs the bare core. Plugins are loaded once, on first use of the engine. A plugin that
 fails to load is listed with its error and otherwise ignored; it never stops the engine.
 
 **What happens without a plugin.** A run spec with `"fit"` or `"backward"`, or a system with a `transform` element,
-stops with a message naming the fitting plugin; an unknown element type or CLI command says which plugin provides it
+stops with a message naming the fitting plugin; the element types of the ao plugin (`slm`, `aopdf`, `deformableMirror`, `spectralShaper`) name the ao plugin; an unknown element type or CLI command says which plugin provides it
 when it is a first-party one. Recorded data (an instrument's `"measured"`, a measured input spectrum) is part of the
 core and works without any plugin ([Measured data](measured-data.md)).
 
@@ -126,7 +129,7 @@ overrides work for plugin elements like for built-in ones.
 |---|---|---|
 | `RegisterElement(type, compiler, spec)` | an element type (`ElementCompiler(services, element, compiled)`) | |
 | `RegisterInstrument(kind, factory, spec)` | an instrument kind (`IInstrument`) | |
-| `RegisterModels(configure)` | model kinds in every `ModelRegistry` (index, attenuation, timeResponse, filter, beam, delayedResponse, aperture) | |
+| `RegisterModels(configure)` | model kinds in every `ModelRegistry` (categories `index`, `attenuation`, `timeResponse`, `filter`, `beam`, `delayedResponse`, `aperture`, `field`) | |
 | `RegisterInstrumentHook(hook)` | `IInstrumentHook.AfterMeasure` runs after every instrument whose spec has one of the hook's `Keys` (after the core's `measured` comparison) | |
 | `RegisterRunMode(mode)` | `IRunMode.Run` replaces a plain run when the run spec has the mode's top-level `Key` | fitting (`fit`) |
 | `RegisterResultExtension(ext)` | sections in `summary.json` and extra files in the results folder | fitting (`fit`, `fit.json`, `backward`) |
@@ -139,6 +142,17 @@ overrides work for plugin elements like for built-in ones.
 Plugins attach their own data to a result in `RunResult.Extensions[key]` (the fitting plugin offers typed access
 with the extension method `result.Fit()`). Comparisons with recorded data are core: `result.Comparisons`
 (`UltrafastEngine.Measured.Comparison`).
+
+### Interfaces a plugin implements
+
+| interface | members |
+|---|---|
+| `IPlugin` | `Id`, `Name`, `Version`, `Description`, `Register(PluginContext)` |
+| `IInstrumentHook` | `Keys` (the instrument-spec keys it handles), `AfterMeasure(InstrumentHookContext)` |
+| `IRunMode` | `Key`, `Description`, `Run(system, run, registry, progress, cancel)` returning a `RunResult` |
+| `IResultExtension` | `ContributeSummary(result, summary)`, `Write(result, directory)` |
+| `IRunReporter` | `Report(result, output)` |
+| `ICliCommand` | `Name`, `Usage` (first line: the command line), `Run(args, output, error)` returning the exit code |
 
 ### Building the folder
 
@@ -155,6 +169,13 @@ when the result has no data for it). Anything else in the module is the plugin's
 
 ## Tests
 
-`PluginTests` registers a test plugin with an element and an instrument and runs them; checks that the first-party
+`PluginTests` registers a test plugin with an element and an instrument and runs them (`Register_*`); checks that the first-party
 plugins are registered and their installable folders load; installs and removes a plugin in a temporary
-`ULTRAFAST_HOME`; refuses a plugin that needs a newer engine; orders pre-release versions.
+`ULTRAFAST_HOME` (`Install_AndRemove_InTheUserFolder`); refuses a plugin that needs a newer engine (`TooNewPlugin_IsReportedNotLoaded`); orders pre-release
+versions (`VersionComparison_OrdersPreReleases`). The twin plugin's command is checked in the same file (`TwinPlugin_RegistersItsCommand_*`).
+
+## Limits
+
+* NativeAOT builds load no plugin at run time; compile the plugin in and register it in code.
+* A plugin that needs a newer engine than the one installed is listed as not loaded, with the reason.
+* The `plugin.json` `commands` key is informational; the engine takes the commands the plugin registers.
