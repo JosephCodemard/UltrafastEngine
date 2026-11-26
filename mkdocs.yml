@@ -103,3 +103,10 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+  # content tabs ("=== "CLI"" / "=== "Python"" in the example READMEs, docs/style.md); superfences lets code blocks sit inside a tab.
+  # pip install mkdocs pymdown-extensions. The tab CSS for the readthedocs theme is in css/brand.css.
+  - pymdownx.highlight:
+      use_pygments: false          # keep <code class="language-x"> for the theme's highlight.js, as before
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true

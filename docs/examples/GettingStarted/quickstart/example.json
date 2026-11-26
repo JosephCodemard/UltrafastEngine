@@ -1,0 +1,10 @@
+{
+  "title": "Python quick start",
+  "summary": "Build a system in Python, run it, read the results and scan a parameter: two 3 mm fused-silica plates take a 180 fs, 8 µJ pulse at 1030 nm to a B-integral of 1.14 rad, and its broadened spectrum compresses to 114 fs.",
+  "group": "GettingStarted",
+  "script": "quickstart.py",
+  "plugins": [],
+  "figures": ["hero.png"],
+  "wave": 2,
+  "python": true
+}
