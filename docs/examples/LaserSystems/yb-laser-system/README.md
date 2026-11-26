@@ -90,7 +90,7 @@ oscillator. About 6 s.
 | oscillator | 1.08 W, 13.5 nJ, 871 fs, 1.29 nm (soliton: theory 873 fs), QML parameter 6.3 (stable), steady state after 1700 round trips |
 | stretched | 131 ps (photodiode) |
 | amplified | 277 µJ, 2.77 W at 10 kHz (gain 2.9×10⁴; thermal lens f = 15 cm); 1.18 nm (gain narrowing) |
-| compressed | 198 µJ, 1.08 ps, transform limited (Strehl 0.99997) |
+| compressed | 198 µJ, 1.08 ps, transform-limited (Strehl 0.99997) |
 
 The oscillator iterates on a 4096-point part of the system's 32768-point window (`gridPoints`), so the long
 stretcher does not slow it down. Its output is embedded exactly into the full window.
