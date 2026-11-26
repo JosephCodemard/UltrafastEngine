@@ -515,3 +515,23 @@ Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-e
   `Zernike_RecordReplayAndSavedSampleKeepTheCoefficients`.
 * Untested without OpticStudio: the ZERN parameter layout and Type code, ENPD / EXPD as diameters, the OPD sign, and the pupil axes against
   the engine's beam axes after folds.
+
+## Stage XX -- WP P2: delayed-response window planning  (2026-11-26, `dev/wp-p2`, macOS arm64)
+
+* `GridPlanner.ResponseMemoryS` keeps the geometric scan and adds a dense one (linear inside each decade, 4000 points); the dense value
+  is used only when it is more than 1.1 x the geometric one, so every built-in and catalogue Raman kernel keeps its memory and grid
+  (bit-identical, tested). `MediumMemoryS` adds the `memoryS` a user `timeResponse` declares (`Models.IResponseMemory`; new
+  `model:timeResponse` specs for `expression` and `callback`). `MemoryWarning` warns when the window is shorter than twice the memory.
+  Spatial elements and `Executor.PlanDownstreamGrid` now count the memory.
+* Decisions (owner away): (1) the gas rotational Raman gets no room: it is a zero-padded linear convolution on every path (CPU 1-D, spatial,
+  GPU), so nothing wraps and a revival only acts on light already in the window; adding T2 (hundreds of ps) would have enlarged every air
+  run. (2) A callback's memory cannot be found by probing it at compile time (side effects, cost), so it is declared (`memoryS`).
+* Tests: `GridSolverTests.DelayedResponseWithANarrowRevival_TheWindowHoldsTheRevival` (20 fs rms revival at 10.1 ps; the old 6.2 ps plan
+  gave a 42 % larger red shift), `TimeResponseCallback_DeclaredMemory_IsHeldByTheWindow`, `ResponseMemory_OfSmoothResponses_IsTheOriginalValue`,
+  `GasTests.RotationalRaman_RevivalActsOnAProbeAtTheRevival_AndTheWindowNeedsNoRoomForIt` (probe phase at the N2 revival against
+  k0 L (R * I), 2 % of the swing). Examples: grids unchanged (only the "Required window" note moves in six examples).
+* Physics review: no bugs. Fixed: the kernel-cut wording (renormalised, not wrapped) and the scan-step numbers; a dense-scan accuracy check.
+  Open: a test of the downstream re-plan holding the memory, and `MemoryWarning` from that path; analytic (not four-times-window) references
+  for the two GridSolver tests; memory + satellite room are added (conservative, max would do); a non-finite `memoryS` is ignored silently;
+  the memory is not cached per response (a Python callback is evaluated about 42 000 times per plan).
+

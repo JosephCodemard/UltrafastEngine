@@ -664,7 +664,7 @@ Grid, carrier and solver accuracy.
 | `PulseBroadenedToZeroFrequency_IsReportedAndBooked` | energy conservation of the envelope model: a pulse broadened to zero frequency loses energy there, and says so | exact booking |
 | `Pulse_IsCentredOnTheRequestedCarrier_NotTheSnappedOne` | definition of the carrier: the input spectrum is centred on the requested wavelength | 1e-6 relative |
 | `PureSpm_PhaseIsGammaPL_OnEveryGrid_At515_1030_And2000nm` | pure SPM in a dispersion-free fibre: A_out = A_in exp(i gamma \|A_in\|^2 L) | 2e-5 relative |
-| `ResponseMemory_OfSmoothResponses_IsTheOriginalValue` | no change for smooth responses: the memory of every built-in delayed response and of every catalogue material is the value of the original scan, so their grids are unchanged | exact (bit-identical) |
+| `ResponseMemory_OfSmoothResponses_IsTheOriginalValue` | no change for smooth responses: the memory of every built-in delayed response and of every catalogue material is the value of the original scan, so their grids are unchanged | exact (bit-identical); dense scan 0.1 % of 9.21 tau |
 | `Shg_StronglyPhaseMismatchedThickCrystal_FollowsTheSincLaw_AtTheDefaultStepper` | plane-wave SHG at low conversion: eta(L) ~ sin^2(dk L / 2) (Armstrong et al., Phys. Rev. 127, 1918 (1962), eq. 2.14 limit) | 4 % (dispersion of the 5 ps pulse and finite bandwidth) |
 | `TimeResponseCallback_DeclaredMemory_IsHeldByTheWindow` | periodic time grid: a user time response that declares its memory (memoryS) gets a window that holds it (convergence against a window four times larger at the same time step) | centroid shift and rms broadening 1e-6 relative |
 

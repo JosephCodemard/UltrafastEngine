@@ -131,11 +131,12 @@ namespace UltrafastEngine.Engine
         /// <summary>
         /// The memory of a delayed response h(t) (integral 1, h = 0 for t &lt; 0): the time after which less than <paramref name="tailFraction"/> of
         /// its weight (the integral of |h|) remains. A nonlinear index change driven by a pulse lasts this long after the pulse; the material
-        /// Raman kernel is sampled on the window's time axis (to +T/2) and applied as a circular convolution, so unless the window holds pulse +
-        /// memory the kernel is cut (and renormalised) and its index change wraps around to the leading edge (CS2, tau = 18 ps: 9.2 tau = 166 ps
-        /// for 1e-4). Two scans: the original geometric axis from 1 fs to 10 us (1200 points, a step of 1.9 % of t), and a dense one that is
-        /// linear inside every decade (<see cref="DenseSamplesPerDecade"/> points: a step of 2.25e-4 of the decade's end, 2.25 fs from 1 to 10 ps),
-        /// which sees a narrow revival (a 20 fs echo at 12 ps) that the geometric axis steps over. The dense value is used only when it is
+        /// Raman kernel is sampled on the window's time axis (to +T/2), renormalised to unit sum and applied as a circular convolution, so a
+        /// window shorter than 2 x memory cuts the kernel and the part left acts 1/(kept fraction) too strongly; with pulse + satellites near
+        /// T/2 it also wraps (CS2, tau = 18 ps: 9.2 tau = 166 ps for 1e-4). Two scans: the original geometric axis from 1 fs to 10 us (1200 points, a step of 1.9 % of t), and a dense one that is
+        /// linear inside every decade (<see cref="DenseSamplesPerDecade"/> points: a step of 2.25e-4 of the decade's end, 2.25 fs from 1 to 10 ps,
+        /// 22.5 fs from 10 to 100 ps, 225 fs from 0.1 to 1 ns), which finds a revival of rms width above about step / 8 (a 20 fs rms echo at
+        /// 10.1 ps) that the geometric axis steps over. The dense value is used only when it is
         /// more than <see cref="DenseOverrideFactor"/> times the geometric one, so smooth responses keep the memory, and the grid, they had.
         /// </summary>
         public static double ResponseMemoryS(Models.IDelayedResponse r, double tailFraction = 1e-4)
@@ -213,7 +214,7 @@ namespace UltrafastEngine.Engine
             double dt = plan.WindowS / plan.N, need = Math.Max(plan.RequiredWindowS, 2 * memoryS);
             long nNeed = NextPow2((long)Math.Ceiling(need / dt));
             return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "The delayed response of element '{0}' keeps the index changed for {1:G4} ps after the pulse, but the window is {2:G4} ps: the response is cut at half the window and wraps around. " +
+                "The delayed response of element '{0}' keeps the index changed for {1:G4} ps after the pulse, but the window is {2:G4} ps: the response is cut at half the window and the part left acts too strongly. " +
                 "It needs a window of at least {3:G4} ps, N = {4} at dt = {5:G4} fs (grid.maxN = {6}); raise grid.maxN or grid.windowS / grid.n, or use grid.auto.",
                 elementId ?? "?", memoryS * 1e12, plan.WindowS * 1e12, need * 1e12, nNeed, dt * 1e15, maxN);
         }

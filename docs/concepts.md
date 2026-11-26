@@ -74,9 +74,10 @@ its kernel is not negligible, defined as the time after which less than 1e-4 of 
 exp(−t/τ)). The auto grid adds the longest memory of the system to the half-window it needs. Two responses count:
 
 * the material Raman kernel (`raman`, any `delayedResponse` kind, including `expression` and `callback`). It is sampled
-  on the window's time axis up to +T/2 and applied as a circular convolution, so a shorter window cuts it (and
-  renormalises what is left) and its index change wraps around. The memory is found by scanning h(t) from 1 fs to
-  10 µs, with a step fine enough (2.25e-4 of each decade) to see a narrow revival, for example a 20 fs echo at 10 ps;
+  on the window's time axis up to +T/2, renormalised to unit integral and applied as a circular convolution. A window
+  shorter than twice the memory cuts it, and the part left acts 1/(kept fraction) too strongly. The memory is found
+  by scanning h(t) from 1 fs to 10 µs with a step of 2.25e-4 of the end of each decade (22.5 fs from 10 to 100 ps).
+  This finds a revival of rms width above about step / 8, for example a 20 fs rms echo at 10.1 ps;
 * a user `timeResponse` that declares `memoryS`. The engine cannot look inside a callback. A response that convolves
   the intensity with a kernel on the periodic window must state how long the kernel lasts. Responses computed sample by
   sample from I(t) and the running fluence F(t) (every `expression`) never wrap and need no `memoryS`.

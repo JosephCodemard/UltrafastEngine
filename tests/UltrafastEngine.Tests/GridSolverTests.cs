@@ -261,7 +261,7 @@ namespace UltrafastEngine.Tests
             Assert.True(capped.Warnings.Any(w => w.Contains("delayed response of element 'cell'") && w.Contains("grid.maxN = 64") && w.Contains("N = ")), "the warning gives the window and N it needs");
         }
 
-        [Test(Reference = "no change for smooth responses: the memory of every built-in delayed response and of every catalogue material is the value of the original scan, so their grids are unchanged", Tolerance = "exact (bit-identical)")]
+        [Test(Reference = "no change for smooth responses: the memory of every built-in delayed response and of every catalogue material is the value of the original scan, so their grids are unchanged", Tolerance = "exact (bit-identical); dense scan 0.1 % of 9.21 tau")]
         public void ResponseMemory_OfSmoothResponses_IsTheOriginalValue()
         {
             var reg = Models.ModelRegistry.CreateDefault();
@@ -276,6 +276,9 @@ namespace UltrafastEngine.Tests
                 if (m?.Raman != null) list.Add(m.Raman);
             }
             Assert.Greater(list.Count, 6, "responses checked");
+            // the dense scan itself: exp(-t/tau)/tau leaves 1e-4 of its weight after ln(1e4) tau = 9.21 tau
+            var ex = new UltrafastEngine.Materials.FunctionDelayedResponse("exp", t => t.Select(x => x < 0 ? 0 : Math.Exp(-x / 18e-12) / 18e-12).ToArray());
+            Assert.Close(Math.Log(1e4) * 18e-12, UltrafastEngine.Engine.GridPlanner.DenseMemoryS(ex, 1e-4), 1e-3, 0, "dense memory of exp(-t/tau)");
             foreach (var r in list)
             {
                 double old = UltrafastEngine.Engine.GridPlanner.GeometricMemoryS(r, 1e-4), now = UltrafastEngine.Engine.GridPlanner.ResponseMemoryS(r);
