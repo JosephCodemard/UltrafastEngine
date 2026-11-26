@@ -1,0 +1,16 @@
+{
+  // The system of quickstart.py as a system file: two 3 mm fused-silica plates, 0.10 m of air between them and a chirped
+  // mirror (-150 fs^2 per bounce, two bounces). The beam is a 150 um Gaussian waist at the centre of each plate.
+  "$schema": "../../../../schemas/ufs.schema.json",
+  "format": "ultrafast-system",
+  "version": 2,
+  "name": "two-plates",
+  "elements": [
+    { "id": "plate1", "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3,
+      "beam": { "kind": "gaussian", "w0M": 150e-6, "zWaistM": 1.5e-3, "m2": 1.0 } },
+    { "id": "air", "type": "gap", "material": "Air", "lengthM": 0.10 },
+    { "id": "cm", "type": "chirpedMirror", "gddS2": -150e-30, "todS3": 0.0, "bounces": 2, "reflectance": 0.999 },
+    { "id": "plate2", "type": "bulk", "material": "FusedSilica", "lengthM": 3e-3,
+      "beam": { "kind": "gaussian", "w0M": 150e-6, "zWaistM": 1.5e-3, "m2": 1.0 } }
+  ]
+}

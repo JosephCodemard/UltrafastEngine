@@ -1,0 +1,12 @@
+{
+  "title": "Self-focusing in a glass plate (spatial model)",
+  "summary": "A 4 µJ, 300 fs pulse at 1030 nm (about 3 times the critical power) crosses 10 mm of fused silica with a 100 µm collimated beam; the Kerr lens shrinks the beam to 97.4 µm against 102.5 µm without it, the wavefront curves to R = -70 mm and the pulse on axis is 234 fs against 327 fs in the wings.",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "spatial-kerr.png"
+  ],
+  "wave": 2,
+  "python": true
+}

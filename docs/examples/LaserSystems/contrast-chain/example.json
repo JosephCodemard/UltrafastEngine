@@ -1,0 +1,12 @@
+{
+  "title": "Contrast of an amplifier chain",
+  "summary": "A 300 fs, 5 mJ pulse through a stretcher, an uncoated window and a Kerr medium: the window's ghost (relative intensity 1.1e-3, 29 ps after the main pulse) becomes a pre-pulse at -30.6 dB after compression (post-pulse -26.6 dB), and the pre-pulse worsens by 20 dB per decade of energy above 1 mJ.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "contrast-chain.png"
+  ],
+  "wave": 2,
+  "python": true
+}

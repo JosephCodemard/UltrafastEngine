@@ -22,11 +22,11 @@ A 10 mm "doped glass" rod on a radial grid.
 
 ![18 -- A nonlinear medium you define: n(x, y, z, t, I, F): figure](examples/GettingStarted/custom-nonlinear-medium/hero.png)
 
-### [00 -- Python quick start](examples/GettingStarted/quickstart/README.md)
+### [Python quick start](examples/GettingStarted/quickstart/README.md)
 
-Build a system in Python, run it, read the results and scan a parameter.
+Build a system in Python, run it, read the results and scan a parameter: two 3 mm fused-silica plates take a 180 fs, 8 µJ pulse at 1030 nm to a B-integral of 1.14 rad, and its broadened spectrum compresses to 114 fs.
 
-![00 -- Python quick start: figure](examples/GettingStarted/quickstart/hero.png)
+![Python quick start: figure](examples/GettingStarted/quickstart/hero.png)
 
 ### [12 -- A user element in Python: a programmable pulse shaper](examples/GettingStarted/user-element/README.md)
 
@@ -36,49 +36,49 @@ Build a system in Python, run it, read the results and scan a parameter.
 
 ## LaserSystems
 
-### [38 -- A four-grating compressor, grating by grating](examples/LaserSystems/four-grating-compressor/README.md)
+### [A four-grating compressor, grating by grating](examples/LaserSystems/four-grating-compressor/README.md)
 
-A compressor on the command line.
+A compressor written grating by grating (1200 lines/mm, 45°): the spatial chirp opens to 28.3 mm per 100 nm after the first pair and closes to zero after the second, and the total GDD of -1.547 ps² equals Treacy's formula for two pairs.
 
-![38 -- A four-grating compressor, grating by grating: figure](examples/LaserSystems/four-grating-compressor/hero.png)
+![A four-grating compressor, grating by grating: figure](examples/LaserSystems/four-grating-compressor/hero.png)
 
-### [42 -- A non-collinear OPA with the angle from the pump arm](examples/LaserSystems/noncollinear-opa/README.md)
+### [A non-collinear OPA with the angle from the pump arm](examples/LaserSystems/noncollinear-opa/README.md)
 
-A NOPA on the command line, as a Branched system.
+A 1030 nm pulse is doubled in BBO, the 515 nm pump reaches a second BBO crystal through an arm tilted by 4° (2.42° inside the crystal, BBO's magic angle) and amplifies an 800 nm, 10 nJ seed to 14.1 µJ, with an idler of 7.8 µJ leaving at 11.3° and a Manley-Rowe residual of -2e-8.
 
-![42 -- A non-collinear OPA with the angle from the pump arm: figure](examples/LaserSystems/noncollinear-opa/hero.png)
+![A non-collinear OPA with the angle from the pump arm: figure](examples/LaserSystems/noncollinear-opa/hero.png)
 
-### [20 -- A complete Yb laser system: oscillator → stretcher → amplifier → compressor](examples/LaserSystems/yb-laser-system/README.md)
+### [A complete Yb laser system: oscillator, stretcher, amplifier, compressor](examples/LaserSystems/yb-laser-system/README.md)
 
-ultrafast run system.ufs run.json -o results ultrafast-plot results          # system, oscillator, gain, instruments ...
+A SESAM mode-locked Yb:YAG oscillator (1.08 W, 871 fs) feeds a grating stretcher, an 8-pass Yb:YAG amplifier at 10 kHz and a compressor, and the system delivers 198 µJ in 1.08 ps, at the transform limit of the amplified spectrum.
 
-![20 -- A complete Yb laser system: oscillator → stretcher → amplifier → compressor: figure](examples/LaserSystems/yb-laser-system/hero.png)
+![A complete Yb laser system: oscillator, stretcher, amplifier, compressor: figure](examples/LaserSystems/yb-laser-system/hero.png)
 
 ## Nonlinear
 
-### [06 -- Carrier-resolved propagation (index varying on the optical-cycle scale)](examples/Nonlinear/carrier-resolved/README.md)
+### [Carrier-resolved propagation](examples/Nonlinear/carrier-resolved/README.md)
 
-The time response in `fast-index.ufs` is written in **lab time** (`t_lab`) and oscillates at 60 THz.
+A 60 fs, 0.1 µJ pulse at 800 nm crosses 0.2 mm of fused silica whose index is modulated at 60 THz; the engine propagates the real optical field instead of the envelope, and the modulation puts sidebands about 46 dB below the peak near 691 nm and 951 nm.
 
-![06 -- Carrier-resolved propagation (index varying on the optical-cycle scale): figure](examples/Nonlinear/carrier-resolved/hero.png)
+![Carrier-resolved propagation: figure](examples/Nonlinear/carrier-resolved/hero.png)
 
-### [24 -- Air at a focus: rotational Raman, ionisation and pulse retrieval](examples/Nonlinear/filament/README.md)
+### [Air at a focus: rotational Raman, ionisation and pulse retrieval](examples/Nonlinear/filament/README.md)
 
-A 0.4 mJ, 40 fs pulse at 800 nm focused (w0 = 100 µm) in the middle of 1 m of air.
+A 0.4 mJ, 40 fs pulse at 800 nm focused (w0 = 100 µm) in the middle of 1 m of air gains B = 6.65 rad, loses 8.8 % of its energy to photo-ionisation and shifts its spectral centroid from 800 nm to 815 nm; a simulated SHG-FROG of the output retrieves a 50.3 fs pulse (51.3 fs simulated).
 
-![24 -- Air at a focus: rotational Raman, ionisation and pulse retrieval: figure](examples/Nonlinear/filament/hero.png)
+![Air at a focus: rotational Raman, ionisation and pulse retrieval: figure](examples/Nonlinear/filament/hero.png)
 
-### [10 -- Mid-IR difference-frequency generation in MgO:PPLN](examples/Nonlinear/ppln-dfg/README.md)
+### [Mid-IR difference-frequency generation in MgO:PPLN](examples/Nonlinear/ppln-dfg/README.md)
 
-A 1064 nm pump (1 uJ, 1 ps) and a 1550 nm signal (10 nJ) generate a 3.39 um idler in 5 mm of periodically poled MgO:LiNbO3 (type 0, all extraordinary, d33).
+A 1064 nm pump (1 µJ, 1 ps) and a 1550 nm signal (10 nJ) generate 212 nJ of 3.39 µm idler in 5 mm of periodically poled MgO:LiNbO3 (type 0, d33, QPM period 30.6 µm), with 68 % of the pump depleted.
 
-![10 -- Mid-IR difference-frequency generation in MgO:PPLN: figure](examples/Nonlinear/ppln-dfg/hero.png)
+![Mid-IR difference-frequency generation in MgO:PPLN: figure](examples/Nonlinear/ppln-dfg/hero.png)
 
-### [29 -- Small-scale self-focusing in a 2-D plate (P / P_cr ≈ 100)](examples/Nonlinear/small-scale-self-focusing/README.md)
+### [Small-scale self-focusing in a 2-D plate](examples/Nonlinear/small-scale-self-focusing/README.md)
 
-A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radius 0.3 mm: 3.3·10⁸ W, about 100 times the critical power for self-focusing.
+A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radius 0.3 mm at 96.5 times the critical power; 1 % seeded noise grows 3.13 times in the plate (B = 4.27 rad) and is not yet saturated.
 
-![29 -- Small-scale self-focusing in a 2-D plate (P / P_cr ≈ 100): figure](examples/Nonlinear/small-scale-self-focusing/hero.png)
+![Small-scale self-focusing in a 2-D plate: figure](examples/Nonlinear/small-scale-self-focusing/hero.png)
 
 ## Diffraction
 
@@ -90,17 +90,17 @@ A Michelson interferometer on the command line, in a Branched `.ufs` file.
 
 ## Wavefronts
 
-### [16 -- Position-dependent material properties](examples/Wavefronts/position-dependent-index/README.md)
+### [Position-dependent material properties](examples/Wavefronts/position-dependent-index/README.md)
 
-`indexProfile`, `absorptionProfile` and `n2Scale` make any material property a function of position (x, y, z, r, θ).
+A 5 mm fused-silica rod with a parabolic index profile is a thin lens of f = 0.2 m, and the engine focuses a 0.5 mm beam to 132 µm, within 1 % of the thin-lens 131 µm, whether the profile is an expression, a table or a Python function.
 
-![16 -- Position-dependent material properties: figure](examples/Wavefronts/position-dependent-index/hero.png)
+![Position-dependent material properties: figure](examples/Wavefronts/position-dependent-index/hero.png)
 
-### [15 -- Spatially resolved gain and the thermal lens](examples/Wavefronts/spatial-gain-thermal-lens/README.md)
+### [Spatially resolved gain and the thermal lens](examples/Wavefronts/spatial-gain-thermal-lens/README.md)
 
-A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod once, end-pumped by 60 W at 940 nm (super-Gaussian, 0.6 mm, double pass).
+A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod end-pumped by 60 W: the heat load writes a thermal lens of f = 0.54 m into the wavefront, and the beam 0.4 m behind the rod has shrunk from 471 µm to 319 µm.
 
-![15 -- Spatially resolved gain and the thermal lens: figure](examples/Wavefronts/spatial-gain-thermal-lens/hero.png)
+![Spatially resolved gain and the thermal lens: figure](examples/Wavefronts/spatial-gain-thermal-lens/hero.png)
 
 ## Branched
 

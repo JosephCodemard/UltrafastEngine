@@ -1,0 +1,10 @@
+{
+  "title": "Kerr-lens mode-locked Ti:sapphire oscillator (Haus model)",
+  "summary": "A Haus master-equation model of an 80 MHz Kerr-lens mode-locked Ti:sapphire laser starts from quantum noise and settles after 5925 round trips into a single 74.1 fs soliton of 825 pJ, 4 % above the 71.3 fs of the soliton area theorem.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": ["klm-oscillator.png"],
+  "wave": 2,
+  "python": true
+}

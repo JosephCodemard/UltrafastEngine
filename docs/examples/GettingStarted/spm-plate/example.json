@@ -1,0 +1,10 @@
+{
+  "title": "SPM in a fused-silica plate",
+  "summary": "A 250 fs, 4 µJ pulse at 1030 nm crosses 6.35 mm of fused silica with a B-integral of 0.667 rad; self-phase modulation broadens the spectrum so that an ideal compressor shortens the pulse to 189 fs, close to its 184 fs transform limit.",
+  "group": "GettingStarted",
+  "script": "run.json",
+  "plugins": [],
+  "figures": ["spm-plate.png"],
+  "wave": 2,
+  "python": true
+}

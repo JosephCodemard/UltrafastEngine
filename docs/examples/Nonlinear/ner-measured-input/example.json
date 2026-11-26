@@ -1,0 +1,12 @@
+{
+  "title": "Nonlinear ellipse rotation, driven by a digitised spectrum",
+  "summary": "Ten 3 mm fused-silica plates rotate the polarisation ellipse of a digitised 1030 nm pulse (ellipticity 0.3, 3 µJ, B = 1.39 rad) by 10.23 deg, within 2 % of the analytic 10.07 deg; a simulated OSA trace after the plates agrees with the recording to 0.43 % rms.",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "ner-measured.png"
+  ],
+  "wave": 2,
+  "python": true
+}

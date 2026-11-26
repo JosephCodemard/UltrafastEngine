@@ -1,0 +1,12 @@
+{
+  "title": "Air at a focus: rotational Raman, ionisation and pulse retrieval",
+  "summary": "A 0.4 mJ, 40 fs pulse at 800 nm focused (w0 = 100 µm) in the middle of 1 m of air gains B = 6.65 rad, loses 8.8 % of its energy to photo-ionisation and shifts its spectral centroid from 800 nm to 815 nm; a simulated SHG-FROG of the output retrieves a 50.3 fs pulse (51.3 fs simulated).",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}

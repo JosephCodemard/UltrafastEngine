@@ -5,7 +5,7 @@
 //   ultrafast agent list
 //   ultrafast agent install --target claude|codex|cursor [--dest DIR] [--force]
 //   ultrafast agent mcp-config [--workspace DIR] [--client claude|codex]
-// Nothing outside --dest is touched; an existing skill file is overwritten only with --force; for codex the block between the markers is replaced.
+// Also written: the user guide (pack/AGENTS.md) and .ultrafast/llms.txt. Nothing outside --dest is touched; an existing skill file is overwritten only with --force; for codex the block between the markers is replaced.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,6 +39,13 @@ namespace UltrafastEngine.Cli
                 using (var r = new StreamReader(asm.GetManifestResourceStream(n), Utf8)) res[name] = r.ReadToEnd().Replace("\r\n", "\n");
             }
             return res;
+        }
+
+        /// <summary>An embedded top-level pack file (AGENTS.md, llms.txt), LF line ends.</summary>
+        public static string PackFile(string name)
+        {
+            var asm = typeof(AgentCommand).Assembly;
+            using (var r = new StreamReader(asm.GetManifestResourceStream("agentpack/" + name), Utf8)) return r.ReadToEnd().Replace("\r\n", "\n");
         }
 
         private static void Split(string text, out Dictionary<string, string> meta, out string body)
@@ -98,10 +105,13 @@ namespace UltrafastEngine.Cli
             }
             if (target == "claude")
             {
+                Write(Path.Combine(dest, ".claude", "ultrafast", "AGENTS.md"), PackFile("AGENTS.md"));
                 foreach (var kv in sk) Write(Path.Combine(dest, ".claude", "skills", kv.Key, "SKILL.md"), kv.Value.TrimEnd('\n') + Footer);
             }
             else if (target == "cursor")
             {
+                Write(Path.Combine(dest, ".cursor", "rules", "ultrafast-guide.mdc"),
+                    "---\ndescription: How to drive UltrafastEngine (system files, run specs, results, MCP)\nalwaysApply: true\n---\n" + PackFile("AGENTS.md"));
                 foreach (var kv in sk)
                 {
                     Split(kv.Value, out var meta, out var body);
@@ -111,7 +121,7 @@ namespace UltrafastEngine.Cli
             }
             else
             {
-                var block = new List<string> { Begin, "# UltrafastEngine skills (installed by `ultrafast-agent install --target codex`)", "" };
+                var block = new List<string> { Begin, PackFile("AGENTS.md").TrimEnd('\n'), "", "# UltrafastEngine skills (installed by `ultrafast-agent install --target codex`)", "" };
                 foreach (var kv in sk)
                 {
                     Split(kv.Value, out var meta, out var body);
@@ -132,6 +142,7 @@ namespace UltrafastEngine.Cli
                 else neu = (old.Trim().Length > 0 ? old.TrimEnd('\n') + "\n\n" : "") + joined;
                 Write(p, neu);
             }
+            Write(Path.Combine(dest, ".ultrafast", "llms.txt"), PackFile("llms.txt"));
             return written;
         }
     }

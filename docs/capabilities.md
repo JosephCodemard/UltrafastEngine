@@ -47,6 +47,7 @@ in the [option reference](reference/options.md#elements). Aliases in brackets.
 | `oscillator`, `saturableAbsorber` (`sesam`) | mode-locked oscillators (parametric, Haus, cavity model); SESAM, fast and Kerr-lens absorbers | [Oscillators](reference/oscillators.md) |
 | `resonator` | passive resonator around nested elements: round-trip matrix, stability, eigenmode, Fox-Li mode and loss | [Oscillators](reference/oscillators.md#resonators) |
 | `user` | your own function of the main beam's spectrum (Python, C#, C) | [Active elements](reference/active-elements.md#user-elements) |
+| `modulator` | pixelated modulator: SLM, deformable-mirror surface or tile mask on a cell grid | [Modulator](reference/modulator.md) |
 | `probe` (`marker`) | a named place for snapshots and instruments; does nothing to the beam | [System file](reference/system-file.md) |
 | `deformableMirror`, `slm`, `spectralShaper`, `aopdf` (ao plugin) | parametric adaptive-optics devices: a deformable mirror and an SLM (cells, influence, stroke, grey levels, liquid-crystal dispersion), a pixelated spectral shaper and an AOPDF; holograms, wavefront control and sensorless optimisers in Python | [AO plugin](plugins/ao.md) |
 | `transform` (fitting plugin) | fittable spectral phase and amplitude, energy, polarisation, contrast, wavefront | [Fitting plugin](plugins/fitting.md#transform-elements) |
@@ -110,10 +111,13 @@ Capabilities that depend on outside software or are not needed by everyone are p
   backward propagation of a measured field to the input.
 * **zemax** (experimental) — exports a sequential OpticStudio system to a system file. Not tested against a real OpticStudio;
   see [Zemax plugin](plugins/zemax.md) for its status.
-* **gpu** — CUDA and OpenCL compute back-ends for 1-D and spatial envelope propagation (double precision), and native CPU
+* **gpu** — CUDA and OpenCL compute back-ends for 1-D and spatial envelope propagation (double precision by default; `compute.precision: "mixed"` evaluates the nonlinear operator of 1-D envelope and χ(2) elements in single precision), and native CPU
   FFTs (Apple Accelerate, FFTW) ([GPU](plugins/gpu.md)).
 * **hitran** — gas absorption and dispersion from HITRAN line lists (Voigt lines, TIPS partition sums) in air gaps and
   `environment.air`, checked against HAPI for H₂O, CO₂ and O₂ ([HITRAN](plugins/hitran.md)).
+
+* **ao** — the parametric adaptive-optics elements `deformableMirror`, `slm`, `spectralShaper` and `aopdf` and their algorithms ([AO plugin](plugins/ao.md)).
+* **twin** — the digital twin of a lab project: a multi-condition fit, validation against held-out conditions and prediction with credible bands (`ultrafast twin`, the MCP tools `twin_fit`, `twin_validate`, `twin_predict`; [Twin plugin](plugins/twin.md)).
 
 Anyone can add element types, instruments, models, run modes, retrieval methods, compute back-ends and CLI commands
 the same way ([Plugin system](reference/plugins.md)).
@@ -164,7 +168,7 @@ the same way ([Plugin system](reference/plugins.md)).
 
 * A pulse of about one optical cycle broadened by SPM until its spectrum reaches zero frequency (for example 10 fs at 2 µm, B = 3) is cut at zero frequency (the envelope model has no negative frequencies); the engine warns and books the lost energy as `spectrum at non-positive frequency`. Use the carrier-resolved model there.
 * The window frame follows the group delay at the lattice centre, not at the pulse carrier: a dispersive pulse whose carrier sits off the lattice drifts by GDD x offset x L inside the window (73 fs for a 1 ps soliton over 3 dispersion lengths at 515 nm). `snapCarrier: false` removes it.
-* A continuous-wave source is one frequency-grid line and sits on the nearest bin (a relative error of about 3e-7 in its frequency on the default grid); only pulses are built at the requested carrier.
+* A continuous-wave source is one frequency-grid line. The engine shifts the lattice so that a bin sits exactly on the requested carrier; writing `snapCarrier: true` restores the snapped lattice that carrier-resolved models need. A pulse is built at the requested carrier as an offset of the snapped lattice.
 * The grid planner adds the memory of Raman and orientational delayed responses to the window; a generic `timeResponse` or a gas rotational revival is not planned for, so give a window that holds them.
 * A round aperture ignores `decenterXM` on a one-dimensional beam (a rectangular aperture does not). The tracked-beam overlap of crossing beams in a non-collinear crystal is a Gaussian-overlap estimate (a 2° crossing at 64 / 150 µm radii costs about half of the collinear gain); use a transverse model when it matters.
 * The cubic Kerr anisotropy (cross-polarised waves) runs in 1-D envelope propagation only: spatial (`transverse`) and carrier-resolved fields throw, and GPU back-ends do not take it.
@@ -183,6 +187,6 @@ the same way ([Plugin system](reference/plugins.md)).
 
 * The 1.0.0 alpha is the first release on PyPI (`pip install --pre ultrafast-engine`, platform-independent wheel; the NativeAOT library and a NuGet package are built from source or come with the release assets).
 * GPU back-ends (`gpu` plugin: CUDA, OpenCL) run 1-D envelope and spatial envelope propagation (with the rotational Raman
-  of gases and `expression` / two-photon / extra-Kerr time responses); response callbacks, position-dependent properties, carrier-resolved fields, spatial χ(2) models, amplifiers and ionisation run on the CPU (1-D χ(2) crystals run on the device). Apple GPUs
+  of gases and `expression` / two-photon / extra-Kerr time responses); response callbacks, position-dependent properties, carrier-resolved fields, spatial χ(2) models, amplifiers and ionisation in spatial elements run on the CPU (1-D χ(2) crystals and ionisation in 1-D envelope elements run on the device). Apple GPUs
   are not used (no double precision); macOS uses the Accelerate FFT on the CPU ([GPU](plugins/gpu.md)).
 * The zemax plugin has never been run against a real OpticStudio ([status](plugins/zemax.md)).

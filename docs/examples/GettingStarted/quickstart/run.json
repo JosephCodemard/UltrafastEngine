@@ -1,0 +1,8 @@
+{
+  // The run of quickstart.py: a 180 fs, 8 uJ Gaussian pulse at 1030 nm and an ideal compressor at the end.
+  "$schema": "../../../../schemas/run.schema.json",
+  "format": "ultrafast-run", "version": 2,
+  "name": "run",
+  "pulse": { "shape": "gaussian", "centerWavelengthM": 1.03e-6, "durationFwhmS": 180e-15, "energyJ": 8e-6, "polarization": "x" },
+  "instruments": [ { "kind": "compressor", "name": "compressor" } ]
+}

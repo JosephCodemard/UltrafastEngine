@@ -8,9 +8,9 @@ First runs: build a system, run it, read the results, bring your own index, elem
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [quickstart](GettingStarted/quickstart/README.md) | 00 | Python | build a system in code, run it, read results, scan a parameter | `python quickstart.py` |
+| [quickstart](GettingStarted/quickstart/README.md) | 00 | Python + CLI | build a system in code, run it, read results, scan a parameter | `python quickstart.py`, `ultrafast run two-plates.ufs run.json` |
 | [calculators](GettingStarted/calculators/README.md) | new | Python | `ultrafast.calc`: transform limit, lens mode matching, critical power and B-integral, BBO phase matching, checked against an engine run | `python calculators.py` |
-| [spm-plate](GettingStarted/spm-plate/README.md) | 01 | CLI | SPM in an AR-coated plate, instruments, provenance, overrides | `ultrafast run plate.ufs run.json` |
+| [spm-plate](GettingStarted/spm-plate/README.md) | 01 | CLI + Python | SPM in an AR-coated plate, instruments, provenance, overrides | `ultrafast run plate.ufs run.json` |
 | [custom-index-python](GettingStarted/custom-index-python/README.md) | 04 | Python | your own n(t, I) as a NumPy callback (plasma + MPA) | `python custom_response.py` |
 | [user-element](GettingStarted/user-element/README.md) | 12 | Python | a pulse shaper written in Python as a user element | `python dazzler.py` |
 | [custom-nonlinear-medium](GettingStarted/custom-nonlinear-medium/README.md) | 18 | CLI + Python | your own n(x, y, z, t, I, F): expression and Python function | `ultrafast run medium.ufs run.json`, `python custom_medium.py` |
@@ -21,16 +21,16 @@ Stretcher, amplifier, compressor and parametric chains, oscillators, and the con
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [stretcher-compressor](LaserSystems/stretcher-compressor/README.md) | 02 | CLI | CPA line from analytic elements; grid sizing for ns stretching; photodiode, residual chirp | `ultrafast run cpa.ufs run.json` |
-| [yb-multipass-cpa](LaserSystems/yb-multipass-cpa/README.md) | 13 | CLI | Yb:YAG CPA: cw-pumped 8-pass amplifier, steady state at 10 kHz, gain narrowing, thermal lens | `ultrafast run amp.ufs run.json` |
-| [ti-sapphire-regen](LaserSystems/ti-sapphire-regen/README.md) | 14 | CLI | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 41 fs | `ultrafast run regen.ufs run.json` |
-| [ti-sapphire-klm-haus](LaserSystems/ti-sapphire-klm-haus/README.md) | 19 | CLI | KLM Ti:sapphire oscillator (Haus model) from noise; soliton area theorem | `ultrafast run laser.ufs run.json` |
-| [yb-laser-system](LaserSystems/yb-laser-system/README.md) | 20 | CLI | SESAM Yb:YAG oscillator → stretcher → amplifier → compressor | `ultrafast run system.ufs run.json` |
-| [four-grating-compressor](LaserSystems/four-grating-compressor/README.md) | 38 | CLI | a compressor grating by grating: spatial chirp opens and closes, GDD against Treacy | `ultrafast run compressor.ufs run.json -o results`, `python report.py` |
-| [shg-lbo](LaserSystems/shg-lbo/README.md) | 08 | CLI | SHG in LBO: carrier change, by-products, phase-matching instruments, radial variant | `ultrafast run shg.ufs run.json` |
-| [nopcpa-bbo](LaserSystems/nopcpa-bbo/README.md) | 09 | CLI | non-collinear OPCPA (magic angle), pump from example 08's results, delay scan, compressor | `ultrafast run nopcpa.ufs run.json` |
-| [noncollinear-opa](LaserSystems/noncollinear-opa/README.md) | 42 | CLI | a NOPA in a Branched `.ufs`: the pump arm's tilt sets the angle, a virtual seed, the idler's direction from transverse momentum | `ultrafast run nopa.ufs run.json -o results`, `python report.py` |
-| [contrast-chain](LaserSystems/contrast-chain/README.md) | 22 | CLI | a window's ghost becomes a pre-pulse through the Kerr effect; pedestal, third-order cross-correlator, energy scan with a parameter study | `ultrafast run chain.ufs run.json`, `ultrafast study study.json` |
+| [stretcher-compressor](LaserSystems/stretcher-compressor/README.md) | 02 | CLI + Python | CPA line from analytic elements; grid sizing for ns stretching; photodiode, residual chirp | `ultrafast run cpa.ufs run.json -o results` |
+| [yb-multipass-cpa](LaserSystems/yb-multipass-cpa/README.md) | 13 | CLI + Python | Yb:YAG CPA: cw-pumped 8-pass amplifier, steady state at 10 kHz, gain narrowing, thermal lens | `ultrafast run amp.ufs run.json` |
+| [ti-sapphire-regen](LaserSystems/ti-sapphire-regen/README.md) | 14 | CLI + Python | 1 kHz Ti:sapphire regen, pulsed green pump, automatic ejection, recompression to 41 fs | `ultrafast run regen.ufs run.json` |
+| [ti-sapphire-klm-haus](LaserSystems/ti-sapphire-klm-haus/README.md) | 19 | CLI + Python | KLM Ti:sapphire oscillator (Haus model) from noise; soliton area theorem | `ultrafast run laser.ufs run.json` |
+| [yb-laser-system](LaserSystems/yb-laser-system/README.md) | 20 | CLI + Python | SESAM Yb:YAG oscillator → stretcher → amplifier → compressor | `ultrafast run system.ufs run.json` |
+| [four-grating-compressor](LaserSystems/four-grating-compressor/README.md) | 38 | CLI + Python | a compressor grating by grating: spatial chirp opens and closes, GDD against Treacy | `ultrafast run compressor.ufs run.json -o results`, `python report.py` |
+| [shg-lbo](LaserSystems/shg-lbo/README.md) | 08 | CLI + Python | SHG in LBO: carrier change, by-products, phase-matching instruments, radial variant | `ultrafast run shg.ufs run.json` |
+| [nopcpa-bbo](LaserSystems/nopcpa-bbo/README.md) | 09 | CLI + Python | non-collinear OPCPA (magic angle), pump from example 08's results, delay scan, compressor | `ultrafast run nopcpa.ufs run.json` |
+| [noncollinear-opa](LaserSystems/noncollinear-opa/README.md) | 42 | CLI + Python | a NOPA in a Branched `.ufs`: the pump arm's tilt sets the angle, a virtual seed, the idler's direction from transverse momentum | `ultrafast run nopa.ufs run.json -o results`, `python report.py` |
+| [contrast-chain](LaserSystems/contrast-chain/README.md) | 22 | CLI + Python | a window's ghost becomes a pre-pulse through the Kerr effect; pedestal, third-order cross-correlator, energy scan with a parameter study | `ultrafast run chain.ufs run.json`, `ultrafast study study.json` |
 
 ## Nonlinear
 
@@ -38,14 +38,14 @@ Kerr, plasma, Raman, supercontinuum, chi(2) conversion in gases, fibres and crys
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [mpc-argon](Nonlinear/mpc-argon/README.md) | 03 | Python + CLI | 20-pass argon Herriott cell generated from Python; per-pass B, LIDT, compression | `python make_mpc.py; ultrafast run mpc.ufs run.json` |
-| [carrier-resolved](Nonlinear/carrier-resolved/README.md) | 06 | CLI | index modulated on the fs scale in lab time -> real-field propagation | `ultrafast run fast-index.ufs run.json` |
-| [spatial-kerr](Nonlinear/spatial-kerr/README.md) | 11 | CLI | self-focusing with diffraction resolved (radial model), profile carried through free space; on-axis vs whole-beam spectra and autocorrelations (pinhole, slit, fibre in the far field) | `ultrafast run kerr.ufs run.json` |
-| [filament](Nonlinear/filament/README.md) | 24 | CLI | a gas cell with rotational Raman and ionisation: blue shift, plasma density, retrieval of the output pulse from a simulated FROG | `ultrafast run cell.ufs run.json`, `ultrafast retrieve pcgpa results/result.npz` |
-| [supercontinuum](Nonlinear/supercontinuum/README.md) | 25 | CLI | the PCF supercontinuum benchmark (Dudley 2006): `fiber` element with beta2..beta10, soliton fission, dispersive waves, coherence over quantum-noise realisations | `ultrafast run pcf.ufs run.json`, `ultrafast study coherence.json` |
+| [mpc-argon](Nonlinear/mpc-argon/README.md) | 03 | CLI + Python | 20-pass argon Herriott cell generated from Python; per-pass B, LIDT, compression | `python make_mpc.py; ultrafast run mpc.ufs run.json` |
+| [carrier-resolved](Nonlinear/carrier-resolved/README.md) | 06 | CLI + Python | index modulated on the fs scale in lab time -> real-field propagation | `ultrafast run fast-index.ufs run.json` |
+| [spatial-kerr](Nonlinear/spatial-kerr/README.md) | 11 | CLI + Python | self-focusing with diffraction resolved (radial model), profile carried through free space; on-axis vs whole-beam spectra and autocorrelations (pinhole, slit, fibre in the far field) | `ultrafast run kerr.ufs run.json` |
+| [filament](Nonlinear/filament/README.md) | 24 | CLI + Python | a gas cell with rotational Raman and ionisation: blue shift, plasma density, retrieval of the output pulse from a simulated FROG | `ultrafast run cell.ufs run.json`, `ultrafast retrieve pcgpa results/result.npz` |
+| [supercontinuum](Nonlinear/supercontinuum/README.md) | 25 | CLI + Python | the PCF supercontinuum benchmark (Dudley 2006): `fiber` element with beta2..beta10, soliton fission, dispersive waves, coherence over quantum-noise realisations | `ultrafast run pcf.ufs run.json`, `ultrafast study coherence.json` |
 | [ner-measured-input](Nonlinear/ner-measured-input/README.md) | 27 | CLI + Python | nonlinear ellipse rotation in 10 fused-silica plates driven by a digitised spectrum (floor, rows out of order, a repeated wavelength): cleaning and background, the satellite window, rotation vs analytic with the anisotropic Raman response, an OSA recording compared at its resolution and range | `python ner.py` |
-| [small-scale-self-focusing](Nonlinear/small-scale-self-focusing/README.md) | 29 | CLI | a 10 mm fused-silica plate at P / P_cr ≈ 100 in a flat-top beam on a 128 x 128 cartesian grid, seeded noise, small-scale gain and the Bespalov-Talanov reference | `ultrafast run plate.ufs run.json` |
-| [ppln-dfg](Nonlinear/ppln-dfg/README.md) | 10 | CLI | mid-IR DFG in MgO:PPLN (QPM), idler as main beam, spectral margin; pyNLO comparison | `ultrafast run dfg.ufs run.json` |
+| [small-scale-self-focusing](Nonlinear/small-scale-self-focusing/README.md) | 29 | CLI + Python | a 10 mm fused-silica plate at P / P_cr ≈ 100 in a flat-top beam on a 128 x 128 cartesian grid, seeded noise, small-scale gain and the Bespalov-Talanov reference | `ultrafast run plate.ufs run.json` |
+| [ppln-dfg](Nonlinear/ppln-dfg/README.md) | 10 | CLI + Python | mid-IR DFG in MgO:PPLN (QPM), idler as main beam, spectral margin; pyNLO comparison | `ultrafast run dfg.ufs run.json` |
 
 ## Diffraction
 
@@ -63,8 +63,8 @@ Position-dependent index and spatially resolved gain: lenses and aberrations mad
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [position-dependent-index](Wavefronts/position-dependent-index/README.md) | 16 | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `python grin_variants.py` |
-| [spatial-gain-thermal-lens](Wavefronts/spatial-gain-thermal-lens/README.md) | 15 | CLI | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json` |
+| [position-dependent-index](Wavefronts/position-dependent-index/README.md) | 16 | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `ultrafast run grin.ufs run.json -o results`, `python grin_variants.py` |
+| [spatial-gain-thermal-lens](Wavefronts/spatial-gain-thermal-lens/README.md) | 15 | CLI + Python | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json -o results-60W` |
 
 ## Branched
 

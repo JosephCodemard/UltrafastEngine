@@ -19,24 +19,34 @@ was used -- given or default -- so a results file says exactly which instrument 
 each a `name`; a repeated or missing name is made unique (`spectrometer_plate`, `spectrometer_plate_2`, ...), with a
 warning when a name you gave is used twice.
 
-| kind | parameters | reports |
+There are 24 kinds. Every key, with its unit and default, is in the [option reference](options.md#instruments); the table gives what each kind reports and the keys that decide its answer.
+
+| kind | what it reports (key results) | keys that matter |
 |---|---|---|
-| `energyMeter` (`powerMeter`) | `rangeM` [min, max], `polarizerDeg`, `repRateHz` | energyJ, averagePowerW, transmissionFromInput; with `rangeM` the edge bins count with the fraction of the bin inside the band (error falls as the square of the bin width) |
-| `spectrometer` | `resolutionM` (Gaussian FWHM), `rangeM`, `points`, `polarizerDeg`, `normalize` (`peak` / `area` / `none` = J/m), `db`, `wavelengthOffsetM` | spectrum vs wavelength; peak, centroid, FWHM, RMS and -10 dB widths |
-| `scope` (`photodiode`) | `riseTimeS` or `bandwidthHz`, `points` | detected power vs time (impulse-response limited), FWHM, peak |
-| `autocorrelator` | `type`: `intensity` (default) or `interferometric`; `rangeS`, `points`, `resolutionS` (delay resolution), `shgAcceptanceFwhmM` (crystal bandwidth) | trace; AC FWHM and deconvolved FWHM (Gaussian sqrt2, sech^2 1.543); IAC peak-to-background (8:1; the delay axis is symmetric with an odd number of points, so it contains d = 0, step lambda0/(16 c); if `points` forces a coarser step a note says the fringes are under-sampled; the background is the separated-pulse level 2 sum I^2) |
-| `frog` | `type`: `shg` (default), `pg` (polarisation gate) or `sd` (self-diffraction); `points` (default 256), `spectralResolutionM`, `shgAcceptanceFwhmM` | trace [delay, frequency], axes, marginals; `frogType` ([FROG geometries](#frog-geometries)) |
-| `xfrog` (`sfgFrog`) | `reference` (the known gate pulse, a run-spec pulse object), `points`, `spectralResolutionM` | cross-correlation FROG trace at the sum frequency; the reference field is stored with it ([FROG geometries](#frog-geometries)) |
-| `dscan` | `material` + `insertionM` [min, max], or `gddRangeS2` [min, max]; `steps`, `spectralResolutionM`, `shgAcceptanceFwhmM` | SHG trace vs insertion/GDD, integrated SHG, FWHM vs scan, optimum |
-| `contrast` | `resolutionS`, `windowS`, `dynamicRangeDb` | intensity in dB; pre/post-pulse contrast; pedestal energy fraction |
-| `polarimeter` | `points`, `extinctionRatio` | Stokes s1, s2, s3 (integrated and vs wavelength), degree of polarisation, azimuth, ellipticity |
-| `pulseSummary` | | every scalar pulse metric of [results.md](results.md#pulse-metrics-input-output-and-per-element-pulse), including `peakCount`, `fwhmEnergyFraction`, `mainLobeFwhmS`, `mainLobeEnergyFraction` and `satellitePeakCount` ([main lobe](results.md#main-lobe-of-a-multi-peaked-pulse)) |
-| `compressor` | `optimizeTod` (true), `maxN` | ideal compressor: the GDD/TOD that maximises peak power, compressed FWHM, `compressedMainLobeFwhmS` and `compressedMainLobeEnergyFraction` ([main lobe](results.md#main-lobe-of-a-multi-peaked-pulse)), Strehl |
-| `conversion` | `at`: an active element (crystal) | energy and photon number of the main output and every by-product, aux energy in, efficiencies (vs input, vs all energy in), by-product centroids |
-| `phaseMatchingCurve` | `at`: a crystal; `scan`: `angle` (`rangeDeg`), `wavelength` (`rangeM`), `temperature` (`rangeK`), `period` (`rangeM`); `points` | low-conversion sinc²(ΔkL/2) and Δk vs the scan variable, peak, FWHM ([Crystals](crystals.md)) |
-| `delayScan` | `at`: a crystal with aux beams; `fromS`, `toS`, `points` | re-runs the crystal on the pulse that entered it for each aux delay: output energy vs delay, optimum |
-| `beamProfile` | `at`: after an element with a transverse model | fluence vs radius (radial) or x / y cuts and map (cartesian); second-moment radius about the centroid, M² (`m2`, and `m2Y` on 2-D grids), true peak fluence ([Spatial models](transverse.md)) |
-| `crossCorrelator` (`thirdOrderCorrelator`) | `rangeS`, `stepS` / `points`, `fineStepS` + `fineRangeS`, `dynamicRangeDb` (110), `noise`, `resolutionS`, `shgAcceptanceFwhmM`, `polarization`, `probeDelaysS`, `gateArm` | third-order correlation vs delay (linear and dB, with and without noise), pre/post-pulse contrast and their delays, contrast at chosen delays ([below](#crosscorrelator)) |
+| `energyMeter` (`powerMeter`) | `energyJ`, `averagePowerW`, `transmissionFromInput`; with `rangeM` the edge bins count with the fraction of the bin inside the band (error falls as the square of the bin width) | `rangeM`, `polarizerDeg`, `repRateHz` |
+| `spectrometer` | spectrum vs wavelength; peak, centroid, FWHM, RMS and -10 dB widths | `resolutionM` (Gaussian FWHM), `rangeM`, `points`, `normalize` (`peak`, `area`, `none` = J/m), `wavelengthOffsetM` |
+| `scope` (`photodiode`) | detected power vs time (impulse-response limited), FWHM, peak | `riseTimeS` or `bandwidthHz` |
+| `autocorrelator` | trace; `acFwhmS`, `pulseFwhmGaussianS` (AC FWHM / √2) and `pulseFwhmSech2S` (AC FWHM / 1.5427); interferometric: `peakToBackground` (8:1; see below) | `type` (`intensity`, `interferometric`), `resolutionS`, `shgAcceptanceFwhmM`; `rangeS` and `points` apply to the interferometric type only |
+| `frog` | trace [delay, frequency], axes, marginals, `frogType` ([FROG geometries](#frog-geometries)) | `type` (`shg`, `pg`, `sd`), `points`, `spectralResolutionM` |
+| `xfrog` (`sfgFrog`) | cross-correlation FROG trace at the sum frequency; the reference field is stored with it | `reference` (required), `points` |
+| `dscan` | SHG trace vs insertion or GDD, integrated SHG, FWHM vs scan, optimum | `material` + `insertionM`, or `gddRangeS2`; `steps` |
+| `contrast` | intensity in dB; pre/post-pulse contrast; pedestal energy fraction | `resolutionS`, `windowS`, `dynamicRangeDb` |
+| `crossCorrelator` (`thirdOrderCorrelator`) | third-order correlation vs delay, pre/post-pulse contrast and delays ([below](#crosscorrelator)) | `rangeS`, `stepS`, `dynamicRangeDb`, `gateArm` |
+| `singleShotCorrelator` | delay trace from one camera frame ([below](#singleshotcorrelator)) | `crossingAngleDeg`, `beamWidthM`, `crystalLengthM` |
+| `polarimeter` | Stokes `s1`, `s2`, `s3` (integrated and vs wavelength), `degreeOfPolarization`, `azimuthDeg`, `ellipticityAngleDeg` | `extinctionRatio` |
+| `pulseSummary` | every scalar pulse metric of [Results](results.md#pulse-metrics-input-output-and-per-element-pulse), including the [main-lobe](results.md#main-lobe-of-a-multi-peaked-pulse) fields | none |
+| `compressor` | the GDD/TOD that maximises peak power, compressed FWHM, `compressedMainLobeFwhmS`, `compressedMainLobeEnergyFraction`, Strehl | `optimizeTod` |
+| `conversion` | energy and photon number of the main output and every by-product, aux energy in, efficiencies, by-product centroids | `at`: an active element |
+| `phaseMatchingCurve` | low-conversion sinc²(ΔkL/2) and Δk vs the scan variable, peak, FWHM ([Crystals](crystals.md)) | `at`: a crystal; `scan` (`angle`, `wavelength`, `temperature`, `period`) |
+| `delayScan` | re-runs the crystal on the pulse that entered it for each aux delay: output energy vs delay, optimum | `at`: a crystal with aux beams; `fromS`, `toS` |
+| `beamProfile` | fluence vs radius (radial) or x / y cuts and map (cartesian); second-moment radius, `m2` (`m2Y` on 2-D grids), true peak fluence ([Spatial models](transverse.md)) | `at`: after an element with a transverse model |
+| `camera` (`nearFieldCamera`, `farFieldCamera`) | fluence image, radii, centroid, `strehlRatio` ([Camera](#camera)) | `imaging`, `sensor` |
+| `wavefrontSensor` | wavefront map, slope maps, Zernike coefficients ([Wavefront sensor](#wavefront-sensor)) | `pixels`, `zernikeTerms` |
+| `wigner`, `fieldProbe`, `spaceTime` | virtual instruments ([below](#virtual-instruments)) | see there |
+
+Repeated names: the default name is the kind at `end` and `kind_<id>` elsewhere. A repeated name is made unique with a suffix (`spectrometer_plate_2`); the run warns when a name you gave is used twice and notes it otherwise.
+
+The IAC `peakToBackground` ratio is 8:1 for a transform-limited pulse. The delay axis is symmetric with an odd number of points, so it contains d = 0, with step λ0/(16 c). If `points` forces a coarser step, a note says the fringes are under-sampled. The background is the separated-pulse level, 2 Σ I².
 
 <!-- anchors for links from the generated option reference -->
 <span id="autocorrelator"></span><span id="beamprofile"></span><span id="compressor"></span><span id="contrast"></span><span id="conversion"></span><span id="delayscan"></span><span id="dscan"></span><span id="energymeter"></span><span id="frog"></span><span id="phasematchingcurve"></span><span id="polarimeter"></span><span id="pulsesummary"></span><span id="scope"></span><span id="spectrometer"></span><span id="wavefrontsensor"></span>
@@ -47,15 +57,14 @@ warning when a name you gave is used twice.
 |---|---|
 | `at`, `name` | where the instrument sits, and its name in the results |
 | `sampling` | what part of the beam it sees: near / far field, pinhole, fibre, slit ([below](#sampling-where-the-instrument-looks)) |
-| `filter` | a spectral filter model in front of it -- optics, a band-pass, the detector's spectral response; applied to the field before it is measured (any [filter model](models.md#kinds-per-category): `constant`, `table`, `gaussian`, `expression`, `callback`) |
+| `filter` | a spectral filter model in front of it -- optics, a band-pass, the detector's spectral response; applied to the field before it is measured (any [filter model](models.md#kinds-per-category): `constant`, `table`, `gaussian`, `superGaussian`, `expression`, `callback`) |
 | `detector` | the read-out of the recorded trace ([below](#detector-model)) |
 | `axis` | where a curve instrument takes its readings: explicit points or a scan grid, pixel / bin width, resolution ([below](#axis-where-readings-are-taken)) |
 | `measured` | your recording, compared on its own axis, range and resolution ([Measured data](measured-data.md)); used by fits |
 
 Every instrument output carries a `settings` block with each parameter in effect (given or default), so a results
-file states exactly which device -- resolution, range, sampling, detector -- produced each reading. Virtual
-instruments (`pulseSummary`, `compressor`, `wigner`, `fieldProbe`, `spaceTime`, `beamProfile`, `conversion`) are
-ideal by design: they report the field itself.
+file states exactly which device -- resolution, range, sampling, detector -- produced each reading. Ideal
+instruments (`pulseSummary`, `compressor`, `wigner`, `fieldProbe`, `spaceTime`, `beamProfile`, `conversion`, `phaseMatchingCurve`, `delayScan`) report the field itself and ignore `detector`.
 
 ### Detector model
 
@@ -78,7 +87,7 @@ ideal by design: they report the field itself.
 
 It acts on the recorded arrays and readings of the spectrometer, scope, autocorrelator, FROG, d-scan and energy
 meter, and the width and peak readings (FWHM, centroid, peak) are then re-evaluated on the detected trace. Cameras
-(`sensor`) and the cross-correlator have detector models of their own. Leave the detector out when you fit a model to
+(`sensor`), the cross-correlator (`dynamicRangeDb`, `noiseFloor`, `noise`, `seed`, `saturationLevel`, `segments`) and the single-shot correlator (`dynamicRangeDb`, `noiseFloor`, `noise`, `seed`) have detector models of their own; `saturationLevel` and `segments` are not `detector` keys. Leave the detector out when you fit a model to
 measured data: the recording has the noise, the model should not.
 
 ### Detector presets
@@ -237,7 +246,9 @@ in one shot.
 | `crystalLengthM` | L; geometric resolution dtau = L \|(n_g,T - n_T sin^2 a) / cos a - (n_g,S - n_S sin^2 b) / cos b\| / c |
 | `crystal` (default BBO) or `indexPt`, `indexSampling`, `groupIndexPt`, `groupIndexSampling` | ordinary (x) index of the library crystal, or given indices |
 | `delayIndex` | `group` (default) or `phase`: with `phase` the resolution is exactly Ma et al.'s eq. (2), L \|n_T cos a - n_S cos b\| / c |
-| `points`, `delayOffsetS`, `dynamicRangeDb`, `noise`, `seed` | camera pixels across W, delay at the centre, floor |
+| `points` (256), `delayOffsetS` | camera pixels across W, delay at the centre |
+| `dynamicRangeDb` (60) or `noiseFloor`, `noise` (true), `seed` (1) | camera floor below the peak |
+| `windowAroundPeakS` | pre / post-pulse contrast is read outside this distance from the peak (default 5 × FWHM) |
 
 The angles a, b of the two inputs to the signal follow from k_T + k_S = k_signal with the phase indices (k_T sin a = k_S sin b). The slope
 (n_T sin a + n_S sin b) / c is eq. (1): beams that enter from air at fixed angles keep their tangential wave number, so the phase index enters.
@@ -271,7 +282,7 @@ different answers. Add `"sampling"` to any non-imaging instrument:
 | `plane` | `near` | `near`: the beam as it is at that point. `far`: the focal plane of an ideal lens of `focalLengthM` (the Fourier transform of each frequency's field). |
 | `focalLengthM` | 0.2 | far field only |
 | `propagateM` | 0 | near field: free-space propagation before the aperture (negative: back towards a waist) |
-| `aperture.kind` | `pinhole` if an aperture is given, else `integrated` | `integrated` (whole beam), `pinhole`, `iris` (both circular), `fibre` (circular core, plus an NA check), `slit` (a vertical strip of `widthM` across the whole beam), `point` (the local spectrum at one point; shape only, no transmission) |
+| `aperture.kind` | `pinhole` when an `aperture` object is given without a `kind`, else `integrated` (the option reference lists `pinhole`, the default inside the object) | `integrated` (whole beam), `pinhole`, `iris` (both circular), `fibre` (circular core, plus an NA check), `slit` (a vertical strip of `widthM` across the whole beam), `point` (the local spectrum at one point; shape only, no transmission) |
 | `aperture.radiusM` | 50 µm (fibre 25 µm) | pinhole / iris / fibre core radius |
 | `aperture.widthM` | 2 × radius | slit width |
 | `aperture.centerXM`, `centerYM` | 0 | aperture position (off-axis sampling) |
@@ -290,12 +301,12 @@ and an autocorrelator or FROG shows the local pulse, including the spectral phas
   blue side slightly better.
 * The far field uses the exact Fourier (cartesian) or Hankel (radial) integral of each frequency's field, scaled
   by λf, as the far-field camera does. It is normalised so that ∫|u|² dA equals the near-field power.
-* The instrument reports `sampling` (a description) and `samplingTransmission` (the fraction of the pulse energy
-  that passes the aperture).
+* The instrument reports `sampling` (a description) and, for `pinhole`, `iris`, `fibre` and `slit`, `samplingTransmission` (the fraction of the pulse energy
+  that passes the aperture). `integrated` and `point` give no transmission.
 * Imaging instruments (`camera`, `wavefrontSensor`, `beamProfile`, `spaceTime`) ignore `sampling`, because they
-  already image a plane of their own (`imaging`).
+  already image a plane of their own (`imaging`); the instrument's notes say so.
 
-Example 11 shows the effect clearly: after a self-focusing plate, a 15 µm pinhole on axis sees a 13 % wider
+Example 11 shows the effect (`MeasurementTests.Sampling_GaussianApertures_TransmitTheAnalyticFraction` checks the transmitted fraction against the analytic Gaussian value, 2 %): after a self-focusing plate, a 15 µm pinhole on axis sees a 13 % wider
 spectrum and an 11 % shorter autocorrelation than the whole beam.
 
 ## Recorded data (`measured`)
@@ -347,7 +358,7 @@ automatically to `camera` with `imaging.plane` `near` / `far` ([Schemas & migrat
 **Reports.** Fluence image `fluence_j_m2` [x][y] (J/m²) with axes `x_m`, `y_m`, and `counts` with a bit depth;
 centroid, 1/e² radii (D4σ/2) in x and y, ellipticity, peak fluence, energy in the frame, saturated-pixel fraction,
 `imagingPlane`; near field: M²; far field: divergence half-angles (radius / f), energy inside the 1/e² ellipse
-and the Strehl ratio (peak vs the same near-field amplitude with a flat wavefront).
+and `strehlRatio` (peak vs the same near-field amplitude with a flat wavefront).
 
 **Where the field comes from.** After an element with a transverse model (`"transverse": {"model": "radial" |
 "cartesian"}`) the camera images the real simulated beam. On a 1-D element it images an ideal Gaussian from the
@@ -359,17 +370,16 @@ instrument's `"beam"`, the element's beam model or the run's input beam, and say
 |---|---|---|
 | `wavefrontSensor` | `pixels` (lenslets, 64), `wavelengthM` (default: spectral centroid), `threshold` (1 % of peak fluence), `apertureRadiusM` (default the 1/e² radius), `halfWidthM`, `zernikeTerms` (15, max 36), `propagateM`, `bandM` | wavefront map in waves (piston and tilt removed), **slope maps** `slope_x_rad`, `slope_y_rad` (λ ∂W/∂x and ∂y of the full wavefront, tilt kept, NaN outside the threshold, `[x][y]` on `x_m`, `y_m`: the zonal input of a control matrix), Zernike coefficients (Noll, rms-normalised, waves), rms / PV, rms without defocus, radius of curvature from defocus (R > 0 diverging; the equivalent in air: R in a medium / n), astigmatism, coma, spherical |
 
-Validated against Gaussian optics (`DiagnosticsTests`): near-field radius and refocused waist < 1 %, far-field
+Validated against Gaussian optics (`DiagnosticsTests.Cameras_GaussianBeam_NearFarFieldAndWavefrontMatchGaussianOptics`, `Camera_On1DElement_ImagesTheBeamModelAndSaysSo`, `Zernike_FitRecoversKnownCoefficients`, `Wigner_MarginalIsThePowerAndFieldProbeRecoversTheChirp`): near-field radius and refocused waist < 1 %, far-field
 radius λf/(πw0) < 0.5 %, wavefront curvature R(z) < 1 % (radial) / 2 % (cartesian), Zernike fit exact;
-`PluginTests.Camera_UnifiedImaging_*`: a 2f relay reproduces the far field (< 3 %), the old kinds match `camera`.
+`PluginTests.Camera_UnifiedImaging_MatchesTheOldCameras`: a 2f relay reproduces the far field (< 3 %), the old kinds match `camera`.
 
 ## Virtual instruments
 
 Virtual instruments read things no real device can measure directly -- the complete complex field, its absolute
-phase, both time and frequency at once, the field at every point of the beam vs time. They are flagged
+phase, both time and frequency at once, the field at every point of the beam vs time. The three below are flagged
 `"virtual": true` in their values and drawn with a square (□) marker and *(virtual)* titles in the plots, so their
-output is never mistaken for a lab measurement. (Ideal-device instruments such as `pulseSummary`, `conversion`,
-`phaseMatchingCurve` and `delayScan` are also shown as virtual.)
+output is never mistaken for a lab measurement. `pulseSummary`, `compressor`, `conversion`, `beamProfile`, `phaseMatchingCurve` and `delayScan` are ideal too, but carry no flag.
 
 | kind | parameters | reports |
 |---|---|---|
@@ -389,3 +399,14 @@ Conventions: Stokes s3 = +1 for the `"rcp"` input polarisation; FROG/d-scan use 
 
 Add your own by implementing `IInstrument` and calling `InstrumentFactory.Register("myKind", spec => new MyInstrument())`
 ([Extending](extending.md)).
+
+## Validation
+
+The tests named in each section above are the evidence. In short: Gaussian optics for cameras and the wavefront sensor (0.5 % to 2 %), the analytic FROG tilts for PG and SD (2 %, `FrogKindsTests`), the analytic transmitted fraction for sampling apertures (`MeasurementTests`), and the Wigner time marginal equal to |A(t)|² (`DiagnosticsTests`).
+
+## Limits
+
+* Instruments read the pulse; they never change it, and they see the field the engine carries (the 1-D model has no transverse structure unless the instrument's `beam` supplies a Gaussian).
+* The single-shot correlator does not propagate the beams through the crystal (see its section).
+* The engine contains no manufacturer's instrument numbers; detector presets are yours.
+* Leave the `detector` out of an instrument you fit to a recording: the recording has the noise.

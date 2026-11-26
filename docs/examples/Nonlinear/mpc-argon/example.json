@@ -1,0 +1,12 @@
+{
+  "title": "Argon multipass cell (Herriott MPC)",
+  "summary": "A 220 fs, 200 µJ pulse crosses a 20-pass, 0.55 m Herriott cell with 2 bar argon and collects B = 9.12 rad; the spectrum broadens to 61.0 nm and an ideal compressor shortens the pulse to 33.1 fs at 3.70 GW.",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "mpc-broadening.png"
+  ],
+  "wave": 2,
+  "python": true
+}

@@ -1,0 +1,12 @@
+{
+  "title": "A complete Yb laser system: oscillator, stretcher, amplifier, compressor",
+  "summary": "A SESAM mode-locked Yb:YAG oscillator (1.08 W, 871 fs) feeds a grating stretcher, an 8-pass Yb:YAG amplifier at 10 kHz and a compressor, and the system delivers 198 µJ in 1.08 ps, at the transform limit of the amplified spectrum.",
+  "group": "LaserSystems",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}

@@ -70,7 +70,7 @@ Drude plasma (envelope uses ω0 for Drude). Fibres: Taylor β or D(λ), γ(z), s
 
 `grid.tail`: U = embed(A_main) + tail on a long grid with the same dt and carrier; linear elements are applied to U exactly and split
 by a smooth window (energy conserved); the tail's own nonlinearity and main x tail interference are neglected. Echo / ghost delays
-come out of exp(i 2 n(w) w d cos(theta)/c) -- test against 2 n_g d / c (fused silica 1030 nm: n_g = 1.4635, 61.98 ps for 6.35 mm).
+come out of exp(i 2 n(w) w d cos(theta)/c) -- test against 2 n_g d / c (fused silica 1030 nm, Malitson: n_g = 1.4627, 61.96 ps for 6.35 mm).
 Gas lines: one complex Voigt shape gives n and alpha (Kramers-Kronig); the frame removes the *smooth* group delay only.
 
 ## Diffraction, tracking and spatio-temporal couplings

@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **698 tests** in 76 classes. **443** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **706 tests** in 77 classes. **450** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -36,7 +36,7 @@ Every C# test of the engine: **698 tests** in 76 classes. **443** of them check 
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
 | [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
 | [Memory safety: GPU](#gpumemorytests) | `GpuMemoryTests` | 5 | 5 |
-| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 18 | 13 |
+| [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 20 | 15 |
 | [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 10 | 10 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
@@ -75,6 +75,7 @@ Every C# test of the engine: **698 tests** in 76 classes. **443** of them check 
 | [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 7 | 7 |
 | [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
+| [Branched systems: glass in beam splitters and polarising splitters](#splitterglasstests) | `SplitterGlassTests` | 6 | 5 |
 | [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 3 | 0 |
 | [Coherent tile source: N sub-beams with piston, tilt and delay; combined far field, grating lobes, phase and delay errors](#tilesourcetests) | `TileSourceTests` | 11 | 11 |
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
@@ -635,6 +636,8 @@ GPU back-ends (CUDA / OpenCL) against the CPU.
 | `Fft_BuiltInAndVendor_MatchTheManagedFft` | cross-check: the managed CPU FFT | -- |
 | `GasRotationalRaman_ScalarAndVector_MatchTheCpu` | cross-check: the CPU solver (RotationalRamanResponse.Convolve, EnvelopeProblem.Nonlinear) | 1e-09 |
 | `GasRotationalRaman_Spatial_RadialAndCartesian_MatchTheCpu` | cross-check: the CPU solver (SpatialEnvelopeProblem.Nonlinear with the orientational response) | 1e-09 |
+| `IcdFiles_NameTheVendorLibraries` | the OpenCL ICD convention: a vendors/*.icd file holds the path of the vendor library | exact |
+| `MacOs_ListsTheAppleGpuAsSinglePrecision_AndPoclAsUsable` | G0: on macOS both Apple's OpenCL.framework and the .icd vendor libraries (Homebrew PoCL) are enumerated | -- |
 | `MixedPrecision_IsRefusedForHighDynamicRangeInstruments_AndIgnoredOnTheCpu` | -- | -- |
 | `MixedPrecision_SpmPlateMpcSolitonAndShg_MeetTheFp32Criteria` | acceptance of the FP32 study (docs/reference/speed.md): energy 1e-6, spectrum L1 1e-4 against double precision | 1e-6, 1e-4 |
 | `Plasma_IonisationDrudeAndAvalanche_MatchTheCpu` | cross-check: the CPU solver (PlasmaResponse.Run, DispersiveResponses.AddRate); the device takes the rate from a ln W / ln I table (PlasmaDeviceSpec) | 1e-12 with an exact table (MPI); 1e-4 field, 1e-3 peak density and B for PPT / Keldysh (table at channel kinks, step path) |
@@ -1199,6 +1202,19 @@ FFTs, SIMD kernels and studies.
 | `Sobol_SequenceIsStratified` | -- | -- |
 | `Study_OptimizeAndSensitivities` | -- | -- |
 | `Study_ScanWithPrefixCacheMatchesFullRuns` | B = γ P L | 1e-09, 1 % |
+
+## SplitterGlassTests
+
+Branched systems: glass in beam splitters and polarising splitters.
+
+| test | reference | tolerance |
+|---|---|---|
+| `DelayedTail_CrossesTheGlass_InSequentialAndBranchedSystems` | linearity: delayed light (grid.tail) crosses the splitter's glass as it would a plate after it | 1e-9 |
+| `FedBeamThroughTheGlass_InASequentialSystem_EqualsTheBranchedSystem` | superposition: a fed beam on port b in a Sequential system equals the same splitter in a Branched system | 1e-9 |
+| `SequentialSplitterWithGlass_EqualsTheSplitterAndAPlate_OnEachPort` | linearity: a Sequential splitter with glass equals the splitter followed by a plate, on either continuing port | 1e-12 |
+| `SplitterWithGlass_EqualsTheSplitterAndAPlateInEachArm_InAMachZehnder` | linearity: glass after a lossless 2x2 split equals a plate in each arm (Mach-Zehnder output, interference included) | 1e-12 |
+| `SplitterWithoutGlass_IsUnchanged_AndBadGlassKeysAreRefused` | -- | -- |
+| `TransmittedGlass_DelaysThePulse_ByTheGroupIndex` | group delay of fused silica, Malitson, JOSA 55, 1205 (1965): n_g L / c through the transmitted glass | 2e-5 |
 
 ## StudyCacheTests
 

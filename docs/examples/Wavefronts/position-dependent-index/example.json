@@ -1,0 +1,12 @@
+{
+  "title": "Position-dependent material properties",
+  "summary": "A 5 mm fused-silica rod with a parabolic index profile is a thin lens of f = 0.2 m, and the engine focuses a 0.5 mm beam to 132 µm, within 1 % of the thin-lens 131 µm, whether the profile is an expression, a table or a Python function.",
+  "group": "Wavefronts",
+  "script": "grin_variants.py",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}
