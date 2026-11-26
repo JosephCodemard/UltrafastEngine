@@ -17,6 +17,9 @@ Each work package (WP) is sized for **one fresh Claude instance** (Opus or Sonne
 
 ### 0.1 How to run a WP
 
+* **Coordinator.** The procedure, the agent brief and the scripts are in [coordinator.md](coordinator.md) and `build/wp/` (`start.sh`,
+  `merge.sh`, `regen.sh`, `cleanup.sh`). At most three WP agents at once. A WP that stops early leaves a committed `HANDOFF.md` in its
+  worktree; its final commit deletes it.
 * **Branch.** Start from the current `dev/2026-11`: `git worktree add ../uf-wp-<id> -b dev/wp-<id> dev/2026-11`. One WP, one branch. The
   coordinator (the owner or the coordinating session) merges finished WPs into `dev/2026-11`; `main` gets `dev/2026-11` after `/verify` and
   green CI. No tags, no releases, no PyPI (owner only).
