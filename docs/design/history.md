@@ -402,7 +402,7 @@ failures), `devices --selftest` passes. `auto` still never picks a CPU OpenCL de
   Both tabs print identical numbers to the CLI; `example_check` reproduces every quoted line. The per-example D2 instructions are in the
   D2 row of `roadmap-internal.md`.
 
-## Stage 42 -- coordinator session: work packages A to D, G0, P1-P2, Z1-Z2, AG, Q1  (2026-11-25/26, `dev/2026-11`, macOS arm64)
+## Stage 25 -- coordinator session: work packages A to D, G0, P1-P2, Z1-Z2, AG, Q1  (2026-11-25/26, `dev/2026-11`, macOS arm64)
 
 One coordinator session ran the work packages of `roadmap-internal.md` section 0 through sub-agents in git worktrees and merged about
 thirty into `dev/2026-11` (the stages above). The process that worked: one WP per agent with a short brief; `build/wp/merge.sh` for the
@@ -423,7 +423,7 @@ fix-1 (fed beam on another carrier), the README number changes and their causes 
 * **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
 * **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.
 
-## Stage 25 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
+## Stage 26 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
 
 * `build/style_lint.py` parses the banned-filler, British-spelling and term tables of `docs/style.md` (nothing is duplicated in code), strips
   code, inline code, HTML, link targets and URLs, and reports `file:line: rule`. Entries with a qualifier it cannot judge ("(as a noun)",
@@ -433,38 +433,38 @@ fix-1 (fed beam on another carrier), the README number changes and their causes 
   hash of the line, so moving a line keeps it allowed and editing it does not. CI runs the linter in `docs-and-examples`; `--update-baseline`
   shrinks the file once the prose is fixed (C2 and D do that). `docs/style.md` and `docs/design/notes/` are not scanned.
 
-## Stage 26 -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
+## Stage 27 -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
 
 Rewrote `calculators.md`, `pulse-calculator.md`, `plotting.md` and `mcp.md` to the reference template (Keys, Model, Validation, Limits) and corrected `concepts.md` and `capabilities.md`. Each of the 40 rows of `notes/reference-audit-f.md` was re-checked against the source and closed with a resolution column (40 fixed, none kept, none found wrong); seven code-side findings are listed in the audit's section "Code findings for WP C4" (no code edited). Plotting history text (work-package names, "before" images) was removed. `mkdocs build --strict` gives 0 warnings.
 
-## Stage 27 -- WP C2e: reference pages of group e  (2026-11-25, `dev/wp-c2e`)
+## Stage 28 -- WP C2e: reference pages of group e  (2026-11-25, `dev/wp-c2e`)
 
 Rewrote `instruments.md`, `retrieval.md`, `measured-data.md`, `results.md` and `studies.md` to the B1 reference template (Keys, Model or behaviour, Validation with test names, Limits) and closed all rows of `reference-audit-e.md` (column "resolution"). Each audit row was re-checked against the source: the page claim on the main lobe at the window edge was stale (A2 made it a finite lower bound, not null), the audit's own row on it was wrong, as were its rows on the study `element:ID*` wildcard (only the prefix-cache lookup uses it) and on imaging instruments not ignoring `sampling` (the executor skips it and adds a note). The 18-row instrument key table became a table of reported values with links to `options.md`; the `240 fs to 26 fs` floor example was replaced by what `MeasuredSpectrumTests` asserts. Anchors other pages and `options.md` link to were kept. `mkdocs build --strict`: 0 warnings.
 
-## Stage 28 -- WP AG1: user agent pack split from the development rules  (2026-11-26, `dev/wp-ag1`, macOS arm64)
+## Stage 29 -- WP AG1: user agent pack split from the development rules  (2026-11-26, `dev/wp-ag1`, macOS arm64)
 
 * The pack (`python/src/ultrafast/agents/pack/`) gained `AGENTS.md` (how to drive the engine: files, discovery commands, running, results, habits, MCP) and `llms.txt` (index with documentation-site URLs only). One source each: the Python wheel ships them (`package-data`) and the CLI embeds the same files, so `ultrafast agent install` and `ultrafast-agent install` stay byte-identical. The repository `AGENTS.md` / `CLAUDE.md` / `llms.txt` are untouched and are not copies.
 * Install layout (decision): claude `.claude/ultrafast/AGENTS.md`; cursor an `alwaysApply` rule `ultrafast-guide.mdc`; codex the guide as the first part of the marked block; all `.ultrafast/llms.txt`. Claude Code does not read a nested AGENTS.md, so the docs tell the user to import it from `CLAUDE.md`; the installer never edits the user's files.
 * `test_agents.py`: `REPO_TERMS` (BuiltIn, CHANGELOG, /regen, worktree, Experiments, ZOSAPI, dotnet build, ...) is searched in every pack file and every installed file; the installed pack must hold the guide. `sync_skills.py --check` fails when the two files are missing.
 
-## Stage 29 -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
+## Stage 30 -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
 
 * Rewrote `system-file`, `run-spec`, `schema`, `cli`, `c-api`, `python`, `plugins` and `extending` to the reference template (Keys, Validation, Limits) and added a resolution column to every row of the group-a audit: 125 rows: 83 fixed on the page (of them 3 also with a code finding), 4 code findings only, 38 kept (page already right, or the audit was wrong). Each finding was re-checked against the source and the built CLI.
 * The audit was wrong twice: `crystal` does declare `chi3` and `n2` (the long `ionization` line in `BuiltInElements.cs:268` hides them; strict validation accepts both), and `ultrafast.System` and `ultrafast.system.System` are one class. Its exit-code row was incomplete: `ultrafast validate` returns 3 for an invalid file.
 * Code findings (nine, C4-1 to C4-9, in the audit file; no code was changed): the registry disagrees with the compiler on `system.version`, `bulk.dispersionSource` and `crystal.seedNoise`; `topology` is undeclared and top-level keys are unchecked; `DocAt` links point at three pages that do not exist (`elements.md`, `solvers.md`, `spatial-models.md`); `substrates` is missing from the known-key set.
 
 
-## Stage 30 -- WP AG3: transcript adapters for Codex and Cursor in the agent-eval runner  (2026-11-26, `dev/wp-ag3`)
+## Stage 31 -- WP AG3: transcript adapters for Codex and Cursor in the agent-eval runner  (2026-11-26, `dev/wp-ag3`)
 
 `tests/agent-evals/run_live.py` now has an adapter layer: `parse_claude` (the old reader), `parse_codex` (`codex exec --json`) and `parse_cursor` (`cursor-agent -p --output-format stream-json`) return the same trace, final answer and files written; `--agent claude|codex|cursor` runs the agent, `--transcript FILE` scores a saved transcript without running anything (format detected). The vendors document the event names and the message types but not the MCP tool-call item (Codex) or the MCP tool-call object (Cursor); those fields follow the open-source event definitions and observed output, are marked as such in the docstrings and the evals section of `docs/reference/mcp.md`, and are the place to fix if a CLI version differs. Owner decision kept: no model was called; `run_codex` and `run_cursor` are untested until the owner runs them. Twelve hand-made replays (two evals, pass and fail variants, three formats) and `python/tests/test_agent_eval_adapters.py` check identical traces and verdicts in all formats.
 
-## Stage 31 -- WP D2-Wavefronts: Wavefronts examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-wavefronts`, macOS arm64)
+## Stage 32 -- WP D2-Wavefronts: Wavefronts examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-wavefronts`, macOS arm64)
 
 * Both examples of the group (`position-dependent-index`, `spatial-gain-thermal-lens`) now have the template README (`**Run it**` with `=== "CLI"` and `=== "Python"`, snippet marker), `example.json` (`wave` 2, `python` true) and an updated row in `docs/examples/README.md`; the old "16 --" / "15 --" prefixes left the titles. No engine code changed.
 * The Python tab of the rod example runs both pump powers in one loop (the 5 W run is an `overrides` entry built with `b.override` and `b.pump`). All quoted numbers reproduce; the only change is the absorbed pump at 5 W (4.05 W printed as 4.1 W).
 * Checks: `example_lint`, `example_check` (0 not reproduced), the snippet tests, `style_lint` and `mkdocs build --strict` (0 warnings) are green.
 
-## Stage 32 -- WP AG2: twin_design, twin_track and twin_init on the MCP server  (2026-11-26, `dev/wp-ag2`, macOS arm64)
+## Stage 33 -- WP AG2: twin_design, twin_track and twin_init on the MCP server  (2026-11-26, `dev/wp-ag2`, macOS arm64)
 
 * Three tools in `python/src/ultrafast/mcp/tools.py` (schemas and policy), `ops.py` (worker) and the server: `twin_design` calls
   `ultrafast_twin.design` (`energy_candidates`, `placement_candidates`, `rank_candidates`), `twin_track` calls `DriftTracker`, `twin_init` calls
@@ -480,11 +480,11 @@ Rewrote `instruments.md`, `retrieval.md`, `measured-data.md`, `results.md` and `
   (three old errors in `server.py` `_meta` handling stay outside it).
 
 
-## Stage 33 -- WP C2c: reference pages of group c  (2026-11-26, `dev/wp-c2c`)
+## Stage 34 -- WP C2c: reference pages of group c  (2026-11-26, `dev/wp-c2c`)
 
 Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-elements.md`, `modulator.md` and `spatial-properties.md` to the B1 reference template (Keys, Model, Validation with test names, Limits) and closed all 60 rows of `reference-audit-c.md` (column "resolution"). Each row was re-checked against the source. Three of the audit's readings were wrong: the user-element spectrum does not have an opposite phase convention (the page's example `params` had the wrong sign); the spatial propagator does apply the 0.2 rad static-phase step rule; the per-axis waist keys are `w0xM`/`w0yM`. The tilted-plate GDD sign was recomputed with the Malitson index: it is 0.28 / 0.96 fs² below the fixed-path value at 40° / 70°, as the audit said. Material values come from the JSON catalogue only (Air n2 8.5e-24 per bar; n2 = 0 for Calcite, YVO4, aBBO, TGG and the films; TGG is now a one-pole fit, not the two-point fit the pages described). Decisions: a user biaxial crystal's `"class"` should be inferred by the code (C4-c1), and `seedNoise` should be declared `false` (the code's behaviour); the pages document today's behaviour. The `#auxiliary-beams` anchor declared in the schema now resolves (heading renamed, no code change). A physics review found ten points (air-path angle θ_t0, aux super-Gaussian order 4, `detuneDeg` always tilts θ, crystal n2 status, and wording); all were fixed in the pages, two of them as new code findings (C4-c8, C4-c9). Ten code findings for WP C4 are listed in the audit. `mkdocs build --strict` 0 warnings; `style_lint` green.
 
-## Stage 34 -- WP D2-LaserSystems: LaserSystems examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-lasersystems`, macOS arm64)
+## Stage 35 -- WP D2-LaserSystems: LaserSystems examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-lasersystems`, macOS arm64)
 
 * All ten examples of the group have the template README (`**Run it**` with `=== "CLI"` and `=== "Python"`, snippet marker), `example.json` (`wave` 2, `python` true) and the interface column "CLI + Python" in `docs/examples/README.md`; the old numbers left the titles. No engine code changed.
 * Several results per chain: every quoted number was kept and re-checked (oscillator, amplifier, compressor lines of `yb-laser-system`; the two runs of `shg-lbo`; run and study of `contrast-chain`). Numbers that moved: stretched pulse of `stretcher-compressor` 233.6 ps (was 232.6), GDD of `four-grating-compressor` -1547449 fs2 (was -1547462; now equal to Treacy), compressed pulse of `nopcpa-bbo` 24.0 fs (was 23.8), stretched pulse of `yb-laser-system` 131 ps (was 130), floor of the correlator in `contrast-chain` -56.5 dB (was -58; the figure line moved, `contrast-chain.png` redrawn). The Yb:YAG amplifier of `yb-multipass-cpa` gives 1.46 mJ before and 1.04 mJ after the compressor; the README table quotes the former and the CLI line the latter, both now stated.
@@ -492,14 +492,14 @@ Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-e
 * Checks: `example_lint` (all 28 folders), `example_check LaserSystems` (0 not reproduced), the ten snippet tests, `style_lint` and `mkdocs build --strict` are green. `example_lint` on a group folder reports "no example.json" (also for Wavefronts); lint with no argument or with an example folder.
 
 
-## Stage 35 -- WP C2b: reference pages of group b (nonlinear, ionisation, delayed light, gases, fibres, gain, oscillators)  (2026-11-26, `dev/wp-c2b`)
+## Stage 36 -- WP C2b: reference pages of group b (nonlinear, ionisation, delayed light, gases, fibres, gain, oscillators)  (2026-11-26, `dev/wp-c2b`)
 
 * Rewrote the seven pages to the reference template (Keys with links to `options.md`, Model, Validation with test names and asserted tolerances, Limits) and added a resolution column to all 40 rows of the group-b audit: 40 fixed on the page (6 of them also with a code finding), none kept as wrong-audit; one parenthesis of history kept in `nonlinear.md` (the GPU averaged B-integral before 2026-11-24), as `docs/style.md` allows. Every anchor that other pages or the schema link to exists (`gain.md#the-amplifier-element` is new; `nonlinear.md#cubic-anisotropy` kept by an HTML anchor; `materials.md` now links `#cubic-anisotropy-xpw`).
 * The audit was partly wrong once (I4): the solid valence densities are not all 2.1e28 m^-3 and the generic solid entry uses m* = 0.635, not 0.5. Re-verified: `absorption: false` does drop the ionisation loss (I1, the audit was right).
 * Physics review (`physics-reviewer`): no physics errors; six precision fixes applied (echo-delay table with the Malitson n_g = 1.4627, also in the `engine-physics` skill; `linAgrawal` symbols and default b = (fb + fc)/(fa + fb + fc); fibre fR fallback; loss < 1; ripple clamp; remaining neutrals in the ionisation loss).
 * Code findings C4-b1 to C4-b7 (no code changed): `stepper` links `solvers.md`; `oscillator` element keys declared where the code ignores them; `pumpDurationS` declared in `pump` but read on the element; gain-element `n2` undeclared; pump `order` / `kind` defaults; a gas avalanche switched on by `collisionTimeS`; a test reference string with n_g 1.4635.
 
-## Stage 36 -- WP D2-Nonlinear: Nonlinear examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-nonlinear`, macOS arm64)
+## Stage 37 -- WP D2-Nonlinear: Nonlinear examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-nonlinear`, macOS arm64)
 
 * All eight examples of the group have the template README (`**Run it**` with the two tabs, snippet marker), `example.json` (`wave` 2, `python` true) and the interface column "CLI + Python"; the old numbers left the titles. No engine code changed.
 * Numbers that moved (old prose against a fresh run): `mpc-argon` spectral FWHM 61.0 nm (61.9); `spatial-kerr` every Kerr-run number (beam radii 97.4 / 97.9 / 113.1 / 138.2 / 168.8 um, wavefront R -70 mm (-81), far-field half-angle 3.80 mrad (3.70), space-time 234 / 327 fs (242 / 325), B 1.55 rad (1.4), transform limit 199 fs (207), M2 1.08 (1.07), the sampling table) while the linear run still equals Gaussian optics; `ner-measured-input` input transform limit 249 fs (240); `ppln-dfg` pump depletion 68 % (about 70); `supercontinuum` coherence 0.98 (0.97) and 0.24 (about 0.2) at 150 fs, -40 dB span 492 to 1307 nm (about 450 to 1300), 91.05 % energy. Nothing failed to reproduce; the old `spatial-kerr` values are from an older engine and were not investigated.
@@ -507,7 +507,7 @@ Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-e
 * `ner-measured-input`, `mpc-argon` and `ppln-dfg` keep their helper scripts (`ner.py`, `make_mpc.py`, `compare_pynlo.py`); the README shows their output in a separate block or as an optional CLI line.
 * Checks: `example_lint` (all folders), `example_check Nonlinear`, the eight snippet tests, `style_lint` and `mkdocs build --strict` are green.
 
-## Stage 37 -- WP Z2: Zernike aberrations from OpticStudio into a wavefront element  (2026-11-26, `dev/wp-z2`, macOS arm64)
+## Stage 38 -- WP Z2: Zernike aberrations from OpticStudio into a wavefront element  (2026-11-26, `dev/wp-z2`, macOS arm64)
 
 * `IOpticStudio` gains `ReadZernikeStandard(field, wave, maxTerm, sampling)` returning `ZernikeStandardData` (Noll coefficients in waves,
   entrance / exit pupil radii). Real implementation in `ZosAnalyses.cs`; the fake (`FakeOpticStudio.ZernikeNollWaves`), record / replay and
@@ -527,7 +527,7 @@ Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-e
 * Untested without OpticStudio: the ZERN parameter layout and Type code, ENPD / EXPD as diameters, the OPD sign, and the pupil axes against
   the engine's beam axes after folds.
 
-## Stage 38 -- WP C2d: reference pages of group d (transverse, branches, models, fidelity, memory, speed)  (2026-11-26, `dev/wp-c2d`)
+## Stage 39 -- WP C2d: reference pages of group d (transverse, branches, models, fidelity, memory, speed)  (2026-11-26, `dev/wp-c2d`)
 
 * Audited `models.md` line by line first (19 rows replacing the unaudited M1), then rewrote the six pages to the reference template (Keys with links to `options.md`, Model, Validation with test names and asserted tolerances, Limits) and closed all 74 rows of `reference-audit-d.md`: 65 fixed, 3 kept with provenance (RTX 3060 Ti ensemble and mixed-precision timings, the 2026-11-18 M3 fibre benchmark, the compile-cache / streaming measurements), 2 kept because the audit was wrong, 3 without defect, 1 code only. Inbound anchors kept (`models.md#time-response` is new, for `ultrafast.h`).
 * Decision (owner away): benchmark numbers without a source were removed, not kept as "unclear"; the reproducible ones were re-measured today on the Apple M3 (8 cores, 16 GB, .NET 10.0.13) with `tools/bench` and the slow test `FullPanel_1920x1080_*`, and quoted with machine, date and command. Accuracy columns reproduced exactly; speed-ups changed (fidelity standard ×2.5, study vs loop ×5.3 / ×1.4 / ×2.0).
@@ -535,7 +535,7 @@ Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-e
 * `speed.md` describes the G0 device discovery: on macOS Apple's OpenCL plus every `.icd` vendor library (PoCL as a usable CPU device with an explicit `opencl`, never by `auto`).
 * Physics review (`physics-reviewer`): no wrong equation; twelve precision fixes applied (largest: the memory estimate does not count the state of nonlinear spatial elements, now in Limits). Code findings C4-d1 to C4-d8, no code changed.
 
-## Stage 39 -- WP C3: consistency pass after the reference rewrites C2a-f  (2026-11-26, `dev/wp-c3`, macOS arm64)
+## Stage 40 -- WP C3: consistency pass after the reference rewrites C2a-f  (2026-11-26, `dev/wp-c3`, macOS arm64)
 
 Docs only; no engine code changed. Method: a script (scratch, not kept) checked every `page.md#anchor` link of the docs, `README.md`, both `llms.txt` and the skills against the headings of the target page (504 anchors, 0 broken); `grep` lists of the main numbers (below) were compared page by page; the tutorials 1, 3, 4 and 6 were re-run with `build/example_check.py` (all quoted values reproduced; tutorial 5 quotes its table in prose and was compared with a fresh `study.json` run).
 * Fixed: MCP tool count (`roadmap.md`, `roadmap-internal.md`: 13 -> 16; `llms.txt` lists all sixteen); system file version (`system-file.md` says who writes 2 and 3; tutorial 1 shows 2 like `plate.ufs`); `nonlinear.md` and `gpu.md` now both say 8 to 15 % for the pulse-averaged B estimate on a device ensemble; the 1920 x 1080 single-frequency panel is 2.2 s / 260 MB held everywhere (`modulator.md` and `ao.md` pointed at older 3.3 s / 2.4 s runs; `speed.md` owns it); README test counts (668 C#, 439 Python) and PPLN agreement (0.7 %); `capabilities.md` (PPLN 0.7 %, six twin tools); `calculators.md` (the 3e-23 n2 of air is the total, the catalogue's electronic part is 8.5e-24); `mcp.md` (`maxEvaluations` default 100 in a tool call, 200 in a study file); contrast tutorial table (first row -56.5 dB, not -58.1; B and widths of the last rows); `engine-physics` skill (removed the 240 fs to 26 fs claim that C2c dropped from `measured-data.md`); `cli.md` (`ULTRAFAST_PYTHON`); exit code 3 named for `validate` in `agents.md` and the pack's `AGENTS.md`.
@@ -543,16 +543,28 @@ Docs only; no engine code changed. Method: a script (scratch, not kept) checked 
 * Decision: `docs/style.md` gained "Numbers with one owner" (page that owns each repeated number). Numbers checked by grep: tool counts, exit codes, format versions, 70 dB, `tolerance` 1e-6 / `maxPhasePerStepRad` 0.01 / `maxAreaChangePerStep` 0.05, `satelliteLevel` 1e-8, `edgeEnergyFraction` 1e-3 / 1e-6, fidelity tolerances 1e-5 / 1e-4, GPU 1e-9, FFT 1e-12, pyNLO 0.3 / 0.5 / 0.7 %, n2 (2.6e-20, 8.5e-24), fR 0.18, P_cr 3.77, MCP budget 300 s / 8 GB / 400 points, Python 3.9 / 3.10, benchmark timings.
 * Open for later rows (not fixed here): C4: the C2 audits' code findings (the registry `version` default 2 vs 3 written, `topology` undeclared) are unchanged. D6: `PROJECT_STATUS.md` says 60 example folders, there are 64; example numbers (`docs/examples/*/README.md`) outside tutorials were not re-run (the `example_check` job owns them); the `ti-sapphire-klm-haus` README quotes "T = 82,528.83 %" for an oscillator seed, which reads oddly.
 
-## Stage 40 -- WP D2-Diffraction: Diffraction examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-diffraction`, macOS arm64)
+## Stage 41 -- WP D2-Diffraction: Diffraction examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-diffraction`, macOS arm64)
 
 * All three examples have the template README (`**Run it**` with `=== "CLI"` and `=== "Python"`, snippet marker), `example.json` (`wave` 2, `python` true); `tilt-fringes` is now "CLI + Python" in `docs/examples/README.md`, `structured-beams` stays "Python" (its CLI tab runs `python structured.py`, its Python tab is the builder core without the plot). The old numbers left the titles. No engine code changed.
 * `iris-diffraction`: the Python tab runs the four systems with one spec built with the builders and prints the CLI line, the iris transmission and the axis fluence at the four planes; `compare.py` (table, figures) and `iris.py` (iris-radius scan) follow as bash blocks with their output quoted. Numbers that moved by rounding only: F(0) of the flat-top at N = 2 0.004825 (was 0.00482), square at N = 2 63.56 (was 63.55), analytic square flat-top transmission 50.26 % (was 50.25 %), no-absorber far-zone error about 20 % (was 19 %). The largest pattern error is still 1.30 %.
 * `tilt-fringes`: the snippet repeats the fringe-period fit of `report.py` on `res.instrument("screen")` (period 515.0 µm, was 515.1 µm). `structured-beams`: all four lines unchanged; the claim "at 0.3 m the core is 3 % wider" was re-run (203.5 against 197.1 µm).
 * Checks: `example_lint` (39 folders), `example_check Diffraction` (0 not reproduced), the three snippet tests, `gallery.py`, `style_lint` and `mkdocs build --strict` are green.
 
-## Stage 41 -- WP D2-Branched: Branched examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-branched`, macOS arm64)
+## Stage 42 -- WP D2-Branched: Branched examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-branched`, macOS arm64)
 
 * All five examples have the template README (`**Run it**` with CLI and Python tabs, snippet marker), `example.json` (`wave` 2, `python` true), old numbers dropped from titles. `cavity-and-coherence` runs the two `.ufs` files with `b.cw`, `b.coherence`; the four script examples keep `python <script>.py` in the CLI tab and a plot-free builder core in the Python tab (`system-schematics` draws three styles into `styles/`).
 * Numbers: all unchanged except `pump-probe` probe energy 49.987 -> 50.027 nJ (0.08 %; prose 0.03 % -> 0.05 %). The old `cavity-and-coherence` prose claim of 11 modes was dropped (not shown by any output). D3 adds the Fox-Li convergence panel later.
 * Checks: `example_lint`, `example_check Branched` (0 not reproduced), the five snippet tests, `gallery.py`, `style_lint`, `mkdocs build --strict` green. The interface column of `docs/examples/README.md` now reads "CLI + Python" for the four script examples (Diffraction's `structured-beams` still says "Python").
 
+
+
+## Stage 43 -- WP fix-2: the spatial-kerr numbers, and the Kerr lens pinned against theory  (2026-11-26, `dev/wp-fix-2`, macOS arm64)
+
+* **Cause.** The `spatial-kerr` README numbers (B 1.40 rad, TL 207 fs, wavefront R -81 mm, far field 3.70 mrad, exit radius 97.8 um) date from the initial commit 2f77295 and were never re-run. Bisected on the example (temporary worktree; 2f77295 needed the then-untracked `Results/*.cs`): 2f77295 gives the old numbers, 8dfff5d ("Added GPU support", 2026-10-26) and every later commit the new ones. 8dfff5d introduced `EnvelopeProblem.RamanKernels`, which scales the sampled Raman kernel to unit sum on the grid, in the 1-D and the transverse paths. Before, the Blow-Wood kernel sampled at the example's dt = 25 fs summed to 0.585, so the Kerr index was n2 (0.82 + 0.18 x 0.585) = 0.925 n2; the current engine with n2 x 0.925 reproduces every old number (B 1.404, TL 207.4 fs, R -81.6 mm, 3.70 mrad, 97.8 um). 3d9df78 (band-limited kernel) moved them by < 1e-4 more.
+* **Which is right: the new numbers.** The second moment of a Gaussian beam in a Kerr medium follows w^2 = w0^2 [1 + (1 - P/P_G)(z/zR)^2], P_G = lambda^2 / (2 pi n0 n2), exactly (virial law), slice by slice for a pulse (energy-weighted P0/sqrt2): 97.47 um predicted, 97.4 now (97.86 with 0.925 n2). The moment curvature after the plate, -131 mm predicted, is -130 mm from the free-space radii. A 300 fs pulse sees the Raman share as instantaneous, so Raman off gives the same numbers, as it should. The wavefront sensor's -70 mm is the curvature over the centre of the beam and has no closed form.
+* **Tests.** `SpatialTests.SpatialKerr_Solver_SecondMomentFollowsTheVirialLaw` (radial solver, 1e-4; observed 1e-5), `SpatialKerr_SilicaPlate_BeamSizeFollowsTheVirialLaw` (through the compiler with Raman on the 25 fs grid, 2 %; observed 1.0 %, from the profile stored at 48 sampled frequencies), `SpatialKerr_ThinSilicaPlate_OnAxisBAndKerrLensFocalLengthMatchGaussianBeamTheory` (B = k0 n2 I0 zR atan(L/zR), 0.3 %; moment focal length pi w^4 / (sqrt2 n2 P0 L), 0.5 %). With the pre-8dfff5d kernel they fail by 7 %.
+* **Sibling path.** The carrier-resolved `FieldProblem` still sampled h(t) directly (normalised but not band-limited); it now uses `EnvelopeProblem.ResponseKernel`, like the envelope paths (`FiberTests.RamanKernel_OnACoarseGrid_HasTheResponseSpectrum`: |H(w)| within 0.5 % at dt = 10 fs, 77 % off when sampled directly). Only field grids with dt > 0.5 fs (long carriers) change.
+* **The other two moved numbers are not engine changes.** `mpc-argon` 61.0 nm is `output.spectralFwhmM` (frequency FWHM converted at the centroid), 61.9 nm the `spectrometer` instrument (per unit wavelength); both are reported at every commit since 2f77295 and the README now names both. `ner-measured-input` gives an input transform limit of 248.6 fs at every commit since the example was added (dae0e9e); the old "240 fs" was never a run value.
+* Known limit, recorded: the per-element `beam.radiusXM` after a strongly SPM-broadened spatial element comes from the 48-frequency sampled profile (`TransverseProfile.Collapse`), 1 % off the exact second moment in the Kerr part of w^2 (0.05 % of w) for spatial-kerr.
+* Checks: solution build (net10.0 + net48) 0 errors; C# `--slow` 709 pass, 0 fail, 1 skipped after `/regen`; Python 525 pass, 12 skipped (with pyNLO); `mkdocs build --strict` 0 warnings; spatial-kerr re-run with `ULTRAFAST_STRICT_OPTIONS=1` gives the README numbers. The `physics-reviewer` subagent could not be started from this agent session (no agent tool); the formulas (P_G from the Hamiltonian, the moment focal length, the 4 sqrt2 ratio) were checked by hand and against the solver; a reviewer pass on the diff is still open.
+* **Physics review (run by the coordinator on the diff).** No physics errors; two test gaps, now closed: `FiberTests.RamanOn_LongPulse_CarrierResolvedAndEnvelopeGiveTheFullKerrPhase` (2 ps at 20 um, field dt 7.8 fs, Raman on: nonlinear phase = k0 n2 I0 L in both solvers within 0.1 %; fails with fR dropped (0.82) or the raw unnormalised kernel (-0.7 %)), and a complex / causal-phase check in `RamanKernel_OnACoarseGrid_HasTheResponseSpectrum` (a time-reversed or sign-flipped kernel fails). Recorded in `limitations.md`: Raman on the cycle-averaged I_env drops the 2 omega0 term (~3 % of the delayed part at 8 um in silica); `SampledResponse` falls back to direct sampling above 2^22 points; and, found while writing the test, carrier-resolved SPM is 33 % high when the envelope grid reaches non-positive frequency (only a note today).

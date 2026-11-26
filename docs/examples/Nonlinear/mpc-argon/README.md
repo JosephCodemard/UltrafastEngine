@@ -87,7 +87,8 @@ About 1 s.
 
 The figure: over the 20 passes the pulse collects a total B-integral of 9.12 rad. Self-phase modulation turns the narrow 220 fs
 input spectrum (dashed) into a broad two-lobed spectrum with a FWHM of 61.0 nm and a dip at the centre, which is the signature of a
-large nonlinear phase. The pulse itself stays 197.5 fs long, because the argon dispersion and the mirrors' -30 fs² per bounce hardly
+large nonlinear phase. (61.0 nm is `output.spectralFwhmM`, the FWHM in frequency converted to wavelength at the centroid; the
+`spectrometer` instrument, which measures the FWHM of the spectrum per unit wavelength, reports 61.9 nm.) The pulse itself stays 197.5 fs long, because the argon dispersion and the mirrors' -30 fs² per bounce hardly
 change its shape. The ideal compressor shows what the new bandwidth is worth: 33.1 fs and 3.70 GW of peak power, against 0.80 GW at
 the input. The compressed pulse has pedestals (temporal Strehl ratio 0.76) because the SPM chirp is not perfectly quadratic, so a pure
 GDD compressor cannot remove all of it.

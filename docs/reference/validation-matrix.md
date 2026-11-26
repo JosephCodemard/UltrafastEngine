@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **709 tests** in 77 classes. **451** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **711 tests** in 77 classes. **455** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -25,7 +25,7 @@ Every C# test of the engine: **709 tests** in 77 classes. **451** of them check 
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
-| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 9 | 9 |
+| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 11 | 11 |
 | [Fidelity switch](#fidelitytests) | `FidelityTests` | 6 | 0 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
@@ -73,7 +73,7 @@ Every C# test of the engine: **709 tests** in 77 classes. **451** of them check 
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
 | [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 7 | 7 |
-| [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
+| [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 9 | 8 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
 | [Branched systems: glass in beam splitters and polarising splitters](#splitterglasstests) | `SplitterGlassTests` | 6 | 5 |
 | [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 3 | 0 |
@@ -82,7 +82,7 @@ Every C# test of the engine: **709 tests** in 77 classes. **451** of them check 
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Run validity and pulse metrics](#validitytests) | `ValidityTests` | 11 | 7 |
 | [Zemax plugin: ZOS-API connection](#zemaxconnectiontests) | `ZemaxConnectionTests` | 7 | 0 |
-| [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 8 | 2 |
+| [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
 
 ## AoDeviceTests
 
@@ -478,7 +478,9 @@ Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence.
 | `FundamentalSoliton_PropagatesUnchanged_AndMetricsAreRight` | fundamental soliton sech shape (NLSE) | 1 % |
 | `LossGainAndGainGoal` | exponential loss and gain in dB | 0.01 %, 0.1 % |
 | `QuantumNoise_OnePhotonPerMode_AndCoherentSoliton` | one photon per mode: N ħω of energy | 5 % |
+| `RamanKernel_OnACoarseGrid_HasTheResponseSpectrum` | Blow & Wood, IEEE JQE 25, 2665 (1989): damped-oscillator Raman response, analytic H(w) | 0.5 % |
 | `RamanModels_NormalisedAndHollenbeckPeaksAt13THz` | Hollenbeck & Cantrell, JOSA B 19, 2886 (2002): gain peak 13.2 THz | 1 %, 3 % |
+| `RamanOn_LongPulse_CarrierResolvedAndEnvelopeGiveTheFullKerrPhase` | SPM phase k0 n2 I0 L with a delayed share fR of unit-integral response (long-pulse limit) | 0.1 % |
 | `SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon` | Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain) | 2 % |
 | `TaperedGamma_BIntegralFollowsTheIntegral` | B = ∫ γ(z) P dz | 1 % |
 
@@ -1188,6 +1190,9 @@ Spatial (transverse) models.
 | `Diffraction_GaussianBeamRadiusMatchesAnalytic_Radial` | Gaussian beam w(z) = w0 √(1 + (z/z_R)²) | 0.5 % |
 | `LensAndGap_FocusAGaussianBeamAsGaussianOpticsPredicts` | Gaussian optics: waist λf/(πw) | 2 % |
 | `RadialBasis_QuadratureAndTransformAreExact` | ∫ Gaussian = π w²/2; transform round trip | 1e-06 |
+| `SpatialKerr_SilicaPlate_BeamSizeFollowsTheVirialLaw` | Vlasov, Petrishchev & Talanov, Radiophys. Quantum Electron. 14, 1062 (1971): w^2 = w0^2 [1 + (1 - P/P_G)(z/zR)^2] | 2 % (reported radius from the sampled profile) |
+| `SpatialKerr_Solver_SecondMomentFollowsTheVirialLaw` | Vlasov, Petrishchev & Talanov (1971) virial law with P_G = lambda^2 / (2 pi n0 n2) | 1e-4 |
+| `SpatialKerr_ThinSilicaPlate_OnAxisBAndKerrLensFocalLengthMatchGaussianBeamTheory` | Gaussian-beam Kerr lens: B = k0 n2 I0 zR atan(L/zR); moment focal length f = pi w^4 / (sqrt2 n2 P0 L) | 0.3 % (B), 0.5 % (f) |
 | `ThinKerrLens_PhaseProfileMatchesAnalytic` | thin Kerr lens: k0 n2 I0 L exp(−2r²/w²) | 0.2 % |
 
 ## SpeedStudyTests
@@ -1328,6 +1333,3 @@ Zemax plugin: export and replay.
 | `RecordReplay_ReproducesTheSampleExactly` | -- | -- |
 | `Slab_InterfacesAoiCoatingAndFresnel` | -- | -- |
 | `Treacy_GroupPathMatchesTreacyAndBeatsPhasePath` | Treacy, IEEE JQE 5, 454 (1969) | 0.5 % |
-| `Zernike_DefocusAndAstigmatismGiveTheAnalyticPhaseAtPupilPoints` | Noll, J. Opt. Soc. Am. 66, 207 (1976): Z4 = sqrt(3) (2 rho^2 - 1), Z6 = sqrt(6) rho^2 cos 2 theta | 1e-12 |
-| `Zernike_ExportOptionsSignPositionTiltAndRadius` | -- | -- |
-| `Zernike_RecordReplayAndSavedSampleKeepTheCoefficients` | -- | -- |

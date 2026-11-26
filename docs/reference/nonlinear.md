@@ -126,7 +126,10 @@ Molecular gases have their rotational Raman response as an anisotropic tensor re
 exactly fR whatever the step (an analytic normalisation is off by a few % when the step is not much smaller than the
 12 fs oscillation). On a grid whose step is longer than 0.5 fs the response is evaluated on a finer sub-grid and
 band-limited to the grid before it is sampled, so its spectrum is the response's own H(ω) at every frequency of the grid
-and the Raman shift does not depend on the step.
+and the Raman shift does not depend on the step. This holds in every solver: 1-D envelope, transverse (radial and
+cartesian) and carrier-resolved (`FiberTests.RamanKernel_OnACoarseGrid_HasTheResponseSpectrum`). Without the
+normalisation the silica kernel sampled at dt = 25 fs sums to 0.585 and the Kerr index comes out 7.5 % low
+(`SpatialTests.SpatialKerr_*` pin B and the Kerr lens on that grid).
 
 ### Cubic anisotropy (XPW)
 
