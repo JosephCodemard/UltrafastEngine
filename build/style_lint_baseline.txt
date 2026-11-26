@@ -31,24 +31,17 @@ papers/perot-1899-multiple-beam-interference/README.md	filler	note that	08aed131
 papers/schulte-2016-mpc-fused-silica/README.md	filler	robust	63b91839
 papers/schulte-2016-mpc-fused-silica/README.md	term	multi-pass cell	e674c991
 reference/branches.md	filler	simply	bd968f0f
-reference/calculators.md	term	multi-pass cell	12cf53ec
 reference/coatings.md	term	3D	93edc157
 reference/components.md	term	n₂	d56298de
 reference/crystals.md	filler	very	5102fc5f
 reference/gain.md	spelling	fiber	af751cf0
-reference/instruments.md	filler	clearly	6fab2c27
 reference/ionization.md	spelling	ionization	70f15b75
-reference/mcp.md	term	chi2	b86e8fb5
 reference/mcp.md	term	chi2	ec229738
 reference/mcp.md	term	chi2	ec229738
-reference/mcp.md	term	chi2	f58dd24a
-reference/measured-data.md	filler	robust	910b154b
 reference/measured-data.md	term	run file	b046ccb1
 reference/python.md	filler	simply	2b31e60f
-reference/python.md	spelling	polarizer	e380ece0
-reference/results.md	term	2D	a2a4a427
+reference/python.md	spelling	polarizer	8be5db1f
 reference/speed.md	filler	very	63aeed34
-reference/studies.md	spelling	optimize	c9c35325
 reference/transverse.md	filler	very	a16ea616
 reference/transverse.md	term	n₂	914ffba2
 releasing.md	spelling	artifact	4ca857e2

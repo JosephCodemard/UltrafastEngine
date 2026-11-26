@@ -183,7 +183,7 @@ then called `x`/`y` (or picked with `"columns"`).
 |---|---|---|
 | `file` | | CSV / NPZ / JSON, relative to the run file |
 | `columns` | auto | see above |
-| `normalize` | `peak` | an unknown value is taken as `peak`. `peak`: the simulation is scaled to a maximum of 1 and the data are scaled onto it by least squares, which is robust against noise on the measured maximum. `maximum`: both divided by their maxima. `area`: both to unit area. `scale`: the simulation times a best-fit factor (reported as `measuredScale`), with the data left in their own units. `none` (or `absolute`): absolute comparison (data in SI units of the simulated reading). |
+| `normalize` | `peak` | an unknown value is taken as `peak`. `peak`: the simulation is scaled to a maximum of 1 and the data are scaled onto it by least squares, so noise on the measured maximum does not set the scale. `maximum`: both divided by their maxima. `area`: both to unit area. `scale`: the simulation times a best-fit factor (reported as `measuredScale`), with the data left in their own units. `none` (or `absolute`): absolute comparison (data in SI units of the simulated reading). |
 | `sigma` | 0.02 | uncertainty of each point, relative to the data peak (when there is no sigma column) |
 | `background` | none | a number to subtract, `"min"`, or `"auto"`: for a curve, the median of the first and of the last 5 % of the points (see [Background](#background)), taking the lower (darker) end -- a recording cut off on one side still gives its dark level; for a trace, the median at the edges of the columns. Use a number if your data have signal at both edges. |
 | `rangeX` | all | `[min, max]` in SI: compare only this part of the curve |

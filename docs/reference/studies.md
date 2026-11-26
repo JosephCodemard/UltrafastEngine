@@ -70,7 +70,7 @@ An unknown `mode` is an error: `study mode must be scan, optimize or sensitivity
 
 * **scan**: `grid` (every combination of `points` per parameter), `random`, `lhs` (Latin hypercube), `sobol`
   (low-discrepancy, up to 16 parameters).
-* **optimize**: `"objective": {"output": "...", "goal": "min" | "max" | "target", "target": v, "maxEvaluations": 200, "tolerance": 1e-4}`
+* **`optimize`**: `"objective": {"output": "...", "goal": "min" | "max" | "target", "target": v, "maxEvaluations": 200, "tolerance": 1e-4}`
   -- Nelder-Mead on the scaled box, started at the nominal values. The objective output is added to `outputs`. `analysis` holds `optimum` (parameter values), `objective`, `goal`, `value` and `evaluations`.
 * **sensitivity**: `"sensitivity": {"method": "local", "stepFraction": 0.01}` (central differences: derivative and
   elasticity d ln y / d ln p at the nominal point) or `{"method": "sobol", "samples": 256}` (global first-order and
