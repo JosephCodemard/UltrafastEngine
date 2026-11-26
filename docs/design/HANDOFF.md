@@ -32,8 +32,10 @@ coordinator session; WP-level state lives in each worktree's own `HANDOFF.md`.
 | Z1, Z2 | own ZOS-API connection core (net48; ZOSPy read as a guide only); Zernike Standard coefficients from OpticStudio into a `wavefront` element (fake path tested only) |
 | tooling | `build/wp/` (start, merge, regen, cleanup, roadmap dedupe), `docs/design/coordinator.md`, decisions E18-E20 |
 
-Last full checkpoint (before C2b-d, C3, D2 Diffraction / Branched, Z2): build 0 errors; C# 697 passed, 0 failed (20 GPU tests on PoCL);
-Python 518 passed with pyNLO; mkdocs strict, style, example and skill-sync checks, mypy all green. Run a fresh checkpoint first (Next, 1).
+Final checkpoint of the session (`dev/2026-11` after every merge, before the example-check fix `41aa926`): build 0 errors; C# 709
+passed, 0 failed, 9 skipped (20 GPU tests on PoCL); Python 542 passed, 3 skipped, with pyNLO; mkdocs strict, style lint, example lint
+(43 folders), skill sync and mypy green. CI's "Docs and example check" job (Linux, re-runs every example) failed on the D2 merges and is
+fixed by `41aa926`; confirm it is green on the next push (Next, 1).
 
 ## In progress at the end of the session
 
