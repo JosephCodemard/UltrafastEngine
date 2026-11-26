@@ -1,0 +1,12 @@
+{
+  "title": "Supercontinuum in a photonic-crystal fibre",
+  "summary": "The benchmark of Dudley, Genty and Coen (Rev. Mod. Phys. 78, 1135 (2006), Fig. 3): a 50 fs, 10 kW sech pulse at 835 nm breaks up into solitons in 15 cm of photonic-crystal fibre (soliton number 8.65), the spectrum spans 492 to 1307 nm at -40 dB and the mean coherence over six noise realisations is 0.98.",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "supercontinuum.png"
+  ],
+  "wave": 2,
+  "python": true
+}

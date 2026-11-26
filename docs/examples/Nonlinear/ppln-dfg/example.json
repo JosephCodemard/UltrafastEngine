@@ -1,0 +1,13 @@
+{
+  "title": "Mid-IR difference-frequency generation in MgO:PPLN",
+  "summary": "A 1064 nm pump (1 µJ, 1 ps) and a 1550 nm signal (10 nJ) generate 212 nJ of 3.39 µm idler in 5 mm of periodically poled MgO:LiNbO3 (type 0, d33, QPM period 30.6 µm), with 68 % of the pump depleted.",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png",
+    "pynlo_comparison.png"
+  ],
+  "wave": 2,
+  "python": true
+}

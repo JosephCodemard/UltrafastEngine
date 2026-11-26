@@ -1,0 +1,12 @@
+{
+  "title": "Carrier-resolved propagation",
+  "summary": "A 60 fs, 0.1 µJ pulse at 800 nm crosses 0.2 mm of fused silica whose index is modulated at 60 THz; the engine propagates the real optical field instead of the envelope, and the modulation puts sidebands about 46 dB below the peak near 691 nm and 951 nm.",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}

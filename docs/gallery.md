@@ -56,29 +56,29 @@ A SESAM mode-locked Yb:YAG oscillator (1.08 W, 871 fs) feeds a grating stretcher
 
 ## Nonlinear
 
-### [06 -- Carrier-resolved propagation (index varying on the optical-cycle scale)](examples/Nonlinear/carrier-resolved/README.md)
+### [Carrier-resolved propagation](examples/Nonlinear/carrier-resolved/README.md)
 
-The time response in `fast-index.ufs` is written in **lab time** (`t_lab`) and oscillates at 60 THz.
+A 60 fs, 0.1 µJ pulse at 800 nm crosses 0.2 mm of fused silica whose index is modulated at 60 THz; the engine propagates the real optical field instead of the envelope, and the modulation puts sidebands about 46 dB below the peak near 691 nm and 951 nm.
 
-![06 -- Carrier-resolved propagation (index varying on the optical-cycle scale): figure](examples/Nonlinear/carrier-resolved/hero.png)
+![Carrier-resolved propagation: figure](examples/Nonlinear/carrier-resolved/hero.png)
 
-### [24 -- Air at a focus: rotational Raman, ionisation and pulse retrieval](examples/Nonlinear/filament/README.md)
+### [Air at a focus: rotational Raman, ionisation and pulse retrieval](examples/Nonlinear/filament/README.md)
 
-A 0.4 mJ, 40 fs pulse at 800 nm focused (w0 = 100 µm) in the middle of 1 m of air.
+A 0.4 mJ, 40 fs pulse at 800 nm focused (w0 = 100 µm) in the middle of 1 m of air gains B = 6.65 rad, loses 8.8 % of its energy to photo-ionisation and shifts its spectral centroid from 800 nm to 815 nm; a simulated SHG-FROG of the output retrieves a 50.3 fs pulse (51.3 fs simulated).
 
-![24 -- Air at a focus: rotational Raman, ionisation and pulse retrieval: figure](examples/Nonlinear/filament/hero.png)
+![Air at a focus: rotational Raman, ionisation and pulse retrieval: figure](examples/Nonlinear/filament/hero.png)
 
-### [10 -- Mid-IR difference-frequency generation in MgO:PPLN](examples/Nonlinear/ppln-dfg/README.md)
+### [Mid-IR difference-frequency generation in MgO:PPLN](examples/Nonlinear/ppln-dfg/README.md)
 
-A 1064 nm pump (1 uJ, 1 ps) and a 1550 nm signal (10 nJ) generate a 3.39 um idler in 5 mm of periodically poled MgO:LiNbO3 (type 0, all extraordinary, d33).
+A 1064 nm pump (1 µJ, 1 ps) and a 1550 nm signal (10 nJ) generate 212 nJ of 3.39 µm idler in 5 mm of periodically poled MgO:LiNbO3 (type 0, d33, QPM period 30.6 µm), with 68 % of the pump depleted.
 
-![10 -- Mid-IR difference-frequency generation in MgO:PPLN: figure](examples/Nonlinear/ppln-dfg/hero.png)
+![Mid-IR difference-frequency generation in MgO:PPLN: figure](examples/Nonlinear/ppln-dfg/hero.png)
 
-### [29 -- Small-scale self-focusing in a 2-D plate (P / P_cr ≈ 100)](examples/Nonlinear/small-scale-self-focusing/README.md)
+### [Small-scale self-focusing in a 2-D plate](examples/Nonlinear/small-scale-self-focusing/README.md)
 
-A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radius 0.3 mm: 3.3·10⁸ W, about 100 times the critical power for self-focusing.
+A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radius 0.3 mm at 96.5 times the critical power; 1 % seeded noise grows 3.13 times in the plate (B = 4.27 rad) and is not yet saturated.
 
-![29 -- Small-scale self-focusing in a 2-D plate (P / P_cr ≈ 100): figure](examples/Nonlinear/small-scale-self-focusing/hero.png)
+![Small-scale self-focusing in a 2-D plate: figure](examples/Nonlinear/small-scale-self-focusing/hero.png)
 
 ## Diffraction
 

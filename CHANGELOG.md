@@ -5,6 +5,9 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Docs (2026-11-26, WP D2-Nonlinear)**
+- The eight Nonlinear examples (`carrier-resolved`, `filament`, `mpc-argon`, `ner-measured-input`, `ppln-dfg`, `small-scale-self-focusing`, `spatial-kerr`, `supercontinuum`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (spectral FWHM of `mpc-argon` 61.0 nm, was 61.9 nm; Kerr-lens wavefront radius of `spatial-kerr` -70 mm, was -81 mm, with its beam radii, B-integral 1.55 rad (was 1.4) and sampling tables; input transform limit of `ner-measured-input` 249 fs, was 240 fs; pump depletion of `ppln-dfg` 68 %, was about 70 %; mean coherence of `supercontinuum` 0.98, was 0.97). No engine code changed.
+
 **Docs (2026-11-26, WP D2-LaserSystems)**
 - The ten LaserSystems examples follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (stretched pulse of `stretcher-compressor` 233.6 ps, was 232.6 ps; GDD of `four-grating-compressor` -1547449 fs2, was -1547462 fs2; compressed pulse of `nopcpa-bbo` 24.0 fs, was 23.8 fs; `yb-laser-system` stretched pulse 131 ps, was 130 ps). The snippet test copies the folders an example depends on (`nopcpa-bbo` needs `shg-lbo`).
 

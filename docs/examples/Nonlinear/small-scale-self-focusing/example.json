@@ -1,0 +1,12 @@
+{
+  "title": "Small-scale self-focusing in a 2-D plate",
+  "summary": "A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radius 0.3 mm at 96.5 times the critical power; 1 % seeded noise grows 3.13 times in the plate (B = 4.27 rad) and is not yet saturated.",
+  "group": "Nonlinear",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}
