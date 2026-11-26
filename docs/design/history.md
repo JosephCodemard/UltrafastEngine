@@ -327,6 +327,16 @@ Worked in a git worktree (`../UltrafastEngine-wp2b`) because the owner's overnig
   erf(√ln 20) = 0.9856 for a Gaussian), `satellitePeakCount` (= `peakCount` − 1) in every pulse summary, `pulseSummary` and `compressor`;
   the plots use it. Prompted by multipass-cell soliton compression, where a satellite above 50 % made `fwhmS` jump from ~10 fs to > 100 fs.
 
+## Stage 18 -- WP Z1: the Zemax plugin's own ZOS-API connection core  (2026-11-25, `dev/wp-z1`, macOS arm64)
+
+The connection of the Windows binding was rewritten as our own code (E19; ZOSPy read online as a guide only). The sequence (NetHelper
+initialisation, connect in interactive / user-extension / standalone mode, licence, version >= 20.1, primary system, file load) and its
+messages live in `UltrafastEngine.Zemax.Sampling/ZosConnectionCore.cs` behind two small interfaces, so `ZemaxConnectionTests` checks them on any
+OS with a fake ZOS-API; `ZosConnection.cs` implements the interfaces over ZOS-API, with the initialisation kept out of methods that name ZOSAPI
+types (the old `Connect` initialised and used ZOSAPI in one method, which can fail to load `ZOSAPI.dll`). Only a standalone instance is closed,
+also after a failed check and on Ctrl+C. `ZosOpticStudio.cs` was split into system access and analyses. Built against the extended stubs
+with Mono reference assemblies on macOS; nothing ran on OpticStudio: `HARDWARE-CHECKLIST.md` step 3b lists what the owner must check.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

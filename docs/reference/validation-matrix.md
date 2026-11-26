@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **690 tests** in 75 classes. **442** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **697 tests** in 76 classes. **442** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -80,6 +80,7 @@ Every C# test of the engine: **690 tests** in 75 classes. **442** of them check 
 | [Fitting plugin: transforms, backward propagation, fits](#transformtests) | `TransformTests` | 25 | 4 |
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Run validity and pulse metrics](#validitytests) | `ValidityTests` | 10 | 6 |
+| [Zemax plugin: ZOS-API connection](#zemaxconnectiontests) | `ZemaxConnectionTests` | 7 | 0 |
 | [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
 
 ## AoDeviceTests
@@ -1284,6 +1285,20 @@ Run validity and pulse metrics.
 | `MainLobe_OfAGaussian_IsTheFwhm_AndHoldsErfOfSqrtLn20` | Gaussian P = exp(-4 ln2 t^2 / T^2): main lobe = FWHM T; 5 % points at t = T sqrt(ln 20 / (4 ln 2)), energy between them erf(sqrt(ln 20)) = 0.985625 | 1e-4 (sampling) |
 | `StrictValidity_RaisesAfterTheRun_WithTheResultAttached` | -- | -- |
 | `ZeroFrequency_IsReportedOnlyWhenTheSpectrumReachesIt` | -- | -- |
+
+## ZemaxConnectionTests
+
+Zemax plugin: ZOS-API connection.
+
+| test | reference | tolerance |
+|---|---|---|
+| `ModeSelection_DefaultsToInteractiveAndFileAloneMeansStandalone` | -- | -- |
+| `ModeSelection_RejectsConflictsWithMessagesThatSayWhatToDo` | -- | -- |
+| `Open_AFailedCheckClosesTheStandaloneInstanceItStarted` | -- | -- |
+| `Open_EachModeCallsItsZosApiEntryPointAfterInitialisation` | -- | -- |
+| `Open_ModeSpecificMessageWhenNothingAnswers` | -- | -- |
+| `Open_ReportsLicenceVersionAndMissingInstallationClearly` | -- | -- |
+| `Shutdown_ClosesOnlyAStandaloneInstanceAndOnlyOnce` | -- | -- |
 
 ## ZemaxTests
 

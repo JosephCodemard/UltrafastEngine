@@ -1,11 +1,13 @@
-// COMPILE-ONLY stand-in for the ZOS-API assemblies (see ZosApiStubs.csproj). Bodies throw.
+// COMPILE-ONLY stand-in for the ZOS-API assemblies (see ZosApiStubs.csproj), written by us from the public ZOS-API documentation:
+// only the members the binding uses, with their documented names. Bodies throw. Not Ansys files; never shipped.
 using System;
-namespace ZOSAPI_NetHelper { public static class ZOSAPI_Initializer { public static bool Initialize() => throw new NotSupportedException("stub"); public static bool Initialize(string dir) => throw new NotSupportedException("stub"); } }
+namespace ZOSAPI_NetHelper { public static class ZOSAPI_Initializer { public static bool Initialize() => throw new NotSupportedException("stub"); public static bool Initialize(string dir) => throw new NotSupportedException("stub"); public static string GetZemaxDirectory() => throw new NotSupportedException("stub"); } }
 namespace ZOSAPI
 {
     public interface IOpticalSystem { Editors.LDE.ILensDataEditor LDE { get; } Editors.MFE.IMeritFunctionEditor MFE { get; } SystemData.ISystemData SystemData { get; } Tools.IOpticalSystemTools Tools { get; } string SystemFile { get; } bool LoadFile(string f, bool saveIfNeeded); }
-    public interface IZOSAPI_Application { IOpticalSystem PrimarySystem { get; } bool IsValidLicenseForAPI { get; } void CloseApplication(); }
-    public class ZOSAPI_Connection { public IZOSAPI_Application CreateNewApplication() => throw new NotSupportedException("stub"); public IZOSAPI_Application ConnectAsExtension(int n) => throw new NotSupportedException("stub"); }
+    public enum LicenseStatusType { Unknown, KeyNotWorking, NewLicenseNeeded, StandardEdition, ProfessionalEdition, PremiumEdition, TooManyInstances, NotAuthorized, KeyExpired, Timeout, InstanceConflict, EnterpriseEdition }
+    public interface IZOSAPI_Application { IOpticalSystem PrimarySystem { get; } bool IsValidLicenseForAPI { get; } LicenseStatusType LicenseStatus { get; } int ZOSMajorVersion { get; } int ZOSMinorVersion { get; } int ZOSSPVersion { get; } void CloseApplication(); }
+    public class ZOSAPI_Connection { public IZOSAPI_Application CreateNewApplication() => throw new NotSupportedException("stub"); public IZOSAPI_Application ConnectAsExtension(int n) => throw new NotSupportedException("stub"); public IZOSAPI_Application ConnectToApplication() => throw new NotSupportedException("stub"); }
     public enum ZemaxSystemUnits { Millimeters, Centimeters, Inches, Meters }
 }
 namespace ZOSAPI.Editors { public interface IEditorCell { int IntegerValue { get; set; } double DoubleValue { get; set; } string Value { get; set; } } }
