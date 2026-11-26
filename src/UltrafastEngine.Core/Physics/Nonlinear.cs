@@ -309,6 +309,12 @@ namespace UltrafastEngine.Physics
             return h;
         }
 
+        /// <summary>A delayed response on the grid's time samples as every propagation path uses it: band-limited to the grid
+        /// (<see cref="SampledResponse"/>) and scaled to unit sum (<see cref="NormalizedKernel"/>). The carrier-resolved path
+        /// uses it directly; <see cref="RamanKernels"/> does the same for the envelope paths (1-D and transverse) and their
+        /// anisotropic part.</summary>
+        internal static double[] ResponseKernel(IDelayedResponse r, FrequencyGrid grid) => NormalizedKernel(SampledResponse(r.Evaluate, grid), grid.DTime);
+
         internal static Complex Rate(double phase, double amp, double lengthM)
         {
             double la = amp > 1e-300 ? Math.Log(amp) : -690.0;
@@ -756,7 +762,7 @@ namespace UltrafastEngine.Physics
             }
             if (medium.EffectiveRamanFraction > 0)
             {
-                var h = EnvelopeProblem.NormalizedKernel(medium.Raman.Evaluate(g.Time), g.DTime);
+                var h = EnvelopeProblem.ResponseKernel(medium.Raman, g);   // band-limited like the envelope paths (a mid-IR carrier allows dt of several fs)
                 var hc = new Complex[nf];
                 for (int i = 0; i < nf; i++) hc[i] = h[i];
                 _ramanKernelFreq = SpectralTransform.TimeToFreq(hc);

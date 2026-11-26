@@ -69,6 +69,34 @@ namespace UltrafastEngine.Tests
             Assert.Close(gordon, rate, 0.02, 0, "SSFS rate on the auto grid");
         }
 
+        /// <summary>The kernel every path builds from a delayed response (EnvelopeProblem.ResponseKernel; since WP fix-2 also the
+        /// carrier-resolved path, which sampled h(t) directly) has the response's own spectrum on a coarse grid. Damped
+        /// oscillator h = A exp(-t/tau2) sin(t/tau1), A = (tau1^2 + tau2^2)/(tau1 tau2^2) (Blow and Wood: 12.2 / 32 fs):
+        /// H(w) = A (1/tau1) / ((1/tau2 - i w)^2 + 1/tau1^2), H(0) = 1. At dt = 10 fs (a field grid for an 8 um carrier) the
+        /// directly sampled kernel sums to 0.935 and, normalised, its spectrum is 77 % high at 40 THz (aliasing); the band-limited
+        /// kernel matches H within 0.5 % up to 0.8 of the Nyquist frequency (the spectrum is compared in magnitude, which does
+        /// not depend on the transform's sign convention, and normalised to its value at w = 0).</summary>
+        [Test(Reference = "Blow & Wood, IEEE JQE 25, 2665 (1989): damped-oscillator Raman response, analytic H(w)", Tolerance = "0.5 %")]
+        public void RamanKernel_OnACoarseGrid_HasTheResponseSpectrum()
+        {
+            double t1 = 12.2e-15, t2 = 32e-15, dt = 10e-15;
+            var grid = UltrafastEngine.Pulses.FrequencyGrid.Create(1024, dt, W(1030e-9));
+            var resp = new DampedOscillatorResponse(t1, t2);
+            var h = UltrafastEngine.Physics.EnvelopeProblem.ResponseKernel(resp, grid);
+            Assert.Close(1.0, h.Sum() * dt, 1e-9, 0, "unit sum on the grid");
+            var hf = UltrafastEngine.Numerics.SpectralTransform.TimeToFreq(h.Select(x => new System.Numerics.Complex(x, 0)).ToArray());
+            int n = grid.N, i0 = Array.IndexOf(grid.OmegaOffset, grid.OmegaOffset.OrderBy(Math.Abs).First());
+            double a = (t1 * t1 + t2 * t2) / (t1 * t2 * t2), nyq = Math.PI / dt;
+            for (int i = 0; i < n; i++)
+            {
+                double w = grid.OmegaOffset[i];
+                if (Math.Abs(w) > 0.8 * nyq || i % 8 != 0) continue;
+                var den = new System.Numerics.Complex(1 / t2, -w) * new System.Numerics.Complex(1 / t2, -w) + 1 / (t1 * t1);
+                double analytic = (a / t1 / den).Magnitude;
+                Assert.Close(analytic, (hf[i] / hf[i0]).Magnitude, 0.005, 0, "|H| at " + (w / (2 * Math.PI) * 1e-12).ToString("F1") + " THz");
+            }
+        }
+
         [Test(Reference = "fundamental soliton sech shape (NLSE)", Tolerance = "1 %")]
         public void FundamentalSoliton_PropagatesUnchanged_AndMetricsAreRight()
         {
