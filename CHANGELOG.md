@@ -22,6 +22,9 @@ internal development stages and were never released; they are kept as the develo
 **Docs (2026-11-26, WP D2-Wavefronts)**
 - The two Wavefronts examples (`position-dependent-index`, `spatial-gain-thermal-lens`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (absorbed pump at 5 W is now quoted as 4.1 W, was 4.05 W).
 
+**Docs (2026-11-26, WP D2-Diffraction)**
+- The three Diffraction examples (`iris-diffraction`, `structured-beams`, `tilt-fringes`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (fringe period of `tilt-fringes` 515.0 µm, was 515.1 µm; analytic transmission of the square flat-top 50.26 %, was 50.25 %; axis fluence without the absorbing boundary about 20 % off, was 19 %). `iris.py` of `iris-diffraction` now imports the installed package (no `sys.path` edit).
+
 **Docs (2026-11-26, WP C2d)**
 - **Reference pages `transverse`, `branches`, `models`, `fidelity`, `memory`, `speed`** rewritten to the reference template (Keys, Model, Validation, Limits) and every row of `docs/design/notes/reference-audit-d.md` closed (models.md audited line by line first): all model kinds (`chi2`, the Raman kinds, `field`), the filter variables (no `nu`), override and time-response rules, `sfgFrog` in quick, the free-memory source per framework, `gpuMinPoints` 0 per back-end, `compute.precision`, the macOS OpenCL device discovery, the graph error list. Benchmarks without a source were removed or re-measured with machine, date and script (`tools/bench`, Apple M3, 2026-11-26); physics review applied; eight code findings C4-d1 to C4-d8 recorded, no code changed.
 

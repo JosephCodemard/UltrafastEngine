@@ -1,0 +1,13 @@
+{
+  "title": "Diffraction by an iris: four beam shapes, four distances",
+  "summary": "Four beams (Gaussian, round flat-top, uniform, square flat-top) pass a 1 mm iris and are imaged at Fresnel numbers 3, 2 and 1 and in the far zone; every pattern agrees with the Fresnel diffraction integral to 1.3 % of its peak or better.",
+  "group": "Diffraction",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "diffraction-cuts.png",
+    "diffraction-images.png"
+  ],
+  "wave": 2,
+  "python": true
+}

@@ -82,11 +82,11 @@ A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radi
 
 ## Diffraction
 
-### [35 -- Fringes from a tilted mirror](examples/Diffraction/tilt-fringes/README.md)
+### [Fringes from a tilted mirror](examples/Diffraction/tilt-fringes/README.md)
 
-A Michelson interferometer on the command line, in a Branched `.ufs` file.
+A Michelson interferometer on the command line, in a branched .ufs file: one arm is tilted by 2 mrad, carried profiles add point by point at the return, and straight fringes appear with a period of 515.0 µm against λ / angle = 515.0 µm.
 
-![35 -- Fringes from a tilted mirror: figure](examples/Diffraction/tilt-fringes/hero.png)
+![Fringes from a tilted mirror: figure](examples/Diffraction/tilt-fringes/hero.png)
 
 ## Wavefronts
 

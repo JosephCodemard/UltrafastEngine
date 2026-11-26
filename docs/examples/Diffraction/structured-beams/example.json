@@ -1,0 +1,12 @@
+{
+  "title": "Structured beams: modes, a Bessel core and a zone-plate focus",
+  "summary": "Hermite-Gauss and Laguerre-Gauss modes keep their beam quality (M² = 7 and 3, and 5, as the formulas say), an axicon makes a Bessel core whose first zero is at 197.7 µm against 197.1 µm analytic, and a 5-zone zone plate raises the fluence at its focus by 96 against (2N)² = 100.",
+  "group": "Diffraction",
+  "script": "structured.py",
+  "plugins": [],
+  "figures": [
+    "structured.png"
+  ],
+  "wave": 2,
+  "python": true
+}

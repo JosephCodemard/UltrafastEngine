@@ -8,12 +8,9 @@ F(0, z) = F0 |(k / 2z) / p|^2 |1 - exp(-a^2 p)|^2,  with exp(-a^2 p) = exp(-a^2 
 """
 import cmath
 import math
-import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "python", "src"))
-import ultrafast as uf  # noqa: E402
-from ultrafast import build as b  # noqa: E402
+import ultrafast as uf
+from ultrafast import build as b
 
 LAM, W, E = 1030e-9, 2e-3, 1e-3
 
