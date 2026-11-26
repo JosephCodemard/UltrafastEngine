@@ -43,6 +43,7 @@ carrier only, and print the same key numbers.
     spec = b.run_spec(                             # run.json, written with the builders
         b.pulse(800e-9, 40e-15, energy=0.4e-3),
         name="air-focus",
+        fidelity="full",                           # the default; the snippet test would otherwise run it in quick (no FROG trace)
         instruments=[
             b.instrument("spectrometer"),
             b.instrument("frog", name="frog", type="shg", points=128),

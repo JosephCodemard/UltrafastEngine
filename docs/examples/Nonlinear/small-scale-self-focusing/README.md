@@ -42,6 +42,7 @@ About 1 minute on a laptop CPU.
         b.pulse(1030e-9, 300e-15, energy=130e-6),
         name="small-scale self-focusing",
         grid=b.grid(n=256),
+        fidelity="full",                           # the default; quick would collapse the 2-D model and drop the diagnostics
         physics=b.physics(raman=False, selfSteepening=False),
     )
     res = uf.run(system, spec)

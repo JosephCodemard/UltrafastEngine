@@ -38,14 +38,14 @@ Kerr, plasma, Raman, supercontinuum, chi(2) conversion in gases, fibres and crys
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [mpc-argon](Nonlinear/mpc-argon/README.md) | 03 | Python + CLI | 20-pass argon Herriott cell generated from Python; per-pass B, LIDT, compression | `python make_mpc.py; ultrafast run mpc.ufs run.json` |
-| [carrier-resolved](Nonlinear/carrier-resolved/README.md) | 06 | CLI | index modulated on the fs scale in lab time -> real-field propagation | `ultrafast run fast-index.ufs run.json` |
-| [spatial-kerr](Nonlinear/spatial-kerr/README.md) | 11 | CLI | self-focusing with diffraction resolved (radial model), profile carried through free space; on-axis vs whole-beam spectra and autocorrelations (pinhole, slit, fibre in the far field) | `ultrafast run kerr.ufs run.json` |
-| [filament](Nonlinear/filament/README.md) | 24 | CLI | a gas cell with rotational Raman and ionisation: blue shift, plasma density, retrieval of the output pulse from a simulated FROG | `ultrafast run cell.ufs run.json`, `ultrafast retrieve pcgpa results/result.npz` |
-| [supercontinuum](Nonlinear/supercontinuum/README.md) | 25 | CLI | the PCF supercontinuum benchmark (Dudley 2006): `fiber` element with beta2..beta10, soliton fission, dispersive waves, coherence over quantum-noise realisations | `ultrafast run pcf.ufs run.json`, `ultrafast study coherence.json` |
+| [mpc-argon](Nonlinear/mpc-argon/README.md) | 03 | CLI + Python | 20-pass argon Herriott cell generated from Python; per-pass B, LIDT, compression | `python make_mpc.py; ultrafast run mpc.ufs run.json` |
+| [carrier-resolved](Nonlinear/carrier-resolved/README.md) | 06 | CLI + Python | index modulated on the fs scale in lab time -> real-field propagation | `ultrafast run fast-index.ufs run.json` |
+| [spatial-kerr](Nonlinear/spatial-kerr/README.md) | 11 | CLI + Python | self-focusing with diffraction resolved (radial model), profile carried through free space; on-axis vs whole-beam spectra and autocorrelations (pinhole, slit, fibre in the far field) | `ultrafast run kerr.ufs run.json` |
+| [filament](Nonlinear/filament/README.md) | 24 | CLI + Python | a gas cell with rotational Raman and ionisation: blue shift, plasma density, retrieval of the output pulse from a simulated FROG | `ultrafast run cell.ufs run.json`, `ultrafast retrieve pcgpa results/result.npz` |
+| [supercontinuum](Nonlinear/supercontinuum/README.md) | 25 | CLI + Python | the PCF supercontinuum benchmark (Dudley 2006): `fiber` element with beta2..beta10, soliton fission, dispersive waves, coherence over quantum-noise realisations | `ultrafast run pcf.ufs run.json`, `ultrafast study coherence.json` |
 | [ner-measured-input](Nonlinear/ner-measured-input/README.md) | 27 | CLI + Python | nonlinear ellipse rotation in 10 fused-silica plates driven by a digitised spectrum (floor, rows out of order, a repeated wavelength): cleaning and background, the satellite window, rotation vs analytic with the anisotropic Raman response, an OSA recording compared at its resolution and range | `python ner.py` |
-| [small-scale-self-focusing](Nonlinear/small-scale-self-focusing/README.md) | 29 | CLI | a 10 mm fused-silica plate at P / P_cr ≈ 100 in a flat-top beam on a 128 x 128 cartesian grid, seeded noise, small-scale gain and the Bespalov-Talanov reference | `ultrafast run plate.ufs run.json` |
-| [ppln-dfg](Nonlinear/ppln-dfg/README.md) | 10 | CLI | mid-IR DFG in MgO:PPLN (QPM), idler as main beam, spectral margin; pyNLO comparison | `ultrafast run dfg.ufs run.json` |
+| [small-scale-self-focusing](Nonlinear/small-scale-self-focusing/README.md) | 29 | CLI + Python | a 10 mm fused-silica plate at P / P_cr ≈ 100 in a flat-top beam on a 128 x 128 cartesian grid, seeded noise, small-scale gain and the Bespalov-Talanov reference | `ultrafast run plate.ufs run.json` |
+| [ppln-dfg](Nonlinear/ppln-dfg/README.md) | 10 | CLI + Python | mid-IR DFG in MgO:PPLN (QPM), idler as main beam, spectral margin; pyNLO comparison | `ultrafast run dfg.ufs run.json` |
 
 ## Diffraction
 
