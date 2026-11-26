@@ -91,8 +91,8 @@ intense time slice at the centre of the beam. Two averages are reported beside i
   The CPU stepper and the 1-D envelope stepper of the GPU back-ends accumulate it step by step with the same sums. Where a
   stepper does not report it (the ensemble stepper of GPU study batches, the `cpu-fp32` emulation) it is estimated from
   the entry and exit pulse shapes, Σ P² / (Σ P max P), averaged over entry and exit, and a note says so. The estimate is
-  exact for an instantaneous response and a shape that changes little; it is about 8 % high in an air gap whose delayed
-  rotational Raman response matters (160 fs). (Before 2026-11-24 the GPU path reported 0 for both averages, per element
+  exact for an instantaneous response and a shape that changes little; it is 8 to 15 % off when a delayed Raman response reshapes
+  the pulse (about 8 % high in an air gap whose rotational response matters, 160 fs). (Before 2026-11-24 the GPU path reported 0 for both averages, per element
   and in `totals`.)
 * `bIntegralBeamAveragedRad`: additionally weighted by intensity over the Gaussian cross-section of the 1-D beam,
   ∫I² dA / ∫I dA = I₀/2, so half of the pulse-averaged value. It is the energy-weighted mean phase, the number that sets,

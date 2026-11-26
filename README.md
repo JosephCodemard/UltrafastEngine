@@ -150,9 +150,9 @@ See [Fitting plugin](docs/plugins/fitting.md) and [example 26](docs/examples/Dig
 
 | | |
 |---|---|
-| **Unit and physics tests** | 544 C# tests (analytic results, conservation laws, published values) and 216 Python tests, run on Linux, macOS and Windows in [CI](.github/workflows/ci.yml) |
+| **Unit and physics tests** | 664 C# tests (analytic results, conservation laws, published values) and 439 Python tests, run on Linux, macOS and Windows in [CI](.github/workflows/ci.yml) |
 | **Component tests** | [every component alone against its analytic answer](docs/component-tests.md): 1691 checks over lenses, mirrors, gratings, prisms, coatings, polarisation, fibres, gain, gases, crystals, spatial components and instruments, with plots |
-| **Cross-code agreement** | fibre propagation with Raman and gain within 0.5 % and difference-frequency generation in PPLN within 1 % of [pyNLO](https://github.com/pyNLO/PyNLO); diffraction against LightPipes; gas lines against HAPI |
+| **Cross-code agreement** | fibre propagation with Raman and gain within 0.5 % and difference-frequency generation in PPLN within 0.7 % (0.5 % at a gain of 50) of [pyNLO](https://github.com/pyNLO/PyNLO); diffraction against LightPipes; gas lines against HAPI |
 | **Published experiments** | [twelve papers replicated](docs/papers/README.md), from Michelson–Morley (1887) and Treacy's grating compressor (1969) to FROG, liquid-CS₂ pulse cleaning, multi-pass-cell compression and chirped-pulse parametric amplification. Each README ends with a table of how well the science matched and why any gap remains |
 | **Examples** | [43 worked systems](docs/examples/README.md) and six [tutorials](docs/tutorials/index.md), re-run in CI with the numbers they quote checked |
 

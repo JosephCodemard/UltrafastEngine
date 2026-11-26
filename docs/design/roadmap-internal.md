@@ -280,7 +280,7 @@ Suggested first wave (all independent): A2, B1, C1a-f, G0, P1, Q1, AG1, Z1.
 
 ## 4. Agents and MCP (extensions, v1.1.0)
 
-Done by 1.0.0-alpha: 13 MCP tools (`study`, `backward` and the twin tools included), prompts, the agent pack (six skills, `ultrafast-agent` and `ultrafast agent`), seven evals with replays and a live scorer (`tests/agent-evals/run_live.py`), one source for the skills (`build/sync_skills.py`).
+Done by 1.0.0-alpha: 16 MCP tools (`study`, `backward` and the twin tools included), prompts, the agent pack (six skills, `ultrafast-agent` and `ultrafast agent`), seven evals with replays and a live scorer (`tests/agent-evals/run_live.py`), one source for the skills (`build/sync_skills.py`).
 
 | item | size | acceptance |
 |---|---|---|

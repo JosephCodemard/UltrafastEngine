@@ -51,7 +51,7 @@ return null for the new feature; `GpuTests` (PoCL without a GPU) check device = 
 
 Cleaning: drop non-finite rows → sort → merge wavelengths closer than 1e-3 × median spacing → background (`auto` =
 lower of the two 5 %-edge medians) → threshold → clip negatives. A flat floor b over a band Δλ_rec adds b·Δλ_rec of
-spectral energy and shortens the TL (0.66 % over 160 nm on a 6.5 nm spectrum: 240 fs → 26 fs). Per-λ → per-ω:
+spectral energy and shortens the TL (0.66 % over 160 nm on a 6.5 nm spectrum cuts the TL below 0.6 of its clean value; the numbers are in `docs/reference/measured-data.md` and the `ner-measured-input` example). Per-λ → per-ω:
 S(ω) = S(λ) λ²/(2πc). Optional Richardson-Lucy deconvolution of the recording resolution, Gaussian tails.
 
 ## Comparisons (Measured/Measurements.cs)
