@@ -67,12 +67,12 @@ C1 audits are read-only and may all run at once (they need no B1). Each writes `
 
 | WP | model | size | deps | pages (`docs/reference/`) | status |
 |---|---|---|---|---|---|
-| C1a | Sonnet | S | — | `system-file`, `run-spec`, `schema`, `cli`, `c-api`, `python`, `plugins`, `extending` | open |
-| C1b | Sonnet | S | — | `nonlinear`, `ionization`, `delayed-light`, `gases`, `fibers`, `gain`, `oscillators` | open |
-| C1c | Sonnet | S | — | `crystals`, `materials`, `coatings`, `components`, `active-elements`, `modulator`, `spatial-properties` | open |
-| C1d | Sonnet | S | — | `transverse`, `branches`, `models`, `fidelity`, `memory`, `speed` | open |
-| C1e | Sonnet | S | — | `instruments`, `retrieval`, `measured-data`, `results`, `studies` | open |
-| C1f | Sonnet | S | — | `calculators`, `pulse-calculator`, `plotting`, `mcp`; plus `docs/concepts.md` and `docs/capabilities.md` | open |
+| C1a | Sonnet | S | — | `system-file`, `run-spec`, `schema`, `cli`, `c-api`, `python`, `plugins`, `extending` | done 2026-11-25/26 (`docs/design/notes/reference-audit-a.md`) |
+| C1b | Sonnet | S | — | `nonlinear`, `ionization`, `delayed-light`, `gases`, `fibers`, `gain`, `oscillators` | done 2026-11-25/26 (`docs/design/notes/reference-audit-b.md`) |
+| C1c | Sonnet | S | — | `crystals`, `materials`, `coatings`, `components`, `active-elements`, `modulator`, `spatial-properties` | done 2026-11-25/26 (`docs/design/notes/reference-audit-c.md`) |
+| C1d | Sonnet | S | — | `transverse`, `branches`, `models`, `fidelity`, `memory`, `speed` | done 2026-11-25/26 (`docs/design/notes/reference-audit-d.md`) |
+| C1e | Sonnet | S | — | `instruments`, `retrieval`, `measured-data`, `results`, `studies` | done 2026-11-25/26 (`docs/design/notes/reference-audit-e.md`) |
+| C1f | Sonnet | S | — | `calculators`, `pulse-calculator`, `plotting`, `mcp`; plus `docs/concepts.md` and `docs/capabilities.md` | done 2026-11-25/26 (`docs/design/notes/reference-audit-f.md`) |
 
 C2 rewrites one group per WP to the B1 reference template and fixes every row of its audit (each row ends *fixed* or *kept, because ...*).
 Hand-copied key tables are replaced by links to the generated `options.md`; numbers come with the test that checks them.
@@ -82,13 +82,9 @@ Hand-copied key tables are replaced by links to the generated `options.md`; numb
 | C2a | Sonnet | M | C1a, B1 | group a pages | every audit row closed; `mkdocs build --strict` 0 warnings | done 2026-11-25 |
 | C2b ⚛ | Opus | M | C1b, B1 | group b pages | as C2a, and a `physics-reviewer` pass on the pages | done 2026-11-26 |
 | C2c ⚛ | Opus | M | C1c, B1 | group c pages | as C2b | done 2026-11-26 |
-| C2d ⚛ | Opus | M | C1d, B1 | group d pages | as C2b | open |
-| C2c ⚛ | Opus | M | C1c, B1 | group c pages | as C2b | open |
 | C2d ⚛ | Opus | M | C1d, B1 | group d pages | as C2b | done 2026-11-26 |
-| C2e | Sonnet | M | C1e, B1 | group e pages | as C2a | open |
 | C2f | Sonnet | S | C1f, B1 | group f pages, `concepts.md`, `capabilities.md` | as C2a | done 2026-11-25 |
 | C2e | Sonnet | M | C1e, B1 | group e pages | as C2a | done 2026-11-25 |
-| C2f | Sonnet | S | C1f, B1 | group f pages, `concepts.md`, `capabilities.md` | as C2a | open |
 | C3 | Sonnet | S | all C2 | consistency pass: cross-links, `llms.txt` descriptions, `docs/agents.md` and the skills' quick references agree with the new pages; no two pages state the same number differently | `mkdocs build --strict`; a grep list of the main numbers shows one value each | done 2026-11-26: anchors 504 checked, 0 broken; llms.txt (+ pack) updated; skills and pack agree (`sync_skills --check`, `test_agents.py`); grep list of numbers checked, one value each, owners in `docs/style.md`: MCP tools 16, exit codes 0-3, format versions 3 / 2, 70 dB, stepper 1e-6 / 0.01 / 0.05, satelliteLevel 1e-8, edgeEnergyFraction 1e-3 / 1e-6, fidelity 1e-5 / 1e-4, GPU 1e-9, FFT 1e-12, pyNLO 0.3 / 0.5 / 0.7 %, n2 2.6e-20 / 8.5e-24, fR 0.18, P_cr 3.77, MCP 300 s / 8 GB / 400, B-estimate 8-15 %, 1920 x 1080 2.2 s, test counts 668 / 439 |
 | C4 | Opus | S-M | C2a-f | code-side findings of the audits (each audit file's section "Code findings for WP C4"): documented keys the schema does not declare (crystal `chi3`, `n2`), declaration texts pointing to missing pages (`reference/elements.md` in `Schema/Options.cs`, `BuiltInElements.cs`), registry defaults that disagree with the code (`crystal.seedNoise`, `bulk.dispersionSource`), CLI exit codes as documented; each fixed in the code (with a test) or the docs say why not; `/regen` | every listed finding closed; regen tests green | open |
 
