@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **711 tests** in 77 classes. **455** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **714 tests** in 77 classes. **456** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -82,7 +82,7 @@ Every C# test of the engine: **711 tests** in 77 classes. **455** of them check 
 | [The test framework and the generated validation matrix](#validationmatrixtests) | `ValidationMatrixTests` | 2 | 0 |
 | [Run validity and pulse metrics](#validitytests) | `ValidityTests` | 11 | 7 |
 | [Zemax plugin: ZOS-API connection](#zemaxconnectiontests) | `ZemaxConnectionTests` | 7 | 0 |
-| [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 5 | 1 |
+| [Zemax plugin: export and replay](#zemaxtests) | `ZemaxTests` | 8 | 2 |
 
 ## AoDeviceTests
 
@@ -1333,3 +1333,6 @@ Zemax plugin: export and replay.
 | `RecordReplay_ReproducesTheSampleExactly` | -- | -- |
 | `Slab_InterfacesAoiCoatingAndFresnel` | -- | -- |
 | `Treacy_GroupPathMatchesTreacyAndBeatsPhasePath` | Treacy, IEEE JQE 5, 454 (1969) | 0.5 % |
+| `Zernike_DefocusAndAstigmatismGiveTheAnalyticPhaseAtPupilPoints` | Noll, J. Opt. Soc. Am. 66, 207 (1976): Z4 = sqrt(3) (2 rho^2 - 1), Z6 = sqrt(6) rho^2 cos 2 theta | 1e-12 |
+| `Zernike_ExportOptionsSignPositionTiltAndRadius` | -- | -- |
+| `Zernike_RecordReplayAndSavedSampleKeepTheCoefficients` | -- | -- |
