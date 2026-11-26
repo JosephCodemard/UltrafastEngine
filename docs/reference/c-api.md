@@ -1,5 +1,7 @@
 # C API (C, C++ and everything else)
 
+The C API is a flat, handle-based interface to the engine for C, C++ and any language with a C FFI. It loads systems and run specs, runs them, calls back into your code for models and returns results as JSON and arrays. This page lists the calls and the callbacks.
+
 Header: `src/UltrafastEngine.Native/include/ultrafast.h`. Library: `ultrafast.dll` / `libultrafast.so` /
 `libultrafast.dylib`, built with NativeAOT -- a self-contained native library, no .NET installation needed by
 the caller:
@@ -27,10 +29,10 @@ uf_release(res); uf_release(run); uf_release(sys);
 
 * Every function returns `UF_OK` (0) or a negative `UF_E_*` code; `uf_last_error()` gives the message
   (thread-local). Codes: `ARGUMENT -1`, `PARSE -2`, `MODEL -3`, `RUN -4`, `NOT_FOUND -5`, `CALLBACK -6`,
-  `CANCELLED -7`, `BUFFER -8`.
+  `CANCELLED -7`, `BUFFER -8`, `INTERNAL -99`.
 * Strings returned through `char**` are UTF-8 and freed with `uf_free`; handles with `uf_release`.
 * Different handles may be used from different threads; one handle must not be used concurrently.
-* `uf_capabilities` returns the built-in model kinds, materials, element types and instruments (JSON).
+* `uf_capabilities` returns the built-in model kinds, materials, crystals and instruments (JSON).
 
 ## All functions
 
@@ -45,8 +47,8 @@ uf_release(res); uf_release(run); uf_release(sys);
 
 ## Callbacks
 
-All callbacks are vectorised (whole arrays per call) and return 0 for success (non-zero aborts the run with
-`UF_E_CALLBACK`). They are registered under a name and referenced from JSON as `{"kind": "callback", "name": ...}`
+All callbacks are vectorised (whole arrays per call) and return 0 for success. A non-zero return aborts the run with
+`UF_E_CALLBACK`, except the progress callback: its non-zero return cancels the run with `UF_E_CANCELLED`. They are registered under a name and referenced from JSON as `{"kind": "callback", "name": ...}`
 or `"@name"`.
 
 The header names these types `uf_time_response_fn`, `uf_index_fn`, `uf_filter_fn`, `uf_beam_fn`, `uf_array_fn`, `uf_element_fn`, `uf_field_fn` and `uf_progress_fn`.
@@ -87,7 +89,8 @@ uf_command("{\"command\": \"materials.show\", \"name\": \"main/SiO2/Malitson\"}"
 
 Commands: `study` ([Parameter studies](studies.md)), `retrieve` ([Pulse retrieval](retrieval.md)),
 `materials.list`, `materials.show`, `materials.import` ([Materials](materials.md#refractiveindexinfo-pages)),
-`devices` and `compute.default` (below).
+`devices` and `compute.default` (below). `compute.default` sets the default back-end like `uf_set_default_backend`; its request is
+`{"command": "compute.default", "backend": "auto"}`.
 
 ## Compute devices (GPU)
 
@@ -103,7 +106,7 @@ uf_set_default_backend("auto");                     /* runs without "compute": {
 the CPU on standard problems (`"selftest": [{"backend", "device", "passed", "checks": [...]}]`), with
 `"benchmark": true` it is also timed. `uf_set_default_backend` sets the back-end of runs whose spec names none
 (`"cpu"`, `"auto"`, `"cuda"`, `"opencl"`; NULL restores `ULTRAFAST_BACKEND` or `"cpu"`); an unknown name returns
-`UF_E_ARGUMENT`. The library has the [gpu plugin](../plugins/gpu.md) compiled in (unless it was packaged without it);
+`UF_E_ARGUMENT`. The native library has the [gpu plugin](../plugins/gpu.md) compiled in unless the package was built without it (`uf_devices_json` then lists only the CPU);
 `docs/examples/Interop/cpp/devices.cpp` is a complete program.
 
 A complete C++ program is in `docs/examples/Interop/cpp` (CMake; opens directly in Visual Studio).
@@ -111,5 +114,17 @@ A complete C++ program is in `docs/examples/Interop/cpp` (CMake; opens directly 
 ## Other languages
 
 Anything with a C FFI works: MATLAB (`loadlibrary('ultrafast', 'ultrafast.h')`), Julia (`ccall`), Fortran
-(`bind(C)`), LabVIEW (Call Library Function), Rust (`bindgen`). The Python package is a thin `ctypes` layer
-over this same API.
+(`bind(C)`), LabVIEW (Call Library Function), Rust (`bindgen`). The Python package uses this API through `ctypes` in its native mode; its default hosted mode loads the managed library through
+`clr_loader` and calls the same exports by function pointer.
+
+## Validation
+
+The C API has no test suite of its own. The example programs `run_system.cpp` and `devices.cpp` in `docs/examples/Interop/cpp` load a system, register callbacks, run and
+read arrays; the Python package uses the same exports in its native mode (`python3 python/tools/build_engine.py --aot`). The struct field lists above match `ultrafast.h`
+(`uf_response_ctx`, `uf_element_ctx`).
+
+## Limits
+
+* NativeAOT libraries cannot load plugin assemblies at run time; plugins are compiled in ([Plugin system](plugins.md#using-plugins)).
+* Different handles may be used from different threads; one handle must not be used concurrently.
+* Callbacks are called once per solver stage with whole arrays; a callback that is slow slows the run ([Python](python.md#performance-notes) has the same rule).
