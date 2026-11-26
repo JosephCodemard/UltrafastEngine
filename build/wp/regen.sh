@@ -1,6 +1,7 @@
 #!/bin/bash
-# Regenerates every generated file (the steps of the /regen command) in the current worktree and lists the ones that changed.
-cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+# Regenerates every generated file (the steps of the /regen command) in the worktree it is run from (any worktree may call
+# the main worktree's copy) and lists the ones that changed.
+cd "$(git rev-parse --show-toplevel)"   # the worktree the command is run from
 PY=/Users/josephcodemard/Documents/Projects/UltrafastEngine/UltrafastEngine/.venv/bin/python
 [ -x "$PY" ] || PY=python3
 dotnet build src/UltrafastEngine.Cli -c Release -f net10.0 2>&1 | grep -E " error |rror\(s\)" | head -5
