@@ -104,11 +104,11 @@ A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod end-pumped by 60 W: th
 
 ## Branched
 
-### [31 -- A resonator and a partially coherent beam](examples/Branched/cavity-and-coherence/README.md)
+### [A resonator and a partially coherent beam](examples/Branched/cavity-and-coherence/README.md)
 
-Two short runs with one-frequency (`"shape": "cw"`) sources.
+A Fox-Li iteration finds the ABCD eigenmode of an apertured lens guide (radius 0.3877 mm against 0.3876 mm analytic, 0.003 % loss per round trip), and a Gaussian-Schell beam of M² = 2.5 is 1.9 times larger than a coherent one after a Rayleigh range (1.346 mm against 0.707 mm).
 
-![31 -- A resonator and a partially coherent beam: figure](examples/Branched/cavity-and-coherence/hero.png)
+![A resonator and a partially coherent beam: figure](examples/Branched/cavity-and-coherence/hero.png)
 
 ### [Drawing branched systems: schematics and plot styles](examples/Branched/system-schematics/README.md)
 
