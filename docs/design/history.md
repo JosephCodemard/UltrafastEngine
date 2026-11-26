@@ -353,3 +353,7 @@ B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy wind
 * **Windows machine (owner's):** `python3` is the Microsoft Store stub, use `python` from `../.venv`; HTTPS certificate checks fail for git and pip because the antivirus inspects TLS: the repository has `http.sslBackend schannel` (local config), and pip takes `--cert` with a bundle of the Windows roots exported from `Cert:\LocalMachine\Root`.
 * **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
 * **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.
+
+## Stage XX -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
+
+Rewrote `calculators.md`, `pulse-calculator.md`, `plotting.md` and `mcp.md` to the reference template (Keys, Model, Validation, Limits) and corrected `concepts.md` and `capabilities.md`. Each of the 40 rows of `notes/reference-audit-f.md` was re-checked against the source and closed with a resolution column (40 fixed, none kept, none found wrong); seven code-side findings are listed in the audit's section "Code findings for WP C4" (no code edited). Plotting history text (work-package names, "before" images) was removed. `mkdocs build --strict` gives 0 warnings.
