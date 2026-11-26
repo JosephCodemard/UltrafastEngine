@@ -41,7 +41,8 @@ def f(m):
     n[0] += 1; return '## Stage %d --' % n[0]
 open(p, 'w').write(re.sub(r'^## Stage (\d+|XX) --', f, s, flags=re.M))
 PY
-git add docs/design/history.md
+python3 build/wp/dedupe_roadmap.py >/dev/null
+git add docs/design/history.md docs/design/roadmap-internal.md
 if git diff --name-only --diff-filter=U | grep -q .; then
   echo "CONFLICTS REMAIN:"; git diff --name-only --diff-filter=U
   # Undo the half-done merge (everything it brought is still on dev/wp-<id>); the WP agent merges dev/2026-11 into its branch instead.

@@ -82,11 +82,11 @@ A 300 fs, 130 µJ pulse crosses 10 mm of fused silica in a flat-top beam of radi
 
 ## Diffraction
 
-### [35 -- Fringes from a tilted mirror](examples/Diffraction/tilt-fringes/README.md)
+### [Fringes from a tilted mirror](examples/Diffraction/tilt-fringes/README.md)
 
-A Michelson interferometer on the command line, in a Branched `.ufs` file.
+A Michelson interferometer on the command line, in a branched .ufs file: one arm is tilted by 2 mrad, carried profiles add point by point at the return, and straight fringes appear with a period of 515.0 µm against λ / angle = 515.0 µm.
 
-![35 -- Fringes from a tilted mirror: figure](examples/Diffraction/tilt-fringes/hero.png)
+![Fringes from a tilted mirror: figure](examples/Diffraction/tilt-fringes/hero.png)
 
 ## Wavefronts
 
@@ -104,11 +104,11 @@ A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod end-pumped by 60 W: th
 
 ## Branched
 
-### [31 -- A resonator and a partially coherent beam](examples/Branched/cavity-and-coherence/README.md)
+### [A resonator and a partially coherent beam](examples/Branched/cavity-and-coherence/README.md)
 
-Two short runs with one-frequency (`"shape": "cw"`) sources.
+A Fox-Li iteration finds the ABCD eigenmode of an apertured lens guide (radius 0.3877 mm against 0.3876 mm analytic, 0.003 % loss per round trip), and a Gaussian-Schell beam of M² = 2.5 is 1.9 times larger than a coherent one after a Rayleigh range (1.346 mm against 0.707 mm).
 
-![31 -- A resonator and a partially coherent beam: figure](examples/Branched/cavity-and-coherence/hero.png)
+![A resonator and a partially coherent beam: figure](examples/Branched/cavity-and-coherence/hero.png)
 
 ### [Drawing branched systems: schematics and plot styles](examples/Branched/system-schematics/README.md)
 

@@ -20,7 +20,7 @@ installed separately, loaded through public interfaces, never required by the co
 
 Version 1.1.0 and after, most useful first. Each item says what is done when it is done.
 
-1. **Agents (extensions of the shipped pack and server):** the 13 MCP tools, six skills and seven evals are in the alpha. To do: score all seven evals with a live agent (only the mandatory one has been scored:
+1. **Agents (extensions of the shipped pack and server):** the 16 MCP tools, six skills and seven evals are in the alpha. To do: score all seven evals with a live agent (only the mandatory one has been scored:
    Sonnet and Haiku passed) and with a third agent family (Codex, Cursor), with an adapter that reads their transcripts; MCP tools `twin_design` (the next measurement to take) and `twin_track` (drift);
    a user pack that mentions nothing of the repository's development rules.
 2. **Speed and GPU:** for rapid calculations on the device. In this order: (a) the plasma term of χ(2) crystals (ionisation in BBO, LBO, KTP) in the coupled-wave kernel, 1-D first and then spatial, parity 1e-9 with the CPU;

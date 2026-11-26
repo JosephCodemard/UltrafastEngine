@@ -11,6 +11,12 @@ internal development stages and were never released; they are kept as the develo
 **Zemax plugin (2026-11-26, WP Z2)**
 - **Zernike aberrations from OpticStudio**: an export `zernike` block reads the Zernike Standard Coefficients of one field at the carrier (temporary `ZERN` rows, `ENPD` / `EXPD`) and writes one `wavefront` element (Noll order unchanged, waves at the carrier, `radiusM` = entrance pupil radius, sign `opdSign` default -1, piston dropped); `IOpticStudio.ReadZernikeStandard`, the fake, record / replay and the sample file carry the coefficients. Tested on the fake path only (`ZemaxTests.Zernike_*`); the ZOS-API side and the sign wait for `HARDWARE-CHECKLIST.md` step 4b.
 
+**Docs (2026-11-26, WP C3)**
+- Consistency pass after the reference rewrites: one value for every number quoted on several pages (MCP tools 16, file format versions, the pulse-averaged B estimate on a device ensemble, the 1920 x 1080 panel timing, PPLN agreement with pyNLO, test counts, the contrast tutorial table), the owners listed in `docs/style.md`; `llms.txt` and the agent pack's `llms.txt` describe the rewritten pages; the pack skills' fidelity paragraph names the whole `quick` bundle; exit codes and `ULTRAFAST_PYTHON` documented where agents read them.
+
+**Docs (2026-11-26, WP D2-Branched)**
+- The five Branched examples (`cavity-and-coherence`, `f2f-cep`, `interferometers`, `pump-probe`, `system-schematics`) follow the example template with a CLI and a Python tab and have `example.json`; every quoted number reproduces (`pump-probe` probe energy 49.987 -> 50.027 nJ, 0.08 %).
+
 **Docs (2026-11-26, WP D2-Nonlinear)**
 - The eight Nonlinear examples (`carrier-resolved`, `filament`, `mpc-argon`, `ner-measured-input`, `ppln-dfg`, `small-scale-self-focusing`, `spatial-kerr`, `supercontinuum`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (spectral FWHM of `mpc-argon` 61.0 nm, was 61.9 nm; Kerr-lens wavefront radius of `spatial-kerr` -70 mm, was -81 mm, with its beam radii, B-integral 1.55 rad (was 1.4) and sampling tables; input transform limit of `ner-measured-input` 249 fs, was 240 fs; pump depletion of `ppln-dfg` 68 %, was about 70 %; mean coherence of `supercontinuum` 0.98, was 0.97). No engine code changed.
 **Docs (2026-11-26, WP C2c)**
@@ -21,6 +27,12 @@ internal development stages and were never released; they are kept as the develo
 
 **Docs (2026-11-26, WP D2-Wavefronts)**
 - The two Wavefronts examples (`position-dependent-index`, `spatial-gain-thermal-lens`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (absorbed pump at 5 W is now quoted as 4.1 W, was 4.05 W).
+
+**Docs (2026-11-26, WP D2-Diffraction)**
+- The three Diffraction examples (`iris-diffraction`, `structured-beams`, `tilt-fringes`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (fringe period of `tilt-fringes` 515.0 µm, was 515.1 µm; analytic transmission of the square flat-top 50.26 %, was 50.25 %; axis fluence without the absorbing boundary about 20 % off, was 19 %). `iris.py` of `iris-diffraction` now imports the installed package (no `sys.path` edit).
+
+**Docs (2026-11-26, WP C2d)**
+- **Reference pages `transverse`, `branches`, `models`, `fidelity`, `memory`, `speed`** rewritten to the reference template (Keys, Model, Validation, Limits) and every row of `docs/design/notes/reference-audit-d.md` closed (models.md audited line by line first): all model kinds (`chi2`, the Raman kinds, `field`), the filter variables (no `nu`), override and time-response rules, `sfgFrog` in quick, the free-memory source per framework, `gpuMinPoints` 0 per back-end, `compute.precision`, the macOS OpenCL device discovery, the graph error list. Benchmarks without a source were removed or re-measured with machine, date and script (`tools/bench`, Apple M3, 2026-11-26); physics review applied; eight code findings C4-d1 to C4-d8 recorded, no code changed.
 
 **Docs (2026-11-26, WP C2b)**
 - **Reference pages `nonlinear`, `ionization`, `delayed-light`, `gases`, `fibers`, `gain`, `oscillators`** rewritten to the reference template (Keys, Model, Validation, Limits) and every row of `docs/design/notes/reference-audit-b.md` closed: one B-integral definition, `taubS`, the `orientational` Raman kind, `absorption: false` also removes the ionisation loss, echo amplitude T r_b (intensity T² R_b), ripple and scatter referenced to the carrier, the new `gain.md#the-amplifier-element` section, `smallSignalGain` is the linear power gain, test tolerances quoted as asserted; seven code findings (C4-b1 to C4-b7) listed for WP C4.

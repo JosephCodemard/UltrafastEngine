@@ -31,7 +31,7 @@ checking in editors ([Schemas](schema.md)).
 
 ## Keys
 
-* `format` is required; `version` is the file format version (the engine writes 3 and loads 2 and 1; see [Schemas](schema.md#format-versions-and-migrations)).
+* `format` is required; `version` is the file format version (`ultrafast migrate` writes 3; the Python builders write 2, or 3 for a branched system; 2 and 1 still load; see [Schemas](schema.md#format-versions-and-migrations)).
   The generated reference lists the default of `version` as 2; the engine itself writes 3.
 * `topology` is `"sequential"` (the default: the elements run in order) or `"branched"` (elements carry `next`, `inputs` and, where
   light enters a loop, `loop`: see [Branched systems](branches.md)). A Sequential system can use splitters too, with `output` choosing the

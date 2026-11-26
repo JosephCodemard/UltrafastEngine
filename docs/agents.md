@@ -20,7 +20,7 @@ sizes itself, propagates the pulse, and writes `summary.json` (scalars), `result
 | every element type, option, unit, default | `docs/reference/options.md`, or `ultrafast schema system` / `ultrafast schema run` (JSON Schema) |
 | what is built in (materials, crystals, models, element types, instruments) | `ultrafast info` (JSON; Python `uf.capabilities()`) |
 | materials and refractiveindex.info pages | `ultrafast materials list`, `ultrafast materials show <name>` |
-| is my file valid | `ultrafast validate system.ufs run.json` (exit code ≠ 0 on errors) |
+| is my file valid | `ultrafast validate system.ufs run.json` (exit code 3 when it prints INVALID, 2 for an unreadable file) |
 | a commented starting point | `ultrafast template run.json`; system files: the [examples](examples/README.md) |
 | what the engine will do with each element | `ultrafast describe system.ufs` |
 | Python signatures | `docs/reference/python-api.md`; TypedDicts in `ultrafast.types` |

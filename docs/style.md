@@ -127,6 +127,28 @@ common ones marked *free*.
   radius is the 1/e² intensity radius, durations are intensity FWHM ([Concepts](concepts.md#the-pulse)).
 * **Dashes:** prefer a colon or a full stop. Where a dash is needed, write ` -- ` (as in the titles of tutorials and examples).
 
+### Numbers with one owner
+
+A number quoted on several pages has one page that owns it. Change it there first, then search for it (`grep -rn`) and fix the
+copies. WP C3 (2026-11-26) checked the values below.
+
+| number | value | owner |
+|---|---|---|
+| MCP tools, prompts, resources | 16, 2, 4; `maxEvaluations` 100 in a `study` call (200 in a study file) | [MCP](reference/mcp.md) |
+| exit codes | 0, 1 (usage), 2 (file or model), 3 (`INVALID`, device self-test) | [Command line](reference/cli.md#exit-codes) |
+| file format versions | system 3 (Python builders write 2, or 3 for a branched system), run spec 2 | [Schemas](reference/schema.md#format-versions-and-migrations) |
+| stepper defaults | `tolerance` 1e-6, `maxPhasePerStepRad` 0.01, `maxAreaChangePerStep` 0.05 | [Run spec](reference/run-spec.md) |
+| grid defaults | `n` 4096, `satelliteLevel` 1e-8, `minSpanFraction` 0.1, `minPointsPerFwhm` 12; `edgeEnergyFraction` warns above 1e-3, aim for 1e-6 | [Run spec](reference/run-spec.md), [Results](reference/results.md) |
+| fidelity bundles | `standard` tolerance 1e-5, `quick` tolerance 1e-4 | [Fidelity](reference/fidelity.md) |
+| mixed precision | refused above 70 dB of dynamic range; energy 1e-6, spectrum L1 1e-4 | [Speed](reference/speed.md#mixed-precision-on-the-gpu) |
+| GPU = CPU in the tests | 1e-9; FFT providers 1e-12 | [GPU](plugins/gpu.md), [Speed](reference/speed.md) |
+| pyNLO agreement | 0.3 % (0.5 % with gain), PPLN DFG 0.1-0.7 % (0.5 % at gain 50), branched 0.5 % | [Testing](testing.md) |
+| n2 of fused silica, fR | 2.6e-20 m²/W, 0.18; Air 8.5e-24 per bar (electronic) | [Materials](reference/materials.md) |
+| critical power | P_cr = 3.77 λ² / (8π n0 n2) | [Nonlinear](reference/nonlinear.md) |
+| pulse-averaged B estimate on a device ensemble | 8 to 15 % off with a delayed Raman response | [Nonlinear](reference/nonlinear.md#b-integral) |
+| timings and memory of a large panel (1920 × 1080, one frequency) | 2.2 s, 260 MB held (Apple M3) | [Speed](reference/speed.md#benchmarks) |
+| test counts | C# 668 passing (fast run), Python 439 passing | `PROJECT_STATUS.md` (dated runs); the README badges follow it |
+
 ## Warnings and errors
 
 A message says **what happened, where (the element id or the key), and the fix** -- in that order, in one or two sentences,

@@ -21,5 +21,5 @@ late parameter is cheap), instruments (`docs/reference/instruments.md`), the fit
 ## Fidelity: explore in `quick`, confirm in `full` (a rule, not a tip)
 
 The tools' default fidelity is `full`, which is slow. Every exploratory scan, study, run, comparison or fit passes `"fidelity": "quick"` (Raman, self-steepening and
-polarisation dropped; seconds instead of minutes). Run only the point or points you will report again with `"fidelity": "full"`, and say in the answer which numbers came from
+polarisation dropped, spatial bulk / gap models replaced by the 1-D beam, FROG / d-scan skipped, tolerance 1e-4; seconds instead of minutes; the exact bundle: `docs/reference/fidelity.md`). Run only the point or points you will report again with `"fidelity": "full"`, and say in the answer which numbers came from
 `quick` and which from `full`. Never quote a `quick` number as a result; never explore in `full`. A failed point in `quick` is a reason to look, not to switch to `full` for the whole scan.

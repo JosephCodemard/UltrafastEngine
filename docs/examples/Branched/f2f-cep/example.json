@@ -1,0 +1,10 @@
+{
+  "title": "An f-2f interferometer",
+  "summary": "A 3 fs pulse is broad enough for its blue wing to meet the red wing of its second harmonic; the fringes at 470 nm follow the carrier-envelope phase with a one-cycle modulation of 0.637 of the mean and no second harmonic of the CEP.",
+  "group": "Branched",
+  "script": "f2f.py",
+  "plugins": [],
+  "figures": ["f2f.png"],
+  "wave": 2,
+  "python": true
+}

@@ -94,17 +94,17 @@ ultrafast study study.json -o study-results        # 9 runs in ~5 s; study-resul
 
 | energy (mJ) | B (rad) | pre-pulse (dB) | post-pulse (dB) | FWHM (fs) |
 |---|---|---|---|---|
-| 0.10 | 0.04 | -58.1 | -29.5 | 300 |
+| 0.10 | 0.04 | -56.5 | -29.5 | 300 |
 | 0.32 | 0.12 | -54.0 | -29.5 | 300 |
 | 1.0 | 0.38 | -45.4 | -29.5 | 300 |
-| 3.2 | 1.21 | -35.3 | -28.4 | 313 |
-| 5.6 | 2.15 | -29.3 | -25.9 | 381 |
-| 10 | 3.82 | -24.4 | -23.1 | 1068 |
+| 3.2 | 1.20 | -35.3 | -28.4 | 313 |
+| 5.6 | 2.13 | -29.3 | -25.9 | 379 |
+| 10 | 3.78 | -24.3 | -23.0 | 1066 |
 
 Three regimes:
 
-* **Low energy**: the pre-pulse stays near -58 dB. That is not the pulse: a third-order correlator also shows a
-  post-pulse ε at -T through its gate, with intensity ~ε² (1.3·10⁻⁶ → -59 dB). Real devices have this artefact too
+* **Low energy**: the pre-pulse stays near -56.5 dB. That is not the pulse: a third-order correlator also shows a
+  post-pulse ε at -T through its gate, with intensity of order ε² (1.3·10⁻⁶ → -59 dB). Real devices have this artefact too
   (the instrument's note says so) -- check `signal_ideal` or the `contrast` instrument to tell them apart.
 * **Middle**: the pre-pulse rises by 20 dB per decade of energy, i.e. as B² -- the signature of this mechanism.
 * **High energy** (B > 2): the SPM chirp is no longer removed by the compressor (the FWHM grows), and pre- and

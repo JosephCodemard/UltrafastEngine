@@ -8,7 +8,7 @@ for a first number before you build a system file; for the real number run the e
 from ultrafast import calc
 calc.tbp("lorentzian")                                    # 0.1420
 calc.beam.gaussian_beam(1030e-9, waist_radius_m=0.5e-3, z_m=2.0)["radiusM"]
-calc.nonlinear.critical_power_w(800e-9, n2_m2_per_w=3e-23, n0=1.0003)   # 3.2 GW (air)
+calc.nonlinear.critical_power_w(800e-9, n2_m2_per_w=3e-23, n0=1.0003)   # 3.2 GW (air; total n2, the catalogue electronic part is 8.5e-24)
 ```
 
 ## Keys

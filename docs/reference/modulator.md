@@ -96,8 +96,8 @@ for the quantity you care about. In a one-off measurement (30 fs, 800 nm, a smoo
 against K = 96), 8 to 16 samples gave 1e-3 or better up to 30 rad of phase, and K ≥ 32 was needed for 100 rad; the test
 `SpectralSamplingError_BoundsTheTrueErrorOfTheFocalMap` checks that the reported error bounds the true one.
 
-**Size and time** (one-off measurements on an Apple-silicon CPU; they scale with the grid and the machine): a 1920 × 1080 panel with a 30 fs pulse takes 32 s and 3.6 GB at K = 16, 3.3 s and 1.05 GB for one
-frequency (cw). A 4096 × 4096 grid takes 20 s and 3.4 GB for one frequency. For long chains on large grids see
+**Size and time** (one-off measurements on an Apple-silicon CPU; they scale with the grid and the machine): a 1920 × 1080 panel with a 30 fs pulse takes 32 s and 3.6 GB at K = 16, 2.2 s and 260 MB held after the run for one
+frequency (cw; the figure that [Speed](speed.md#benchmarks) owns). A 4096 × 4096 grid takes 20 s and 3.4 GB for one frequency. For long chains on large grids see
 [large grids](transverse.md#large-grids-streaming-and-memory) (`transverse.frequencyBlock`, `outputs.keepProfiles`).
 
 ## Validation

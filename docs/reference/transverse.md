@@ -12,37 +12,44 @@ beam-quality changes come out of the simulation.
 ```
 
 Set it per element (`"transverse"`), for all elements of a run (`physics.transverse` in the run spec), or as an
-override. Worked example: [11 Spatial Kerr](../examples/Nonlinear/spatial-kerr/README.md); crystals: [08 radial SHG](../examples/LaserSystems/shg-lbo/README.md).
+override. A string is the model alone (`"transverse": "radial"`, all other keys at their defaults). Worked example:
+[11 Spatial Kerr](../examples/Nonlinear/spatial-kerr/README.md); crystals: [08 radial SHG](../examples/LaserSystems/shg-lbo/README.md).
 
-## Models
+## Keys
+
+Types and defaults of every key: [`transverse`](options.md#transverse), [`initialProfile`](options.md#initialprofile),
+[`coherence`](options.md#coherence).
+
+### Models
 
 | `model` | representation | cost | use for |
 |---|---|---|---|
-| `"none"` | 1-D (default) | 1x | everything where the beam stays Gaussian and its size is known |
-| `"radial"` | cylindrical symmetry, quasi-discrete Hankel transform of order 0 (Guizar-Sicairos & Gutiérrez-Vega), `points` radial samples | ~points x | self-focusing, Kerr lensing, spatial depletion in SHG/OPA, M² of round beams |
+| `"none"` | 1-D (default without a `transverse` key) | 1x | everything where the beam stays Gaussian and its size is known |
+| `"radial"` (default of a `transverse` object without `model`) | cylindrical symmetry, quasi-discrete Hankel transform of order 0 (Guizar-Sicairos & Gutiérrez-Vega), `points` radial samples | ~points x | self-focusing, Kerr lensing, spatial depletion in SHG/OPA, M² of round beams |
 | `"cartesian"` | x-y grid, 2-D FFT, `nx` x `ny` | ~nx·ny x | walk-off, non-collinear beams, decentred or elliptical beams, anything not round |
 
 Options (all optional):
 
 | key | meaning | default |
 |---|---|---|
-| `points` | radial samples (radial); also nx = ny for cartesian if those are omitted | 64 |
-| `nx`, `ny` | cartesian samples | `points` |
-| `radiusM` | radial grid extent | `extentFactor` x the largest expected radius |
-| `halfWidthM` (`halfWidthXM`, `halfWidthYM`) | cartesian half-width | as above |
+| `points` | radial samples (radial); also `nx` for cartesian if `nx` is omitted | 64 |
+| `nx`, `ny` | cartesian samples | `nx`: `points`; `ny`: `nx` |
+| `radiusM` | radial grid extent | `extentFactor` × the largest expected radius (the beam radius sampled along the element, the carried profile's radius; crystals: also the aux beams) |
+| `halfWidthXM` (alias `halfWidthM`), `halfWidthYM` | cartesian half-widths | `halfWidthXM`: `extentFactor` × the largest expected radius; `halfWidthYM`: `halfWidthXM` |
 | `extentFactor` | grid extent / expected beam radius | 3.5 |
 | `paraxial` | use the paraxial diffraction operator −k⊥²/2k instead of the exact √(k² − k⊥²) − k | false |
 | `transport` | how a profile is brought in from before (below): `auto`, `exact`, `rescale`, `beam` | `auto` |
 | `polarization` | `auto` (vector when the beam carries a y component), `scalar`, `vector`: Jones fields on the grid ([below](#vector-fields-and-the-uppe-coupling)) | `auto` |
 | `equation` | nonlinear coupling: `envelope` (paraxial) or `uppe` (n ω / c k_z per plane wave) | `envelope` |
 | `initialProfile` | the field at the first spatial element ([below](#initial-profile)) | from the element's `beam` |
-| `absorbingBoundary` | linear elements: absorb the light that leaves the grid -- `true` (outer 15 %) or `{"widthFraction": 0.15}` ([below](#diffraction-and-apertures)) | `false` |
-| `spectralSamples` | frequencies at which the carried profile is stored (and linear elements propagate it); fewer is faster and smaller for narrowband pulses | 48 |
+| `absorbingBoundary` | absorb the light that reaches the grid's edge, in linear and nonlinear elements: `true` (outer 15 %) or `{"widthFraction": f}` with 0 ≤ f < 0.5 (else an error) ([below](#diffraction-and-apertures)) | `false` |
+| `spectralSamples` | frequencies at which the carried profile is stored (and linear elements propagate it), at least 1; fewer is faster and smaller for narrowband pulses | 48 |
+| `frequencyBlock` | linear spatial elements propagate the stored frequencies in blocks of this many; 0 = all at once ([below](#large-grids-streaming-and-memory)) | 0 |
 
 Resolution rule of thumb: about 15-20 samples across the smallest beam radius the beam reaches, and an extent of
 3-4x the largest radius. The Hankel grid is not uniform (denser near the axis); its k-space extent is
 j_points/radius. Its orthogonal transform matrix depends only on the number of points and is built once per size
-(about 1 s for 2048 points) and shared by every element and run in the process.
+and shared by every element and run in the process.
 
 ### Initial profile
 
@@ -55,7 +62,7 @@ j_points/radius. Its orthogonal transform matrix depends only on the number of p
 | `radiusM`, `radiusXM`, `radiusYM` | 1/e² radius (tophat: edge radius / half-width); replaces the size of the element's `beam`, so the element needs no `beam` |
 | `radiusOfCurvatureM` | wavefront radius of curvature (negative: converging); replaces the beam's |
 | `decenterXM`, `decenterYM`, `tiltXRad`, `tiltYRad` | offset and tilt of the field |
-| `ripple`, `noise` | seeds of small-scale structure (cartesian; [below](#small-scale-self-focusing)) |
+| `ripple`, `noise` | seeds of small-scale structure (cartesian grids only; an error on a radial grid; [below](#small-scale-self-focusing)) |
 
 Structured beams (w is `radiusM` or the element's beam):
 
@@ -71,7 +78,9 @@ A `measured` map is sampled bilinearly and is zero outside its axes; its size is
 an 8- or 16-bit grayscale PNG with `pixelSizeM`. `threshold` zeroes fluence below that fraction of the peak, and `center` moves the fluence centroid to the axis.
 Gouy phases are not added: the field is the mode at its waist (with `radiusOfCurvatureM`, the curvature of that plane).
 
-## Physics in a spatial bulk element
+## Model
+
+### Physics in a spatial bulk element
 
 ```
 dA/dz = [ L_1D(ω) + i (√(k(ω)² − k⊥²) − k(ω)) ] A  +  N(A)        A(r or x,y, ω),  √(W/m²)
@@ -96,7 +105,7 @@ dA/dz = [ L_1D(ω) + i (√(k(ω)² − k⊥²) − k(ω)) ] A  +  N(A)        A
 χ(2) crystals with a transverse model propagate all fields this way, each with its own index (and walk-off and
 non-collinear drift in the cartesian model), coupled locally ([Crystals](crystals.md#beams-and-coupling)).
 
-## Vector fields and the UPPE coupling
+### Vector fields and the UPPE coupling
 
 With `"polarization": "vector"` (or `auto` and a pulse that is not linearly polarised along x) the grid holds both
 Jones components, A_x(r, ω) and A_y(r, ω). The Kerr term then is the full isotropic χ(3) tensor (cross-phase
@@ -109,7 +118,7 @@ unidirectional pulse propagation equation's i ω² P_NL / (2 ε₀ c² k_z(ω, k
 matters when the beam is focused tightly or collapses (filaments, [Ionisation](ionization.md)); for paraxial beams
 both agree (test `Uppe_AgreesWithEnvelopeForParaxialBeams_AndPlasmaClampsTheFocus`).
 
-## The profile travels with the beam
+### The profile travels with the beam
 
 After a spatial element the pulse carries a **transverse profile** P(r, ω) = E/A normalised so that the 1-D
 spectrum A(ω) is exactly the integrated spectrum. The next element decides what to do with it:
@@ -125,13 +134,13 @@ spectrum A(ω) is exactly the integrated spectrum. The next element decides what
   and starts from the next element's `beam`.
 
 **Apertures** act on a carried profile ([below](#diffraction-and-apertures)). Without a profile, the aperture clips the
-beam model as before.
+tracked beam model, as in 1-D.
 
 The per-element record then reports `beam.radiusXM`, `radiusYM` (second-moment, 1/e² equivalent) and `beam.m2`
 (M² from the second moments in space and spatial frequency, along x on a cartesian grid). Moments are central: a tilted or decentred
 beam keeps its size and M². The `beamProfile` instrument gives the fluence across the beam, `m2`, and on a 2-D grid `m2Y`.
 
-## Diffraction and apertures
+### Diffraction and apertures
 
 An `aperture` on a carried profile cuts the field; the spatial elements after it diffract what passes:
 
@@ -149,9 +158,9 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
   the frequency-resolved transmission, booked as `clip`; the element reports `transmission` and `apertureSamples`.
 * **Hard edges between samples:** each grid cell on the edge transmits the fraction of its area inside the opening
   (annuli on a radial grid, pixels on a cartesian one). A 0/1 mask moves the edge by up to a cell; the averaged mask puts it
-  in the right place, and the patterns converge quickly with the sampling (`DiffractionTests`). Light diffracted beyond the
-  grid's largest angle is not represented, so the transmission converges to the geometric value from below, by about dx / 3a
-  times the edge fluence (0.2 % for a Gaussian cut at half its radius with 85 samples, 1.6 % for a square flat-top with 21).
+  in the right place, and the patterns converge with the sampling: the transmission of a Gaussian through a round iris is
+  within dx / 2a of 1 − exp(−2a²/w²) on coarse and fine grids (`DiffractionTests.HardAperture_*`). Light diffracted beyond
+  the grid's largest angle is not represented, so the transmission converges to the geometric value from below.
 * **Resolution:** the engine warns when the opening spans fewer than 10 samples across its radius / half-width. The pattern's
   finest feature is the outermost Fresnel zone at the edge, λz / 2a wide; the grid must be several times wider than the
   pattern (the first dark ring of a round iris of radius a lies at r = 0.61 λz/a, and the rings beyond carry a few % of the energy).
@@ -160,15 +169,18 @@ An `aperture` on a carried profile cuts the field; the spatial elements after it
   (`widthFraction`) multiplies the field by exp(−5 u⁴) (u from 0 at the layer's inner edge to 1 at the grid's edge) after each step,
   and a linear element is split into steps short enough for the steepest wave on the grid to cross the layer within one. The absorbed
   energy is booked as `grid boundary` and reported as `absorbedAtBoundaryJ` / `absorbedAtBoundaryFraction`; the edge warning is
-  not given. In nonlinear elements the layer is an absorption in the same region (power 10 nepers across the layer for a wave at a third of the grid's
-  steepest angle), stepped with the propagation, booked the same way. Such an element stays on the CPU.
+  not given. In nonlinear elements the layer is an intensity absorption α = α_max u⁴ in the same region, with α_max set so
+  that a wave at a third of the grid's steepest angle loses 10 nepers of power crossing the layer; it is stepped with the
+  propagation and booked as `grid boundary` when nothing else absorbs in the element (with material absorption, a
+  `timeResponse` or ionisation it is part of `absorption`); `absorbedAtBoundaryJ` is reported by linear elements only.
+  Such an element stays on the CPU (it is a position-dependent property).
 * **Narrowband pulses:** `spectralSamples` (default 48) sets how many frequencies the profile holds. A ps pulse needs a few;
   a 2-D grid's memory scales with them.
 
 Worked example and checks: [Example 30](../examples/Diffraction/iris-diffraction/README.md) (Gaussian, round flat-top, uniform and square beams
 at N = 3, 2, 1 and in the far zone, against the Fresnel integral) and [Tutorial 6](../tutorials/06-diffraction.md).
 
-### Coherent tiles
+#### Coherent tiles
 
 `initialProfile.kind = "tiles"` builds the input beam from **N coherent sub-beams** (a tiled-aperture amplifier array, or any laser
 array): the complex sum of the tiles' fields, normalised to unit energy at every stored frequency, so the tiles share the pulse energy.
@@ -184,8 +196,7 @@ It needs a cartesian grid; the grid sets the size (no `radiusM` or beam model is
 | `pistonRmsRad`, `seed` | 0, 1 | random Gaussian piston error added to `pistonRad` |
 
 The piston is the phase at the carrier; a delay `τ` adds `(ω − ω_centre) τ` (the envelope moves, spectral factor e^{+iωτ}). The profile is
-stored at `spectralSamples` frequencies, so they must resolve `e^{iωτ}`: keep (spacing of stored frequencies) × τ under about 0.5 rad
-(24 samples for 30 fs pulses and delays to 30 fs, 96 for 60 fs).
+stored at `spectralSamples` frequencies, so they must resolve `e^{iωτ}`: keep (spacing of stored frequencies) × τ under about 0.5 rad.
 
 Reference behaviour (`TileSourceTests`): N in-phase equal tiles give an on-axis far-field peak N × that of one beam carrying all the energy
 (N² for equal power per tile), 2 %; the far field has lobes at λ/pitch, 1.5 %; with piston errors the peak is `|Σ e^{iφ}|²/N²` of the in-phase
@@ -195,7 +206,7 @@ F θ, 1 %; a tophat tile on a line grid has the slit far field (first zero at F 
 equal-amplitude peak, `|Σ a|² / (N Σ a²)`, 1 %; `delaysS = τ > 0` makes the tile's pulse arrive later (its field moves by +τ in the frame,
 as a `delay` element moves the arrival time by +τ), 3 %.
 
-### Large grids: streaming and memory
+#### Large grids: streaming and memory
 
 Two settings keep long chains on large grids (a full 1920 × 1080 SLM panel, many stored frequencies) within memory. Neither changes a result.
 
@@ -205,13 +216,16 @@ Two settings keep long chains on large grids (a full 1920 × 1080 SLM panel, man
 * **`outputs.keepProfiles`** `"all"` (default) or `"used"`: with `used`, the profile after an element is dropped as soon as the next element
   has run (or, if the next element passes the same profile on, once the beam has moved past), unless an instrument reads it (an instrument
   point or its element for `id#port`, the element before it, or the last element). The 1-D pulse at every element stays; probes keep their
-  1-D snapshots. A prefix-cached study keeps every profile of its nominal run, because the points resume from it. Measured on a 1024 × 1024 grid with 16 stored frequencies and five elements: 1587 MB held after the run with `all`, 336 MB with
-  `used` (one profile is 268 MB), bit-identical instruments.
+  1-D snapshots. A prefix-cached study keeps every profile of its nominal run, because the points resume from it. Instruments
+  are bit-identical with `used` and `all` (`SpatialStreamingTests.KeepProfilesUsed_*`). A 1920 × 1080 single-frequency panel
+  on a 2048 × 1280 grid (modulator, 0.2 m gap, beam profile) holds 260 MB after the run with `used` and 491 MB with `all`,
+  and takes 2.2 s (Apple M3, 2026-11-26; the slow test `SpatialStreamingTests.FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget`
+  prints these figures and asserts that `used` holds at least one profile less).
 
-Peak memory *during* a run is set by the .NET garbage collector, which returns large freed arrays late: on the 1920 × 1080 × 16 case of the
-spikes (the development history (`docs/design/history.md`, internal)) the process peak stayed at 2.7-3.4 GB whatever the block size, so `frequencyBlock` lowers the live set
-but not the reported peak. A 1920 × 1080 single-frequency panel on a 2048 × 1280 grid (modulator, 0.2 m gap, beam profile) takes 1.9 s
-and holds 260 MB after the run with `keepProfiles: "used"`, 491 MB with `all` (slow test `FullPanel_1920x1080_SingleFrequency_RunsWithinTheSpikeBudget`).
+Peak memory *during* a run is set by the .NET garbage collector, which returns large freed arrays late: on a 1920 × 1080
+grid with 16 stored frequencies the process peak stayed at 2.7-3.4 GB whatever the block size (measured once, recorded in
+the development history `docs/design/history.md`; no test repeats it), so `frequencyBlock` lowers the live set but not the
+reported peak.
 
 **One stored frequency** (`spectralSamples: 1`, the cw / narrow-band fast path) is the bin nearest the energy centroid of the spectrum, i.e.
 the carrier (before 2026-11-10 it was the low edge of the band, 3e-6 off for a 1 ns pulse); if no light falls there (two colours, a notch),
@@ -221,7 +235,7 @@ lattice: the run notes print its wavelength (1.2e-6 from the request at 1030 nm)
 **Cylindrical lens:** `lens` with `focalLengthXM` and `focalLengthYM`; give the axis without power a very long focal length (`1e30`). Tested:
 x focuses to λ f / (π w) while y diffracts freely, 2 % (`CylindricalLens_FocusesOneAxisOnly`).
 
-## Masks
+### Masks
 
 A `mask` element multiplies the carried profile at every stored frequency. Without a profile it warns and does nothing; the tracked
 Gaussian beam does not change.
@@ -243,15 +257,17 @@ Gaussian beam does not change.
 a zone plate also reports `outerZoneWidthM` and warns below 3 samples per zone across the beam. Maps come from NPZ files: convert images in Python
 (`np.savez("mask.npz", x_m=x, y_m=y, amplitude=a)`).
 
-## Partial coherence
+### Partial coherence
 
 A top-level `"coherence"` in the run spec makes the source a Gaussian-Schell beam: an incoherent sum of Hermite-Gauss modes with weights tⁿ, t = (M² − 1) / (M² + 1),
 and mode radius w₀ / √M² (Starikov & Wolf, J. Opt. Soc. Am. 72, 923 (1982)).
 
 ```jsonc
-"coherence": { "m2": 2.5, "modes": 40 }      // also "dimensions": 1 | 2 (1 for a grid with ny = 1), "element": the element whose initialProfile they replace
+"coherence": { "m2": 2.5, "modes": 40 }      // also "dimensions": 1 | 2, "element": the element whose initialProfile they replace
 ```
 
+* `modes` (default 12) is the number of mode orders per axis (orders 0 to `modes` − 1). `dimensions` defaults to 1 when
+  the grid has `ny` = 1 (or `nx` = 1 with no `ny`), else 2; in 2-D the modes (m, n) with m + n < `modes` are used, `modes` (`modes` + 1) / 2 of them.
 * w₀ comes from `initialProfile.radiusM` (or the element's `beam`); the grid must be cartesian and wide enough for the highest mode (radius ~ w₀ √(2 n / M²)).
 * Each mode is one complete run with its share of the energy, so the run takes as many times longer as there are modes (modes below 10⁻⁴ of the energy are skipped). Element
   energies and beam radii, and `beamProfile` fluences and radii, are the sums. The `coherence` entry among the instruments reports the modes and `capturedWeight`.
@@ -260,7 +276,7 @@ and mode radius w₀ / √M² (Starikov & Wolf, J. Opt. Soc. Am. 72, 923 (1982))
 
 Example: [31 Cavity and coherence](../examples/Branched/cavity-and-coherence/README.md). Check: w(z) = w₀ √(1 + (M² z / z_R)²) to 2 %.
 
-## Small-scale self-focusing
+### Small-scale self-focusing
 
 A beam above the critical power breaks up into filaments from its small-scale structure. The cartesian model (`"model": "cartesian"`) follows
 this in 2-D (x, y) when the field starts with a seed:
@@ -272,9 +288,11 @@ this in 2-D (x, y) when the field starts with a seed:
       "ripple": { "periodM": 67e-6, "relativeAmplitude": 0.01, "angleDeg": 0 } } }               // or one sinusoidal ripple: the textbook seed
 ```
 
-* `noise`: `N(x, y) = sqrt(2/K) sum cos(kx x + ky y + phi_k)`, wavevectors Gaussian with rms 1 / correlation length, unit variance, scaled by
-  `relativeAmplitudeRms` (field amplitude; the fluence contrast is twice that) and `phaseRmsRad`. Reproducible from `seed`.
-* `ripple`: the field amplitude is multiplied by `1 + a cos(2 pi (x cos t + y sin t) / period + phase)`.
+* `noise`: `N(x, y) = sqrt(2/K) sum cos(kx x + ky y + phi_k)` over K = `components` (default 256, at least 16) waves,
+  wavevectors Gaussian with rms 1 / correlation length, unit variance, scaled by `relativeAmplitudeRms` (field amplitude;
+  the fluence contrast is twice that) and `phaseRmsRad`. `correlationLengthM` is required. Reproducible from `seed` (default 1).
+* `ripple`: the field amplitude is multiplied by `1 + a cos(2 pi (x cos t + y sin t) / period + phase)` (`periodM` required,
+  `relativeAmplitude` a, `angleDeg` t, `phaseRad`).
 * The element reports `fluenceContrastIn` / `fluenceContrastOut` (rms / mean of the fluence over the core r < w/2), `smallScaleGain` (their ratio),
   `peakPowerOverCritical` (P / P_cr) and the cuts `fluence_in_x`, `fluence_out_x`, `x_m` (arrays `el_<id>_...` in `result.npz`) along y = 0.
 
@@ -284,13 +302,13 @@ this in 2-D (x, y) when the field starts with a seed:
 the Gaussian pulse in time: the fluence ripple after 3 mm at `q = Delta` and `q = 3 Delta` agrees to 6 % (observed < 1 %), and without Kerr the
 ripple follows the Talbot law `2 eps |cos(q L)|`.
 
-**Size and speed.** The state is `nx x ny x N_t` complex numbers per field: 128 x 128 x 512 is 134 MB, and the 10 mm example below ran in 57 s on a
-laptop CPU (4 cores). 256 x 256 at 2^13 time points is 64 x larger (8.6 GB per field array, several of them held by the solver):
+**Size and speed.** The state is `nx x ny x N_t` complex numbers of 16 B per field: 128 x 128 x 512 is 134 MB. 256 x 256
+at 2^13 time points is 64 x larger (8.6 GB per field array, several of them held by the solver):
 use a short time window and the [GPU plugin](../plugins/gpu.md) (`"compute": {"backend": "auto"}` runs the cartesian model on the device), or reduce
 `nx` and `N_t` and check that `edge` warnings stay quiet. The grid must resolve the most unstable ripple (period 2 pi / sqrt(2 k Delta) -- about 90 um
 in the example, 9 samples) and the correlation length of the seed; the box (4 beam radii) must hold the beam. [Example 29](../examples/Nonlinear/small-scale-self-focusing/README.md).
 
-## Collapse to 1-D, and what the 1-D quantities mean
+### Collapse to 1-D, and what the 1-D quantities mean
 
 The pulse's 1-D spectrum after a spatial element is the spectrum **integrated over the beam** (exact energy) with
 the phase of the area-weighted field. So `output_power_w`, spectra and instruments describe the whole beam, as a
@@ -320,3 +338,16 @@ spectra show up as a reduced temporal Strehl, not in the 1-D phase. The true pea
 | Bessel-Gauss core unchanged over 6 Rayleigh ranges of its spot (Durnin); Airy lobe on x = z² / 4k²x0³ (Siviloglou & Christodoulides) | 2 %, 3 % | `BeamSourceTests.BesselGauss_*`, `AiryBeam_*` |
 | zone plate on the axis 4 N² I0 (amplitude), 16 N² I0 (binary phase); axicon core; Young's fringes | 5 %, 2 %, 2 % | `BeamSourceTests.ZonePlate_*`, `Axicon_*`, `DoubleSlit_*` |
 | radial χ(2) vs 1-D Gaussian overlap (low conversion) | < 1 % | `Chi2Tests.Shg_RadialModelAgrees*` |
+
+## Limits
+
+* In a scalar spatial element the `y` polarisation is propagated linearly only; use `polarization: "vector"` for coupled
+  components.
+* The absorbing layer of a nonlinear element, position-dependent properties, ionisation in spatial elements and spatial
+  χ(2) crystals run on the CPU ([GPU](../plugins/gpu.md#what-runs-on-the-device)).
+* Partial coherence propagates each mode alone: coupling between modes in a nonlinear element is missing (a warning says
+  so), and outputs other than energies, beam radii and `beamProfile` belong to the lowest mode.
+* 1-D elements with a length do not propagate a carried profile; with `transport: "auto"` it is rescaled to the next
+  spatial element's beam, with `exact` such an element is an error.
+* Light diffracted beyond the grid's largest angle is lost; the edge warning (0.01 % of the energy in the outer 15 %) or
+  `absorbingBoundary` tells you when the grid is too small.

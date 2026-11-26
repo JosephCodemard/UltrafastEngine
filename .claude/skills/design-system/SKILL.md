@@ -22,7 +22,7 @@ backend (`docs/reference/plotting.md`).
 5. **Add one effect at a time** (Raman, self-steepening, gain, the spatial model, higher orders), each time checking that the
    result changes by the amount the effect should change it. Stop when the next effect changes the goal numbers by less than the tolerance.
 6. **Scan the free parameters** (`docs/reference/studies.md`): length, angle, chirp, energy. Report the sensitivity, and the
-   margin to every limit of step 1. Use `uf.validate` and read every warning (`explain_warning` on the MCP server).
+   margin to every limit of step 1. Use `uf.System.load(system).validate()` and read every warning (`explain_warning` on the MCP server).
 7. **Confirm in full** (`fidelity: full`) at the chosen point and at the edges of the tolerance range.
 8. **Deliver**: the `.ufs` and `run.json`, a schematic (`up.system(result, params=True)`), the figure of merit against the
    goal, the margins, the assumptions (every value that is a guess, with its source), and what was not modelled.
@@ -32,5 +32,5 @@ Do not present a design whose limits were not checked, or one found at the bound
 ## Fidelity: explore in `quick`, confirm in `full` (a rule, not a tip)
 
 The tools' default fidelity is `full`, which is slow. Every exploratory scan, study, run, comparison or fit passes `"fidelity": "quick"` (Raman, self-steepening and
-polarisation dropped; seconds instead of minutes). Run only the point or points you will report again with `"fidelity": "full"`, and say in the answer which numbers came from
+polarisation dropped, spatial bulk / gap models replaced by the 1-D beam, FROG / d-scan skipped, tolerance 1e-4; seconds instead of minutes; the exact bundle: `docs/reference/fidelity.md`). Run only the point or points you will report again with `"fidelity": "full"`, and say in the answer which numbers came from
 `quick` and which from `full`. Never quote a `quick` number as a result; never explore in `full`. A failed point in `quick` is a reason to look, not to switch to `full` for the whole scan.

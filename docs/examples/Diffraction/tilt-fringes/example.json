@@ -1,0 +1,12 @@
+{
+  "title": "Fringes from a tilted mirror",
+  "summary": "A Michelson interferometer on the command line, in a branched .ufs file: one arm is tilted by 2 mrad, carried profiles add point by point at the return, and straight fringes appear with a period of 515.0 µm against λ / angle = 515.0 µm.",
+  "group": "Diffraction",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}

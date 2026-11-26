@@ -54,7 +54,7 @@ Apertures, tilted beams and structured modes on a carried transverse profile.
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
 | [iris-diffraction](Diffraction/iris-diffraction/README.md) | 30 | CLI + Python | Gaussian, round flat-top, uniform and square beams through a 1 mm iris, imaged at Fresnel numbers 3, 2, 1 and in the far zone; absorbing boundary; every pattern checked against the Fresnel integral; an iris scan from Python | `ultrafast run gaussian.ufs run.json -o results-gaussian` (x4), `python compare.py`, `python iris.py` |
-| [tilt-fringes](Diffraction/tilt-fringes/README.md) | 35 | CLI | a Michelson with a tilted mirror in a Branched `.ufs`: fringes at lambda / angle from carried profiles | `ultrafast run michelson.ufs run.json -o results`, `python report.py` |
+| [tilt-fringes](Diffraction/tilt-fringes/README.md) | 35 | CLI + Python | a Michelson with a tilted mirror in a Branched `.ufs`: fringes at lambda / angle from carried profiles | `ultrafast run michelson.ufs run.json -o results`, `python report.py` |
 | [structured-beams](Diffraction/structured-beams/README.md) | 36 | Python | Hermite-Gauss and Laguerre-Gauss M², a Bessel core from an axicon, a zone-plate focus | `python structured.py` |
 
 ## Wavefronts
@@ -73,10 +73,10 @@ Interferometers, cavities, f-2f and pump-probe built as systems with ports, link
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
 | [cavity-and-coherence](Branched/cavity-and-coherence/README.md) | 31 | CLI + Python | a ring resonator's eigenmode against its Fox-Li mode; a Gaussian-Schell beam of M² = 2.5 against the M² law; cw sources | `ultrafast run lens-guide.ufs run-cavity.json`, `python report.py` |
-| [interferometers](Branched/interferometers/README.md) | 32 | Python | a Mach-Zehnder and an etalon as branched systems, with their budgets; the Airy function from a loop | `python interferometers.py` |
-| [f2f-cep](Branched/f2f-cep/README.md) | 37 | Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
-| [system-schematics](Branched/system-schematics/README.md) | new | Python | `ultrafast.plotting` schematics of a Mach-Zehnder and a loop in every plot style (default, dark, paper, science) | `python schematics.py` |
-| [pump-probe](Branched/pump-probe/README.md) | 41 | Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
+| [interferometers](Branched/interferometers/README.md) | 32 | CLI + Python | a Mach-Zehnder and an etalon as branched systems, with their budgets; the Airy function from a loop | `python interferometers.py` |
+| [f2f-cep](Branched/f2f-cep/README.md) | 37 | CLI + Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
+| [system-schematics](Branched/system-schematics/README.md) | new | CLI + Python | `ultrafast.plotting` schematics of a Mach-Zehnder and a loop in every plot style (default, dark, paper, science) | `python schematics.py` |
+| [pump-probe](Branched/pump-probe/README.md) | 41 | CLI + Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
 
 ## Diagnostics
 
