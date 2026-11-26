@@ -36,7 +36,7 @@ result ([GPU](../../../plugins/gpu.md)). Installing FFTW (Windows / Linux) speed
     ```
 
     ```
-    energy 5.165E-10 J (T = 91.05 %), FWHM 33.55 fs (TL 2.347 fs), peak 4878 W, B = 118 rad
+    energy 5.165E-10 J (T = 91.05 %), FWHM 33.55 fs (TL 2.347 fs), peak ... W, B = 118 rad
     ```
 
 === "Python"
@@ -87,7 +87,7 @@ result ([GPU](../../../plugins/gpu.md)). Installing FFTW (Windows / Linux) speed
     ```
 
     ```
-    energy 5.165E-10 J (T = 91.05 %), FWHM 33.55 fs (TL 2.347 fs), peak 4878 W, B = 118 rad
+    energy 5.165E-10 J (T = 91.05 %), FWHM 33.55 fs (TL 2.347 fs), peak ... W, B = 118 rad
       soliton number N = 8.65, L_D = 6.8 cm, L_NL = 0.9 mm, fission 7.9 mm, dispersive wave 652 nm
       spectrum above -40 dB: 492 to 1307 nm; Raman soliton arrives 3.34 ps after the pump pulse
       50 fs pump: mean coherence 0.98
@@ -96,6 +96,8 @@ result ([GPU](../../../plugins/gpu.md)). Installing FFTW (Windows / Linux) speed
 
 **What it shows.**
 
+* The output peak power (about 4.9 kW) is not quoted to four digits: at B = 118 rad it differs by 0.2 % between Linux and
+  macOS builds (floating-point order in the FFTs), which the example check would flag; the other numbers agree to the digits shown.
 * `results/summary.json` → `elements[0].values`: soliton number N = 8.65, L_D = 6.8 cm, L_NL = 0.9 mm, fission length about 8 mm,
   dispersive-wave resonance 652 nm: the numbers of the paper.
 * `results/spectrum.csv` (`spectrum_db`): the spectrum spans 492 to 1307 nm at -40 dB; Raman solitons on the red side, dispersive waves

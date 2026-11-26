@@ -45,7 +45,12 @@ EXAMPLES = os.path.join(ROOT, "docs", "examples")
 CLI = os.path.join(ROOT, "src", "UltrafastEngine.Cli", "bin", "Release", "net10.0", "ultrafast.dll")
 # examples that need software or files a plain checkout does not have
 MANUAL = {"Interop/zemax-workflow": "needs an OpticStudio export", "Interop/cpp": "C++ / CMake build"}
-NUM = re.compile(r"(?<![\w.])[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?(?![\w])")
+NUM = re.compile(r"(?<![\w.,])[-+]?(?:\d{1,3}(?:,\d{3})+(?:\.\d*)?|\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?(?![\w])")  # 19,847,939.03 is one number
+
+
+def num(tok):
+    """The value of a quoted number; thousands separators (as C# "N" / "P" formats print them) are dropped."""
+    return float(tok.replace(",", ""))
 TIMING = re.compile(r"done in|elapsed|took |\bms\b|seconds|laptop|minutes?\b|~\d", re.I)
 SKIP_LINE = re.compile(r"^\s*(ultrafast-plot\b|cd\s+docs/examples)|#.*\b(optional|once)\b", re.I)
 
@@ -130,7 +135,7 @@ def check_table_value(key, tok, unit, files, rtol):
         vals += [v / scale for k, v in leaves(json.load(open(f))) if k.endswith("/" + last)]
     if not vals:
         return None
-    want = float(tok)
+    want = num(tok)
     best = min(vals, key=lambda v: abs(v - want))
     return abs(best - want) <= quoted_tolerance(tok, rtol), best
 
@@ -141,10 +146,10 @@ def template(line):
 
 def quoted_tolerance(tok, rtol):
     """Half a unit in the last quoted digit (1.23 -> 0.005, 1.2e-3 -> 0.05e-3), at least rtol relative."""
-    mant, _, exp = tok.lower().partition("e")
+    mant, _, exp = tok.replace(",", "").lower().partition("e")
     dec = len(mant.split(".")[1]) if "." in mant else 0
     unit = 10.0 ** (-dec) * (10.0 ** int(exp) if exp else 1.0)
-    return max(0.5 * unit * 1.0001, rtol * abs(float(tok)))
+    return max(0.5 * unit * 1.0001, rtol * abs(num(tok)))
 
 
 def pattern(line):
@@ -157,7 +162,7 @@ def pattern(line):
         pieces, pos = [], 0
         for m in NUM.finditer(part):
             pieces.append(re.escape(part[pos:m.start()]).replace("\\ ", "\\s+"))
-            pieces.append(r"([-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?)")
+            pieces.append(r"([-+]?(?:\d{1,3}(?:,\d{3})+(?:\.\d*)?|\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?)")
             pos = m.end()
         pieces.append(re.escape(part[pos:]).replace("\\ ", "\\s+"))
         rx.append("".join(pieces))
@@ -174,7 +179,7 @@ def sigma_after(line, k):
     """The uncertainty quoted after the k-th number as "x +- s" (or None)."""
     nums = list(NUM.finditer(line))
     if k + 1 < len(nums) and re.fullmatch(r"\s*\+-\s*", line[nums[k].end():nums[k + 1].start()]):
-        return abs(float(nums[k + 1].group()))
+        return abs(num(nums[k + 1].group()))
     return None
 
 
@@ -192,7 +197,7 @@ def match(line, output_lines, rtol):
         got = m.groups()
         ok, worst = True, 0.0
         for i, (w, g) in enumerate(zip(want, got)):
-            a, b = float(w), float(g)
+            a, b = num(w), num(g)
             dev = abs(a - b)
             worst = max(worst, dev / max(abs(a), 1e-300))
             sig = sigma_after(line, i)
