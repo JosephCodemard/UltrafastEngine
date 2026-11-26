@@ -13,7 +13,7 @@ radiusM = ENPD/2).
 
 ## Next steps
 
-1. Tests in `ZemaxTests` (defocus + astigmatism at pupil points to 1e-12 through the compiled engine element; replay; config errors).
+1. (done) Tests in `ZemaxTests`: 3 Zernike_* tests pass.
 2. Docs: `docs/plugins/zemax.md` section "Zernike aberrations", HARDWARE-CHECKLIST step 4b + assumptions, example export.json, docs/testing.md rows.
 3. CHANGELOG, history, roadmap row, delete this file, final commit.
 
