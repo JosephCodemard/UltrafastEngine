@@ -5,6 +5,9 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Docs (2026-11-26, WP C2c)**
+- **Reference pages `crystals`, `materials`, `coatings`, `components`, `active-elements`, `modulator`, `spatial-properties`** rewritten to the reference template; all 60 rows of `docs/design/notes/reference-audit-c.md` closed. Corrections users may rely on: a tilted plate's GDD is 0.28 / 0.96 fs² *below* the fixed-path value (40° / 70°, 5 mm fused silica), not above; Air's n2 is 8.5e-24 m²/W per bar; Calcite, YVO4, aBBO, TGG and the thin films have n2 = 0 (no value entered); a user biaxial crystal needs `"class": "biaxial"`; `seedNoise` is off by default; the user-element example's `params` had the wrong sign; the coating kinds (`gddRipple` included), their defaults and the `lidt` keys are documented. Ten code findings listed for WP C4.
+
 **Docs (2026-11-26, WP D2-Wavefronts)**
 - The two Wavefronts examples (`position-dependent-index`, `spatial-gain-thermal-lens`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (absorbed pump at 5 W is now quoted as 4.1 W, was 4.05 W).
 

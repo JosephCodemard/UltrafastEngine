@@ -39,7 +39,7 @@ is delayed) and a positive d²φ/dω² is positive GDD (red first, like glass).
 | `ar` | `R` (default 0.0025), and the other keys of `ideal` | residual reflectance per surface |
 | `gdd` | `R` (default 0.999), `gddS2`, `todS3`, `fodS4`, `referenceWavelengthM` (default the carrier) | ideal dispersive mirror: φ(ω) = gddS2 Δω²/2 + todS3 Δω³/6 + fodS4 Δω⁴/24 on the reflection, Δω = ω − ω_ref; T = 1 − R |
 | `gddRipple` (also `chirped`) | `R` (default 0.998), `gddS2` or `gddFs2`, `todS3` or `todFs3`, `rippleGddS2` or `rippleGddFs2`, `ripplePeriodNm`, `ripplePeriodThz` or `ripplePeriodRadPerS` (one is required with a ripple), `ripplePhaseRad`, `reflectanceRipple`, `referenceWavelengthM` | dispersive mirror with a sinusoidal GDD ripple: φ = gdd Δω²/2 + tod Δω³/6 − A (Ω/2π)² sin(2π Δω/Ω + φ₀), and R(ω) = R (1 + `reflectanceRipple` sin(2π Δω/Ω + φ₀)); the same law as the [`chirpedMirror` element](components.md#gdd-ripple) |
-| `table` | `wavelengthsM`, `wavelengthsNm` or `wavelengthsUm`; `R` / `Rs` / `Rp`; `T` / `Ts` / `Tp` (default 1 − R); phases `phaseR`, `phaseRs`, `phaseRp`, `phaseT`, `phaseTs`, `phaseTp` (rad), or group delays `groupDelayRS`, `groupDelayRsS`, ... (s, integrated to a phase) | measured or vendor data; exported OpticStudio coatings. Amplitudes are interpolated linearly and held at the end values; phases use a natural cubic spline (four or more points) with linear extrapolation |
+| `table` | `wavelengthsM`, `wavelengthsNm` or `wavelengthsUm`; `R` / `Rs` / `Rp`; `T` / `Ts` / `Tp` (default 1 − R); phases `phaseR`, `phaseRs`, `phaseRp`, `phaseT`, `phaseTs`, `phaseTp` (rad), or group delays `groupDelayRS`, `groupDelayRsS`, ... (s, integrated to a phase) | measured or vendor data; exported OpticStudio coatings. R and T are interpolated linearly in ω and held at the end values; phases use a natural cubic spline (four or more points) with linear extrapolation |
 | `efficiency` | `s`, `p`, or one `efficiency` for both (default 1) | grating diffraction efficiency: power only, phase 0 |
 
 All kinds take an optional `lidt`. Example:
@@ -57,7 +57,7 @@ at 45° (the phase thickness of each layer scales with cos θ inside it); `desig
 ## Substrate echoes
 
 A `mirror` with a `substrate` adds the echo of the light that leaks through the coating, reflects from the back face of the
-substrate and returns after 2 n_g d cos θ / c (62 / 93 / 124 ps for 6.35 / 9.5 / 12.7 mm of fused silica at 1030 nm). The
+substrate and returns after 2 n_g d cos θ_t / c, θ_t the internal angle (62 / 93 / 124 ps for 6.35 / 9.5 / 12.7 mm of fused silica at 1030 nm). The
 transfer is exact in n(ω), the leakage follows the coating's T(λ), and the back face may be bare, AR-coated or wedged.
 Keys, the catalogue of substrates and the physics: [Delayed light](delayed-light.md#mirror-substrate-echoes).
 
@@ -69,7 +69,7 @@ Keys, the catalogue of substrates and the physics: [Delayed light](delayed-light
 
 `"ripple": {"phaseRmsRad": 0.03, "amplitudeRms": 0.01, "maxDelayS": 5e-12, "seed": 7}` on a mirror or interface multiplies the
 reflection by a random phase and amplitude ripple made of `components` sinusoids (default 64). Its pedestal lies within
-±`maxDelayS` (default 5 ps); to first order it holds the fraction φ_rms² of the energy (the element's note gives it). The
+±`maxDelayS` (default 5 ps); to first order it holds the fraction φ_rms² of the energy from the phase ripple (the element's note gives it), plus about amplitudeRms² from the amplitude ripple. The
 `seed` defaults to a number derived from the element id, so the ripple is reproducible and differs between elements.
 Measured ripple is a `table` coating. See [Delayed light](delayed-light.md#coating-ripple).
 
@@ -85,7 +85,7 @@ the power as incoherent delayed light instead of losing it (`roughnessRmsM` belo
 | `table` | `delaysS`, `weights` | the given distribution |
 
 `spectralExponent` (default 0) sets the spectral weighting of the scattered light (4 for Rayleigh-like scatter). On a plate
-the default `maxS` is 2 n_g d cos θ / c; a mirror or interface has no default and needs `delay.maxS`. `"model": "surface"`
+the default `maxS` is 2 n_g d cos θ_t / c; a mirror or interface has no default and needs `delay.maxS`. `"model": "surface"`
 derives the fraction from `roughnessRmsM` and `correlationLengthM` (total integrated scatter, and the share 1 − exp(−(l/w)²)
 that stays in the mode). See [Delayed light](delayed-light.md#delayed-scatter).
 
@@ -114,7 +114,7 @@ fraction of the input) and per element in `lossJ`. The main names:
 | `raman+numerical`, `numerical`, `grid boundary`, `harmonics (out of band)`, `spectrum at non-positive frequency`, `delayed light (tail)` | energy changes inside nonlinear and spatial segments, numerical residuals, light leaving the grid |
 
 Gain, ASE, oscillator and aux entries are **negative** (energy brought in). With these negative entries included, the
-budget closes on input − output energy (`SystemTests.LossBudget_ClipFresnelScatterAddUp`).
+budget closes on input − output energy (for passive losses: `SystemTests.LossBudget_ClipFresnelScatterAddUp`).
 
 ## Damage (LIDT)
 
@@ -152,7 +152,7 @@ so circular light sees 2/3 of the linear SPM ([Nonlinear physics](nonlinear.md))
 | a circular aperture on an elliptical beam | the 2-D integral | `GridSolverTests.CircularAperture_OnAnEllipticalBeam_IsTheTwoDimensionalIntegral` |
 | coating ripple: pedestal energy within `maxDelayS`; amplitude ripple only removes light; reproducible from the seed | first-order theory | `DelayedLightTests.CoatingRipple_*` |
 | surface scatter: loss is the TIS outside the mode and follows λ⁻² | TIS formula | `DelayedLightTests.SurfaceScatter_LossIsTheTisOutsideTheMode_AndFollowsLambdaMinusTwo` |
-| mirror echo follows the coating's transmission and the back face | 2 n_g d cos θ / c | `DelayedLightTests.MirrorEcho_LeakageFollowsTheCoatingTransmissionAndTheBackFace` |
+| mirror echo follows the coating's transmission and the back face | 2 n_g d cos θ_t / c | `DelayedLightTests.MirrorEcho_LeakageFollowsTheCoatingTransmissionAndTheBackFace` |
 
 ## Limits
 

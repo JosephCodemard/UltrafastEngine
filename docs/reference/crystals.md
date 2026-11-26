@@ -30,12 +30,12 @@ The keys that matter; every key with its default is in the generated reference: 
 |---|---|---|
 | `crystal` | | a built-in name, a `materials` entry or an inline object ([User crystals](#user-crystals)); required |
 | `lengthM` | m | crystal length; required |
-| `interaction` | | `process` (`shg`, `sfg`, `opa`, `dfg`), `type`, `plane`, `polarizations`, `noncollinearDeg`, `externalAngleDeg`, `qpm`; required |
+| `interaction` | | `process` (`shg`, `sfg`, `opa`, `dfg`), `type`, `plane`, `polarizations`, `noncollinearDeg`, `externalAngleDeg`, `qpm`; `process` defaults to `shg` |
 | `cut`, `detuneDeg` | deg | `"auto"` or `{thetaDeg, phiDeg, detuneDeg}` ([Geometry](#geometry-cut-type-planes-non-collinear)) |
 | `beam`, `aux`, `inputs` | | the main beam's size, the aux beams ([Active elements](active-elements.md#auxiliary-beams)), virtual beams on fed ports ([below](#non-collinear-opa-and-dfg)) |
 | `mainRole`, `output`, `record` | | the main beam's role, the field that continues, the by-products kept |
 | `overlap`, `transverse` | | 1-D coupling model or a spatial model ([Beams and coupling](#beams-and-coupling)) |
-| `temperatureC` | °C | crystal temperature: used by the temperature-dependent e-ray indices of `LiNbO3` and `MgO:LiNbO3` (20 °C when not given); for the other crystals a value more than 5 °C from 20 °C is ignored with a note |
+| `temperatureC` | °C | crystal temperature: used by the temperature-dependent e-ray indices of `LiNbO3` and `MgO:LiNbO3` (20 °C when not given); for the other crystals a value more than 5 °C from 20 °C is ignored with a note (a user crystal without `base` ignores it without a note) |
 | `deffPmPerV` | pm/V | effective nonlinearity; replaces the tensor contraction |
 | `chi3`, `n2` | m²/W (`n2`) | χ(3) of the crystal on (default) or off; `n2` replaces the catalogue value |
 | `seedNoise`, `noiseSeed` | | vacuum-noise seeding of the generated fields (off by default; seed 12345) |
@@ -133,7 +133,7 @@ overrides the tensor contraction. Other keys of a user crystal: `name`, `n2` (m�
 * **`cut`**: `"auto"` solves the phase-matching angle for the **nominal** wavelengths (the run pulse carrier and the
   aux carriers). In a biaxial crystal it tries the planes `XY`, `XZ` and `YZ` (or only `interaction.plane`); in a uniaxial
   crystal it solves θ at φ = 0°, 15°, ..., 90°. Of the solutions it keeps the one with the largest |deff|.
-  `{"thetaDeg": .., "phiDeg": ..}` fixes the angles; `"detuneDeg"` (in `cut` or on the element) tilts the cut away from
+  `{"thetaDeg": .., "phiDeg": ..}` fixes the angles; `"detuneDeg"` (in `cut` or on the element) adds to **θ** in every geometry (also in the `XY` plane, where the tuning angle is φ: there it is a non-critical tilt; set `phiDeg` instead), tilting the cut away from
   phase matching, for scans. A fixed cut that phase-matches nothing is kept as given (mismatched), in `interaction.plane`
   or, without it, in the uniaxial geometry or the `XZ` plane.
 * **Non-collinear** (`opa`, `dfg` and `sfg`: see [OPA and DFG](#non-collinear-opa-and-dfg) and [sum frequency](#non-collinear-sum-frequency); `shg` refuses it, since one beam cannot cross itself): `noncollinearDeg` is the angle between pump and signal inside the crystal, `externalAngleDeg` the angle outside, or the arms' tilts give it;
@@ -157,7 +157,7 @@ overrides the tensor contraction. Other keys of a user crystal: `name`, `n2` (m�
 * `averaged`: first-order QPM, d → (2/π) d with the grating phase K_G z subtracted from the mismatch. Fast.
 * `domains`: the sign of d flips domain by domain (d ∝ sign cos(K_G z − phase)); the integrator lands exactly on
   every domain wall, so each step sees a smooth right-hand side. A step that would end within 10 % of a step before a wall is
-  stretched onto it, so no sliver step is left: runs at tolerances 1e-7 apart give the same field to 2.8e-8. At the default
+  stretched onto it, so no sliver step is left: runs at tolerances 1e-7 relative apart give the same field to 2.8e-8. At the default
   tolerance (1e-6) the field of 1 mm of MgO:PPLN (SHG at 1550 nm, about 100 walls) is 4.1e-4 from the converged one; at
   `stepper.tolerance` 1e-8 it is 3.6e-6, so use 1e-8 for quantitative domain-resolved work
   (`Chi2Tests.Qpm_DomainResolved_NoSliverSteps_ResultDoesNotDependOnTheLastBitsOfTheStep`, which asserts 1e-7 and 1e-5).
@@ -270,7 +270,7 @@ Each wave has its own k(ω) from the Sellmeier equations at the crystal's angle,
 
 | quantity | behaviour | checked against |
 |---|---|---|
-| angle | efficiency follows sinc²(Δk L / 2); `detuneDeg` tilts the cut | sinc², and Δk from independent Sellmeier arithmetic |
+| angle | efficiency follows sinc²(Δk L / 2); `detuneDeg` tilts θ (use `phiDeg` in the `XY` plane) | sinc², and Δk from independent Sellmeier arithmetic |
 | narrowband, L much less than τ / GVM | efficiency grows as L² | L² to 2 % |
 | broadband, L much more than τ / GVM | efficiency grows as L: extra length only adds walk-off | L to 2 % |
 | acceptance | SH bandwidth 0.886 / (GVM L) | to 3 % |

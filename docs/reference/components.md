@@ -188,7 +188,7 @@ spatial model) → back surface. `coatingFront` / `coatingBack` override `coatin
 **Tilted plates and their phase.** At an angle every colour refracts at its own internal angle, so the phase through the
 plate is the plane-wave phase k_z(ω) d = (ω/c) d √(n² − n_o² sin²θ) (n_o: the surrounding medium), plus the air path each
 colour crosses between its own exit point and the plane normal to the carrier ray through the carrier's exit point,
-(ω/c) n_o sin θ d tan θ_t. The engine applies exactly this, with or without an `inputBeam`; with a tracked beam the
+(ω/c) n_o sin θ d tan θ_t0, with θ_t0 the carrier's internal angle (the same for every colour; only the sum of the two terms is the phase). The engine applies exactly this, with or without an `inputBeam`; with a tracked beam the
 ray bundle supplies the same phase. For 5 mm of fused silica at 1030 nm in vacuum its GDD is 105.55 fs² at 40° and
 123.60 fs² at 70°: 0.28 and 0.96 fs² **below** the 105.83 and 124.56 fs² of the fixed path d / cos θ_t of the carrier
 (recomputed with the Malitson index; the test `OpenBugRegressionTests.TiltedPlate_WithoutBeam_HasTheRefractedColoursGdd_AndMatchesTheTrackedBeam`

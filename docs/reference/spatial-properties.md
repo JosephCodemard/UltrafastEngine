@@ -50,8 +50,7 @@ has no transverse structure:
 * `n2Scale` is averaged with intensity² weighting and then scales n2 and the rotational Raman response alike;
 * `indexProfile` has no effect (a note says so).
 
-Absorption shows up in the energy budget as `absorption`. On a spatial grid the terms also limit the step size to 0.2 rad of
-k₀|Δn| + α/2 per step, taken over the grid points that hold more than 1e-4 of the peak energy, so strong profiles are
+Absorption shows up in the energy budget as `absorption`. On a spatial grid the terms also limit the step to dz ≤ 0.2 / max(k₀|Δn| + α/2), the maximum taken over the grid points that hold more than 1e-4 of the peak energy, so strong profiles are
 integrated accurately (RK4 is accurate to about 1e-5 at that step).
 
 The gain elements use the same machinery for their thermal lens and accept the same three keys

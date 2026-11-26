@@ -41,7 +41,7 @@ generated page [Material catalogue](materials-catalogue.md), which is the comple
 | `Ta2O5`, `TiO2`, `HfO2`, `Nb2O5`, `Al2O3_film`, `SiO2_film` | generic ion-beam-sputtered Cauchy fits (thin films) | approximate | | **0** (not set) | |
 | `CS2`, `BaF2` | [below](#cs2-liquid-carbon-disulfide-and-baf2) | verified | | 3.0e-18 (total), 2.0e-20 | orientational (CS2); cubic Kerr anisotropy (BaF2) |
 
-The n2 values of the glasses, crystals and gases are typical values near 0.8-1 µm (status `approximate` in the catalogue);
+The n2 values of the glasses and gases are typical values near 0.8-1 µm (status `approximate` in the catalogue; the n2 of every χ(2) crystal is `unverified`);
 published values spread by 10-30 % (wavelength, measurement method, pulse duration). Override them for quantitative work:
 `{"target": "material:FusedSilica", "property": "n2", "value": 2.2e-20}`. The n2 of CS2 and BaF2, the Kerr anisotropy of BaF2,
 the CS2 Raman fraction and orientational response are `unverified`. **An n2 of 0 means no value was entered** (Calcite,

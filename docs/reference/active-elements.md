@@ -43,7 +43,7 @@ by-product of a crystal is an output port that can be routed on.
     "pulse": { "shape": "gaussian", "centerWavelengthM": 515e-9, "durationFwhmS": 0.8e-12, "energyJ": 200e-6 },
     // "from": "../shg-lbo/results",      // the output field of a saved run (summary.json + result.npz)
     // "energyJ": 150e-6,                    //   ... optionally rescaled to this energy
-    "beam": { "kind": "gaussian", "radiusM": 0.6e-3 },   // also superGaussian ("order", default 6), flatTop (edge radius);
+    "beam": { "kind": "gaussian", "radiusM": 0.6e-3 },   // also superGaussian ("order", default 4), flatTop (edge radius);
                                                           // radiusXM/radiusYM, w0M; radiusOfCurvatureM; decenterXM/YM
     "delayS": "auto" }                       // or a delay in s relative to the main beam (positive = later; default 0)
 ]
