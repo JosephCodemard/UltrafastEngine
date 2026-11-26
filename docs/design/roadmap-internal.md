@@ -182,7 +182,7 @@ as a guide only, never shipped or required; closely ported logic carries attribu
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| Z1 | Opus | M | — | our own ZOS-API connection core (net48): standalone application, extension and interactive modes, `ZOSAPI_NetHelper` initialisation, licence and version checks, clean shutdown; `ZosOpticStudio.cs` split into connection, system access and analyses | builds against the stubs; fake-path tests unchanged; checklist steps written | open |
+| Z1 | Opus | M | — | our own ZOS-API connection core (net48): standalone application, extension and interactive modes, `ZOSAPI_NetHelper` initialisation, licence and version checks, clean shutdown; `ZosOpticStudio.cs` split into connection, system access and analyses | builds against the stubs; fake-path tests unchanged; checklist steps written | done 2026-11-25 |
 | Z2 | Opus | M | Z1 | Zernike aberrations (Zernike standard coefficients) → engine wavefront element | fake-path test against known coefficients | open |
 | Z3 | Opus | S | Z1 | paraxial ABCD matrices from operands | fake-path test against a thick lens | open |
 | Z4 | Opus | M | Z1 | prism pairs and Martinez stretchers → dispersive engine elements (GDD and TOD from the ray-traced optical path against wavelength) | against the analytic prism-pair and grating-stretcher GDD | open |

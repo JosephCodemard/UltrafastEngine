@@ -348,6 +348,16 @@ B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy wind
 
 `[tool.mypy]` in `python/pyproject.toml` checks `build.py`, the generated `types.py` and `calc/` (other modules are followed silently, not yet gated; `follow_imports = silent`, `check_untyped_defs`, `warn_unused_ignores`). The code was already clean apart from three stale `# type: ignore` comments in `build.py`, now removed; `types.py` needed no generator change. A `mypy` step runs in the CI `python` job and `tests/test_typecheck.py` (skipped without mypy) checks both that the tree is clean and that a seeded return-type error fails. Widening the scope to `core.py`, `plotting/` and `results/` (about 60 errors today) is a later step.
 
+## Stage 21 -- WP Z1: the Zemax plugin's own ZOS-API connection core  (2026-11-25, `dev/wp-z1`, macOS arm64)
+
+The connection of the Windows binding was rewritten as our own code (E19; ZOSPy read online as a guide only). The sequence (NetHelper
+initialisation, connect in interactive / user-extension / standalone mode, licence, version >= 20.1, primary system, file load) and its
+messages live in `UltrafastEngine.Zemax.Sampling/ZosConnectionCore.cs` behind two small interfaces, so `ZemaxConnectionTests` checks them on any
+OS with a fake ZOS-API; `ZosConnection.cs` implements the interfaces over ZOS-API, with the initialisation kept out of methods that name ZOSAPI
+types (the old `Connect` initialised and used ZOSAPI in one method, which can fail to load `ZOSAPI.dll`). Only a standalone instance is closed,
+also after a failed check and on Ctrl+C. `ZosOpticStudio.cs` was split into system access and analyses. Built against the extended stubs
+with Mono reference assemblies on macOS; nothing ran on OpticStudio: `HARDWARE-CHECKLIST.md` step 3b lists what the owner must check.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
@@ -358,7 +368,7 @@ B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy wind
 * **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
 * **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.
 
-## Stage 21 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
+## Stage 22 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
 
 * `build/style_lint.py` parses the banned-filler, British-spelling and term tables of `docs/style.md` (nothing is duplicated in code), strips
   code, inline code, HTML, link targets and URLs, and reports `file:line: rule`. Entries with a qualifier it cannot judge ("(as a noun)",
