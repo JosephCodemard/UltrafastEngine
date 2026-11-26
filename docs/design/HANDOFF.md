@@ -51,7 +51,7 @@ Python 518 passed with pyNLO; mkdocs strict, style, example and skill-sync check
 3. **fix-1** (Opus): a fed beam on another carrier gives different spectra in Sequential and Branched systems.
 4. **D2** groups left (Sonnet, one at a time): Diagnostics, Components, GettingStarted (rest), DigitalTwin, Fibres, Computing, Interop, AdaptiveOptics; then D6 (landing pages; PROJECT_STATUS says 60 example folders, there are 64), D3, D4, D5.
 5. **X1** (Opus), then X2; **G1** then G2 (single precision on OpenCL, Apple GPU), G4, G6, G8; **P3-P7**, P12 (Sonnet), P8-P11, P13 (Opus); **W3**, W1, W2; **S1**, S2; **Z3-Z6** (Sonnet); Q2, Q3, Q4 (Sonnet).
-6. V1 at the very end: full `/verify`, CI green, pull request `dev/2026-11` to `main` (open, do not merge).
+6. V1 last: full `/verify`, CI green, pull request `dev/2026-11` to `main` (open, do not merge).
 
 ## Findings the owner should know
 
