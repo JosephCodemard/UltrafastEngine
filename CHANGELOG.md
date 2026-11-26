@@ -19,6 +19,9 @@ internal development stages and were never released; they are kept as the develo
 **Docs (2026-11-26, WP D2-Wavefronts)**
 - The two Wavefronts examples (`position-dependent-index`, `spatial-gain-thermal-lens`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (absorbed pump at 5 W is now quoted as 4.1 W, was 4.05 W).
 
+**Docs (2026-11-26, WP C2d)**
+- **Reference pages `transverse`, `branches`, `models`, `fidelity`, `memory`, `speed`** rewritten to the reference template (Keys, Model, Validation, Limits) and every row of `docs/design/notes/reference-audit-d.md` closed (models.md audited line by line first): all model kinds (`chi2`, the Raman kinds, `field`), the filter variables (no `nu`), override and time-response rules, `sfgFrog` in quick, the free-memory source per framework, `gpuMinPoints` 0 per back-end, `compute.precision`, the macOS OpenCL device discovery, the graph error list. Benchmarks without a source were removed or re-measured with machine, date and script (`tools/bench`, Apple M3, 2026-11-26); physics review applied; eight code findings C4-d1 to C4-d8 recorded, no code changed.
+
 **Docs (2026-11-26, WP C2b)**
 - **Reference pages `nonlinear`, `ionization`, `delayed-light`, `gases`, `fibers`, `gain`, `oscillators`** rewritten to the reference template (Keys, Model, Validation, Limits) and every row of `docs/design/notes/reference-audit-b.md` closed: one B-integral definition, `taubS`, the `orientational` Raman kind, `absorption: false` also removes the ionisation loss, echo amplitude T r_b (intensity T² R_b), ripple and scatter referenced to the carrier, the new `gain.md#the-amplifier-element` section, `smallSignalGain` is the linear power gain, test tolerances quoted as asserted; seven code findings (C4-b1 to C4-b7) listed for WP C4.
 **Docs (2026-11-25, WP C2f)**

@@ -515,3 +515,12 @@ Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-e
   `Zernike_RecordReplayAndSavedSampleKeepTheCoefficients`.
 * Untested without OpticStudio: the ZERN parameter layout and Type code, ENPD / EXPD as diameters, the OPD sign, and the pupil axes against
   the engine's beam axes after folds.
+
+## Stage 38 -- WP C2d: reference pages of group d (transverse, branches, models, fidelity, memory, speed)  (2026-11-26, `dev/wp-c2d`)
+
+* Audited `models.md` line by line first (19 rows replacing the unaudited M1), then rewrote the six pages to the reference template (Keys with links to `options.md`, Model, Validation with test names and asserted tolerances, Limits) and closed all 74 rows of `reference-audit-d.md`: 65 fixed, 3 kept with provenance (RTX 3060 Ti ensemble and mixed-precision timings, the 2026-11-18 M3 fibre benchmark, the compile-cache / streaming measurements), 2 kept because the audit was wrong, 3 without defect, 1 code only. Inbound anchors kept (`models.md#time-response` is new, for `ultrafast.h`).
+* Decision (owner away): benchmark numbers without a source were removed, not kept as "unclear"; the reproducible ones were re-measured today on the Apple M3 (8 cores, 16 GB, .NET 10.0.13) with `tools/bench` and the slow test `FullPanel_1920x1080_*`, and quoted with machine, date and command. Accuracy columns reproduced exactly; speed-ups changed (fidelity standard ×2.5, study vs loop ×5.3 / ×1.4 / ×2.0).
+* Audit rows that were wrong or partly wrong: B6 (a regenerative amplifier does lose the carrier phase, `GainElements.cs:605`), S2 (".NET 10" is exact: the core builds only net10.0 / net48), S8 (`tools/bench` prints allocations), S15 and T12 (`history.md` holds the 10 ms and 2.7-3.4 GB figures), T9 (the nonlinear absorber constants exist).
+* `speed.md` describes the G0 device discovery: on macOS Apple's OpenCL plus every `.icd` vendor library (PoCL as a usable CPU device with an explicit `opencl`, never by `auto`).
+* Physics review (`physics-reviewer`): no wrong equation; twelve precision fixes applied (largest: the memory estimate does not count the state of nonlinear spatial elements, now in Limits). Code findings C4-d1 to C4-d8, no code changed.
+
