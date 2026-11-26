@@ -95,6 +95,9 @@ jobs:
           python-version: "3.12"
       - name: Install the package
         run: pip install -e "python[hosted,plot,test]"
+      - name: Type check (mypy gate on build.py, types.py, calc/; config in python/pyproject.toml)
+        working-directory: python
+        run: pip install mypy && python -m mypy
       - name: Build the engine for Python
         run: python python/tools/build_engine.py
       - name: Fetch pyNLO (dev-time cross-check, never shipped)

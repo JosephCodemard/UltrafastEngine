@@ -335,6 +335,10 @@ handles an undefined `fwhmS`. Test `MainLobe_TouchingTheWindowEdge_IsFiniteAndFl
 (an adaptive step sequence changed by one step moves the sums at 1e-6). `docs/plugins/gpu.md` says the ensemble path estimates the pulse-averaged
 B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy window stops at the first local minimum.
 
+## Stage 19 -- WP Q1: mypy as a CI gate  (2026-11-25, `dev/wp-q1`)
+
+`[tool.mypy]` in `python/pyproject.toml` checks `build.py`, the generated `types.py` and `calc/` (other modules are followed silently, not yet gated; `follow_imports = silent`, `check_untyped_defs`, `warn_unused_ignores`). The code was already clean apart from three stale `# type: ignore` comments in `build.py`, now removed; `types.py` needed no generator change. A `mypy` step runs in the CI `python` job and `tests/test_typecheck.py` (skipped without mypy) checks both that the tree is clean and that a seeded return-type error fails. Widening the scope to `core.py`, `plotting/` and `results/` (about 60 errors today) is a later step.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.

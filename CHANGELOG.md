@@ -9,6 +9,9 @@ internal development stages and were never released; they are kept as the develo
 - **GPU: pulse- and beam-averaged B-integral were 0** (`bIntegralPulseAveragedRad`, `bIntegralBeamAveragedRad`, per element and in `totals`) on the CUDA / OpenCL path. `StepStatistics.BIntegralPulseAveragedRad` defaulted to 0, which the executor took as a value reported by the stepper, so its shape-based estimate never ran. The default is now NaN ("not reported"), and the 1-D device stepper accumulates Σ P Δn / Σ P per step itself (kernel `uf_pmean`), so GPU equals CPU to 1e-8 (`GpuTests.BIntegral_PulseAndBeamAveraged_OnTheDevice_MatchTheCpu`, `ValidityTests.BIntegral_PulseAveraged_*`).
 - **Main-lobe pulse width:** `mainLobeFwhmS`, `mainLobeEnergyFraction` and `satellitePeakCount` beside `fwhmS` in `input`, `output`, every element's `pulse` and the `pulseSummary` instrument (`compressedMainLobeFwhmS`, `compressedMainLobeEnergyFraction` in `compressor`). `fwhmS` spans the outermost half-maximum crossings and jumps when a satellite crosses 50 %; the main-lobe width follows the highest peak only (`docs/reference/results.md`). `ultrafast.plotting.evolution`, `elements` and `animate_evolution` show it when present; the multi-peak warning quotes it.
 
+**Added (2026-11-25, WP Q1)**
+- **mypy is a CI gate** on `build.py`, the generated `types.py` and `calc/` (`[tool.mypy]` in `python/pyproject.toml`; step in the `python` job; `python/tests/test_typecheck.py` also checks that a seeded type error fails).
+
 **Fixed (2026-11-25, WP A2)**
 - **Main-lobe width at the window edge:** a main lobe that reaches the edge of the time window now gets the width to the edge (a lower bound) instead of NaN, and the multi-peak warning says "at least ... fs ... enlarge the window" (never "NaN fs"). GPU docs state that the ensemble path estimates the pulse-averaged B (8-15 % off with Raman); the device B test tolerance is 1e-5.
 

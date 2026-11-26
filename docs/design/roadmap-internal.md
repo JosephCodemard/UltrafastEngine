@@ -101,7 +101,7 @@ Pages written by later WPs (E, P, W, X, S, Z) follow the B1 template from the st
 
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
-| Q1 | Sonnet | S | — | mypy (installed in `../.venv`, 2.4.1) on `python/src/ultrafast/build.py`, `types.py` and `calc/`; a `mypy.ini` / `pyproject` section; fix the errors (no blanket `ignore`); a CI step in the `python` job; `python/CLAUDE.md` updated | CI step green; a seeded type error fails | open |
+| Q1 | Sonnet | S | — | mypy (installed in `../.venv`, 2.4.1) on `python/src/ultrafast/build.py`, `types.py` and `calc/`; a `mypy.ini` / `pyproject` section; fix the errors (no blanket `ignore`); a CI step in the `python` job; `python/CLAUDE.md` updated | CI step green; a seeded type error fails | done 2026-11-25 |
 | Q2 | Sonnet | S | — | coverage on a Linux CI job: `dotnet-coverage` (a dotnet tool, not a package reference) for the C# suite and `pytest-cov` for Python; reports as artefacts and a summary line; no threshold at first | job green; numbers in `docs/testing.md` | open |
 | Q3 | Sonnet | S | G0 | PoCL in CI: install `pocl` on the Linux runner so `GpuTests` run on a CPU OpenCL device with FP64 | `GpuTests` run (not skip) in CI | open |
 | Q4 | Sonnet | S | — | net48 under Mono on the development Mac (`brew install mono` documented in `docs/testing.md` and the `/verify` skill; CI already runs net48 under Mono on Linux) | `/verify` runs net48 locally when Mono is present | open |
