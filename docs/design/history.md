@@ -496,3 +496,22 @@ Rewrote `crystals.md`, `materials.md`, `coatings.md`, `components.md`, `active-e
 * `ner-measured-input`, `mpc-argon` and `ppln-dfg` keep their helper scripts (`ner.py`, `make_mpc.py`, `compare_pynlo.py`); the README shows their output in a separate block or as an optional CLI line.
 * Checks: `example_lint` (all folders), `example_check Nonlinear`, the eight snippet tests, `style_lint` and `mkdocs build --strict` are green.
 
+## Stage XX -- WP Z2: Zernike aberrations from OpticStudio into a wavefront element  (2026-11-26, `dev/wp-z2`, macOS arm64)
+
+* `IOpticStudio` gains `ReadZernikeStandard(field, wave, maxTerm, sampling)` returning `ZernikeStandardData` (Noll coefficients in waves,
+  entrance / exit pupil radii). Real implementation in `ZosAnalyses.cs`; the fake (`FakeOpticStudio.ZernikeNollWaves`), record / replay and
+  the sample file (`zernike`) carry it. The sampler reads it at the carrier (WDE restored); a failed read is a warning.
+* `SystemBuilder.BuildWavefront` writes one `wavefront` element (`zemax_wavefront`, at the end or the start). The conversion is stated in its
+  comment and in `docs/plugins/zemax.md#zernike-aberrations`: Zernike Standard is Noll's ordering and normalisation, so the terms map one to
+  one; waves at the carrier; `radiusM` = ENPD / 2 because the engine's beam is the input beam.
+* Decisions (owner away): (1) the coefficients come from temporary `ZERN` merit rows, not from the Zernike Standard Coefficients analysis,
+  whose results only come as a text file to parse (how ZOSPy does it; ZOSPy read online as a guide only, decision E19, nothing ported).
+  (2) Sign: engine W = -OpticStudio OPD (`opdSign` -1). This assumes OpticStudio's positive OPD is a wavefront ahead of the reference
+  sphere, which no documentation available here confirmed. `HARDWARE-CHECKLIST.md` step 4b settles it with a defocused paraxial lens.
+  (3) Z1 dropped by default (it would act as a group delay); tilt kept unless `removeTilt`.
+  (4) `ExportConfig.ToSamplerOptions` replaces the two copies of the sampler-options code in `Program.cs` and `ZemaxPlugin.cs`.
+* Tests: `ZemaxTests.Zernike_DefocusAndAstigmatismGiveTheAnalyticPhaseAtPupilPoints` (defocus 0.25 and astigmatism -0.1 waves through the
+  compiled engine element at six pupil points, 1e-12), `Zernike_ExportOptionsSignPositionTiltAndRadius`,
+  `Zernike_RecordReplayAndSavedSampleKeepTheCoefficients`.
+* Untested without OpticStudio: the ZERN parameter layout and Type code, ENPD / EXPD as diameters, the OPD sign, and the pupil axes against
+  the engine's beam axes after folds.
