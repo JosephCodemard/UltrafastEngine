@@ -227,7 +227,7 @@ ADAPTERS = {"claude": parse_claude, "codex": parse_codex, "cursor": parse_cursor
 
 
 def detect_format(text: str) -> str:
-    """Which adapter reads this transcript: Codex lines have ``thread.started`` / ``item.*``, Cursor has ``tool_call`` or a system init without ``tools``... see the rules below."""
+    """Which adapter reads this transcript: Codex events are named ``thread.*`` / ``turn.*`` / ``item.*``; Cursor has ``tool_call`` events or a ``system`` init with ``apiKeySource``; otherwise Claude Code events; otherwise plain lines."""
     evs = _jsonl(text)
     types = [str(e.get("type", "")) for e in evs]
     if any(t.startswith(("thread.", "turn.", "item.")) for t in types):
