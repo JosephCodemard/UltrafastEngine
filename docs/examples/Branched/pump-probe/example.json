@@ -1,0 +1,10 @@
+{
+  "title": "Pump-probe: cross-phase modulation of a delayed probe",
+  "summary": "A pump and a delayed probe from one pulse cross a Kerr plate in a branched system; the probe's centroid shift follows the exact cross-phase result to 1.8 % of the peak shift (1.745e12 rad/s against 1.735e12).",
+  "group": "Branched",
+  "script": "pump_probe.py",
+  "plugins": [],
+  "figures": ["pump_probe.png"],
+  "wave": 2,
+  "python": true
+}

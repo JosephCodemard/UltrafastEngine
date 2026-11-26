@@ -73,10 +73,10 @@ Interferometers, cavities, f-2f and pump-probe built as systems with ports, link
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
 | [cavity-and-coherence](Branched/cavity-and-coherence/README.md) | 31 | CLI + Python | a ring resonator's eigenmode against its Fox-Li mode; a Gaussian-Schell beam of M² = 2.5 against the M² law; cw sources | `ultrafast run lens-guide.ufs run-cavity.json`, `python report.py` |
-| [interferometers](Branched/interferometers/README.md) | 32 | Python | a Mach-Zehnder and an etalon as branched systems, with their budgets; the Airy function from a loop | `python interferometers.py` |
-| [f2f-cep](Branched/f2f-cep/README.md) | 37 | Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
-| [system-schematics](Branched/system-schematics/README.md) | new | Python | `ultrafast.plotting` schematics of a Mach-Zehnder and a loop in every plot style (default, dark, paper, science) | `python schematics.py` |
-| [pump-probe](Branched/pump-probe/README.md) | 41 | Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
+| [interferometers](Branched/interferometers/README.md) | 32 | CLI + Python | a Mach-Zehnder and an etalon as branched systems, with their budgets; the Airy function from a loop | `python interferometers.py` |
+| [f2f-cep](Branched/f2f-cep/README.md) | 37 | CLI + Python | an f-2f interferometer whose fringes follow the carrier-envelope phase | `python f2f.py` |
+| [system-schematics](Branched/system-schematics/README.md) | new | CLI + Python | `ultrafast.plotting` schematics of a Mach-Zehnder and a loop in every plot style (default, dark, paper, science) | `python schematics.py` |
+| [pump-probe](Branched/pump-probe/README.md) | 41 | CLI + Python | a pump and a probe of opposite circular polarisation in a Branched system: the probe's spectral shift from cross-phase against the delay, exact reference | `python pump_probe.py` |
 
 ## Diagnostics
 

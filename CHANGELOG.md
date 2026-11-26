@@ -11,6 +11,9 @@ internal development stages and were never released; they are kept as the develo
 **Docs (2026-11-26, WP C3)**
 - Consistency pass after the reference rewrites: one value for every number quoted on several pages (MCP tools 16, file format versions, the pulse-averaged B estimate on a device ensemble, the 1920 x 1080 panel timing, PPLN agreement with pyNLO, test counts, the contrast tutorial table), the owners listed in `docs/style.md`; `llms.txt` and the agent pack's `llms.txt` describe the rewritten pages; the pack skills' fidelity paragraph names the whole `quick` bundle; exit codes and `ULTRAFAST_PYTHON` documented where agents read them.
 
+**Docs (2026-11-26, WP D2-Branched)**
+- The five Branched examples (`cavity-and-coherence`, `f2f-cep`, `interferometers`, `pump-probe`, `system-schematics`) follow the example template with a CLI and a Python tab and have `example.json`; every quoted number reproduces (`pump-probe` probe energy 49.987 -> 50.027 nJ, 0.08 %).
+
 **Docs (2026-11-26, WP D2-Nonlinear)**
 - The eight Nonlinear examples (`carrier-resolved`, `filament`, `mpc-argon`, `ner-measured-input`, `ppln-dfg`, `small-scale-self-focusing`, `spatial-kerr`, `supercontinuum`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (spectral FWHM of `mpc-argon` 61.0 nm, was 61.9 nm; Kerr-lens wavefront radius of `spatial-kerr` -70 mm, was -81 mm, with its beam radii, B-integral 1.55 rad (was 1.4) and sampling tables; input transform limit of `ner-measured-input` 249 fs, was 240 fs; pump depletion of `ppln-dfg` 68 %, was about 70 %; mean coherence of `supercontinuum` 0.98, was 0.97). No engine code changed.
 **Docs (2026-11-26, WP C2c)**

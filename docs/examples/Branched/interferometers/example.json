@@ -1,0 +1,10 @@
+{
+  "title": "Two interferometers",
+  "summary": "A Mach-Zehnder and a loop etalon written as branched systems reproduce their analytic results: port c carries 0.5004 of the input against 0.5004 analytic, and the etalon follows the Airy function to 3.3e-08.",
+  "group": "Branched",
+  "script": "interferometers.py",
+  "plugins": [],
+  "figures": ["interferometers.png"],
+  "wave": 2,
+  "python": true
+}
