@@ -12,7 +12,26 @@ elements: `gain` (one pass through a pumped crystal, 1-D or spatial) and `amplif
   "thermalLens": { "rodRadiusM": 2e-3 } }
 ```
 
-## Gain media
+## Keys
+
+The keys that matter; every key with its default is in the option reference:
+[`gain`](options.md#gain), [`amplifier`](options.md#amplifier), their common keys
+[`gainCommon`](options.md#gaincommon), [`pump`](options.md#pump), [`inversion`](options.md#inversion) and
+[`betweenPasses`](options.md#betweenpasses).
+
+| keys | meaning |
+|---|---|
+| `medium` (required), `lengthM` (required), `host`, `dopingDensityM3`, `dopingProfile`, `temperatureK` | the gain medium, its host material (dispersion and n2), and overrides |
+| `pump`, `inversion` | the pump, or a starting inversion (below) |
+| `beam`, `modeRadiusM`, `transverse` | the signal mode (1-D) or a spatial grid |
+| `slices` (24), `segments` (auto), `spm` (true) | discretisation and the host SPM |
+| `repRateHz`, `steadyState` | the pulse train at the repetition rate |
+| `thermalLens`, `ase`, `aseSeed`, `aseModel`, `ghosts` | thermal lens and stress, ASE, end-face ghosts |
+| `geometry`, `passes`, `betweenPasses`, `roundTrips`, `passesPerRoundTrip`, `maxRoundTrips`, `cavity` | `amplifier` only ([below](#the-amplifier-element)) |
+
+## Model
+
+### Gain media
 
 | name | lifetime | doping | emission peak | notes |
 |---|---|---|---|---|
@@ -40,27 +59,32 @@ Cross sections can also be an expression in `omega`/`lambda` or a callback (`"@n
 machinery. A medium defined under `materials.NAME.gain` in the system file can be used by name. The **host**
 (`"host"`, or the element's `"host"`) supplies the dispersion and n2.
 
-## Pump
+### Pump
 
 | key | meaning |
 |---|---|
-| `kind` | `cw` (diode, power on all the time), `pulsed` (e.g. a Q-switched green laser) or `none` |
+| `kind` | `cw` (diode, power on all the time), `pulsed` (for example a Q-switched green laser) or `none`; default `pulsed` when `energyJ` is given, else `cw` |
 | `powerW` / `energyJ` | cw power or pump-pulse energy |
 | `wavelengthM`, `radiusM` | pump wavelength; 1/e² radius (Gaussian) or edge radius (top hat) |
-| `profile` | `tophat` (default), `gaussian`, `superGaussian` (+ `order`) |
-| `passes` | 2: the unabsorbed pump is sent back through the crystal |
+| `profile` | `tophat` (default), `gaussian`, `superGaussian` (+ `order`, default 4) |
+| `passes` | 1 (default): a single pass; 2: the unabsorbed pump is sent back through the crystal |
 | `delayS` | pulsed: how long before the seed the pump pulse arrives (the inversion decays meanwhile) |
+
+`pumpDurationS` is declared in the `pump` object but not read there. Without a repetition rate, a cw pump runs for
+8 upper-state lifetimes before the seed (equilibrium).
 
 Instead of a pump (or as a starting state), give the inversion directly: `"inversion": {"fraction": 0.3}`
 (N2/N_t) or `"inversion": {"smallSignalGain": 2.5}` (single pass, at the carrier or `wavelengthM`).
 
-**Rate equations.** Between pulses, each z slice (and each transverse point) follows
+### Rate equations
+
+ Between pulses, each z slice (and each transverse point) follows
 dN2/dt = (σap(N_t − N2) − σep·N2)·Φp − N2/τ, where Φp is the local pump photon flux. The flux is attenuated
 slice by slice with the *current* populations, so pump bleaching and the reabsorption of quasi-three-level media
 are included. The equation is integrated exactly (exponential update) within each time step. A pulsed pump is
 deposited in 40 sub-steps (bleaching), then decays until the seed arrives.
 
-## Amplification
+### Amplification
 
 The crystal is cut into `slices` (default 24) along z. In each slice:
 
@@ -75,7 +99,8 @@ The crystal is cut into `slices` (default 24) along z. In each slice:
    pulse, time and frequency map onto each other, so the leading colours see more gain. This is the spectral
    reshaping and red shift of CPA amplifiers. `segments` is chosen automatically from the time–bandwidth product
    (1 for a transform-limited pulse, up to 24 for a stretched one);
-4. SPM with the host n2 on the mode area (sub-stepped by B-integral);
+4. SPM with the host n2 on the mode area (sub-stepped by B-integral; `spm: false` or `physics.nonlinear: false` removes
+   it). This is the instantaneous Kerr phase only: no Raman response and no self-steepening;
 5. the other half step.
 
 In **1-D** the signal is one cell of area πw²/2, where w is the beam radius from `beam`, `modeRadiusM`, the
@@ -84,7 +109,7 @@ carried profile, or the pump radius. This is the on-axis fluence of a Gaussian b
 amplified point by point (gain guiding and gain-induced profile changes come out), and the thermal lens and any
 `indexProfile` / `absorptionProfile` / `n2Scale` act as position-dependent terms.
 
-## Steady state at the repetition rate
+### Steady state at the repetition rate
 
 When the pulse has a `repRateHz` (or the element has `repRateHz`) and there is a pump, the element iterates the
 pulse train: pump for one period → amplify → pump → … Each pulse is computed with a fast energy model (the
@@ -95,7 +120,37 @@ regenerative amplifiers run near 1/τ) is detected and reported as a warning. Wi
 is a single shot: cw pumping to equilibrium, or the pump pulse followed by `delayS` of decay. Turn the iteration
 off with `"steadyState": false`, or tune it with `{"maxPulses": 400, "tolerance": 1e-5}`.
 
-## ASE
+### The amplifier element
+
+`"type": "amplifier"` sends the pulse several times through one gain medium (1-D), with the same gain medium, pump,
+slices, time-ordered saturation, SPM, steady state and ASE as the `gain` element. Successive passes alternate in
+direction through the crystal (in a regenerative amplifier, within each round trip), so a z-dependent inversion is seen
+from both ends.
+
+```jsonc
+{ "id": "mp", "type": "amplifier", "geometry": "multipass", "passes": 6, "medium": "Yb:YAG", "lengthM": 0.004,
+  "modeRadiusM": 0.4e-3, "pump": { "kind": "cw", "powerW": 60, "wavelengthM": 940e-9, "radiusM": 0.5e-3 },
+  "betweenPasses": { "loss": 0.02, "gddFs2": 200 } }
+{ "id": "rg", "type": "amplifier", "geometry": "regenerative", "roundTrips": "auto", "medium": "Ti:sapphire", "lengthM": 0.01,
+  "modeRadiusM": 0.5e-3, "pump": { "kind": "pulsed", "energyJ": 0.01, "wavelengthM": 532e-9, "radiusM": 0.6e-3 },
+  "cavity": { "lossPerRoundTrip": 0.05, "materials": [ { "name": "FusedSilica", "lengthM": 0.01 } ] } }
+```
+
+| geometry | keys | what happens |
+|---|---|---|
+| `multipass` (default) | `passes` (4), `betweenPasses` | `passes` crystal passes; `betweenPasses` acts between two passes (not after the last) |
+| `regenerative` (or `regen`) | `roundTrips` (an integer or `"auto"`, the default), `passesPerRoundTrip` (2), `maxRoundTrips` (300), `cavity` | each round trip is `passesPerRoundTrip` crystal passes followed by `cavity`; `"auto"` runs until the intracavity energy falls below 0.97 of its maximum (or `maxRoundTrips`) and ejects the pulse at the round trip of the maximum |
+
+`betweenPasses` and `cavity` take `loss` (power fraction, 0 ≤ loss < 1; `lossPerRoundTrip` is the same key for a cavity),
+`gddFs2` / `gddS2`, `todFs3` / `todS3`, and `materials` (`[{name, lengthM}]`, passed with their dispersion and n2, so they
+add to the B-integral). The element reports `energyPerPass` (multipass) or `energyPerRoundTrip` (regenerative; index 0 is
+the input), `passes` or `roundTrips` (the number used), `gain`, `averageOutputPowerW` with a repetition rate, and the
+B-integral of all passes. The energy budget books the inversion as `gain (from inversion)` and the losses as
+`between-pass loss` or `cavity loss`. With a repetition rate the pulse train is iterated as for the `gain` element; a
+regenerative amplifier near 1/τ often shows period doubling, which is reported as a warning. The thermal lens is
+reported and, on request, put on the tracked beam ([Thermal lens](#thermal-lens)).
+
+### ASE
 
 Two models, which can be used together.
 
@@ -125,22 +180,7 @@ mode, one spatial mode of area π w²/2, at the state the next pulse sees), the 
 `asePedestalEnergyJ` and `asePedestalEnergyFraction`: the ASE energy in the signal mode per pulse period relative to the output pulse. That fraction is the strength to
 give a `pulse.pedestal` of kind `ase` in the next stage (`energyFraction`). In Python, `result.ase_pedestal("amp", duration_s=1/rep_rate)` returns that component (`{"kind": "ase", "energyFraction": f, "durationS": ...}`) ready for the next run's `pulse.pedestal`; it raises `KeyError` if no element reports one. Inside one run the ASE is not carried on: the next stage is a separate run.
 
-Checks (`AseStressTests`): uniform inversion gives n_sp h ν Δν (G − 1) per polarisation at both ends (1e-12; Desurvire, *Erbium-doped fiber amplifiers*, 1994; the factor 2 for both
-polarisations); a non-uniform inversion against a direct RK4 integration (1e-6); the source into 4π equals N2 ⟨hν⟩ / τ_rad by the Füchtbauer-Ladenburg relation (1e-9; fixes the
-etendue factor q); the slice step integrates the homogeneously saturated law ln(G/G0) + (G − 1) P_in/P_sat = 0 (1e-4); in the cw steady state absorbed pump photons = N2 V / τ + stimulated
-ASE photons (0.5 %); no solid angle gives no depletion and more angle gives more.
-
-**Limits (stated, not hidden).**
-* The depletion uses one *effective* solid angle for all rays. Real ASE in a bulk crystal comes from all directions and the exact depletion depends on the geometry: the default is a
-  physical estimate (rays that stay in the pump region over the length L, capped by the escape cone), not a ray trace. Give `solidAngleSr` when the geometry is known. For a fibre use
-  Ω = λ0² / (n² A) (one mode).
-* **Transversely resolved ("3-D") ASE is not in this package.** On a transverse grid (`transverse`) every cell is its own column with its own inversion, so the depletion is local and follows the
-  pump; but the rays do not cross from cell to cell, and there are no reflections at the faces (no parasitic lasing, no transverse ASE in a large-aperture disk). A true 3-D model needs
-  oblique rays through the whole crystal (a Monte Carlo or ray-tiling model, O(cells² × slices)) and a reference for it (see the [roadmap](../roadmap.md)).
-* The signal polarisation is not special: the same ASE depletes the inversion for both polarisations. ASE in the *pulse's* polarisation state is the input of the pedestal.
-* Cost: cells × slices × points exponentials per evaluation, once per pumping step. A 1-D element costs milliseconds; a 64 × 64 cell grid costs seconds.
-
-## Thermal lens
+### Thermal lens
 
 The heat load is `heatFraction` × absorbed pump power (default: the quantum defect 1 − λp/λs). It is
 distributed over the pump profile in each slice. The radial heat equation is solved for a rod of radius
@@ -155,7 +195,8 @@ distributed over the pump profile in each slice. The radial heat equation is sol
 * the tracked Gaussian beam ([beam tracking](components.md#gaussian-beam-tracking), `"track": true`, the default):
   see below.
 
-Check: top-hat pump f = 2πKw²/(P_h·dn/dT); Gaussian pump f = πKw²/(P_h·dn/dT) (tests).
+The near-axis focal length is f = 2πKw²/(P_h·dn/dT) for a top-hat pump and f = πKw²/(P_h·dn/dT) for a Gaussian pump
+of radius w (K the thermal conductivity, P_h the heat).
 
 **On the tracked beam.** Elements after a gain element take its thermal lens through the tracked q parameters. The
 tracking happens when the system is compiled, before the pulse train has run, so the engine evaluates the same heat
@@ -191,7 +232,7 @@ report the two focal lengths above.
 
 What the Gaussian tracker leaves out is the aberrated part of the lens (the spherical aberration of the non-parabolic heat profile)
 and gain narrowing; both need the radial spatial model (`transverse`), which has the full Δn(r, z). Against it, a 0.5 mm beam in a 60 W rod
-pumped by a 0.6 mm Gaussian: the radius 0.4 m behind the rod differs by 5 % (the lens is aberrated, M² = 1.08), the radius at the exit of the rod by 9 % (gain
+pumped by a 0.6 mm Gaussian: the radius 0.4 m behind the rod differs by 5 % (the test allows 7 %; the lens is aberrated, M² = 1.08), the radius at the exit of the rod by 9 % (gain
 narrowing, which the tracker does not model); a 0.2 mm beam, which probes the aberrated centre of the lens, by 23 %.
 
 **Stress birefringence.** `"thermalLens": {"stress": true}` adds the thermal birefringence of a uniformly heated rod of a cubic host (Koechner, *Solid-State Laser Engineering*, ch. 7;
@@ -209,9 +250,43 @@ radius in the thermal lens (D grows as w⁴ for a small beam). Limits: the radia
 form is used), and the common part of the radial and tangential lenses (`stressFocalLength*`) is reported but not applied to the field; only the polarisation-dependent phase difference is.
 The pattern is applied once at the exit, after the gain, and ignores the growth of the retardation along z inside the rod.
 
-Checks (`BeamTrackingTests`): a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); the duct matrix is
-cos(gL), sin(gL)/(n₀g), −n₀g sin(gL) (1e-12), with the thin-lens limit and the hyperbolic case; N thin slices converge to the duct as 1/N²;
-a measured effective focal length focuses the tracked beam like the exact duct (1e-9) and the thin lens at the centre of a 10 cm rod would be 1 % off; a
-measured focal length focuses a thin rod like a thin lens (waist radius 0.2 %); N round trips of a regenerative amplifier equal N x passesPerRoundTrip passes of a multipass amplifier (1e-12); for a 0.5 mm beam in a rod pumped by a 0.6 mm
-Gaussian, the tracked radius 0.4 m behind the rod is within 7 % of the radial spatial model (which also shows M² = 1.08 from the
-lens's aberration, beyond a Gaussian beam parameter).
+## Validation
+
+* `GainTests`: McCumber relation and the published Yb:YAG σe(1030 nm) ≈ 2.1e-24 m² (1e-9 ... 15 %); the
+  Frantz-Nodvik saturated energy gain (Frantz & Nodvik, J. Appl. Phys. 34, 2346 (1963); 0.03 %); a given small-signal gain
+  G = exp((σe β − σa (1 − β)) N L) reproduced (0.1 %); the cw rate-equation steady state
+  N2/N_t = σap Φ / ((σap + σep) Φ + 1/τ) (1 %); the thermal focal lengths of a top-hat and a Gaussian pump (1e-9);
+  regenerative small-signal growth (G0² (1 − L))^N (0.2 %,
+  `Regen_SmallSignal_GrowsAsGainSquaredTimesCavityTransmission`); `"auto"` round trips eject at the energy maximum and
+  keep the energy budget (`Regen_AutoRoundTrips_EjectsAtTheEnergyMaximum_AndConservesEnergy`); a red-leading chirp
+  shifts the spectrum red under time-ordered saturation; the pulse train of a multipass amplifier converges and its last
+  pulse matches the full model (`SteadyState_PulseTrain_ConvergesAndMatchesTheFullModel`); radial spatial gain with a
+  thermal lens and a per-point inversion.
+* `AseStressTests`: uniform inversion gives n_sp h ν Δν (G − 1) per polarisation at both ends (1e-12; Desurvire, *Erbium-doped fiber amplifiers*, 1994; the factor 2 for both <!-- style: ignore -->
+  polarisations); a non-uniform inversion against a direct RK4 integration (1e-6); the source into 4π equals N2 ⟨hν⟩ / τ_rad by the Füchtbauer-Ladenburg relation (1e-9; fixes the
+  etendue factor q); the slice step integrates the homogeneously saturated law ln(G/G0) + (G − 1) P_in/P_sat = 0 (1e-4); in the cw steady state absorbed pump photons = N2 V / τ + stimulated
+  ASE photons (0.5 %); no solid angle gives no depletion and more angle gives more.
+* `CavityAndCoherenceTests.ThermalStress_DepolarisedFraction_MatchesKoechner_AndTendsToAQuarter`: Koechner's
+  D = (1 − sin C / C) / 4 (2 %); `AseStressTests`: the beam average of the four-lobed pattern equals
+  D = (1 − ⟨cos δ⟩) / 4 (1e-6).
+* `BeamTrackingTests`: a small beam sees Innocenzi's f = πKw_p²/(P_h·dn/dT) (Appl. Phys. Lett. 56, 1831 (1990); 5 %); the duct matrix is
+  cos(gL), sin(gL)/(n₀g), −n₀g sin(gL) (1e-12), with the thin-lens limit and the hyperbolic case; N thin slices converge to the duct as 1/N²;
+  a measured effective focal length focuses the tracked beam like the exact duct (1e-9) and the thin lens at the centre of a 10 cm rod would be 1 % off; a
+  measured focal length focuses a thin rod like a thin lens (waist radius 0.2 %); N round trips of a regenerative amplifier equal N x passesPerRoundTrip passes of a multipass amplifier (1e-12); for a 0.5 mm beam in a rod pumped by a 0.6 mm
+  Gaussian, the tracked radius 0.4 m behind the rod is within 7 % of the radial spatial model (which also shows M² = 1.08 from the
+  lens's aberration, beyond a Gaussian beam parameter).
+
+## Limits
+
+* The `amplifier` element is 1-D; for a spatial gain use the `gain` element with `transverse`.
+* The host SPM in a gain medium is the instantaneous Kerr phase only (no Raman, no self-steepening).
+* The gain dynamics between pulses use the fast energy model; only the last pulse of a train is propagated with phases.
+* The thermal lens of an amplifier reaches the tracked beam only on request (`track`, `passGapM`), as an open path.
+* ASE: the depletion uses one *effective* solid angle for all rays. Real ASE in a bulk crystal comes from all directions and the exact depletion depends on the geometry: the default is a
+  physical estimate (rays that stay in the pump region over the length L, capped by the escape cone), not a ray trace. Give `solidAngleSr` when the geometry is known. For a fibre use
+  Ω = λ0² / (n² A) (one mode).
+* **Transversely resolved ("3-D") ASE is not in this package.** On a transverse grid (`transverse`) every cell is its own column with its own inversion, so the depletion is local and follows the
+  pump; but the rays do not cross from cell to cell, and there are no reflections at the faces (no parasitic lasing, no transverse ASE in a large-aperture disk). A true 3-D model needs
+  oblique rays through the whole crystal (a Monte Carlo or ray-tiling model, O(cells² × slices)) and a reference for it (see the [roadmap](../roadmap.md)).
+* The signal polarisation is not special: the same ASE depletes the inversion for both polarisations. ASE in the *pulse's* polarisation state is the input of the pedestal.
+* Cost: cells × slices × points exponentials per evaluation, once per pumping step. A 1-D element costs milliseconds; a 64 × 64 cell grid costs seconds.
