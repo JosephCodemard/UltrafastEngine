@@ -200,6 +200,7 @@ as a guide only, never shipped or required; closely ported logic carries attribu
 | WP | model | size | deps | scope | acceptance | status |
 |---|---|---|---|---|---|---|
 | fix-1 ⚛ | Opus | S-M | — | found by P1: a beam fed into a system on a different carrier (1035 nm into a 1030 nm system) gives different spectra in a Sequential and the equivalent Branched system, without any glass (see history, the P1 stage); bug-hunter method: minimal failing test, cause, fix | Sequential equals Branched for a fed beam on another carrier to 1e-12 | open |
+| fix-2 ⚛ | Opus | S-M | — | found by D2-Nonlinear: `Nonlinear/spatial-kerr` numbers moved since its README was written (Kerr run: wavefront R -81 → -70 mm, B 1.4 → 1.55 rad, transform limit 207 → 199 fs, far-field half-angle 3.70 → 3.80 mrad; the linear run still matches Gaussian optics); also `mpc-argon` FWHM 61.9 → 61.0 nm, `ner-measured-input` 240 → 249 fs. Find the commit that changed them (git bisect on the example), say which value is right against an analytic reference (thin Kerr lens, B for a Gaussian beam), fix a regression or document the intended change | cause named; a test pins the spatial Kerr lens and B against the analytic value | open |
 | V1 | Sonnet | S | all above | `/verify` on `dev/2026-11`; `/regen`; `CHANGELOG.md`, `PROJECT_STATUS.md` counts, `docs/testing.md`; `ROADMAP.md` = `docs/roadmap.md` moved to "done"; sections 2-7 of this file pruned; merge to `main` after green CI | `/verify` green; CI green | open |
 
 ### 0.3 Lanes and order
