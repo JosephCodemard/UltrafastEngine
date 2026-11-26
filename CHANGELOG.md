@@ -5,6 +5,9 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Docs (2026-11-26, WP D2-Wavefronts)**
+- The two Wavefronts examples (`position-dependent-index`, `spatial-gain-thermal-lens`) follow the example template with a CLI and a Python tab, `example.json` and snippet tests; the quoted numbers match a fresh run (absorbed pump at 5 W is now quoted as 4.1 W, was 4.05 W).
+
 **Docs (2026-11-25, WP C2f)**
 - Calculators, pulse calculator, plotting and MCP reference pages rewritten to the reference template with complete signatures, result keys and limits; `concepts.md` and `capabilities.md` corrected (cw carrier, GPU ionisation and precision, plugin list, `modulator`, grid margin, strict switches). All 40 rows of audit F closed; code findings listed for WP C4.
 **Docs (2026-11-25, WP C2e)**

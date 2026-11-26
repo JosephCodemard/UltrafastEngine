@@ -63,8 +63,8 @@ Position-dependent index and spatially resolved gain: lenses and aberrations mad
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [position-dependent-index](Wavefronts/position-dependent-index/README.md) | 16 | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `python grin_variants.py` |
-| [spatial-gain-thermal-lens](Wavefronts/spatial-gain-thermal-lens/README.md) | 15 | CLI | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json` |
+| [position-dependent-index](Wavefronts/position-dependent-index/README.md) | 16 | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `ultrafast run grin.ufs run.json -o results`, `python grin_variants.py` |
+| [spatial-gain-thermal-lens](Wavefronts/spatial-gain-thermal-lens/README.md) | 15 | CLI + Python | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json -o results-60W` |
 
 ## Branched
 
