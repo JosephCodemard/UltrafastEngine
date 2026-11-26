@@ -5,6 +5,9 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Agent pack (2026-11-26, WP AG1)**
+- The pack that users get (wheel, `ultrafast-agent install`, CLI-embedded) now has a user `AGENTS.md` and `llms.txt` (`python/src/ultrafast/agents/pack/`) that explain how to drive the engine and mention nothing of the repository; `install` writes them for every target (`.claude/ultrafast/AGENTS.md`, `ultrafast-guide.mdc`, first part of the codex block, `.ultrafast/llms.txt`). A test greps every pack file for repository terms; `build/sync_skills.py --check` also needs both files. The repository's own `AGENTS.md` and `llms.txt` stay for developers.
+
 **Docs (2026-11-25, WP B1)**
 - **Style guide** `docs/style.md`: voice, banned filler words, the British spelling word list and the term list (tables a linter can read), units and numbers, warning / error messages, docstrings, and templates for reference pages, examples and tutorials; `AGENTS.md` and `docs/CLAUDE.md` point to it.
 

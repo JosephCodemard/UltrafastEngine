@@ -65,6 +65,8 @@ only that block), or `.cursor/rules/ultrafast-<name>.mdc`. `ultrafast-agent list
 for the client's configuration. The command `ultrafast agent list | install | mcp-config` of the C# command line does the same with the same options and writes byte-identical files
 (the skills are embedded in the `ultrafast` program), so a user who installed only the CLI needs no Python.
 
+Besides the skills, every target writes the user guide (how to write system files and run specs, run, read results and use the MCP server): `.claude/ultrafast/AGENTS.md` (add `@.claude/ultrafast/AGENTS.md` to your `CLAUDE.md` to load it), an always-on `.cursor/rules/ultrafast-guide.mdc`, or the first part of the marked block in `AGENTS.md`; and the documentation index `.ultrafast/llms.txt`. The guide and the index describe the use of the engine only.
+
 `tests/agent-evals/` holds seven prompts with the criteria a good answer meets (explore in `quick` then confirm in `full`; refuse user code and offer a built-in
 instrument; read warnings and validity; compare then fit; plot and report; optimise with the study tool; fit, validate and predict with a twin).
 
