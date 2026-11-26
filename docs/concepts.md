@@ -43,7 +43,7 @@ an execution plan:
 2. turn each element into *linear terms* (dispersion, Fresnel/coating, clip, scatter, absorption, filter,
    polarisation optics...) and, where the medium is nonlinear and a beam size is known, a *nonlinear segment*;
 3. size the time/frequency grid from the pulse and the largest group-delay spread anywhere in the system
-   (and the expected nonlinear broadening), put the grid centre on a bin of the frequency lattice (within half a bin of the carrier) and build the input pulse at the requested carrier itself (an offset of the lattice), so the spectral centre, the Kerr phase n2 ω/c and the angles of gratings and prisms all refer to the wavelength you gave. A **cw source** is a single line, which cannot be an offset of the lattice: its grid is shifted instead, so that a bin sits exactly on the requested carrier (`snapCarrier: true` written in the spec restores the snapped lattice, which carrier-resolved models need). A pulse at the requested carrier travels with the group delay at that carrier, which differs from the lattice centre's (the frame's) by GDD x offset: a sub-sample drift of the pulse in the window.
+   (and the expected nonlinear broadening), put the grid centre on a bin of the frequency lattice (within half a bin of the carrier) and build the input pulse at the requested carrier itself (an offset of the lattice), so the spectral centre, the Kerr phase n2 ω/c and the angles of gratings and prisms all refer to the wavelength you gave. A **cw source** is a single line, which cannot be an offset of the lattice: its grid is shifted instead, so that a bin sits exactly on the requested carrier (`snapCarrier: true` written in the spec restores the snapped lattice, which carrier-resolved models need). A pulse at the requested carrier travels with the group delay at that carrier, which differs from the lattice centre's (the frame's) by GDD x offset: a sub-sample drift of the pulse in the window. With `grid.tail` the default of `snapCarrier` is `false` (the carrier stays where you put it, because a small main window has a coarse frequency step) unless you write it.
 
 It then **executes**: linear terms are applied exactly (one complex multiplication per frequency, any length),
 each with its own energy accounting; nonlinear segments are integrated in the interaction picture with the
@@ -64,8 +64,8 @@ Branched systems. The sum of the loss budget equals the input minus output energ
 
 `grid.auto` (default) sizes the window to hold the pulse after every element (a stretcher followed by a
 compressor needs the stretched length even though the total spread is ~0) and the time step to resolve the
-spectrum with a margin (1.3 for linear systems, `max(3, 1 + B_estimate)` with nonlinear elements, and at
-least +-10 % of the carrier so user responses have room), with at least 12 samples across the transform-limited
+spectrum with a margin (1.3 for linear systems, `max(3, 1 + B_estimate)` with nonlinear elements). A nonlinear run also gets a half-span of at
+least 10 % of the carrier (`grid.minSpanFraction`) so that user responses have room; a linear system has no such minimum, with at least 12 samples across the transform-limited
 FWHM. Explicit `n`/`windowS` act as a resolution floor. `edgeEnergyFraction` in the results warns about
 wrap-around; `outsideDataFraction` warns when part of the spectrum relies on extrapolated sampled data.
 
@@ -145,3 +145,7 @@ The `physics` object of the run spec switches model ingredients without editing 
 | `spatioTemporal` | couplings: `auto`, `on`, `track`, `off`, `profile` (auto) |
 | `transverse` | default spatial model for every bulk, gap and crystal without one |
 | `ionization` | photo-ionisation and plasma in every nonlinear bulk element (false) |
+| `strictValidity` | turn the run's validity findings into an error after the run (false) |
+| `strictMaterials`, `strictMaterialsAllow` | refuse a run that uses approximate or unverified catalogue values; the list of quantities that are accepted anyway (false) |
+
+The table lists the main switches; the full list with defaults is in the [option reference](reference/options.md).
