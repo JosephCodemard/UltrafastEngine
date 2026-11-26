@@ -5,6 +5,8 @@
 The first version published on PyPI is the **alpha** `1.0.0a1` (`pip install --pre "ultrafast-engine[hosted]"`; the import name is `ultrafast`); later alphas fix what use in the lab shows, and `1.0.0` follows when they have settled. The files carry `1.0.0`; the alpha is the tag `v1.0.0a1` (decision E17). The version numbers 2.0.0-alpha.1 to 2.2.0 below were
 internal development stages and were never released; they are kept as the development history. Plugins and the engine carry the same version.
 
+**Docs (2026-11-26, WP C2b)**
+- **Reference pages `nonlinear`, `ionization`, `delayed-light`, `gases`, `fibers`, `gain`, `oscillators`** rewritten to the reference template (Keys, Model, Validation, Limits) and every row of `docs/design/notes/reference-audit-b.md` closed: one B-integral definition, `taubS`, the `orientational` Raman kind, `absorption: false` also removes the ionisation loss, echo amplitude T r_b (intensity T² R_b), ripple and scatter referenced to the carrier, the new `gain.md#the-amplifier-element` section, `smallSignalGain` is the linear power gain, test tolerances quoted as asserted; seven code findings (C4-b1 to C4-b7) listed for WP C4.
 **Docs (2026-11-25, WP C2f)**
 - Calculators, pulse calculator, plotting and MCP reference pages rewritten to the reference template with complete signatures, result keys and limits; `concepts.md` and `capabilities.md` corrected (cw carrier, GPU ionisation and precision, plugin list, `modulator`, grid margin, strict switches). All 40 rows of audit F closed; code findings listed for WP C4.
 **Docs (2026-11-25, WP C2e)**

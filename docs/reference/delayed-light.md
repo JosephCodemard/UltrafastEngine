@@ -17,6 +17,19 @@ elements that make it.
 | [Gas lines](../plugins/hitran.md) | HITRAN absorption and dispersion of air | hitran plugin, `environment.air` |
 | [Detector saturation, stitching, response, presets](instruments.md#detector-presets) | a generic, user-configured read-out | instrument and `detectors` keys |
 
+## Keys
+
+The keys that matter; every key with its default is in the [option reference](options.md).
+
+| key | where | meaning |
+|---|---|---|
+| `grid.tail` | run spec [`grid`](options.md#grid) | `true`, or `{windowS, warnEnergyFraction (0.01), exactSteps (false), crossPhase (true)}`: the delayed-light ledger |
+| `grid.satelliteLevel`, `grid.extendForSatellites`, `grid.strict` | run spec [`grid`](options.md#grid) | window planning for satellites (below) |
+| `ghosts`, `coating` | `plate` | plate ghosts with wavelength-dependent coatings ([Components](components.md#ghost-reflections)) |
+| `substrate` | `mirror`; top-level `substrates` of the system file | mirror substrate echoes |
+| `ripple` | `mirror` | `{phaseRmsRad, amplitudeRms, maxDelayS (5e-12), seed, components (64)}`: random coating ripple |
+| `delayedScatter` | `mirror`, `interface`, `plate` | scatter returned as delayed light, or derived from the roughness (`model: "surface"`) |
+
 ## The delayed-light ledger
 
 ```jsonc
@@ -88,7 +101,7 @@ the composite field is in C#: `RunResult.TailLedger.Composite(result.Output, res
 
 **When to use it.** The grid planner then leaves ghosts and echoes out of the main window (they go to the tail); the
 pedestals of the input pulse stay on the main grid. Use it when satellites or tails are much longer than the pulse
-and the system has nonlinear elements. For purely linear systems a single large grid is just as exact.
+and the system has nonlinear elements. For purely linear systems a single large grid is equally exact.
 
 !!! note "The carrier is not snapped with a tail"
     `grid.snapCarrier` normally moves the carrier by up to half a frequency step. A small main window has a large step (8.5 ps
@@ -158,21 +171,21 @@ psi(w) = 2 n(w) w d cos(theta_t) / c,    a = exp(-alpha d / cos(theta_t))
 lossless coating (`t' = t`, `r' = -r* t / t*`). `r_b`: the back face, substrate to air. `o_k`: beam overlap of the k-th echo
 (wedge, lateral shift). **The delay is not put in by hand.** It is the group delay of `psi`, `2 n_g d cos(theta_t) / c`:
 
-| substrate (fused silica, 1030 nm, normal incidence) | echo delay (engine, `n_g = 1.4635`) |
+| substrate (fused silica, 1030 nm, normal incidence) | echo delay, `2 n_g d / c` with the Malitson `n_g = 1.4627` |
 |---|---|
-| 6.35 mm | 61.98 ps |
-| 9.5 mm | 92.7 ps |
-| 12.7 mm | 123.96 ps |
+| 6.35 mm | 61.96 ps |
+| 9.5 mm | 92.70 ps |
+| 12.7 mm | 123.93 ps |
 
 (The phase index 1.450 would give 61.4 / 91.9 / 122.8 ps: about 1 % too early for the envelope.) The echo intensity relative
 to the mirror's reflection is `|t^2 r_b|^2 / |r|^2`: for `T = 1e-4` and a bare back face (`R_b` = 3.4 %) that is
 `1e-8 x 0.034 = 3.4e-10`; an AR-coated back face (`backReflectance: 1e-3`) lowers it by a further factor 34.
 
-**Wavelength dependence.** The leakage is `T(lambda)` of whatever coating you give; the echo is proportional to
-`T(lambda)^2 r_b(lambda)`. An HR band centred away from the laser makes the echo spectrum follow the transmission edge --
+**Wavelength dependence.** The leakage is `T(lambda)` of whatever coating you give. The echo **amplitude** is
+proportional to `T(lambda) r_b(lambda)` (`|t t'| = T`), its **intensity** to `T(lambda)^2 R_b(lambda)`. An HR band centred away from the laser makes the echo spectrum follow the transmission edge --
 whether that favours the blue or the red wing depends on the design, so use a `stack` or `table` coating of your mirror
-rather than a flat `ideal` one. (The test `MirrorEcho_LeakageFollowsTheCoatingTransmissionAndTheBackFace` shows an echo ten
-times stronger at the side where the table coating leaks ten times more.)
+rather than a flat `ideal` one. (The test `MirrorEcho_LeakageFollowsTheCoatingTransmissionAndTheBackFace` checks `|E_1| = T r_b` at two wavelengths to
+1 %: where the table coating leaks ten times more, the echo amplitude is ten times larger.)
 
 **Defining substrates.** Three ways, all equivalent:
 
@@ -196,13 +209,15 @@ mirror's `aoiDeg` (default 0; a Herriott cell: a few mrad). Python: `build.subst
   "ripple": { "phaseRmsRad": 0.03, "amplitudeRms": 0.01, "maxDelayS": 5e-12, "seed": 7 } }
 ```
 
-The reflection is multiplied by `A(w) exp(i phi(w))`, `phi = phaseRmsRad N1(w)`, `A = min(1, 1 + amplitudeRms N2(w))`
+The reflection is multiplied by `A(w) exp(i phi(w))`, `phi = phaseRmsRad N1(w)`, `A = max(0, min(1, 1 + amplitudeRms N2(w)))`
 (a ripple only takes light away). `N1`, `N2` are independent random functions with unit variance,
-`N(w) = sqrt(2/K) sum_k cos(w tau_k + phi_k)`, whose delays `tau_k` are uniform in `(0, maxDelayS)`. **To first order the
+`N(w) = sqrt(2/K) sum_k cos((w - w0) tau_k + phi_k)` with `K = components` (default 64, at least 8) and `w0` the
+run's carrier, whose delays `tau_k` are uniform in `(0, maxDelayS)`. **To first order the
 pedestal is a fraction `phaseRms^2` of the energy, lying within +-`maxDelayS` of the pulse** (second order: within
 +-2 `maxDelayS`, a fraction `phaseRms^4 / 4`), which is what models the pedestal of a mirror within +-5 ps. The ripple is a
-function of the absolute angular frequency and the seed, so the main grid and the tail grid see the same one. Each mirror
-should have its own `seed` (the default comes from the element id). **Measured** ripple: give the mirror a `table` coating
+function of the frequency offset from the carrier and the seed, so the main grid and the tail grid see the same one; two
+runs with different carriers see different realisations. Each mirror has its own `seed` (the default comes from the
+element id). **Measured** ripple: give the mirror a `table` coating
 with `phaseRs` or `groupDelayRsS` (see [Surfaces](coatings.md)). The sinusoidal GDD ripple of chirped mirrors
 (`rippleGddFs2`) is a separate, older model.
 
@@ -212,18 +227,19 @@ Scatter as delayed light, not only as loss. A fraction `f` of the power is retur
 later:
 
 ```text
-H(w) = sqrt(1 - f) + sqrt(f) s(w) sum_k c_k exp(i w tau_k),   s(w) = (w / w0)^(n/2),   c_k ~ complex Gaussian, E|c_k|^2 = p_k
+H(w) = sqrt(1 - f) + sqrt(f) s(w) sum_k c_k exp(i (w - w0) tau_k),   s(w) = (w / w0)^(n/2),   c_k ~ complex Gaussian, E|c_k|^2 = p_k
 ```
 
-(intensity ~ `lambda^-n`; the random phases of `c_k` come from the seed). On average power is conserved: `1 - f` stays in the
-main pulse, `f` comes back. Keys of `delayedScatter` (on `mirror`, `interface`, `plate`):
+(`w0` the run's carrier; intensity ~ `lambda^-n`; the random phases of `c_k` come from the seed). On average `1 - f` of the
+power stays in the main pulse and `f (w / w0)^n` comes back, so the power is conserved at the carrier, and exactly for the
+default flat spectrum (`n = 0`). Keys of `delayedScatter` (on `mirror`, `interface`, `plate`):
 
 | key | meaning |
 |---|---|
 | `fraction` | fraction of the power returned as delayed light, per surface / pass |
 | `delay` | `{kind: "uniform", minS, maxS}` (default for a plate: 0 .. `2 n_g d cos(theta)/c`, bulk back-scatter; for a mirror with a substrate: 0 .. the echo delay), `{kind: "exponential", tauS, maxS}` or `{kind: "table", delaysS, weights}` |
 | `spectralExponent` | `n` (4: Rayleigh-like; default 0 = flat) |
-| `seed`, `components` | reproducibility and number of delay components (default 256) |
+| `seed`, `components` | reproducibility and number of delay components (default 256, at least 16) |
 
 This is a generic, user-supplied model: no BRDF data are built in.
 
@@ -253,8 +269,10 @@ numerical integral of `S(f)`, the lost power `TIS (1 - g)`, lambda^-2, the retur
   extremum; Kramers-Kronig of a Voigt line by a numerical Hilbert transform; Beer-Lambert absorption of lines on the grid.
 * The tests are listed in [Testing](../testing.md).
 
-## Not included (yet)
+## Limits
 
+* The ledger neglects the tail's own nonlinear propagation, cross-phase beyond first order, and main-tail interference in
+  nonlinear instruments: see *What is neglected* under [the ledger](#the-delayed-light-ledger).
 * Instrument-specific numbers for detectors (the saturation, stitching, response and preset keys are generic: [Detector presets](instruments.md#detector-presets)).
 * The 2-D plate is covered by [Small-scale self-focusing](transverse.md#small-scale-self-focusing); a GPU run of a 256 x 256 grid at 2^13 time points has not
   been done here (no double-precision GPU).
