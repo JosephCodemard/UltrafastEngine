@@ -1,5 +1,9 @@
 # Python
 
+The `ultrafast` package drives the engine from Python: it builds system files and run specs as typed dicts, runs them, reads the results as NumPy arrays,
+registers Python callbacks for models and elements, and plots. This page lists the API, the package structure and the plotting commands; the generated
+[Python API](python-api.md) has every function with its signature.
+
 ```python
 import ultrafast as uf
 from ultrafast import build as b
@@ -8,15 +12,19 @@ from ultrafast import build as b
 ## Installing
 
 ```bash
-pip install -e "python[hosted,plot,test]"     # from the repository
+pip install ultrafast-engine                  # from PyPI (numpy, clr_loader and matplotlib come with it)
+pip install -e "python[test]"                 # from the repository (the extras hosted and plot are in the default install; they stay for compatibility)
 python python/tools/build_engine.py           # hosted engine -> python/src/ultrafast/bin/hosted (needs .NET 10)
 python python/tools/build_engine.py --aot     # native library -> python/src/ultrafast/bin/native (no .NET at run time)
 ```
 
 The package looks for the engine in `$ULTRAFAST_LIBRARY`, then `ultrafast/bin/native`, `ultrafast/bin/hosted`,
-then a repository build. `uf._native.library().mode` says which back-end is in use.
+then a repository build. `uf._native.library().mode` says which back-end is in use. Optional extras: `paper` (the SciencePlots style), `animate` (GIFs with Pillow),
+`all`; see `python/pyproject.toml`.
 
-## API
+## Keys
+
+The API, by task. Every function takes SI units, with the unit in the name (`duration_s`, `length_m`).
 
 | | |
 |---|---|
@@ -29,12 +37,12 @@ then a repository build. `uf._native.library().mode` says which back-end is in u
 | `run.array_function(name, fn)` | `fn(x) -> y` (e.g. a Raman h(t)) |
 | `run.element(name, fn)` | user element: `fn(ctx: ElementContext)` returns the new spectrum `ax` or `(ax, ay)` ([Active elements](active-elements.md#user-elements)) |
 | `run.execute(progress=None)` | `progress(element_id, i, n, fraction)`; return True to cancel |
-| `uf.run(system, spec, callbacks={name: fn}, elements={name: fn})` | one call; with `"fit"` in the spec it runs the calibration and returns the best run (`result.summary["fit"]`, [Fitting plugin](../plugins/fitting.md#calibration-fit)) |
-| `uf.crystal.phase_match(crystal, process, type=None, fundamental=, pump=, signal=, idler=, noncollinear=, qpm=, length=, temperature_c=, ...)` | phase-matching calculator ([Crystals](crystals.md#phase-matching-calculator)) |
+| `uf.run(system, spec, callbacks={name: fn}, elements={name: fn}, fields={name: fn}, progress=fn, memory="warn"\|"raise"\|"off")` | one call (`memory` is the pre-flight memory check of a `"fit"` spec); with `"fit"` in the spec it runs the calibration and returns the best run (`result.summary["fit"]`, [Fitting plugin](../plugins/fitting.md#calibration-fit)) |
+| `uf.crystal.phase_match(crystal, process, type=None, *, fundamental_m=, pump_m=, signal_m=, idler_m=, a_m=, b_m=, plane=, theta_deg=, phi_deg=, noncollinear=, qpm=, length_m=, temperature_c=, pump_intensity_w_per_m2=, polarizations=)` | phase-matching calculator ([Crystals](crystals.md#phase-matching-calculator)) |
 | `uf.crystal.crystals()` | built-in crystal names |
-| `uf.calc.tbp(shape)`, `uf.calc.limit(shape, duration= / bandwidth_hz= / bandwidth_m=, center=)`, `uf.calc.analyze(duration=, bandwidth_hz= / bandwidth_m=, center=)`, `uf.calc.measure(time_s, intensity, spectrum, wavelength_m=)` | pulse calculator: time-bandwidth product, transform limit, stretch factor, GDD ([Pulse calculator](pulse-calculator.md)) |
+| `uf.calc.tbp(shape)`, `uf.calc.limit(shape, *, duration_s= / bandwidth_hz= / bandwidth_m=, center_m=)`, `uf.calc.analyze(*, duration_s=, bandwidth_hz= / bandwidth_m=, center_m=, shape=)`, `uf.calc.measure(time_s, intensity, spectrum, *, wavelength_m= / frequency_hz=, shape=)` | pulse calculator: time-bandwidth product, transform limit, stretch factor, GDD ([Pulse calculator](pulse-calculator.md)) |
 | `b.system(name, elements)` | a list (or `b.Sequential([...])`) runs in order; `b.Branched([...])` says where each element's light goes ([Branched systems](branches.md)) |
-| `b.link(element, next, inputs=, loop=)` | an element of a Branched system: `next` is `"bs:1"`, `{"id": "bs", "port": 1}`, `"end"`, `"virtual"`, or a dict of those by output port |
+| `b.same_as(id, source, label=, enabled=, ...)` makes an [identical element](system-file.md#identical-elements); `b.link(element, next, inputs=, loop=)` | an element of a Branched system: `next` is `"bs:1"`, `{"id": "bs", "port": 1}`, `"end"`, `"virtual"`, or a dict of those by output port |
 | `b.virtual_input(pulse=, delay_s=, phase_rad=, coherent_with=)`, `b.loop(kind, max_round_trips=, tolerance=)` | a beam on an input port with no beamline; the settings of a loop |
 | `b.beam_splitter`, `b.polarizing_splitter`, `b.leak_mirror`, `b.dichroic`, `b.delay` | the multi-port elements; the same builders work in a Sequential system with `output=` |
 | `b.aux_beam(role, from_port=True, radius_m=)` | a crystal input fed by a link in a Branched system |
@@ -43,15 +51,15 @@ then a repository build. `uf._native.library().mode` says which back-end is in u
 | `result.instrument("spectrometer")` | values + arrays of one instrument |
 | `result.provenance`, `result.write(dir)` | |
 | `uf.load("results")` | open a CLI results folder (same interface as a Result; no engine needed) |
-| `uf.plot(result, "overview" | "temporal" | "spectrum" | "phase" | "losses" | "elements")` | quick matplotlib plots |
+| `uf.plot(result, "overview" | "temporal" | "spectrum" | "phase" | "losses" | "elements" | "measurements" | "numbers")` | quick matplotlib plots |
 | `ultrafast.plotting.report(result_or_folder, out_dir)` | all figures as PNG/SVG + `report.pdf` (see [Plotting](#plotting-results)) |
-| `uf.study(system, spec, parameters=[...], outputs=[...], mode="scan" \| "optimize" \| "sensitivity", **options)` | parameter studies ([Parameter studies](studies.md)) |
-| `uf.retrieve("pcgpa" \| "epie" \| "dscan", trace, instrument=, fundamental=, material=, output=)` | pulse retrieval; returns a ready-to-use `"pulse"` ([Pulse retrieval](retrieval.md)) |
-| `uf.materials.available()`, `.show(name)`, `.import_page(path, name=)`, `.refractiveindex(page, pressure_bar=)` | material library and refractiveindex.info pages ([Materials](materials.md#refractiveindexinfo-pages)) |
+| `uf.study(system, spec, parameters=[...], outputs=[...], mode="scan" \| "optimize" \| "sensitivity" \| "coherence", **options)` | parameter studies ([Parameter studies](studies.md)); related: `uf.coherence(...)`, `uf.scan(...)` ([below](#scans)), `uf.estimate_memory(...)` and the `MemoryWarning` it raises, `uf.retrieve_multi(...)` |
+| `uf.retrieve("pcgpa" \| "epie" \| "dscan" \| "gerchbergSaxton", trace, instrument=, fundamental=, material=, output=)` | pulse retrieval; returns a ready-to-use `"pulse"` ([Pulse retrieval](retrieval.md)) |
+| `uf.materials.available()`, `.show(name)`, `.import_page(path, name=)`, `.refractiveindex(page, pressure_bar=, temperature_k=)` | material library and refractiveindex.info pages ([Materials](materials.md#refractiveindexinfo-pages)) |
 | `uf.devices(selftest=False, benchmark=False, backend=None, device=None)` | compute back-ends and devices (CPU, CUDA, OpenCL), optional self-test against the CPU ([GPU](../plugins/gpu.md)) |
 | `uf.benchmark(backend=None, device=None)` | seconds per run on the CPU and each device, with the speed-up ([Speed](speed.md)) |
 | `uf.set_default_backend(backend=None, fft=None)` | process defaults: back-end of runs without `compute.backend` (`"auto"` uses a GPU when it helps), CPU FFT provider |
-| `b.compute(backend, threads=, fft=, device=, gpu_min_points=)` | the run spec's `"compute"` section: `b.run_spec(..., compute=b.compute("auto"))` |
+| `b.compute(backend, threads=, fft=, device=, gpu_min_points=)` | the run spec's `"compute"` section: `b.run_spec(..., compute=b.compute("auto"))`; `precision`, `memoryLimitBytes` and `deviceSlots` are not builder arguments: write them in a dict |
 | `uf.command({"command": ...})` | any engine command as JSON (the same as the C function `uf_command`) |
 | `ultrafast.types` | TypedDicts of every element and section (`PlateElement`, `RunSpec`, ...): editor completion and type checking |
 | `uf.version()`, `uf.capabilities()` | |
@@ -73,8 +81,8 @@ functions: `uf.run(..., fields={"name": lambda x, y, z: ...})` or `Run.field("na
 
 ## Package structure
 
-Find things by what they are. The lowercase module names follow PEP 8; classes and factories are CapWords. Everything that was public in 2.2.0
-still imports (a test checks a list of the old names); only `ultrafast.diagram` moved, and its old name warns.
+Find things by what they are. The lowercase module names follow PEP 8; classes and factories are CapWords. Every name that was public before the module reorganisation
+still imports (a test checks a list of the old names); only `ultrafast.diagram` moved, and its old name warns. `ultrafast.System` and `ultrafast.system.System` are the same class.
 
 | module | contents |
 |---|---|
@@ -118,7 +126,7 @@ spec = b.run_spec(b.pulse(1.03e-6, 220e-15, energy=200e-6),
 ```
 
 Helpers: `system, bulk, gap, interface, mirror, dispersion, grating, grating_pair, mask, chirped_mirror, aperture, waveplate,
-polarizer, filter_element, probe, gaussian_beam, constant_beam, sampled_beam, material, sellmeier, gas,
+polarizer, filter_element, probe, delay, beam_splitter, polarizing_splitter, leak_mirror, dichroic, gaussian_beam, constant_beam, sampled_beam, material, sellmeier, gas,
 coating_gdd, coating_quarter_wave, pulse, instrument, override, run_spec, save`, and for active elements:
 `crystal` (χ(2) element: `process`, `type`, `cut`, `noncollinear`, `qpm`, `aux`, `output`, `main_role`, `record`,
 `overlap`, `chi3`, `deff_pm_per_v`, `temperature_c`, `transverse`, ...), `aux_beam(role, pulse | from_results=,
@@ -174,7 +182,7 @@ Examples: `docs/examples/GettingStarted/quickstart/quickstart.py`, `docs/example
 
 ## Scans
 
-`uf.scan(system, run_spec, axes, outputs, fidelity=None, cache=None, parallel=1)` runs every combination of the axis values as one
+`uf.scan(system, run_spec, axes, outputs, fidelity=None, cache=None, parallel=1, memory="warn", **options)` runs every combination of the axis values as one
 [study](studies.md) (frozen grid, prefix cache, no unused instruments) and gives **lazy, shaped arrays**: nothing runs until you read one.
 
 ```python
@@ -219,12 +227,13 @@ ultrafast-plot runA/ runB/ --labels "no CM" "with CM" --out compare/   # each ru
 | `overview` | the system schematic, input/output pulse (+ ideally compressed pulse), spectrum, spectral phase with offset and group delay removed (where the spectrum is above 1 %), energy / FWHM / cumulative B through the system, loss budget by mechanism, key numbers and warnings |
 | `instruments` | one panel per instrument, in system order, titled with its number and location: cameras and wavefront maps (images), Wigner / spectrogram, field probe, space-time maps, spectrometer (dB), autocorrelator, compressor / scope, d-scan trace and FWHM vs GDD, contrast, polarimeter (Stokes vs wavelength); unknown or user instruments are drawn generically (2-D arrays as images against their matching 1-D axes) |
 | `measurements` | runs with measured data (core): per instrument the measured points, the simulated reading (with its ±1σ band after a fit) and the residual; measured / simulated / difference images for FROG, d-scan and camera traces; scalar readings in units of σ |
-| `fit` | calibration fits (fitting plugin): fitted parameters ± σ (and start values), χ² per iteration, the parameter correlation matrix, χ² per instrument before and after |
+| `fit` | calibration fits (fitting plugin; added by that plugin): fitted parameters ± σ (and start values), χ² per iteration, the parameter correlation matrix, χ² per instrument before and after |
 | `probes` | spectrum (dB) and power heat maps, one row per probe, input at the bottom |
 | `elements` | small multiples per element: energy, FWHM, peak power, cumulative B, system GDD, peak intensity, LIDT margin, pulse GDD |
 | `oscillator` | oscillators: build-up over the round trips, evolution of the pulse and the spectrum (heat maps), the final pulse with soliton / QML diagnostics |
 | `gain` | gain and amplifier elements: small-signal gain spectrum with the output spectrum, inversion along z (or across the beam), build-up per pass / round trip, pulse-train convergence |
-| `compare` | output pulse and spectrum of several runs overlaid (with more than one folder) |
+| `byproducts` | by-products of active elements (aux beams and recorded fields leaving crystals) |
+| `compare` | output pulse and spectrum of several runs overlaid (with more than one folder; a mode of the command, not a figure of one run) |
 
 From Python, every panel is also a function taking a live `Result` or a folder:
 
@@ -236,7 +245,7 @@ up.spectrum(res, ax=my_axes, db=True)          # single panels: temporal, spectr
 up.report(res, "results/plots", formats=("png", "svg"))
 up.compare([up.load("runA"), up.load("runB")], labels=["A", "B"])
 up.measurements(res)                           # measured vs simulated (runs with "measured" data)
-up.fit(res)                                    # calibration report (runs with "fit")
+up.fit(res)                                    # calibration report (runs with "fit"; registered by the fitting plugin: without it `up.fit` does not exist)
 up.set_theme(dark=True)
 ```
 
@@ -258,3 +267,14 @@ animate.check_budget("docs/examples")                                 # PNG over
 
 The Zernike convention is the engine's (Noll index from 1, rms-normalised, `m < 0` the sine term), so coefficients agree with the
 `wavefrontSensor` instrument (a test compares them to 1e-6). The decomposition accepts a `wavefrontSensor` result, a map with its axes, or a complex field.
+
+## Validation
+
+`python/tests` runs the API against the engine (`python3 python/tools/build_engine.py` first); a test checks that the old public names still import. The
+calculator signatures on this page are those of `calc/pulse.py` and `calc/crystal.py`. pyNLO cross-checks of propagation run with `PYNLO_SRC` set (see `python/CLAUDE.md`).
+
+## Limits
+
+* Python callbacks run on the CPU: an element with a callback response does not use a GPU back-end, even when one is selected.
+* `import ultrafast` does not import matplotlib or Pillow; the plotting functions import them when called.
+* Builders return plain dicts; the engine checks them when you run or validate them, not when you build them. Use `ultrafast.types` annotations and a type checker for early checks.

@@ -237,7 +237,37 @@ namespace UltrafastEngine.Engine
             VirtualInput onB = null;
             if (!c.Out.Graph.IsBranched && ce.VirtualInputs.TryGetValue(b, out onB) && onB.CoherentWith == null)
                 throw new JsonException("in a Sequential system the virtual beam on port " + b + " must give coherentWith: \"input\" (only one pulse continues, so an incoherent sum cannot be held)");
-            ce.Active = new BeamSplitterElement(e.Type, reflect, phaseR, phaseT, e.Json.GetInt("side", 1) == 2 ? -1 : 1, a, b, cPort, dPort, port, c.Out.Graph.IsBranched ? null : onB);
+            var bs = new BeamSplitterElement(e.Type, reflect, phaseR, phaseT, e.Json.GetInt("side", 1) == 2 ? -1 : 1, a, b, cPort, dPort, port, c.Out.Graph.IsBranched ? null : onB);
+            if (type == "beamsplitter" || type == "polarizingsplitter") AddSplitterGlass(c, src, ce, bs);
+            ce.Active = bs;
+        }
+
+        /// <summary>The glass of a plate or cube splitter: <c>material</c> over <c>transmittedThicknessM</c> on the transmitted paths
+        /// (a -> c, b -> d) and <c>reflectedThicknessM</c> on the reflected ones (a -> d, b -> c). Each path gets the terms a plate's
+        /// bulk would (dispersion, and the material's absorption), applied after the split; no glass key: nothing is added.</summary>
+        private static void AddSplitterGlass(Ctx c, SystemElement e, CompiledElement ce, BeamSplitterElement bs)
+        {
+            double lt = Num(c, e, "transmittedThicknessM", 0), lr = Num(c, e, "reflectedThicknessM", 0);
+            if (double.IsNaN(lt) || lt < 0) throw new JsonException("transmittedThicknessM must be a non-negative glass path length (m)");
+            if (double.IsNaN(lr) || lr < 0) throw new JsonException("reflectedThicknessM must be a non-negative glass path length (m)");
+            string name = Str(c, e, "material", null);
+            if (string.IsNullOrEmpty(name))
+            {
+                if (lt > 0 || lr > 0) throw new JsonException("transmittedThicknessM / reflectedThicknessM need a \"material\" (the splitter's glass)");
+                return;
+            }
+            if (lt == 0 && lr == 0) { ce.Notes.Add(e.Type + ": a material without transmittedThicknessM or reflectedThicknessM adds no dispersion; give the glass path length of each port"); return; }
+            var m = GetMaterial(c, name);
+            void Fill(List<LinearTerm> terms, double l)
+            {
+                if (l <= 0) return;
+                terms.Add(new BulkTerm(m, l));
+                if (m.Attenuation != null) terms.Add(new AttenuationTerm(m.Attenuation, l, m.Name));
+            }
+            Fill(bs.TransmittedGlass, lt); Fill(bs.ReflectedGlass, lr);
+            c.Out.Provenance.Record("element:" + e.Id, "glass", string.Format(CultureInfo.InvariantCulture, "material {0} ({1}): {2:G6} m transmitted, {3:G6} m reflected", m.Name, m.Index.Description, lt, lr),
+                e.Json.Has("material") ? ModelSource.SystemData : ModelSource.SystemOverride, "system file");
+            if (m.Used.TryGetValue("index", out var indexQ)) c.Out.Provenance.UseCatalogue("element:" + e.Id, "index", indexQ, m.Name, c.Out.Notes);
         }
 
         /// <summary>Read an element's "inputs": virtual beams by port.</summary>

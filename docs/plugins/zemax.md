@@ -3,7 +3,7 @@
 !!! warning "Status: experimental, not verified against OpticStudio"
     This plugin comes from the time when the engine was an OpticStudio tool. It has had little attention since, and **it has never been run against a
     real OpticStudio since the engine's rewrite**: what is tested is the cross-platform part (sampler, system builder, record / replay) against a
-    *fake* OpticStudio that returns made-up data. The ZOS-API calls in `ZosOpticStudio.cs` are written from the API documentation and are untested.
+    *fake* OpticStudio that returns made-up data. The ZOS-API calls in `ZosConnection.cs`, `ZosSystemAccess.cs` and `ZosAnalyses.cs` are written from the API documentation and are untested.
     Treat every exported number as unchecked until you have compared it with OpticStudio itself (the checklist for the first run is `plugins/zemax/HARDWARE-CHECKLIST.md` in the repository).
     Nothing else in the engine needs it; it is not part of the Python wheel or of the `all` extra.
 
@@ -27,10 +27,48 @@ UltrafastEngine.Zemax run <export.json> <run.json> [-o results]       export, th
 UltrafastEngine.Zemax info                                             surfaces, materials, coatings, wavelengths
 UltrafastEngine.Zemax thermal-lens <results> --element ID --surface N  write a gain element's thermal lens as a Gradient 1 surface
 UltrafastEngine.Zemax selftest                                         fake systems, no OpticStudio needed
-connection: (default) Interactive Extension -- in OpticStudio: Programming > Interactive Extension, then run
-            --standalone --file lens.zos     private OpticStudio instance
+connection: --interactive (default)          Interactive Extension -- in OpticStudio: Programming > Interactive Extension, then run
+            --instance N                     Interactive Extension instance (default 0)
+            --standalone --file lens.zos     private OpticStudio instance, closed on exit
+            --extension                      started by OpticStudio as a User Extension
             --opticstudio <install folder>   if the installation is not found
+            --skip-version-check             try an OpticStudio older than 20.1
 ```
+
+## Connecting to OpticStudio
+
+The connection is the plugin's own C# code (decision E19); ZOSPy (MIT) was read as a guide and is neither shipped
+nor needed. It runs these steps, in this order, and stops at the first failure with a message that says what to do
+(exit code 4; 1 for contradictory flags):
+
+1. **Find OpticStudio.** `ZOSAPI_NetHelper.ZOSAPI_Initializer.Initialize()` reads the installation folder from the
+   registry (`Initialize(dir)` with `--opticstudio`) and hooks the loading of `ZOSAPI.dll` and `ZOSAPI_Interfaces.dll`
+   from that folder. It runs at program start, before any code that names a ZOS-API type is compiled.
+2. **Connect** in one of three modes:
+
+    | mode | flag | ZOS-API call | OpticStudio on exit |
+    |---|---|---|---|
+    | Interactive Extension | `--interactive` (default), `--instance N` | `ConnectAsExtension(N)` | left open |
+    | User Extension | `--extension` | `ConnectToApplication()` | left open |
+    | standalone | `--standalone` (or `--file` alone) | `CreateNewApplication()` | closed |
+
+    `--file` is only allowed in standalone mode: loading a file into your own OpticStudio would replace the system you
+    have open.
+3. **Licence.** `IsValidLicenseForAPI` must be true; otherwise the message names `LicenseStatus` (the Standard edition
+   has no ZOS-API).
+4. **Version.** `ZOSMajorVersion.ZOSMinorVersion.ZOSSPVersion` must be at least 20.1 (`--skip-version-check` continues
+   with a warning).
+5. **Primary system**, then the file (standalone).
+
+**Shutdown.** Only a standalone instance is closed (`CloseApplication`), on normal exit, on an error and on Ctrl+C,
+so no OpticStudio process is left behind. Your own OpticStudio (interactive or user extension) is never closed by
+the program. The sequence, the mode selection and the messages are in
+`UltrafastEngine.Zemax.Sampling/ZosConnectionCore.cs` and tested on any OS with a fake ZOS-API
+(`ZemaxConnectionTests`); the ZOS-API calls behind it are in `UltrafastEngine.Zemax/ZosConnection.cs` and are
+confirmed only by `HARDWARE-CHECKLIST.md` step 3.
+
+Source layout of the Windows binding: `ZosConnection.cs` (connection), `ZosOpticStudio.cs` with `ZosSystemAccess.cs`
+(system data, Lens Data Editor, write-back) and `ZosAnalyses.cs` (batch ray trace, merit-function operands).
 
 Cross-platform companions (`ultrafast` CLI): `zemax-build` rebuilds a system file from a saved raw sample with
 different export settings (no OpticStudio); `zemax-replay` re-runs the sampler on a recorded session;

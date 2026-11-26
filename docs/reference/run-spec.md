@@ -1,7 +1,12 @@
-# Run spec reference (`run.json`)
+# Run spec (`run.json`)
 
-Every key with its type, unit and default is listed in the generated [option reference](options.md#run-spec);
-editors complete and check run specs that start with `"$schema": ".../schemas/run.schema.json"` ([Schemas](schema.md)).
+A run spec says what to simulate with a system file: the input pulse, the time grid, the physics switches, the solver, the instruments
+and the files to write. It is JSON with comments, SI units throughout. Every key with its type, unit and default is in the generated
+[option reference](options.md#run-spec); editors complete and check run specs that start with
+`"$schema": ".../schemas/run.schema.json"` ([Schemas](schema.md)). The tables below give the keys that matter and the behaviour the
+option reference cannot show; they do not repeat every key.
+
+## Keys
 
 ```jsonc
 {
@@ -13,11 +18,14 @@ editors complete and check run specs that start with `"$schema": ".../schemas/ru
   "grid": { ... },
   "physics": { ... },
   "stepper": { ... },
-  "probes": "all",           // "all" | "end" | ["id1", "id2"]
+  "fidelity": "full",        // "full" (default) | "standard" | "quick" (fidelity.md)
+  "probes": "end",           // "end" (default) | "all" | ["id1", "id2"]: where the pulse is stored
   "instruments": [ ... ],
+  "detectors": { ... },      // detector presets by name (instruments.md#detector-presets)
   "overrides": [ ... ],      // models.md
   "inputBeam": { ... },      // Gaussian beam at the system input: tracked through every element (components.md)
-  "compute": { ... },        // back-end and threads (speed.md)
+  "compute": { ... },        // back-end, threads, FFT, memory limit (speed.md)
+  "coherence": { ... },      // partially coherent source (transverse.md#partial-coherence)
   "fit": { ... },            // optional: calibrate parameters against measured instruments (plugins/fitting.md)
   "outputs": { ... }
 }
@@ -27,14 +35,16 @@ editors complete and check run specs that start with `"$schema": ".../schemas/ru
 ## `pulse`
 | field | |
 |---|---|
-| `shape` | `gaussian`, `sech2`, `superGaussian` (+ `order`), `spectrum` |
-| `centerWavelengthM` | carrier (for `spectrum`: default = intensity-weighted mean) |
-| `durationFwhmS` | transform-limited intensity FWHM (or `bandwidthFwhmM`) |
+| `shape` | `gaussian` (default), `sech2`, `superGaussian` (+ `order`, default 2), `spectrum`, `cw` ([below](#cw-sources)) |
+| `centerWavelengthM` (or `centerWavelengthNm`) | carrier (for `spectrum`: default = intensity-weighted mean) |
+| `durationFwhmS` (or `durationFwhmFs`) | transform-limited intensity FWHM (or `bandwidthFwhmM` / `bandwidthFwhmNm`) |
+| `powerW` | cw power (shape `cw`) |
+| `noise` | quantum noise on the input: `kind` (`onePhotonPerMode`, the default, or `none`), `seed` (1), `polarization` (`same` or `both`); [option reference](options.md#pulsenoise) |
 | `cepRad` | carrier-envelope phase, rad (default 0) |
 | `energyJ` / `averagePowerW` + `repRateHz` / `peakPowerW` | pulse energy (one of) |
 | `chirp` | `{ "gddS2", "todS3", "fodS4" }` spectral phase about the carrier (or `gddFs2`, `todFs3`, `fodFs4` in fs units) |
-| `polarization` | `"x"`, `"y"`, `"45"`, `"-45"`, `"rcp"`, `"lcp"`, `{ "angleDeg", "ellipticity" }`, or `[exRe, exIm, eyRe, eyIm]` |
-| `spectrum` | a measured spectrum: `{ "wavelengthsM", "intensity", "phaseRad" }` or `{ "csv": "file.csv", "wavelengthUnit": "nm" }` (columns: wavelength, intensity per unit wavelength, optional phase); `background` (a number, `"auto"`, `"min"`), `threshold`, `resolutionM` (the recording spectrometer's FWHM), `deconvolve` (remove it by Richardson–Lucy, `deconvolveIterations`, default 30) and `extrapolate` (`"zero"`: no light outside the measured wavelengths, default; `"gaussian"`: Gaussian tails fitted to the data). Rows are sorted, repeated wavelengths merged, non-finite rows dropped. See [Measured data](measured-data.md#measured-input-spectra) |
+| `polarization` | default `"x"`; `"x"`, `"y"`, `"45"`, `"-45"`, `"rcp"`, `"lcp"`, `{ "angleDeg", "ellipticity" }`, or `[exRe, exIm, eyRe, eyIm]` |
+| `spectrum` | a measured spectrum: `{ "wavelengthsM", "intensity", "phaseRad" }` or `{ "csv": "file.csv", "wavelengthUnit": "nm" }` (columns: wavelength, intensity per unit wavelength, optional phase); `wavelengthsNm`, `wavelengthUnit` (default `nm`), `background` (a number, `"auto"`, `"min"` or `"none"`, the default), `threshold`, `resolutionM` (the recording spectrometer's FWHM), `deconvolve` (remove it by Richardson–Lucy, `deconvolveIterations`, default 30) and `extrapolate` (`"zero"`: no light outside the measured wavelengths, default; `"gaussian"`: Gaussian tails fitted to the data). Rows are sorted, repeated wavelengths merged, non-finite rows dropped. See [Measured data](measured-data.md#measured-input-spectra) |
 | `delayS` | time offset |
 | `pedestal` | list of contrast components added to the pulse ([below](#pedestal)) |
 
@@ -52,7 +62,8 @@ the [fitting plugin](../plugins/fitting.md), which can also propagate a measured
 "pulse": { "shape": "cw", "centerWavelengthM": 1030e-9, "powerW": 2.0 }
 ```
 
-One spectral bin on a small grid, so a linear spatial run carries a single frequency end to end: the fast path for monochromatic diffraction. `grid.windowS` (default 1 ns)
+One spectral bin on a small grid, so a linear spatial run carries a single frequency end to end: the fast path for monochromatic diffraction. The line sits on
+`centerWavelengthM` unless `grid.snapCarrier` is written. `grid.windowS` (default 1 ns)
 only sets the energy: energies and fluences are power and intensity times the window; `beamProfile` also reports `peakIntensityWPerM2`. Kerr media give the phase of the constant
 intensity, with no spectral change. Other instruments see a constant field.
 
@@ -99,7 +110,8 @@ instrument instead). The `contrast` and `crossCorrelator` instruments show the r
 | `satelliteLevel` | 1e-8 | weakest ghost / replica satellite (relative intensity) the window makes room for, including combinations of satellites of several elements (a ghost of a ghost) and satellites that coincide in delay, summed in amplitude |
 | `extendForSatellites` | false | with a manual window (`"auto": false`), grow the window (keeping dt) until the satellites fit |
 | `strict` | false | a satellite or pedestal replica that wraps around the window is an error, not a warning |
-| `tail` | false | `true` or `{windowS, warnEnergyFraction}`: the delayed-light ledger, a second long linear grid ([Delayed light](delayed-light.md)) |
+| `windowPs` | | alternative to `windowS`, in ps |
+| `tail` | false | `true` or `{windowS, warnEnergyFraction, exactSteps (false), crossPhase (true)}`: the delayed-light ledger, a second long linear grid ([Delayed light](delayed-light.md)) |
 
 **Satellites and the window.** Ghosts and replicas follow the main pulse by their delay. Making room for every
 order of every plate would grow the window linearly with the number of plates: 20 plates with ghosts asked for
@@ -126,6 +138,8 @@ error, and `tail` carries the satellites on a second, long, linear grid instead 
 | `beamTracking` | `auto` | Gaussian beam (q) tracking through the system: `auto` (on when there is a Gaussian `inputBeam`), `on`, `off` ([Components](components.md#gaussian-beam-tracking)) |
 | `spatioTemporal` | `auto` | angular / spatial dispersion and pulse-front tilt carried with the tracked beam: `auto` (their group-delay dispersion applied unless an element has traced `groupDelayS`), `on`, `track` (reported only), `profile` (carried by a cartesian profile), `off` ([Components](components.md#spatio-temporal-couplings)) |
 | `ionization` | false | photo-ionisation and plasma in every nonlinear bulk element: `true` or `{ "model": "ppt", ... }` ([Ionisation](ionization.md)) |
+| `strictMaterials`, `strictMaterialsAllow` | false | refuse a run that uses approximate or unverified material-catalogue values, except the catalogue paths in `strictMaterialsAllow`; also set by `ULTRAFAST_STRICT_MATERIALS` ([Materials](materials.md)) |
+| `strictValidity` | false | the run's validity findings (energy reaching zero frequency, peak power above the critical power in 1-D, Kerr-lens collapse, LIDT exceeded, energy at the window edge) become an error after the run; also set by `ULTRAFAST_STRICT_VALIDITY` |
 | `transverse` | none | default spatial model for every bulk/gap/crystal element that has none of its own: `{"model": "radial", "points": 48}` ([Spatial models](transverse.md)) |
 
 ## `stepper`
@@ -140,8 +154,11 @@ error, and `tail` carries the satellites on a second, long, linear grid instead 
 ## `compute`
 | field | default | |
 |---|---|---|
-| `backend` | `cpu` | compute back-end for the nonlinear steps; plugins add others ([Speed](speed.md)) |
+| `backend` | `cpu` | compute back-end for the nonlinear steps; plugins add others. `uf.set_default_backend`, `uf_set_default_backend` and `ULTRAFAST_BACKEND` change the default of runs that name none ([Speed](speed.md)) |
 | `threads` | 0 | worker threads (0 = all cores) |
+| `fft` | `auto` (or `ULTRAFAST_FFT`) | CPU FFT provider: `auto`, `managed`, `fftw`, `accelerate` |
+| `device`, `gpuMinPoints`, `deviceSlots`, `precision` | -1, 8192 (1-D) / 32768 (spatial), 4, `double` | GPU device index, smallest problem sent to a GPU with backend `auto`, concurrent propagations per device, `double` or `mixed` |
+| `memoryLimitBytes` | 0 | the run is refused before it starts when its estimated memory is above this; 0 = no limit ([Memory](memory.md)) |
 
 ## `instruments`
 A list of `{ "kind": ..., "at": "end" | "input" | element id, "name": ..., ...parameters }`; see
@@ -155,7 +172,9 @@ See [Sampling](instruments.md#sampling-where-the-instrument-looks) and [Measured
 
 ## `coherence`
 
-A partially coherent source: a run over coherent modes ([Transverse](transverse.md#partial-coherence)).
+A partially coherent source: a run over coherent modes ([Transverse](transverse.md#partial-coherence)). Keys: `model` (`gaussianSchell`),
+`m2` (required, at least 1), `modes` (12 per axis), `dimensions` (1 or 2), `element` (the element whose `transverse.initialProfile` the modes replace;
+default the first with one). The full list is in the [option reference](options.md#coherence).
 
 ## `fit` (fitting plugin)
 Calibrates parameters of the system or the run against every instrument with `"measured"` data, then predicts
@@ -167,10 +186,26 @@ everything else with error bars:
          "maxIterations": 20, "tolerance": 1e-4, "freezeGrid": true }
 ```
 
+`parallel` is also read (parallel evaluations; the Python `uf.run` uses it for its memory check). The defaults of `maxIterations` and `tolerance`
+depend on the estimator (`maxIterations` 20 or 60, `tolerance` 1e-4 or 1e-6): write them when a run must be reproducible.
+
 A run with `"fit"` takes (parameters + 2) runs per iteration. See [Fitting plugin](../plugins/fitting.md#calibration-fit).
 
 ## `outputs`
 | field | default | |
 |---|---|---|
-| `json`, `npz`, `csv` | true | which files `WriteAll` / `ultrafast run` produce |
+| `json`, `npz`, `csv` | true | which files `WriteAll` / `ultrafast run` produce; `json` writes `summary.json` and `provenance.json` |
+| `keepProfiles` | `all` | `all` or `used`: which transverse profiles stay in the result |
 | `maxPoints` | 0 | cap exported traces (cropped to the energy support first, then decimated); 0 = full grid incl. complex fields |
+
+## Validation
+
+`ultrafast validate system.ufs run.json` checks the spec against the option registry and prints the memory estimate. The defaults on this page
+(`stepper.tolerance` 1e-6, `maxPhasePerStepRad` 0.01, `maxAreaChangePerStep` 0.05, `grid.n` 4096, `grid.satelliteLevel` 1e-8) are those of
+the registry. `SchemaTests.ExamplesUseOnlyDeclaredOptions` runs every example spec through the checks. The cw window (1 ns) is `PulseSpec.CwWindowS`.
+
+## Limits
+
+* A measured input spectrum propagates forward only; to go backward use the [fitting plugin](../plugins/fitting.md).
+* A `measured` or `ase` pedestal widens the grid: a 10 ns ASE floor makes a long window (see [`pedestal`](#pedestal)).
+* `"fit"` needs the fitting plugin; a spec with `"fit"` or `"backward"` stops with a message naming it when it is missing ([Plugin system](plugins.md)).

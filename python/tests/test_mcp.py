@@ -1,4 +1,4 @@
-"""MCP server (ultrafast.mcp): handshake, the thirteen tools, prompts, every refusal, a call over budget (killed, next call works), packaging.
+"""MCP server (ultrafast.mcp): handshake, the sixteen tools, prompts, every refusal, a call over budget (killed, next call works), packaging.
 
 Light: the server is driven with a fake worker (no engine) except one small end-to-end run marked ``requires_engine``.
 """
@@ -24,10 +24,14 @@ for line in sys.stdin:
     r = json.loads(line); a = r["args"]; s = a.get("system")
     if isinstance(s, dict) and s.get("sleep"):
         time.sleep(s["sleep"])
+    f = a.get("folder")
+    if f and os.path.isfile(os.path.join(f, "sleep")):       # a twin project folder with a 'sleep' file: a slow twin call
+        time.sleep(float(open(os.path.join(f, "sleep")).read()))
     sys.stdout.write(json.dumps({"id": r["id"], "ok": True, "result": {"op": r["op"], "pid": os.getpid(), "home": os.environ.get("ULTRAFAST_HOME")}}) + "\\n")
     sys.stdout.flush()
 '''
-TOOL_NAMES = {"describe", "validate", "run", "scan", "explain_warning", "plot", "compare_to_measured", "fit", "study", "backward", "twin_fit", "twin_validate", "twin_predict"}
+TOOL_NAMES = {"describe", "validate", "run", "scan", "explain_warning", "plot", "compare_to_measured", "fit", "study", "backward", "twin_fit", "twin_validate", "twin_predict",
+              "twin_design", "twin_track", "twin_init"}
 
 
 @pytest.fixture
@@ -75,7 +79,7 @@ def test_discover_and_modern_requests(server):
     assert r["resultType"] == "complete" and "2026-07-28" in r["supportedVersions"] and "2025-11-25" in r["supportedVersions"]
     assert r["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "ultrafast-mcp"
     r = rpc(server, "tools/list", {"_meta": meta})["result"]
-    assert r["resultType"] == "complete" and len(r["tools"]) == 13
+    assert r["resultType"] == "complete" and len(r["tools"]) == 16
     bad = rpc(server, "tools/list", {"_meta": {"io.modelcontextprotocol/protocolVersion": "1900-01-01", "io.modelcontextprotocol/clientCapabilities": {}}})
     assert bad["error"]["code"] == -32022 and "2026-07-28" in bad["error"]["data"]["supported"]
     assert rpc(server, "tools/list", {"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28"}})["error"]["code"] == -32602
@@ -92,9 +96,9 @@ def test_ping_unknown_method_notifications_and_bad_messages(server):
     assert rpc(server, "tools/call", {"name": "nope", "arguments": {}})["error"]["code"] == -32602
 
 
-def test_tools_list_has_thirteen_tools_with_schemas(server):
+def test_tools_list_has_sixteen_tools_with_schemas(server):
     ts = rpc(server, "tools/list")["result"]["tools"]
-    assert {t["name"] for t in ts} == TOOL_NAMES and len(ts) == 13
+    assert {t["name"] for t in ts} == TOOL_NAMES and len(ts) == 16
     for t in ts:
         assert t["description"] and t["inputSchema"]["type"] == "object"
     run = next(t for t in ts if t["name"] == "run")
@@ -314,7 +318,7 @@ def test_stdio_process_handshake(tmp_path):
     out, err = p.communicate("".join(json.dumps(m) + "\n" for m in msgs).encode() + b"not json\n", timeout=60)
     lines = [json.loads(l) for l in out.decode().splitlines()]
     assert [l.get("id") for l in lines] == [1, 2, 3, None]                        # the notification got no reply; stdout holds JSON only
-    assert len(lines[1]["result"]["tools"]) == 13 and lines[2]["error"]["code"] == -32601 and lines[3]["error"]["code"] == -32700
+    assert len(lines[1]["result"]["tools"]) == 16 and lines[2]["error"]["code"] == -32601 and lines[3]["error"]["code"] == -32700
     assert b"workspace" in err
 
 
@@ -391,7 +395,7 @@ def test_twin_serve_starts_the_mcp_server(tmp_path):
     p = subprocess.run([sys.executable, "-m", "ultrafast_twin", "serve", str(tmp_path)], input=b'{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n',
                        capture_output=True, env=env, timeout=60)
     assert p.returncode == 0, p.stderr.decode()
-    assert len(json.loads(p.stdout.decode().splitlines()[0])["result"]["tools"]) == 13
+    assert len(json.loads(p.stdout.decode().splitlines()[0])["result"]["tools"]) == 16
 
 
 # ------------------------------------------------ study, backward and the twin tools: refusals (fake worker)
@@ -461,6 +465,111 @@ def test_twin_tools_stay_in_the_workspace_and_read_a_project(server, tmp_path):
     assert call(server, "twin_validate", {"folder": "lab", "samples": 100})["isError"]       # the schema's maximum
 
 
+# ------------------------------------------------ twin_design, twin_track, twin_init: policy and budget (fake worker)
+LAB_SYSTEM = {"elements": [{"id": "filter", "type": "transform"}, {"id": "kerr", "type": "transform"}]}
+
+
+@pytest.fixture
+def lab(server):
+    """A twin project folder the policy accepts (the fake worker never reads it)."""
+    d = server.ws.root / "lab"
+    (d / "data").mkdir(parents=True)
+    (d / "twin.json").write_text(json.dumps({"format": "ultrafast-twin", "system": "system.ufs", "run": {}}), encoding="utf-8")
+    (d / "system.ufs").write_text(json.dumps(LAB_SYSTEM), encoding="utf-8")
+    (d / "data" / "day1.csv").write_text("1030,1\n", encoding="utf-8")
+    return d
+
+
+def test_twin_design_track_and_init_reach_the_worker(server, lab):
+    for tool, args in [("twin_design", {"variable": "energyJ", "values": [0.5e-6, 2e-6], "setKey": "pulse/energyJ", "picks": 2, "timeBudgetS": 1.5}),
+                       ("twin_design", {"placement": True}),
+                       ("twin_design", {"candidates": [{"name": "a", "variables": {"energyJ": 1e-6}, "set": {"pulse/energyJ": 1e-6, "instrument:spec/at": "kerr"}}],
+                                        "weights": [1, 0, 0], "noiseSigma": 0.02}),
+                       ("twin_track", {"measurements": [{"data": "data/day1.csv", "variables": {"energyJ": 1.2e-6}, "label": "day 1"}],
+                                       "process": {"filter.centerNm": 0.3}, "members": 8, "alarmSigmas": 3, "seed": 2, "timeBudgetS": 2})]:
+        r = call(server, tool, dict(args, folder="lab"))
+        assert not r["isError"] and r["structuredContent"]["op"] == tool, (tool, text(r))
+    r = call(server, "twin_init", {"folder": "new-lab", "template": "synthetic-lab-saturating"})
+    assert not r["isError"] and r["structuredContent"]["op"] == "twin_init", text(r)
+    assert not call(server, "twin_init", {"folder": "lab", "force": True})["isError"]
+
+
+TWIN_REFUSALS = [
+    ("twin_design", {}, "exactly one of"),
+    ("twin_design", {"variable": "energyJ", "placement": True}, "exactly one of"),
+    ("twin_design", {"variable": "energyJ"}, "'values'"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6, float("nan")]}, "finite"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6] * 13}, "above the limit"),
+    ("twin_design", {"variable": "energy J", "values": [1e-6]}, "not a valid name"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6], "setKey": "physics/raman"}, "not allowed"),
+    ("twin_design", {"placement": True, "values": [1]}, "go with 'variable'"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6], "picks": 2}, "more than"),
+    ("twin_design", {"candidates": [{"name": "a"}, {"name": "a"}]}, "unique"),
+    ("twin_design", {"candidates": [{"name": "a", "python": "x"}]}, "unknown key"),
+    ("twin_design", {"candidates": [{"name": "a", "set": {"system/name": 1}}]}, "not allowed"),
+    ("twin_design", {"candidates": [{"name": "a", "set": {"pulse/energyJ": "@e"}}]}, "finite number"),
+    ("twin_design", {"candidates": [{"name": "a", "set": {"instrument:spec/at": "../x"}}]}, "element id"),
+    ("twin_design", {"candidates": [{"name": "a", "variables": {"energyJ": True}}]}, "finite number"),
+    ("twin_design", {"candidates": [{"variables": {}}]}, "'name'"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6], "weights": [-1]}, "non-negative"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6], "noiseSigma": 0}, "must be greater"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6], "timeBudgetS": -1}, "must be greater"),
+    ("twin_design", {"variable": "energyJ", "values": [1e-6], "extra": 1}, "unknown argument"),
+    ("twin_track", {}, "missing required"),
+    ("twin_track", {"measurements": []}, "non-empty"),
+    ("twin_track", {"measurements": [{"data": "data/missing.csv"}]}, "not found"),
+    ("twin_track", {"measurements": [{"data": "../../outside.csv"}]}, "outside the workspace"),
+    ("twin_track", {"measurements": [{"data": "data"}]}, "not a file"),
+    ("twin_track", {"measurements": [{"data": "data/day1.csv", "python": 1}]}, "unknown key"),
+    ("twin_track", {"measurements": [{"data": "data/day1.csv"}] * 13}, "above the limit"),
+    ("twin_track", {"measurements": [{"data": "data/day1.csv"}] * 7, "members": 32}, "engine runs is above"),
+    ("twin_track", {"measurements": [{"data": "data/day1.csv"}], "members": 2}, "between"),
+    ("twin_track", {"measurements": [{"data": "data/day1.csv"}], "process": {"filter.centerNm": 0}}, "positive number"),
+    ("twin_track", {"measurements": [{"data": "data/day1.csv", "set": {"physics/raman": 1}}]}, "not allowed"),
+    ("twin_track", {"measurements": [{"data": "data/day1.csv"}], "parameters": []}, "non-empty list"),
+    ("twin_init", {"folder": "lab"}, "already holds"),
+    ("twin_init", {"folder": "../elsewhere"}, "outside the workspace"),
+    ("twin_init", {"folder": "plate.ufs"}, "not a folder"),
+    ("twin_init", {"folder": ".ultrafast-mcp/x"}, "results folder"),
+    ("twin_init", {"folder": "lab2", "template": "my-lab"}, "must be one of"),
+]
+
+
+@pytest.mark.parametrize("tool,args,fragment", TWIN_REFUSALS, ids=[f"{i}-{r[0]}" for i, r in enumerate(TWIN_REFUSALS)])
+def test_twin_design_track_init_refusals_never_reach_the_worker(server, lab, tool, args, fragment):
+    a = dict(args) if tool == "twin_init" else dict(args, folder="lab")
+    res = call(server, tool, a)
+    assert res["isError"] is True and fragment in text(res), text(res)
+    assert server.worker.spawns == 0
+
+
+def test_twin_design_and_track_need_a_project(server, lab):
+    for tool, args in [("twin_design", {"placement": True}), ("twin_track", {"measurements": [{"data": "lab/data/day1.csv"}]})]:
+        r = call(server, tool, dict(args, folder="."))
+        assert r["isError"] and "twin_init" in text(r), text(r)
+    big = {"elements": [{"id": "e%d" % i, "type": "transform"} for i in range(11)]}
+    (lab / "system.ufs").write_text(json.dumps(big), encoding="utf-8")
+    r = call(server, "twin_design", {"folder": "lab", "placement": True})
+    assert r["isError"] and "13 candidates is above the limit" in text(r)
+
+
+@pytest.mark.parametrize("tool,args", [("twin_design", {"variable": "energyJ", "values": [1e-6]}),
+                                       ("twin_track", {"measurements": [{"data": "data/day1.csv"}]})])
+def test_twin_design_and_track_over_their_budget_are_killed_and_the_next_call_works(server, lab, tool, args):
+    server.budget_s = 30
+    (lab / "sleep").write_text("30", encoding="utf-8")
+    slow = call(server, tool, dict(args, folder="lab", timeBudgetS=1))
+    assert slow["isError"] and "time budget of 1 s" in text(slow), text(slow)
+    assert server.worker.pid is None                                              # killed
+    (lab / "sleep").unlink()
+    again = call(server, tool, dict(args, folder="lab"))
+    assert not again["isError"] and again["structuredContent"]["op"] == tool
+    server.budget_s = 1                                                           # the server's budget caps a larger timeBudgetS
+    (lab / "sleep").write_text("30", encoding="utf-8")
+    assert "time budget of 1 s" in text(call(server, tool, dict(args, folder="lab", timeBudgetS=100)))
+    assert server.worker.spawns == 2
+
+
 # ------------------------------------------------ the same tools against the real engine
 @requires_engine
 def test_real_study_backward_and_twin(tmp_path):
@@ -496,5 +605,40 @@ def test_real_study_backward_and_twin(tmp_path):
         assert not p["isError"], text(p)
         pc = p["structuredContent"]
         assert pc["pointsReturned"] <= 200 and len(pc["x"]) == len(pc["y"]) == len(pc["ySigma"]) and pc["scalars"]["energyJ"]["mean"] > 0
+    finally:
+        srv.worker.close()
+
+
+@requires_engine
+def test_real_twin_init_design_and_track(tmp_path):
+    """The synthetic lab through the server: twin_init writes the project, twin_fit fits it, twin_design ranks two energies (the higher one sees the
+    energy-dependent phase better: larger gain, the reference of test_twin.test_the_planner_ranks...), twin_track assimilates a held-out recording
+    of the unchanged lab (no drift flagged)."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    env = {"PYTHONPATH": os.pathsep.join([str(SRC), str(REPO / "plugins" / "twin" / "python")])}
+    srv = McpServer(ws, worker=Worker(ws, env=env), budget_s=300)
+    try:
+        i = call(srv, "twin_init", {"folder": "lab"})
+        assert not i["isError"], text(i)
+        ic = i["structuredContent"]
+        assert (ws / "lab" / "twin.json").is_file() and len(ic["conditions"]) == 7 and sum(c["heldOut"] for c in ic["conditions"]) == 2
+        assert call(srv, "twin_init", {"folder": "lab"})["isError"]                 # exists: refused
+        f = call(srv, "twin_fit", {"folder": "lab", "name": "f1"})
+        assert not f["isError"], text(f)
+        d = call(srv, "twin_design", {"folder": "lab", "variable": "energyJ", "values": [1e-12, 2e-6], "setKey": "pulse/energyJ"})
+        assert not d["isError"], text(d)
+        dc = d["structuredContent"]
+        assert dc["engineRuns"] == 2 * (len(f["structuredContent"]["parameters"]) + 1) and len(dc["ranking"]) == 2
+        assert dc["chosen"][0]["name"].startswith("energyJ=2e-06") and dc["ranking"][0]["gain"] > dc["ranking"][1]["gain"] >= 0
+        assert (ws / "lab" / "reports" / "design.json").is_file()
+        t = call(srv, "twin_track", {"folder": "lab", "measurements": [{"data": "data/E1.4uJ.csv", "variables": {"energyJ": 1.4e-6}, "set": {"pulse/energyJ": 1.4e-6}}],
+                                     "parameters": ["filter.centerNm"], "process": {"filter.centerNm": 0.3}, "members": 8, "seed": 2})
+        assert not t["isError"], text(t)
+        tc = t["structuredContent"]
+        assert len(tc["history"]) == 2 and tc["drifted"] == [] and abs(tc["history"][-1]["mean"]["filter.centerNm"] - 1033.0) < 0.3
+        assert (ws / "lab" / "reports" / "track.json").is_file()
+        bad = call(srv, "twin_track", {"folder": "lab", "measurements": [{"data": "data/E1.4uJ.csv"}], "process": {"nope": 1.0}, "members": 4})
+        assert bad["isError"] and "not tracked" in text(bad), text(bad)
     finally:
         srv.worker.close()

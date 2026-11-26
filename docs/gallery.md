@@ -22,11 +22,11 @@ A 10 mm "doped glass" rod on a radial grid.
 
 ![18 -- A nonlinear medium you define: n(x, y, z, t, I, F): figure](examples/GettingStarted/custom-nonlinear-medium/hero.png)
 
-### [00 -- Python quick start](examples/GettingStarted/quickstart/README.md)
+### [Python quick start](examples/GettingStarted/quickstart/README.md)
 
-Build a system in Python, run it, read the results and scan a parameter.
+Build a system in Python, run it, read the results and scan a parameter: two 3 mm fused-silica plates take a 180 fs, 8 µJ pulse at 1030 nm to a B-integral of 1.14 rad, and its broadened spectrum compresses to 114 fs.
 
-![00 -- Python quick start: figure](examples/GettingStarted/quickstart/hero.png)
+![Python quick start: figure](examples/GettingStarted/quickstart/hero.png)
 
 ### [12 -- A user element in Python: a programmable pulse shaper](examples/GettingStarted/user-element/README.md)
 
@@ -90,17 +90,17 @@ A Michelson interferometer on the command line, in a Branched `.ufs` file.
 
 ## Wavefronts
 
-### [16 -- Position-dependent material properties](examples/Wavefronts/position-dependent-index/README.md)
+### [Position-dependent material properties](examples/Wavefronts/position-dependent-index/README.md)
 
-`indexProfile`, `absorptionProfile` and `n2Scale` make any material property a function of position (x, y, z, r, θ).
+A 5 mm fused-silica rod with a parabolic index profile is a thin lens of f = 0.2 m, and the engine focuses a 0.5 mm beam to 132 µm, within 1 % of the thin-lens 131 µm, whether the profile is an expression, a table or a Python function.
 
-![16 -- Position-dependent material properties: figure](examples/Wavefronts/position-dependent-index/hero.png)
+![Position-dependent material properties: figure](examples/Wavefronts/position-dependent-index/hero.png)
 
-### [15 -- Spatially resolved gain and the thermal lens](examples/Wavefronts/spatial-gain-thermal-lens/README.md)
+### [Spatially resolved gain and the thermal lens](examples/Wavefronts/spatial-gain-thermal-lens/README.md)
 
-A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod once, end-pumped by 60 W at 940 nm (super-Gaussian, 0.6 mm, double pass).
+A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod end-pumped by 60 W: the heat load writes a thermal lens of f = 0.54 m into the wavefront, and the beam 0.4 m behind the rod has shrunk from 471 µm to 319 µm.
 
-![15 -- Spatially resolved gain and the thermal lens: figure](examples/Wavefronts/spatial-gain-thermal-lens/hero.png)
+![Spatially resolved gain and the thermal lens: figure](examples/Wavefronts/spatial-gain-thermal-lens/hero.png)
 
 ## Branched
 

@@ -1547,6 +1547,18 @@
           "type": "integer",
           "description": "Side the light meets: 2 reverses the sign of r (Michelson return) Default: 1."
         },
+        "material": {
+          "type": "string",
+          "description": "Glass of the splitter (plate substrate or cube); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path"
+        },
+        "transmittedThicknessM": {
+          "type": "number",
+          "description": "Glass path length of the transmitted beam (a -> c, b -> d) [m] Default: 0."
+        },
+        "reflectedThicknessM": {
+          "type": "number",
+          "description": "Glass path length of the reflected beam (a -> d, b -> c) [m] Default: 0."
+        },
         "id": {
           "type": "string",
           "description": "Unique id"
@@ -9477,6 +9489,18 @@
         "side": {
           "type": "integer",
           "description": "2 reverses the sign of r Default: 1."
+        },
+        "material": {
+          "type": "string",
+          "description": "Glass of the splitter (a cube's prisms, a plate's substrate); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path"
+        },
+        "transmittedThicknessM": {
+          "type": "number",
+          "description": "Glass path length of the transmitted beam (a -> c, b -> d) [m] Default: 0."
+        },
+        "reflectedThicknessM": {
+          "type": "number",
+          "description": "Glass path length of the reflected beam (a -> d, b -> c) [m] Default: 0."
         },
         "id": {
           "type": "string",

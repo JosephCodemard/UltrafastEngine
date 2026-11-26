@@ -8,9 +8,9 @@ First runs: build a system, run it, read the results, bring your own index, elem
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [quickstart](GettingStarted/quickstart/README.md) | 00 | Python | build a system in code, run it, read results, scan a parameter | `python quickstart.py` |
+| [quickstart](GettingStarted/quickstart/README.md) | 00 | Python + CLI | build a system in code, run it, read results, scan a parameter | `python quickstart.py`, `ultrafast run two-plates.ufs run.json` |
 | [calculators](GettingStarted/calculators/README.md) | new | Python | `ultrafast.calc`: transform limit, lens mode matching, critical power and B-integral, BBO phase matching, checked against an engine run | `python calculators.py` |
-| [spm-plate](GettingStarted/spm-plate/README.md) | 01 | CLI | SPM in an AR-coated plate, instruments, provenance, overrides | `ultrafast run plate.ufs run.json` |
+| [spm-plate](GettingStarted/spm-plate/README.md) | 01 | CLI + Python | SPM in an AR-coated plate, instruments, provenance, overrides | `ultrafast run plate.ufs run.json` |
 | [custom-index-python](GettingStarted/custom-index-python/README.md) | 04 | Python | your own n(t, I) as a NumPy callback (plasma + MPA) | `python custom_response.py` |
 | [user-element](GettingStarted/user-element/README.md) | 12 | Python | a pulse shaper written in Python as a user element | `python dazzler.py` |
 | [custom-nonlinear-medium](GettingStarted/custom-nonlinear-medium/README.md) | 18 | CLI + Python | your own n(x, y, z, t, I, F): expression and Python function | `ultrafast run medium.ufs run.json`, `python custom_medium.py` |
@@ -63,8 +63,8 @@ Position-dependent index and spatially resolved gain: lenses and aberrations mad
 
 | example | old no. | interface | what it shows | run |
 |---|---|---|---|---|
-| [position-dependent-index](Wavefronts/position-dependent-index/README.md) | 16 | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `python grin_variants.py` |
-| [spatial-gain-thermal-lens](Wavefronts/spatial-gain-thermal-lens/README.md) | 15 | CLI | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json` |
+| [position-dependent-index](Wavefronts/position-dependent-index/README.md) | 16 | CLI + Python | Δn(r, z) as an expression, a table and a Python function (GRIN lens, tapered GRIN) | `ultrafast run grin.ufs run.json -o results`, `python grin_variants.py` |
+| [spatial-gain-thermal-lens](Wavefronts/spatial-gain-thermal-lens/README.md) | 15 | CLI + Python | spatially resolved gain in a Yb:YAG rod: per-point inversion, thermal lens, cameras; 60 W vs 5 W pump | `ultrafast run rod.ufs run.json -o results-60W` |
 
 ## Branched
 

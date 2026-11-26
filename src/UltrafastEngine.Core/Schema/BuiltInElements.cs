@@ -190,11 +190,17 @@ namespace UltrafastEngine.Schema
                 .Include("elementCommon").Ports(new[] { "a", "b" }, new[] { "c", "d" })
                 .Num("reflectivity", "", "Power reflectivity R", "0.5")
                 .Str("output", "Port that continues in a Sequential system (c, d; also transmitted, reflected)", "c")
-                .Int("side", "Side the light meets: 2 reverses the sign of r (Michelson return)", "1"));
+                .Int("side", "Side the light meets: 2 reverses the sign of r (Michelson return)", "1")
+                .Str("material", "Glass of the splitter (plate substrate or cube); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path")
+                .Num("transmittedThicknessM", "m", "Glass path length of the transmitted beam (a -> c, b -> d)", "0")
+                .Num("reflectedThicknessM", "m", "Glass path length of the reflected beam (a -> d, b -> c)", "0"));
             add(new ComponentSpec("element", "polarizingSplitter", "A polarising splitter: p (x) mostly transmitted, s (y) mostly reflected.").DocAt("reference/branches.md#beam-splitters")
                 .Include("elementCommon").Ports(new[] { "a", "b" }, new[] { "c", "d" })
                 .Num("transmissionP", "", "Power transmission of x", "1").Num("reflectivityS", "", "Power reflectivity of y", "1")
-                .Str("output", "Port that continues in a Sequential system (c, d)", "c").Int("side", "2 reverses the sign of r", "1"));
+                .Str("output", "Port that continues in a Sequential system (c, d)", "c").Int("side", "2 reverses the sign of r", "1")
+                .Str("material", "Glass of the splitter (a cube's prisms, a plate's substrate); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path")
+                .Num("transmittedThicknessM", "m", "Glass path length of the transmitted beam (a -> c, b -> d)", "0")
+                .Num("reflectedThicknessM", "m", "Glass path length of the reflected beam (a -> d, b -> c)", "0"));
             add(new ComponentSpec("element", "leakMirror", "A mirror that leaks: reflected light continues, the leak is a port.").DocAt("reference/branches.md#beam-splitters")
                 .Include("elementCommon").Ports(new[] { "in", "back" }, new[] { "out", "leak" })
                 .Num("transmission", "", "Power transmission", "0.01")
