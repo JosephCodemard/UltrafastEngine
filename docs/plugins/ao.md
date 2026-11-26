@@ -89,7 +89,7 @@ first order (and the rest into the zero and second orders). `dispersion: "none"`
 the core modulator unquantised, because the grey-level steps are already in the curve (a non-uniform curve is not a uniform quantiser).
 
 **Large panels.** A 1920 x 1080 panel is passed as a callback or an NPZ file, not as a list. On the S2 grid (2048 x 1280, one frequency,
-`outputs.keepProfiles: "used"`) a run takes about 2.4 s on the development laptop; the slow test allows the S2 limit of 13 s.
+`outputs.keepProfiles: "used"`) a run takes 2.2 s (Apple M3; [Speed](../reference/speed.md#benchmarks) owns the figure); the slow test allows the S2 limit of 13 s.
 
 ## spectralShaper
 

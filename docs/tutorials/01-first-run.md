@@ -16,7 +16,7 @@ Keeping them apart lets you run the same system with many pulses, and the same p
 ```jsonc
 {
   "format": "ultrafast-system",
-  "version": 1,
+  "version": 2,
   "name": "tutorial-plate",
   "elements": [
     { "id": "plate", "type": "bulk", "material": "FusedSilica", "lengthM": 5e-3,

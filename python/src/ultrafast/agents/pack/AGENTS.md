@@ -20,7 +20,7 @@ beside it; load the one that fits.
 | every element type, option, unit, default | `ultrafast schema system`, `ultrafast schema run` (JSON Schema); `ultrafast reference` |
 | what is built in (materials, crystals, models, instruments) | `ultrafast info`; `ultrafast materials list`, `ultrafast materials show NAME` |
 | a commented starting point | `ultrafast template run.json` |
-| is my file valid | `ultrafast validate system.ufs run.json` (exit code not 0 on errors) |
+| is my file valid | `ultrafast validate system.ufs run.json` (exit code 3 when it prints INVALID, 2 for an unreadable file) |
 | what will the engine do with each element | `ultrafast describe system.ufs` |
 
 Set `ULTRAFAST_STRICT_OPTIONS=1` while writing files: an unknown key (a typo) then fails instead of being ignored.
