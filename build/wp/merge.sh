@@ -3,7 +3,8 @@
 # Usage (from the main worktree): build/wp/merge.sh <id> "<one-line summary>"
 # Append-only files (CHANGELOG, history, roadmap, testing, status, llms.txt, mkdocs.yml) are resolved by keeping both sides;
 # generated files take the WP side and leave a marker so build/wp/regen.sh runs next; history headings "Stage XX" are numbered.
-# The WP's worktree and branch are left in place; remove them with build/wp/cleanup.sh <id> after checking the merge.
+# On a conflict it cannot resolve, the merge is undone and the WP agent merges dev/2026-11 into its own branch.
+# The worktree and branch are left in place; remove them with build/wp/cleanup.sh <id> after the merge.
 set -e
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 id=$1; msg=$2; ID=$(echo "$id" | tr a-z A-Z); dev=dev/2026-11
@@ -42,7 +43,10 @@ open(p, 'w').write(re.sub(r'^## Stage (\d+|XX) --', f, s, flags=re.M))
 PY
 git add docs/design/history.md
 if git diff --name-only --diff-filter=U | grep -q .; then
-  echo "CONFLICTS REMAIN (resolve by hand, then git commit):"; git diff --name-only --diff-filter=U; exit 1
+  echo "CONFLICTS REMAIN:"; git diff --name-only --diff-filter=U
+  # Undo the half-done merge (everything it brought is still on dev/wp-<id>); the WP agent merges dev/2026-11 into its branch instead.
+  git reset -q --hard HEAD
+  echo "merge undone: ask the WP agent to run 'git merge dev/2026-11' in its worktree, resolve, commit; then merge again"; exit 1
 fi
 if [ -f .git/MERGE_HEAD ]; then git commit -q --no-edit; else git diff --cached --quiet || git commit -q --amend --no-edit; fi
 git log --oneline -1
