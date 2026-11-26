@@ -11,6 +11,8 @@ recording is compared with the simulated instrument as the recording instrument 
 recording rarely covers the whole simulation grid**: a spectrometer stops at its range, an autocorrelator scans a
 few hundred femtoseconds. Only the part both cover is compared, and the run says how much was left out.
 
+The keys are in [options: `pulseSpectrum`](options.md#pulsespectrum) and [`measured`](options.md#measured); the tables below give the ones you use most and the rules behind them.
+
 Fitting parameters to the recordings (`"fit"`), fittable `transform` elements and backward propagation come from
 the [fitting plugin](../plugins/fitting.md), which uses these comparisons.
 
@@ -27,12 +29,12 @@ the [fitting plugin](../plugins/fitting.md), which uses these comparisons.
 | key | default | meaning |
 |---|---|---|
 | `wavelengthsM` / `wavelengthsNm`, `intensity`, `phaseRad` | | the data as arrays (intensity per unit wavelength; phase optional) |
-| `csv`, `wavelengthUnit` | `nm` | or a file: wavelength, intensity, optional phase (rad); header and `#` lines skipped |
-| `background` | `none` | a number to subtract (intensity units), `"auto"` (median of the darker edge), `"min"` or `"none"` |
-| `threshold` | 0 | after subtraction, values below this fraction of the peak are set to zero (noise in the wings) |
+| `csv`, `wavelengthUnit` | `nm` | or a file: wavelength, intensity, optional phase (rad); header and `#` lines skipped; unit `nm`, `um` or `m` |
+| `background` | `none` | a number to subtract (intensity units), `"auto"` (median of the darker edge), `"min"` or `"none"`; `true` means `auto`, `false` means `none` |
+| `threshold` | 0 | after subtraction, values below this fraction of the peak (0 ≤ t < 1) are set to zero (noise in the wings) |
 | `resolutionM` / `resolutionNm` | 0 | resolution (Gaussian FWHM) of the spectrometer that recorded it |
-| `deconvolve`, `deconvolveIterations` | false, 30 | remove that resolution (Richardson–Lucy) before use |
-| `extrapolate` | `zero` | outside the recorded range: no light (`zero`) or Gaussian tails fitted to the data (`gaussian`) |
+| `deconvolve`, `deconvolveIterations` | false, 30 | remove that resolution (Richardson–Lucy) before use; needs `resolutionM` (an error otherwise) |
+| `extrapolate` | `zero` | outside the recorded range: no light (`zero`) or Gaussian tails fitted to the data (`gaussian`); no other value is accepted |
 
 ### Cleaning
 
@@ -44,26 +46,23 @@ Before use, the rows are cleaned and each step is reported in the run notes:
 3. rows that repeat a wavelength (spacing below 1/1000 of the median spacing) are merged by averaging intensity and
    phase.
 
-A repeated wavelength used to make the interpolation divide by zero and turn every result into NaN, with only a
-vague grid warning. It is now merged, and a pulse whose energy is still not finite stops the run with a clear
-message.
+A pulse whose energy is still not finite stops the run with a clear message. Tests: `MeasuredSpectrumTests.InputSpectrum_RepeatedWavelength_NoLongerGivesNaN`, `InputSpectrum_OutOfOrderRows_AreSortedAndReported`, `InputSpectrum_NonFiniteRows_AreDroppedWithAWarning`.
 
 ### Background
 
 A flat floor in a recorded spectrum is not harmless. Over a wide recording it adds a broad pedestal of bandwidth,
 which shortens the transform limit and puts energy into a long, weak temporal background. A 0.66 % floor over a
-950–1110 nm recording of a 6.5 nm wide spectrum shortens the transform limit from 240 fs to 26 fs. The run warns when
-the floor (the lower of the two edge medians) is above 0.3 % of the peak and `background` is not set.
+950–1110 nm recording of a 6.5 nm wide spectrum cuts the transform limit below 0.6 of its clean value; `background: "auto"` or the given floor restores it to 0.5 % (`MeasuredSpectrumTests.InputSpectrum_FlatFloor_ShortensTheTransformLimit_AndAutoBackgroundRestoresIt`). The run warns when
+the floor (the lower of the two edge medians) is above 0.3 % of the peak and `background` is `none` (explicit or default).
 
-`"background": "auto"` takes the median of the first and of the last 5 % of the points and uses the **lower** of the
+`"background": "auto"` takes the median of the first and of the last 5 % of the points (at least 3 points, at most a quarter of them) and uses the **lower** of the
 two. A spectrum cut off on one side by the spectrometer (an MPC output stopping at 1100 nm with light still there)
-therefore still gives its true floor from the dark side. Give a number if both edges carry light, and use `threshold`
+therefore still gives its true floor from the dark side (`InputSpectrum_AutoBackground_IgnoresTheCutOffEdge`). Give a number if both edges carry light, and use `threshold`
 to zero the remaining noise in the wings.
 
 ### Resolution and range
 
-The input description says what the spectrum is: "measured 950.0-1110.0 nm (1200 points, background 0.656 %
-removed, resolution 0.5 nm, deconvolved, with phase, Gaussian tails outside)". A recording narrower than the
+The input description in the run notes says what the spectrum is, for example "measured 950.0-1110.0 nm (1200 points, background 0.656 % removed, ...)". A recording narrower than the
 spectrum loses the wings: use `extrapolate: "gaussian"` when the spectrum is cut off, and check the light near the
 edges. A measured spectrum replaces the input shape and propagates forward only; to learn what the *system* does and
 reuse it for other inputs, use transform elements ([fitting plugin](../plugins/fitting.md)).
@@ -145,7 +144,7 @@ The part after the last `_` is the unit:
 
 | suffix | factor | | suffix | factor |
 |---|---|---|---|---|
-| `nm`, `um`, `mm`, `cm` | 1e-9, 1e-6, 1e-3, 1e-2 | | `fs2`, `ps2`, `fs3` | 1e-30, 1e-24, 1e-45 |
+| `nm`, `um` (or `µm`), `mm`, `cm` | 1e-9, 1e-6, 1e-3, 1e-2 | | `fs2`, `ps2`, `fs3` | 1e-30, 1e-24, 1e-45 |
 | `fs`, `ps`, `ns`, `us`, `ms` | 1e-15 … 1e-3 | | `pj`, `nj`, `uj`, `mj` | 1e-12 … 1e-3 |
 | `uw`, `mw`, `kw` | 1e-6, 1e-3, 1e3 | | `thz` | 1e12 |
 
@@ -162,14 +161,14 @@ Choose explicitly with `"columns": {"x": "lambda_nm", "y": "I", "sigma": "err"}`
 |---|---|---|---|---|
 | `spectrometer` | spectrum vs wavelength | `wavelength`, `lambda`, `wl`, `x` | `spectrum`, `intensity`, `counts`, `signal`, `y` | |
 | `autocorrelator` | trace vs delay | `delay`, `tau`, `x` | `signal`, `ac`, `intensity`, `y` | |
-| `crossCorrelator` | contrast trace vs delay (use `"scale": "log"`) | `delay`, `tau`, `x` | `signal`, `intensity`, `y` (a column ending `_db`, or `"yUnit": "dB"`, is read as dB) | |
+| `crossCorrelator` (`thirdOrderCorrelator`) | contrast trace vs delay (use `"scale": "log"`) | `delay`, `tau`, `x` | `signal`, `intensity`, `y` (a column ending `_db`, or `"yUnit": "dB"`, is read as dB) | |
 | `scope` | detected power vs time | `time`, `t`, `x` | `signal`, `power`, `voltage`, `y` | |
-| `beamProfile` | fluence vs radius (or x cut) | `radius`, `r`, `x` (`x`, `position`) | `fluence`, `intensity`, `signal`, `y` | |
+| `beamProfile` | fluence vs radius (or, without a radius array, an x cut) | `radius`, `r`, `x` (`x`, `position`) | `fluence`, `intensity`, `signal`, `y` | |
 | `delayScan` | output energy vs aux delay | `delay`, `x` | `energy`, `signal`, `y` | |
 | `phaseMatchingCurve` | efficiency vs the scan variable | `detuning`, `temperature`, `period`, `wavelength`, `x` | `efficiency`, `signal`, `y` | |
-| `frog` | trace [delay × wavelength] | `delay`, `tau` | `wavelength`, `lambda` | `trace`, `frog` |
+| `frog`, `xfrog` | trace [delay × wavelength] | `delay`, `tau` | `wavelength`, `lambda` | `trace`, `frog` |
 | `dscan` | trace [insertion or GDD × SHG wavelength] | `insertion`, `glass`, `z` (or `gdd`) | `wavelength`, `shg_wavelength`, `lambda` | `trace`, `dscan` |
-| `camera` | fluence image [x × y] | `x` | `y` | `image`, `fluence`, `counts` |
+| `camera` (and its old kinds) | fluence image [x × y] | `x` | `y` | `image`, `fluence`, `counts` |
 | any (values) | scalar values | | | |
 
 A CSV curve may have a `sigma` / `err` / `error` / `std` column with per-point uncertainties (in the y units).
@@ -184,9 +183,9 @@ then called `x`/`y` (or picked with `"columns"`).
 |---|---|---|
 | `file` | | CSV / NPZ / JSON, relative to the run file |
 | `columns` | auto | see above |
-| `normalize` | `peak` | `peak`: the simulation is scaled to a maximum of 1 and the data are scaled onto it by least squares, which is robust against noise on the measured maximum. `maximum`: both divided by their maxima. `area`: both to unit area. `scale`: the simulation times a best-fit factor (reported as `measuredScale`), with the data left in their own units. `none`: absolute comparison (data in SI units of the simulated reading). |
+| `normalize` | `peak` | an unknown value is taken as `peak`. `peak`: the simulation is scaled to a maximum of 1 and the data are scaled onto it by least squares, so noise on the measured maximum does not set the scale. `maximum`: both divided by their maxima. `area`: both to unit area. `scale`: the simulation times a best-fit factor (reported as `measuredScale`), with the data left in their own units. `none` (or `absolute`): absolute comparison (data in SI units of the simulated reading). |
 | `sigma` | 0.02 | uncertainty of each point, relative to the data peak (when there is no sigma column) |
-| `background` | none | a number to subtract, `"min"`, or `"auto"`: for a curve, the median of the first and of the last 5 % of the points, taking the lower (darker) end -- a recording cut off on one side still gives its dark level; for a trace, the median at the edges of the columns. Use a number if your data have signal at both edges. |
+| `background` | none | a number to subtract, `"min"`, or `"auto"`: for a curve, the median of the first and of the last 5 % of the points (see [Background](#background)), taking the lower (darker) end -- a recording cut off on one side still gives its dark level; for a trace, the median at the edges of the columns. Use a number if your data have signal at both edges. |
 | `rangeX` | all | `[min, max]` in SI: compare only this part of the curve |
 | `xUnit`, `yUnit`, `rowUnit`, `colUnit` | from names | unit overrides |
 | `values` | | scalar readings `{name: value}` or `{name: [value, sigma]}`; can be combined with a file |
@@ -208,12 +207,12 @@ thousands of points dominates a scalar reading unless you set `weight`.
 ## Outputs
 
 * `summary.json → comparisons[]`: one entry per measured instrument, with `instrument`, `kind`, `at`, `mode`
-  (`curve`, `trace`, `values`), `points`, `chi2`, `reducedChi2`, `rmsError` (rms of simulated − measured over the
+  (`curve`, `trace`, `values`), `file`, `xAxis` (curves) or `rowAxis` and `colAxis` (traces), `points`, `chi2`, `reducedChi2` (= `chi2` / `points`), `rmsError` (rms of simulated − measured over the
   data peak; for traces this is the FROG "G error"), `normalization`, `values` (measured, simulated, sigma,
   deviation) and `notes`. `summary.json → measuredChi2` is the sum.
-* Instrument values: `measuredChi2`, `measuredRmsError`, `measuredScale` (with `normalize: scale`),
-  `measured.<value>`.
-* Arrays (`result.npz`, `<name>_...`): curves `measured_x`, `measured_y`, `simulated_on_measured`,
+* Instrument values: `measuredChi2`, `measuredRmsError`, `measuredRmsErrorDb` (with `scale: log`), `measuredScale` (with `normalize: scale`),
+  `measured.<value>` (one per scalar reading).
+* Arrays (`result.npz`, `<name>_...`): curves `measured_x`, `measured_y`, `simulated_on_measured` (NaN outside the simulated instrument's range),
   `measured_sigma`; traces `measured_rows`, `measured_cols`, `measured_trace`, `simulated_on_measured`.
 * The CLI prints a χ² / rms line per instrument. `ultrafast-plot` draws `measurements.png`: measured points and
   the simulated curve with the residual, measured / simulated / difference images for traces, and scalar readings
@@ -251,5 +250,20 @@ uf.plot(res, "measurements")                    # measured vs simulated, residua
 | `uf.measured.curve(res, name)`, `uf.measured.trace(res, name)`, `uf.measured.total_chi2(res)` | the compared arrays as NumPy |
 | `ultrafast.plotting.measurements(res)` | the `measurements` figure (`ultrafast-plot` draws it for runs with measured data) |
 
+The Python `b.measured(...)` has no named arguments for `value_weight`, `row_unit` or `col_unit`; pass `valueWeight=`, `rowUnit=`, `colUnit=` as extra keywords (they go through `**extra`).
+
 `ultrafast_fitting.measured` and `ultrafast_fitting.comparisons` (fitting plugin) are the same functions, kept for
 scripts written against earlier versions.
+
+## Validation
+
+* `MeasuredSpectrumTests`: the cleaning steps, the background modes and the comparison rules (overlap only, zero beyond a cropped reading, blurring to a coarser recording).
+* `MeasurementTests.Comparison_DataEqualToTheSimulation_GivesZeroResidual`, `Comparison_Normalisations_AndBackground`, `MeasuredData_CsvUnitsAndColumns`, `MeasuredData_NpzRoundTrip`, `Comparison_MissingFile_IsAWarningNotAFailure`.
+* `MeasurementTests.Fit_RecoversEnergyAndChirp_FromSpectrumAndAutocorrelation`: a fit from a spectrum and an autocorrelation recovers 260 nJ and +120 fs² within 1 % (fitting plugin).
+
+## Limits
+
+* A recording is compared only where the simulated instrument has readings; widen the instrument's `axis` or the grid to compare more.
+* A measured spectrum replaces the input shape and propagates forward only; for the system's response use transform elements ([fitting plugin](../plugins/fitting.md)).
+* For 2-D traces a resolution mismatch is reported, not matched.
+* An unreadable file is a warning (`Instrument X: measured data not compared: ...`), not an error; read the notes.

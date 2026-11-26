@@ -1,7 +1,8 @@
 """``python -m ultrafast_twin`` / ``ultrafast twin``: init, fit, validate, predict, design, track, check, serve.
 
 ``serve FOLDER`` starts the core MCP server (``ultrafast-mcp``, :mod:`ultrafast.mcp`) with FOLDER as its workspace: stdio only, no user code,
-results in ``FOLDER/.ultrafast-mcp``. The twin-specific tools (fit, predict, validate) are on the roadmap (docs/design/roadmap-internal.md)."""
+results in ``FOLDER/.ultrafast-mcp``. Its twin tools: twin_init, twin_fit, twin_validate,
+twin_predict, twin_design and twin_track (docs/reference/mcp.md)."""
 from __future__ import annotations
 
 import argparse

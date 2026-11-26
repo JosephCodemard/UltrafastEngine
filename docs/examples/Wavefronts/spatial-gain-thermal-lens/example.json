@@ -1,0 +1,12 @@
+{
+  "title": "Spatially resolved gain and the thermal lens",
+  "summary": "A 2 ps, 100 µJ pulse at 10 kHz crosses a 4 mm Yb:YAG rod end-pumped by 60 W: the heat load writes a thermal lens of f = 0.54 m into the wavefront, and the beam 0.4 m behind the rod has shrunk from 471 µm to 319 µm.",
+  "group": "Wavefronts",
+  "script": "run.json",
+  "plugins": [],
+  "figures": [
+    "hero.png"
+  ],
+  "wave": 2,
+  "python": true
+}

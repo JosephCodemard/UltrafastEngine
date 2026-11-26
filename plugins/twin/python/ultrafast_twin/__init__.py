@@ -6,7 +6,7 @@ A twin project is a folder (``twin.json``, ``data/``, ``fits/``, ``reports/``). 
 * :class:`TwinProject` -- load, :func:`init` a project (a synthetic lab included), ``fit()``, ``twin()``;
 * :class:`Twin` -- the fitted twin: ``predict`` any condition with credible bands, ``validate``, ``design`` the next experiment,
   ``whatif`` comparisons, ``track`` drift with an ensemble Kalman filter;
-* :mod:`ultrafast_twin.mcp` -- a workspace-scoped MCP server (stdio) for agents; :mod:`ultrafast_twin.goals` -- goal files.
+* the MCP tools `twin_*` of the core server (:mod:`ultrafast.mcp`, `ultrafast twin serve`); :mod:`ultrafast_twin.goals` -- goal files.
 
 Command line: ``ultrafast twin <init|fit|validate|predict|design|track|check|serve>`` or ``python -m ultrafast_twin``.
 Docs: docs/plugins/twin.md.

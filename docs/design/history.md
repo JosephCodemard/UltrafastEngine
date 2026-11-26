@@ -344,6 +344,64 @@ B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy wind
   Unicode symbols. Spaced percent ("3 %", 690 : 1), `1e-9` exponents and ` -- ` dashes are the existing majority and were kept. B2 lints
   against the two tables; C2 and D apply the templates.
 
+## Stage 20 -- WP Q1: mypy as a CI gate  (2026-11-25, `dev/wp-q1`)
+
+`[tool.mypy]` in `python/pyproject.toml` checks `build.py`, the generated `types.py` and `calc/` (other modules are followed silently, not yet gated; `follow_imports = silent`, `check_untyped_defs`, `warn_unused_ignores`). The code was already clean apart from three stale `# type: ignore` comments in `build.py`, now removed; `types.py` needed no generator change. A `mypy` step runs in the CI `python` job and `tests/test_typecheck.py` (skipped without mypy) checks both that the tree is clean and that a seeded return-type error fails. Widening the scope to `core.py`, `plotting/` and `results/` (about 60 errors today) is a later step.
+
+## Stage 21 -- WP Z1: the Zemax plugin's own ZOS-API connection core  (2026-11-25, `dev/wp-z1`, macOS arm64)
+
+The connection of the Windows binding was rewritten as our own code (E19; ZOSPy read online as a guide only). The sequence (NetHelper
+initialisation, connect in interactive / user-extension / standalone mode, licence, version >= 20.1, primary system, file load) and its
+messages live in `UltrafastEngine.Zemax.Sampling/ZosConnectionCore.cs` behind two small interfaces, so `ZemaxConnectionTests` checks them on any
+OS with a fake ZOS-API; `ZosConnection.cs` implements the interfaces over ZOS-API, with the initialisation kept out of methods that name ZOSAPI
+types (the old `Connect` initialised and used ZOSAPI in one method, which can fail to load `ZOSAPI.dll`). Only a standalone instance is closed,
+also after a failed check and on Ctrl+C. `ZosOpticStudio.cs` was split into system access and analyses. Built against the extended stubs
+with Mono reference assemblies on macOS; nothing ran on OpticStudio: `HARDWARE-CHECKLIST.md` step 3b lists what the owner must check.
+
+## Stage 22 -- WP P1: glass in beam splitters  (2026-11-25, `dev/wp-p1`, macOS arm64)
+
+* `beamSplitter` and `polarizingSplitter` take `material`, `transmittedThicknessM` and `reflectedThicknessM` (closing the "beam splitters
+  have no glass" gap of Stage 11). The glass terms (`BulkTerm`, plus `AttenuationTerm` when the material absorbs) sit on
+  `BeamSplitterElement.TransmittedGlass` / `ReflectedGlass` and run after the 2x2 split through `Executor.ApplyTerm`, the same arithmetic as a
+  plate. Sequential systems put the continuing port's frame into `ctx.Own`; Branched systems add each output's glass to its own path
+  ledger in `GraphExecutor.AddGlass` (the side ports start from the unglassed ledger: an early version let them inherit the kept port's
+  glass, which the Mach-Zehnder test caught once the window held the 9.7 ps arm delay). A fed beam on port b in a Sequential system is
+  put in the main beam's frame (`Reframe`). Tail ledgers go through the glass with the splitter coefficient. Splitter + glass equals
+  splitter + ideal-AR plate per arm to 1e-12; no glass runs no new code. Sequential tails cross the continuing port's glass too
+  (`Executor.RunElement`; found by the physics review). Open, not P1: a fed beam on another carrier (1035 nm against 1030 nm) gives a
+  different spectrum in a Sequential and a Branched system even without glass; the fed-beam glass test therefore uses one carrier.
+
+## Stage 23 -- WP G0: PoCL reachable on macOS  (2026-11-25, `dev/wp-g0`, macOS arm64, Apple M3)
+
+The `opencl` back-end loaded only the first library it found, which on a Mac is Apple's `OpenCL.framework` (Apple GPU, no FP64), so
+`GpuTests` skipped. `OpenClApi.LoadAll` now loads the framework and, directly, every vendor library named by an `.icd` file
+(`/opt/homebrew/etc/OpenCL/vendors`, `OCL_ICD_VENDORS`, ...; an ICD loader only when none loads), each device keeps its own API table,
+and platforms seen twice are skipped. `ULTRAFAST_OPENCL_LIBRARY` accepts a list. `ultrafast devices` shows the Apple GPU as single
+precision only (not usable) and Homebrew PoCL 7.2 as `Portable Computing Language cpu` with FP64. The tests already ask for
+`backend: "opencl"` and the first usable device, so no switch was needed: `GpuTests` 20 passed, 0 failed, 0 skipped on PoCL (no kernel
+failures), `devices --selftest` passes. `auto` still never picks a CPU OpenCL device. No `ocl-icd` install was needed.
+
+## Stage 24 -- WP D1: Python next to the CLI in the example READMEs  (2026-11-26, `dev/wp-d1`, macOS arm64)
+
+* **Tabs:** `pymdownx.superfences` + `pymdownx.tabbed` (`alternate_style`) in `mkdocs.yml`, with `pymdownx.highlight: use_pygments: false`
+  so code blocks keep `<code class="language-x">` for the readthedocs theme's highlight.js (every page's HTML compared before / after: same
+  blocks, only a `highlight` class and a trailing newline differ). The theme has no tab CSS: it is in `docs/css/brand.css`. CI and
+  `docs.yml` now install `pymdown-extensions`.
+* **Convention** (`docs/style.md` "Run it", `_template.md`): a `**Run it**` paragraph between Layout and What it shows, tabs `=== "CLI"`
+  and `=== "Python"`; the Python tab is a complete program with the builders (typed dicts) and `uf.System.load` of the example's `.ufs`,
+  printing the CLI's line in the CLI's format (.NET `G4` = Python `.4G`). Marker: an HTML comment line `<!-- snippet -->` (or
+  `<!-- snippet slow -->`) before the fence -- chosen over a fence attribute because Python-Markdown passes the comment through invisibly
+  and no extension is needed; `build/readme_snippets.py` parses it and rejects a marker without its block.
+* **Checks:** `python/tests/test_readme_snippets.py` runs each snippet in a temporary copy of its folder at quick fidelity (added as text
+  to every run-spec JSON of the copy, and to dict specs by patching `ultrafast.core.Run.__init__` in a prelude) with
+  `ULTRAFAST_STRICT_OPTIONS=1`; `build/example_check.py` also runs the snippets (full fidelity) so the Python tab's quoted output is
+  checked; `build/example_lint.py` requires the tabs and a snippet when `example.json` has the new optional `"python": true` (chosen over
+  a `wave` threshold: explicit per example, independent of the conversion wave).
+* **Converted:** `GettingStarted/quickstart` (new `two-plates.ufs` + `run.json` equal to the builders, so it has a CLI tab) and
+  `GettingStarted/spm-plate` (`script` = `run.json`; hand check of B: 0.669 rad from the waist intensity against 0.667 from the run).
+  Both tabs print identical numbers to the CLI; `example_check` reproduces every quoted line. The per-example D2 instructions are in the
+  D2 row of `roadmap-internal.md`.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
@@ -353,3 +411,75 @@ B (8-15 % off with Raman); `limitations.md` notes that the main-lobe energy wind
 * **Windows machine (owner's):** `python3` is the Microsoft Store stub, use `python` from `../.venv`; HTTPS certificate checks fail for git and pip because the antivirus inspects TLS: the repository has `http.sslBackend schannel` (local config), and pip takes `--cert` with a bundle of the Windows roots exported from `Cert:\LocalMachine\Root`.
 * **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
 * **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.
+
+## Stage 25 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
+
+* `build/style_lint.py` parses the banned-filler, British-spelling and term tables of `docs/style.md` (nothing is duplicated in code), strips
+  code, inline code, HTML, link targets and URLs, and reports `file:line: rule`. Entries with a qualifier it cannot judge ("(as a noun)",
+  "(the unit)", a whole cell containing one) are skipped; `just (as in "just run")` is matched as `just run`. The -ize forms are derived from
+  the -ise forms of their row. The `units` rule checks numeric values under unit-less keys in JSON blocks with a short exception list.
+* Baseline `build/style_lint_baseline.txt`: 59 hits (31 term, 17 filler, 11 spelling, 0 units after the exceptions), keyed by path, rule, match and a
+  hash of the line, so moving a line keeps it allowed and editing it does not. CI runs the linter in `docs-and-examples`; `--update-baseline`
+  shrinks the file once the prose is fixed (C2 and D do that). `docs/style.md` and `docs/design/notes/` are not scanned.
+
+## Stage 26 -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
+
+Rewrote `calculators.md`, `pulse-calculator.md`, `plotting.md` and `mcp.md` to the reference template (Keys, Model, Validation, Limits) and corrected `concepts.md` and `capabilities.md`. Each of the 40 rows of `notes/reference-audit-f.md` was re-checked against the source and closed with a resolution column (40 fixed, none kept, none found wrong); seven code-side findings are listed in the audit's section "Code findings for WP C4" (no code edited). Plotting history text (work-package names, "before" images) was removed. `mkdocs build --strict` gives 0 warnings.
+
+## Stage 27 -- WP C2e: reference pages of group e  (2026-11-25, `dev/wp-c2e`)
+
+Rewrote `instruments.md`, `retrieval.md`, `measured-data.md`, `results.md` and `studies.md` to the B1 reference template (Keys, Model or behaviour, Validation with test names, Limits) and closed all rows of `reference-audit-e.md` (column "resolution"). Each audit row was re-checked against the source: the page claim on the main lobe at the window edge was stale (A2 made it a finite lower bound, not null), the audit's own row on it was wrong, as were its rows on the study `element:ID*` wildcard (only the prefix-cache lookup uses it) and on imaging instruments not ignoring `sampling` (the executor skips it and adds a note). The 18-row instrument key table became a table of reported values with links to `options.md`; the `240 fs to 26 fs` floor example was replaced by what `MeasuredSpectrumTests` asserts. Anchors other pages and `options.md` link to were kept. `mkdocs build --strict`: 0 warnings.
+
+## Stage 28 -- WP AG1: user agent pack split from the development rules  (2026-11-26, `dev/wp-ag1`, macOS arm64)
+
+* The pack (`python/src/ultrafast/agents/pack/`) gained `AGENTS.md` (how to drive the engine: files, discovery commands, running, results, habits, MCP) and `llms.txt` (index with documentation-site URLs only). One source each: the Python wheel ships them (`package-data`) and the CLI embeds the same files, so `ultrafast agent install` and `ultrafast-agent install` stay byte-identical. The repository `AGENTS.md` / `CLAUDE.md` / `llms.txt` are untouched and are not copies.
+* Install layout (decision): claude `.claude/ultrafast/AGENTS.md`; cursor an `alwaysApply` rule `ultrafast-guide.mdc`; codex the guide as the first part of the marked block; all `.ultrafast/llms.txt`. Claude Code does not read a nested AGENTS.md, so the docs tell the user to import it from `CLAUDE.md`; the installer never edits the user's files.
+* `test_agents.py`: `REPO_TERMS` (BuiltIn, CHANGELOG, /regen, worktree, Experiments, ZOSAPI, dotnet build, ...) is searched in every pack file and every installed file; the installed pack must hold the guide. `sync_skills.py --check` fails when the two files are missing.
+
+## Stage 29 -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
+
+* Rewrote `system-file`, `run-spec`, `schema`, `cli`, `c-api`, `python`, `plugins` and `extending` to the reference template (Keys, Validation, Limits) and added a resolution column to every row of the group-a audit: 125 rows: 83 fixed on the page (of them 3 also with a code finding), 4 code findings only, 38 kept (page already right, or the audit was wrong). Each finding was re-checked against the source and the built CLI.
+* The audit was wrong twice: `crystal` does declare `chi3` and `n2` (the long `ionization` line in `BuiltInElements.cs:268` hides them; strict validation accepts both), and `ultrafast.System` and `ultrafast.system.System` are one class. Its exit-code row was incomplete: `ultrafast validate` returns 3 for an invalid file.
+* Code findings (nine, C4-1 to C4-9, in the audit file; no code was changed): the registry disagrees with the compiler on `system.version`, `bulk.dispersionSource` and `crystal.seedNoise`; `topology` is undeclared and top-level keys are unchecked; `DocAt` links point at three pages that do not exist (`elements.md`, `solvers.md`, `spatial-models.md`); `substrates` is missing from the known-key set.
+
+
+## Stage 30 -- WP AG3: transcript adapters for Codex and Cursor in the agent-eval runner  (2026-11-26, `dev/wp-ag3`)
+
+`tests/agent-evals/run_live.py` now has an adapter layer: `parse_claude` (the old reader), `parse_codex` (`codex exec --json`) and `parse_cursor` (`cursor-agent -p --output-format stream-json`) return the same trace, final answer and files written; `--agent claude|codex|cursor` runs the agent, `--transcript FILE` scores a saved transcript without running anything (format detected). The vendors document the event names and the message types but not the MCP tool-call item (Codex) or the MCP tool-call object (Cursor); those fields follow the open-source event definitions and observed output, are marked as such in the docstrings and the evals section of `docs/reference/mcp.md`, and are the place to fix if a CLI version differs. Owner decision kept: no model was called; `run_codex` and `run_cursor` are untested until the owner runs them. Twelve hand-made replays (two evals, pass and fail variants, three formats) and `python/tests/test_agent_eval_adapters.py` check identical traces and verdicts in all formats.
+
+## Stage 31 -- WP D2-Wavefronts: Wavefronts examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-wavefronts`, macOS arm64)
+
+* Both examples of the group (`position-dependent-index`, `spatial-gain-thermal-lens`) now have the template README (`**Run it**` with `=== "CLI"` and `=== "Python"`, snippet marker), `example.json` (`wave` 2, `python` true) and an updated row in `docs/examples/README.md`; the old "16 --" / "15 --" prefixes left the titles. No engine code changed.
+* The Python tab of the rod example runs both pump powers in one loop (the 5 W run is an `overrides` entry built with `b.override` and `b.pump`). All quoted numbers reproduce; the only change is the absorbed pump at 5 W (4.05 W printed as 4.1 W).
+* Checks: `example_lint`, `example_check` (0 not reproduced), the snippet tests, `style_lint` and `mkdocs build --strict` (0 warnings) are green.
+
+## Stage 32 -- WP AG2: twin_design, twin_track and twin_init on the MCP server  (2026-11-26, `dev/wp-ag2`, macOS arm64)
+
+* Three tools in `python/src/ultrafast/mcp/tools.py` (schemas and policy), `ops.py` (worker) and the server: `twin_design` calls
+  `ultrafast_twin.design` (`energy_candidates`, `placement_candidates`, `rank_candidates`), `twin_track` calls `DriftTracker`, `twin_init` calls
+  `ultrafast_twin.init`; no physics was reimplemented. Reports go to the project's `reports/design.json` / `track.json`, as with the CLI.
+* Decisions: (1) the server lists **16** tools, not the 15 of the roadmap row: `twin_init` is a tool of its own (no existing tool could carry it), and the row's count did not include it.
+  (2) Limits: 12 candidates and 240 engine runs (candidates x (parameters + 1), checked in the worker where the parameter count is known) per `twin_design`; 12 recordings and
+  192 runs (members x recordings), members 4 to 32 per `twin_track`; placement candidates are counted from the project's system in the policy. (3) `twin_design` and
+  `twin_track` take `timeBudgetS` like `fit`; the server now caps any `timeBudgetS` by its budget in one place (`_LONG_OPS`). (4) A `set` value is a number, or an element id
+  for `instrument:NAME/at` only. (5) Recording paths are relative to the project folder (like `twin.json`'s `data`), not to the workspace. (6) The tracker keeps no state
+  between calls: one call takes every recording since the fit. (7) `twin_init` refuses an existing `twin.json` without `force`, a file, and `.ultrafast-mcp/`.
+* Tests (`test_mcp.py`, 70 -> 112 with the parametrised cases): 37 refusals, the budget test for both tools (killed, next call works, capped by the server budget), and the
+  synthetic lab end to end through the real server (1.5 s). The agent-pack skills do not list MCP tools, so they were not changed. mypy's gate does not cover `mcp/`
+  (three old errors in `server.py` `_meta` handling stay outside it).
+
+## Stage 33 -- WP D2-LaserSystems: LaserSystems examples to the template with a CLI and a Python tab  (2026-11-26, `dev/wp-d2-lasersystems`, macOS arm64)
+
+* All ten examples of the group have the template README (`**Run it**` with `=== "CLI"` and `=== "Python"`, snippet marker), `example.json` (`wave` 2, `python` true) and the interface column "CLI + Python" in `docs/examples/README.md`; the old numbers left the titles. No engine code changed.
+* Several results per chain: every quoted number was kept and re-checked (oscillator, amplifier, compressor lines of `yb-laser-system`; the two runs of `shg-lbo`; run and study of `contrast-chain`). Numbers that moved: stretched pulse of `stretcher-compressor` 233.6 ps (was 232.6), GDD of `four-grating-compressor` -1547449 fs2 (was -1547462; now equal to Treacy), compressed pulse of `nopcpa-bbo` 24.0 fs (was 23.8), stretched pulse of `yb-laser-system` 131 ps (was 130), floor of the correlator in `contrast-chain` -56.5 dB (was -58; the figure line moved, `contrast-chain.png` redrawn). The Yb:YAG amplifier of `yb-multipass-cpa` gives 1.46 mJ before and 1.04 mJ after the compressor; the README table quotes the former and the CLI line the latter, both now stated.
+* `nopcpa-bbo` reads the results of `shg-lbo`: its Python tab first runs `../shg-lbo` and writes `../shg-lbo/results` (a file outside the example's own folder, the one exception to the "no files outside the folder" rule). `python/tests/test_readme_snippets.py` therefore copies the folders listed in `build/examples_cli.py` `DEPENDS` next to the example.
+* Checks: `example_lint` (all 28 folders), `example_check LaserSystems` (0 not reproduced), the ten snippet tests, `style_lint` and `mkdocs build --strict` are green. `example_lint` on a group folder reports "no example.json" (also for Wavefronts); lint with no argument or with an example folder.
+
+
+## Stage 34 -- WP C2b: reference pages of group b (nonlinear, ionisation, delayed light, gases, fibres, gain, oscillators)  (2026-11-26, `dev/wp-c2b`)
+
+* Rewrote the seven pages to the reference template (Keys with links to `options.md`, Model, Validation with test names and asserted tolerances, Limits) and added a resolution column to all 40 rows of the group-b audit: 40 fixed on the page (6 of them also with a code finding), none kept as wrong-audit; one parenthesis of history kept in `nonlinear.md` (the GPU averaged B-integral before 2026-11-24), as `docs/style.md` allows. Every anchor that other pages or the schema link to exists (`gain.md#the-amplifier-element` is new; `nonlinear.md#cubic-anisotropy` kept by an HTML anchor; `materials.md` now links `#cubic-anisotropy-xpw`).
+* The audit was partly wrong once (I4): the solid valence densities are not all 2.1e28 m^-3 and the generic solid entry uses m* = 0.635, not 0.5. Re-verified: `absorption: false` does drop the ionisation loss (I1, the audit was right).
+* Physics review (`physics-reviewer`): no physics errors; six precision fixes applied (echo-delay table with the Malitson n_g = 1.4627, also in the `engine-physics` skill; `linAgrawal` symbols and default b = (fb + fc)/(fa + fb + fc); fibre fR fallback; loss < 1; ripple clamp; remaining neutrals in the ionisation loss).
+* Code findings C4-b1 to C4-b7 (no code changed): `stepper` links `solvers.md`; `oscillator` element keys declared where the code ignores them; `pumpDurationS` declared in `pump` but read on the element; gain-element `n2` undeclared; pump `order` / `kind` defaults; a gas avalanche switched on by `collisionTimeS`; a test reference string with n_g 1.4635.
+

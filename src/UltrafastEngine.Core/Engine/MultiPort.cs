@@ -11,6 +11,8 @@
 //     Complex Overlap(PathLedger a, PathLedger b)                  mode overlap of two tracked Gaussian beams
 //   class BeamSplitterElement : IMultiPortElement                  the splitter family: c = t a - r b, d = r a + t b
 //     (Complex X, Complex Y) Coefficient(inPort, outPort, omega, omegaRef)
+//     List<LinearTerm> TransmittedGlass, ReflectedGlass            glass on each path (beamSplitter / polarizingSplitter material)
+//     DispersionPoint GlassDispersion(inPort, outPort, grid)        the frame and dispersion that glass takes out, for the path ledger
 //   class BeamTiltElement : IActiveElement                         misalignment of an arm
 //   class DelayTerm : PhaseTerm                                    a pure delay, phase omega tau
 //
@@ -229,6 +231,56 @@ namespace UltrafastEngine.Engine
             _a = a; _b = b; _c = c; _d = d; ContinuingPort = continuingPort; _virtual = virtualOnB;
         }
 
+        /// <summary>Glass on the transmitted (a -> c, b -> d) and reflected (a -> d, b -> c) paths, applied after the 2x2 split as the
+        /// terms of a plate would be (co-moving frame). Empty: no glass, and the element runs exactly as without it.</summary>
+        public List<LinearTerm> TransmittedGlass { get; } = new List<LinearTerm>();
+        public List<LinearTerm> ReflectedGlass { get; } = new List<LinearTerm>();
+        public bool HasGlass => TransmittedGlass.Count > 0 || ReflectedGlass.Count > 0;
+        /// <summary>The input a Sequential system's pulse arrives on (a, or "in" for a leakMirror).</summary>
+        public string MainInput => _a;
+
+        /// <summary>The glass terms on the path from <paramref name="inPort"/> to <paramref name="outPort"/>.</summary>
+        public List<LinearTerm> GlassOn(string inPort, string outPort)
+        {
+            bool onB = string.Equals(inPort, _b, StringComparison.OrdinalIgnoreCase), toC = string.Equals(outPort, _c, StringComparison.OrdinalIgnoreCase);
+            return onB == toC ? ReflectedGlass : TransmittedGlass;
+        }
+
+        /// <summary>Dispersion, carrier phase and group delay the glass of one path takes out of the field on grid <paramref name="g"/>
+        /// (the sum of the terms as <see cref="Executor"/> reports them; zero without glass). A Branched system adds it to the path
+        /// ledger of each output, as it would after a plate.</summary>
+        public DispersionPoint GlassDispersion(string inPort, string outPort, FrequencyGrid g)
+        {
+            var own = new DispersionPoint();
+            foreach (var t in GlassOn(inPort, outPort)) { var d = Executor.Reported(t, g); if (!double.IsNaN(d.GroupDelayS)) own += d; }
+            return own;
+        }
+
+        private PulseField ThroughGlass(PulseField p, string inPort, string outPort, ElementRecord rec, ref DispersionPoint own)
+        {
+            var terms = GlassOn(inPort, outPort);
+            if (terms.Count == 0) return p;
+            var axis = OmegaAxis.FromGrid(p.Grid);
+            foreach (var t in terms) p = Executor.ApplyTerm(p, t, axis, rec, ref own);
+            return p;
+        }
+
+        /// <summary>A fed beam's glass ran in its own grid's frame (<paramref name="own"/>); put it in the main beam's (<paramref name="main"/>,
+        /// about <paramref name="omega0"/>) so the two add coherently: times exp(i (phi_v + tau_v (w - w_v)) - i (phi_m + tau_m (w - w0))).</summary>
+        private static PulseField Reframe(PulseField v, DispersionPoint own, DispersionPoint main, double omega0)
+        {
+            if (own.FramePhaseRad == main.FramePhaseRad && own.FrameDelayS == main.FrameDelayS && v.Grid.OmegaCenter == omega0) return v;
+            int n = v.Grid.N; double wv = v.Grid.OmegaCenter;
+            var ax = new Complex[n]; var ay = new Complex[n];
+            for (int i = 0; i < n; i++)
+            {
+                double w = v.Grid.OmegaAbsolute[i];
+                var f = Complex.FromPolarCoordinates(1, (own.FramePhaseRad - main.FramePhaseRad) + own.FrameDelayS * (w - wv) - main.FrameDelayS * (w - omega0));
+                ax[i] = v.Ax[i] * f; ay[i] = v.Ay[i] * f;
+            }
+            return v.WithSpectrum(ax, ay);
+        }
+
         public string Kind { get; }
         public string Description => Kind;
         public double OutputOmega0 => double.NaN;
@@ -279,6 +331,8 @@ namespace UltrafastEngine.Engine
         {
             string port = ctx.InputPort ?? _a;
             var c = Through(p, port, _c); var d = Through(p, port, _d);
+            DispersionPoint glassC = new DispersionPoint(), glassD = new DispersionPoint();
+            if (HasGlass) { c = ThroughGlass(c, port, _c, ctx.Record, ref glassC); d = ThroughGlass(d, port, _d, ctx.Record, ref glassD); }
             if (_virtual != null && !ctx.InGraph)
             {
                 // the fed beam is built on a grid around its own carrier (as in a Branched system), passed through the splitter at its
@@ -289,6 +343,12 @@ namespace UltrafastEngine.Engine
                 v = v.WithSpectrum(v.Ax.Select(z => z * f).ToArray(), v.Ay.Select(z => z * f).ToArray());
                 ctx.Record.EnergyInJ += v.TotalEnergyJ();
                 var vc = Through(v, _b, _c); var vd = Through(v, _b, _d);
+                if (HasGlass)
+                {
+                    DispersionPoint vgc = new DispersionPoint(), vgd = new DispersionPoint();
+                    vc = Reframe(ThroughGlass(vc, _b, _c, ctx.Record, ref vgc), vgc, glassC, p.Grid.OmegaCenter);
+                    vd = Reframe(ThroughGlass(vd, _b, _d, ctx.Record, ref vgd), vgd, glassD, p.Grid.OmegaCenter);
+                }
                 if (!ReferenceEquals(vg, p.Grid))
                 {
                     double before = vc.TotalEnergyJ() + vd.TotalEnergyJ();
@@ -307,6 +367,8 @@ namespace UltrafastEngine.Engine
             string otherPort = keepC ? _d : _c;
             ctx.Byproduct(otherPort, other);
             ctx.Own += PortDispersion(port, ContinuingPort, p.Grid.OmegaCenter);
+            // the glass frame of the continuing port; a Branched system adds each output's own to its path ledger (GraphExecutor)
+            if (HasGlass && !ctx.InGraph) ctx.Own += keepC ? glassC : glassD;
             if (!ctx.InGraph) Executor.AddLoss(ctx.Record, "port " + otherPort + " (not tracked)", other.TotalEnergyJ());
             return keepC ? c : d;
         }

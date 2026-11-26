@@ -185,6 +185,53 @@ optionally `animation.gif`), **Layout** (the parameters that matter, in SI with 
 the script's output as printed (it must match a fresh run: `/example-check`), **What it shows.** (each number against its
 reference), **Limits.** (what is left out; links). Model: [Raman self-frequency shift](examples/Fibres/raman-soliton-shift/README.md).
 
+**Run it** (examples with `"python": true` in `example.json`; all examples once the D2 work packages are done) sits between **Layout**
+and **What it shows.**: two content tabs that run the same simulation and print the same key numbers. Model:
+[SPM in a fused-silica plate](examples/GettingStarted/spm-plate/README.md).
+
+````markdown
+=== "CLI"
+
+    ```bash
+    ultrafast run plate.ufs run.json -o results     # about 1 s
+    ```
+
+    ```
+    energy 3.984E-06 J (T = 99.60 %), FWHM 251.5 fs (TL 183.6 fs), peak 1.491E+07 W, B = 0.667 rad
+    ```
+
+=== "Python"
+
+    <!-- snippet -->
+    ```python
+    import ultrafast as uf
+    from ultrafast import build as b
+
+    system = uf.System.load("plate.ufs")           # the example's own system file
+    spec = b.run_spec(b.pulse(1.03e-6, 250e-15, energy=4e-6), ...)   # run.json with the builders
+    res = uf.run(system, spec)
+    print(f"  energy {res.summary['output']['energyJ']:.4G} J ...")  # the CLI's line, in its format
+    ```
+
+    ```
+    the same line, as printed
+    ```
+````
+
+* **CLI tab:** `ultrafast run <system>.ufs <run>.json -o results` when the example has (or can be given) a system file and a run spec;
+  an example that is a Python analysis runs its script there (`python script.py`). Its output block quotes the lines of the CLI with the
+  key numbers.
+* **Python tab:** a complete program that runs in the example folder. The builders of `ultrafast.build` for everything written in
+  Python (they return the typed dicts of `ultrafast.types`, so an editor completes every argument and key; no raw dicts where a builder
+  exists), `uf.System.load` for the example's own `.ufs`. It prints the same key numbers in the CLI's format (`.4G`; B-integral `.3G`;
+  transmission `.2f} %`) and its output block quotes them.
+* **The snippet marker:** the line `<!-- snippet -->` directly before the ```` ```python ```` fence, at the same indentation (four spaces
+  inside a tab); `<!-- snippet slow -->` for a snippet that takes more than about a minute at quick fidelity. The comment does not show on
+  the site. `python/tests/test_readme_snippets.py` runs every marked block at quick fidelity with `ULTRAFAST_STRICT_OPTIONS=1` (slow ones
+  with `ULTRAFAST_SLOW=1`); `build/example_check.py` runs them at full fidelity and checks the quoted output; `build/example_lint.py`
+  requires the tabs and a snippet when `example.json` has `"python": true`. A ```` ```python ```` block without the marker is not run (a
+  fragment).
+
 ### Tutorial (`docs/tutorials/NN-<name>.md`)
 
 ```markdown
@@ -209,10 +256,30 @@ Two or three changes to make, each with the effect to expect ("energyJ 400e-9: t
 Next: [Tutorial N+1 -- <title>](NN-<name>.md).
 ```
 
+## Running the linter
+
+```bash
+python3 build/style_lint.py                    # scans docs/**/*.md; exit 1 on a hit that is not in the baseline
+python3 build/style_lint.py docs/concepts.md   # one file or folder
+python3 build/style_lint.py --update-baseline  # after fixing old hits: shrink build/style_lint_baseline.txt
+```
+
+It reads the three tables above (banned filler, British spelling, term list) -- change a table and the linter changes with it.
+Output lines are `file:line: rule: "match" (what to write)` with the rules `filler`, `spelling`, `term` and `units`. Only prose is
+checked (code blocks, inline code, HTML tags, link targets and URLs are removed first). Table entries with a qualifier the linter
+cannot judge ("(as a noun)", "(the unit)") are skipped. The `units` rule flags a number under a JSON-block key that has no unit
+suffix (`"wavelength": 1030e-9` instead of `"wavelengthM"`); counts, ratios and flags are listed in `UNIT_EXCEPTIONS` in the script.
+
+Hits that existed when the linter was added are in `build/style_lint_baseline.txt` (moving a line does not matter; changing it does).
+A new hit fails the `docs-and-examples` CI job. Fix the prose; if a line must keep its wording (a quoted title), end it with
+`<!-- style: ignore -->`. `docs/style.md` itself, the generated reference files and `docs/design/notes/` are not scanned.
+A test in `python/tests/test_style_lint.py` checks that a seeded violation fails.
+
 ## Checklist before a commit
 
 1. Spelling and terms follow the two tables above (prose only; code keeps its declared names).
 2. Every number has a unit and, if it is a result, its reference and agreement.
 3. No banned filler; no "we"; present tense.
 4. Messages: what, where, fix; ASCII.
-5. Page in `mkdocs.yml` and `llms.txt`; `python3 -m mkdocs build --strict` with 0 warnings.
+5. `python3 build/style_lint.py` is green.
+6. Page in `mkdocs.yml` and `llms.txt`; `python3 -m mkdocs build --strict` with 0 warnings.

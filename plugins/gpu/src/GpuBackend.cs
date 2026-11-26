@@ -384,22 +384,22 @@ namespace UltrafastEngine.Plugins.Gpu
     /// PoCL for testing).</summary>
     public sealed class OpenClBackend : GpuBackend
     {
-        private OpenClApi _api;
+        private List<OpenClApi> _apis = new List<OpenClApi>();
         private List<OpenClDeviceRef> _refs = new List<OpenClDeviceRef>();
         public override string Name => "opencl";
         public override int Priority => 10;
 
         protected override string Discover(List<ComputeDeviceInfo> devices, List<string> notes)
         {
-            _api = OpenClApi.TryLoad(out var why);
-            if (_api == null) return why;
-            notes.Add("OpenCL " + System.IO.Path.GetFileName(_api.Lib.Path));
-            _refs = OpenClDevices.List(_api, out why);
+            _apis = OpenClApi.LoadAll(out var why);
+            if (_apis.Count == 0) return why;
+            notes.Add("OpenCL " + string.Join(" + ", _apis.Select(a => System.IO.Path.GetFileName(a.Lib.Path))));
+            _refs = OpenClDevices.List(_apis, out why);
             devices.AddRange(_refs.Select(r => r.Info));
             return _refs.Count == 0 ? why : null;
         }
 
         protected override bool AutoEligible(int index) => !_refs[index].IsCpu || Environment.GetEnvironmentVariable("ULTRAFAST_OPENCL_ALLOW_CPU") == "1";
-        protected override GpuContext CreateContext(int index) => new OpenClContext(_api, _refs[index]);
+        protected override GpuContext CreateContext(int index) => new OpenClContext(_refs[index].Api, _refs[index]);
     }
 }

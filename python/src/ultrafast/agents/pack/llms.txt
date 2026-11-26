@@ -1,0 +1,43 @@
+# UltrafastEngine
+
+> Engine for nonlinear ultrafast pulse propagation through optical systems (stretchers, compressors, plates, gas cells, crystals, amplifiers, oscillators, interferometers), with a command line (`ultrafast`), a C API, a Python package (`ultrafast`) and plugins. Inputs: a system file (.ufs) and a run spec (run.json); outputs: summary.json, result.npz. Install: `pip install --pre ultrafast-engine`.
+
+Start with the agent guide, then the reference page for what you write. Every page is on https://josephcodemard.github.io/UltrafastEngine/ .
+
+## Start here
+- [For AI agents](https://josephcodemard.github.io/UltrafastEngine/agents/): how to write system files and run specs, run, read results, MCP server
+- [Getting started](https://josephcodemard.github.io/UltrafastEngine/getting-started/)
+- [Concepts: units, sign conventions, grids](https://josephcodemard.github.io/UltrafastEngine/concepts/)
+- [Capabilities and limitations](https://josephcodemard.github.io/UltrafastEngine/capabilities/)
+- [Tutorials](https://josephcodemard.github.io/UltrafastEngine/tutorials/)
+- [Examples](https://josephcodemard.github.io/UltrafastEngine/examples/)
+
+## Reference
+- [System file](https://josephcodemard.github.io/UltrafastEngine/reference/system-file/)
+- [Run spec](https://josephcodemard.github.io/UltrafastEngine/reference/run-spec/)
+- [Option reference: every option with unit and default](https://josephcodemard.github.io/UltrafastEngine/reference/options/)
+- [Optical components](https://josephcodemard.github.io/UltrafastEngine/reference/components/)
+- [Materials](https://josephcodemard.github.io/UltrafastEngine/reference/materials/)
+- [Nonlinear physics and solvers](https://josephcodemard.github.io/UltrafastEngine/reference/nonlinear/)
+- [Branched systems](https://josephcodemard.github.io/UltrafastEngine/reference/branches/)
+- [Instruments](https://josephcodemard.github.io/UltrafastEngine/reference/instruments/)
+- [Measured data](https://josephcodemard.github.io/UltrafastEngine/reference/measured-data/)
+- [Parameter studies](https://josephcodemard.github.io/UltrafastEngine/reference/studies/)
+- [Fidelity: quick, standard, full](https://josephcodemard.github.io/UltrafastEngine/reference/fidelity/)
+- [Results](https://josephcodemard.github.io/UltrafastEngine/reference/results/)
+- [Command line](https://josephcodemard.github.io/UltrafastEngine/reference/cli/)
+- [Python](https://josephcodemard.github.io/UltrafastEngine/reference/python/)
+- [Calculators (`ultrafast.calc`)](https://josephcodemard.github.io/UltrafastEngine/reference/calculators/)
+- [MCP server and agent pack](https://josephcodemard.github.io/UltrafastEngine/reference/mcp/)
+- [Speed and compute back-ends](https://josephcodemard.github.io/UltrafastEngine/reference/speed/)
+- [Memory](https://josephcodemard.github.io/UltrafastEngine/reference/memory/)
+
+## Plugins
+- [Fitting](https://josephcodemard.github.io/UltrafastEngine/plugins/fitting/)
+- [Adaptive optics](https://josephcodemard.github.io/UltrafastEngine/plugins/ao/)
+- [Digital twin](https://josephcodemard.github.io/UltrafastEngine/plugins/twin/)
+- [GPU](https://josephcodemard.github.io/UltrafastEngine/plugins/gpu/)
+
+## Optional
+- [Testing and validation](https://josephcodemard.github.io/UltrafastEngine/testing/)
+- [Paper replications](https://josephcodemard.github.io/UltrafastEngine/papers/)

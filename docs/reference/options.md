@@ -225,6 +225,9 @@ Also accepts: `elementCommon` (see *Common key groups*).
 | `reflectivity` | number |  | 0.5 | Power reflectivity R |
 | `output` | string |  | c | Port that continues in a Sequential system (c, d; also transmitted, reflected) |
 | `side` | integer |  | 1 | Side the light meets: 2 reverses the sign of r (Michelson return) |
+| `material` | string |  |  | Glass of the splitter (plate substrate or cube); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path |
+| `transmittedThicknessM` | number | m | 0 | Glass path length of the transmitted beam (a -> c, b -> d) |
+| `reflectedThicknessM` | number | m | 0 | Glass path length of the reflected beam (a -> d, b -> c) |
 
 ### `bulk` (also `medium`)
 
@@ -778,6 +781,9 @@ Also accepts: `elementCommon` (see *Common key groups*).
 | `reflectivityS` | number |  | 1 | Power reflectivity of y |
 | `output` | string |  | c | Port that continues in a Sequential system (c, d) |
 | `side` | integer |  | 1 | 2 reverses the sign of r |
+| `material` | string |  |  | Glass of the splitter (a cube's prisms, a plate's substrate); with transmittedThicknessM / reflectedThicknessM its dispersion is applied on each path |
+| `transmittedThicknessM` | number | m | 0 | Glass path length of the transmitted beam (a -> c, b -> d) |
+| `reflectedThicknessM` | number | m | 0 | Glass path length of the reflected beam (a -> d, b -> c) |
 
 ### `prism`
 

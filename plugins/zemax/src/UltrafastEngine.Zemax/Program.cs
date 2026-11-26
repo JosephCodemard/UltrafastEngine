@@ -28,10 +28,13 @@ namespace UltrafastEngine.Zemax
   UltrafastEngine.Zemax selftest
         Export the built-in fake systems (no OpticStudio needed) and run them.
 
-  connection:  (default) attach to OpticStudio in Interactive Extension mode
-               (in OpticStudio: Programming > Interactive Extension, then run this program)
-               --standalone --file <lens.zos>   start a private OpticStudio and load a file
+  connection:  --interactive (default)          attach to OpticStudio in Interactive Extension mode
+                   (in OpticStudio: Programming > Interactive Extension, then run this program)
+               --instance <n>                   Interactive Extension instance number (default 0)
+               --standalone --file <lens.zos>   start a private OpticStudio, load a file, close it on exit
+               --extension                      started by OpticStudio as a User Extension
                --opticstudio <install dir>      if the installation is not found automatically
+               --skip-version-check             try an OpticStudio older than the supported minimum (20.1)
 
 The system file can then be run anywhere (Windows/macOS/Linux):  ultrafast run system.ufs run.json -o out
 Docs: docs/plugins/zemax.md";
@@ -46,7 +49,12 @@ Docs: docs/plugins/zemax.md";
 #endif
             try
             {
-                switch (args[0].ToLowerInvariant())
+                string cmd = args[0].ToLowerInvariant();
+                // ZOSAPI_NetHelper must hook the resolution of OpticStudio's assemblies before a command method that names a ZOSAPI
+                // type is compiled (ZosConnection.cs). A failure is reported with its message by ZosSession.Open, not here.
+                if (cmd == "export" || cmd == "run" || cmd == "info" || cmd == "thermal-lens")
+                    try { ZosApiInitializer.Initialize(ConnectionOptions.FromArgs(args).OpticStudioDirectory); } catch { }
+                switch (cmd)
                 {
                     case "export": return Export(args, runAfter: false);
                     case "run": return Export(args, runAfter: true);
@@ -55,6 +63,12 @@ Docs: docs/plugins/zemax.md";
                     case "selftest": return SelfTest();
                     default: Console.Error.WriteLine("unknown command '" + args[0] + "'\n\n" + Usage); return 1;
                 }
+            }
+            catch (ZosConnectionException ex)
+            {
+                Console.Error.WriteLine("error: " + ex.Message);
+                if (args.Contains("--verbose")) Console.Error.WriteLine(ex);
+                return ex.Failure == ZosConnectionFailure.InvalidArguments ? 1 : 4;
             }
             catch (Exception ex)
             {
@@ -68,7 +82,7 @@ Docs: docs/plugins/zemax.md";
 
         private static string[] Positional(string[] a)
         {
-            var valued = new HashSet<string> { "-o", "--out", "--file", "--opticstudio", "--save-sample", "--record" };
+            var valued = new HashSet<string>(ConnectionOptions.ValuedFlags) { "-o", "--out", "--save-sample", "--record", "--element", "--surface" };
             var r = new List<string>();
             for (int i = 1; i < a.Length; i++)
             {
@@ -81,10 +95,10 @@ Docs: docs/plugins/zemax.md";
 
         private static ZosConnection Connect(string[] a)
         {
-            bool standalone = a.Contains("--standalone") || Opt(a, "--file") != null;
-            var c = ZosConnection.Connect(standalone ? ConnectionMode.Standalone : ConnectionMode.Extension, Opt(a, "--opticstudio"));
-            if (Opt(a, "--file") != null) c.Load(Path.GetFullPath(Opt(a, "--file")));
-            Console.WriteLine("Connected to OpticStudio (" + (standalone ? "standalone" : "Interactive Extension") + "): " + (string.IsNullOrEmpty(c.System.SystemFile) ? "(untitled)" : c.System.SystemFile));
+            var options = ConnectionOptions.FromArgs(a);
+            if (options.FileToLoad != null) options.FileToLoad = Path.GetFullPath(options.FileToLoad);
+            var c = ZosConnection.Connect(options, Console.WriteLine);
+            Console.WriteLine("System: " + (string.IsNullOrEmpty(c.System.SystemFile) ? "(untitled)" : c.System.SystemFile));
             return c;
         }
 
