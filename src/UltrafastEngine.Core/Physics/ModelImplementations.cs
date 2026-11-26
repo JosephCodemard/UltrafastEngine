@@ -17,8 +17,10 @@ namespace UltrafastEngine.Physics
     /// <code>{"kind":"expression", "expr":"n2x*I + dn0*sin(2*pi*t_lab/T)", "exprIm":"0",
     ///  "params":{"n2x":1e-20,"dn0":1e-5,"T":2.7e-15}, "carrierResolved": true}</code>
     /// </summary>
-    public sealed class ExpressionTimeResponse : ITimeDomainResponse, IDeviceTimeResponse
+    public sealed class ExpressionTimeResponse : ITimeDomainResponse, IDeviceTimeResponse, IResponseMemory
     {
+        /// <summary>Declared memory of the response (key <c>memoryS</c>, s; NaN if not given): the grid planner makes the window hold it.</summary>
+        public double MemoryS { get; }
         public static readonly string[] Vars = { "t", "t_lab", "t_arrival", "z", "L", "I", "Ix", "Iy", "I_inst", "E", "omega0", "lambda0", "Aeff", "x", "y", "r", "theta", "spatial", "F" };
         private readonly CompiledExpression _re, _im;
         public bool NeedsCarrierResolution { get; }
@@ -30,6 +32,7 @@ namespace UltrafastEngine.Physics
             string im = s.Json.GetString("exprIm");
             if (!string.IsNullOrEmpty(im)) _im = CompiledExpression.Compile(im, Vars, p);
             NeedsCarrierResolution = s.Json.GetBool("carrierResolved", false);
+            MemoryS = s.GetDouble("memoryS", double.NaN);
         }
         public bool TryDeviceCode(Func<string, string> variable, ISet<string> used, out string re, out string im)
         {
@@ -68,11 +71,13 @@ namespace UltrafastEngine.Physics
     }
 
     /// <summary>Delta n(t) from a registered callback (C#, Python, C/C++).</summary>
-    public sealed class CallbackTimeResponse : ITimeDomainResponse
+    public sealed class CallbackTimeResponse : ITimeDomainResponse, IResponseMemory
     {
         private readonly TimeResponseCallback _cb; private readonly string _name;
         public bool NeedsCarrierResolution { get; }
-        public CallbackTimeResponse(string name, TimeResponseCallback cb, bool carrierResolved) { _name = name; _cb = cb; NeedsCarrierResolution = carrierResolved; }
+        /// <summary>Declared memory of the response (key <c>memoryS</c>, s; NaN if not given): the grid planner makes the window hold it.</summary>
+        public double MemoryS { get; }
+        public CallbackTimeResponse(string name, TimeResponseCallback cb, bool carrierResolved, double memoryS = double.NaN) { _name = name; _cb = cb; NeedsCarrierResolution = carrierResolved; MemoryS = memoryS; }
         public string Description => "callback @" + _name + (NeedsCarrierResolution ? " [carrier-resolved]" : "");
         public void Evaluate(ResponseContext c, double[] dnRe, double[] dnIm) => _cb(c, dnRe, dnIm);
     }

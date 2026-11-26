@@ -69,6 +69,25 @@ least 10 % of the carrier (`grid.minSpanFraction`) so that user responses have r
 FWHM. Explicit `n`/`windowS` act as a resolution floor. `edgeEnergyFraction` in the results warns about
 wrap-around; `outsideDataFraction` warns when part of the spectrum relies on extrapolated sampled data.
 
+**Delayed responses.** The window also holds the *memory* of a delayed response: the time after the pulse over which
+its kernel is not negligible, defined as the time after which less than 1e-4 of the integral of |h(t)| remains (9.2 τ for
+exp(−t/τ)). The auto grid adds the longest memory of the system to the half-window it needs. Two responses count:
+
+* the material Raman kernel (`raman`, any `delayedResponse` kind, including `expression` and `callback`). It is sampled
+  on the window's time axis up to +T/2, renormalised to unit integral and applied as a circular convolution. A window
+  shorter than twice the memory cuts it, and the part left acts 1/(kept fraction) too strongly. The memory is found
+  by scanning h(t) from 1 fs to 10 µs with a step of 2.25e-4 of the end of each decade (22.5 fs from 10 to 100 ps).
+  This finds a revival of rms width above about step / 8, for example a 20 fs rms echo at 10.1 ps;
+* a user `timeResponse` that declares `memoryS`. The engine cannot look inside a callback. A response that convolves
+  the intensity with a kernel on the periodic window must state how long the kernel lasts. Responses computed sample by
+  sample from I(t) and the running fluence F(t) (every `expression`) never wrap and need no `memoryS`.
+
+The rotational Raman response of a molecular gas (N2, O2, CO2, H2, air) does not count. It is applied as a zero-padded,
+linear convolution, so light anywhere in the window sees the whole history of the index change, and nothing wraps. A
+revival (8.4 ps in N2) only acts on light that is there, and the window already holds that light (the pulse, its
+satellites). Short-pulse runs in air keep their grids. When `grid.maxN` or a manual grid gives a window shorter than
+twice the memory, the run warns with the element, the window and the number of samples it needs.
+
 ## Grid tails and delayed light
 
 Weak light that arrives long after the pulse (ghosts, mirror-substrate echoes, coating-ripple pedestals, delayed

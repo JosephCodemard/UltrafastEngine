@@ -2,7 +2,7 @@
 
 <!-- Generated from the test attributes: dotnet tests/UltrafastEngine.Tests/bin/Release/net10.0/UltrafastEngine.Tests.dll --matrix docs/reference/validation-matrix.md -- do not edit. -->
 
-Every C# test of the engine: **714 tests** in 77 classes. **456** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
+Every C# test of the engine: **713 tests** in 77 classes. **455** of them check the engine against something outside it -- an analytic result, a published value or another code -- named in the *reference* column with the agreement required. **27** are cross-checks between two parts of the engine (a reference starting with "cross-"): they catch inconsistency, not a shared error. The others test behaviour and bookkeeping. The narrative overview is [Testing and validation](../testing.md); a test declares its reference with `[Test(Reference = "...", Tolerance = "...")]`.
 
 | area | class | tests | with an external reference |
 |---|---|---|---|
@@ -25,7 +25,7 @@ Every C# test of the engine: **714 tests** in 77 classes. **456** of them check 
 | [Delayed light: the tail ledger, ghosts, echoes, coating ripple, scatter, detectors](#delayedlighttests) | `DelayedLightTests` | 34 | 12 |
 | [Cameras, wavefront sensor, Wigner and space-time probes](#diagnosticstests) | `DiagnosticsTests` | 5 | 4 |
 | [Diffraction by apertures](#diffractiontests) | `DiffractionTests` | 8 | 6 |
-| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 11 | 11 |
+| [Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence](#fibertests) | `FiberTests` | 9 | 9 |
 | [Fidelity switch](#fidelitytests) | `FidelityTests` | 6 | 0 |
 | [Cw sources, nonlinear absorbing boundary, Gerchberg-Saxton, near-field maps](#fieldtoolstests) | `FieldToolsTests` | 6 | 5 |
 | [Fitting plugin: conditions, dependence, surfaces](#fittingconditionstests) | `FittingConditionsTests` | 15 | 9 |
@@ -34,10 +34,10 @@ Every C# test of the engine: **714 tests** in 77 classes. **456** of them check 
 | [FROG geometries: PG, SD, XFROG, kind inference](#frogkindstests) | `FrogKindsTests` | 5 | 5 |
 | [Gain catalogue consistency (Fuchtbauer-Ladenburg)](#gaincatalogueconsistencytests) | `GainCatalogueConsistencyTests` | 2 | 2 |
 | [Gain media, pumping, thermal lens and position-dependent properties](#gaintests) | `GainTests` | 10 | 6 |
-| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 7 | 6 |
+| [Gases: rotational Raman, indices, the refractiveindex.info database](#gastests) | `GasTests` | 8 | 7 |
 | [Memory safety: GPU](#gpumemorytests) | `GpuMemoryTests` | 5 | 5 |
 | [GPU back-ends (CUDA / OpenCL) against the CPU](#gputests) | `GpuTests` | 20 | 15 |
-| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 10 | 10 |
+| [Grid, carrier and solver accuracy](#gridsolvertests) | `GridSolverTests` | 13 | 13 |
 | [HITRAN plugin: line shapes, files, partition sums, absorption in air](#hitrantests) | `HitranTests` | 18 | 10 |
 | [Component sheet: instruments and chi(2) crystals at 515 nm / 1030 nm / 2 um](#instrumentcrystalcomponenttests) | `InstrumentCrystalComponentTests` | 4 | 4 |
 | [Instrument device models: resolution, acceptance, detectors, filters](#instrumentdevicetests) | `InstrumentDeviceTests` | 8 | 3 |
@@ -73,7 +73,7 @@ Every C# test of the engine: **714 tests** in 77 classes. **456** of them check 
 | [Small-scale self-focusing](#smallscaletests) | `SmallScaleTests` | 4 | 3 |
 | [Position-dependent properties of spatial elements](#spatialpropertytests) | `SpatialPropertyTests` | 4 | 2 |
 | [Large spatial runs: frequency streaming, profile retention, cylindrical lens, full-panel budget](#spatialstreamingtests) | `SpatialStreamingTests` | 7 | 7 |
-| [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 9 | 8 |
+| [Spatial (transverse) models](#spatialtests) | `SpatialTests` | 6 | 5 |
 | [FFTs, SIMD kernels and studies](#speedstudytests) | `SpeedStudyTests` | 6 | 2 |
 | [Branched systems: glass in beam splitters and polarising splitters](#splitterglasstests) | `SplitterGlassTests` | 6 | 5 |
 | [Study grid union and point cache](#studycachetests) | `StudyCacheTests` | 3 | 0 |
@@ -478,9 +478,7 @@ Fibres: solitons, dispersion, loss and gain, Raman, noise and coherence.
 | `FundamentalSoliton_PropagatesUnchanged_AndMetricsAreRight` | fundamental soliton sech shape (NLSE) | 1 % |
 | `LossGainAndGainGoal` | exponential loss and gain in dB | 0.01 %, 0.1 % |
 | `QuantumNoise_OnePhotonPerMode_AndCoherentSoliton` | one photon per mode: N ħω of energy | 5 % |
-| `RamanKernel_OnACoarseGrid_HasTheResponseSpectrum` | Blow & Wood, IEEE JQE 25, 2665 (1989): damped-oscillator Raman response, analytic H(w) | 0.5 % |
 | `RamanModels_NormalisedAndHollenbeckPeaksAt13THz` | Hollenbeck & Cantrell, JOSA B 19, 2886 (2002): gain peak 13.2 THz | 1 %, 3 % |
-| `RamanOn_LongPulse_CarrierResolvedAndEnvelopeGiveTheFullKerrPhase` | SPM phase k0 n2 I0 L with a delayed share fR of unit-integral response (long-pulse limit) | 0.1 % |
 | `SolitonSelfFrequencyShift_OnACoarseGrid_MatchesGordon` | Gordon, Opt. Lett. 11, 662 (1986): SSFS rate (perturbation integral over the Raman gain) | 2 % |
 | `TaperedGamma_BIntegralFollowsTheIntegral` | B = ∫ γ(z) P dz | 1 % |
 
@@ -608,6 +606,7 @@ Gases: rotational Raman, indices, the refractiveindex.info database.
 | `RefractiveIndexInfo_FormulasAndTablesMatchTheLibrary` | refractiveindex.info formulas and tables | 1e-12, 1e-09, 2 % |
 | `RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory` | isolated-molecule alignment, high-T limit: n2 = N Δα² / (4 c ε0² 15 kT) | 3 % |
 | `RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter` | rotational n2 of circular light = 1/4 of linear (tensor Raman, Hellwarth) | 3 %, 5 % |
+| `RotationalRaman_RevivalActsOnAProbeAtTheRevival_AndTheWindowNeedsNoRoomForIt` | first-order alignment: the index change at the revival dn(t) = (R * I)(t), R the rigid-rotor kernel (quadrature of KernelAt); linear (zero-padded) convolution: the window does not need to hold the revival | probe phase 2 % of its swing; window independence 1e-6 relative |
 | `RotationalRaman_RevivalsAtTheRotationalPeriod` | rotational revival period 1 / (2 B c) | 5 % |
 
 ## GpuMemoryTests
@@ -658,13 +657,16 @@ Grid, carrier and solver accuracy.
 | `CircularAperture_OnADecentredBeam_IsTheOffsetGaussianIntegral` | decentred Gaussian through a circular aperture: round beam = noncentral chi-square probability (Poisson mixture of regularised incomplete gamma functions, i.e. 1 - Marcum Q1(2d/w, 2a/w)); elliptical beam = 2-D quadrature; small aperture T = 2 a^2/(wx wy) exp(-2 d^2/w^2) | 1e-6 (round), 2e-4 (quadrature), 1e-3 (limit) |
 | `CircularAperture_OnAnEllipticalBeam_IsTheTwoDimensionalIntegral` | elliptical Gaussian through a circular aperture: 2-D quadrature; small aperture T = 2 a^2 / (wx wy); round beam 1 - exp(-2 a^2 / w^2) | 1e-6 (quadrature), 1e-5 (small-aperture limit) |
 | `DelayedResponseLongerThanTheWindow_IsWarnedAbout_AndTheAutoGridHoldsIt` | periodic time grid: the response to a pulse must fit the window (convergence against a window four times larger) | total variation of the spectra 0.02 |
+| `DelayedResponseWithANarrowRevival_TheWindowHoldsTheRevival` | periodic time grid: a delayed response with a revival at 10.1 ps must fit the window (convergence against a window four times larger at the same time step) | memory within 2 % of the revival; centroid shift and rms broadening 1e-6 relative |
 | `FiberDispersionTable_Coarse_ReproducesBeta2_BetweenThePoints` | definition D = -2 pi c beta2 / lambda^2 (Agrawal, Nonlinear Fiber Optics); beta2(w) = b3 (w - wz) + b4 (w - wz)^2 / 2 | 2e-4 relative to beta2 (a linear interpolation of the 53-point table gave ~1e-3) |
 | `Fiber_ElementLevelSelfSteepeningFalse_SwitchesItOff_AndBulkToo` | self-steepening switch: with it off the pulse stays symmetric in time (centroid shift 0); with it on the centroid moves (Agrawal, Nonlinear Fiber Optics, sec. 4.4) | off: centroid shift < 1 % of the on value |
 | `Grating_TrackedAngularDispersion_IsTheGratingEquation_OnAnyGrid` | grating equation: d theta / d lambda = m / (period cos beta) (Treacy, IEEE JQE 5, 454 (1969), eq. 2) | 1e-6 relative |
 | `PulseBroadenedToZeroFrequency_IsReportedAndBooked` | energy conservation of the envelope model: a pulse broadened to zero frequency loses energy there, and says so | exact booking |
 | `Pulse_IsCentredOnTheRequestedCarrier_NotTheSnappedOne` | definition of the carrier: the input spectrum is centred on the requested wavelength | 1e-6 relative |
 | `PureSpm_PhaseIsGammaPL_OnEveryGrid_At515_1030_And2000nm` | pure SPM in a dispersion-free fibre: A_out = A_in exp(i gamma \|A_in\|^2 L) | 2e-5 relative |
+| `ResponseMemory_OfSmoothResponses_IsTheOriginalValue` | no change for smooth responses: the memory of every built-in delayed response and of every catalogue material is the value of the original scan, so their grids are unchanged | exact (bit-identical); dense scan 0.1 % of 9.21 tau |
 | `Shg_StronglyPhaseMismatchedThickCrystal_FollowsTheSincLaw_AtTheDefaultStepper` | plane-wave SHG at low conversion: eta(L) ~ sin^2(dk L / 2) (Armstrong et al., Phys. Rev. 127, 1918 (1962), eq. 2.14 limit) | 4 % (dispersion of the 5 ps pulse and finite bandwidth) |
+| `TimeResponseCallback_DeclaredMemory_IsHeldByTheWindow` | periodic time grid: a user time response that declares its memory (memoryS) gets a window that holds it (convergence against a window four times larger at the same time step) | centroid shift and rms broadening 1e-6 relative |
 
 ## HitranTests
 
@@ -1190,9 +1192,6 @@ Spatial (transverse) models.
 | `Diffraction_GaussianBeamRadiusMatchesAnalytic_Radial` | Gaussian beam w(z) = w0 √(1 + (z/z_R)²) | 0.5 % |
 | `LensAndGap_FocusAGaussianBeamAsGaussianOpticsPredicts` | Gaussian optics: waist λf/(πw) | 2 % |
 | `RadialBasis_QuadratureAndTransformAreExact` | ∫ Gaussian = π w²/2; transform round trip | 1e-06 |
-| `SpatialKerr_SilicaPlate_BeamSizeFollowsTheVirialLaw` | Vlasov, Petrishchev & Talanov, Radiophys. Quantum Electron. 14, 1062 (1971): w^2 = w0^2 [1 + (1 - P/P_G)(z/zR)^2] | 2 % (reported radius from the sampled profile) |
-| `SpatialKerr_Solver_SecondMomentFollowsTheVirialLaw` | Vlasov, Petrishchev & Talanov (1971) virial law with P_G = lambda^2 / (2 pi n0 n2) | 1e-4 |
-| `SpatialKerr_ThinSilicaPlate_OnAxisBAndKerrLensFocalLengthMatchGaussianBeamTheory` | Gaussian-beam Kerr lens: B = k0 n2 I0 zR atan(L/zR); moment focal length f = pi w^4 / (sqrt2 n2 P0 L) | 0.3 % (B), 0.5 % (f) |
 | `ThinKerrLens_PhaseProfileMatchesAnalytic` | thin Kerr lens: k0 n2 I0 L exp(−2r²/w²) | 0.2 % |
 
 ## SpeedStudyTests

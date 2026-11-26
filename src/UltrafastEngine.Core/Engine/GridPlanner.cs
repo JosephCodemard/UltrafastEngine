@@ -128,19 +128,57 @@ namespace UltrafastEngine.Engine
 
         public static int NextPow2(long v) { long p = 1; while (p < v) p <<= 1; return (int)Math.Min(p, 1L << 30); }
 
-        /// <summary>Grid with the carrier moved to the nearest multiple of the frequency step.</summary>
         /// <summary>
         /// The memory of a delayed response h(t) (integral 1, h = 0 for t &lt; 0): the time after which less than <paramref name="tailFraction"/> of
-        /// its weight remains. A nonlinear index change driven by a pulse lasts this long after the pulse; on a periodic time grid it wraps
-        /// around to the leading edge unless the window holds pulse + memory (CS2, tau = 18 ps: 9.2 tau = 166 ps for 1e-4). Found by
-        /// sampling h on a geometric time axis from 1 fs to 10 us.
+        /// its weight (the integral of |h|) remains. A nonlinear index change driven by a pulse lasts this long after the pulse; the material
+        /// Raman kernel is sampled on the window's time axis (to +T/2), renormalised to unit sum and applied as a circular convolution, so a
+        /// window shorter than 2 x memory cuts the kernel and the part left acts 1/(kept fraction) too strongly; with pulse + satellites near
+        /// T/2 it also wraps (CS2, tau = 18 ps: 9.2 tau = 166 ps for 1e-4). Two scans: the original geometric axis from 1 fs to 10 us (1200 points, a step of 1.9 % of t), and a dense one that is
+        /// linear inside every decade (<see cref="DenseSamplesPerDecade"/> points: a step of 2.25e-4 of the decade's end, 2.25 fs from 1 to 10 ps,
+        /// 22.5 fs from 10 to 100 ps, 225 fs from 0.1 to 1 ns), which finds a revival of rms width above about step / 8 (a 20 fs rms echo at
+        /// 10.1 ps) that the geometric axis steps over. The dense value is used only when it is
+        /// more than <see cref="DenseOverrideFactor"/> times the geometric one, so smooth responses keep the memory, and the grid, they had.
         /// </summary>
         public static double ResponseMemoryS(Models.IDelayedResponse r, double tailFraction = 1e-4)
         {
+            double coarse = GeometricMemoryS(r, tailFraction), dense = DenseMemoryS(r, tailFraction);
+            return dense > DenseOverrideFactor * coarse ? dense : coarse;
+        }
+
+        /// <summary>Points per decade of the dense scan of <see cref="ResponseMemoryS"/>.</summary>
+        public const int DenseSamplesPerDecade = 4000;
+        /// <summary>The dense scan replaces the geometric memory only when it is this many times longer.</summary>
+        public const double DenseOverrideFactor = 1.1;
+
+        /// <summary>The memory on the original geometric axis (1 fs to 10 us, 1200 points).</summary>
+        internal static double GeometricMemoryS(Models.IDelayedResponse r, double tailFraction)
+        {
             const int N = 1200; double t0 = 1e-15, ratio = Math.Pow(1e10, 1.0 / N);
             var t = new double[N + 1]; for (int i = 0; i <= N; i++) t[i] = t0 * Math.Pow(ratio, i);
+            return TailTime(r, t, tailFraction);
+        }
+
+        /// <summary>The memory on an axis linear inside each decade from 1 fs to 10 us.</summary>
+        internal static double DenseMemoryS(Models.IDelayedResponse r, double tailFraction)
+        {
+            const int decades = 10, M = DenseSamplesPerDecade;
+            var t = new double[decades * M + 1];
+            for (int k = 0; k < decades; k++)
+            {
+                double a = 1e-15 * Math.Pow(10, k);
+                for (int j = 0; j < M; j++) t[k * M + j] = a * (1 + 9.0 * j / M);
+            }
+            t[decades * M] = 1e-15 * Math.Pow(10, decades);
+            return TailTime(r, t, tailFraction);
+        }
+
+        /// <summary>The first sample time after which less than tailFraction of the trapezoid integral of |h| remains (0 if h cannot be evaluated).</summary>
+        private static double TailTime(Models.IDelayedResponse r, double[] t, double tailFraction)
+        {
+            int N = t.Length - 1;
             double[] h;
             try { h = r.Evaluate(t); } catch { return 0; }
+            if (h == null || h.Length != t.Length) return 0;
             var cum = new double[N + 1]; double total = 0;
             for (int i = 1; i <= N; i++) { total += 0.5 * (Math.Abs(h[i]) + Math.Abs(h[i - 1])) * (t[i] - t[i - 1]); cum[i] = total; }
             if (!(total > 0) || double.IsNaN(total) || double.IsInfinity(total)) return 0;
@@ -148,6 +186,40 @@ namespace UltrafastEngine.Engine
             return 0;
         }
 
+        /// <summary>
+        /// The memory of the responses of one nonlinear medium that the window must hold: the material Raman kernel when it acts
+        /// (<see cref="ResponseMemoryS"/>, a circular convolution on the window) and the memory a user time response declares
+        /// (<see cref="Models.IResponseMemory"/>, key <c>memoryS</c>). The rotational Raman of a gas is not counted: it is applied as a
+        /// zero-padded (linear) convolution, so light in the window sees the whole history of the index change whatever the window, and a
+        /// revival only acts on light that is there (which the window already holds).
+        /// </summary>
+        public static double MediumMemoryS(Physics.NonlinearMedium m)
+        {
+            if (m == null) return 0;
+            double mem = 0;
+            if (m.Raman != null && m.EffectiveRamanFraction > 0) mem = ResponseMemoryS(m.Raman);
+            foreach (var x in m.ExtraResponses)
+                if (x is Models.IResponseMemory d && d.MemoryS > 0 && !double.IsInfinity(d.MemoryS)) mem = Math.Max(mem, d.MemoryS);
+            return mem;
+        }
+
+        /// <summary>
+        /// The warning for a window that cannot hold the memory of a delayed response (null when it can): the kernel is sampled to +T/2 only,
+        /// so a window T &lt; 2 x memory cuts the response and its index change wraps around. It gives the window and the number of samples at
+        /// the planned time step that would hold it (grid.maxN or a manual grid limited it).
+        /// </summary>
+        public static string MemoryWarning(double memoryS, string elementId, GridPlan plan, int maxN)
+        {
+            if (!(memoryS > 0) || plan == null || plan.WindowS >= 2 * memoryS) return null;
+            double dt = plan.WindowS / plan.N, need = Math.Max(plan.RequiredWindowS, 2 * memoryS);
+            long nNeed = NextPow2((long)Math.Ceiling(need / dt));
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "The delayed response of element '{0}' keeps the index changed for {1:G4} ps after the pulse, but the window is {2:G4} ps: the response is cut at half the window and the part left acts too strongly. " +
+                "It needs a window of at least {3:G4} ps, N = {4} at dt = {5:G4} fs (grid.maxN = {6}); raise grid.maxN or grid.windowS / grid.n, or use grid.auto.",
+                elementId ?? "?", memoryS * 1e12, plan.WindowS * 1e12, need * 1e12, nNeed, dt * 1e15, maxN);
+        }
+
+        /// <summary>Grid with the carrier moved to the nearest multiple of the frequency step.</summary>
         public static FrequencyGrid Create(int n, double windowS, double omega0, bool snap, out double snappedOmega0)
         {
             double dt = windowS / n;

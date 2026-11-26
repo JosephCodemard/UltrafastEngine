@@ -229,6 +229,7 @@ respect `minStepM`, `maxStepM` and `maxSteps`.
 | higher-order soliton (N ≈ 2.4) with and without Raman; `fiber` element with Raman or gain | pyNLO | 0.3 % (L1; 0.5 % with gain) | `python/tests/test_pynlo.py` |
 | circular / linear phase, 1.5 × energy, rotation B sin 2χ / 3 | Maker, Terhune & Savage (1964) | 0.5 % ... 1 % | `NerTests` |
 | rotation and circular light with anisotropic Raman | Hellwarth tensor | 1 % ... 2 % | `NerTests.Rotation_WithAnisotropicRaman_UsesTheAnisotropicShare`, `NerTests.CircularLight_SeesLessRamanThanLinear` |
+| window for a delayed response: a 20 fs revival at 10.1 ps found and held; a callback with `memoryS`; built-in responses keep their memory | four times the window at the same step | 1e-6 (centroid shift, rms broadening); exact | `GridSolverTests.DelayedResponseWithANarrowRevival_TheWindowHoldsTheRevival`, `GridSolverTests.TimeResponseCallback_DeclaredMemory_IsHeldByTheWindow`, `GridSolverTests.ResponseMemory_OfSmoothResponses_IsTheOriginalValue` |
 | pulse- and beam-averaged B-integral | 1/√2, 1/2 (Gaussian), 2/3 (sech²) | 1e-6, 1e-4 | `ValidityTests.BIntegral_PulseAndBeamAveraged_AreTheAnalyticFractionsOfThePeak`, `ValidityTests.BIntegral_PulseAveraged_OfASech2Pulse_IsTwoThirdsOfThePeak_AlsoWhenEstimated` |
 | XPW fraction in the [001] and [011] cuts, SPM index against β | cubic χ(3) tensor (Boyd, *Nonlinear Optics*, sec. 4.2; Minkovski et al., Opt. Lett. 29, 2237 (2004)) | 3 %, 0.3 % | `MaterialsCrystalsTests.CubicKerr_*` |
 | Kerr lens: exact solution for c = 1 and 4 at P/P_c = 0, 0.5, 1, 2; collapse distance z_R / √(P/P_c − 1); the ratio 4/3.77 | Ermakov equation; Marburger (1975) | 1e-6, 1 % | `KerrLensTests` |
@@ -241,8 +242,11 @@ respect `minStepM`, `maxStepM` and `maxSteps`.
   `spectrum at non-positive frequency` (not `numerical`) and warns. Use longer pulses or less nonlinearity; the result is
   outside the model's range.
 * **Delayed responses longer than the window.** The index change of a delayed response (Raman, orientational) lasts its
-  memory after the pulse (the time after which 1e-4 of its weight remains: 9.2 τ for exp(−t/τ)). The auto grid adds it to
-  the window; a fixed window that is too short is warned about ("Grid looks too small").
+  memory after the pulse (the time after which 1e-4 of its weight remains: 9.2 τ for exp(−t/τ); a revival extends it
+  to the revival). The auto grid adds it to the window, and so does a user `timeResponse` that declares `memoryS`
+  ([Concepts: grids](../concepts.md#grids)). A window shorter than twice the memory (a manual grid, or `grid.maxN`) is
+  warned about with the element and the window and N it needs. The rotational Raman of gases is a linear convolution
+  and needs no room ([Gases](gases.md#rotational-raman-molecular-orientation)).
 * **Self-focusing in 1-D.** Without `kerrLens` a 1-D element ignores the Kerr lens; with it, the lens is a model of the
   whole pulse, not of each time slice (only the `transverse` model resolves that). The lens uses the power at the
   element's entry: if the power changes by more than 20 % inside the element (dispersion, absorption) the run warns; split

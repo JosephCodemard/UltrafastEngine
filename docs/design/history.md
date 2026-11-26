@@ -568,3 +568,23 @@ Docs only; no engine code changed. Method: a script (scratch, not kept) checked 
 * Known limit, recorded: the per-element `beam.radiusXM` after a strongly SPM-broadened spatial element comes from the 48-frequency sampled profile (`TransverseProfile.Collapse`), 1 % off the exact second moment in the Kerr part of w^2 (0.05 % of w) for spatial-kerr.
 * Checks: solution build (net10.0 + net48) 0 errors; C# `--slow` 709 pass, 0 fail, 1 skipped after `/regen`; Python 525 pass, 12 skipped (with pyNLO); `mkdocs build --strict` 0 warnings; spatial-kerr re-run with `ULTRAFAST_STRICT_OPTIONS=1` gives the README numbers. The `physics-reviewer` subagent could not be started from this agent session (no agent tool); the formulas (P_G from the Hamiltonian, the moment focal length, the 4 sqrt2 ratio) were checked by hand and against the solver; a reviewer pass on the diff is still open.
 * **Physics review (run by the coordinator on the diff).** No physics errors; two test gaps, now closed: `FiberTests.RamanOn_LongPulse_CarrierResolvedAndEnvelopeGiveTheFullKerrPhase` (2 ps at 20 um, field dt 7.8 fs, Raman on: nonlinear phase = k0 n2 I0 L in both solvers within 0.1 %; fails with fR dropped (0.82) or the raw unnormalised kernel (-0.7 %)), and a complex / causal-phase check in `RamanKernel_OnACoarseGrid_HasTheResponseSpectrum` (a time-reversed or sign-flipped kernel fails). Recorded in `limitations.md`: Raman on the cycle-averaged I_env drops the 2 omega0 term (~3 % of the delayed part at 8 um in silica); `SampledResponse` falls back to direct sampling above 2^22 points; and, found while writing the test, carrier-resolved SPM is 33 % high when the envelope grid reaches non-positive frequency (only a note today).
+
+## Stage 44 -- WP P2: delayed-response window planning  (2026-11-26, `dev/wp-p2`, macOS arm64)
+
+* `GridPlanner.ResponseMemoryS` keeps the geometric scan and adds a dense one (linear inside each decade, 4000 points); the dense value
+  is used only when it is more than 1.1 x the geometric one, so every built-in and catalogue Raman kernel keeps its memory and grid
+  (bit-identical, tested). `MediumMemoryS` adds the `memoryS` a user `timeResponse` declares (`Models.IResponseMemory`; new
+  `model:timeResponse` specs for `expression` and `callback`). `MemoryWarning` warns when the window is shorter than twice the memory.
+  Spatial elements and `Executor.PlanDownstreamGrid` now count the memory.
+* Decisions (owner away): (1) the gas rotational Raman gets no room: it is a zero-padded linear convolution on every path (CPU 1-D, spatial,
+  GPU), so nothing wraps and a revival only acts on light already in the window; adding T2 (hundreds of ps) would have enlarged every air
+  run. (2) A callback's memory cannot be found by probing it at compile time (side effects, cost), so it is declared (`memoryS`).
+* Tests: `GridSolverTests.DelayedResponseWithANarrowRevival_TheWindowHoldsTheRevival` (20 fs rms revival at 10.1 ps; the old 6.2 ps plan
+  gave a 42 % larger red shift), `TimeResponseCallback_DeclaredMemory_IsHeldByTheWindow`, `ResponseMemory_OfSmoothResponses_IsTheOriginalValue`,
+  `GasTests.RotationalRaman_RevivalActsOnAProbeAtTheRevival_AndTheWindowNeedsNoRoomForIt` (probe phase at the N2 revival against
+  k0 L (R * I), 2 % of the swing). Examples: grids unchanged (only the "Required window" note moves in six examples).
+* Physics review: no bugs. Fixed: the kernel-cut wording (renormalised, not wrapped) and the scan-step numbers; a dense-scan accuracy check.
+  Open: a test of the downstream re-plan holding the memory, and `MemoryWarning` from that path; analytic (not four-times-window) references
+  for the two GridSolver tests; memory + satellite room are added (conservative, max would do); a non-finite `memoryS` is ignored silently;
+  the memory is not cached per response (a Python callback is evaluated about 42 000 times per plan).
+

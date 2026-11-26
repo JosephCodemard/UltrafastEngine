@@ -65,6 +65,12 @@ The response is on by default for N2, O2, CO2, H2 and air whenever `physics.rama
 material's `"rotationalRaman": false` or an element's `"raman": false`). It works in 1-D, on spatial grids (scalar and
 vector) and in carrier-resolved mode (it follows the cycle-averaged intensity).
 
+**Time window.** The kernel R(t) is applied as a zero-padded, linear convolution of the intensity on the window (exact
+bin integrals of every line). Light anywhere in the window sees the whole history of the index change, and nothing
+wraps around, so the grid planner adds no room for the revivals or for T2 (hundreds of ps at 1 bar). A revival acts
+on light that is there at that time: a probe or a satellite at 8.4 ps behind the pulse, which the window holds
+already. The window of a short pulse in air or N2 is therefore the window it would have without the response.
+
 ### Air in the gaps
 
 A `gap` is air by default, and "Air" is the Ciddor index at 20 °C, 101 325 Pa, dry, 450 ppm CO2. The system's
@@ -99,6 +105,10 @@ temperature from the page's SPECS): see [Materials](materials.md#refractiveindex
   N Δα² / (4 c ε0² 15 kT), 3 %; for N2 the rotational n2 exceeds 2 × the electronic one
   (`RotationalRaman_AdiabaticLimitMatchesIsolatedMoleculeTheory`);
 * revivals at the rotational period 1/(2Bc), 5 % (`RotationalRaman_RevivalsAtTheRotationalPeriod`);
+* a weak probe 8.38 ps behind a 100 fs pump in 1 m of N2: its phase across the full revival equals k0 L (R ⊛ I)(t) of
+  the pump to 2 % of the 3 rad swing; a window that ends before the revival (4 ps) gives the same centroid shift and
+  rms broadening as one four times larger, 1e-6
+  (`RotationalRaman_RevivalActsOnAProbeAtTheRevival_AndTheWindowNeedsNoRoomForIt`);
 * long-pulse SPM uses the total n2, and circular light sees 1/4 of the linear rotational n2 (Hellwarth tensor), 3 % and
   5 % (`RotationalRaman_LongPulseSpmUsesTheTotalN2_AndCircularSeesAQuarter`);
 * `n2Scale` scales the rotational response too, 1e-6 (`N2Scale_In1D_ScalesTheRotationalRamanToo`);

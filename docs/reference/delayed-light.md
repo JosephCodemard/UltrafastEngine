@@ -135,6 +135,11 @@ the +-10 ps window and wraps around to -1.2 ps. Give grid.windowS >= 125 ps, set
 
 Pedestal replicas (`pulse.pedestal`: `replica`, `prePulse`, `postPulse`) are named as `pedestal postpulse`.
 
+**Delayed responses.** The index change of a delayed nonlinear response lasts after the pulse. The window holds that
+memory too: the material Raman kernel (found from h(t), including narrow revivals) and the `memoryS` a user
+`timeResponse` declares. A window shorter than twice the memory is warned about, with the window and N it needs. The
+rotational Raman of gases needs no room (a linear convolution). See [Concepts: grids](../concepts.md#grids).
+
 ## Plate ghosts
 
 A `plate` with `ghosts` adds replicas delayed by `2 n_g d cos(theta_t) / c` per round trip. The round-trip factor uses the

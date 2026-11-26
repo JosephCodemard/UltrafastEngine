@@ -81,6 +81,16 @@ real field and the instantaneous intensity. A model that varies on the optical-c
 the element is then propagated with the real field, with `envelope` it is not ([Nonlinear
 physics](nonlinear.md#carrier-resolved-field-model)).
 
+**Memory.** A response computed sample by sample from I(t) and F(t) needs no room in the window. A callback that
+convolves the intensity with a kernel on the periodic window does: give the time its index change lasts after the
+light as `"memoryS"` (s; for exp(−t/τ), 9.2 τ leaves 1e-4 of the weight), and the auto grid makes the window hold
+it ([Concepts: grids](../concepts.md#grids)). The engine cannot find it from a callback.
+
+```jsonc
+{ "target": "element:cell", "property": "timeResponse", "mode": "add",
+  "model": { "kind": "callback", "name": "slowKerr", "memoryS": 46e-12 } }
+```
+
 ### Overrides
 
 Overrides change a model or a value without editing the elements: another n2, another coating, an added response on

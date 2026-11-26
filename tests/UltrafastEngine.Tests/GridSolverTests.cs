@@ -210,6 +210,133 @@ namespace UltrafastEngine.Tests
             Assert.Less(TotalVariation(auto.Output, big.Output), 0.02, "the auto grid agrees with a 600 ps window");
         }
 
+        private static string R(double v) => v.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>A Kerr cell (constant index, 1 cm) whose material Raman response is h(t) = 0.7 exp(-t/tau)/tau + 0.3 g(t - tRev), g a
+        /// normalised Gaussian of rms width sigma: a fast response and one narrow revival.</summary>
+        private static UltrafastEngine.Systems.SystemDescription RevivalCell(double tau, double tRev, double sigma, double fR)
+        {
+            string h = "step(t)*(0.7*exp(-t/" + R(tau) + ")/" + R(tau) + " + 0.3*exp(-0.5*((t-" + R(tRev) + ")/" + R(sigma) + ")^2)/(" + R(sigma) + "*sqrt(2*pi)))";
+            var mat = O("index", O("kind", "expression", "expr", "1.6137"), "n2", 3e-19, "ramanFraction", fR, "raman", O("kind", "expression", "expr", h));
+            var o = O("format", "ultrafast-system", "version", 2, "name", "revival", "materials", O("rev", mat));
+            o.Set("elements", new JsonArray(new JsonValue[] { O("id", "cell", "type", "bulk", "material", "rev", "lengthM", 0.01, "beam", O("kind", "constant", "radiusM", 50e-6)) }));
+            return UltrafastEngine.Systems.SystemDescription.FromJson(o);
+        }
+
+        /// <summary>Relative difference of two numbers (0 when both are 0).</summary>
+        private static double Rel(double a, double b) => a == b ? 0 : Math.Abs(a - b) / Math.Max(Math.Abs(a), Math.Abs(b));
+        /// <summary>The two spectral observables the convergence tests compare: the shift of the spectral centroid and the growth of the rms width (rad/s).</summary>
+        private static (double Shift, double Broadening) SpectralChange(RunResult r) =>
+            (SpectralCentroid(r.Output) - SpectralCentroid(r.Input), RmsSpectralWidth(r.Output) - RmsSpectralWidth(r.Input));
+
+        [Test(Reference = "periodic time grid: a delayed response with a revival at 10.1 ps must fit the window (convergence against a window four times larger at the same time step)", Tolerance = "memory within 2 % of the revival; centroid shift and rms broadening 1e-6 relative")]
+        public void DelayedResponseWithANarrowRevival_TheWindowHoldsTheRevival()
+        {
+            // h = 0.7 fast (100 fs) + 0.3 in a 20 fs rms revival at 10.1 ps. The original memory scan (a geometric time axis, step 1.9 % of t:
+            // samples at 10.0 and 10.19 ps) stepped over the revival and gave 0.98 ps; the planner then kept a 6.2 ps window (N = 512, dt = 12 fs), the kernel
+            // was cut at half of it and renormalised, so the pulse saw the fast part 1/0.7 times too strongly: the Raman red shift came out
+            // 42 % too large and the rms broadening 15 % too large. The dense scan (linear inside each decade) finds the revival.
+            double tau = 100e-15, tRev = 10.1e-12, sigma = 20e-15;
+            var sys = RevivalCell(tau, tRev, sigma, 0.5);
+            var h = new UltrafastEngine.Materials.FunctionDelayedResponse("revival", t => t.Select(x => x < 0 ? 0 : 0.7 * Math.Exp(-x / tau) / tau + 0.3 * Math.Exp(-0.5 * Math.Pow((x - tRev) / sigma, 2)) / (sigma * Math.Sqrt(2 * Math.PI))).ToArray());
+            Assert.Less(UltrafastEngine.Engine.GridPlanner.GeometricMemoryS(h, 1e-4), 1.5e-12, "the original geometric scan misses the revival (the old failure)");
+            var pulse = O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 200e-15, "energyJ", 1.8e-7, "polarization", "x");
+            var phys = O("selfSteepening", false);
+            var auto = Go(sys, Spec(pulse, O("physics", phys)));
+            double win = auto.Output.Grid.N * auto.Output.Grid.DTime;
+            Assert.Close(tRev, UltrafastEngine.Engine.GridPlanner.ResponseMemoryS(h), 0.02, 0, "the memory ends at the revival");
+            Assert.Greater(win, 2 * tRev, "the planned window holds the revival (the kernel is sampled to +T/2)");
+            // the reference: four times the planned window at the same time step
+            var big = Go(sys, Spec(pulse, O("physics", phys, "grid", O("n", 4 * auto.Output.Grid.N, "windowS", 4 * win, "auto", false))));
+            var small = Go(sys, Spec(pulse, O("physics", phys, "grid", O("n", 512, "windowS", 512 * auto.Output.Grid.DTime, "auto", false))));   // the old plan
+            var (sA, bA) = SpectralChange(auto); var (sB, bB) = SpectralChange(big); var (sS, bS) = SpectralChange(small);
+            Assert.Greater(auto.Records[0].BIntegralRad, 2, "strongly nonlinear");
+            Assert.Less(Rel(sA, sB), 1e-6, "converged: the centroid shift equals that of a window four times larger");
+            Assert.Less(Rel(bA, bB), 1e-6, "converged: the rms broadening equals that of a window four times larger");
+            Assert.Greater(Rel(sS, sB), 0.2, "the window the old planner chose: the delayed part 1/0.7 too strong");
+            Assert.True(small.Warnings.Any(w => w.Contains("delayed response of element 'cell'") && w.Contains("needs a window of at least")), "a manual window that cuts the response is warned about, with the size it needs");
+            // grid.maxN too small for the window at the resolution the spectrum needs: the planner limits the window and says what it needs
+            var capped = Go(sys, Spec(pulse, O("physics", phys, "grid", O("maxN", 64))));
+            Assert.Less(capped.Output.Grid.N * capped.Output.Grid.DTime, 2 * tRev, "maxN = 64 limits the window");
+            Assert.True(capped.Warnings.Any(w => w.Contains("delayed response of element 'cell'") && w.Contains("grid.maxN = 64") && w.Contains("N = ")), "the warning gives the window and N it needs");
+        }
+
+        [Test(Reference = "no change for smooth responses: the memory of every built-in delayed response and of every catalogue material is the value of the original scan, so their grids are unchanged", Tolerance = "exact (bit-identical); dense scan 0.1 % of 9.21 tau")]
+        public void ResponseMemory_OfSmoothResponses_IsTheOriginalValue()
+        {
+            var reg = Models.ModelRegistry.CreateDefault();
+            var list = new System.Collections.Generic.List<Models.IDelayedResponse>();
+            foreach (var kind in new[] { "silica", "linAgrawal", "hollenbeck", "orientational" })
+                list.Add(reg.Create<Models.IDelayedResponse>("delayedResponse", Models.ModelSpec.FromJson(O("kind", kind), Models.ModelSource.EngineDefault, "test")));
+            list.Add(new UltrafastEngine.Materials.DampedOscillatorResponse(62.5e-15, 77e-15));
+            foreach (var name in UltrafastEngine.Materials.MaterialLibrary.BuiltInNames)
+            {
+                UltrafastEngine.Materials.Material m;
+                try { m = UltrafastEngine.Materials.MaterialLibrary.BuiltIn(name); } catch { continue; }
+                if (m?.Raman != null) list.Add(m.Raman);
+            }
+            Assert.Greater(list.Count, 6, "responses checked");
+            // the dense scan itself: exp(-t/tau)/tau leaves 1e-4 of its weight after ln(1e4) tau = 9.21 tau
+            var ex = new UltrafastEngine.Materials.FunctionDelayedResponse("exp", t => t.Select(x => x < 0 ? 0 : Math.Exp(-x / 18e-12) / 18e-12).ToArray());
+            Assert.Close(Math.Log(1e4) * 18e-12, UltrafastEngine.Engine.GridPlanner.DenseMemoryS(ex, 1e-4), 1e-3, 0, "dense memory of exp(-t/tau)");
+            foreach (var r in list)
+            {
+                double old = UltrafastEngine.Engine.GridPlanner.GeometricMemoryS(r, 1e-4), now = UltrafastEngine.Engine.GridPlanner.ResponseMemoryS(r);
+                Assert.True(old > 0 && now == old, r.Description + ": memory " + now + " s, original " + old + " s");
+            }
+        }
+
+        /// <summary>A Kerr cell (1 cm, n2 = 0) with a user time response that convolves the intensity with exp(-t/tau)/tau on the periodic
+        /// window (an FFT, as a callback might): dn = n2d (h * I).</summary>
+        private static Models.ModelRegistry SlowCallback(double tau, double n2d)
+        {
+            var reg = Models.ModelRegistry.CreateDefault();
+            reg.RegisterCallback("slowKerr", (Models.TimeResponseCallback)((ctx, re, im) =>
+            {
+                int n = ctx.N; double dt = ctx.T[1] - ctx.T[0];
+                var hk = new Complex[n]; var ik = new Complex[n];
+                for (int j = 0; j < n; j++) { hk[j] = Math.Exp(-j * dt / tau) / tau * dt; ik[j] = ctx.Intensity[j]; }
+                var H = UltrafastEngine.Numerics.ComplexFft.Forward(hk); var I = UltrafastEngine.Numerics.ComplexFft.Forward(ik);
+                for (int k = 0; k < n; k++) H[k] *= I[k];
+                var y = UltrafastEngine.Numerics.ComplexFft.Inverse(H);
+                for (int i = 0; i < n; i++) re[i] = n2d * y[i].Real;
+            }));
+            return reg;
+        }
+
+        [Test(Reference = "periodic time grid: a user time response that declares its memory (memoryS) gets a window that holds it (convergence against a window four times larger at the same time step)", Tolerance = "centroid shift and rms broadening 1e-6 relative")]
+        public void TimeResponseCallback_DeclaredMemory_IsHeldByTheWindow()
+        {
+            // a callback convolving I with exp(-t/5 ps) on the window: the engine cannot see inside it. Without memoryS the planner sizes the
+            // window for the 300 fs pulse alone (12.4 ps) and the slow index change wraps around onto the pulse's leading edge: the centroid
+            // shift came out 9 % and the rms broadening 16 % off. With memoryS = 9.2 tau (1e-4 of the weight left) the window is 199 ps.
+            double tau = 5e-12, n2d = 3e-19;
+            var mat = O("index", O("kind", "expression", "expr", "1.6137"), "n2", 0.0);
+            var o = O("format", "ultrafast-system", "version", 2, "name", "slow", "materials", O("slow", mat));
+            o.Set("elements", new JsonArray(new JsonValue[] { O("id", "cell", "type", "bulk", "material", "slow", "lengthM", 0.01, "beam", O("kind", "constant", "radiusM", 50e-6)) }));
+            var sys = UltrafastEngine.Systems.SystemDescription.FromJson(o);
+            var pulse = O("shape", "gaussian", "centerWavelengthM", 800e-9, "durationFwhmS", 300e-15, "energyJ", 4e-7, "polarization", "x");
+            JsonObject Run(JsonObject model, JsonObject grid)
+            {
+                var r = O("physics", O("selfSteepening", false));
+                if (grid != null) r.Set("grid", grid);
+                r.Set("overrides", A(O("target", "element:cell", "property", "timeResponse", "mode", "add", "model", model)));
+                return r;
+            }
+            var declared = O("kind", "callback", "name", "slowKerr", "memoryS", 9.2 * tau);
+            var silent = O("kind", "callback", "name", "slowKerr");
+            var auto = Go(sys, Spec(pulse, Run(declared, null)), SlowCallback(tau, n2d));
+            var bare = Go(sys, Spec(pulse, Run(silent, null)), SlowCallback(tau, n2d));
+            var big = Go(sys, Spec(pulse, Run(silent, O("n", 4 * auto.Output.Grid.N, "windowS", 4 * auto.Output.Grid.N * auto.Output.Grid.DTime, "auto", false))), SlowCallback(tau, n2d));
+            double win = auto.Output.Grid.N * auto.Output.Grid.DTime;
+            var (sA, bA) = SpectralChange(auto); var (sB, bB) = SpectralChange(big); var (s0, b0) = SpectralChange(bare);
+            Assert.Greater(win, 2 * 9.2 * tau, "the planned window holds the declared memory");
+            Assert.Less(Rel(sA, sB), 1e-6, "converged: the centroid shift equals that of a window four times larger");
+            Assert.Less(Rel(bA, bB), 1e-6, "converged: the rms broadening equals that of a window four times larger");
+            Assert.Greater(Rel(s0, sB), 0.05, "without memoryS the window is sized for the pulse and the response wraps (centroid shift)");
+            Assert.Greater(Rel(b0, bB), 0.05, "without memoryS: rms broadening");
+        }
+
         [Test(Reference = "self-steepening switch: with it off the pulse stays symmetric in time (centroid shift 0); with it on the centroid moves (Agrawal, Nonlinear Fiber Optics, sec. 4.4)", Tolerance = "off: centroid shift < 1 % of the on value")]
         public void Fiber_ElementLevelSelfSteepeningFalse_SwitchesItOff_AndBulkToo()
         {
