@@ -358,6 +358,19 @@ types (the old `Connect` initialised and used ZOSAPI in one method, which can fa
 also after a failed check and on Ctrl+C. `ZosOpticStudio.cs` was split into system access and analyses. Built against the extended stubs
 with Mono reference assemblies on macOS; nothing ran on OpticStudio: `HARDWARE-CHECKLIST.md` step 3b lists what the owner must check.
 
+## Stage 22 -- WP P1: glass in beam splitters  (2026-11-25, `dev/wp-p1`, macOS arm64)
+
+* `beamSplitter` and `polarizingSplitter` take `material`, `transmittedThicknessM` and `reflectedThicknessM` (closing the "beam splitters
+  have no glass" gap of Stage 11). The glass terms (`BulkTerm`, plus `AttenuationTerm` when the material absorbs) sit on
+  `BeamSplitterElement.TransmittedGlass` / `ReflectedGlass` and run after the 2x2 split through `Executor.ApplyTerm`, the same arithmetic as a
+  plate. Sequential systems put the continuing port's frame into `ctx.Own`; Branched systems add each output's glass to its own path
+  ledger in `GraphExecutor.AddGlass` (the side ports start from the unglassed ledger: an early version let them inherit the kept port's
+  glass, which the Mach-Zehnder test caught once the window held the 9.7 ps arm delay). A fed beam on port b in a Sequential system is
+  put in the main beam's frame (`Reframe`). Tail ledgers go through the glass with the splitter coefficient. Splitter + glass equals
+  splitter + ideal-AR plate per arm to 1e-12; no glass runs no new code. Sequential tails cross the continuing port's glass too
+  (`Executor.RunElement`; found by the physics review). Open, not P1: a fed beam on another carrier (1035 nm against 1030 nm) gives a
+  different spectrum in a Sequential and a Branched system even without glass; the fed-beam glass test therefore uses one carrier.
+
 ## Working notes that still help
 
 * **Bug pattern** seen four times: a documented element key read only through run-spec overrides and never from the element's own JSON (`n2`, `raman`, `fR`, `selfSteepening`). When adding an element key, read it with the `Num/Bool/Str` helpers (element JSON **and** override), and test that the element key equals the same value set on the material.
@@ -368,7 +381,7 @@ with Mono reference assemblies on macOS; nothing ran on OpticStudio: `HARDWARE-C
 * **macOS machine:** no Mono (net48 runs only in CI); `pdftoppm` is not installed, so PDFs are read with `pypdf` or PDFKit; the sandbox denies the `.venv` interpreter for subagents (plain `python3` works with `PYNLO_SRC`).
 * **Licensed PDFs** in `docs/papers/*.pdf` are git-ignored; several were scans with garbled OCR (Michelson-Morley, Perot-Fabry, Treacy, Shimizu): unreadable numbers are UNVERIFIED in each `paper.json`.
 
-## Stage 22 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
+## Stage 23 -- WP B2: the style linter  (2026-11-25, `dev/wp-b2`, macOS arm64)
 
 * `build/style_lint.py` parses the banned-filler, British-spelling and term tables of `docs/style.md` (nothing is duplicated in code), strips
   code, inline code, HTML, link targets and URLs, and reports `file:line: rule`. Entries with a qualifier it cannot judge ("(as a noun)",
@@ -378,21 +391,21 @@ with Mono reference assemblies on macOS; nothing ran on OpticStudio: `HARDWARE-C
   hash of the line, so moving a line keeps it allowed and editing it does not. CI runs the linter in `docs-and-examples`; `--update-baseline`
   shrinks the file once the prose is fixed (C2 and D do that). `docs/style.md` and `docs/design/notes/` are not scanned.
 
-## Stage 23 -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
+## Stage 24 -- WP C2f: reference pages calculators, pulse calculator, plotting, MCP; concepts and capabilities  (2026-11-25, `dev/wp-c2f`)
 
 Rewrote `calculators.md`, `pulse-calculator.md`, `plotting.md` and `mcp.md` to the reference template (Keys, Model, Validation, Limits) and corrected `concepts.md` and `capabilities.md`. Each of the 40 rows of `notes/reference-audit-f.md` was re-checked against the source and closed with a resolution column (40 fixed, none kept, none found wrong); seven code-side findings are listed in the audit's section "Code findings for WP C4" (no code edited). Plotting history text (work-package names, "before" images) was removed. `mkdocs build --strict` gives 0 warnings.
 
-## Stage 24 -- WP C2e: reference pages of group e  (2026-11-25, `dev/wp-c2e`)
+## Stage 25 -- WP C2e: reference pages of group e  (2026-11-25, `dev/wp-c2e`)
 
 Rewrote `instruments.md`, `retrieval.md`, `measured-data.md`, `results.md` and `studies.md` to the B1 reference template (Keys, Model or behaviour, Validation with test names, Limits) and closed all rows of `reference-audit-e.md` (column "resolution"). Each audit row was re-checked against the source: the page claim on the main lobe at the window edge was stale (A2 made it a finite lower bound, not null), the audit's own row on it was wrong, as were its rows on the study `element:ID*` wildcard (only the prefix-cache lookup uses it) and on imaging instruments not ignoring `sampling` (the executor skips it and adds a note). The 18-row instrument key table became a table of reported values with links to `options.md`; the `240 fs to 26 fs` floor example was replaced by what `MeasuredSpectrumTests` asserts. Anchors other pages and `options.md` link to were kept. `mkdocs build --strict`: 0 warnings.
 
-## Stage 25 -- WP AG1: user agent pack split from the development rules  (2026-11-26, `dev/wp-ag1`, macOS arm64)
+## Stage 26 -- WP AG1: user agent pack split from the development rules  (2026-11-26, `dev/wp-ag1`, macOS arm64)
 
 * The pack (`python/src/ultrafast/agents/pack/`) gained `AGENTS.md` (how to drive the engine: files, discovery commands, running, results, habits, MCP) and `llms.txt` (index with documentation-site URLs only). One source each: the Python wheel ships them (`package-data`) and the CLI embeds the same files, so `ultrafast agent install` and `ultrafast-agent install` stay byte-identical. The repository `AGENTS.md` / `CLAUDE.md` / `llms.txt` are untouched and are not copies.
 * Install layout (decision): claude `.claude/ultrafast/AGENTS.md`; cursor an `alwaysApply` rule `ultrafast-guide.mdc`; codex the guide as the first part of the marked block; all `.ultrafast/llms.txt`. Claude Code does not read a nested AGENTS.md, so the docs tell the user to import it from `CLAUDE.md`; the installer never edits the user's files.
 * `test_agents.py`: `REPO_TERMS` (BuiltIn, CHANGELOG, /regen, worktree, Experiments, ZOSAPI, dotnet build, ...) is searched in every pack file and every installed file; the installed pack must hold the guide. `sync_skills.py --check` fails when the two files are missing.
 
-## Stage 26 -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
+## Stage 27 -- WP C2a: reference pages of group a  (2026-11-26, `dev/wp-c2a`, macOS arm64)
 
 * Rewrote `system-file`, `run-spec`, `schema`, `cli`, `c-api`, `python`, `plugins` and `extending` to the reference template (Keys, Validation, Limits) and added a resolution column to every row of the group-a audit: 125 rows: 83 fixed on the page (of them 3 also with a code finding), 4 code findings only, 38 kept (page already right, or the audit was wrong). Each finding was re-checked against the source and the built CLI.
 * The audit was wrong twice: `crystal` does declare `chi3` and `n2` (the long `ionization` line in `BuiltInElements.cs:268` hides them; strict validation accepts both), and `ultrafast.System` and `ultrafast.system.System` are one class. Its exit-code row was incomplete: `ultrafast validate` returns 3 for an invalid file.
